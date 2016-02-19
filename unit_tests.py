@@ -20,51 +20,132 @@
 #
 
 from bitcoinlib import *
+import unittest
 
 def test_main():
-    # - Test 1 - Method: change_base(input, base_from, base_to, min_lenght=0)
-    test_set = {
-        ('F1', 16, '11110001', 2, 0),
-        ('a3', 16, '10100011', 2, 0),
-        ('11110001', 2, 'f1', 16, 0),
-        ('f001', 16, '61441', 10, 0),
-        (61441, 10, 'f001', 16, 0),
-        ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, '5283658277747592673868818217239156372404875337009783985623', 10, 0),
-        ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, '\xd7{\xf7b\x8c\x19\xe6\x99\x01\r)xz)\xaf\xcf\x8e\x92\xadZ\x05=U\xd7', 256, 0),
-        ('5283658277747592673868818217239156372404875337009783985623', 10, 'LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 0),
-        (3, 10, '0011', 2, 4),
-    }
-    # for var in test_set:
-    #     result = change_base(var[0], var[1], var[3], var[4])
-    #     print "%s base %s = %s base %s  ==>  Result: %s" % (repr(var[0]), var[1], repr(var[2]), var[3], "Ok" if result==var[2] else "ERROR!!! " + repr(result))
-
-    # - Test 2 - PrivateKey class
-    # privatekey_hex = '0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D'
-    # k = PrivateKey(privatekey_hex)
-    # print "PrivateKey DEC test result: %r (%s)" % (k.get_dec()=='5500171714335001507730457227127633683517613019341760098818554179534751705629', k.get_dec())
-    # print "PrivateKey HEX test result: %r (%s)" % (k.get_hex()=='0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d', k.get_hex())
-    # print "PrivateKey BIN test result: %r (%s)" % (k.get_bit()=='0000110000101000111111001010001110000110110001111010001000100111011000000000101100101111111001010000101101111100101011100001000111101100100001101101001110111111000111111011111001000111000110111110100010011000001001111110000110011101011100101010101000011101', k.get_bit())
-    # print "PrivateKey WIF test result: %r (%s)" % (k.get_wif(False)=='5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ', k.get_wif(False))
-    # print "PrivateKey WIF compressed test result: %r (%s)" % (k.get_wif()=='KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617', k.get_wif())
-    # k.import_hex('56c05ebf6e8e9c4719d87c12e915cf41125fce719fc164539c2d9beebc3d220f')
-    # print "PritateKey import HEX test, passed: %r" % (k.get_wif()=='Kz8LvfZqTvviTrFF27u9wBwHFhZHifnAp6WTzfqtSaFPq51iogZS')
-    # k.import_wif('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    # print "PrivateKey import WIF test, passed: %r" % (k.get_hex()=='88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b')
-    # try:
-    #     k.import_wif('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyT2') # test with invalid checksum
-    #     print "ERROR: Should not accept WIF key with invalid checksum"
-    # except ValueError as err:
-    #     if err.args[0] == "Invalid checksum, not a valid WIF compressed key":
-    #         print "PrivateKey validation Passed"
-    #     else:
-    #         print "ERROR: Should not accept WIF key with invalid checksum"
-
     # - Test 3 - PublicKey class
     publickey_hex = '0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6'
     K = PublicKey(publickey_hex)
-    print K.get_point()
-    print K.get_address()
+    tests = {
+        # ('K.get_hex()', '0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6', True),
+        # ('K.get_pointd()', "ERROR PublicKey instance has no attribute 'get_pointd'", False),
+        # ('K.get_address()', '16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', True),
+    }
+    count = 1
+    for test in tests:
+        try:
+            print "=== Test %d: Evaluate %s ===" % (count, test[0])
+            result = eval(test[0])
+            print "Output         : %s" % result
+            print "Expected output: %s" % test[1]
+            if test[1] == result:
+                print "Test passed"
+            else:
+                print "TEST FAILED!"
+        except Exception as err:
+            if test[2] and test[1]==err.args[0]:
+                print "TEST FAILED! ERROR", err.args[0]
+            else:
+                print "Expected error: ", test[1]
+                print "Test passed"
+        print ""
+        count += 1
+
+class TestGlobalMethods(unittest.TestCase):
+
+    def test_change_base_hex_bit(self):
+        self.assertEqual(change_base('F1', 16, 2), '11110001')
+
+    def test_change_base_hex_bit_lowercase(self):
+        self.assertEqual(change_base('a3', 16, 2), '10100011')
+
+    def test_change_base_bit_hex(self):
+        self.assertEqual(change_base('11110001', 2, 16), 'f1')
+
+    def test_change_base_hex_dec(self):
+        self.assertEqual(change_base('f001', 16, 10), '61441')
+
+    def test_change_base_dec_hex(self):
+        self.assertEqual(change_base('61441', 10, 16), 'f001')
+
+    def test_change_base_b58_dec(self):
+        self.assertEqual(change_base('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 10), '5283658277747592673868818217239156372404875337009783985623')
+
+    def test_change_base_b58_bin(self):
+        self.assertEqual(change_base('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 256), '\x00\xd7{\xf7b\x8c\x19\xe6\x99\x01\r)xz)\xaf\xcf\x8e\x92\xadZ\x05=U\xd7')
+
+    def test_change_base_dec_b58(self):
+        self.assertEqual(change_base('5283658277747592673868818217239156372404875337009783985623', 10, 58), 'LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx')
+
+    def test_change_base_padding(self):
+        self.assertEqual(change_base(3, 10, 2, 4), '0011')
+
+    def test_change_base_bin_b58(self):
+        self.assertEqual(change_base("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58), '16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM')
+
+
+class TestPrivateKeyConversions(unittest.TestCase):
+
+    def setUp(self):
+        self.privatekey_hex = 'b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58'
+        self.k = PrivateKey(self.privatekey_hex)
+
+    def test_private_key_conversions_dec(self):
+        self.assertEqual(self.k.get_dec(), '83827997552125623280808720137320612316470870230953489181279239295529837939288')
+
+    def test_private_key_conversions_hex(self):
+        self.assertEqual(self.k.get_hex(), 'b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58')
+
+    def test_private_key_conversions_bit(self):
+        self.assertEqual(self.k.get_bit(), '1011100101010100111101110001100100110011100110000110111000111101111001110110110100111010100101000100010101001101110001010010111011000000100000101100011001100010101110100110011111001010001110111010010010001111111101110010101111000010011100000100101001011000')
+
+    def test_private_key_conversions_wif_uncompressed(self):
+        self.assertEqual(self.k.get_wif(False), '5KDudqswBNJ8mf2k7Gxn72UknDBh7GFjj9NGJrY22SY1hjKS1gF')
+
+    def test_private_key_conversions_wif(self):
+        self.assertEqual(self.k.get_wif(), 'L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
+
+    def test_private_key_get_public(self):
+        self.assertEqual(self.k.get_public(), '034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
+
+    def test_private_key_get_public_uncompressed(self):
+        self.assertEqual(self.k.get_public(False), '044781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd991064c2e7f7d532b9c9ca825671a8809ab6876c78b')
+
+
+class TestPrivateKeyImport(unittest.TestCase):
+
+    def test_private_key_import_wif(self):
+        self.k = PrivateKey('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+        self.assertEqual(self.k.get_hex(), '88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b')
+
+    def test_private_key_import_wif_uncompressed(self):
+        self.k = PrivateKey('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
+        self.assertEqual(self.k.get_hex(), 'c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a')
+
+
+class TestPublicKeyConversion(unittest.TestCase):
+
+    def setUp(self):
+        self.publickey_hex = '044781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd991064c2e7f7d532b9c9ca825671a8809ab6876c78b'
+        self.K = PublicKey(self.publickey_hex)
+        self.KC = PublicKey('034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
+
+    def test_public_key_get_address_uncompressed(self):
+        self.assertEqual(self.K.get_address(), '12ooWDQp6mujkVpEWHdfHmfM4rU17bokWw')
+
+    def test_public_key_get_address(self):
+
+        self.assertEqual(self.KC.get_address(), '1P2X35YnajqoBXtPpQXJzV1QMnqSZQsn82')
+
+    def test_public_key_get_point(self):
+        self.assertEqual(self.K.get_point(), (32343711077743629729728681292399790965391040816412086995020432364076041835733, 55281192143835269607479311758661973079027103826274522268778194868406595274635))
+
+    def test_public_key_get_hash160_uncompressed(self):
+        self.assertEqual(self.K.get_hash160(), '13d21450578cd8f8645d2e56e684deb7cd77864b')
+
+    def test_public_key_get_hash160(self):
+        self.assertEqual(self.KC.get_hash160(), 'f19c417fd97e364afb06e1edd2c0e6a7ecf1af00')
 
 
 if __name__ == '__main__':
-    test_main()
+    unittest.main()

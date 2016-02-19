@@ -22,6 +22,7 @@
 import ecdsa
 import hashlib
 import random
+import os
 
 # secp256k1, http://www.oid-info.com/get/1.3.132.0.10
 _p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2FL
@@ -32,6 +33,13 @@ _Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798L
 _Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8L
 curve_secp256k1 = ecdsa.ellipticcurve.CurveFp(_p, _a, _b)
 generator_secp256k1 = ecdsa.ellipticcurve.Point(curve_secp256k1, _Gx, _Gy, _r)
+
+oid_secp256k1 = (1, 3, 132, 0, 10)
+SECP256k1 = ecdsa.curves.Curve("SECP256k1", curve_secp256k1, generator_secp256k1, oid_secp256k1)
+ec_order = _r
+
+curve = curve_secp256k1
+generator = generator_secp256k1
 
 code_strings = {
     2: '01',
@@ -50,16 +58,19 @@ def get_code_string(base):
     else:
         raise ValueError("Invalid base!")
 
+
 def change_base(input, base_from, base_to, min_lenght=0):
     code_str = get_code_string(base_to)
     code_str_from = get_code_string(base_from)
     output = ''
     input_dec = 0
+    addzero = False
 
     # Convert input to decimal
-    if isinstance(input, int):
+    if isinstance(input, (int, long)):
         input_dec = input
     elif isinstance(input, str):
+        input = input.lstrip('0')
         factor = 1
         while len(input):
             pos = code_str_from.find(input[-1:])
@@ -68,6 +79,8 @@ def change_base(input, base_from, base_to, min_lenght=0):
             if pos == -1:
                 raise ValueError("Unknown character in input format")
             input_dec += pos * factor
+            if len(input)==1 and not pos:
+                addzero = True
             input = input[:-1]
             factor *= base_from
     else:
@@ -80,6 +93,8 @@ def change_base(input, base_from, base_to, min_lenght=0):
         output = code_str[r] + output
     if input_dec:
         output = code_str[input_dec] + output
+    if addzero and base_to != 10:
+        output = code_str[0] + output
 
     # Add leading zero's
     while len(output) < min_lenght:
@@ -88,17 +103,37 @@ def change_base(input, base_from, base_to, min_lenght=0):
     return output
 
 
+def get_privkey_format(priv):
+    if isinstance(priv, (int, long, float)): return 'decimal'
+    elif len(priv) == 32: return 'bin'
+    elif len(priv) == 33: return 'bin_compressed'
+    elif len(priv) == 64: return 'hex'
+    elif len(priv) == 66: return 'hex_compressed'
+    elif priv[:1] in ('K', 'L'): return 'wif_compressed'
+    elif priv[:1] == '5': return 'wif'
+    else: raise ValueError("Private key format not recognised.")
+
+
 class PrivateKey:
     """
     Class to handle Bitcoin Private Keys. Specify imput Private Key in hex format.
 
     If no key is specified when creating class a cryptographically secure Private Key is generated using the os.urandom() function
     """
-    def __init__(self, private_key_hex=None):
-        if private_key_hex:
-            # TODO: Add check to validate key and/or to determine format and convert key
-            self._secret = change_base(private_key_hex, 16, 10)
-        if not self._secret:
+    def __init__(self, private_key=None):
+        if private_key:
+            format = get_privkey_format(private_key)
+            if format in ('hex', 'hex_compressed'):
+                self._secret = change_base(private_key, 16, 10)
+            elif format == 'decimal':
+                self._secret = private_key
+            elif format in ('bin', 'bin_compressed'):
+                self._secret = change_base(private_key, 256, 10)
+            elif format == 'wif':
+                self._secret = self._import_wif(private_key, False)
+            else:
+                self._secret = self._import_wif(private_key)
+        else:
             rng = random.SystemRandom()
             rng.random()
             self._secret = rng.randint(0, _r)
@@ -121,13 +156,13 @@ class PrivateKey:
         :param compressed: Get compressed private key, which means private key will be used to generate compressed public keys.
         :return: Base58Check encoded Private Key WIF
         """
-        key = chr(128) +change_base(str(self._secret), 10, 256, 32)
+        key = chr(128) + change_base(str(self._secret), 10, 256, 32)
         if compressed:
             key += chr(1)
         key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key, 256, 58)
 
-    def import_wif(self, private_key_wif, compressed=True):
+    def _import_wif(self, private_key_wif, compressed=True):
         key = change_base(private_key_wif, 58, 256)
 
         # Split key and checksum and verify Private Key
@@ -144,10 +179,19 @@ class PrivateKey:
         if key[:1] != chr(128):
             raise ValueError("Not a valid WIF compressed key")
         key = key[1:]
-        self._secret = change_base(key, 256, 10)
+        return change_base(key, 256, 10)
 
-    def import_hex(self, private_key_hex):
-        self._secret = change_base(private_key_hex, 16, 10)
+    def get_public(self, compressed=True):
+        point = int(self._secret) * generator
+        point1 = ecdsa.ellipticcurve.Point(curve, point.x(), point.y(), ec_order)
+        assert point1 == point
+        if compressed:
+            if point.y() % 2: prefix = '03'
+            else: prefix = '02'
+            public_key = prefix + change_base(int(point.x()), 10, 16, 64)
+        else:
+            public_key = '04' + change_base(int(point.x()), 10, 16, 64) + change_base(int(point.y()), 10, 16, 64)
+        return public_key
 
 
 class PublicKey:
@@ -155,9 +199,19 @@ class PublicKey:
     Bitcoin Public Key class.
     """
     def __init__(self, public_key):
-        self._public = public_key
-        self._x = public_key[1:31]
-        self._y = public_key[32:64]
+        prefix = public_key[:2]
+        if len(public_key) == 130 and prefix == '04':
+            self._public = public_key
+            self._x = public_key[2:66]
+            self._y = public_key[66:130]
+            self._compressed = False
+        elif len(public_key) == 66 and prefix == '02' or prefix == '03':
+            self._public = public_key
+            self._x = public_key[2:66]
+            self._compressed = True
+        else:
+            raise ValueError("Not a valid Public key Hex")
+
 
     def get_point(self):
         x = int(change_base(self._x, 16, 10))
@@ -167,16 +221,13 @@ class PublicKey:
     def get_hex(self):
         return self._public
 
-    def get_bit(self):
-        return change_base(str(self._public), 10, 2, 256)
+    def get_hash160(self, compressed=None):
+        key = change_base(self._public, 16, 256)
+        return hashlib.new('ripemd160', hashlib.sha256(key).digest()).hexdigest()
 
-    def get_dec(self):
-        return self._public
-
-    def get_wif(self, compressed=True):
-        return
-
-    def get_address(self, compressed=None):
-        key_bin = change_base(self._public, 16, 256)
-        return hashlib.new('ripemd160', key_bin).hexdigest()
+    def get_address(self):
+        key = change_base(self._public, 16, 256)
+        key = chr(0) + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
+        checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()
+        return change_base(key + checksum[:4], 256, 58)
 
