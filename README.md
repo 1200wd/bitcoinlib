@@ -1,10 +1,16 @@
 # bitcoinlib
-Compact Bitcoin library to work with Private and Public Keys
+Compact Bitcoin library to work with Private and Public Keys, Wallets, Transactions and the Blockchain.
 
-Usage Example:
+#### Requirements
+- bitcoind from the bitcoin core (https://en.bitcoin.it/wiki/Bitcoind)
+- python-bitcoinrpc (https://github.com/jgarzik/python-bitcoinrpc)
+
+
+## Usage Example's
 
 #### Generate random Private Key
 ```python
+from bitcoinlib.keys import *
 k = PrivateKey()
 print k.get_hex()
 ```

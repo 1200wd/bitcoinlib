@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#    bitoinlib - bitcoinlib.py
+#    bitcoinlib - Compact Python Bitcoin Library
 #    Copyright (C) 2016 February 
 #    1200 Web Development
 #    http://1200wd.com/
@@ -22,7 +22,7 @@
 import ecdsa
 import hashlib
 import random
-import os
+
 
 # secp256k1, http://www.oid-info.com/get/1.3.132.0.10
 _p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2FL

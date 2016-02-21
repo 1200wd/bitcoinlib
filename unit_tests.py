@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - unit_tests.py
+#    bitcoinlib - Compact Python Bitcoin Library
+#    Unit tests
 #    Copyright (C) 2016 February 
 #    1200 Web Development
 #    http://1200wd.com/
@@ -19,37 +20,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from bitcoinlib import *
 import unittest
 
-def test_main():
-    # - Test 3 - PublicKey class
-    publickey_hex = '0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6'
-    K = PublicKey(publickey_hex)
-    tests = {
-        # ('K.get_hex()', '0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6', True),
-        # ('K.get_pointd()', "ERROR PublicKey instance has no attribute 'get_pointd'", False),
-        # ('K.get_address()', '16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', True),
-    }
-    count = 1
-    for test in tests:
-        try:
-            print "=== Test %d: Evaluate %s ===" % (count, test[0])
-            result = eval(test[0])
-            print "Output         : %s" % result
-            print "Expected output: %s" % test[1]
-            if test[1] == result:
-                print "Test passed"
-            else:
-                print "TEST FAILED!"
-        except Exception as err:
-            if test[2] and test[1]==err.args[0]:
-                print "TEST FAILED! ERROR", err.args[0]
-            else:
-                print "Expected error: ", test[1]
-                print "Test passed"
-        print ""
-        count += 1
+from bitcoinlib.keys import *
+
 
 class TestGlobalMethods(unittest.TestCase):
 
