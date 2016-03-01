@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#    code service_test
+#    bitcoinlib - service_test
 #    Copyright (C) 2016 February 
 #    1200 Web Development
 #    http://1200wd.com/
