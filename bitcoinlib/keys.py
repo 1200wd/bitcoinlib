@@ -211,14 +211,15 @@ class PublicKey:
         elif len(public_key) == 66 and prefix == '02' or prefix == '03':
             self._public = public_key
             self._x = public_key[2:66]
+            self._y = 0L
             self._compressed = True
         else:
             raise ValueError("Not a valid Public key Hex")
 
 
     def get_point(self):
-        x = int(change_base(self._x, 16, 10))
-        y = int(change_base(self._y, 16, 10))
+        x = self._x and int(change_base(self._x, 16, 10))
+        y = self._y and int(change_base(self._y, 16, 10))
         return (x, y)
 
     def get_hex(self):
