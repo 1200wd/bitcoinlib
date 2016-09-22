@@ -22,8 +22,9 @@
 from bitcoinlib.keys import *
 import timeit
 
+ITERATIONS = 1000
 keypairs = {}
-
+test_results = []
 
 def test_speed_generate(nkeys):
     for n in range(0, nkeys):
@@ -51,50 +52,63 @@ def test_speed_privkey_func(func='get_hex'):
         except Exception, e:
             print "EXCEPTION %s" % e
 
+def add_test_result(test, func='', time=0):
+    print test
+    test_results.append({
+        'test': test,
+        'function': func,
+        'time': time,
+        'timems': time * 1000,
+        'iterations': ITERATIONS,
+    })
+
 
 if __name__ == '__main__':
-    iterations = 10
     print "==== Speedtests bitcoinlib ===="
-    print "\nGenerate %d private keys" % iterations
+    testname = "Generate %d private keys" % ITERATIONS
     duration = timeit.timeit(
-        'test_speed_generate(%d)' % iterations, number=1,
+        'test_speed_generate(%d)' % ITERATIONS, number=1,
         setup='from __main__ import test_speed_generate')
-    print "- in %f ms" % (duration * 1000)
+    add_test_result(testname, time=duration)
 
-    print "\nConvert %d private keys to public keys" % iterations
+    testname = "Convert %d private keys to public keys" % ITERATIONS
     duration = timeit.timeit(
         'test_speed_priv2pub()', number=1,
         setup='from __main__ import test_speed_priv2pub')
-    print "- in %f ms" % (duration * 1000)
+    add_test_result(testname, time=duration)
 
     for k in keypairs.keys():
         pub = PublicKey(keypairs[k])
         keypairs[k] = pub
 
-    print "\nConvert %d public keys to bitcoin address" % iterations
+    testname = "Convert %d public keys to bitcoin address" % ITERATIONS
     duration = timeit.timeit(
         'test_speed_pub2addr()', number=1,
         setup='from __main__ import test_speed_pub2addr')
-    print "- in %f ms" % (duration * 1000)
+    add_test_result(testname, time=duration)
 
-    print "\n\n== Test all Private key functions =="
+    print "== Test all Private key functions =="
     functions = PrivateKey.__dict__
     for func in functions:
         if func[0] == '_'  or func == 'get_public':
             continue
-        print "\nTest PrivateKey function: %s()" % func
+        testname = "Test PrivateKey function: %s()" % func
         duration = timeit.timeit(
             'test_speed_privkey_func("%s")' % func, number=1,
             setup='from __main__ import test_speed_privkey_func')
-        print "- in %f ms" % (duration * 1000)
+        add_test_result(testname, time=duration, func=func)
 
-    print "\n\n== Test all Public key functions =="
+    print "== Test all Public key functions =="
     functions = PublicKey.__dict__
     for func in functions:
         if func[0] == '_':
             continue
-        print "\nTest PublicKey function: %s()" % func
+        testname = "Test PublicKey function: %s()" % func
         duration = timeit.timeit(
             'test_speed_pubkey_func("%s")' % func, number=1,
             setup='from __main__ import test_speed_pubkey_func')
-        print "- in %f ms" % (duration * 1000)
+        add_test_result(testname, time=duration, func=func)
+
+    print "\n\n{:<50} {:<16}".format('Test','Milliseconds')
+    for t in test_results:
+        print "{:<50} {:10.3f} ms".format(t['test'], t['timems'])
