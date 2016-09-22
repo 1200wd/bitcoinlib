@@ -138,14 +138,17 @@ class PrivateKey:
             rng.random()
             self._secret = rng.randint(0, _r)
 
+    def __repr__(self):
+        return str(self.get_dec())
+
+    def get_dec(self):
+        return self._secret
+
     def get_hex(self):
         return change_base(str(self._secret), 10, 16, 64)
 
     def get_bit(self):
         return change_base(str(self._secret), 10, 2, 256)
-
-    def get_dec(self):
-        return self._secret
 
     def get_wif(self, compressed=True):
         """
