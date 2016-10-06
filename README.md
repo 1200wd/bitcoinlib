@@ -1,9 +1,8 @@
 # bitcoinlib
-Compact Bitcoin library to work with Private and Public Keys, Wallets, Transactions and the Blockchain.
+Compact Bitcoin library to work with Private and Public Keys.
 
 #### Requirements
-- bitcoind from the bitcoin core (https://en.bitcoin.it/wiki/Bitcoind)
-- python-bitcoinrpc (https://github.com/jgarzik/python-bitcoinrpc)
+- ecdsa library, see https://pypi.python.org/pypi/ecdsa
 
 
 ## Usage Example's
@@ -34,4 +33,5 @@ print K.get_address()
 - Add P2SH addresses
 - Add Wallet functions
 - Add HD functions
+- Wallets, Transactions and the Blockchain...
  
