@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    Copyright (C) 2016 February 
+#    Copyright (C) 2016 October
 #    1200 Web Development
 #    http://1200wd.com/
 #
@@ -19,9 +19,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import random
 import ecdsa
 import hashlib
-import random
+import hmac
+import struct
+import math
 
 
 # secp256k1, http://www.oid-info.com/get/1.3.132.0.10
@@ -51,6 +54,10 @@ code_strings = {
     256: ''.join([chr(x) for x in range(256)])
 }
 
+HDKEY_XPRV = '0488ade4'.decode('hex')
+HDKEY_XPUB = '0488b21e'.decode('hex')
+
+
 # General methods
 def get_code_string(base):
     if base in code_strings:
@@ -59,41 +66,60 @@ def get_code_string(base):
         raise ValueError("Invalid base!")
 
 
-def change_base(input, base_from, base_to, min_lenght=0):
+def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1):
     code_str = get_code_string(base_to)
     code_str_from = get_code_string(base_from)
     output = ''
     input_dec = 0
-    addzero = False
+    addzeros = 0
+    if output_even == -1:
+        if base_to == 16:
+            output_even = True
+        else:
+            output_even = False
 
+    inp = chars
     # Convert input to decimal
-    if isinstance(input, (int, long)):
-        input_dec = input
-    elif isinstance(input, str):
-        input = input.lstrip('0')
+    if isinstance(inp, (int, long)):
+        input_dec = inp
+    elif isinstance(inp, str):
         factor = 1
-        while len(input):
-            pos = code_str_from.find(input[-1:])
+        while len(inp):
+            pos = code_str_from.find(inp[-1:])
             if pos == -1:
-                pos = code_str_from.find(input[-1:].lower())
+                pos = code_str_from.find(inp[-1:].lower())
             if pos == -1:
                 raise ValueError("Unknown character in input format")
             input_dec += pos * factor
-            if len(input)==1 and not pos:
-                addzero = True
-            input = input[:-1]
+            # if pos*factor == 0 and input in [0]:
+
+            if not pos * factor:
+                if not len(inp.strip(code_str_from[0])):
+                    addzeros += 1
+            inp = inp[:-1]
             factor *= base_from
     else:
         raise ValueError("Unknown input format")
 
     # Convert decimal to output base
-    while input_dec >= base_to:
-        r = input_dec % base_to
-        input_dec = (input_dec-r) / base_to
+    while int(input_dec) != 0:
+        r = int(input_dec) % base_to
+        input_dec = str((int(input_dec)-r) / base_to)
         output = code_str[r] + output
-    if input_dec:
-        output = code_str[input_dec] + output
-    if addzero and base_to != 10:
+
+
+    pos_fact = math.log(base_to, base_from)
+    expected_length = len(str(chars)) / pos_fact
+    zeros = int(addzeros / pos_fact)
+    if addzeros == 1:
+        zeros = 1
+
+    for _ in range(zeros):
+        if base_to != 10 and not expected_length == len(output):
+            output = code_str[0] + output
+
+    # Add zero's to make even number of digits on Hex output (or if specified)
+    if output_even and len(output) % 2:
         output = code_str[0] + output
 
     # Add leading zero's
@@ -116,9 +142,10 @@ def get_privkey_format(priv):
 
 class PrivateKey:
     """
-    Class to handle Bitcoin Private Keys. Specify imput Private Key in hex format.
+    Class to handle Bitcoin Private Keys. Specify input Private Key in any format.
 
-    If no key is specified when creating class a cryptographically secure Private Key is generated using the os.urandom() function
+    If no key is specified when creating class a cryptographically secure Private Key is
+    generated using the os.urandom() function
     """
     def __init__(self, private_key=None):
         if private_key:
@@ -134,18 +161,19 @@ class PrivateKey:
             else:
                 self._secret = self._import_wif(private_key)
         else:
-            rng = random.SystemRandom()
-            rng.random()
-            self._secret = rng.randint(0, _r)
+            self._secret = random.SystemRandom().randint(0, _r)
+
+    def __repr__(self):
+        return str(self.get_dec())
+
+    def get_dec(self):
+        return self._secret
 
     def get_hex(self):
         return change_base(str(self._secret), 10, 16, 64)
 
     def get_bit(self):
         return change_base(str(self._secret), 10, 2, 256)
-
-    def get_dec(self):
-        return self._secret
 
     def get_wif(self, compressed=True):
         """
@@ -208,14 +236,14 @@ class PublicKey:
         elif len(public_key) == 66 and prefix == '02' or prefix == '03':
             self._public = public_key
             self._x = public_key[2:66]
+            self._y = 0L
             self._compressed = True
         else:
             raise ValueError("Not a valid Public key Hex")
 
-
     def get_point(self):
-        x = int(change_base(self._x, 16, 10))
-        y = int(change_base(self._y, 16, 10))
+        x = self._x and int(change_base(self._x, 16, 10))
+        y = self._y and int(change_base(self._y, 16, 10))
         return (x, y)
 
     def get_hex(self):
@@ -231,3 +259,42 @@ class PublicKey:
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()
         return change_base(key + checksum[:4], 256, 58)
 
+
+class HDkey:
+
+    @staticmethod
+    def from_key(import_key):
+        key = import_key[:32]
+        chain = import_key[32:]
+        return HDkey(key, chain)
+
+    @staticmethod
+    def from_seed(import_seed=None):
+        if not import_seed:
+            seedbits = random.SystemRandom().getrandbits(512)
+            seed = change_base(str(seedbits), 10, 256)
+        else:
+            seed = change_base(import_seed, 16, 256)
+
+
+        I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
+        key = I[:32]
+        chain = I[32:]
+        return HDkey(key, chain)
+
+    def __init__(self, key, chain):
+        self.key = key
+        self.chain = chain
+
+    def extended_key(self, depth=0, parent_fingerprint=b'\0\0\0\0', child_index=0):
+        raw = HDKEY_XPRV + chr(depth) + parent_fingerprint + \
+              struct.pack('>L', child_index) + \
+              self.chain + '\x00' + self.key
+        chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
+        ret = raw+chk
+        return change_base(ret, 256, 58, 111)
+
+
+def testme():
+    pk = HDkey.from_seed('000102030405060708090a0b0c0d0e0f')
+    print pk.extended_key()
