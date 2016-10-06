@@ -295,6 +295,3 @@ class HDkey:
         return change_base(ret, 256, 58, 111)
 
 
-def testme():
-    pk = HDkey.from_seed('000102030405060708090a0b0c0d0e0f')
-    print pk.extended_key()
