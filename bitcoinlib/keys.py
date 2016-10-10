@@ -203,48 +203,45 @@ class Key:
 class HDKey:
 
     @staticmethod
-    def from_key(import_key):
-        depth = None
-        parent_fingerprint = None
-        child_index = None
-        private = True
-        if len(import_key) == 64:
-            key = import_key[:32]
-            chain = import_key[32:]
-        elif import_key[:4] in ['xprv', 'xpub']:
-            bkey = change_base(import_key, 58, 256)
-            if ord(bkey[45]):
-                private = False
-                key = bkey[45:78]
-            else:
-                key = bkey[46:78]
-            depth = ord(bkey[4])
-            parent_fingerprint = bkey[5:9]
-            child_index = int(change_base(bkey[9:13], 256, 10))
-            chain = bkey[13:45]
-            # chk = bkey[78:82]
-        else:
-            raise ValueError("Key format not recognised")
-
-        return HDKey(key, chain, depth, parent_fingerprint, child_index, private)
-
-    @staticmethod
-    def from_seed(import_seed=None):
-        if not import_seed:
-            seedbits = random.SystemRandom().getrandbits(512)
-            seed = change_base(str(seedbits), 10, 256)
-        else:
-            seed = change_base(import_seed, 16, 256)
+    def from_seed(import_seed):
+        seed = change_base(import_seed, 16, 256)
         I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
-        return HDKey(key, chain)
+        return HDKey(key=key, chain=chain)
 
-    @staticmethod
-    def init():
-        return HDKey.from_seed()
+    def __init__(self, import_key=None, key=None, chain=None):
+        depth = 0
+        parent_fingerprint = b'\0\0\0\0'
+        child_index = 0
+        private = True
 
-    def __init__(self, key, chain, depth=0, parent_fingerprint=b'\0\0\0\0', child_index=0, private=True):
+        if not (key and chain):
+            if not import_key:
+                # Generate new Master Key
+                seedbits = random.SystemRandom().getrandbits(512)
+                seed = change_base(str(seedbits), 10, 256)
+                I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
+                key = I[:32]
+                chain = I[32:]
+            elif len(import_key) == 64:
+                key = import_key[:32]
+                chain = import_key[32:]
+            elif import_key[:4] in ['xprv', 'xpub']:
+                bkey = change_base(import_key, 58, 256)
+                if ord(bkey[45]):
+                    private = False
+                    key = bkey[45:78]
+                else:
+                    key = bkey[46:78]
+                depth = ord(bkey[4])
+                parent_fingerprint = bkey[5:9]
+                child_index = int(change_base(bkey[9:13], 256, 10))
+                chain = bkey[13:45]
+                # chk = bkey[78:82]
+            else:
+                raise ValueError("Key format not recognised")
+
         self._key = key
         self._chain = chain
         self._depth = depth
@@ -255,20 +252,25 @@ class HDKey:
     def path(self):
         return 'm/%d/%d' % (self._depth, self._child_index)
 
-    # def extended_key(self, depth=0, parent_fingerprint=b'\0\0\0\0', child_index=0):
-    def extended_wif(self):
-        if self._isprivate:
+    def extended_wif(self, public=False):
+        rkey = self._key
+        if self._isprivate and not public:
             raw = HDKEY_XPRV
             typebyte = '\x00'
         else:
             raw = HDKEY_XPUB
             typebyte = ''
+            if public:
+                rkey = change_base(self.public(),16,256)
         raw += chr(self._depth) + self._parent_fingerprint + \
               struct.pack('>L', self._child_index) + \
-              self._chain + typebyte + self._key
+              self._chain + typebyte + rkey
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
+
+    def extended_wif_public(self):
+        return self.extended_wif(public=True)
 
     def key(self):
         return self._key
@@ -295,13 +297,16 @@ class HDKey:
 if __name__ == '__main__':
     k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
 
-    pk = HDKey.init()
+    k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+    print k.extended_wif(public=True)
+
+    pk = HDKey()
     print "Random private key: %s" % pk.extended_wif()
 
-    pk = HDKey.from_key('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM')
+    pk = HDKey('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM')
     print "Imported private key: %s" % pk.extended_wif()
     print "Imported private key path: %s" % pk.path()
 
-    pK = HDKey.from_key('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5')
+    pK = HDKey('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5')
     print "Imported private key: %s" % pK.extended_wif()
     print "Imported private key path: %s" % pK.path()
