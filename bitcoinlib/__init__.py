@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    Copyright (C) 2016 February 
+#    Copyright (C) 2016 October
 #    1200 Web Development
 #    http://1200wd.com/
 #
@@ -19,5 +19,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import keys
-import services
+# import encoding
