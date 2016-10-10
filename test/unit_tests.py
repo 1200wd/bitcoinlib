@@ -92,19 +92,19 @@ class TestPrivateKeyConversions(unittest.TestCase):
 
     def setUp(self):
         self.privatekey_hex = 'b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58'
-        self.k = PrivateKey(self.privatekey_hex)
+        self.k = Key(self.privatekey_hex)
 
     def test_private_key_conversions_dec(self):
         self.assertEqual(83827997552125623280808720137320612316470870230953489181279239295529837939288,
-                         self.k.dec())
+                         self.k.private_dec())
 
     def test_private_key_conversions_hex(self):
-        self.assertEqual('b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58', self.k.hex())
+        self.assertEqual('b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58', self.k.private_hex())
 
     def test_private_key_conversions_bits(self):
         self.assertEqual('10111001010101001111011100011001001100111001100001101110001111011110011101101101001110101001'
                          '01000100010101001101110001010010111011000000100000101100011001100010101110100110011111001010'
-                         '001110111010010010001111111101110010101111000010011100000100101001011000', self.k.bit())
+                         '001110111010010010001111111101110010101111000010011100000100101001011000', self.k.private_bit())
 
     def test_private_key_conversions_wif_uncompressed(self):
         self.assertEqual('5KDudqswBNJ8mf2k7Gxn72UknDBh7GFjj9NGJrY22SY1hjKS1gF', self.k.wif(False))
@@ -123,12 +123,12 @@ class TestPrivateKeyConversions(unittest.TestCase):
 class TestPrivateKeyImport(unittest.TestCase):
 
     def test_private_key_import_wif(self):
-        self.k = PrivateKey.from_wif('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-        self.assertEqual('88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b', self.k.hex())
+        self.k = Key.from_key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+        self.assertEqual('88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b', self.k.private_hex())
 
     def test_private_key_import_wif_uncompressed(self):
-        self.k = PrivateKey.from_wif('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
-        self.assertEqual('c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a', self.k.hex())
+        self.k = Key.from_key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
+        self.assertEqual('c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a', self.k.private_hex())
 
 
 class TestPublicKeyConversion(unittest.TestCase):
@@ -136,8 +136,8 @@ class TestPublicKeyConversion(unittest.TestCase):
     def setUp(self):
         self.publickey_hex = '044781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd' \
                              '991064c2e7f7d532b9c9ca825671a8809ab6876c78b'
-        self.K = PublicKey(self.publickey_hex)
-        self.KC = PublicKey('034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
+        self.K = Key.from_key(self.publickey_hex)
+        self.KC = Key.from_key('034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
 
     def test_public_key_get_address_uncompressed(self):
         self.assertEqual('12ooWDQp6mujkVpEWHdfHmfM4rU17bokWw', self.K.address())
@@ -148,13 +148,16 @@ class TestPublicKeyConversion(unittest.TestCase):
     def test_public_key_get_point(self):
         self.assertEqual((32343711077743629729728681292399790965391040816412086995020432364076041835733,
                           55281192143835269607479311758661973079027103826274522268778194868406595274635),
-                         self.K.point())
+                         self.K.public_point())
 
     def test_public_key_get_hash160_uncompressed(self):
         self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', self.K.hash160())
 
     def test_public_key_get_hash160(self):
         self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', self.KC.hash160())
+
+    def test_public_key_try_private(self):
+        self.assertFalse(self.K.private_hex())
 
 
 class TestHDkeys(unittest.TestCase):

@@ -32,77 +32,108 @@ HDKEY_XPRV = '0488ade4'.decode('hex')
 HDKEY_XPUB = '0488b21e'.decode('hex')
 
 
-def get_privkey_format(priv):
-    if isinstance(priv, (int, long, float)): return 'decimal'
-    elif len(priv) == 32: return 'bin'
-    elif len(priv) == 33: return 'bin_compressed'
-    elif len(priv) == 64: return 'hex'
-    elif len(priv) == 66: return 'hex_compressed'
-    elif priv[:1] in ('K', 'L'): return 'wif_compressed'
-    elif priv[:1] == '5': return 'wif'
+def get_key_format(key):
+    if isinstance(key, (int, long, float)):
+        return 'decimal'
+    elif len(key) == 130 and key[:2] == '04':
+        return "public_uncompressed"
+    elif len(key) == 66 and key[:2] in ['02', '03']:
+        return "public"
+    elif len(key) == 32:
+        return 'bin'
+    elif len(key) == 33:
+        return 'bin_compressed'
+    elif len(key) == 64:
+        return 'hex'
+    elif len(key) == 66:
+        return 'hex_compressed'
+    elif key[:1] in ('K', 'L'):
+        return 'wif_compressed'
+    elif key[:1] == '5':
+        return 'wif'
     else:
-        import pdb; pdb.set_trace()
-        raise ValueError("Private key format not recognised.")
+        raise ValueError("Unrecognised key format.")
 
 
-class PrivateKey:
+class Key:
     """
-    Class to handle Bitcoin Private Keys. Specify input Private Key in any format.
+    Class to handle Cryptograpic Key pair, import or generate a Private and/or public key.
 
     If no key is specified when creating class a cryptographically secure Private Key is
     generated using the os.urandom() function
     """
 
     @staticmethod
-    def from_wif(private_key_wif):
-        key = change_base(private_key_wif, 58, 256)
+    def from_key(key):
+        key_format = get_key_format(key)
 
-        # Split key and checksum and verify Private Key
-        checksum = key[-4:]
-        key = key[:-4]
-        if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
-            raise ValueError("Invalid checksum, not a valid WIF compressed key")
-
-        # Check and remove prefix and postfix tags
-        if private_key_wif[0] in ['K', 'L']:
-            if key[-1:] != chr(1):
-                raise ValueError("Not a valid WIF compressed key. key[-1:] != chr(1) failed")
-            key = key[:-1]
-        elif private_key_wif[0] != '5':
-            raise ValueError("Not a valid WIF compressed key. Key has to start with '5', 'K' or 'L'")
-        if key[:1] != chr(128):
-            raise ValueError("Not a valid WIF compressed key. key[:1] != chr(128) failed")
-
-        key = key[1:]
-        return PrivateKey(change_base(key, 256, 10))
-
-    def __init__(self, private_key=None):
-        if private_key:
-            format = get_privkey_format(private_key)
-            if format in ('hex', 'hex_compressed'):
-                self.secret = change_base(private_key, 16, 10)
-            elif format == 'decimal':
-                self.secret = private_key
-            elif format in ('bin', 'bin_compressed'):
-                self.secret = change_base(private_key, 256, 10)
-            else:
-                self.secret = self.from_wif(private_key)
+        if key_format in ['public_uncompressed', 'public']:
+            return Key(public_key=key, key_format=key_format)
         else:
-            self.secret = random.SystemRandom().randint(0, _r)
+            return Key(private_key=key, key_format=key_format)
+
+    def __init__(self, private_key=None, public_key=None, key_format=None):
         self._public = None
         self._public_uncompressed = None
+        if private_key:
+            if not key_format:
+                key_format = get_key_format(private_key)
+            if key_format in ['hex', 'hex_compressed']:
+                self._secret = change_base(private_key, 16, 10)
+            elif key_format == 'decimal':
+                self._secret = private_key
+            elif key_format in ['bin', 'bin_compressed']:
+                self._secret = change_base(private_key, 256, 10)
+            elif key_format in ['wif', 'wif_compressed']:
+                # Check and remove Checksum, prefix and postfix tags
+                key = change_base(private_key, 58, 256)
+                checksum = key[-4:]
+                key = key[:-4]
+                if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
+                    raise ValueError("Invalid checksum, not a valid WIF compressed key")
+                if private_key[0] in ['K', 'L']:
+                    if key[-1:] != chr(1):
+                        raise ValueError("Not a valid WIF compressed key. key[-1:] != chr(1) failed")
+                    key = key[:-1]
+                if key[:1] != chr(128):
+                    raise ValueError("Not a valid WIF compressed key. key[:1] != chr(128) failed")
+                key = key[1:]
+                self._secret = change_base(key, 256, 10)
+        elif public_key:
+            if not key_format:
+                key_format = get_key_format(public_key)
+            self._secret = None
+            if key_format=='public_uncompressed':
+                self._public = public_key
+                self._x = public_key[2:66]
+                self._y = public_key[66:130]
+            else:
+                self._public = public_key
+                self._x = public_key[2:66]
+                self._y = 0L
+        else:
+            self._secret = random.SystemRandom().randint(0, _r)
 
     def __repr__(self):
-        return str(self.dec())
+        if self._secret:
+            return str(self.private_dec())
+        else:
+            return self.public
 
-    def dec(self):
-        return self.secret
+    def private_dec(self):
+        if not self._secret:
+            return False
+        return self._secret
 
-    def hex(self):
-        return change_base(str(self.secret), 10, 16, 64)
+    def private_hex(self):
+        if not self._secret:
+            return False
+        return change_base(str(self._secret), 10, 16, 64)
 
-    def bit(self):
-        return change_base(str(self.secret), 10, 2, 256)
+    def private_bit(self):
+        if not self._secret:
+            return False
+        return change_base(str(self._secret), 10, 2, 256)
 
     def wif(self, compressed=True):
         """
@@ -113,7 +144,9 @@ class PrivateKey:
         :param compressed: Get compressed private key, which means private key will be used to generate compressed public keys.
         :return: Base58Check encoded Private Key WIF
         """
-        key = chr(128) + change_base(str(self.secret), 10, 256, 32)
+        if not self._secret:
+            return False
+        key = chr(128) + change_base(str(self._secret), 10, 256, 32)
         if compressed:
             key += chr(1)
         key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
@@ -121,7 +154,7 @@ class PrivateKey:
 
     def _create_public(self):
         point = generator
-        point *= int(self.secret)
+        point *= int(self._secret)
         point1 = ecdsa.ellipticcurve.Point(curve, point.x(), point.y(), ec_order)
         assert point1 == point
         if point.y() % 2: prefix = '03'
@@ -139,39 +172,28 @@ class PrivateKey:
             self._create_public()
         return self._public_uncompressed
 
-class PublicKey:
-    """
-    Bitcoin Public Key class.
-    """
-    def __init__(self, public_key):
-        prefix = public_key[:2]
-        if len(public_key) == 130 and prefix == '04':
-            self.public = public_key
-            self.x = public_key[2:66]
-            self.y = public_key[66:130]
-            self.compressed = False
-        elif len(public_key) == 66 and prefix == '02' or prefix == '03':
-            self.public = public_key
-            self.x = public_key[2:66]
-            self.y = 0L
-            self.compressed = True
-        else:
-            raise ValueError("Not a valid Public key Hex")
-
-    def point(self):
-        x = self.x and int(change_base(self.x, 16, 10))
-        y = self.y and int(change_base(self.y, 16, 10))
+    def public_point(self):
+        if not self._public:
+            self._create_public()
+        x = self._x and int(change_base(self._x, 16, 10))
+        y = self._y and int(change_base(self._y, 16, 10))
         return (x, y)
 
-    def hex(self):
-        return self.public
+    def public_hex(self):
+        if not self._public:
+            self._create_public()
+        return self._public
 
     def hash160(self):
-        key = change_base(self.public, 16, 256)
+        if not self._public:
+            self._create_public()
+        key = change_base(self._public, 16, 256)
         return hashlib.new('ripemd160', hashlib.sha256(key).digest()).hexdigest()
 
     def address(self):
-        key = change_base(self.public, 16, 256)
+        if not self._public:
+            self._create_public()
+        key = change_base(self._public, 16, 256)
         key = chr(0) + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()
         return change_base(key + checksum[:4], 256, 58)
@@ -224,24 +246,24 @@ class HDkey:
     def __init__(self, key, chain, depth=0, parent_fingerprint=b'\0\0\0\0', child_index=0, private=True):
         self.key = key
         self.chain = chain
-        self._depth = depth
-        self._parent_fingerprint = parent_fingerprint
-        self._child_index = child_index
-        self._private = private
+        self.depth = depth
+        self.parent_fingerprint = parent_fingerprint
+        self.child_index = child_index
+        self.private = private
 
     def path(self):
-        return 'm/%d/%d' % (self._depth, self._child_index)
+        return 'm/%d/%d' % (self.depth, self.child_index)
 
     # def extended_key(self, depth=0, parent_fingerprint=b'\0\0\0\0', child_index=0):
     def extended_key(self):
-        if self._private:
+        if self.private:
             raw = HDKEY_XPRV
             typebyte = '\x00'
         else:
             raw = HDKEY_XPUB
             typebyte = ''
-        raw += chr(self._depth) + self._parent_fingerprint + \
-              struct.pack('>L', self._child_index) + \
+        raw += chr(self.depth) + self.parent_fingerprint + \
+              struct.pack('>L', self.child_index) + \
               self.chain + typebyte + self.key
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
         ret = raw+chk
@@ -253,7 +275,7 @@ class HDkey:
 
 
 if __name__ == '__main__':
-    k = PrivateKey.from_wif('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
+    k = Key.from_key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
 
     pk = HDkey.init()
     print "Random private key: %s" % pk.extended_key()
