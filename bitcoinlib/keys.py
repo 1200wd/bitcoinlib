@@ -79,6 +79,7 @@ class Key:
         self._public_uncompressed = None
         if not import_key:
             self._secret = random.SystemRandom().randint(0, _r)
+            return
 
         key_format = get_key_format(import_key)
         if key_format in ['public_uncompressed', 'public']:
@@ -199,7 +200,7 @@ class Key:
         return change_base(key + checksum[:4], 256, 58)
 
 
-class HDkey:
+class HDKey:
 
     @staticmethod
     def from_key(import_key):
@@ -225,7 +226,7 @@ class HDkey:
         else:
             raise ValueError("Key format not recognised")
 
-        return HDkey(key, chain, depth, parent_fingerprint, child_index, private)
+        return HDKey(key, chain, depth, parent_fingerprint, child_index, private)
 
     @staticmethod
     def from_seed(import_seed=None):
@@ -237,53 +238,70 @@ class HDkey:
         I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
-        return HDkey(key, chain)
+        return HDKey(key, chain)
 
     @staticmethod
     def init():
-        return HDkey.from_seed()
+        return HDKey.from_seed()
 
     def __init__(self, key, chain, depth=0, parent_fingerprint=b'\0\0\0\0', child_index=0, private=True):
-        self.key = key
-        self.chain = chain
-        self.depth = depth
-        self.parent_fingerprint = parent_fingerprint
-        self.child_index = child_index
-        self.private = private
+        self._key = key
+        self._chain = chain
+        self._depth = depth
+        self._parent_fingerprint = parent_fingerprint
+        self._child_index = child_index
+        self._isprivate = private
 
     def path(self):
-        return 'm/%d/%d' % (self.depth, self.child_index)
+        return 'm/%d/%d' % (self._depth, self._child_index)
 
     # def extended_key(self, depth=0, parent_fingerprint=b'\0\0\0\0', child_index=0):
-    def extended_key(self):
-        if self.private:
+    def extended_wif(self):
+        if self._isprivate:
             raw = HDKEY_XPRV
             typebyte = '\x00'
         else:
             raw = HDKEY_XPUB
             typebyte = ''
-        raw += chr(self.depth) + self.parent_fingerprint + \
-              struct.pack('>L', self.child_index) + \
-              self.chain + typebyte + self.key
+        raw += chr(self._depth) + self._parent_fingerprint + \
+              struct.pack('>L', self._child_index) + \
+              self._chain + typebyte + self._key
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
 
-    def public_key(self):
-        pk = ecdsa.SigningKey.from_string(self.key, curve=SECP256k1)
-        return pk.get_verifying_key()
+    def key(self):
+        return self._key
+
+    def chain(self):
+        return self._chain
+
+    def depth(self):
+        return self._depth
+
+    def parent_fingerprint(self):
+        return self._parent_fingerprint
+
+    def child_index(self):
+        return self._child_index
+
+    def isprivate(self):
+        return self._isprivate
+
+    def public(self):
+        return Key(self._key).public()
 
 
 if __name__ == '__main__':
-    k = Key.from_key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
+    k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
 
-    pk = HDkey.init()
-    print "Random private key: %s" % pk.extended_key()
+    pk = HDKey.init()
+    print "Random private key: %s" % pk.extended_wif()
 
-    pk = HDkey.from_key('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM')
-    print "Imported private key: %s" % pk.extended_key()
+    pk = HDKey.from_key('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM')
+    print "Imported private key: %s" % pk.extended_wif()
     print "Imported private key path: %s" % pk.path()
 
-    pK = HDkey.from_key('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5')
-    print "Imported private key: %s" % pK.extended_key()
+    pK = HDKey.from_key('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5')
+    print "Imported private key: %s" % pK.extended_wif()
     print "Imported private key path: %s" % pK.path()
