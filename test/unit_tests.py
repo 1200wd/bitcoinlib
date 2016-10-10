@@ -123,21 +123,28 @@ class TestPrivateKeyConversions(unittest.TestCase):
 class TestPrivateKeyImport(unittest.TestCase):
 
     def test_private_key_import_wif(self):
-        self.k = Key.from_key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+        self.k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
         self.assertEqual('88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b', self.k.private_hex())
 
     def test_private_key_import_wif_uncompressed(self):
-        self.k = Key.from_key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
+        self.k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
         self.assertEqual('c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a', self.k.private_hex())
 
+    def test_private_key_import_error_1(self):
+        self.assertRaisesRegexp(ValueError, "Invalid checksum, not a valid WIF compressed key",
+                                Key, 'L1odb1uUozbfK2NrsMyhJfvRsxGM2axixgPL8vG9BUBnE6W1VyTX')
+
+    def test_private_key_import_error_2(self):
+        self.assertRaisesRegexp(ValueError, "Unrecognised key format",
+                                Key, 'M1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
 
 class TestPublicKeyConversion(unittest.TestCase):
 
     def setUp(self):
         self.publickey_hex = '044781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd' \
                              '991064c2e7f7d532b9c9ca825671a8809ab6876c78b'
-        self.K = Key.from_key(self.publickey_hex)
-        self.KC = Key.from_key('034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
+        self.K = Key(self.publickey_hex)
+        self.KC = Key('034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
 
     def test_public_key_get_address_uncompressed(self):
         self.assertEqual('12ooWDQp6mujkVpEWHdfHmfM4rU17bokWw', self.K.address())
@@ -159,6 +166,9 @@ class TestPublicKeyConversion(unittest.TestCase):
     def test_public_key_try_private(self):
         self.assertFalse(self.K.private_hex())
 
+    def test_public_key_import_error(self):
+        self.assertRaisesRegexp(ValueError, "Unrecognised key format",
+                                Key, ['064781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5', 'public'])
 
 class TestHDkeys(unittest.TestCase):
 

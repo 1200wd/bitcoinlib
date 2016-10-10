@@ -32,12 +32,21 @@ HDKEY_XPRV = '0488ade4'.decode('hex')
 HDKEY_XPUB = '0488b21e'.decode('hex')
 
 
-def get_key_format(key):
+def get_key_format(key, keytype=None):
+    """
+    Determins the type and format of a public or private key by length and prefix.
+    This method does not validate if a key is valid.
+    :param key: Any private or public key
+    :param keytype: 'private' or 'public', is most cases not required as methods takes best guess
+    :return: format of key as string
+    """
+    if keytype not in [None, 'private', 'public']:
+        raise ValueError("Keytype must be 'private' or 'public")
     if isinstance(key, (int, long, float)):
         return 'decimal'
-    elif len(key) == 130 and key[:2] == '04':
+    elif len(key) == 130 and key[:2] == '04' and keytype != 'private':
         return "public_uncompressed"
-    elif len(key) == 66 and key[:2] in ['02', '03']:
+    elif len(key) == 66 and key[:2] in ['02', '03'] and keytype != 'private':
         return "public"
     elif len(key) == 32:
         return 'bin'
@@ -45,14 +54,14 @@ def get_key_format(key):
         return 'bin_compressed'
     elif len(key) == 64:
         return 'hex'
-    elif len(key) == 66:
+    elif len(key) == 66  and keytype != 'public':
         return 'hex_compressed'
     elif key[:1] in ('K', 'L'):
         return 'wif_compressed'
     elif key[:1] == '5':
         return 'wif'
     else:
-        raise ValueError("Unrecognised key format.")
+        raise ValueError("Unrecognised key format")
 
 
 class Key:
@@ -65,51 +74,45 @@ class Key:
     A public key or (bitcoin)address is generator on request if a private key is known.
     """
 
-    def __init__(self, key=None):
+    def __init__(self, import_key=None):
         self._public = None
         self._public_uncompressed = None
-        if not key:
+        if not import_key:
             self._secret = random.SystemRandom().randint(0, _r)
 
-        key_format = get_key_format(key)
+        key_format = get_key_format(import_key)
         if key_format in ['public_uncompressed', 'public']:
-            if not key_format:
-                key_format = get_key_format(key)
             self._secret = None
             if key_format=='public_uncompressed':
-                self._public = key
-                self._x = key[2:66]
-                self._y = key[66:130]
+                self._public = import_key
+                self._x = import_key[2:66]
+                self._y = import_key[66:130]
             else:
-                self._public = key
-                self._x = key[2:66]
+                self._public = import_key
+                self._x = import_key[2:66]
                 self._y = 0L
         else:
-            if not key_format:
-                key_format = get_key_format(key)
             if key_format in ['hex', 'hex_compressed']:
-                self._secret = change_base(key, 16, 10)
+                self._secret = change_base(import_key, 16, 10)
             elif key_format == 'decimal':
-                self._secret = key
+                self._secret = import_key
             elif key_format in ['bin', 'bin_compressed']:
-                self._secret = change_base(key, 256, 10)
+                self._secret = change_base(import_key, 256, 10)
             elif key_format in ['wif', 'wif_compressed']:
                 # Check and remove Checksum, prefix and postfix tags
-                key = change_base(key, 58, 256)
+                key = change_base(import_key, 58, 256)
                 checksum = key[-4:]
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise ValueError("Invalid checksum, not a valid WIF compressed key")
-                if key[0] in ['K', 'L']:
+                if import_key[0] in ['K', 'L']:
                     if key[-1:] != chr(1):
-                        raise ValueError("Not a valid WIF compressed key. key[-1:] != chr(1) failed")
+                        raise ValueError("Not a valid WIF private compressed key. key[-1:] != chr(1) failed")
                     key = key[:-1]
                 if key[:1] != chr(128):
-                    raise ValueError("Not a valid WIF compressed key. key[:1] != chr(128) failed")
+                    raise ValueError("Not a valid WIF private key. key[:1] != chr(128) failed")
                 key = key[1:]
                 self._secret = change_base(key, 256, 10)
-
-
 
     def __repr__(self):
         if self._secret:
