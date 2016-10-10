@@ -57,41 +57,50 @@ def get_key_format(key):
 
 class Key:
     """
-    Class to handle Cryptograpic Key pair, import or generate a Private and/or public key.
+    Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
 
     If no key is specified when creating class a cryptographically secure Private Key is
-    generated using the os.urandom() function
+    generated using the os.urandom() function.
+
+    A public key or (bitcoin)address is generator on request if a private key is known.
     """
 
-    @staticmethod
-    def from_key(key):
-        key_format = get_key_format(key)
-
-        if key_format in ['public_uncompressed', 'public']:
-            return Key(public_key=key, key_format=key_format)
-        else:
-            return Key(private_key=key, key_format=key_format)
-
-    def __init__(self, private_key=None, public_key=None, key_format=None):
+    def __init__(self, key=None):
         self._public = None
         self._public_uncompressed = None
-        if private_key:
+        if not key:
+            self._secret = random.SystemRandom().randint(0, _r)
+
+        key_format = get_key_format(key)
+        if key_format in ['public_uncompressed', 'public']:
             if not key_format:
-                key_format = get_key_format(private_key)
+                key_format = get_key_format(key)
+            self._secret = None
+            if key_format=='public_uncompressed':
+                self._public = key
+                self._x = key[2:66]
+                self._y = key[66:130]
+            else:
+                self._public = key
+                self._x = key[2:66]
+                self._y = 0L
+        else:
+            if not key_format:
+                key_format = get_key_format(key)
             if key_format in ['hex', 'hex_compressed']:
-                self._secret = change_base(private_key, 16, 10)
+                self._secret = change_base(key, 16, 10)
             elif key_format == 'decimal':
-                self._secret = private_key
+                self._secret = key
             elif key_format in ['bin', 'bin_compressed']:
-                self._secret = change_base(private_key, 256, 10)
+                self._secret = change_base(key, 256, 10)
             elif key_format in ['wif', 'wif_compressed']:
                 # Check and remove Checksum, prefix and postfix tags
-                key = change_base(private_key, 58, 256)
+                key = change_base(key, 58, 256)
                 checksum = key[-4:]
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise ValueError("Invalid checksum, not a valid WIF compressed key")
-                if private_key[0] in ['K', 'L']:
+                if key[0] in ['K', 'L']:
                     if key[-1:] != chr(1):
                         raise ValueError("Not a valid WIF compressed key. key[-1:] != chr(1) failed")
                     key = key[:-1]
@@ -99,20 +108,8 @@ class Key:
                     raise ValueError("Not a valid WIF compressed key. key[:1] != chr(128) failed")
                 key = key[1:]
                 self._secret = change_base(key, 256, 10)
-        elif public_key:
-            if not key_format:
-                key_format = get_key_format(public_key)
-            self._secret = None
-            if key_format=='public_uncompressed':
-                self._public = public_key
-                self._x = public_key[2:66]
-                self._y = public_key[66:130]
-            else:
-                self._public = public_key
-                self._x = public_key[2:66]
-                self._y = 0L
-        else:
-            self._secret = random.SystemRandom().randint(0, _r)
+
+
 
     def __repr__(self):
         if self._secret:
