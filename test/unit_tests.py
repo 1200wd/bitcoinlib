@@ -214,10 +214,29 @@ class TestHDKeys(unittest.TestCase):
         self.assertEqual(extkey, self.k.extended_wif())
 
     def test_hdprivate_key_path_m_0h(self):
-        extkey = 'xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYe' \
-                 'SvkzY7d2bhkJ7'
-        self.k = HDKey(extkey)
-        self.assertEqual(extkey, self.k.subkey_for_path('m/0H'))
+        self.assertEqual('xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7'
+                         'XnxHrnYeSvkzY7d2bhkJ7', self.k.subkey_for_path('m/0H').extended_wif())
+        self.assertEqual('xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9x'
+                         'v5ski8PX9rL2dZXvgGDnw', self.k.subkey_for_path('m/0H').extended_wif(public=True))
+
+    def test_hdprivate_key_path_m_0h_1(self):
+        self.assertEqual('xprv9wTYmMFdV23N2TdNG573QoEsfRrWKQgWeibmLntzniatZvR9BmLnvSxqu53Kw1UmYPxLgboyZQaXwTCg8MSY3H'
+                         '2EU4pWcQDnRnrVA1xe8fs', self.k.subkey_for_path('m/0H/1').extended_wif())
+        self.assertEqual('xpub6ASuArnXKPbfEwhqN6e3mwBcDTgzisQN1wXN9BJcM47sSikHjJf3UFHKkNAWbWMiGj7Wf5uMash7SyYq527Hqc'
+                         'k2AxYysAA7xmALppuCkwQ', self.k.subkey_for_path('m/0H/1').extended_wif(public=True))
+
+    def test_hdprivate_key_path_m_0h_1_2h(self):
+        self.assertEqual('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
+                         'TtpgP4mLTj34bhnZX7UiM', self.k.subkey_for_path('m/0h/1/2h').extended_wif())
+        self.assertEqual('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4'
+                         'trkrX7x7DogT5Uv6fcLW5', self.k.subkey_for_path('m/0h/1/2h').extended_wif(public=True))
+
+    def test_hdprivate_key_path_m_0h_1_2h_1000000000(self):
+        self.assertEqual('xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUi'
+                         'hUZREPSL39UNdE3BBDu76', self.k.subkey_for_path('m/0h/1/2h/2/1000000000').extended_wif())
+        self.assertEqual('xpub6H1LXWLaKsWFhvm6RVpEL9P4KfRZSW7abD2ttkWP3SSQvnyA8FSVqNTEcYFgJS2UaFcxupHiYkro49S8yGasTv'
+                         'XEYBVPamhGW6cFJodrTHy',
+                         self.k.subkey_for_path('m/0h/1/2h/2/1000000000').extended_wif(public=True))
 
 if __name__ == '__main__':
     unittest.main()
