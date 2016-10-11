@@ -178,20 +178,23 @@ class TestPublicKeyConversion(unittest.TestCase):
 
 class TestHDKeys(unittest.TestCase):
 
-    def test_hdprivate_key_import_seed_1(self):
+    def setUp(self):
         self.k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+        self.k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a87848'
+                                 '17e7b7875726f6c696663605d5a5754514e4b484542')
+
+    def test_hdprivate_key_import_seed_1(self):
+
         self.assertEqual('xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TG'
                          'tRBeJgk33yuGBxrMPHi', self.k.extended_wif())
         self.assertEqual('xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TM'
                          'g7usUDFdp6W1EGMcet8', self.k.extended_wif(public=True))
 
     def test_hdprivate_key_import_seed_2(self):
-        self.k = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a87848'
-                                 '17e7b7875726f6c696663605d5a5754514e4b484542')
         self.assertEqual('xprv9s21ZrQH143K31xYSDQpPDxsXRTUcvj2iNHm5NUtrGiGG5e2DtALGdso3pGz6ssrdK4PFmM8NSpSBHNqPqm55Qn3L'
-                         'qFtT2emdEXVYsCzC2U', self.k.extended_wif())
+                         'qFtT2emdEXVYsCzC2U', self.k2.extended_wif())
         self.assertEqual('xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJ'
-                         'Y47LJhkJ8UB7WEGuduB', self.k.extended_wif_public())
+                         'Y47LJhkJ8UB7WEGuduB', self.k2.extended_wif_public())
 
     def test_hdprivate_key_random(self):
         self.k = HDKey()
@@ -209,6 +212,12 @@ class TestHDKeys(unittest.TestCase):
                  'DogT5Uv6fcLW5'
         self.k = HDKey(extkey)
         self.assertEqual(extkey, self.k.extended_wif())
+
+    def test_hdprivate_key_path_m_0h(self):
+        extkey = 'xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYe' \
+                 'SvkzY7d2bhkJ7'
+        self.k = HDKey(extkey)
+        self.assertEqual(extkey, self.k.subkey_for_path('m/0H'))
 
 if __name__ == '__main__':
     unittest.main()

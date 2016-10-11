@@ -106,7 +106,7 @@ class Key:
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise ValueError("Invalid checksum, not a valid WIF compressed key")
-                if import_key[0] in ['K', 'L']:
+                if import_key[0] in "KL":
                     if key[-1:] != chr(1):
                         raise ValueError("Not a valid WIF private compressed key. key[-1:] != chr(1) failed")
                     key = key[:-1]
@@ -119,7 +119,7 @@ class Key:
         if self._secret:
             return str(self.private_dec())
         else:
-            return self.public
+            return self._public
 
     def private_dec(self):
         if not self._secret:
@@ -185,6 +185,11 @@ class Key:
             self._create_public()
         return self._public
 
+    def public_byte(self):
+        if not self._public:
+            self._create_public()
+        return change_base(self._public, 16, 256)
+
     def hash160(self):
         if not self._public:
             self._create_public()
@@ -210,27 +215,21 @@ class HDKey:
         chain = I[32:]
         return HDKey(key=key, chain=chain)
 
-    def __init__(self, import_key=None, key=None, chain=None):
-        depth = 0
-        parent_fingerprint = b'\0\0\0\0'
-        child_index = 0
-        private = True
-
+    def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint = b'\0\0\0\0', child_index = 0):
+        isprivate = True
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
                 seedbits = random.SystemRandom().getrandbits(512)
                 seed = change_base(str(seedbits), 10, 256)
-                I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
-                key = I[:32]
-                chain = I[32:]
+                key, chain = self._key_derivation(seed)
             elif len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
             elif import_key[:4] in ['xprv', 'xpub']:
                 bkey = change_base(import_key, 58, 256)
                 if ord(bkey[45]):
-                    private = False
+                    isprivate = False
                     key = bkey[45:78]
                 else:
                     key = bkey[46:78]
@@ -243,16 +242,54 @@ class HDKey:
                 raise ValueError("Key format not recognised")
 
         self._key = key
+        self._secret = change_base(key, 256, 10)
         self._chain = chain
         self._depth = depth
         self._parent_fingerprint = parent_fingerprint
         self._child_index = child_index
-        self._isprivate = private
+        self._isprivate = isprivate
+        self._path = None
+        print "depth %d, child %d" % (self._depth, self._child_index)
+        if isprivate:
+            self._public = None
+        else:
+            self._public = key
 
-    def path(self):
-        return 'm/%d/%d' % (self._depth, self._child_index)
+    def __repr__(self):
+        return self.extended_wif()
 
-    def extended_wif(self, public=False):
+    def info(self):
+        if self._isprivate:
+            print "SECRET EXPONENT"
+            print " Private Key (hex)           ", change_base(self._key, 256, 16)
+            print " Private Key (long)          ", self._secret
+            print " Private Key (wif)           ", self.private().wif()
+            print ""
+        print "PUBLIC KEY"
+        print " Public Key (hex)            ", self.public()
+        print " Address (b58)               ", self.public().address()
+        print " Fingerprint (hex)           ", change_base(self.fingerprint(), 256, 16)
+        print ""
+        print "EXTENDED KEY INFO"
+        print " Path                        ", self.path()
+        print " Chain code (hex)            ", change_base(self.chain(), 256, 16)
+        print " Child Index                 ", self.child_index()
+        print " Parent Fingerprint (hex)    ", change_base(self.parent_fingerprint(), 256, 16)
+        print " Depth                       ", self.depth()
+        print " Extended Public Key (wif)   ", self.extended_wif_public()
+        print " Extended Private Key (wif)  ", self.extended_wif()
+
+    def _key_derivation(self, seed):
+        chain = hasattr(self, '_chain') and self._chain or "Bitcoin seed"
+        I = hmac.new(chain, seed, hashlib.sha512).digest()
+        key = I[:32]
+        chain = I[32:]
+        return key, chain
+
+    def fingerprint(self):
+        return hashlib.new('ripemd160', hashlib.sha256(self.public().public_byte()).digest()).digest()[:4]
+
+    def extended_wif(self, public=False, child_index=None):
         rkey = self._key
         if self._isprivate and not public:
             raw = HDKEY_XPRV
@@ -261,7 +298,9 @@ class HDKey:
             raw = HDKEY_XPUB
             typebyte = ''
             if public:
-                rkey = change_base(self.public(),16,256)
+                rkey = self.public().public_byte()
+        if child_index:
+            self._child_index = child_index
         raw += chr(self._depth) + self._parent_fingerprint + \
               struct.pack('>L', self._child_index) + \
               self._chain + typebyte + rkey
@@ -273,40 +312,89 @@ class HDKey:
         return self.extended_wif(public=True)
 
     def key(self):
-        return self._key
+        return self._key or ''
 
     def chain(self):
-        return self._chain
+        return self._chain or ''
 
     def depth(self):
-        return self._depth
+        return self._depth or 0
 
     def parent_fingerprint(self):
-        return self._parent_fingerprint
+        return self._parent_fingerprint or b'\0\0\0\0'
 
     def child_index(self):
-        return self._child_index
+        return self._child_index or 0
 
     def isprivate(self):
         return self._isprivate
 
     def public(self):
-        return Key(self._key).public()
+        if not self._public:
+            pub = Key(self._key).public()
+            return Key(pub)
+        return self._public
+
+    def private(self):
+        if self._key:
+            return Key(self._key)
+
+    def path(self):
+        return self._path or ''
+
+    def subkey_for_path(self, path):
+        self._path = path
+        key = self
+        if path[0] in 'Mm':
+            path = path[2:]
+        if path:
+            levels = path.split("/")
+            for level in levels:
+                hardened = level[-1] in "'HhPp"
+                if hardened:
+                    level = level[:-1]
+                index = int(level)
+                key = key.child_private(index=index, hardened=hardened)
+        return key
+
+    def child_private(self, index=0, hardened=True):
+        if not self._isprivate:
+            raise ValueError("Need a private key to create child private key")
+        if hardened:
+            index |= 0x80000000
+        data = b'\0' + self._key + struct.pack('>L', index)
+        key, chain = self._key_derivation(data)
+
+        key = change_base(key, 256, 10)
+        if key > _r:
+            raise ValueError("Key cannot be greater then _r. Try another index number.")
+        newkey = (key + self._secret) % generator.order()
+        if newkey == 0:
+            raise ValueError("Key cannot be zero. Try another index number.")
+        newkey = change_base(newkey, 10, 256)
+
+        return HDKey(key=newkey, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
+                     child_index=index)
 
 
 if __name__ == '__main__':
-    k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
-
+    # k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
+    #
     k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-    print k.extended_wif(public=True)
-
-    pk = HDKey()
-    print "Random private key: %s" % pk.extended_wif()
-
-    pk = HDKey('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM')
-    print "Imported private key: %s" % pk.extended_wif()
-    print "Imported private key path: %s" % pk.path()
-
-    pK = HDKey('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5')
-    print "Imported private key: %s" % pK.extended_wif()
-    print "Imported private key path: %s" % pK.path()
+    # print k.extended_wif(public=True)
+    #
+    # pk = HDKey()
+    # print "Random private key: %s" % pk.extended_wif()
+    #
+    # pk = HDKey('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM')
+    # print "Imported private key: %s" % k
+    #
+    # # pK = HDKey('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5')
+    # # print "Imported private key: %s" % pK.extended_wif()
+    #
+    # print change_base(k.fingerprint(), 256, 16)
+    # print k.public()
+    k2 = k.subkey_for_path('m/0h')
+    # print "Subkey for path m/0h: %s" % k.child_private()
+    # print "     ==?==            xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7"
+    k2.info()
