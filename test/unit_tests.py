@@ -238,5 +238,16 @@ class TestHDKeys(unittest.TestCase):
                          'XEYBVPamhGW6cFJodrTHy',
                          self.k.subkey_for_path('m/0h/1/2h/2/1000000000').extended_wif(public=True))
 
+    def test_hdprivate_key_path_key2(self):
+        self.assertEqual('xprvA2nrNbFZABcdryreWet9Ea4LvTJcGsqrMzxHx98MMrotbir7yrKCEXw7nadnHM8Dq38EGfSh6dqA9QWTyefMLEc'
+                         'BYJUuekgW4BYPJcr9E7j',
+                         self.k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif())
+        self.assertEqual('xpub6FnCn6nSzZAw5Tw7cgR9bi15UV96gLZhjDstkXXxvCLsUXBGXPdSnLFbdpq8p9HmGsApME5hQTZ3emM2rnY5agb'
+                         '9rXpVGyy3bdW6EEgAtqt',
+                         self.k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif(public=True))
+
+    def test_hdprivate_key_path_invalid(self):
+        self.assertRaises(ValueError, self.k2.subkey_for_path('m/0/').extended_wif())
+
 if __name__ == '__main__':
     unittest.main()
