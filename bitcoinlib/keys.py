@@ -270,7 +270,6 @@ class HDKey:
         print " Fingerprint (hex)           ", change_base(self.fingerprint(), 256, 16)
         print ""
         print "EXTENDED KEY INFO"
-        print " Path                        ", self.path()
         print " Chain code (hex)            ", change_base(self.chain(), 256, 16)
         print " Child Index                 ", self.child_index()
         print " Parent Fingerprint (hex)    ", change_base(self.parent_fingerprint(), 256, 16)
@@ -338,11 +337,7 @@ class HDKey:
         if self._key:
             return Key(self._key)
 
-    def path(self):
-        return self._path or ''
-
     def subkey_for_path(self, path):
-        self._path = path
         key = self
         if path[0] in 'Mm':
             path = path[2:]
@@ -395,7 +390,7 @@ if __name__ == '__main__':
     #
     # print change_base(k.fingerprint(), 256, 16)
     # print k.public()
-    k2 = k.subkey_for_path('m/0h/1')
+    k2 = k.subkey_for_path('m/0h/1/2h/2/1000000000')
     # print "Subkey for path m/0h: %s" % k.child_private()
     # print "     ==?==            xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7"
     k2.info()
