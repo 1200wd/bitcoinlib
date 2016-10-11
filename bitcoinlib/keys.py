@@ -344,10 +344,14 @@ class HDKey:
         if path:
             levels = path.split("/")
             for level in levels:
+                if not level:
+                    raise ValueError("Could not parse path. Index is empty.")
                 hardened = level[-1] in "'HhPp"
                 if hardened:
                     level = level[:-1]
                 index = int(level)
+                if index<0:
+                    raise ValueError("Could not parse path. Index must be a positive integer.")
                 key = key.child_private(index=index, hardened=hardened)
         return key
 
@@ -390,7 +394,7 @@ if __name__ == '__main__':
     #
     # print change_base(k.fingerprint(), 256, 16)
     # print k.public()
-    k2 = k.subkey_for_path('m/0h/1/2h/2/1000000000')
+    k2 = k.subkey_for_path("test")
     # print "Subkey for path m/0h: %s" % k.child_private()
     # print "     ==?==            xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7"
     k2.info()

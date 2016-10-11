@@ -247,7 +247,12 @@ class TestHDKeys(unittest.TestCase):
                          self.k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif(public=True))
 
     def test_hdprivate_key_path_invalid(self):
-        self.assertRaises(ValueError, self.k2.subkey_for_path('m/0/').extended_wif())
+        with self.assertRaises(ValueError):
+            self.k2.subkey_for_path('m/0/').extended_wif()
+
+    def test_hdprivate_key_path_invalid2(self):
+        with self.assertRaises(ValueError):
+            self.k2.subkey_for_path('m/-1').extended_wif()
 
 if __name__ == '__main__':
     unittest.main()
