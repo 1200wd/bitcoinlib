@@ -249,7 +249,6 @@ class HDKey:
         self._child_index = child_index
         self._isprivate = isprivate
         self._path = None
-        print "depth %d, child %d" % (self._depth, self._child_index)
         if isprivate:
             self._public = None
         else:
@@ -362,7 +361,9 @@ class HDKey:
             raise ValueError("Need a private key to create child private key")
         if hardened:
             index |= 0x80000000
-        data = b'\0' + self._key + struct.pack('>L', index)
+            data = b'\0' + self._key + struct.pack('>L', index)
+        else:
+            data = self.public().public_byte() + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
 
         key = change_base(key, 256, 10)
@@ -394,7 +395,7 @@ if __name__ == '__main__':
     #
     # print change_base(k.fingerprint(), 256, 16)
     # print k.public()
-    k2 = k.subkey_for_path('m/0h')
+    k2 = k.subkey_for_path('m/0h/1')
     # print "Subkey for path m/0h: %s" % k.child_private()
     # print "     ==?==            xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7"
     k2.info()
