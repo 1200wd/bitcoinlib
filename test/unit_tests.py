@@ -103,11 +103,6 @@ class TestPrivateKeyConversions(unittest.TestCase):
     def test_private_key_conversions_hex(self):
         self.assertEqual('b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58', self.k.private_hex())
 
-    def test_private_key_conversions_bits(self):
-        self.assertEqual('10111001010101001111011100011001001100111001100001101110001111011110011101101101001110101001'
-                         '01000100010101001101110001010010111011000000100000101100011001100010101110100110011111001010'
-                         '001110111010010010001111111101110010101111000010011100000100101001011000', self.k.private_bit())
-
     def test_private_key_conversions_wif_uncompressed(self):
         self.assertEqual('5KDudqswBNJ8mf2k7Gxn72UknDBh7GFjj9NGJrY22SY1hjKS1gF', self.k.wif(False))
 
@@ -193,69 +188,88 @@ class TestPublicKeyUncompressed(unittest.TestCase):
                          '045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d4'
                          '4bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176')
 
-class TestHDKeys(unittest.TestCase):
+class TestHDKeysImport(unittest.TestCase):
 
     def setUp(self):
         self.k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-        self.k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a87848'
-                                 '17e7b7875726f6c696663605d5a5754514e4b484542')
+        self.k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a878'
+                                  '4817e7b7875726f6c696663605d5a5754514e4b484542')
+        self.xpub = HDKey('xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqse'
+                          'fD265TMg7usUDFdp6W1EGMcet8')
 
-    def test_hdprivate_key_import_seed_1(self):
+    def test_hdkey_import_seed_1(self):
 
         self.assertEqual('xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TG'
                          'tRBeJgk33yuGBxrMPHi', self.k.extended_wif())
         self.assertEqual('xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TM'
                          'g7usUDFdp6W1EGMcet8', self.k.extended_wif(public=True))
 
-    def test_hdprivate_key_import_seed_2(self):
+    def test_hdkey_import_seed_2(self):
         self.assertEqual('xprv9s21ZrQH143K31xYSDQpPDxsXRTUcvj2iNHm5NUtrGiGG5e2DtALGdso3pGz6ssrdK4PFmM8NSpSBHNqPqm55Qn3L'
                          'qFtT2emdEXVYsCzC2U', self.k2.extended_wif())
         self.assertEqual('xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJ'
                          'Y47LJhkJ8UB7WEGuduB', self.k2.extended_wif_public())
 
-    def test_hdprivate_key_random(self):
+    def test_hdkey_random(self):
         self.k = HDKey()
         self.assertEqual('xprv', self.k.extended_wif()[:4])
         self.assertEqual(111, len(self.k.extended_wif()))
 
-    def test_hdprivate_key_import_extended_private_key(self):
+    def test_hdkey_import_extended_private_key(self):
         extkey = 'xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4m' \
                  'LTj34bhnZX7UiM'
         self.k = HDKey(extkey)
         self.assertEqual(extkey, self.k.extended_wif())
 
-    def test_hdprivate_key_import_extended_public_key(self):
+    def test_hdkey_import_extended_public_key(self):
         extkey = 'xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7' \
                  'DogT5Uv6fcLW5'
         self.k = HDKey(extkey)
         self.assertEqual(extkey, self.k.extended_wif())
 
-    def test_hdprivate_key_path_m_0h(self):
+    def test_hdkey_import_public(self):
+        self.assertEqual('15mKKb2eos1hWa6tisdPwwDC1a5J1y9nma', self.xpub.public().address())
+        self.assertEqual('0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2', self.xpub.public().public_hex())
+
+    def test_hdkey_import_public_try_private(self):
+        self.assertFalse(self.xpub.public().wif())
+        self.assertFalse(self.xpub.public().private_hex())
+        self.assertFalse(self.xpub.public().private_byte())
+
+
+class TestHDKeysChildKeyDerivation(unittest.TestCase):
+
+    def setUp(self):
+        self.k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+        self.k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a87848'
+                                 '17e7b7875726f6c696663605d5a5754514e4b484542')
+
+    def test_hdkey_path_m_0h(self):
         self.assertEqual('xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7'
                          'XnxHrnYeSvkzY7d2bhkJ7', self.k.subkey_for_path('m/0H').extended_wif())
         self.assertEqual('xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9x'
                          'v5ski8PX9rL2dZXvgGDnw', self.k.subkey_for_path('m/0H').extended_wif(public=True))
 
-    def test_hdprivate_key_path_m_0h_1(self):
+    def test_hdkey_path_m_0h_1(self):
         self.assertEqual('xprv9wTYmMFdV23N2TdNG573QoEsfRrWKQgWeibmLntzniatZvR9BmLnvSxqu53Kw1UmYPxLgboyZQaXwTCg8MSY3H'
                          '2EU4pWcQDnRnrVA1xe8fs', self.k.subkey_for_path('m/0H/1').extended_wif())
         self.assertEqual('xpub6ASuArnXKPbfEwhqN6e3mwBcDTgzisQN1wXN9BJcM47sSikHjJf3UFHKkNAWbWMiGj7Wf5uMash7SyYq527Hqc'
                          'k2AxYysAA7xmALppuCkwQ', self.k.subkey_for_path('m/0H/1').extended_wif(public=True))
 
-    def test_hdprivate_key_path_m_0h_1_2h(self):
+    def test_hdkey_path_m_0h_1_2h(self):
         self.assertEqual('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
                          'TtpgP4mLTj34bhnZX7UiM', self.k.subkey_for_path('m/0h/1/2h').extended_wif())
         self.assertEqual('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4'
                          'trkrX7x7DogT5Uv6fcLW5', self.k.subkey_for_path('m/0h/1/2h').extended_wif(public=True))
 
-    def test_hdprivate_key_path_m_0h_1_2h_1000000000(self):
+    def test_hdkey_path_m_0h_1_2h_1000000000(self):
         self.assertEqual('xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUi'
                          'hUZREPSL39UNdE3BBDu76', self.k.subkey_for_path('m/0h/1/2h/2/1000000000').extended_wif())
         self.assertEqual('xpub6H1LXWLaKsWFhvm6RVpEL9P4KfRZSW7abD2ttkWP3SSQvnyA8FSVqNTEcYFgJS2UaFcxupHiYkro49S8yGasTv'
                          'XEYBVPamhGW6cFJodrTHy',
                          self.k.subkey_for_path('m/0h/1/2h/2/1000000000').extended_wif(public=True))
 
-    def test_hdprivate_key_path_key2(self):
+    def test_hdkey_path_key2(self):
         self.assertEqual('xprvA2nrNbFZABcdryreWet9Ea4LvTJcGsqrMzxHx98MMrotbir7yrKCEXw7nadnHM8Dq38EGfSh6dqA9QWTyefMLEc'
                          'BYJUuekgW4BYPJcr9E7j',
                          self.k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif())
@@ -263,13 +277,14 @@ class TestHDKeys(unittest.TestCase):
                          '9rXpVGyy3bdW6EEgAtqt',
                          self.k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif(public=True))
 
-    def test_hdprivate_key_path_invalid(self):
+    def test_hdkey_path_invalid(self):
         with self.assertRaises(ValueError):
             self.k2.subkey_for_path('m/0/').extended_wif()
 
-    def test_hdprivate_key_path_invalid2(self):
+    def test_hdkey_path_invalid2(self):
         with self.assertRaises(ValueError):
             self.k2.subkey_for_path('m/-1').extended_wif()
+
 
 if __name__ == '__main__':
     unittest.main()

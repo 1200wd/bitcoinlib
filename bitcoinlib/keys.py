@@ -139,10 +139,10 @@ class Key:
             return False
         return change_base(str(self._secret), 10, 16, 64)
 
-    def private_bit(self):
+    def private_byte(self):
         if not self._secret:
             return False
-        return change_base(str(self._secret), 10, 2, 256)
+        return change_base(str(self._secret), 10, 256)
 
     def wif(self, compressed=True):
         """
