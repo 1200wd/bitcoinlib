@@ -91,16 +91,15 @@ class Key:
             else:
                 self._public = import_key
                 self._x = import_key[2:66]
-                self._y = 0L
-                # # Calculate y from x with y=x^3 + 7 function
-                # x = change_base(self._x,16,10)
-                # sign = ord(import_key[0]) & 1
-                # FIELD_ORDER = SECP256k1.curve.p()
-                # ys = (x**3+7) % FIELD_ORDER
-                # y = ecdsa.numbertheory.square_root_mod_prime(ys, FIELD_ORDER)
-                # if y & 1 != sign:
-                #     y = FIELD_ORDER-y
-                # self._y = change_base(y, 10, 16)
+                # Calculate y from x with y=x^3 + 7 function
+                x = change_base(self._x,16,10)
+                sign = ord(import_key[0]) & 1
+                FIELD_ORDER = SECP256k1.curve.p()
+                ys = (x**3+7) % FIELD_ORDER
+                y = ecdsa.numbertheory.square_root_mod_prime(ys, FIELD_ORDER)
+                if y & 1 != sign:
+                    y = FIELD_ORDER-y
+                self._y = change_base(y, 10, 16)
         else:
             if key_format in ['hex', 'hex_compressed']:
                 self._secret = change_base(import_key, 16, 10)
@@ -163,14 +162,22 @@ class Key:
         return change_base(key, 256, 58)
 
     def _create_public(self):
-        point = generator
-        point *= int(self._secret)
-        point1 = ecdsa.ellipticcurve.Point(curve, point.x(), point.y(), ec_order)
-        assert point1 == point
-        if point.y() % 2: prefix = '03'
-        else: prefix = '02'
-        self._public = prefix + change_base(int(point.x()), 10, 16, 64)
-        self._public_uncompressed = '04' + change_base(int(point.x()), 10, 16, 64) + change_base(int(point.y()), 10, 16, 64)
+        if self._secret:
+            point = generator
+            point *= int(self._secret)
+            self._x = change_base(int(point.x()), 10, 16, 64)
+            self._y = change_base(int(point.y()), 10, 16, 64)
+            # if point.y() % 2: prefix = '03'
+            # else: prefix = '02'
+            # self._public = prefix + self._x
+            # self._public_uncompressed = '04' + self._x + self._y
+        if hasattr(self, '_x') and hasattr(self, '_y') and self._x and self._y:
+            if change_base(self._y, 16, 10) % 2: prefix = '03'
+            else: prefix = '02'
+            self._public = prefix + self._x
+            self._public_uncompressed = '04' + self._x + self._y
+        else:
+            raise ValueError("Key error, no secret key or public key point found.")
 
     def public(self):
         if not self._public:
@@ -392,8 +399,8 @@ class HDKey:
         return HDKey(key=newkey, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index)
 
-    def child_public(self, index=0, from_public=False):
-        if from_public and index > 0x80000000:
+    def child_public(self, index=0):
+        if index > 0x80000000:
             raise ValueError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
 
         data = self.public().public_byte() + struct.pack('>L', index)
@@ -435,7 +442,7 @@ class HDKey:
 if __name__ == '__main__':
     # k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
     #
-    k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+    # k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
     # print k.extended_wif(public=True)
     #
     # pk = HDKey()
@@ -450,7 +457,17 @@ if __name__ == '__main__':
     # print change_base(k.fingerprint(), 256, 16)
     # print k.public()
     # k2 = k.subkey_for_path("test")
-    k2 = k.child_public()
-    print "Subkey for path m/0h: %s" % k2
-    # print "     ==?==            xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7"
-    k2.info()
+    # k = HDKey('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7'
+    #           'DogT5Uv6fcLW5')
+    # k.info()
+    # k2 = k.child_public()
+    # print "Subkey for path m/0h: %s" % k2
+    # k2.info()
+
+    KC = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    print KC.public_point()
+    print KC.public_uncompressed()
+
+    HDK = HDKey('xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9x'
+                'v5ski8PX9rL2dZXvgGDnw')
+    print HDK.public()

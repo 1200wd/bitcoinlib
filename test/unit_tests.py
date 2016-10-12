@@ -176,6 +176,21 @@ class TestPublicKeyConversion(unittest.TestCase):
                                 Key, ['064781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5', 'public'])
 
 
+class TestPublicKeyUncompressed(unittest.TestCase):
+
+    def setUp(self):
+        self.k = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+
+    def test_public_key_point(self):
+        self.assertEqual(self.k.public_point(),
+                         (41637322786646325214887832269588396900663353932545912953362782457239403430124L,
+                          16388935128781238405526710466724741593761085120864331449066658622400339362166L))
+
+    def test_public_key_uncompressed(self):
+        self.assertEqual(self.k.public_uncompressed(),
+                         '045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d4'
+                         '4bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176')
+
 class TestHDKeys(unittest.TestCase):
 
     def setUp(self):
