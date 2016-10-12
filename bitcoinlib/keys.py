@@ -231,8 +231,8 @@ class HDKey:
         chain = I[32:]
         return HDKey(key=key, chain=chain)
 
-    def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint = b'\0\0\0\0', child_index = 0):
-        isprivate = True
+    def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
+                 child_index = 0, isprivate=True):
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -287,6 +287,9 @@ class HDKey:
         print " Public Key (hex)            ", self.public()
         print " Address (b58)               ", self.public().address()
         print " Fingerprint (hex)           ", change_base(self.fingerprint(), 256, 16)
+        point_x, point_y = self.public().public_point()
+        print " Point x                     ", point_x
+        print " Point y                     ", point_y
         print ""
         print "EXTENDED KEY INFO"
         print " Chain code (hex)            ", change_base(self.chain(), 256, 16)
@@ -369,8 +372,12 @@ class HDKey:
 
     def subkey_for_path(self, path):
         key = self
-        if path[0] in 'Mm':
+
+        if path[0] == 'm': # Use private master key
             path = path[2:]
+        # TODO: Write code to use public master key
+        # if path[0] == 'M': # Use public master key
+        #     path = path[2:]
         if path:
             levels = path.split("/")
             for level in levels:
@@ -409,71 +416,34 @@ class HDKey:
     def child_public(self, index=0):
         if index > 0x80000000:
             raise ValueError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
-
         data = self.public().public_byte() + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
-
         key = change_base(key, 256, 10)
         if key > _r:
             raise ValueError("Key cannot be greater then _r. Try another index number.")
 
         x, y = self.public_uncompressed().public_point()
+        public_key = self.public_uncompressed()
+        point = key * generator
+        point += ecdsa.ellipticcurve.Point(generator.curve(), x, y, generator.order())
 
-        point = key * generator + \
-                ecdsa.ellipticcurve.Point(generator.curve(), x, y, generator.order())
+            # g = SECP256k1.generator
+            # I_L_long = long_or_int(hexlify(I_L), 16)
+            # point = (_ECDSA_Public_key(g, g * I_L_long).point +
+            #          self.public_key.to_point())
+            # # I_R is the child's chain code
+            # public_pair = PublicPair(point.x(), point.y())
+
         if point.y() % 2: prefix = '03'
         else: prefix = '02'
         public = prefix + change_base(int(point.x()), 10, 16)
         secret = change_base(public, 16, 256)
-        # secret = ecdsa.VerifyingKey.from_public_point(point, curve=SECP256k1)
-        # if the_point == INFINITY:
-        #     logger.critical(_SUBKEY_VALIDATION_LOG_ERR_FMT)
-        #     raise DerivationError('K_{} == {}'.format(i, the_point))
 
-        # I_left_as_exponent = from_bytes_32(I64[:32])
-        # if I_left_as_exponent >= ORDER:
-        #     logger.critical(_SUBKEY_VALIDATION_LOG_ERR_FMT)
-        #     raise DerivationError('I_L >= {}'.format(ORDER))
-        # new_public_pair = the_point.pair()
-        #
-        #
-        #
-        # if newkey == ecdsa.ellipticcurve.INFINITY:
-        #     raise ValueError("Invalid key value. Try another index number.")
-        # newkey = change_base(newkey, 10, 256)
-
-        return HDKey(key=secret[2:], chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index)
+        return HDKey(key=secret, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
+                     child_index=index, isprivate=False)
 
 
 if __name__ == '__main__':
-    # k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
-    #
-    # k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-    # print k.extended_wif(public=True)
-    #
-    # pk = HDKey()
-    # print "Random private key: %s" % pk.extended_wif()
-    #
-    # pk = HDKey('xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM')
-    # print "Imported private key: %s" % k
-    #
-    # # pK = HDKey('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5')
-    # # print "Imported private key: %s" % pK.extended_wif()
-    #
-    # print change_base(k.fingerprint(), 256, 16)
-    # print k.public()
-    # k2 = k.subkey_for_path("test")
-    # k = HDKey('xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7'
-    #           'DogT5Uv6fcLW5')
-    # k.info()
-    # k2 = k.child_public()
-    # print "Subkey for path m/0h: %s" % k2
-    # k2.info()
-
-    # KC = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    # print KC.public_point()
-    # print KC.public_uncompressed()
-
-    HDK = HDKey('xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8')
-    print HDK.info()
+    HDK = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P7nHUYwxHPhqmzUyeFG')
+    HDKpc = HDK.child_public()
+    HDKpc.info()

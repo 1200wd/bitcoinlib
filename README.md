@@ -1,3 +1,5 @@
+IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT
+
 # bitcoinlib
 Compact Bitcoin library to work with Private and Public Keys.
 
@@ -32,6 +34,6 @@ print K.get_address()
 # ToDo
 - Add P2SH addresses
 - Add Wallet functions
-- Add HD functions
 - Wallets, Transactions and the Blockchain...
  
+IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT

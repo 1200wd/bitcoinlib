@@ -286,5 +286,15 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
             self.k2.subkey_for_path('m/-1').extended_wif()
 
 
+class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
+
+    def setUp(self):
+        self.k = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
+                       '7nHUYwxHPhqmzUyeFG')
+
+    def test_hdkey_derive_public_child_key(self):
+        self.assertEqual('1BvgsfsZQVtkLS69NvGF8rw6NZW2ShJQHr', self.k.child_public(0).public().address())
+
+
 if __name__ == '__main__':
     unittest.main()
