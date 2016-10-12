@@ -22,6 +22,7 @@
 
 import ecdsa
 import math
+from mnemonic import Mnemonic
 
 # secp256k1, http://www.oid-info.com/get/1.3.132.0.10
 _p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2FL
@@ -40,6 +41,8 @@ ec_order = _r
 curve = curve_secp256k1
 generator = generator_secp256k1
 
+wordlist = Mnemonic().wordlist()
+
 code_strings = {
     2: '01',
     3: ' ,.',
@@ -47,7 +50,8 @@ code_strings = {
     16: '0123456789abcdef',
     32: 'abcdefghijklmnopqrstuvwxyz234567',
     58: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
-    256: ''.join([chr(x) for x in range(256)])
+    256: ''.join([chr(x) for x in range(256)]),
+    2048: wordlist,
 }
 
 
@@ -123,3 +127,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1):
         output = code_str[0] + output
 
     return output
+
+
+if __name__ == '__main__':
+    print change_base('ffffffffffffffffffffffffffffffff', 16, 10)
