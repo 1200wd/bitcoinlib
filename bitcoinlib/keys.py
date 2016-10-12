@@ -26,7 +26,7 @@ import random
 import struct
 import ecdsa
 
-from encoding import _r, change_base, generator, SECP256k1, curve, ec_order
+from encoding import _r, change_base, generator, curve, ec_order, SECP256k1
 
 HDKEY_XPRV = '0488ade4'.decode('hex')
 HDKEY_XPUB = '0488b21e'.decode('hex')
@@ -92,6 +92,15 @@ class Key:
                 self._public = import_key
                 self._x = import_key[2:66]
                 self._y = 0L
+                # # Calculate y from x with y=x^3 + 7 function
+                # x = change_base(self._x,16,10)
+                # sign = ord(import_key[0]) & 1
+                # FIELD_ORDER = SECP256k1.curve.p()
+                # ys = (x**3+7) % FIELD_ORDER
+                # y = ecdsa.numbertheory.square_root_mod_prime(ys, FIELD_ORDER)
+                # if y & 1 != sign:
+                #     y = FIELD_ORDER-y
+                # self._y = change_base(y, 10, 16)
         else:
             if key_format in ['hex', 'hex_compressed']:
                 self._secret = change_base(import_key, 16, 10)
@@ -249,6 +258,7 @@ class HDKey:
         self._child_index = child_index
         self._isprivate = isprivate
         self._path = None
+        self._public_uncompressed = None
         if isprivate:
             self._public = None
         else:
@@ -333,6 +343,12 @@ class HDKey:
             return Key(pub)
         return self._public
 
+    def public_uncompressed(self):
+        if not self._public_uncompressed:
+            pub = Key(self._key).public_uncompressed()
+            return Key(pub)
+        return self._public_uncompressed
+
     def private(self):
         if self._key:
             return Key(self._key)
@@ -376,6 +392,45 @@ class HDKey:
         return HDKey(key=newkey, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index)
 
+    def child_public(self, index=0, from_public=False):
+        if from_public and index > 0x80000000:
+            raise ValueError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
+
+        data = self.public().public_byte() + struct.pack('>L', index)
+        key, chain = self._key_derivation(data)
+
+        key = change_base(key, 256, 10)
+        if key > _r:
+            raise ValueError("Key cannot be greater then _r. Try another index number.")
+
+        x, y = self.public_uncompressed().public_point()
+
+        point = key * generator + \
+                ecdsa.ellipticcurve.Point(generator.curve(), x, y, generator.order())
+        if point.y() % 2: prefix = '03'
+        else: prefix = '02'
+        public = prefix + change_base(int(point.x()), 10, 16)
+        secret = change_base(public, 16, 256)
+        # secret = ecdsa.VerifyingKey.from_public_point(point, curve=SECP256k1)
+        # if the_point == INFINITY:
+        #     logger.critical(_SUBKEY_VALIDATION_LOG_ERR_FMT)
+        #     raise DerivationError('K_{} == {}'.format(i, the_point))
+
+        # I_left_as_exponent = from_bytes_32(I64[:32])
+        # if I_left_as_exponent >= ORDER:
+        #     logger.critical(_SUBKEY_VALIDATION_LOG_ERR_FMT)
+        #     raise DerivationError('I_L >= {}'.format(ORDER))
+        # new_public_pair = the_point.pair()
+        #
+        #
+        #
+        # if newkey == ecdsa.ellipticcurve.INFINITY:
+        #     raise ValueError("Invalid key value. Try another index number.")
+        # newkey = change_base(newkey, 10, 256)
+
+        return HDKey(key=secret[2:], chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
+                     child_index=index)
+
 
 if __name__ == '__main__':
     # k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
@@ -394,7 +449,8 @@ if __name__ == '__main__':
     #
     # print change_base(k.fingerprint(), 256, 16)
     # print k.public()
-    k2 = k.subkey_for_path("test")
-    # print "Subkey for path m/0h: %s" % k.child_private()
+    # k2 = k.subkey_for_path("test")
+    k2 = k.child_public()
+    print "Subkey for path m/0h: %s" % k2
     # print "     ==?==            xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7"
     k2.info()
