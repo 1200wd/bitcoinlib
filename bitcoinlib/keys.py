@@ -258,18 +258,20 @@ class HDKey:
                 raise ValueError("Key format not recognised")
 
         self._key = key
-        self._secret = change_base(key, 256, 10)
         self._chain = chain
         self._depth = depth
         self._parent_fingerprint = parent_fingerprint
         self._child_index = child_index
         self._isprivate = isprivate
         self._path = None
+        self._public_key_object = None
         self._public_uncompressed = None
         if isprivate:
             self._public = None
+            self._secret = change_base(key, 256, 10)
         else:
-            self._public = key
+            self._public = change_base(key, 256, 16)
+            self._secret = None
 
     def __repr__(self):
         return self.extended_wif()
@@ -292,7 +294,7 @@ class HDKey:
         print " Parent Fingerprint (hex)    ", change_base(self.parent_fingerprint(), 256, 16)
         print " Depth                       ", self.depth()
         print " Extended Public Key (wif)   ", self.extended_wif_public()
-        print " Extended Private Key (wif)  ", self.extended_wif()
+        print " Extended Private Key (wif)  ", self.extended_wif(public=False)
 
     def _key_derivation(self, seed):
         chain = hasattr(self, '_chain') and self._chain or "Bitcoin seed"
@@ -304,8 +306,10 @@ class HDKey:
     def fingerprint(self):
         return hashlib.new('ripemd160', hashlib.sha256(self.public().public_byte()).digest()).digest()[:4]
 
-    def extended_wif(self, public=False, child_index=None):
+    def extended_wif(self, public=None, child_index=None):
         rkey = self._key
+        if not self._isprivate and public == False:
+            return ''
         if self._isprivate and not public:
             raw = HDKEY_XPRV
             typebyte = '\x00'
@@ -345,10 +349,13 @@ class HDKey:
         return self._isprivate
 
     def public(self):
-        if not self._public:
-            pub = Key(self._key).public()
-            return Key(pub)
-        return self._public
+        if not self._public_key_object:
+            if self._public:
+                self._public_key_object = Key(self._public)
+            else:
+                pub = Key(self._key).public()
+                self._public_key_object = Key(pub)
+        return self._public_key_object
 
     def public_uncompressed(self):
         if not self._public_uncompressed:
@@ -464,10 +471,9 @@ if __name__ == '__main__':
     # print "Subkey for path m/0h: %s" % k2
     # k2.info()
 
-    KC = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    print KC.public_point()
-    print KC.public_uncompressed()
+    # KC = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    # print KC.public_point()
+    # print KC.public_uncompressed()
 
-    HDK = HDKey('xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9x'
-                'v5ski8PX9rL2dZXvgGDnw')
-    print HDK.public()
+    HDK = HDKey('xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8')
+    print HDK.info()

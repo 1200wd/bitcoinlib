@@ -102,7 +102,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1):
         output = code_str[r] + output
 
     if base_to == 10:
-        return int(output)
+        return int(0) or (output != '' and int(output))
 
     pos_fact = math.log(base_to, base_from)
     expected_length = len(str(chars)) / pos_fact

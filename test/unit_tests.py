@@ -86,6 +86,8 @@ class TestGlobalMethods(unittest.TestCase):
     def test_change_base_leading_zeros4(self):
         self.assertEqual('\x04G\x81', change_base('044781',16,256))
 
+    def test_change_base_zero_int(self):
+        self.assertEqual(0, change_base(b'\0', 256, 10))
 
 
 class TestPrivateKeyConversions(unittest.TestCase):
