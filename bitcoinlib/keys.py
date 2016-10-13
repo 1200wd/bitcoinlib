@@ -96,12 +96,13 @@ class Key:
                 self._public = import_key
                 self._x = import_key[2:66]
                 # Calculate y from x with y=x^3 + 7 function
+                sign = import_key[:2] == '03'
                 x = change_base(self._x,16,10)
                 secp256k1_p = SECP256k1.curve.p()
                 ys = (x**3+7) % secp256k1_p
                 y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
-                if import_key[:2] == '02':
-                    y = secp256k1_p-y
+                if y & 1 != sign:
+                    y = secp256k1_p - y
                 self._y = change_base(y, 10, 16)
         else:
             if key_format in ['hex', 'hex_compressed']:
