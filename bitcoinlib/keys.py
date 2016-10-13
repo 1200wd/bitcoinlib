@@ -26,7 +26,8 @@ import random
 import struct
 import ecdsa
 
-from encoding import _r, change_base, generator, curve, ec_order, SECP256k1
+from secp256k1 import secp256k1_n, generator, curve, secp256k1_p
+from encoding import change_base
 
 HDKEY_XPRV = '0488ade4'.decode('hex')
 HDKEY_XPUB = '0488b21e'.decode('hex')
@@ -82,7 +83,7 @@ class Key:
         self._public = None
         self._public_uncompressed = None
         if not import_key:
-            self._secret = random.SystemRandom().randint(0, _r)
+            self._secret = random.SystemRandom().randint(0, secp256k1_n)
             return
 
         key_format = get_key_format(import_key)
@@ -98,7 +99,6 @@ class Key:
                 # Calculate y from x with y=x^3 + 7 function
                 sign = import_key[:2] == '03'
                 x = change_base(self._x,16,10)
-                secp256k1_p = SECP256k1.curve.p()
                 ys = (x**3+7) % secp256k1_p
                 y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
                 if y & 1 != sign:
@@ -406,9 +406,9 @@ class HDKey:
         key, chain = self._key_derivation(data)
 
         key = change_base(key, 256, 10)
-        if key > _r:
-            raise ValueError("Key cannot be greater then _r. Try another index number.")
-        newkey = (key + self._secret) % ec_order
+        if key > secp256k1_n:
+            raise ValueError("Key cannot be greater then secp256k1_n. Try another index number.")
+        newkey = (key + self._secret) % secp256k1_n
         if newkey == 0:
             raise ValueError("Key cannot be zero. Try another index number.")
         newkey = change_base(newkey, 10, 256)
@@ -422,11 +422,11 @@ class HDKey:
         data = self.public().public_byte() + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
         key = change_base(key, 256, 10)
-        if key > _r:
-            raise ValueError("Key cannot be greater then _r. Try another index number.")
+        if key > secp256k1_n:
+            raise ValueError("Key cannot be greater then secp256k1_n. Try another index number.")
 
         x, y = self.public().public_point()
-        Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, _r)
+        Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
 
         if change_base(Ki.y(), 16, 10) % 2: prefix = '03'
         else: prefix = '02'
