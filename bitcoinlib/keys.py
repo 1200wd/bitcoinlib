@@ -26,7 +26,7 @@ import random
 import struct
 import ecdsa
 
-from secp256k1 import secp256k1_n, generator, curve, secp256k1_p
+from secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
 from encoding import change_base
 
 HDKEY_XPRV = '0488ade4'.decode('hex')
@@ -395,7 +395,7 @@ class HDKey:
                 key = key.child_private(index=index, hardened=hardened)
         return key
 
-    def child_private(self, index=0, hardened=True):
+    def child_private(self, index=0, hardened=False):
         if not self._isprivate:
             raise ValueError("Need a private key to create child private key")
         if hardened:
@@ -437,8 +437,11 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    HDK = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P7nHUYwxHPhqmzUyeFG')
+    HDK = k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
+                       '1h3BoPuEJzsgeypdKj')
+    print k.child_private(6, hardened=True)
     for index in range(10):
-        HDKpc = HDK.child_public(index)
-        print "Address %d: %s" % (index, HDKpc.public().address())
+        HDKpc = HDK.child_private(index, hardened=True)
+        print "Address %d: %s" % (index, HDKpc)
+        # print "Address %d: %s" % (index, HDKpc.private().wif())
 

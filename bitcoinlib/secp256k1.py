@@ -31,12 +31,5 @@ secp256k1_a = 0x0000000000000000000000000000000000000000000000000000000000000000
 secp256k1_Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798L
 secp256k1_Gy = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8L
 
-curve_secp256k1 = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
-generator_secp256k1 = ecdsa.ellipticcurve.Point(curve_secp256k1, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
-
-# oid_secp256k1 = (1, 3, 132, 0, 10)
-# SECP256k1 = ecdsa.curves.Curve("SECP256k1", curve_secp256k1, generator_secp256k1, oid_secp256k1)
-# ec_order = _r
-
-curve = curve_secp256k1
-generator = generator_secp256k1
+secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
+secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)

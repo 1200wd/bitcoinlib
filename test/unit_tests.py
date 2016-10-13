@@ -289,12 +289,31 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
 class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
 
     def setUp(self):
-        self.k = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
+        self.K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
                        '7nHUYwxHPhqmzUyeFG')
+        self.k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
+                       '1h3BoPuEJzsgeypdKj')
 
     def test_hdkey_derive_public_child_key(self):
-        self.assertEqual('1BvgsfsZQVtkLS69NvGF8rw6NZW2ShJQHr', self.k.child_public(0).public().address())
+        self.assertEqual('1BvgsfsZQVtkLS69NvGF8rw6NZW2ShJQHr', self.K.child_public(0).public().address())
 
+    def test_hdkey_derive_public_child_key2(self):
+        self.assertEqual('17JbSP83rPWmbdcdtiiTNqBE8MgGN8kmUk', self.K.child_public(8).public().address())
+
+    def test_hdkey_private_key(self):
+        self.assertEqual('KxABnXp7SiuWi218c14KkjEMV7SjcfXnvsWaveNVxWZU1Rwi8zNQ',
+                         self.k.child_private(7).private().wif())
+
+    # def test_hdkey_private_key_hardened(self):
+    #     self.assertEqual('KxABnXp7SiuWi218c14KkjEMV7SjcfXnvsWaveNVxWZU1Rwi8zNQ',
+    #                      self.k.child_private(6, hardened=True).private().wif())
+
+    def test_hdkey_derive_from_public_and_private(self):
+        for i in range(10):
+            pub_with_pubparent = self.K.child_public(i).public().address()
+            pub_with_privparent = self.k.child_private(i).public().address()
+            print pub_with_privparent, pub_with_pubparent
+            self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
 if __name__ == '__main__':
     unittest.main()
