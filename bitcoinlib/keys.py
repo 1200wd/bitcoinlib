@@ -103,7 +103,7 @@ class Key:
                 y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
                 if y & 1 != sign:
                     y = secp256k1_p - y
-                self._y = change_base(y, 10, 16)
+                self._y = change_base(y, 10, 16, 32)
         else:
             if key_format in ['hex', 'hex_compressed']:
                 self._secret = change_base(import_key, 16, 10)
@@ -146,7 +146,7 @@ class Key:
     def private_byte(self):
         if not self._secret:
             return False
-        return change_base(str(self._secret), 10, 256)
+        return change_base(str(self._secret), 10, 256, 32)
 
     def wif(self, compressed=True):
         """
@@ -207,7 +207,7 @@ class Key:
     def public_byte(self):
         if not self._public:
             self._create_public()
-        return change_base(self._public, 16, 256)
+        return change_base(self._public, 16, 256, 32)
 
     def hash160(self):
         if not self._public:
@@ -411,7 +411,7 @@ class HDKey:
         newkey = (key + self._secret) % secp256k1_n
         if newkey == 0:
             raise ValueError("Key cannot be zero. Try another index number.")
-        newkey = change_base(newkey, 10, 256)
+        newkey = change_base(newkey, 10, 256, 32)
 
         return HDKey(key=newkey, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index)
@@ -440,8 +440,8 @@ if __name__ == '__main__':
     HDK = k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
                        '1h3BoPuEJzsgeypdKj')
     print k.child_private(6, hardened=True)
-    for index in range(10):
-        HDKpc = HDK.child_private(index, hardened=True)
-        print "Address %d: %s" % (index, HDKpc)
-        # print "Address %d: %s" % (index, HDKpc.private().wif())
+    # for index in range(10):
+    #     HDKpc = HDK.child_private(index, hardened=True)
+    #     print "Address %d: %s" % (index, HDKpc)
+    #     # print "Address %d: %s" % (index, HDKpc.private().wif())
 
