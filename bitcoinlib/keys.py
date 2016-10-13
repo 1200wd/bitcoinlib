@@ -63,6 +63,10 @@ def get_key_format(key, keytype=None):
     else:
         raise ValueError("Unrecognised key format")
 
+def ec_point(p):
+    point = generator
+    point *= int(p)
+    return point
 
 class Key:
     """
@@ -93,12 +97,11 @@ class Key:
                 self._x = import_key[2:66]
                 # Calculate y from x with y=x^3 + 7 function
                 x = change_base(self._x,16,10)
-                sign = ord(import_key[0]) & 1
-                FIELD_ORDER = SECP256k1.curve.p()
-                ys = (x**3+7) % FIELD_ORDER
-                y = ecdsa.numbertheory.square_root_mod_prime(ys, FIELD_ORDER)
-                if y & 1 != sign:
-                    y = FIELD_ORDER-y
+                secp256k1_p = SECP256k1.curve.p()
+                ys = (x**3+7) % secp256k1_p
+                y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
+                if import_key[:2] == '02':
+                    y = secp256k1_p-y
                 self._y = change_base(y, 10, 16)
         else:
             if key_format in ['hex', 'hex_compressed']:
@@ -163,14 +166,13 @@ class Key:
 
     def _create_public(self):
         if self._secret:
-            point = generator
-            point *= int(self._secret)
+            point = ec_point(self._secret)
             self._x = change_base(int(point.x()), 10, 16, 64)
             self._y = change_base(int(point.y()), 10, 16, 64)
-            # if point.y() % 2: prefix = '03'
-            # else: prefix = '02'
-            # self._public = prefix + self._x
-            # self._public_uncompressed = '04' + self._x + self._y
+            if point.y() % 2: prefix = '03'
+            else: prefix = '02'
+            self._public = prefix + self._x
+            self._public_uncompressed = '04' + self._x + self._y
         if hasattr(self, '_x') and hasattr(self, '_y') and self._x and self._y:
             if change_base(self._y, 16, 10) % 2: prefix = '03'
             else: prefix = '02'
@@ -405,7 +407,7 @@ class HDKey:
         key = change_base(key, 256, 10)
         if key > _r:
             raise ValueError("Key cannot be greater then _r. Try another index number.")
-        newkey = (key + self._secret) % generator.order()
+        newkey = (key + self._secret) % ec_order
         if newkey == 0:
             raise ValueError("Key cannot be zero. Try another index number.")
         newkey = change_base(newkey, 10, 256)
@@ -422,28 +424,20 @@ class HDKey:
         if key > _r:
             raise ValueError("Key cannot be greater then _r. Try another index number.")
 
-        x, y = self.public_uncompressed().public_point()
-        public_key = self.public_uncompressed()
-        point = key * generator
-        point += ecdsa.ellipticcurve.Point(generator.curve(), x, y, generator.order())
+        x, y = self.public().public_point()
+        Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, _r)
 
-            # g = SECP256k1.generator
-            # I_L_long = long_or_int(hexlify(I_L), 16)
-            # point = (_ECDSA_Public_key(g, g * I_L_long).point +
-            #          self.public_key.to_point())
-            # # I_R is the child's chain code
-            # public_pair = PublicPair(point.x(), point.y())
-
-        if point.y() % 2: prefix = '03'
+        if change_base(Ki.y(), 16, 10) % 2: prefix = '03'
         else: prefix = '02'
-        public = prefix + change_base(int(point.x()), 10, 16)
-        secret = change_base(public, 16, 256)
-
+        xhex = change_base(Ki.x(), 10, 16)
+        secret = change_base(prefix + xhex, 16, 256)
         return HDKey(key=secret, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False)
 
 
 if __name__ == '__main__':
     HDK = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P7nHUYwxHPhqmzUyeFG')
-    HDKpc = HDK.child_public()
-    HDKpc.info()
+    for index in range(10):
+        HDKpc = HDK.child_public(index)
+        print "Address %d: %s" % (index, HDKpc.public().address())
+

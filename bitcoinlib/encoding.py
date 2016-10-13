@@ -130,4 +130,4 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1):
 
 
 if __name__ == '__main__':
-    print change_base('ffffffffffffffffffffffffffffffff', 16, 10)
+    print change_base('ffffffffffffffffffffffffffffffff', 16, 2048).replace('\n',',')
