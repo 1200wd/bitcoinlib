@@ -25,15 +25,11 @@ import os
 class Mnemonic:
 
     def __init__(self, language='english'):
-        dir = os.path.join(os.path.dirname(__file__), 'wordlist')
-        f = open('%s/%s.txt' % (dir,language))
-        self._wordlist = {}
-        i = 0
+        wldir = os.path.join(os.path.dirname(__file__), 'wordlist')
+        f = open('%s/%s.txt' % (wldir,language))
+        self._wordlist = []
         for word in f.readlines():
-            self._wordlist.update({
-                i: word,
-            })
-            i += 1
+            self._wordlist.append(word.strip('\n'))
 
     def word(self, index):
         return self._wordlist[index]

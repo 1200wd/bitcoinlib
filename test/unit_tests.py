@@ -140,6 +140,7 @@ class TestPrivateKeyImport(unittest.TestCase):
         self.assertRaisesRegexp(ValueError, "Unrecognised key format",
                                 Key, 'M1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
 
+
 class TestPublicKeyConversion(unittest.TestCase):
 
     def setUp(self):
@@ -187,6 +188,7 @@ class TestPublicKeyUncompressed(unittest.TestCase):
         self.assertEqual(self.k.public_uncompressed(),
                          '045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d4'
                          '4bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176')
+
 
 class TestHDKeysImport(unittest.TestCase):
 
@@ -309,11 +311,12 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
                          self.k.child_private(6, hardened=True).private().wif())
 
     def test_hdkey_derive_from_public_and_private(self):
-        for i in range(10):
+        for i in range(100):
             pub_with_pubparent = self.K.child_public(i).public().address()
             pub_with_privparent = self.k.child_private(i).public().address()
-            print pub_with_privparent, pub_with_pubparent
+            print "%4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent)
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
+
 
 if __name__ == '__main__':
     unittest.main()
