@@ -21,10 +21,11 @@
 
 import os
 
+WORDLIST_LANGUAGE = 'dutch'
 
 class Mnemonic:
 
-    def __init__(self, language='english'):
+    def __init__(self, language=WORDLIST_LANGUAGE):
         wldir = os.path.join(os.path.dirname(__file__), 'wordlist')
         f = open('%s/%s.txt' % (wldir,language))
         self._wordlist = []

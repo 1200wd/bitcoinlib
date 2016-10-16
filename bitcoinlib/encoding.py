@@ -77,8 +77,10 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
                 except ValueError:
                     raise ValueError("Unknown character '%s' in input format" % item)
             input_dec += pos * factor
+            # Add leading zero if there are leading zero's in input
             if not pos * factor:
-                if not len(inp.strip(code_str_from[0])):
+                if (len(inp) and isinstance(inp, list) and inp[0] == code_str_from[0]) \
+                        or (isinstance(inp, str) and not len(inp.strip(code_str_from[0]))):
                     addzeros += 1
             factor *= base_from
     else:
@@ -118,7 +120,10 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
 
 
 if __name__ == '__main__':
-    print change_base("7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f", 16, 2048, output_as_list=True)
-    sentence = "among sausage worth useful legal winner thank year wave sausage worth useful".split(" ")
-    print sentence
-    print change_base(sentence, 2048, 16)
+    import random
+    maxsize = change_base('FFFFFFFFFF', 16, 10)
+    rand = random.SystemRandom().randint(maxsize /2, maxsize)
+    print "Your password is:"
+    passline = change_base(rand, 16, 2048, output_as_list=True)
+    print passline
+    print "You need an avarage of %.0f tries to guess this password" % (maxsize/4)
