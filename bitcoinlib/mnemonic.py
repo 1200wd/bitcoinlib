@@ -37,13 +37,15 @@ class Mnemonic:
     def wordlist(self):
         return self._wordlist
 
+    def generate(self, strength=128):
+        data = os.urandom(strength // 8)
+        wi = change_base(data, 256, 2048)
+        return [self._wordlist[i] for i in wi]
+
 
 if __name__ == '__main__':
-    import random
-    wordlist = Mnemonic().wordlist()
-    maxsize = change_base('FFFFFFFFFF', 16, 10)
-    rand = random.SystemRandom().randint(maxsize /2, maxsize)
-    passline = change_base(rand, 16, 2048, output_as_list=True)
-    wpl = [wordlist[i] for i in passline]
+    entsize = 20
+    wpl = Mnemonic().generate(entsize)
+    print len(wpl)
     print "Your password is: %s" % ' '.join(wpl)
-    print "You need an avarage of %.0f tries to guess this password" % (maxsize/4)
+    print "A computer needs an avarage of %.2f tries to guess this password" % ((2 ** entsize) /2.0)

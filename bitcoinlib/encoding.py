@@ -45,8 +45,13 @@ def get_code_string(base):
         raise ValueError("Invalid base!")
 
 
-def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=False):
+def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=None):
     code_str = get_code_string(base_to)
+    if not output_as_list:
+        if isinstance(code_str, list):
+            output_as_list = True
+        else:
+            output_as_list = False
     code_str_from = get_code_string(base_from)
     output = []
     input_dec = 0
