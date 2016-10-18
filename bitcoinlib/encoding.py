@@ -21,10 +21,9 @@
 #
 
 import math
-from mnemonic import Mnemonic
-
-
-wordlist = Mnemonic().wordlist()
+# from mnemonic import Mnemonic
+#
+# wordlist = Mnemonic().wordlist()
 
 code_strings = {
     2: '01',
@@ -34,7 +33,7 @@ code_strings = {
     32: 'abcdefghijklmnopqrstuvwxyz234567',
     58: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     256: ''.join([chr(x) for x in range(256)]),
-    2048: wordlist,
+    2048: range(0,2047),
 }
 
 
@@ -117,13 +116,3 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
     if not output_as_list:
         output = ''.join(output)
     return output
-
-
-if __name__ == '__main__':
-    import random
-    maxsize = change_base('FFFFFFFFFF', 16, 10)
-    rand = random.SystemRandom().randint(maxsize /2, maxsize)
-    print "Your password is:"
-    passline = change_base(rand, 16, 2048, output_as_list=True)
-    print passline
-    print "You need an avarage of %.0f tries to guess this password" % (maxsize/4)

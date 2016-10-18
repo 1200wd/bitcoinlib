@@ -20,6 +20,7 @@
 #
 
 import os
+from encoding import change_base
 
 DEFAULT_LANGUAGE = 'dutch'
 
@@ -38,5 +39,11 @@ class Mnemonic:
 
 
 if __name__ == '__main__':
-    wl = Mnemonic()
-    print wl.wordlist()
+    import random
+    wordlist = Mnemonic().wordlist()
+    maxsize = change_base('FFFFFFFFFF', 16, 10)
+    rand = random.SystemRandom().randint(maxsize /2, maxsize)
+    passline = change_base(rand, 16, 2048, output_as_list=True)
+    wpl = [wordlist[i] for i in passline]
+    print "Your password is: %s" % ' '.join(wpl)
+    print "You need an avarage of %.0f tries to guess this password" % (maxsize/4)
