@@ -39,13 +39,24 @@ class Mnemonic:
 
     def generate(self, strength=128):
         data = os.urandom(strength // 8)
+        print change_base(data, 256, 16)
         wi = change_base(data, 256, 2048)
         return [self._wordlist[i] for i in wi]
+
+    def to_entropy(self, words):
+        wi = []
+        for word in words:
+            wi.append(self._wordlist.index(word))
+        print wi
+        ent = change_base(wi, 2048, 16)
+        return ent
 
 
 if __name__ == '__main__':
     entsize = 20
-    wpl = Mnemonic().generate(entsize)
-    print len(wpl)
+    mobj = Mnemonic()
+    wpl = mobj.generate(entsize)
     print "Your password is: %s" % ' '.join(wpl)
     print "A computer needs an avarage of %.2f tries to guess this password" % ((2 ** entsize) /2.0)
+
+    print "In HEX this is %s" % mobj.to_entropy(wpl)
