@@ -44,25 +44,25 @@ class Mnemonic:
         return self._wordlist
 
     def generate(self, strength=128, include_checksum=True):
-        data = os.urandom(strength // 8)
+        data = change_base(os.urandom(strength // 8), 256, 16)
         if include_checksum:
             data = data + self.checksum(data)
         return self.to_mnemonic(data)
 
-    def to_entropy(self, words, base_to=16, includes_checksum=True):
+    def to_entropy(self, words, includes_checksum=True):
         wi = []
         for word in words:
             wi.append(self._wordlist.index(word))
-        ent = change_base(wi, 2048, base_to)
+        ent = change_base(wi, 2048, 16)
         if includes_checksum:
-            print ent
+            # TODO: check checksum
             pass
         return ent
 
-    def to_mnemonic(self, data, include_checksum=True):
-        if include_checksum:
+    def to_mnemonic(self, data, add_checksum=False):
+        if add_checksum:
             data = data + self.checksum(data)
-        wi = change_base(data, 256, 2048)
+        wi = change_base(data, 16, 2048)
         return [self._wordlist[i] for i in wi]
 
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     wpl = Mnemonic().generate(entsize)
     print("Your password is: %s" % ' '.join(wpl))
     print("A computer needs an avarage of %.2f tries to guess this password" % ((2 ** entsize) /2.0))
-    base = Mnemonic().to_entropy(wpl, 256)
-    print("In HEX this is %s" % change_base(base, 256, 16, 8))
+    base = Mnemonic().to_entropy(wpl)
+    print("In HEX this is %s" % base)
     print("Checksum is %s" % Mnemonic().checksum(base))
     print("Convert back to base2048: %s" % Mnemonic().to_mnemonic(base))
