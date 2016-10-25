@@ -33,7 +33,7 @@ code_strings = {
     32: 'abcdefghijklmnopqrstuvwxyz234567',
     58: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     256: ''.join([chr(x) for x in range(256)]),
-    2048: range(0,2047),
+    # 2048: range(0,2047),
 }
 
 
@@ -42,7 +42,7 @@ def get_code_string(base):
     if base in code_strings:
         return code_strings[base]
     else:
-        raise ValueError("Invalid base!")
+        return range(0,base)
 
 
 def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=None):

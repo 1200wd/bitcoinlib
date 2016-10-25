@@ -28,6 +28,7 @@ DEFAULT_LANGUAGE = 'dutch'
 class Mnemonic:
 
     def __init__(self, language=DEFAULT_LANGUAGE):
+        self._wordlist = []
         wldir = os.path.join(os.path.dirname(__file__), 'wordlist')
         with open('%s/%s.txt' % (wldir,language), 'r') as f:
             self._wordlist = [w.strip() for w in f.readlines()]
