@@ -26,7 +26,7 @@ from bitcoinlib.keys import *
 
 # Number of bulktests for generation of private, public keys and hdkeys. Set to 0 to disable
 # WARNING: Can be slow!
-BULKTESTCOUNT = 100
+BULKTESTCOUNT = 10
 
 class TestGlobalMethods(unittest.TestCase):
 
@@ -324,16 +324,29 @@ class TestKeysBulk(unittest.TestCase):
         self.k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
                        '1h3BoPuEJzsgeypdKj')
 
-    def test_hdkey_derive_from_public_and_private(self):
+    def test_hdkey_derive_from_public_and_private_index(self):
         global BULKTESTCOUNT
         if not BULKTESTCOUNT:
             self.skipTest("Skip bulktesting. Bulktestcount == 0")
         for i in range(BULKTESTCOUNT):
             pub_with_pubparent = self.K.child_public(i).public().address()
             pub_with_privparent = self.k.child_private(i).public().address()
-            print "%4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent)
+            if pub_with_privparent != pub_with_pubparent:
+                print "Error index %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent)
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
+    def test_hdkey_derive_from_public_and_private_random(self):
+        global BULKTESTCOUNT
+        if not BULKTESTCOUNT:
+            self.skipTest("Skip bulktesting. Bulktestcount == 0")
+        for i in range(BULKTESTCOUNT):
+            k = HDKey()
+            K = HDKey(k.extended_wif_public())
+            pub_with_pubparent = K.child_public().public().address()
+            pub_with_privparent = k.child_private().public().address()
+            if pub_with_privparent != pub_with_pubparent:
+                print "Error random key: %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent)
+            self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
 if __name__ == '__main__':
     unittest.main()
