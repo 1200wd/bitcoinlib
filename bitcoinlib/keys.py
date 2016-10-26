@@ -437,18 +437,7 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    k = HDKey()
-    k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
-                       '1h3BoPuEJzsgeypdKj')
-    K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
-               '7nHUYwxHPhqmzUyeFG')
-    # print k.child_private(6).private().wif()
-    # print "== L3oTQGyHQvE3GkRQJkgPs9vY8NRTxdwacHu9Xu9QBPTpgHCSGume"
-    # for index in range(10):
-    #     HDKpc = HDK.child_private(index, hardened=True)
-    #     print "Address %d: %s" % (index, HDKpc)
-    #     # print "Address %d: %s" % (index, HDKpc.private().wif())
-    pub_with_pubparent = K.child_public(43).public().address()
-    pub_with_privparent = k.child_private(43).public().address()
-    print "%s == %s" % (pub_with_pubparent, pub_with_privparent)
-
+    k = HDKey('xprv9s21ZrQH143K31AgNK5pyVvW23gHnkBq2wh5aEk6g1s496M8ZMjxncCKZKgb5j'
+              'ZoY5eSJMJ2Vbyvi2hbmQnCuHBujZ2WXGTux1X2k9Krdtq')
+    sk = k.subkey_for_path('3/2H')
+    print(sk.info())

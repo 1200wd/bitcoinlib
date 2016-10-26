@@ -310,8 +310,10 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
                          self.k.child_private(7).private().wif())
 
     def test_hdkey_private_key_hardened(self):
-        self.assertEqual('L3oTQGyHQvE3GkRQJkgPs9vY8NRTxdwacHu9Xu9QBPTpgHCSGume',
-                         self.k.child_private(6, hardened=True).private().wif())
+        self.k2 = HDKey('xprv9s21ZrQH143K31AgNK5pyVvW23gHnkBq2wh5aEk6g1s496M8ZMjxncCKZKgb5j'
+              'ZoY5eSJMJ2Vbyvi2hbmQnCuHBujZ2WXGTux1X2k9Krdtq')
+        self.assertEqual('xprv9wTErTSu5AWGkDeUPmqBcbZWX1xq85ZNX9iQRQW9DXwygFp7iRGJo79dsVctcsCHsnZ3XU3DhsuaGZbDh8iDkB'
+                         'N45k67UKsJUXM1JfRCdn1', str(self.k2.subkey_for_path('3/2H')))
 
 
 class TestKeysBulk(unittest.TestCase):
