@@ -24,6 +24,9 @@ import unittest
 
 from bitcoinlib.keys import *
 
+# Number of bulktests for generation of private, public keys and hdkeys. Set to 0 to disable
+# WARNING: Can be slow!
+BULKTESTCOUNT = 0
 
 class TestGlobalMethods(unittest.TestCase):
 
@@ -310,8 +313,14 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
         self.assertEqual('L3oTQGyHQvE3GkRQJkgPs9vY8NRTxdwacHu9Xu9QBPTpgHCSGume',
                          self.k.child_private(6, hardened=True).private().wif())
 
+
+class TestKeysBulk(unittest.TestCase):
+
     def test_hdkey_derive_from_public_and_private(self):
-        for i in range(100):
+        global BULKTESTCOUNT
+        if not BULKTESTCOUNT:
+            self.skipTest("Skip bulktesting. Bulktestcount == 0")
+        for i in range(BULKTESTCOUNT):
             pub_with_pubparent = self.K.child_public(i).public().address()
             pub_with_privparent = self.k.child_private(i).public().address()
             print "%4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent)
