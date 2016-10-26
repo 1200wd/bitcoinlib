@@ -242,18 +242,11 @@ class Key:
         print " Public Key (hex)            ", self.public()
         print " Public Key (hex)            ", self.public_uncompressed()
         print " Address (b58)               ", self.address()
-        print " Address (b58)               ", self.address_uncompressed()
+        print " Address uncompressed (b58)  ", self.address_uncompressed()
         point_x, point_y = self.public_point()
         print " Point x                     ", point_x
         print " Point y                     ", point_y
-        # print ""
-        # print "EXTENDED KEY INFO"
-        # print " Chain code (hex)            ", change_base(self.chain(), 256, 16)
-        # print " Child Index                 ", self.child_index()
-        # print " Parent Fingerprint (hex)    ", change_base(self.parent_fingerprint(), 256, 16)
-        # print " Depth                       ", self.depth()
-        # print " Extended Public Key (wif)   ", self.extended_wif_public()
-        # print " Extended Private Key (wif)  ", self.extended_wif(public=False)
+
 
 
 class HDKey:
@@ -469,5 +462,5 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    k.info()
+    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    K.info()

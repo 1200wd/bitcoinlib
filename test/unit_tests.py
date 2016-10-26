@@ -180,17 +180,21 @@ class TestPublicKeyConversion(unittest.TestCase):
 class TestPublicKeyUncompressed(unittest.TestCase):
 
     def setUp(self):
-        self.k = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+        self.K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
 
     def test_public_key_point(self):
-        self.assertEqual(self.k.public_point(),
-                         (41637322786646325214887832269588396900663353932545912953362782457239403430124L,
-                          16388935128781238405526710466724741593761085120864331449066658622400339362166L))
+        self.assertEqual((41637322786646325214887832269588396900663353932545912953362782457239403430124L,
+                          16388935128781238405526710466724741593761085120864331449066658622400339362166L),
+                         self.K.public_point(),)
 
     def test_public_key_uncompressed(self):
-        self.assertEqual(self.k.public_uncompressed(),
-                         '045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d4'
-                         '4bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176')
+        self.assertEqual('045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d4'
+                         '4bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176',
+                         self.K.public_uncompressed())
+
+    def test_public_key_address_uncompressed(self):
+        # print self.K.address()
+        self.assertEqual('1thMirt546nngXqyPEz532S8fLwbozud8', self.K.address_uncompressed())
 
 
 class TestHDKeysImport(unittest.TestCase):

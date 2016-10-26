@@ -90,7 +90,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
                     addzeros += 1
             factor *= base_from
     else:
-        raise ValueError("Unknown input format")
+        raise ValueError("Unknown input format %s" % inp)
 
     # Convert decimal to output base
     while int(input_dec) != 0:
