@@ -26,7 +26,7 @@ from bitcoinlib.keys import *
 
 # Number of bulktests for generation of private, public keys and hdkeys. Set to 0 to disable
 # WARNING: Can be slow!
-BULKTESTCOUNT = 0
+BULKTESTCOUNT = 100
 
 class TestGlobalMethods(unittest.TestCase):
 
@@ -43,7 +43,7 @@ class TestGlobalMethods(unittest.TestCase):
         self.assertEqual(61441, change_base('f001', 16, 10))
 
     def test_change_base_dec_hex(self):
-        self.assertEqual('f001', change_base('61441', 10, 16))
+        self.assertEqual('f001', change_base('61441', 10, 16, 4))
 
     def test_change_base_b58_dec(self):
         self.assertEqual(5283658277747592673868818217239156372404875337009783985623,
@@ -59,7 +59,7 @@ class TestGlobalMethods(unittest.TestCase):
 
     def test_change_base_dec_b58(self):
         self.assertEqual('LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx',
-                         change_base('5283658277747592673868818217239156372404875337009783985623', 10, 58))
+                         change_base('5283658277747592673868818217239156372404875337009783985623', 10, 58, 33))
 
     def test_change_base_padding(self):
         self.assertEqual('0011', change_base(3, 10, 2, 4))
@@ -315,6 +315,12 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
 
 
 class TestKeysBulk(unittest.TestCase):
+
+    def setUp(self):
+        self.K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
+                       '7nHUYwxHPhqmzUyeFG')
+        self.k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
+                       '1h3BoPuEJzsgeypdKj')
 
     def test_hdkey_derive_from_public_and_private(self):
         global BULKTESTCOUNT

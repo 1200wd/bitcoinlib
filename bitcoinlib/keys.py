@@ -240,7 +240,7 @@ class HDKey:
             if not import_key:
                 # Generate new Master Key
                 seedbits = random.SystemRandom().getrandbits(512)
-                seed = change_base(str(seedbits), 10, 256)
+                seed = change_base(str(seedbits), 10, 256, 64)
                 key, chain = self._key_derivation(seed)
             elif len(import_key) == 64:
                 key = import_key[:32]
@@ -430,18 +430,25 @@ class HDKey:
 
         if change_base(Ki.y(), 16, 10) % 2: prefix = '03'
         else: prefix = '02'
-        xhex = change_base(Ki.x(), 10, 16)
+        xhex = change_base(Ki.x(), 10, 16, 64)
         secret = change_base(prefix + xhex, 16, 256)
         return HDKey(key=secret, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False)
 
 
 if __name__ == '__main__':
-    HDK = k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
+    k = HDKey()
+    k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
                        '1h3BoPuEJzsgeypdKj')
-    print k.child_private(6, hardened=True)
+    K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
+               '7nHUYwxHPhqmzUyeFG')
+    # print k.child_private(6).private().wif()
+    # print "== L3oTQGyHQvE3GkRQJkgPs9vY8NRTxdwacHu9Xu9QBPTpgHCSGume"
     # for index in range(10):
     #     HDKpc = HDK.child_private(index, hardened=True)
     #     print "Address %d: %s" % (index, HDKpc)
     #     # print "Address %d: %s" % (index, HDKpc.private().wif())
+    pub_with_pubparent = K.child_public(43).public().address()
+    pub_with_privparent = k.child_private(43).public().address()
+    print "%s == %s" % (pub_with_pubparent, pub_with_privparent)
 

@@ -46,6 +46,8 @@ def get_code_string(base):
 
 
 def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=None):
+    if base_from == 10 and not min_lenght:
+        raise ValueError("For a decimal input a minimum output lenght is required!")
     code_str = get_code_string(base_to)
     if not output_as_list:
         if isinstance(code_str, list):
