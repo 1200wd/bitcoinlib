@@ -216,13 +216,19 @@ class Key:
         key = change_base(self._public, 16, 256)
         return hashlib.new('ripemd160', hashlib.sha256(key).digest()).hexdigest()
 
-    def address(self):
+    def address(self, compressed=True):
         if not self._public:
             self._create_public()
-        key = change_base(self._public, 16, 256)
+        if compressed:
+            key = change_base(self._public, 16, 256)
+        else:
+            key = change_base(self._public_uncompressed, 16, 256)
         key = chr(0) + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()
         return change_base(key + checksum[:4], 256, 58)
+
+    def address_uncompressed(self):
+        return self.address(compressed=False)
 
     def info(self):
         if self._secret:
@@ -236,7 +242,7 @@ class Key:
         print " Public Key (hex)            ", self.public()
         print " Public Key (hex)            ", self.public_uncompressed()
         print " Address (b58)               ", self.address()
-        print " Address (b58)               ", self.address()
+        print " Address (b58)               ", self.address_uncompressed()
         point_x, point_y = self.public_point()
         print " Point x                     ", point_x
         print " Point y                     ", point_y
