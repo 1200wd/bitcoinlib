@@ -69,6 +69,7 @@ def ec_point(p):
     point *= int(p)
     return point
 
+
 class Key:
     """
     Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
@@ -222,6 +223,31 @@ class Key:
         key = chr(0) + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()
         return change_base(key + checksum[:4], 256, 58)
+
+    def info(self):
+        if self._secret:
+            print "SECRET EXPONENT"
+            print " Private Key (hex)              ", change_base(self._secret, 256, 16)
+            print " Private Key (long)             ", change_base(self._secret, 256, 10)
+            print " Private Key (wif)              ", self.wif()
+            print " Private Key (wif uncompressed) ", self.wif(compressed=False)
+            print ""
+        print "PUBLIC KEY"
+        print " Public Key (hex)            ", self.public()
+        print " Public Key (hex)            ", self.public_uncompressed()
+        print " Address (b58)               ", self.address()
+        print " Address (b58)               ", self.address()
+        point_x, point_y = self.public_point()
+        print " Point x                     ", point_x
+        print " Point y                     ", point_y
+        # print ""
+        # print "EXTENDED KEY INFO"
+        # print " Chain code (hex)            ", change_base(self.chain(), 256, 16)
+        # print " Child Index                 ", self.child_index()
+        # print " Parent Fingerprint (hex)    ", change_base(self.parent_fingerprint(), 256, 16)
+        # print " Depth                       ", self.depth()
+        # print " Extended Public Key (wif)   ", self.extended_wif_public()
+        # print " Extended Private Key (wif)  ", self.extended_wif(public=False)
 
 
 class HDKey:
@@ -437,7 +463,5 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    k = HDKey('xprv9s21ZrQH143K31AgNK5pyVvW23gHnkBq2wh5aEk6g1s496M8ZMjxncCKZKgb5j'
-              'ZoY5eSJMJ2Vbyvi2hbmQnCuHBujZ2WXGTux1X2k9Krdtq')
-    sk = k.subkey_for_path('3/2H')
-    print(sk.info())
+    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    k.info()
