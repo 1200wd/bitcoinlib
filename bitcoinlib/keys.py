@@ -39,6 +39,8 @@ ADDRESSTYPE_TESTNET = b'\x6F'
 PRIVATEKEY_WIF = b'\x80'
 PRIVATEKEY_WIF_TESTNET = b'\xEF'
 
+
+#TODO: Make more advanced, see https://en.bitcoin.it/wiki/List_of_address_prefixes
 def get_key_format(key, keytype=None):
     """
     Determins the type and format of a public or private key by length and prefix.
@@ -482,6 +484,10 @@ class HDKey:
 
 
 if __name__ == '__main__':
+    # Import key
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
     print K.address_uncompressed()
 
+    # Generate random HD Key on testnet
+    hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
+    hdk.info()

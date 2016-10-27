@@ -22,30 +22,30 @@
 from bitcoinlib.keys import *
 import timeit
 
-ITERATIONS = 1000
+ITERATIONS = 10
 keypairs = {}
 test_results = []
 
 def test_speed_generate(nkeys):
     for n in range(0, nkeys):
-        keypairs.update({PrivateKey(): None})
+        keypairs.update({Key(): None})
 
 def test_speed_priv2pub():
     for k in keypairs.keys():
-        keypairs[k] = k.get_public()
+        keypairs[k] = k.public()
 
 def test_speed_pub2addr():
     for pub in keypairs.values():
-        pub.get_address()
+        pub.address()
 
-def test_speed_pubkey_func(func='get_hex'):
+def test_speed_pubkey_func(func='hex'):
     for pub in keypairs.values():
         try:
             eval("pub.%s()" % func)
         except Exception, e:
             print "EXCEPTION %s" % e
 
-def test_speed_privkey_func(func='get_hex'):
+def test_speed_privkey_func(func='hex'):
     for priv in keypairs.keys():
         try:
             eval("priv.%s()" % func)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     add_test_result(testname, time=duration)
 
     for k in keypairs.keys():
-        pub = PublicKey(keypairs[k])
+        pub = Key(keypairs[k])
         keypairs[k] = pub
 
     testname = "Convert %d public keys to bitcoin address" % ITERATIONS
@@ -88,9 +88,9 @@ if __name__ == '__main__':
     add_test_result(testname, time=duration)
 
     print "== Test all Private key functions =="
-    functions = PrivateKey.__dict__
+    functions = Key.__dict__
     for func in functions:
-        if func[0] == '_'  or func == 'get_public':
+        if func[0] == '_'  or func == 'public':
             continue
         testname = "Test PrivateKey function: %s()" % func
         duration = timeit.timeit(
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         add_test_result(testname, time=duration, func=func)
 
     print "== Test all Public key functions =="
-    functions = PublicKey.__dict__
+    functions = Key.__dict__
     for func in functions:
         if func[0] == '_':
             continue
