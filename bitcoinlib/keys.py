@@ -228,7 +228,7 @@ class Key:
         return hashlib.new('ripemd160', hashlib.sha256(key).digest()).hexdigest()
 
     def address(self, compressed=True):
-        if not self._public:
+        if not self._public or not self._public_uncompressed:
             self._create_public()
         if compressed:
             key = change_base(self._public, 16, 256)
@@ -482,5 +482,6 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    hdk = HDKey(addresstype=ADDRESSTYPE_TESTNET)
-    hdk.info()
+    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    print K.address_uncompressed()
+
