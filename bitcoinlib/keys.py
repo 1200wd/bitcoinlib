@@ -29,9 +29,15 @@ import ecdsa
 from secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
 from encoding import change_base
 
-HDKEY_XPRV = '0488ade4'.decode('hex')
-HDKEY_XPUB = '0488b21e'.decode('hex')
-
+HDKEY_XPRV = '0488ADE4'.decode('hex')
+HDKEY_XPUB = '0488B21E'.decode('hex')
+HDKEY_TPRV = '04358394'.decode('hex')
+HDKEY_TPUB = '043587CF'.decode('hex')
+ADDRESSTYPE_BITCOIN = b'\x00'
+ADDRESSTYPE_P2SH = b'\x05'
+ADDRESSTYPE_TESTNET = b'\x6F'
+PRIVATEKEY_WIF = b'\x80'
+PRIVATEKEY_WIF_TESTNET = b'\xEF'
 
 def get_key_format(key, keytype=None):
     """
@@ -80,9 +86,10 @@ class Key:
     A public key or (bitcoin)address is generator on request if a private key is known.
     """
 
-    def __init__(self, import_key=None):
+    def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN):
         self._public = None
         self._public_uncompressed = None
+        self._addresstype = addresstype
         if not import_key:
             self._secret = random.SystemRandom().randint(0, secp256k1_n)
             return
@@ -160,7 +167,11 @@ class Key:
         """
         if not self._secret:
             return False
-        key = chr(128) + change_base(str(self._secret), 10, 256, 32)
+        if self._addresstype == ADDRESSTYPE_TESTNET:
+            version = PRIVATEKEY_WIF_TESTNET
+        else:
+            version = PRIVATEKEY_WIF
+        key = version + change_base(str(self._secret), 10, 256, 32)
         if compressed:
             key += chr(1)
         key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
@@ -223,7 +234,7 @@ class Key:
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
-        key = chr(0) + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
+        key = str(self._addresstype) + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()
         return change_base(key + checksum[:4], 256, 58)
 
@@ -260,7 +271,7 @@ class HDKey:
         return HDKey(key=key, chain=chain)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index = 0, isprivate=True):
+                 child_index = 0, isprivate=True, addresstype=ADDRESSTYPE_BITCOIN):
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -270,7 +281,9 @@ class HDKey:
             elif len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
-            elif import_key[:4] in ['xprv', 'xpub']:
+            elif import_key[:4] in ['xprv', 'xpub', 'tprv', 'tpub']:
+                if import_key[:1] == 't':
+                    addresstype = ADDRESSTYPE_TESTNET
                 bkey = change_base(import_key, 58, 256)
                 if ord(bkey[45]):
                     isprivate = False
@@ -300,6 +313,7 @@ class HDKey:
         else:
             self._public = change_base(key, 256, 16)
             self._secret = None
+        self._addresstype = addresstype
 
     def __repr__(self):
         return self.extended_wif()
@@ -342,10 +356,16 @@ class HDKey:
         if not self._isprivate and public == False:
             return ''
         if self._isprivate and not public:
-            raw = HDKEY_XPRV
+            if self._addresstype == ADDRESSTYPE_TESTNET:
+                raw = HDKEY_TPRV
+            else:
+                raw = HDKEY_XPRV
             typebyte = '\x00'
         else:
-            raw = HDKEY_XPUB
+            if self._addresstype == ADDRESSTYPE_TESTNET:
+                raw = HDKEY_TPUB
+            else:
+                raw = HDKEY_XPUB
             typebyte = ''
             if public:
                 rkey = self.public().public_byte()
@@ -382,21 +402,21 @@ class HDKey:
     def public(self):
         if not self._public_key_object:
             if self._public:
-                self._public_key_object = Key(self._public)
+                self._public_key_object = Key(self._public, addresstype=self._addresstype)
             else:
                 pub = Key(self._key).public()
-                self._public_key_object = Key(pub)
+                self._public_key_object = Key(pub, addresstype=self._addresstype)
         return self._public_key_object
 
     def public_uncompressed(self):
         if not self._public_uncompressed:
             pub = Key(self._key).public_uncompressed()
-            return Key(pub)
+            return Key(pub, addresstype=self._addresstype)
         return self._public_uncompressed
 
     def private(self):
         if self._key:
-            return Key(self._key)
+            return Key(self._key, addresstype=self._addresstype)
 
     def subkey_for_path(self, path):
         key = self
@@ -462,5 +482,5 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    K.info()
+    hdk = HDKey('tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK')
+    hdk.info()
