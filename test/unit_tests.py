@@ -320,6 +320,25 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
                          'N45k67UKsJUXM1JfRCdn1', str(self.k2.subkey_for_path('3/2H')))
 
 
+class TestHDKeysTestnet(unittest.TestCase):
+
+    def test_hdkey_testnet_random(self):
+        self.k = HDKey(addresstype=ADDRESSTYPE_TESTNET)
+
+        self.assertEqual('tprv', self.k.extended_wif()[:4])
+        self.assertEqual('tpub', self.k.extended_wif_public()[:4])
+        self.assertIn(self.k.public().address()[:1], ['m', 'n'])
+
+    def test_hdkey_testnet_import(self):
+        self.k = HDKey('tprv8ZgxMBicQKsPf2S18qpSypHPZBK7mdiwvXHPh5TSjGjm2pLacP4tEqVjLVyagTLLgSZK4YyBNb4eytBykE755Kc'
+                       'L9YXAqPtfERNRfwRt54M')
+
+        self.assertEqual('cPSokRrLueavzAmVBmAXwgALkumRNMN9pErvRLAXvx58NBJAkEYJ', self.k.private().wif())
+        self.assertEqual('tpubD6NzVbkrYhZ4YVTo2VV3PDwW8Cq3vxurVptAybVk9YY9sJbMEmtURL7bWgKxXSWSahXu6HbHkdpjBGzwYYkJm'
+                         'u2VmoeHuiTmzHZpJo8Cdpb', self.k.extended_wif_public())
+        self.assertEqual('n4c8TKkqUmj3b8VJrTioiZuciyaCDRd6iE', self.k.public().address())
+
+
 class TestKeysBulk(unittest.TestCase):
 
     def setUp(self):

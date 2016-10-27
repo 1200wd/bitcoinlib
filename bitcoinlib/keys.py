@@ -482,5 +482,5 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    hdk = HDKey('tprv8ZgxMBicQKsPd7Uf69XL1XwhmjHopUGep8GuEiJDZmbQz6o58LninorQAfcKZWARbtRtfnLcJ5MQ2AtHcQJCCRUcMRvmDUjyEmNUWwx8UbK')
+    hdk = HDKey(addresstype=ADDRESSTYPE_TESTNET)
     hdk.info()
