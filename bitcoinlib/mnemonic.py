@@ -23,7 +23,7 @@ import os
 import hashlib
 from encoding import change_base
 
-DEFAULT_LANGUAGE = 'dutch'
+DEFAULT_LANGUAGE = 'english'
 
 class Mnemonic:
 
@@ -34,8 +34,12 @@ class Mnemonic:
             self._wordlist = [w.strip() for w in f.readlines()]
 
     @staticmethod
-    def checksum(data):
-        cs = len(data) / 4
+    def checksum(hexdata):
+        if len(hexdata) % 32 > 0:
+            raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
+                             (len(hexdata), len(hexdata) * 8))
+        cs = len(hexdata) // 32
+        data = change_base(hexdata, 16, 256)
         return hashlib.sha256(data).hexdigest()[:cs]
 
     def word(self, index):
@@ -60,20 +64,32 @@ class Mnemonic:
             pass
         return ent
 
-    def to_mnemonic(self, data, add_checksum=False):
+    def to_mnemonic(self, hexdata, add_checksum=False):
         if add_checksum:
-            data = data + self.checksum(data)
-        wi = change_base(data, 16, 2048)
+            hexdata = hexdata + self.checksum(hexdata)
+        wi = change_base(hexdata, 16, 2048)
         return [self._wordlist[i] for i in wi]
 
 
 
 if __name__ == '__main__':
-    entsize = 32
-    wpl = Mnemonic().generate(entsize)
-    print("Your password is: %s" % ' '.join(wpl))
-    print("A computer needs an avarage of %.2f tries to guess this password" % ((2 ** entsize) /2.0))
-    base = Mnemonic().to_entropy(wpl)
-    print("In HEX this is %s" % base)
-    print("Checksum is %s" % Mnemonic().checksum(base))
-    print("Convert back to base2048: %s" % Mnemonic().to_mnemonic(base))
+    # entsize = 32
+    # wpl = Mnemonic().generate(entsize)
+    # print("Your password is: %s" % ' '.join(wpl))
+    # print("A computer needs an avarage of %.2f tries to guess this password" % ((2 ** entsize) /2.0))
+    # base = Mnemonic().to_entropy(wpl)
+    # print("In HEX this is %s" % base)
+    # print("Checksum is %s" % Mnemonic().checksum(base))
+    # print("Convert back to base2048: %s" % Mnemonic().to_mnemonic(base))
+
+    # Entropy input (128 bits) 0c1e24e5917779d297e14d45f14e1a1a
+    # Mnemonic (12 words) army van defense carry jealous true garbage claim echo media make crunch
+    # Seed (512 bits) 3338a6d2ee71c7f28eb5b882159634cd46a898463e9d2d0980f8e80dfbba5b0f
+    #                 a0291e5fb888a599b44b93187be6ee3ab5fd3ead7dd646341b2cdb8d08d13bf7
+
+    from binascii import unhexlify, hexlify
+    pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
+    print pk
+    words = Mnemonic().to_mnemonic(pk, True)
+    print("Private key to mnemonic, %d words: %s" % (len(words), words))
+    print("legal winner thank year wave sausage worth useful legal winner thank yellow")

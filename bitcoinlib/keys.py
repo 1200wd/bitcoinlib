@@ -26,6 +26,7 @@ import random
 import struct
 import ecdsa
 
+
 from secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
 from encoding import change_base
 
@@ -84,8 +85,6 @@ class Key:
 
     If no key is specified when creating class a cryptographically secure Private Key is
     generated using the os.urandom() function.
-
-    A public key or (bitcoin)address is generator on request if a private key is known.
     """
 
     def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN):
@@ -484,9 +483,9 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    # Import key
+    # Import public key
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    print K.address_uncompressed()
+    K.info()
 
     # Generate random HD Key on testnet
     hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
