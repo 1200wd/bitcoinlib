@@ -65,6 +65,12 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
         else:
             output_even = False
 
+    if isinstance(inp, unicode):
+        try:
+            inp = str(inp)
+        except UnicodeEncodeError:
+            raise ValueError("Cannot convert this unicode to string format")
+
     if isinstance(inp, (int, long)):
         input_dec = inp
     elif isinstance(inp, (str, list)):

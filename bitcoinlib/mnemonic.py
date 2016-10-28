@@ -35,9 +35,9 @@ class Mnemonic:
 
     @staticmethod
     def checksum(hexdata):
-        if len(hexdata) % 32 > 0:
-            raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
-                             (len(hexdata), len(hexdata) * 8))
+        # if len(hexdata) % 32 > 0:
+        #     raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
+        #                      (len(hexdata), len(hexdata) * 8))
         cs = len(hexdata) // 32
         data = change_base(hexdata, 16, 256)
         return hashlib.sha256(data).hexdigest()[:cs]
@@ -64,7 +64,7 @@ class Mnemonic:
             pass
         return ent
 
-    def to_mnemonic(self, hexdata, add_checksum=False):
+    def to_mnemonic(self, hexdata, add_checksum=True):
         if add_checksum:
             hexdata = hexdata + self.checksum(hexdata)
         wi = change_base(hexdata, 16, 2048)
@@ -90,6 +90,6 @@ if __name__ == '__main__':
     from binascii import unhexlify, hexlify
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
     print pk
-    words = Mnemonic().to_mnemonic(pk, True)
+    words = Mnemonic().to_mnemonic(pk)
     print("Private key to mnemonic, %d words: %s" % (len(words), words))
     print("legal winner thank year wave sausage worth useful legal winner thank yellow")

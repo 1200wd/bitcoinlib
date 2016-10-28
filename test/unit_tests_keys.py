@@ -21,8 +21,12 @@
 #
 
 import unittest
+import json
+import sys
+from binascii import unhexlify, hexlify
 
 from bitcoinlib.keys import *
+from bitcoinlib.mnemonic import Mnemonic
 
 # Number of bulktests for generation of private, public keys and hdkeys. Set to 0 to disable
 # WARNING: Can be slow!
@@ -339,6 +343,28 @@ class TestHDKeysTestnet(unittest.TestCase):
         self.assertEqual('n4c8TKkqUmj3b8VJrTioiZuciyaCDRd6iE', self.k.public().address())
 
 
+# Copyright (c) 2013 Pavol Rusnak <https://github.com/trezor/python-mnemonic>
+class TestMnemonics(unittest.TestCase):
+
+    def _check_list(self, language, vectors):
+        mnemo = Mnemonic(language)
+        for v in vectors:
+            code = ' '.join(mnemo.to_mnemonic(v[0]))
+            # seed = hexlify(Mnemonic.to_entropy(code, passphrase='TREZOR'))
+            # if sys.version >= '3':
+            #     seed = seed.decode('utf8')
+            # self.assertIs(mnemo.check(v[1]), True)
+            print("Test %s => %s" % (v[0], code))
+            self.assertEqual(v[1], code)
+            # self.assertEqual(v[2], seed)
+
+    def test_vectors(self):
+        with open('mnemonics_tests.json', 'r') as f:
+            vectors = json.load(f)
+        for lang in vectors.keys():
+            self._check_list(lang, vectors[lang])
+
+
 class TestKeysBulk(unittest.TestCase):
 
     def setUp(self):
@@ -370,6 +396,7 @@ class TestKeysBulk(unittest.TestCase):
             if pub_with_privparent != pub_with_pubparent:
                 print "Error random key: %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent)
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
+
 
 if __name__ == '__main__':
     unittest.main()
