@@ -355,7 +355,7 @@ class TestMnemonics(unittest.TestCase):
             #     seed = seed.decode('utf8')
             # self.assertIs(mnemo.check(v[1]), True)
             print("Test %s => %s" % (v[0], code))
-            self.assertEqual(v[1], code)
+            self.assertEqual(str(v[1]), code)
             # self.assertEqual(v[2], seed)
 
     def test_vectors(self):

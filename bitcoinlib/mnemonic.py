@@ -35,12 +35,13 @@ class Mnemonic:
 
     @staticmethod
     def checksum(hexdata):
-        # if len(hexdata) % 32 > 0:
-        #     raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
-        #                      (len(hexdata), len(hexdata) * 8))
-        cs = len(hexdata) // 32
+        if len(hexdata) % 8 > 0:
+            raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
+                             (len(hexdata), len(hexdata) * 8))
         data = change_base(hexdata, 16, 256)
-        return hashlib.sha256(data).hexdigest()[:cs]
+        h = hashlib.sha256(data).hexdigest()
+        b = bin(int(h, 16))[2:].zfill(256)[:len(data) * 8 // 32]
+        return change_base(b, 2, 16)
 
     def word(self, index):
         return self._wordlist[index]
@@ -66,8 +67,13 @@ class Mnemonic:
 
     def to_mnemonic(self, hexdata, add_checksum=True):
         if add_checksum:
-            hexdata = hexdata + self.checksum(hexdata)
-        wi = change_base(hexdata, 16, 2048)
+            data = change_base(hexdata, 16, 256)
+            hashhex = hashlib.sha256(data).hexdigest()
+            binresult = bin(int(hexdata, 16))[2:].zfill(len(data) * 8) + \
+                bin(int(hashhex, 16))[2:].zfill(256)[:len(data) * 8 // 32]
+            wi = change_base(binresult, 2, 2048)
+        else:
+            wi = change_base(hexdata, 16, 2048)
         return [self._wordlist[i] for i in wi]
 
 
@@ -89,7 +95,6 @@ if __name__ == '__main__':
 
     from binascii import unhexlify, hexlify
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
-    print pk
+    print pk, len(pk)
     words = Mnemonic().to_mnemonic(pk)
-    print("Private key to mnemonic, %d words: %s" % (len(words), words))
-    print("legal winner thank year wave sausage worth useful legal winner thank yellow")
+    print("Private key to mnemonic, %d words: %s" % (len(words), ' '.join(words)))
