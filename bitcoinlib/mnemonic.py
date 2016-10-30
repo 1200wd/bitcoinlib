@@ -74,7 +74,7 @@ class Mnemonic:
             wi = change_base(binresult, 2, 2048)
         else:
             wi = change_base(hexdata, 16, 2048)
-        return [self._wordlist[i] for i in wi]
+        return ' '.join([self._wordlist[i] for i in wi])
 
 
 
@@ -97,4 +97,4 @@ if __name__ == '__main__':
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
     print pk, len(pk)
     words = Mnemonic().to_mnemonic(pk)
-    print("Private key to mnemonic, %d words: %s" % (len(words), ' '.join(words)))
+    print("Private key to mnemonic: %s" % words)

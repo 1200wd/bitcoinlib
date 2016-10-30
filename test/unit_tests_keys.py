@@ -22,8 +22,6 @@
 
 import unittest
 import json
-import sys
-from binascii import unhexlify, hexlify
 
 from bitcoinlib.keys import *
 from bitcoinlib.mnemonic import Mnemonic
@@ -157,7 +155,7 @@ class TestPublicKeyConversion(unittest.TestCase):
         self.KC = Key('034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
 
     def test_public_key_get_address_uncompressed(self):
-        self.assertEqual('12ooWDQp6mujkVpEWHdfHmfM4rU17bokWw', self.K.address())
+        self.assertEqual('12ooWDQp6mujkVpEWHdfHmfM4rU17bokWw', self.K.address_uncompressed())
 
     def test_public_key_get_address(self):
         self.assertEqual('1P2X35YnajqoBXtPpQXJzV1QMnqSZQsn82', self.KC.address())
@@ -349,7 +347,7 @@ class TestMnemonics(unittest.TestCase):
     def _check_list(self, language, vectors):
         mnemo = Mnemonic(language)
         for v in vectors:
-            code = ' '.join(mnemo.to_mnemonic(v[0]))
+            code = mnemo.to_mnemonic(v[0])
             # seed = hexlify(Mnemonic.to_entropy(code, passphrase='TREZOR'))
             # if sys.version >= '3':
             #     seed = seed.decode('utf8')
