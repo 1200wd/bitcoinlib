@@ -380,6 +380,13 @@ class TestBip38(unittest.TestCase):
             print "Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif'])
             self.assertEqual(str(v['wif']), k.wif(compressed=v['compressed']))
 
+    def test_bip38_invalid_keys(self):
+        for v in self.vectors["invalid"]["verify"]:
+            print "Checking invalid key %s" % v['base58']
+            self.assertRaisesRegexp(ValueError, "Unrecognised key format",
+                                Key, [str(v['base58'])])
+
+
 
 class TestKeysBulk(unittest.TestCase):
 
