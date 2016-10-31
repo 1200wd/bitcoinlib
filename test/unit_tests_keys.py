@@ -383,8 +383,7 @@ class TestBip38(unittest.TestCase):
     def test_bip38_invalid_keys(self):
         for v in self.vectors["invalid"]["verify"]:
             print "Checking invalid key %s" % v['base58']
-            self.assertRaisesRegexp(ValueError, "Unrecognised key format",
-                                Key, [str(v['base58'])])
+            self.assertRaisesRegexp(ValueError, "Unrecognised key format", Key, [str(v['base58'])])
 
 
 
