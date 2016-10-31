@@ -374,6 +374,12 @@ class TestBip38(unittest.TestCase):
             print "Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38'])
             self.assertEqual(str(v['bip38']), k.bip38_encrypt(str(v['passphrase']), compressed=v['compressed']))
 
+    def test_decrypt_bip38_key(self):
+        for v in self.vectors["valid"]:
+            k = Key(v['bip38'], passphrase=str(v['passphrase']))
+            print "Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif'])
+            self.assertEqual(str(v['wif']), k.wif(compressed=v['compressed']))
+
 
 class TestKeysBulk(unittest.TestCase):
 

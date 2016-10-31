@@ -561,13 +561,14 @@ if __name__ == '__main__':
     # K.info()
 
     # Import private key
-    k = Key('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP')
-    print "Private key %s" % k.wif()
-    print "Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree', compressed=True)
-    print "Equal to ?   6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo"
+    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    print "Private key %s" % k.wif(compressed=False)
+    print "Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree', compressed=False)
+    print "Equal to ?   6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
 
-    ki = Key('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', passphrase='TestingOneTwoThree')
-    print "Convert back %s " % ki.wif()
+    ki = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
+    print "Convert back %s " % ki.wif(compressed=False)
+    ki.info()
 
 
     # Generate random HD Key on testnet
