@@ -341,7 +341,7 @@ class TestHDKeysTestnet(unittest.TestCase):
         self.assertEqual('n4c8TKkqUmj3b8VJrTioiZuciyaCDRd6iE', self.k.public().address())
 
 
-# Copyright (c) 2013 Pavol Rusnak <https://github.com/trezor/python-mnemonic>
+# From Copyright (c) 2013 Pavol Rusnak <https://github.com/trezor/python-mnemonic>
 class TestMnemonics(unittest.TestCase):
 
     def _check_list(self, language, vectors):
@@ -361,6 +361,18 @@ class TestMnemonics(unittest.TestCase):
             vectors = json.load(f)
         for lang in vectors.keys():
             self._check_list(lang, vectors[lang])
+
+class TestBip38(unittest.TestCase):
+
+    def setUp(self):
+        with open('bip38_protected_key_tests.json', 'r') as f:
+            self.vectors = json.load(f)
+
+    def test_encrypt_private_key(self):
+        for v in self.vectors["valid"]:
+            k = Key(v['wif'])
+            print "Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38'])
+            self.assertEqual(str(v['bip38']), k.bip38_encrypt(str(v['passphrase']), compressed=v['compressed']))
 
 
 class TestKeysBulk(unittest.TestCase):

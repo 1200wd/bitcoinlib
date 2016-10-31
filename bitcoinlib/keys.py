@@ -181,7 +181,7 @@ class Key:
         priv = binascii.unhexlify('%064x' % (long(binascii.hexlify(priv), 16) ^ long(binascii.hexlify(derivedhalf1), 16)))
         k = Key(priv)
         wif = k.wif(compressed=compressed)
-        addr = k.address_uncompressed()
+        addr = k.address(compressed=compressed)
         if hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4] != addresshash:
             print('Addresshash verification failed! Password is likely incorrect.')
         return wif
@@ -196,9 +196,11 @@ class Key:
         """
         if compressed:
             flagbyte = '\xe0'
+            addr = self.address()
         else:
             flagbyte = '\xc0'
-        addr = self.address_uncompressed()
+            addr = self.address_uncompressed()
+
         privkey = self.private_hex()
         addresshash = hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4]
         key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
@@ -559,14 +561,13 @@ if __name__ == '__main__':
     # K.info()
 
     # Import private key
-    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    # k.info()
-    # print k.bip38_encrypt('TestingOneTwoThree')
-    # print "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
-    # print len("6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg")
+    k = Key('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP')
+    print "Private key %s" % k.wif()
+    print "Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree', compressed=True)
+    print "Equal to ?   6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo"
 
-    ki = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
-    print ki.info()
+    ki = Key('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', passphrase='TestingOneTwoThree')
+    print "Convert back %s " % ki.wif()
 
 
     # Generate random HD Key on testnet
