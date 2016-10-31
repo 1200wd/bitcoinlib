@@ -25,7 +25,9 @@ import hmac
 import random
 import struct
 import ecdsa
-
+from Crypto.Cipher import AES
+import scrypt
+import binascii
 
 from secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
 from encoding import change_base
@@ -259,6 +261,32 @@ class Key:
         print " Point x                     ", point_x
         print " Point y                     ", point_y
 
+    def bip38_encrypt(self, passphrase, compressed=True):
+        """
+        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
+        Based on code from https://github.com/nomorecoin/python-bip38-testing
+        :param passphrase:
+        :param compressed:
+        :return:
+        """
+        if compressed:
+            flagbyte = '\xe0'
+        else:
+            flagbyte = '\xc0'
+        addr = self.address_uncompressed()
+        privkey = self.private_hex()
+        addresshash = hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4]
+        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
+        derivedhalf1 = key[0:32]
+        derivedhalf2 = key[32:64]
+        aes = AES.new(derivedhalf2)
+        encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (long(privkey[0:32], 16) ^
+                                                                    long(binascii.hexlify(derivedhalf1[0:16]), 16))))
+        encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (long(privkey[32:64], 16) ^
+                                                                    long(binascii.hexlify(derivedhalf1[16:32]), 16))))
+        encrypted_privkey = ('\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2)
+        encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
+        return change_base(encrypted_privkey, 256, 58)
 
 
 class HDKey:
@@ -482,11 +510,19 @@ class HDKey:
                      child_index=index, isprivate=False)
 
 
+
 if __name__ == '__main__':
     # Import public key
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    K.info()
+    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    # K.info()
+
+    # Import private key
+    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    k.info()
+    print k.bip38_encrypt('TestingOneTwoThree')
+    print "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
+
 
     # Generate random HD Key on testnet
-    hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
-    hdk.info()
+    # hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
+    # hdk.info()
