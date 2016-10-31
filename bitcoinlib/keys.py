@@ -68,6 +68,8 @@ def get_key_format(key, keytype=None):
         return 'hex'
     elif len(key) == 66  and keytype != 'public':
         return 'hex_compressed'
+    elif len(key) == 58  and key[:1] == '6':
+        return 'wif_protected'
     elif key[:1] in ('K', 'L'):
         return 'wif_compressed'
     elif key[:1] == '5':
@@ -89,7 +91,7 @@ class Key:
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN):
+    def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN, passphrase=''):
         self._public = None
         self._public_uncompressed = None
         self._addresstype = addresstype
@@ -98,6 +100,9 @@ class Key:
             return
 
         key_format = get_key_format(import_key)
+        if key_format == "wif_protected":
+            import_key = self._bip38_decrypt(import_key, passphrase)
+            key_format = "wif"
         if key_format in ['public_uncompressed', 'public']:
             self._secret = None
             if key_format=='public_uncompressed':
@@ -143,6 +148,70 @@ class Key:
             return str(self.private_dec())
         else:
             return self._public
+
+    @staticmethod
+    def _bip38_decrypt(encrypted_privkey, passphrase):
+        """
+        BIP0038 non-ec-multiply decryption. Returns WIF privkey.
+        Based on code from https://github.com/nomorecoin/python-bip38-testing
+        :param encrypted_privkey:
+        :param passphrase:
+        :return:
+        """
+        d = change_base(encrypted_privkey, 58, 256)[2:]
+        flagbyte = d[0:1]
+        d = d[1:]
+        if flagbyte == '\xc0':
+            compressed = False
+        elif flagbyte == '\xe0':
+            compressed = True
+        else:
+            raise Warning("Unrecognised password protected key format. Flagbyte incorrect.")
+        addresshash = d[0:4]
+        d = d[4:-4]
+        key = scrypt.hash(passphrase,addresshash, 16384, 8, 8)
+        derivedhalf1 = key[0:32]
+        derivedhalf2 = key[32:64]
+        encryptedhalf1 = d[0:16]
+        encryptedhalf2 = d[16:32]
+        aes = AES.new(derivedhalf2)
+        decryptedhalf2 = aes.decrypt(encryptedhalf2)
+        decryptedhalf1 = aes.decrypt(encryptedhalf1)
+        priv = decryptedhalf1 + decryptedhalf2
+        priv = binascii.unhexlify('%064x' % (long(binascii.hexlify(priv), 16) ^ long(binascii.hexlify(derivedhalf1), 16)))
+        k = Key(priv)
+        wif = k.wif(compressed=compressed)
+        addr = k.address_uncompressed()
+        if hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4] != addresshash:
+            print('Addresshash verification failed! Password is likely incorrect.')
+        return wif
+
+    def bip38_encrypt(self, passphrase, compressed=True):
+        """
+        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
+        Based on code from https://github.com/nomorecoin/python-bip38-testing
+        :param passphrase:
+        :param compressed:
+        :return:
+        """
+        if compressed:
+            flagbyte = '\xe0'
+        else:
+            flagbyte = '\xc0'
+        addr = self.address_uncompressed()
+        privkey = self.private_hex()
+        addresshash = hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4]
+        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
+        derivedhalf1 = key[0:32]
+        derivedhalf2 = key[32:64]
+        aes = AES.new(derivedhalf2)
+        encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (long(privkey[0:32], 16) ^
+                                                                    long(binascii.hexlify(derivedhalf1[0:16]), 16))))
+        encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (long(privkey[32:64], 16) ^
+                                                                    long(binascii.hexlify(derivedhalf1[16:32]), 16))))
+        encrypted_privkey = ('\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2)
+        encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
+        return change_base(encrypted_privkey, 256, 58)
 
     def private_dec(self):
         if not self._secret:
@@ -260,33 +329,6 @@ class Key:
         point_x, point_y = self.public_point()
         print " Point x                     ", point_x
         print " Point y                     ", point_y
-
-    def bip38_encrypt(self, passphrase, compressed=True):
-        """
-        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
-        Based on code from https://github.com/nomorecoin/python-bip38-testing
-        :param passphrase:
-        :param compressed:
-        :return:
-        """
-        if compressed:
-            flagbyte = '\xe0'
-        else:
-            flagbyte = '\xc0'
-        addr = self.address_uncompressed()
-        privkey = self.private_hex()
-        addresshash = hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
-        derivedhalf1 = key[0:32]
-        derivedhalf2 = key[32:64]
-        aes = AES.new(derivedhalf2)
-        encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (long(privkey[0:32], 16) ^
-                                                                    long(binascii.hexlify(derivedhalf1[0:16]), 16))))
-        encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (long(privkey[32:64], 16) ^
-                                                                    long(binascii.hexlify(derivedhalf1[16:32]), 16))))
-        encrypted_privkey = ('\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2)
-        encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
-        return change_base(encrypted_privkey, 256, 58)
 
 
 class HDKey:
@@ -517,10 +559,14 @@ if __name__ == '__main__':
     # K.info()
 
     # Import private key
-    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    k.info()
-    print k.bip38_encrypt('TestingOneTwoThree')
-    print "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
+    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    # k.info()
+    # print k.bip38_encrypt('TestingOneTwoThree')
+    # print "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
+    # print len("6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg")
+
+    ki = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
+    print ki.info()
 
 
     # Generate random HD Key on testnet
