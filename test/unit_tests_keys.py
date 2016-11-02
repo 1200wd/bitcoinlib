@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    Unit tests
-#    Copyright (C) 2016 October
-#    1200 Web Development
-#    http://1200wd.com/
+#    Unit Tests
+#    © 1200 Web Development <http://1200wd.com/>
+#    2016 november
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as

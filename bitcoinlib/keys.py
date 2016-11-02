@@ -2,9 +2,8 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    Copyright (C) 2016 October
-#    1200 Web Development
-#    http://1200wd.com/
+#    © 1200 Web Development <http://1200wd.com/>
+#    2016 november
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
