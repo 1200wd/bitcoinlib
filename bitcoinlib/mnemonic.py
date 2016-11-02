@@ -62,7 +62,7 @@ class Mnemonic:
     @staticmethod
     def checksum(hexdata):
         """
-        Gives checksum for given hexdata key
+        Calculates checksum for given hexdata key
 
         :param hexdata: key string as hexadecimal
         :return: Checksum of key as hex
@@ -72,8 +72,7 @@ class Mnemonic:
                              (len(hexdata), len(hexdata) * 8))
         data = change_base(hexdata, 16, 256)
         hashhex = hashlib.sha256(data).hexdigest()
-        binresult = bin(int(hashhex, 16))[2:].zfill(256)[:len(data) * 8 // 32]
-        return change_base(binresult, 2, 16, output_even=0)
+        return bin(int(hashhex, 16))[2:].zfill(256)[:len(data) * 8 // 32]
 
     @classmethod
     def to_seed(cls, words, passphrase=''):
@@ -113,9 +112,8 @@ class Mnemonic:
     def to_mnemonic(self, hexdata, add_checksum=True):
         if add_checksum:
             data = change_base(hexdata, 16, 256)
-            hashhex = hashlib.sha256(data).hexdigest()
-            binresult = bin(int(hexdata, 16))[2:].zfill(len(data) * 8) + \
-                bin(int(hashhex, 16))[2:].zfill(256)[:len(data) * 8 // 32]
+            binresult = bin(int(hexdata, 16))[2:].zfill(len(hexdata) * 4) + \
+                self.checksum(hexdata)
             wi = change_base(binresult, 2, 2048)
         else:
             wi = change_base(hexdata, 16, 2048)
@@ -136,10 +134,14 @@ class Mnemonic:
             wi.append(self._wordlist.index(word))
         ent = change_base(wi, 2048, 16, output_even=0)
         if includes_checksum:
-            # binresult = bin(int(hexdata, 16))[2:].zfill(len(data) * 8) + \
-            #         bin(int(hashhex, 16))[2:].zfill(256)[:len(data) * 8 // 32]
-            # TODO: check checksum
-            pass
+            binresult = bin(int(ent, 16))[2:].zfill(len(ent) * 4)
+            ent = change_base(binresult[:-len(binresult) // 33], 2, 16)
+
+            # Check checksum
+            checksum = binresult[-len(binresult) // 33:]
+            if checksum != self.checksum(ent):
+                raise Warning("Invalid checksum %s for entropy %s" % (checksum, ent))
+            
         return ent
 
 
@@ -151,19 +153,19 @@ if __name__ == '__main__':
     print "\nConvert hexadecimal to mnemonic"
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
     words = Mnemonic().to_mnemonic(pk)
-    print("Hex:               %s" % pk)
-    print("Hex+checksum       %s" % pk + Mnemonic().checksum(pk))
+    print("Hex                %s" % pk)
+    print("Checksum bin       %s" % Mnemonic().checksum(pk))
     print("Mnemonic           %s" % words)
     print("Seed for HD Key    %s" % change_base(Mnemonic().to_seed(words, 'test'), 256, 16))
     print("Back to Hex        %s" % Mnemonic().to_entropy(words))
 
     # Generate a random Mnemonic HD Key
-    print "\nGenerate a random Mnemonic HD Key"
-    entsize = 32
-    wpl = Mnemonic().generate(entsize)
-    print("Your Mnemonic is   %s" % wpl)
-    print("  (An avarage of %d tries is needed to brute-force this password)" % ((2 ** entsize) // 2))
-    from keys import HDKey
-    seed = change_base(Mnemonic().to_seed(wpl), 256, 16)
-    hdk = HDKey().from_seed(seed)
-    print("HD Key WIF is      %s" % hdk)
+    # print "\nGenerate a random Mnemonic HD Key"
+    # entsize = 32
+    # wpl = Mnemonic().generate(entsize)
+    # print("Your Mnemonic is   %s" % wpl)
+    # print("  (An avarage of %d tries is needed to brute-force this password)" % ((2 ** entsize) // 2))
+    # from keys import HDKey
+    # seed = change_base(Mnemonic().to_seed(wpl), 256, 16)
+    # hdk = HDKey().from_seed(seed)
+    # print("HD Key WIF is      %s" % hdk)
