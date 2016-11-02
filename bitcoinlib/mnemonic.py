@@ -72,7 +72,7 @@ class Mnemonic:
                              (len(hexdata), len(hexdata) * 8))
         data = change_base(hexdata, 16, 256)
         hashhex = hashlib.sha256(data).hexdigest()
-        return bin(int(hashhex, 16))[2:].zfill(256)[:len(data) * 8 // 32]
+        return change_base(hashhex, 16, 2, 256)[:len(data) * 8 // 32]
 
     @classmethod
     def to_seed(cls, words, passphrase=''):
@@ -106,14 +106,12 @@ class Mnemonic:
         """
         data = change_base(os.urandom(strength // 8), 256, 16)
         if include_checksum:
-            data = data + self.checksum(data)
+            data += self.checksum(data)
         return self.to_mnemonic(data)
 
     def to_mnemonic(self, hexdata, add_checksum=True):
         if add_checksum:
-            data = change_base(hexdata, 16, 256)
-            binresult = bin(int(hexdata, 16))[2:].zfill(len(hexdata) * 4) + \
-                self.checksum(hexdata)
+            binresult = change_base(hexdata, 16, 2, len(hexdata) * 4) + self.checksum(hexdata)
             wi = change_base(binresult, 2, 2048)
         else:
             wi = change_base(hexdata, 16, 2048)
@@ -134,14 +132,14 @@ class Mnemonic:
             wi.append(self._wordlist.index(word))
         ent = change_base(wi, 2048, 16, output_even=0)
         if includes_checksum:
-            binresult = bin(int(ent, 16))[2:].zfill(len(ent) * 4)
+            binresult = change_base(ent, 16, 2, len(ent) * 4)
             ent = change_base(binresult[:-len(binresult) // 33], 2, 16)
 
             # Check checksum
             checksum = binresult[-len(binresult) // 33:]
             if checksum != self.checksum(ent):
                 raise Warning("Invalid checksum %s for entropy %s" % (checksum, ent))
-            
+
         return ent
 
 
