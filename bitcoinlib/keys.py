@@ -77,6 +77,11 @@ def get_key_format(key, keytype=None):
         raise ValueError("Unrecognised key format")
 
 def ec_point(p):
+    """
+    Method for eliptic curve multiplication
+    :param p: A point on the eliptic curve
+    :return: Point multiplied by generator G
+    """
     point = generator
     point *= int(p)
     return point
@@ -91,6 +96,14 @@ class Key:
     """
 
     def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN, passphrase=''):
+        """
+        Initialize a Key object
+        :param import_key: If specified import given private or public key.
+        If not specified a new private key is generated.
+        :param addresstype: Bitcoin normal or testnet address, Pay-to-script, etc
+        :param passphrase: Optional passphrase if imported key is password protected
+        :return:
+        """
         self._public = None
         self._public_uncompressed = None
         self._addresstype = addresstype
@@ -143,6 +156,9 @@ class Key:
                 self._secret = change_base(key, 256, 10)
 
     def __repr__(self):
+        """
+        :return: Decimal private key if available, otherwise a public key
+        """
         if self._secret:
             return str(self.private_dec())
         else:
@@ -153,9 +169,10 @@ class Key:
         """
         BIP0038 non-ec-multiply decryption. Returns WIF privkey.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
-        :param encrypted_privkey:
-        :param passphrase:
-        :return:
+        This method is called by Key class init function when importing BIP0038 key.
+        :param encrypted_privkey: Encrypted Private Key using WIF protected key format
+        :param passphrase: Required passphrase for decryption
+        :return: Private Key WIF
         """
         d = change_base(encrypted_privkey, 58, 256)[2:]
         flagbyte = d[0:1]
@@ -189,9 +206,9 @@ class Key:
         """
         BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
-        :param passphrase:
-        :param compressed:
-        :return:
+        :param passphrase: Required passphrase for encryption
+        :param compressed: Compressed or uncompressed private key
+        :return: BIP38 passphrase encrypted private key
         """
         if compressed:
             flagbyte = '\xe0'
@@ -251,6 +268,10 @@ class Key:
         return change_base(key, 256, 58)
 
     def _create_public(self):
+        """
+        Create public key point and hex repressentation from private key.
+        :return:
+        """
         if self._secret:
             point = ec_point(self._secret)
             self._x = change_base(int(point.x()), 10, 16, 64)
@@ -316,26 +337,31 @@ class Key:
 
     def info(self):
         if self._secret:
-            print "SECRET EXPONENT"
-            print " Private Key (hex)              ", change_base(self._secret, 256, 16)
-            print " Private Key (long)             ", change_base(self._secret, 256, 10)
-            print " Private Key (wif)              ", self.wif()
-            print " Private Key (wif uncompressed) ", self.wif(compressed=False)
-            print ""
-        print "PUBLIC KEY"
-        print " Public Key (hex)            ", self.public()
-        print " Public Key (hex)            ", self.public_uncompressed()
-        print " Address (b58)               ", self.address()
-        print " Address uncompressed (b58)  ", self.address_uncompressed()
+            print("SECRET EXPONENT")
+            print(" Private Key (hex)              %s" % change_base(self._secret, 256, 16))
+            print(" Private Key (long)             %s" % change_base(self._secret, 256, 10))
+            print(" Private Key (wif)              %s" % self.wif())
+            print(" Private Key (wif uncompressed) %s" % self.wif(compressed=False))
+            print("")
+        print("PUBLIC KEY")
+        print(" Public Key (hex)            %s" % self.public())
+        print(" Public Key (hex)            %s" % self.public_uncompressed())
+        print(" Address (b58)               %s" % self.address())
+        print(" Address uncompressed (b58)  %s" % self.address_uncompressed())
         point_x, point_y = self.public_point()
-        print " Point x                     ", point_x
-        print " Point y                     ", point_y
+        print(" Point x                     %s" % point_x)
+        print(" Point y                     %s" % point_y)
 
 
 class HDKey:
 
     @staticmethod
     def from_seed(import_seed):
+        """
+        Used by class init function, import key from seed
+        :param import_seed: Hex representation of private key seed
+        :return: HDKey class object
+        """
         seed = change_base(import_seed, 16, 256)
         I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
@@ -344,6 +370,18 @@ class HDKey:
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index = 0, isprivate=True, addresstype=ADDRESSTYPE_BITCOIN):
+        """
+        
+        :param import_key:
+        :param key:
+        :param chain:
+        :param depth:
+        :param parent_fingerprint:
+        :param child_index:
+        :param isprivate:
+        :param addresstype:
+        :return:
+        """
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -392,26 +430,26 @@ class HDKey:
 
     def info(self):
         if self._isprivate:
-            print "SECRET EXPONENT"
-            print " Private Key (hex)           ", change_base(self._key, 256, 16)
-            print " Private Key (long)          ", self._secret
-            print " Private Key (wif)           ", self.private().wif()
-            print ""
-        print "PUBLIC KEY"
-        print " Public Key (hex)            ", self.public()
-        print " Address (b58)               ", self.public().address()
-        print " Fingerprint (hex)           ", change_base(self.fingerprint(), 256, 16)
+            print("SECRET EXPONENT")
+            print(" Private Key (hex)           %s" %change_base(self._key, 256, 16))
+            print(" Private Key (long)          %s" %self._secret)
+            print(" Private Key (wif)           %s" %self.private().wif())
+            print("")
+        print("PUBLIC KEY")
+        print(" Public Key (hex)            %s" %self.public())
+        print(" Address (b58)               %s" %self.public().address())
+        print(" Fingerprint (hex)           %s" %change_base(self.fingerprint(), 256, 16))
         point_x, point_y = self.public().public_point()
-        print " Point x                     ", point_x
-        print " Point y                     ", point_y
-        print ""
-        print "EXTENDED KEY INFO"
-        print " Chain code (hex)            ", change_base(self.chain(), 256, 16)
-        print " Child Index                 ", self.child_index()
-        print " Parent Fingerprint (hex)    ", change_base(self.parent_fingerprint(), 256, 16)
-        print " Depth                       ", self.depth()
-        print " Extended Public Key (wif)   ", self.extended_wif_public()
-        print " Extended Private Key (wif)  ", self.extended_wif(public=False)
+        print(" Point x                     %s" %point_x)
+        print(" Point y                     %s" %point_y)
+        print("")
+        print("EXTENDED KEY INFO")
+        print(" Chain code (hex)            %s" %change_base(self.chain(), 256, 16))
+        print(" Child Index                 %s" %self.child_index())
+        print(" Parent Fingerprint (hex)    %s" %change_base(self.parent_fingerprint(), 256, 16))
+        print(" Depth                       %s" %self.depth())
+        print(" Extended Public Key (wif)   %s" %self.extended_wif_public())
+        print(" Extended Private Key (wif)  %s" %self.extended_wif(public=False))
 
     def _key_derivation(self, seed):
         chain = hasattr(self, '_chain') and self._chain or "Bitcoin seed"
