@@ -142,7 +142,8 @@ class Mnemonic:
 
         return ent
 
-    def language(self, words):
+    def detect_language(self, words):
+        words = self.normalize_string(words)
         if isinstance(words, (str, unicode)):
             words = words.split(' ')
         firstword = words[0]
@@ -150,21 +151,20 @@ class Mnemonic:
             if fn.endswith(".txt"):
                 with open('%s/%s' % (WORDLIST_DIR, fn), 'r') as f:
                     wordlist = [w.strip() for w in f.readlines()]
-                    try:
-                        if str(firstword) in wordlist:
-                            return fn.split('.')[0]
-                    except UnicodeWarning, e:
-                        print e
+                    if firstword.encode('utf8') in wordlist:
+                        return fn.split('.')[0]
+
         raise Warning("Could not detect language of Mnemonic sentence %s" % words)
 
     def sanitize_mnemonic(self, words):
+        words = self.normalize_string(words)
+        language = self.detect_language(words)
         if isinstance(words, (str, unicode)):
             words = words.split(' ')
-        language = self.language(words)
         with open('%s/%s.txt' % (WORDLIST_DIR, language), 'r') as f:
             wordlist = [w.strip() for w in f.readlines()]
             for word in words:
-                if word not in wordlist:
+                if word.encode('utf8') not in wordlist:
                     raise Warning("Unrecognised word %s in mnemonic sentence" % word)
         return ' '.join(words)
 
@@ -174,6 +174,13 @@ if __name__ == '__main__':
     #
 
     from keys import HDKey
+    words = u"guion cruz envío papel otoño percha hazaña salir joya gorra íntimo actriz"
+    print("Your Mnemonic is   %s" % words)
+    seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)
+    hdk = HDKey().from_seed(seed)
+    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("HD Key WIF is      %s" % hdk)
+
     # Convert hexadecimal to mnemonic and back again to hex
     print "\nConvert hexadecimal to mnemonic and back again to hex"
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
@@ -218,6 +225,14 @@ if __name__ == '__main__':
     words = "信 收 曉 捐 炭 祖 瘋 原 強 則 岩 蓄"
     print("Your Mnemonic is   %s" % words)
     seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    hdk = HDKey().from_seed(seed)
+    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("HD Key WIF is      %s" % hdk)
+
+
+    words = "guion cruz envío papel otoño percha hazaña salir joya gorra íntimo actriz"
+    print("Your Mnemonic is   %s" % words)
+    seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % change_base(seed, 256, 16))
     print("HD Key WIF is      %s" % hdk)
