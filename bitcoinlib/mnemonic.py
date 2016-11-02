@@ -27,8 +27,10 @@ from encoding import change_base
 from pbkdf2 import PBKDF2
 import unicodedata
 
+
 PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
+WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
 
 class Mnemonic:
     """
@@ -39,13 +41,12 @@ class Mnemonic:
 
     def __init__(self, language=DEFAULT_LANGUAGE):
         """
-        Init Mnemonic class for defined language
+        Init Mnemonic class and read wordlist of specified language
         :param language: use specific wordlist
         :return:
         """
         self._wordlist = []
-        wldir = os.path.join(os.path.dirname(__file__), 'wordlist')
-        with open('%s/%s.txt' % (wldir,language), 'r') as f:
+        with open('%s/%s.txt' % (WORDLIST_DIR, language), 'r') as f:
             self._wordlist = [w.strip() for w in f.readlines()]
 
     @classmethod
@@ -77,7 +78,7 @@ class Mnemonic:
     @classmethod
     def to_seed(cls, words, passphrase=''):
         """
-        Convert Mnemonic words to passphrase protected seed for HD Key
+        Use Mnemonic words and passphrase to create a seed
 
         :param words: Mnemonic passphrase as string
         :param passphrase: A password to
@@ -96,18 +97,16 @@ class Mnemonic:
     def wordlist(self):
         return self._wordlist
 
-    def generate(self, strength=128, include_checksum=True):
+    def generate(self, strength=128, add_checksum=True):
         """
         Generate a Mnemonic key
 
         :param strength: Key strenght in number of bits
-        :param include_checksum: Boolean to specify if checksum needs to be included
+        :param add_checksum: Boolean to specify if checksum needs to be included
         :return: Mnemonic passphrase
         """
         data = change_base(os.urandom(strength // 8), 256, 16)
-        if include_checksum:
-            data += self.checksum(data)
-        return self.to_mnemonic(data)
+        return self.to_mnemonic(data, add_checksum=add_checksum)
 
     def to_mnemonic(self, hexdata, add_checksum=True):
         if add_checksum:
@@ -115,7 +114,7 @@ class Mnemonic:
             wi = change_base(binresult, 2, 2048)
         else:
             wi = change_base(hexdata, 16, 2048)
-        return ' '.join([self._wordlist[i] for i in wi])
+        return self.normalize_string(' '.join([self._wordlist[i] for i in wi]))
 
     def to_entropy(self, words, includes_checksum=True):
         """
@@ -125,7 +124,7 @@ class Mnemonic:
         :param includes_checksum: Boolean to specify if checksum is used
         :return: Hex entrophy string
         """
-        if isinstance(words, str):
+        if isinstance(words, (str, unicode)):
             words = words.split(' ')
         wi = []
         for word in words:
@@ -143,12 +142,24 @@ class Mnemonic:
         return ent
 
 
+
 if __name__ == '__main__':
     #
     # SOME EXAMPLES
     #
 
-    print "\nConvert hexadecimal to mnemonic"
+    from keys import HDKey
+    # Let's talk Spanish
+    print "\nGenerate a key from a Spanish Mnemonic sentence"
+    words = "laguna ijsbar talón resto peldaño deuda guerra dorado catorce avance oasis barniz"
+    print("Your Mnemonic is   %s" % words)
+    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    hdk = HDKey().from_seed(seed)
+    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("HD Key WIF is      %s" % hdk)
+
+    # Convert hexadecimal to mnemonic and back again to hex
+    print "\nConvert hexadecimal to mnemonic and back again to hex"
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
     words = Mnemonic().to_mnemonic(pk)
     print("Hex                %s" % pk)
@@ -158,12 +169,39 @@ if __name__ == '__main__':
     print("Back to Hex        %s" % Mnemonic().to_entropy(words))
 
     # Generate a random Mnemonic HD Key
-    # print "\nGenerate a random Mnemonic HD Key"
-    # entsize = 32
-    # wpl = Mnemonic().generate(entsize)
-    # print("Your Mnemonic is   %s" % wpl)
-    # print("  (An avarage of %d tries is needed to brute-force this password)" % ((2 ** entsize) // 2))
-    # from keys import HDKey
-    # seed = change_base(Mnemonic().to_seed(wpl), 256, 16)
-    # hdk = HDKey().from_seed(seed)
-    # print("HD Key WIF is      %s" % hdk)
+    print "\nGenerate a random Mnemonic HD Key"
+    entsize = 128
+    words = Mnemonic('english').generate(entsize)
+    print("Your Mnemonic is   %s" % words)
+    print("  (An avarage of %d tries is needed to brute-force this password)" % ((2 ** entsize) // 2))
+    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    hdk = HDKey().from_seed(seed)
+    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("HD Key WIF is      %s" % hdk)
+
+    # Generate a key from a Mnemonic sentence
+    print "\nGenerate a key from a Mnemonic sentence"
+    words = "type fossil omit food supply enlist move perfect direct grape clean diamond"
+    print("Your Mnemonic is   %s" % words)
+    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    hdk = HDKey().from_seed(seed)
+    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("HD Key WIF is      %s" % hdk)
+
+    # Let's talk Spanish
+    print "\nGenerate a key from a Spanish Mnemonic sentence"
+    words = "laguna afirmar talón resto peldaño deuda guerra dorado catorce avance oasis barniz"
+    print("Your Mnemonic is   %s" % words)
+    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    hdk = HDKey().from_seed(seed)
+    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("HD Key WIF is      %s" % hdk)
+
+    # Want some Chinese?
+    print "\nGenerate a key from a Chinese Mnemonic sentence"
+    words = "信 收 曉 捐 炭 祖 瘋 原 強 則 岩 蓄"
+    print("Your Mnemonic is   %s" % words)
+    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    hdk = HDKey().from_seed(seed)
+    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("HD Key WIF is      %s" % hdk)
