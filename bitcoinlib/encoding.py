@@ -20,9 +20,7 @@
 #
 
 import math
-# from mnemonic import Mnemonic
-#
-# wordlist = Mnemonic().wordlist()
+
 
 code_strings = {
     2: '01',
@@ -32,11 +30,10 @@ code_strings = {
     32: 'abcdefghijklmnopqrstuvwxyz234567',
     58: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     256: ''.join([chr(x) for x in range(256)]),
-    # 2048: range(0,2047),
 }
 
 
-# General methods
+
 def get_code_string(base):
     if base in code_strings:
         return code_strings[base]
@@ -45,6 +42,25 @@ def get_code_string(base):
 
 
 def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=None):
+    """
+    Convert input chars from one base to another.
+
+    From and to base can be any base. If base is not found a array of index numbers will be returned
+
+    Examples:
+    > change_base('FF', 16, 10) will return 256
+    > change_base(100, 16, 2048) will return [100]
+
+    :param chars: Input string
+    :param base_from: Base number from input string
+    :param base_to: Base number for output
+    :param min_lenght: Minimal output length. Required for decimal,
+           advised for all output to avoid leading zeros conversion problems.
+    :param output_even: Specify if output must contain a even number of characters.
+           Sometimes handy for hex conversions.
+    :param output_as_list: Always output as list instead of string.
+    :return: Base converted input as string or list.
+    """
     if base_from == 10 and not min_lenght:
         raise ValueError("For a decimal input a minimum output lenght is required!")
     code_str = get_code_string(base_to)

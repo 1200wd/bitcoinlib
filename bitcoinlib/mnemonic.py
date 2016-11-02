@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    BIP39 Mnemonic Key management
+#    BIP0039 Mnemonic Key management
 #    © 1200 Web Development <http://1200wd.com/>
 #    2016 november
 #
@@ -29,8 +29,16 @@ PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
 
 class Mnemonic:
+    """
+    Implementation of BIP0039 for Mnemonic keys.
+    """
 
     def __init__(self, language=DEFAULT_LANGUAGE):
+        """
+        Init Mnemonic class for defined language
+        :param language: use specific wordlist
+        :return:
+        """
         self._wordlist = []
         wldir = os.path.join(os.path.dirname(__file__), 'wordlist')
         with open('%s/%s.txt' % (wldir,language), 'r') as f:
@@ -38,6 +46,12 @@ class Mnemonic:
 
     @staticmethod
     def checksum(hexdata):
+        """
+        Gives checksum for given hexdata key
+
+        :param hexdata: key string as hexadecimal
+        :return: Checksum of key as hex
+        """
         if len(hexdata) % 8 > 0:
             raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
                              (len(hexdata), len(hexdata) * 8))
@@ -53,12 +67,26 @@ class Mnemonic:
         return self._wordlist
 
     def generate(self, strength=128, include_checksum=True):
+        """
+        Generate a Mnemonic key
+
+        :param strength: Key strenght in number of bits
+        :param include_checksum: Boolean to specify if checksum needs to be included
+        :return: Mnemonic passphrase
+        """
         data = change_base(os.urandom(strength // 8), 256, 16)
         if include_checksum:
             data = data + self.checksum(data)
         return self.to_mnemonic(data)
 
     def to_entropy(self, words, includes_checksum=True):
+        """
+        Convert Mnemonic passphrase to entrophy
+
+        :param words: Mnemonic passphrasse as string of list of words
+        :param includes_checksum: Boolean to specify if checksum is used
+        :return: Hex entrophy string
+        """
         if isinstance(words, str):
             words = words.split(' ')
         wi = []
@@ -83,6 +111,13 @@ class Mnemonic:
 
     @classmethod
     def to_seed(cls, mnemonic, passphrase=''):
+        """
+        Convert Mnemonic phrase to passphrase protected
+
+        :param mnemonic: Mnemonic passphrase as string
+        :param passphrase: A password to
+        :return: Hex Key
+        """
         # mnemonic = cls.normalize_string(mnemonic)
         # passphrase = cls.normalize_string(passphrase)
         return PBKDF2(mnemonic, u'mnemonic' + passphrase, iterations=PBKDF2_ROUNDS, macmodule=hmac, digestmodule=hashlib.sha512).read(64)
