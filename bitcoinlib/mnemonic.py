@@ -75,8 +75,7 @@ class Mnemonic:
         hashhex = hashlib.sha256(data).hexdigest()
         return change_base(hashhex, 16, 2, 256)[:len(data) * 8 // 32]
 
-    @classmethod
-    def to_seed(cls, words, passphrase=''):
+    def to_seed(self, words, passphrase=''):
         """
         Use Mnemonic words and passphrase to create a seed
 
@@ -84,8 +83,9 @@ class Mnemonic:
         :param passphrase: A password to
         :return: Hex Key
         """
-        mnemonic = cls.normalize_string(words)
-        passphrase = cls.normalize_string(passphrase)
+        words = self.sanitize_mnemonic(words)
+        mnemonic = self.normalize_string(words)
+        passphrase = self.normalize_string(passphrase)
         return PBKDF2(mnemonic, u'mnemonic' + passphrase,
                       iterations=PBKDF2_ROUNDS,
                       macmodule=hmac,
@@ -124,6 +124,7 @@ class Mnemonic:
         :param includes_checksum: Boolean to specify if checksum is used
         :return: Hex entrophy string
         """
+        words = self.sanitize_mnemonic(words)
         if isinstance(words, (str, unicode)):
             words = words.split(' ')
         wi = []
@@ -141,7 +142,31 @@ class Mnemonic:
 
         return ent
 
+    def language(self, words):
+        if isinstance(words, (str, unicode)):
+            words = words.split(' ')
+        firstword = words[0]
+        for fn in os.listdir(WORDLIST_DIR):
+            if fn.endswith(".txt"):
+                with open('%s/%s' % (WORDLIST_DIR, fn), 'r') as f:
+                    wordlist = [w.strip() for w in f.readlines()]
+                    try:
+                        if str(firstword) in wordlist:
+                            return fn.split('.')[0]
+                    except UnicodeWarning, e:
+                        print e
+        raise Warning("Could not detect language of Mnemonic sentence %s" % words)
 
+    def sanitize_mnemonic(self, words):
+        if isinstance(words, (str, unicode)):
+            words = words.split(' ')
+        language = self.language(words)
+        with open('%s/%s.txt' % (WORDLIST_DIR, language), 'r') as f:
+            wordlist = [w.strip() for w in f.readlines()]
+            for word in words:
+                if word not in wordlist:
+                    raise Warning("Unrecognised word %s in mnemonic sentence" % word)
+        return ' '.join(words)
 
 if __name__ == '__main__':
     #
@@ -149,15 +174,6 @@ if __name__ == '__main__':
     #
 
     from keys import HDKey
-    # Let's talk Spanish
-    print "\nGenerate a key from a Spanish Mnemonic sentence"
-    words = "laguna ijsbar talón resto peldaño deuda guerra dorado catorce avance oasis barniz"
-    print("Your Mnemonic is   %s" % words)
-    seed = change_base(Mnemonic().to_seed(words), 256, 16)
-    hdk = HDKey().from_seed(seed)
-    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
-    print("HD Key WIF is      %s" % hdk)
-
     # Convert hexadecimal to mnemonic and back again to hex
     print "\nConvert hexadecimal to mnemonic and back again to hex"
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
