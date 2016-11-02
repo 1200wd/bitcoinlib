@@ -20,10 +20,12 @@
 #
 
 import os
+import sys
 import hashlib
 import hmac
 from encoding import change_base
 from pbkdf2 import PBKDF2
+import unicodedata
 
 PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
@@ -31,6 +33,8 @@ DEFAULT_LANGUAGE = 'english'
 class Mnemonic:
     """
     Implementation of BIP0039 for Mnemonic keys.
+
+    Took parts of Pavol Rusnak Trezors implementation, see https://github.com/trezor/python-mnemonic
     """
 
     def __init__(self, language=DEFAULT_LANGUAGE):
@@ -43,6 +47,17 @@ class Mnemonic:
         wldir = os.path.join(os.path.dirname(__file__), 'wordlist')
         with open('%s/%s.txt' % (wldir,language), 'r') as f:
             self._wordlist = [w.strip() for w in f.readlines()]
+
+    @classmethod
+    def normalize_string(cls, txt):
+        if isinstance(txt, str if sys.version < '3' else bytes):
+            utxt = txt.decode('utf8')
+        elif isinstance(txt, unicode if sys.version < '3' else str):
+            utxt = txt
+        else:
+            raise TypeError("String value expected")
+
+        return unicodedata.normalize('NFKD', utxt)
 
     @staticmethod
     def checksum(hexdata):
@@ -118,8 +133,8 @@ class Mnemonic:
         :param passphrase: A password to
         :return: Hex Key
         """
-        # mnemonic = cls.normalize_string(mnemonic)
-        # passphrase = cls.normalize_string(passphrase)
+        mnemonic = cls.normalize_string(mnemonic)
+        passphrase = cls.normalize_string(passphrase)
         return PBKDF2(mnemonic, u'mnemonic' + passphrase, iterations=PBKDF2_ROUNDS, macmodule=hmac, digestmodule=hashlib.sha512).read(64)
 
 
@@ -144,3 +159,5 @@ if __name__ == '__main__':
     words = Mnemonic().to_mnemonic(pk)
     print("Private key to mnemonic: %s" % words)
     print change_base(Mnemonic().to_seed(words, 'test'), 256, 16)
+
+    print Mnemonic.detect_language('test')

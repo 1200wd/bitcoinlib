@@ -1,39 +1,34 @@
-IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT
-
 # bitcoinlib
-Compact Bitcoin library to work with Private and Public Keys.
+Bitcoin library with key manipulation function to generate, import and convert cryptograpic keys.
 
-#### Requirements
-- ecdsa library, see https://pypi.python.org/pypi/ecdsa
-
+Implements BIP0032, BIP0039, BIP0033 and BIP0044
+ 
 
 ## Usage Example's
 
 #### Generate random Private Key
 ```python
 from bitcoinlib.keys import *
-k = PrivateKey()
-print k.get_hex()
+k = Key()
+print k.info()
 ```
 
 #### Import Private Key (WIF format)
 ```python
 privatekey_wif = 'L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy'
-k = PrivateKey(privatekey_wif)
-print k.get_hex()
+k = Key(privatekey_wif)
+print k.info()
 ```
  
 #### Show public key and bitcoin address
 ```python
-public_key_hex = k.get_public()
-print public_key_hex
-K = PublicKey(public_key_hex)
-print K.get_address()
+print k.public()
+print k.get_address()
 ```
 
-# ToDo
-- Add P2SH addresses
-- Add Wallet functions
-- Wallets, Transactions and the Blockchain...
- 
-IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT - IN DEVELOPMENT
+#### Requirements
+* ecdsa
+* pbkdf2
+* AES from Crypto.Cipher
+* scrypt
+* binascii

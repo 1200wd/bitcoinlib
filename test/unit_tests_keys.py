@@ -351,9 +351,6 @@ class TestMnemonics(unittest.TestCase):
             else:
                 phrase = v[1]
             seed = change_base(mnemo.to_seed(phrase, str(v[4])), 256, 16)
-            # if sys.version >= '3':
-            #     seed = seed.decode('utf8')
-            # self.assertIs(mnemo.check(v[1]), True)
             print("Test %s => %s" % (v[0], phrase))
             self.assertEqual(str(v[1]), phrase)
             self.assertEqual(str(v[2]), seed)
