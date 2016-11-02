@@ -347,14 +347,19 @@ class TestMnemonics(unittest.TestCase):
     def _check_list(self, language, vectors):
         mnemo = Mnemonic(language)
         for v in vectors:
-            phrase = mnemo.to_mnemonic(v[0])
-            seed = change_base(mnemo.to_seed(phrase, passphrase='TREZOR'), 256, 16)
+            if v[0]:
+                phrase = mnemo.to_mnemonic(v[0])
+            else:
+                phrase = v[1]
+            seed = change_base(mnemo.to_seed(phrase, str(v[4])), 256, 16)
             # if sys.version >= '3':
             #     seed = seed.decode('utf8')
             # self.assertIs(mnemo.check(v[1]), True)
             print("Test %s => %s" % (v[0], phrase))
             self.assertEqual(str(v[1]), phrase)
             self.assertEqual(str(v[2]), seed)
+            k = HDKey.from_seed(seed)
+            self.assertEqual(str(k.extended_wif()), str(v[3]))
 
     def test_vectors(self):
         with open('mnemonics_tests.json', 'r') as f:
