@@ -71,9 +71,25 @@ class Mnemonic:
             raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
                              (len(hexdata), len(hexdata) * 8))
         data = change_base(hexdata, 16, 256)
-        h = hashlib.sha256(data).hexdigest()
-        b = bin(int(h, 16))[2:].zfill(256)[:len(data) * 8 // 32]
-        return change_base(b, 2, 16)
+        hashhex = hashlib.sha256(data).hexdigest()
+        binresult = bin(int(hashhex, 16))[2:].zfill(256)[:len(data) * 8 // 32]
+        return change_base(binresult, 2, 16, output_even=0)
+
+    @classmethod
+    def to_seed(cls, words, passphrase=''):
+        """
+        Convert Mnemonic words to passphrase protected seed for HD Key
+
+        :param words: Mnemonic passphrase as string
+        :param passphrase: A password to
+        :return: Hex Key
+        """
+        mnemonic = cls.normalize_string(words)
+        passphrase = cls.normalize_string(passphrase)
+        return PBKDF2(mnemonic, u'mnemonic' + passphrase,
+                      iterations=PBKDF2_ROUNDS,
+                      macmodule=hmac,
+                      digestmodule=hashlib.sha512).read(64)
 
     def word(self, index):
         return self._wordlist[index]
@@ -94,25 +110,6 @@ class Mnemonic:
             data = data + self.checksum(data)
         return self.to_mnemonic(data)
 
-    def to_entropy(self, words, includes_checksum=True):
-        """
-        Convert Mnemonic passphrase to entrophy
-
-        :param words: Mnemonic passphrasse as string of list of words
-        :param includes_checksum: Boolean to specify if checksum is used
-        :return: Hex entrophy string
-        """
-        if isinstance(words, str):
-            words = words.split(' ')
-        wi = []
-        for word in words:
-            wi.append(self._wordlist.index(word))
-        ent = change_base(wi, 2048, 16)
-        if includes_checksum:
-            # TODO: check checksum
-            pass
-        return ent
-
     def to_mnemonic(self, hexdata, add_checksum=True):
         if add_checksum:
             data = change_base(hexdata, 16, 256)
@@ -124,40 +121,49 @@ class Mnemonic:
             wi = change_base(hexdata, 16, 2048)
         return ' '.join([self._wordlist[i] for i in wi])
 
-    @classmethod
-    def to_seed(cls, mnemonic, passphrase=''):
+    def to_entropy(self, words, includes_checksum=True):
         """
-        Convert Mnemonic phrase to passphrase protected
+        Convert Mnemonic words back to entrophy
 
-        :param mnemonic: Mnemonic passphrase as string
-        :param passphrase: A password to
-        :return: Hex Key
+        :param words: Mnemonic words as string of list of words
+        :param includes_checksum: Boolean to specify if checksum is used
+        :return: Hex entrophy string
         """
-        mnemonic = cls.normalize_string(mnemonic)
-        passphrase = cls.normalize_string(passphrase)
-        return PBKDF2(mnemonic, u'mnemonic' + passphrase, iterations=PBKDF2_ROUNDS, macmodule=hmac, digestmodule=hashlib.sha512).read(64)
+        if isinstance(words, str):
+            words = words.split(' ')
+        wi = []
+        for word in words:
+            wi.append(self._wordlist.index(word))
+        ent = change_base(wi, 2048, 16, output_even=0)
+        if includes_checksum:
+            # binresult = bin(int(hexdata, 16))[2:].zfill(len(data) * 8) + \
+            #         bin(int(hashhex, 16))[2:].zfill(256)[:len(data) * 8 // 32]
+            # TODO: check checksum
+            pass
+        return ent
 
 
 if __name__ == '__main__':
-    # entsize = 32
-    # wpl = Mnemonic().generate(entsize)
-    # print("Your password is: %s" % wpl)
-    # print("A computer needs an avarage of %.2f tries to guess this password" % ((2 ** entsize) /2.0))
-    # base = Mnemonic().to_entropy(wpl)
-    # print("In HEX this is %s" % base)
-    # print("Checksum is %s" % Mnemonic().checksum(base))
-    # print("Convert back to base2048: %s" % Mnemonic().to_mnemonic(base))
+    #
+    # SOME EXAMPLES
+    #
 
-    # Entropy input (128 bits) 0c1e24e5917779d297e14d45f14e1a1a
-    # Mnemonic (12 words) army van defense carry jealous true garbage claim echo media make crunch
-    # Seed (512 bits) 3338a6d2ee71c7f28eb5b882159634cd46a898463e9d2d0980f8e80dfbba5b0f
-    #                 a0291e5fb888a599b44b93187be6ee3ab5fd3ead7dd646341b2cdb8d08d13bf7
-
-    from binascii import unhexlify, hexlify
+    print "\nConvert hexadecimal to mnemonic"
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
-    print pk, len(pk)
     words = Mnemonic().to_mnemonic(pk)
-    print("Private key to mnemonic: %s" % words)
-    print change_base(Mnemonic().to_seed(words, 'test'), 256, 16)
+    print("Hex:               %s" % pk)
+    print("Hex+checksum       %s" % pk + Mnemonic().checksum(pk))
+    print("Mnemonic           %s" % words)
+    print("Seed for HD Key    %s" % change_base(Mnemonic().to_seed(words, 'test'), 256, 16))
+    print("Back to Hex        %s" % Mnemonic().to_entropy(words))
 
-    print Mnemonic.detect_language('test')
+    # Generate a random Mnemonic HD Key
+    print "\nGenerate a random Mnemonic HD Key"
+    entsize = 32
+    wpl = Mnemonic().generate(entsize)
+    print("Your Mnemonic is   %s" % wpl)
+    print("  (An avarage of %d tries is needed to brute-force this password)" % ((2 ** entsize) // 2))
+    from keys import HDKey
+    seed = change_base(Mnemonic().to_seed(wpl), 256, 16)
+    hdk = HDKey().from_seed(seed)
+    print("HD Key WIF is      %s" % hdk)

@@ -144,3 +144,11 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
     if not output_as_list:
         output = ''.join(output)
     return output
+
+if __name__ == '__main__':
+    #
+    # SOME EXAMPLES
+    #
+    # TODO: ..
+
+    pass

@@ -634,7 +634,9 @@ class HDKey:
 
 
 if __name__ == '__main__':
-    # Some examples:
+    #
+    # SOME EXAMPLES
+    #
     
     # Import public key
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
