@@ -21,6 +21,7 @@
 
 import os
 import hashlib
+import hmac
 from encoding import change_base
 from pbkdf2 import PBKDF2
 
@@ -82,20 +83,20 @@ class Mnemonic:
 
     @classmethod
     def to_seed(cls, mnemonic, passphrase=''):
-        mnemonic = cls.normalize_string(mnemonic)
-        passphrase = cls.normalize_string(passphrase)
+        # mnemonic = cls.normalize_string(mnemonic)
+        # passphrase = cls.normalize_string(passphrase)
         return PBKDF2(mnemonic, u'mnemonic' + passphrase, iterations=PBKDF2_ROUNDS, macmodule=hmac, digestmodule=hashlib.sha512).read(64)
 
 
 if __name__ == '__main__':
-    entsize = 32
-    wpl = Mnemonic().generate(entsize)
-    print("Your password is: %s" % wpl)
-    print("A computer needs an avarage of %.2f tries to guess this password" % ((2 ** entsize) /2.0))
-    base = Mnemonic().to_entropy(wpl)
-    print("In HEX this is %s" % base)
-    print("Checksum is %s" % Mnemonic().checksum(base))
-    print("Convert back to base2048: %s" % Mnemonic().to_mnemonic(base))
+    # entsize = 32
+    # wpl = Mnemonic().generate(entsize)
+    # print("Your password is: %s" % wpl)
+    # print("A computer needs an avarage of %.2f tries to guess this password" % ((2 ** entsize) /2.0))
+    # base = Mnemonic().to_entropy(wpl)
+    # print("In HEX this is %s" % base)
+    # print("Checksum is %s" % Mnemonic().checksum(base))
+    # print("Convert back to base2048: %s" % Mnemonic().to_mnemonic(base))
 
     # Entropy input (128 bits) 0c1e24e5917779d297e14d45f14e1a1a
     # Mnemonic (12 words) army van defense carry jealous true garbage claim echo media make crunch
@@ -107,3 +108,4 @@ if __name__ == '__main__':
     print pk, len(pk)
     words = Mnemonic().to_mnemonic(pk)
     print("Private key to mnemonic: %s" % words)
+    print change_base(Mnemonic().to_seed(words, 'test'), 256, 16)
