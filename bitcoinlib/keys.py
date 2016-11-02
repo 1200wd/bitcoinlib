@@ -47,6 +47,7 @@ def get_key_format(key, keytype=None):
     """
     Determins the type and format of a public or private key by length and prefix.
     This method does not validate if a key is valid.
+
     :param key: Any private or public key
     :param keytype: 'private' or 'public', is most cases not required as methods takes best guess
     :return: format of key as string
@@ -79,6 +80,7 @@ def get_key_format(key, keytype=None):
 def ec_point(p):
     """
     Method for eliptic curve multiplication
+
     :param p: A point on the eliptic curve
     :return: Point multiplied by generator G
     """
@@ -98,6 +100,7 @@ class Key:
     def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN, passphrase=''):
         """
         Initialize a Key object
+
         :param import_key: If specified import given private or public key.
         If not specified a new private key is generated.
         :param addresstype: Bitcoin normal or testnet address, Pay-to-script, etc
@@ -170,6 +173,7 @@ class Key:
         BIP0038 non-ec-multiply decryption. Returns WIF privkey.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
         This method is called by Key class init function when importing BIP0038 key.
+
         :param encrypted_privkey: Encrypted Private Key using WIF protected key format
         :param passphrase: Required passphrase for decryption
         :return: Private Key WIF
@@ -206,6 +210,7 @@ class Key:
         """
         BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
+
         :param passphrase: Required passphrase for encryption
         :param compressed: Compressed or uncompressed private key
         :return: BIP38 passphrase encrypted private key
@@ -270,6 +275,7 @@ class Key:
     def _create_public(self):
         """
         Create public key point and hex repressentation from private key.
+
         :return:
         """
         if self._secret:
@@ -354,11 +360,20 @@ class Key:
 
 
 class HDKey:
+    """
+    Class for Hierarchical Deterministic keys as defined in BIP0032
+
+    Besides a private or public key a HD Key has a chain code, allowing to create
+    a structure of related keys.
+
+    The structure and key-path are defined in BIP0043 and BIP0044.
+    """
 
     @staticmethod
     def from_seed(import_seed):
         """
         Used by class init function, import key from seed
+
         :param import_seed: Hex representation of private key seed
         :return: HDKey class object
         """
@@ -371,15 +386,17 @@ class HDKey:
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index = 0, isprivate=True, addresstype=ADDRESSTYPE_BITCOIN):
         """
-        
-        :param import_key:
-        :param key:
-        :param chain:
-        :param depth:
-        :param parent_fingerprint:
-        :param child_index:
-        :param isprivate:
-        :param addresstype:
+        Hierarchical Deterministic Key class init function.
+        If no import_key is specified a key will be generated with system cryptographically random function.
+
+        :param import_key: HD Key in WIF format to import
+        :param key: Private or public key
+        :param chain: A chain code
+        :param depth: Integer of level of depth in path (BIP0043/BIP0044)
+        :param parent_fingerprint: 4-byte fingerprint of parent
+        :param child_index: Index number of child as integer
+        :param isprivate: True for private, False for public key
+        :param addresstype: Bitcoin normal or testnet address, Pay-to-script, etc. Derived from import_key if possible.
         :return:
         """
         if not (key and chain):
@@ -394,6 +411,7 @@ class HDKey:
             elif import_key[:4] in ['xprv', 'xpub', 'tprv', 'tpub']:
                 if import_key[:1] == 't':
                     addresstype = ADDRESSTYPE_TESTNET
+                # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                 bkey = change_base(import_key, 58, 256)
                 if ord(bkey[45]):
                     isprivate = False
@@ -529,6 +547,15 @@ class HDKey:
             return Key(self._key, addresstype=self._addresstype)
 
     def subkey_for_path(self, path):
+        """
+        Determine subkey for HD Key for given path.
+        Path format: m / purpose' / coin_type' / account' / change / address_index
+        Example: m/44'/0'/0'/0/2
+        See BIP0044 bitcoin proposal for more explanation.
+
+        :param path: BIP0044 key path
+        :return: HD Key class object of subkey
+        """
         key = self
 
         if path[0] == 'm': # Use private master key
@@ -551,6 +578,13 @@ class HDKey:
         return key
 
     def child_private(self, index=0, hardened=False):
+        """
+        Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
+
+        :param index: Key index number
+        :param hardened: Specify if key must be hardened (True) or normal (False)
+        :return: HD Key class object
+        """
         if not self._isprivate:
             raise ValueError("Need a private key to create child private key")
         if hardened:
@@ -572,6 +606,13 @@ class HDKey:
                      child_index=index)
 
     def child_public(self, index=0):
+        """
+        Use Child Key Derivation to derive child public key of current HD Key object.
+
+        :param index: Key index number
+        :param hardened: Specify if key must be hardened (True) or normal (False)
+        :return: HD Key class object
+        """
         if index > 0x80000000:
             raise ValueError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
         data = self.public().public_byte() + struct.pack('>L', index)
@@ -593,9 +634,11 @@ class HDKey:
 
 
 if __name__ == '__main__':
+    # Some examples:
+    
     # Import public key
-    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    # K.info()
+    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    K.info()
 
     # Import private key
     k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
@@ -607,7 +650,6 @@ if __name__ == '__main__':
     print "Convert back %s " % ki.wif(compressed=False)
     ki.info()
 
-
     # Generate random HD Key on testnet
-    # hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
-    # hdk.info()
+    hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
+    hdk.info()
