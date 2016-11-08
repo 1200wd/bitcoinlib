@@ -117,8 +117,8 @@ class Key:
 
         key_format = get_key_format(import_key)
         if key_format == "wif_protected":
-            import_key = self._bip38_decrypt(import_key, passphrase)
-            key_format = "wif"
+            import_key, key_format = self._bip38_decrypt(import_key, passphrase)
+            # key_format = "wif"
         if key_format in ['public_uncompressed', 'public']:
             self._secret = None
             if key_format=='public_uncompressed':
@@ -204,14 +204,19 @@ class Key:
         decryptedhalf1 = aes.decrypt(encryptedhalf1)
         priv = decryptedhalf1 + decryptedhalf2
         priv = binascii.unhexlify('%064x' % (long(binascii.hexlify(priv), 16) ^ long(binascii.hexlify(derivedhalf1), 16)))
+        if compressed:
+            priv = b'\0' + priv
+            key_format = 'wif_compressed'
+        else:
+            key_format = 'wif'
         k = Key(priv)
-        wif = k.wif(compressed=compressed)
-        addr = k.address(compressed=compressed)
+        wif = k.wif()
+        addr = k.address()
         if hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4] != addresshash:
             print('Addresshash verification failed! Password is likely incorrect.')
-        return wif
+        return wif, key_format
 
-    def bip38_encrypt(self, passphrase, compressed=True):
+    def bip38_encrypt(self, passphrase):
         """
         BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -220,7 +225,7 @@ class Key:
         :param compressed: Compressed or uncompressed private key
         :return: BIP38 passphrase encrypted private key
         """
-        if compressed:
+        if self._compressed:
             flagbyte = '\xe0'
             addr = self.address()
         else:
@@ -256,13 +261,12 @@ class Key:
             return False
         return change_base(str(self._secret), 10, 256, 32)
 
-    def wif(self, compressed=True):
+    def wif(self):
         """
         Get Private Key in Wallet Import Format, steps:
         (1) Convert to Binary and add 0x80 hex
         (2) Calculate Double SHA256 and add as checksum to end of key
 
-        :param compressed: Get compressed private key, which means private key will be used to generate compressed public keys.
         :return: Base58Check encoded Private Key WIF
         """
         if not self._secret:
@@ -272,7 +276,7 @@ class Key:
         else:
             version = PRIVATEKEY_WIF
         key = version + change_base(str(self._secret), 10, 256, 32)
-        if compressed:
+        if self._compressed:
             key += chr(1)
         key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key, 256, 58)
@@ -299,10 +303,13 @@ class Key:
         else:
             raise ValueError("Key error, no secret key or public key point found.")
 
-    def public(self):
-        if not self._public:
+    def public(self, compressed=None):
+        if not self._public or not self._public_uncompressed:
             self._create_public()
-        return self._public
+        if (self._compressed and compressed is None) or compressed:
+            return self._public
+        else:
+            return self._public_uncompressed
 
     def public_uncompressed(self):
         if not self._public_uncompressed:
@@ -332,10 +339,10 @@ class Key:
         key = change_base(self._public, 16, 256)
         return hashlib.new('ripemd160', hashlib.sha256(key).digest()).hexdigest()
 
-    def address(self, compressed=True):
+    def address(self, compressed=None):
         if not self._public or not self._public_uncompressed:
             self._create_public()
-        if compressed:
+        if (self._compressed and compressed is None) or compressed:
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
@@ -346,17 +353,22 @@ class Key:
     def address_uncompressed(self):
         return self.address(compressed=False)
 
+    def compressed(self):
+        return self._compressed
+
     def info(self):
         if self._secret:
             print("SECRET EXPONENT")
             print(" Private Key (hex)              %s" % change_base(self._secret, 256, 16))
             print(" Private Key (long)             %s" % change_base(self._secret, 256, 10))
             print(" Private Key (wif)              %s" % self.wif())
-            print(" Private Key (wif uncompressed) %s" % self.wif(compressed=False))
             print("")
+        else:
+            print("PUBLIC KEY ONLY, NO SECRET EXPONENT")
+        print(" Compressed                  %s" % self.compressed())
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public())
-        print(" Public Key (hex)            %s" % self.public_uncompressed())
+        print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed())
         print(" Address (b58)               %s" % self.address())
         print(" Address uncompressed (b58)  %s" % self.address_uncompressed())
         point_x, point_y = self.public_point()
@@ -388,13 +400,14 @@ class HDKey:
         chain = I[32:]
         return HDKey(key=key, chain=chain)
 
-    def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index = 0, isprivate=True, addresstype=ADDRESSTYPE_BITCOIN):
+    def __init__(self, import_key=None, compressed=True, key=None, chain=None, depth=0,
+                 parent_fingerprint=b'\0\0\0\0', child_index = 0, isprivate=True, addresstype=ADDRESSTYPE_BITCOIN):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
 
         :param import_key: HD Key in WIF format to import
+        :param compressed: Generate Compressed or Uncompressed key
         :param key: Private or public key
         :param chain: A chain code
         :param depth: Integer of level of depth in path (BIP0043/BIP0044)
@@ -404,6 +417,7 @@ class HDKey:
         :param addresstype: Bitcoin normal or testnet address, Pay-to-script, etc. Derived from import_key if possible.
         :return:
         """
+        self._compressed = compressed
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -643,20 +657,25 @@ if __name__ == '__main__':
     # SOME EXAMPLES
     #
     
-    # Import public key
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    K.info()
+    # Import Public Key
+    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    # K.info()
+    #
+    # # Import Private Key
+    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    # print "Private key %s" % k.wif()
+    # print "Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree')
+    # print "Equal to ?   6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
 
-    # Import private key
-    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    print "Private key %s" % k.wif(compressed=False)
-    print "Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree', compressed=False)
-    print "Equal to ?   6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
-
-    ki = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
-    print "Convert back %s " % ki.wif(compressed=False)
+    # Import and Decrypt Private Key
+    ki = Key('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', passphrase='TestingOneTwoThree')
+    print "Private key  %s " % ki.wif()
+    print "Equal to ?   L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP"
     ki.info()
 
-    # Generate random HD Key on testnet
-    hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
-    hdk.info()
+    # Import and Decrypt Private Key
+    # k = Key('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', passphrase='TestingOneTwoThree')
+    #
+    # # Generate random HD Key on testnet
+    # hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
+    # hdk.info()

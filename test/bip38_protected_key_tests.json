@@ -4,7 +4,6 @@
       "bip38": "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg",
       "wif": "5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR",
       "address": "1Jq6MksXQVWzrznvZzxkV6oY57oWXD9TXB",
-      "compressed": false,
       "description": "no EC multiply / no compression #1"
     },
     {
@@ -12,7 +11,6 @@
       "bip38": "6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq",
       "wif": "5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5",
       "address": "1AvKt49sui9zfzGeo8EyL8ypvAhtR2KwbL",
-      "compressed": false,
       "description": "no EC multiply / no compression #2"
     },
     {
@@ -20,7 +18,6 @@
       "bip38": "6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo",
       "wif": "L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP",
       "address": "164MQi977u9GUteHr4EPH27VkkdxmfCvGW",
-      "compressed": true,
       "description": "no EC multiply / compression #1"
     },
     {
@@ -28,7 +25,6 @@
       "bip38": "6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7",
       "wif": "KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7",
       "address": "1HmPbwsvG5qJ3KJfxzsZRZWhbm1xBMuS8B",
-      "compressed": true,
       "description": "no EC multiply / compression #2"
     }
   ],
