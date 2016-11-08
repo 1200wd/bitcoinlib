@@ -31,18 +31,31 @@ import binascii
 from secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
 from encoding import change_base
 
-HDKEY_XPRV = '0488ADE4'.decode('hex')
-HDKEY_XPUB = '0488B21E'.decode('hex')
-HDKEY_TPRV = '04358394'.decode('hex')
-HDKEY_TPUB = '043587CF'.decode('hex')
-ADDRESSTYPE_BITCOIN = b'\x00'
-ADDRESSTYPE_P2SH = b'\x05'
-ADDRESSTYPE_TESTNET = b'\x6F'
-PRIVATEKEY_WIF = b'\x80'
-PRIVATEKEY_WIF_TESTNET = b'\xEF'
+# Definitions for Bitcoin network and Bitcoin testnet3
+# Network, address_type_normal, address_type_p2sh, wif, extended_wif_public and extended_wif_private
+NETWORK_BITCOIN = 'bitcoin'
+NETWORK_BITCOIN_TESTNET = 'testnet'
+NETWORKS = {
+    NETWORK_BITCOIN: {
+        'name': 'Bitcoin Network',
+        'address': b'\x00',
+        'address_p2sh': b'\x05',
+        'wif': b'\x80',
+        'hdkey_private': b'\x04\x88\xAD\xE4',
+        'hdkey_public': b'\x04\x88\xB2\x1E',
+    },
+    NETWORK_BITCOIN_TESTNET: {
+        'name': 'Bitcoin Test Network 3',
+        'address': b'\x6F',
+        'address_p2sh': b'\x05',
+        'wif': b'\xEF',
+        'hdkey_private': b'\x04\x35\x83\x94',
+        'hdkey_public': b'\x04\x35\x87\xCF',
+    },
+}
 
 
-#TODO: Make more advanced, see https://en.bitcoin.it/wiki/List_of_address_prefixes
+
 def get_key_format(key, keytype=None):
     """
     Determins the type and format of a public or private key by length and prefix.
@@ -70,9 +83,9 @@ def get_key_format(key, keytype=None):
         return 'hex_compressed'
     elif len(key) == 58  and key[:1] == '6':
         return 'wif_protected'
-    elif key[:1] in ('K', 'L'):
+    elif key[:1] in ['K', 'L', 'c']:
         return 'wif_compressed'
-    elif key[:1] == '5':
+    elif key[:1] in ['5', '9']:
         return 'wif'
     else:
         raise ValueError("Unrecognised key format")
@@ -97,20 +110,20 @@ class Key:
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN, compressed=True, passphrase=''):
+    def __init__(self, import_key=None, network=NETWORK_BITCOIN, compressed=True, passphrase=''):
         """
         Initialize a Key object
 
         :param import_key: If specified import given private or public key.
         If not specified a new private key is generated.
-        :param addresstype: Bitcoin normal or testnet address, Pay-to-script, etc
+        :param network: Bitcoin normal or testnet address
         :param passphrase: Optional passphrase if imported key is password protected
         :return:
         """
         self._public = None
         self._public_uncompressed = None
         self._compressed = compressed
-        self._addresstype = addresstype
+        self._network = network
         if not import_key:
             self._secret = random.SystemRandom().randint(0, secp256k1_n)
             return
@@ -275,10 +288,11 @@ class Key:
         """
         if not self._secret:
             return False
-        if self._addresstype == ADDRESSTYPE_TESTNET:
-            version = PRIVATEKEY_WIF_TESTNET
-        else:
-            version = PRIVATEKEY_WIF
+        version = NETWORKS[self._network]['wif']
+        # if self._network == NETWORK_BITCOIN:
+        #     version = PRIVATEKEY_WIF_TESTNET
+        # else:
+        #     version = PRIVATEKEY_WIF
         key = version + change_base(str(self._secret), 10, 256, 32)
         if self._compressed:
             key += chr(1)
@@ -350,7 +364,8 @@ class Key:
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
-        key = str(self._addresstype) + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
+        versionbyte = NETWORKS[self._network]['address']
+        key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()
         return change_base(key + checksum[:4], 256, 58)
 
@@ -405,8 +420,8 @@ class HDKey:
         chain = I[32:]
         return HDKey(key=key, chain=chain)
 
-    def __init__(self, import_key=None, key=None, chain=None, depth=0,
-                 parent_fingerprint=b'\0\0\0\0', child_index = 0, isprivate=True, addresstype=ADDRESSTYPE_BITCOIN):
+    def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
+                 child_index = 0, isprivate=True, network=NETWORK_BITCOIN, addresstype=''):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
@@ -418,9 +433,11 @@ class HDKey:
         :param parent_fingerprint: 4-byte fingerprint of parent
         :param child_index: Index number of child as integer
         :param isprivate: True for private, False for public key
-        :param addresstype: Bitcoin normal or testnet address, Pay-to-script, etc. Derived from import_key if possible.
+        :param network: Bitcoin normal or test network. Derived from import_key if possible.
+        :param addresstype: Pay-to-script, etc.
         :return:
         """
+        self._network = network
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -432,7 +449,7 @@ class HDKey:
                 chain = import_key[32:]
             elif import_key[:4] in ['xprv', 'xpub', 'tprv', 'tpub']:
                 if import_key[:1] == 't':
-                    addresstype = ADDRESSTYPE_TESTNET
+                    self._network = NETWORK_BITCOIN_TESTNET
                 # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                 bkey = change_base(import_key, 58, 256)
                 if ord(bkey[45]):
@@ -507,16 +524,18 @@ class HDKey:
         if not self._isprivate and public == False:
             return ''
         if self._isprivate and not public:
-            if self._addresstype == ADDRESSTYPE_TESTNET:
-                raw = HDKEY_TPRV
-            else:
-                raw = HDKEY_XPRV
+            raw = NETWORKS[self._network]['hdkey_private']
+            # if self._addresstype == ADDRESSTYPE_BITCOIN_TESTNET:
+            #     raw = HDKEY_TPRV
+            # else:
+            #     raw = HDKEY_XPRV
             typebyte = '\x00'
         else:
-            if self._addresstype == ADDRESSTYPE_TESTNET:
-                raw = HDKEY_TPUB
-            else:
-                raw = HDKEY_XPUB
+            raw = NETWORKS[self._network]['hdkey_public']
+            # if self._addresstype == ADDRESSTYPE_BITCOIN_TESTNET:
+            #     raw = HDKEY_TPUB
+            # else:
+            #     raw = HDKEY_XPUB
             typebyte = ''
             if public:
                 rkey = self.public().public_byte()
@@ -553,21 +572,21 @@ class HDKey:
     def public(self):
         if not self._public_key_object:
             if self._public:
-                self._public_key_object = Key(self._public, addresstype=self._addresstype)
+                self._public_key_object = Key(self._public, network=self._network)
             else:
                 pub = Key(self._key).public()
-                self._public_key_object = Key(pub, addresstype=self._addresstype)
+                self._public_key_object = Key(pub, network=self._network)
         return self._public_key_object
 
     def public_uncompressed(self):
         if not self._public_uncompressed:
             pub = Key(self._key).public_uncompressed()
-            return Key(pub, addresstype=self._addresstype)
+            return Key(pub, network=self._network)
         return self._public_uncompressed
 
     def private(self):
         if self._key:
-            return Key(self._key, addresstype=self._addresstype)
+            return Key(self._key, network=self._network)
 
     def subkey_for_path(self, path):
         """
@@ -677,7 +696,7 @@ if __name__ == '__main__':
     print("Compressed %s\n" % k.compressed())
 
     print("\n==== Generate random HD Key on testnet ===")
-    hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
+    hdk = HDKey(network=NETWORK_BITCOIN_TESTNET)
     print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
 
     print("\n==== Generate random HD Key on testnet ===")

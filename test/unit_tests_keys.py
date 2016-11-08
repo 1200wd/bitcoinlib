@@ -326,7 +326,7 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
 class TestHDKeysTestnet(unittest.TestCase):
 
     def test_hdkey_testnet_random(self):
-        self.k = HDKey(addresstype=ADDRESSTYPE_TESTNET)
+        self.k = HDKey(network='testnet')
 
         self.assertEqual('tprv', self.k.extended_wif()[:4])
         self.assertEqual('tpub', self.k.extended_wif_public()[:4])
