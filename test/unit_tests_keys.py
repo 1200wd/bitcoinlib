@@ -26,8 +26,8 @@ from bitcoinlib.keys import *
 from bitcoinlib.mnemonic import Mnemonic
 
 # Number of bulktests for generation of private, public keys and hdkeys. Set to 0 to disable
-# WARNING: Can be slow!
-BULKTESTCOUNT = 100
+# WARNING: Can be slow for a larger number of tests
+BULKTESTCOUNT = 10
 
 class TestGlobalMethods(unittest.TestCase):
 
@@ -145,6 +145,11 @@ class TestPrivateKeyImport(unittest.TestCase):
     def test_private_key_import_error_2(self):
         self.assertRaisesRegexp(ValueError, "Unrecognised key format",
                                 Key, 'M1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+
+    def test_private_key_import_testnet(self):
+        self.k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc')
+        self.assertEqual('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', self.k.wif())
+        self.assertEqual('mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn', self.k.address())
 
 
 class TestPublicKeyConversion(unittest.TestCase):

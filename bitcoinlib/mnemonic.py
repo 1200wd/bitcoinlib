@@ -242,7 +242,7 @@ if __name__ == '__main__':
     print("HD Key WIF is      %s" % hdk)
 
     # And Japanese
-    # TODO: --- not supported at the moment ---
+    # --- not supported at the moment ---
     # print "\nGenerate a key from a Japanese UNICODE Mnemonic sentence"
     # words = "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　ねもと"
     # print("Your Mnemonic is   %s" % words)

@@ -172,12 +172,17 @@ class Key:
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise ValueError("Invalid checksum, not a valid WIF compressed key")
-                if import_key[0] in "KL":
+                if import_key[0] in "KLc":
                     if key[-1:] != chr(1):
-                        raise ValueError("Not a valid WIF private compressed key. key[-1:] != chr(1) failed")
+                        raise ValueError("Not a valid WIF private compressed key")
                     key = key[:-1]
-                if key[:1] != chr(128):
-                    raise ValueError("Not a valid WIF private key. key[:1] != chr(128) failed")
+                    if import_key[0] == 'c':
+                        self._network = 'testnet'
+                if key[:1] not in [nv['wif'] for nv in NETWORKS.values()]:
+                    raise ValueError("Not a valid WIF private key")
+                else:
+                    if key[:1] == b'\xEF':
+                        self._network = 'testnet'
                 key = key[1:]
                 self._secret = change_base(key, 256, 10)
 
@@ -289,10 +294,6 @@ class Key:
         if not self._secret:
             return False
         version = NETWORKS[self._network]['wif']
-        # if self._network == NETWORK_BITCOIN:
-        #     version = PRIVATEKEY_WIF_TESTNET
-        # else:
-        #     version = PRIVATEKEY_WIF
         key = version + change_base(str(self._secret), 10, 256, 32)
         if self._compressed:
             key += chr(1)
@@ -525,17 +526,9 @@ class HDKey:
             return ''
         if self._isprivate and not public:
             raw = NETWORKS[self._network]['hdkey_private']
-            # if self._addresstype == ADDRESSTYPE_BITCOIN_TESTNET:
-            #     raw = HDKEY_TPRV
-            # else:
-            #     raw = HDKEY_XPRV
             typebyte = '\x00'
         else:
             raw = NETWORKS[self._network]['hdkey_public']
-            # if self._addresstype == ADDRESSTYPE_BITCOIN_TESTNET:
-            #     raw = HDKEY_TPUB
-            # else:
-            #     raw = HDKEY_XPUB
             typebyte = ''
             if public:
                 rkey = self.public().public_byte()
@@ -600,11 +593,13 @@ class HDKey:
         """
         key = self
 
-        if path[0] == 'm': # Use private master key
+        first_public = False
+        if path[0] == 'm': # Use Private master key
             path = path[2:]
         # TODO: Write code to use public master key
-        # if path[0] == 'M': # Use public master key
-        #     path = path[2:]
+        elif path[0] == 'M': # Use Public master key
+            path = path[2:]
+            first_public = True
         if path:
             levels = path.split("/")
             for level in levels:
@@ -616,7 +611,11 @@ class HDKey:
                 index = int(level)
                 if index<0:
                     raise ValueError("Could not parse path. Index must be a positive integer.")
-                key = key.child_private(index=index, hardened=hardened)
+                if first_public:
+                    key = key.child_public(index=index) # TODO hardened=hardened key?
+                    first_public = False
+                else:
+                    key = key.child_private(index=index, hardened=hardened)
         return key
 
     def child_private(self, index=0, hardened=False):
@@ -687,13 +686,17 @@ if __name__ == '__main__':
     k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
     print("Private key     %s" % k.wif())
     print("Private key hex %s " % k.private_hex())
-    print("Compressed %s\n" % k.compressed())
+    print("Compressed      %s\n" % k.compressed())
+
+    print("\n=== Import Testnet Key ===")
+    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc')
+    k.info()
 
     print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
     k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    print("Private key %s" % k.wif())
-    print("Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    print("Compressed %s\n" % k.compressed())
+    print("Private key     %s" % k.wif())
+    print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
+    print("Compressed      %s\n" % k.compressed())
 
     print("\n==== Generate random HD Key on testnet ===")
     hdk = HDKey(network=NETWORK_BITCOIN_TESTNET)
@@ -705,8 +708,8 @@ if __name__ == '__main__':
 
     print("\n==== Derive path with Child Key derivation ===")
     print("Derive path path 'm/0H/1':")
-    print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').extended_wif())
-    print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').extended_wif_public())
+    print("  Private Extended WIF: %s" % k.subkey_for_path('M/0H/1').extended_wif())
+    print("  Public Extended WIF : %s\n" % k.subkey_for_path('M/0H/1').extended_wif_public())
 
     print("\n==== Test Child Key Derivation ===")
     print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
