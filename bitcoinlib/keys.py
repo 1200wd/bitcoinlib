@@ -227,7 +227,6 @@ class Key:
         Based on code from https://github.com/nomorecoin/python-bip38-testing
 
         :param passphrase: Required passphrase for encryption
-        :param compressed: Compressed or uncompressed private key
         :return: BIP38 passphrase encrypted private key
         """
         if self._compressed:
@@ -379,6 +378,7 @@ class Key:
         point_x, point_y = self.public_point()
         print(" Point x                     %s" % point_x)
         print(" Point y                     %s" % point_y)
+        print("\n")
 
 
 class HDKey:
@@ -405,14 +405,13 @@ class HDKey:
         chain = I[32:]
         return HDKey(key=key, chain=chain)
 
-    def __init__(self, import_key=None, compressed=True, key=None, chain=None, depth=0,
+    def __init__(self, import_key=None, key=None, chain=None, depth=0,
                  parent_fingerprint=b'\0\0\0\0', child_index = 0, isprivate=True, addresstype=ADDRESSTYPE_BITCOIN):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
 
         :param import_key: HD Key in WIF format to import
-        :param compressed: Generate Compressed or Uncompressed key
         :param key: Private or public key
         :param chain: A chain code
         :param depth: Integer of level of depth in path (BIP0043/BIP0044)
@@ -422,7 +421,6 @@ class HDKey:
         :param addresstype: Bitcoin normal or testnet address, Pay-to-script, etc. Derived from import_key if possible.
         :return:
         """
-        self._compressed = compressed
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -492,6 +490,7 @@ class HDKey:
         print(" Depth                       %s" %self.depth())
         print(" Extended Public Key (wif)   %s" %self.extended_wif_public())
         print(" Extended Private Key (wif)  %s" %self.extended_wif(public=False))
+        print("\n")
 
     def _key_derivation(self, seed):
         chain = hasattr(self, '_chain') and self._chain or "Bitcoin seed"
@@ -634,7 +633,6 @@ class HDKey:
         Use Child Key Derivation to derive child public key of current HD Key object.
 
         :param index: Key index number
-        :param hardened: Specify if key must be hardened (True) or normal (False)
         :return: HD Key class object
         """
         if index > 0x80000000:
@@ -662,30 +660,48 @@ if __name__ == '__main__':
     # SOME EXAMPLES
     #
     
-    # Import Public Key
-    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    # K.info()
-    #
+    print("\n=== Import public key ===")
+    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    K.info()
 
-    # Import Private Key
-    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    # print("Private key     %s" % k.wif())
-    # print("Private key hex %s " % k.private_hex())
-    # print("Compressed %s" % k.compressed())
+    print("\n=== Import Private Key ===")
+    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    print("Private key     %s" % k.wif())
+    print("Private key hex %s " % k.private_hex())
+    print("Compressed %s\n" % k.compressed())
 
-    # # Import uncompressed Private Key and Encrypt with BIP38
-    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    # print("Private key %s" % k.wif())
-    # print("Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    # print("Compressed %s" % k.compressed())
+    print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
+    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    print("Private key %s" % k.wif())
+    print("Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree'))
+    print("Compressed %s\n" % k.compressed())
 
-    # # Generate random HD Key on testnet
-    # hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
-    # hdk.info()
+    print("\n==== Generate random HD Key on testnet ===")
+    hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
+    print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
 
-    # Generate HD Key from seed
-    k = HDKey('b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58', compressed=True)
-    print "L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy"
-    print("HD Key wif    : %s" % k.subkey_for_path('m/0H/1'))
-    print("Equal to ?    : xprv9wTYmMFdV23N2TdNG573QoEsfRrWKQgWeibmLntzniatZvR9BmLnvSxqu53Kw1UmYPxLgboyZQaXwTCg8MSY3H"
-                         "2EU4pWcQDnRnrVA1xe8fs")
+    print("\n==== Generate random HD Key on testnet ===")
+    k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+    k.extended_wif()
+
+    print("\n==== Derive path with Child Key derivation ===")
+    print("Derive path path 'm/0H/1':")
+    print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').extended_wif())
+    print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').extended_wif_public())
+
+    print("\n==== Test Child Key Derivation ===")
+    print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
+          "and one thought private parent. They should be the same.")
+    K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
+                       '7nHUYwxHPhqmzUyeFG')
+    k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
+                       '1h3BoPuEJzsgeypdKj')
+
+    index = 1000
+    pub_with_pubparent = K.child_public(index).public().address()
+    pub_with_privparent = k.child_private(index).public().address()
+    if pub_with_privparent != pub_with_pubparent:
+        print("Error index %4d: pub-child %s, priv-child %s" % (index, pub_with_privparent, pub_with_pubparent))
+    else:
+        print("Child Key Derivation for key %d worked!" % index)
+        print("%s == %s" % (pub_with_pubparent, pub_with_privparent))
