@@ -97,7 +97,7 @@ class Key:
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN, passphrase=''):
+    def __init__(self, import_key=None, addresstype=ADDRESSTYPE_BITCOIN, compressed=True, passphrase=''):
         """
         Initialize a Key object
 
@@ -109,6 +109,7 @@ class Key:
         """
         self._public = None
         self._public_uncompressed = None
+        self._compressed = compressed
         self._addresstype = addresstype
         if not import_key:
             self._secret = random.SystemRandom().randint(0, secp256k1_n)
@@ -124,9 +125,11 @@ class Key:
                 self._public = import_key
                 self._x = import_key[2:66]
                 self._y = import_key[66:130]
+                self._compressed = False
             else:
                 self._public = import_key
                 self._x = import_key[2:66]
+                self._compressed = True
                 # Calculate y from x with y=x^3 + 7 function
                 sign = import_key[:2] == '03'
                 x = change_base(self._x,16,10)
@@ -136,6 +139,8 @@ class Key:
                     y = secp256k1_p - y
                 self._y = change_base(y, 10, 16, 32)
         else:
+            if key_format[-10:] != 'compressed':
+                self._compressed = False
             if key_format in ['hex', 'hex_compressed']:
                 self._secret = change_base(import_key, 16, 10)
             elif key_format == 'decimal':
