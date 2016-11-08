@@ -350,12 +350,12 @@ class TestMnemonics(unittest.TestCase):
                 phrase = mnemo.to_mnemonic(v[0])
             else:
                 phrase = v[1]
-            seed = change_base(mnemo.to_seed(phrase, str(v[4])), 256, 16)
+            seed = change_base(mnemo.to_seed(phrase, v[4]), 256, 16)
             print("Test %s => %s" % (v[0], phrase))
-            self.assertEqual(str(v[1]), phrase)
-            self.assertEqual(str(v[2]), seed)
+            self.assertEqual(v[1], phrase)
+            self.assertEqual(v[2], seed)
             k = HDKey.from_seed(seed)
-            self.assertEqual(str(k.extended_wif()), str(v[3]))
+            self.assertEqual(k.extended_wif(), v[3])
 
     def test_vectors(self):
         with open('mnemonics_tests.json', 'r') as f:
