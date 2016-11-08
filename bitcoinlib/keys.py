@@ -116,9 +116,10 @@ class Key:
             return
 
         key_format = get_key_format(import_key)
+
         if key_format == "wif_protected":
             import_key, key_format = self._bip38_decrypt(import_key, passphrase)
-            # key_format = "wif"
+
         if key_format in ['public_uncompressed', 'public']:
             self._secret = None
             if key_format=='public_uncompressed':
@@ -139,8 +140,12 @@ class Key:
                     y = secp256k1_p - y
                 self._y = change_base(y, 10, 16, 32)
         else:
-            if key_format[-10:] != 'compressed':
+            # Overrule method compressed input
+            if key_format in ['bin_compressed', 'hex_compressed', 'wif_compressed']:
+                self._compressed = True
+            elif key_format == 'wif':
                 self._compressed = False
+
             if key_format in ['hex', 'hex_compressed']:
                 self._secret = change_base(import_key, 16, 10)
             elif key_format == 'decimal':
@@ -661,21 +666,26 @@ if __name__ == '__main__':
     # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
     # K.info()
     #
-    # # Import Private Key
+
+    # Import Private Key
+    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    # print("Private key     %s" % k.wif())
+    # print("Private key hex %s " % k.private_hex())
+    # print("Compressed %s" % k.compressed())
+
+    # # Import uncompressed Private Key and Encrypt with BIP38
     # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    # print "Private key %s" % k.wif()
-    # print "Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree')
-    # print "Equal to ?   6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg"
+    # print("Private key %s" % k.wif())
+    # print("Encrypted pk %s " % k.bip38_encrypt('TestingOneTwoThree'))
+    # print("Compressed %s" % k.compressed())
 
-    # Import and Decrypt Private Key
-    ki = Key('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', passphrase='TestingOneTwoThree')
-    print "Private key  %s " % ki.wif()
-    print "Equal to ?   L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP"
-    ki.info()
-
-    # Import and Decrypt Private Key
-    # k = Key('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', passphrase='TestingOneTwoThree')
-    #
     # # Generate random HD Key on testnet
     # hdk = HDKey(addresstype = ADDRESSTYPE_TESTNET)
     # hdk.info()
+
+    # Generate HD Key from seed
+    k = HDKey('b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58', compressed=True)
+    print "L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy"
+    print("HD Key wif    : %s" % k.subkey_for_path('m/0H/1'))
+    print("Equal to ?    : xprv9wTYmMFdV23N2TdNG573QoEsfRrWKQgWeibmLntzniatZvR9BmLnvSxqu53Kw1UmYPxLgboyZQaXwTCg8MSY3H"
+                         "2EU4pWcQDnRnrVA1xe8fs")
