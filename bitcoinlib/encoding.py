@@ -149,6 +149,21 @@ if __name__ == '__main__':
     #
     # SOME EXAMPLES
     #
-    # TODO: ..
 
-    pass
+    examples = [
+        ('FF', 16, 10),
+        ('AF', 16, 2),
+        (200, 10, 16, 2),
+        (200, 10, 16, 4),
+        ('thisisfunny', 32, 3),
+        ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 16),
+        ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 32),
+        ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 256),
+        ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 2048),
+    ]
+
+    print("\n=== Change base: convert from base N to base M ===")
+    for example in examples:
+        print("\n>>> change_base%s     # Change from base%d to base%d" %
+              (example, example[1], example[2]))
+        print("%s" % change_base(*example))

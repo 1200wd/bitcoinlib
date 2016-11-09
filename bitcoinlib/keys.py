@@ -28,7 +28,7 @@ from Crypto.Cipher import AES
 import scrypt
 import binascii
 
-from secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
+from config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
 from encoding import change_base
 from config.networks import *
 

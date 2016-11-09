@@ -20,5 +20,4 @@
 
 import encoding
 import mnemonic
-import secp256k1
 import keys
