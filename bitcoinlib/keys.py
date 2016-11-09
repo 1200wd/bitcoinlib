@@ -30,38 +30,7 @@ import binascii
 
 from secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
 from encoding import change_base
-
-# Definitions for Bitcoin network and Bitcoin testnet3
-# Network, address_type_normal, address_type_p2sh, wif, extended_wif_public and extended_wif_private
-NETWORK_BITCOIN = 'bitcoin'
-NETWORK_BITCOIN_TESTNET = 'testnet'
-NETWORK_LITECOIN = 'litecoin'
-NETWORKS = {
-    NETWORK_BITCOIN: {
-        'name': 'Bitcoin Network',
-        'address': b'\x00',
-        'address_p2sh': b'\x05',
-        'wif': b'\x80',
-        'hdkey_private': b'\x04\x88\xAD\xE4',
-        'hdkey_public': b'\x04\x88\xB2\x1E',
-    },
-    NETWORK_BITCOIN_TESTNET: {
-        'name': 'Bitcoin Test Network 3',
-        'address': b'\x6F',
-        'address_p2sh': b'\x05',
-        'wif': b'\xEF',
-        'hdkey_private': b'\x04\x35\x83\x94',
-        'hdkey_public': b'\x04\x35\x87\xCF',
-    },
-    NETWORK_LITECOIN: {
-        'name': 'Litcoin Network',
-        'address': b'\x30',
-        'address_p2sh': b'\5',
-        'wif': b'\xB0',
-        'hdkey_private': b'\x01\x9D\x9C\xFE',
-        'hdkey_public': b'\x01\x9D\xA4\x62',
-    },
-}
+from config.networks import *
 
 
 
