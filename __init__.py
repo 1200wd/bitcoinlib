@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    © 1200 Web Development <http://1200wd.com/>
-#    2016 november
+#    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -18,4 +17,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import bitcoinlib
+from . import bitcoinlib
+
+__all__ = ["bitcoinlib"]

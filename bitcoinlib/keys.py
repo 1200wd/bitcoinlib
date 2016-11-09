@@ -2,8 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 1200 Web Development <http://1200wd.com/>
-#    2016 november
+#    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -28,9 +27,9 @@ from Crypto.Cipher import AES
 import scrypt
 import binascii
 
-from config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
-from encoding import change_base
-from config.networks import *
+from .config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
+from .encoding import change_base
+from .config.networks import *
 
 
 

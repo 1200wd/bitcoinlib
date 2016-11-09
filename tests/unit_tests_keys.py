@@ -2,8 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Unit Tests
-#    © 2016  1200 Web Development <http://1200wd.com/>
-#    2016 november
+#    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -19,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os
 import unittest
 import json
 
@@ -365,7 +365,8 @@ class TestMnemonics(unittest.TestCase):
             self.assertEqual(k.extended_wif(), v[3])
 
     def test_vectors(self):
-        with open('mnemonics_tests.json', 'r') as f:
+        workdir = os.path.dirname(__file__)
+        with open('%s/%s' % (workdir, 'mnemonics_tests.json'), 'r') as f:
             vectors = json.load(f)
         for lang in vectors.keys():
             self._check_list(lang, vectors[lang])
@@ -373,7 +374,8 @@ class TestMnemonics(unittest.TestCase):
 class TestBip38(unittest.TestCase):
 
     def setUp(self):
-        with open('bip38_protected_key_tests.json', 'r') as f:
+        workdir = os.path.dirname(__file__)
+        with open('%s/%s' % (workdir, 'bip38_protected_key_tests.json'), 'r') as f:
             self.vectors = json.load(f)
 
     def test_encrypt_private_key(self):

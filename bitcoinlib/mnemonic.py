@@ -2,8 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    BIP0039 Mnemonic Key management
-#    © 1200 Web Development <http://1200wd.com/>
-#    2016 november
+#    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -23,10 +22,10 @@ import os
 import sys
 import hashlib
 import hmac
-from encoding import change_base
 from pbkdf2 import PBKDF2
 import unicodedata
 
+from .encoding import change_base
 
 PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
@@ -176,7 +175,7 @@ if __name__ == '__main__':
     from keys import HDKey
 
     # Convert hexadecimal to mnemonic and back again to hex
-    print "\nConvert hexadecimal to mnemonic and back again to hex"
+    print("\nConvert hexadecimal to mnemonic and back again to hex")
     pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
     words = Mnemonic().to_mnemonic(pk)
     print("Hex                %s" % pk)
@@ -186,7 +185,7 @@ if __name__ == '__main__':
     print("Back to Hex        %s" % Mnemonic().to_entropy(words))
 
     # Generate a random Mnemonic HD Key
-    print "\nGenerate a random Mnemonic HD Key"
+    print("\nGenerate a random Mnemonic HD Key")
     entsize = 128
     words = Mnemonic('english').generate(entsize)
     print("Your Mnemonic is   %s" % words)
@@ -197,7 +196,7 @@ if __name__ == '__main__':
     print("HD Key WIF is      %s" % hdk)
 
     # Generate a key from a Mnemonic sentence
-    print "\nGenerate a key from a Mnemonic sentence"
+    print("\nGenerate a key from a Mnemonic sentence")
     words = "type fossil omit food supply enlist move perfect direct grape clean diamond"
     print("Your Mnemonic is   %s" % words)
     seed = change_base(Mnemonic().to_seed(words), 256, 16)
@@ -206,7 +205,7 @@ if __name__ == '__main__':
     print("HD Key WIF is      %s" % hdk)
 
     # Let's talk Spanish
-    print "\nGenerate a key from a Spanish Mnemonic sentence"
+    print("\nGenerate a key from a Spanish Mnemonic sentence")
     words = "laguna afirmar talón resto peldaño deuda guerra dorado catorce avance oasis barniz"
     print("Your Mnemonic is   %s" % words)
     seed = change_base(Mnemonic().to_seed(words), 256, 16)
@@ -215,7 +214,7 @@ if __name__ == '__main__':
     print("HD Key WIF is      %s" % hdk)
 
     # Want some Chinese?
-    print "\nGenerate a key from a Chinese Mnemonic sentence"
+    print("\nGenerate a key from a Chinese Mnemonic sentence")
     words = "信 收 曉 捐 炭 祖 瘋 原 強 則 岩 蓄"
     print("Your Mnemonic is   %s" % words)
     seed = change_base(Mnemonic().to_seed(words), 256, 16)
@@ -224,7 +223,7 @@ if __name__ == '__main__':
     print("HD Key WIF is      %s" % hdk)
 
     # Spanish Unicode mnemonic sentence
-    print "\nGenerate a key from a Spanish UNICODE Mnemonic sentence"
+    print("\nGenerate a key from a Spanish UNICODE Mnemonic sentence")
     words = u"guion cruz envío papel otoño percha hazaña salir joya gorra íntimo actriz"
     print("Your Mnemonic is   %s" % words)
     seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)
@@ -233,7 +232,7 @@ if __name__ == '__main__':
     print("HD Key WIF is      %s" % hdk)
 
     # And Japanese
-    print "\nGenerate a key from a Japanese UNICODE Mnemonic sentence"
+    print("\nGenerate a key from a Japanese UNICODE Mnemonic sentence")
     words = "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　ねもと"
     print("Your Mnemonic is   %s" % words)
     seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)

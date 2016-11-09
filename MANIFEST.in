@@ -1,0 +1,3 @@
+include bitcoinlib/wordlist/*.txt
+include README.md
+include tests/*.json
