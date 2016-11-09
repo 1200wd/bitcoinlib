@@ -149,19 +149,20 @@ class Key:
                 checksum = key[-4:]
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
-                    raise ValueError("Invalid checksum, not a valid WIF compressed key")
-                # TODO: Use NETWORKS DICT FOR CODE BELOW
-                if key[0] in "KLc":
-                    if key[-1:] != chr(1):
-                        raise ValueError("Not a valid WIF private compressed key")
-                    key = key[:-1]
-                    if import_key[0] == 'c':
-                        self._network = 'testnet'
-                if key[:1] not in [nv['wif'] for nv in NETWORKS.values()]:
-                    raise ValueError("Not a valid WIF private key")
+                    raise ValueError("Invalid checksum, not a valid WIF key")
+                if key[0] in network_get_values('wif'):
+                    if key[-1:] == chr(1):
+                        self._compressed = True
+                        key = key[:-1]
+                    else:
+                        self._compressed = False
+                    network = get_network_by_value('wif', key[0])
+                    if len(network) == 1:
+                        self._network = network[0]
+                    else:
+                        raise ValueError("Unrecognised WIF private key, version byte unknown. Found: %s" % network)
                 else:
-                    if key[:1] == b'\xEF':
-                        self._network = 'testnet'
+                    raise ValueError("Unrecognised WIF private key, prefix unknown")
                 key = key[1:]
                 self._secret = change_base(key, 256, 10)
 
@@ -211,7 +212,7 @@ class Key:
             key_format = 'wif_compressed'
         else:
             key_format = 'wif'
-        k = Key(priv)
+        k = Key(priv, compressed=compressed)
         wif = k.wif()
         addr = k.address()
         if hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4] != addresshash:
@@ -361,9 +362,9 @@ class Key:
             print(" Private Key (hex)              %s" % change_base(self._secret, 256, 16))
             print(" Private Key (long)             %s" % change_base(self._secret, 256, 10))
             print(" Private Key (wif)              %s" % self.wif())
-            print("")
         else:
             print("PUBLIC KEY ONLY, NO SECRET EXPONENT")
+        print("")
         print(" Compressed                  %s" % self.compressed())
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public())
@@ -675,7 +676,12 @@ if __name__ == '__main__':
     k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
     print("Private key     %s" % k.wif())
     print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    print("Compressed      %s\n" % k.compressed())
+    print("Is Compressed   %s\n" % k.compressed())
+
+    print("\n==== Import and Decrypt BIP38 Key ===")
+    k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
+    print("Private key     %s" % k.wif())
+    print("Is Compressed   %s\n" % k.compressed())
 
     print("\n==== Generate random HD Key on testnet ===")
     hdk = HDKey(network=NETWORK_BITCOIN_TESTNET)

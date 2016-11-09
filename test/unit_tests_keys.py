@@ -139,7 +139,7 @@ class TestPrivateKeyImport(unittest.TestCase):
         self.assertEqual(52, len(self.k.wif()))
 
     def test_private_key_import_error_1(self):
-        self.assertRaisesRegexp(ValueError, "Invalid checksum, not a valid WIF compressed key",
+        self.assertRaisesRegexp(ValueError, "Invalid checksum, not a valid WIF key",
                                 Key, 'L1odb1uUozbfK2NrsMyhJfvRsxGM2axixgPL8vG9BUBnE6W1VyTX')
 
     def test_private_key_import_error_2(self):

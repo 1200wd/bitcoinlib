@@ -49,9 +49,26 @@ NETWORKS = {
         'symbol': 'LTC',
         'code': 'LTC',
         'address': b'\x30',
-        'address_p2sh': b'\5',
+        'address_p2sh': b'\x05',
         'wif': b'\xB0',
         'hdkey_private': b'\x01\x9D\x9C\xFE',
         'hdkey_public': b'\x01\x9D\xA4\x62',
     },
 }
+
+def network_get_values(field):
+    return [nv[field] for nv in NETWORKS.values()]
+
+def get_network_by_value(field, value):
+    return [nv for nv in NETWORKS if NETWORKS[nv][field]==value]
+
+if __name__ == '__main__':
+    #
+    # SOME EXAMPLES
+    #
+
+    print("\n=== Get all WIF prefixes ===")
+    print("WIF Prefixes: %s" % network_get_values('wif'))
+
+    print("\n=== Get network for WIF prefix B0 ===")
+    print("WIF Prefixes: %s" % get_network_by_value('wif', b'\xB0'))
