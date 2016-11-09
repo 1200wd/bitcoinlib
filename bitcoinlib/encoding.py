@@ -18,8 +18,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import sys
 import math
-
+import numbers
 
 code_strings = {
     2: '01',
@@ -63,7 +64,9 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
     if base_from == 10 and not min_lenght:
         raise ValueError("For a decimal input a minimum output lenght is required!")
     code_str = get_code_string(base_to)
-    if not output_as_list:
+    if int(base_to) not in code_strings:
+        output_as_list = True
+    elif not output_as_list:
         if isinstance(code_str, list):
             output_as_list = True
         else:
@@ -79,13 +82,14 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
         else:
             output_even = False
 
-    if isinstance(inp, unicode):
+    if sys.version_info < (3,):
         try:
             inp = str(inp)
         except UnicodeEncodeError:
             raise ValueError("Cannot convert this unicode to string format")
 
-    if isinstance(inp, (int, long)):
+    # if isinstance(inp, (int, long)):
+    if isinstance(inp, numbers.Number):
         input_dec = inp
     elif isinstance(inp, (str, list)):
         factor = 1
@@ -115,7 +119,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
     # Convert decimal to output base
     while int(input_dec) != 0:
         r = int(input_dec) % base_to
-        input_dec = str((int(input_dec)-r) / base_to)
+        input_dec = str((int(input_dec)-r) // base_to)
         output = [code_str[r]] + output
 
     if base_to == 10:
@@ -140,7 +144,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
     while len(output) < min_lenght:
         output = [code_str[0]] + output
 
-    if not output_as_list:
+    if not output_as_list and isinstance(output, list):
         output = ''.join(output)
     return output
 

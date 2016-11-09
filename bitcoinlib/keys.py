@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import sys
 import hashlib
 import hmac
 import random
@@ -26,11 +27,11 @@ import ecdsa
 from Crypto.Cipher import AES
 import scrypt
 import binascii
+import numbers
 
-from .config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
-from .encoding import change_base
-from .config.networks import *
-
+from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
+from bitcoinlib.encoding import change_base
+from bitcoinlib.config.networks import *
 
 
 def get_key_format(key, keytype=None):
@@ -44,7 +45,7 @@ def get_key_format(key, keytype=None):
     """
     if keytype not in [None, 'private', 'public']:
         raise ValueError("Keytype must be 'private' or 'public")
-    if isinstance(key, (int, long, float)):
+    if isinstance(key, numbers.Number):
         return 'decimal'
     elif len(key) == 130 and key[:2] == '04' and keytype != 'private':
         return "public_uncompressed"
@@ -205,7 +206,7 @@ class Key:
         decryptedhalf2 = aes.decrypt(encryptedhalf2)
         decryptedhalf1 = aes.decrypt(encryptedhalf1)
         priv = decryptedhalf1 + decryptedhalf2
-        priv = binascii.unhexlify('%064x' % (long(binascii.hexlify(priv), 16) ^ long(binascii.hexlify(derivedhalf1), 16)))
+        priv = binascii.unhexlify('%064x' % (int(binascii.hexlify(priv), 16) ^ int(binascii.hexlify(derivedhalf1), 16)))
         if compressed:
             priv = b'\0' + priv
             key_format = 'wif_compressed'
@@ -239,10 +240,10 @@ class Key:
         derivedhalf1 = key[0:32]
         derivedhalf2 = key[32:64]
         aes = AES.new(derivedhalf2)
-        encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (long(privkey[0:32], 16) ^
-                                                                    long(binascii.hexlify(derivedhalf1[0:16]), 16))))
-        encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (long(privkey[32:64], 16) ^
-                                                                    long(binascii.hexlify(derivedhalf1[16:32]), 16))))
+        encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[0:32], 16) ^
+                                                                    int(binascii.hexlify(derivedhalf1[0:16]), 16))))
+        encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[32:64], 16) ^
+                                                                    int(binascii.hexlify(derivedhalf1[16:32]), 16))))
         encrypted_privkey = ('\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2)
         encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
         return change_base(encrypted_privkey, 256, 58)
