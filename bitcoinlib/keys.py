@@ -35,6 +35,7 @@ from encoding import change_base
 # Network, address_type_normal, address_type_p2sh, wif, extended_wif_public and extended_wif_private
 NETWORK_BITCOIN = 'bitcoin'
 NETWORK_BITCOIN_TESTNET = 'testnet'
+NETWORK_LITECOIN = 'litecoin'
 NETWORKS = {
     NETWORK_BITCOIN: {
         'name': 'Bitcoin Network',
@@ -51,6 +52,14 @@ NETWORKS = {
         'wif': b'\xEF',
         'hdkey_private': b'\x04\x35\x83\x94',
         'hdkey_public': b'\x04\x35\x87\xCF',
+    },
+    NETWORK_LITECOIN: {
+        'name': 'Litcoin Network',
+        'address': b'\x30',
+        'address_p2sh': b'\5',
+        'wif': b'\xB0',
+        'hdkey_private': b'\x01\x9D\x9C\xFE',
+        'hdkey_public': b'\x01\x9D\xA4\x62',
     },
 }
 
@@ -172,7 +181,8 @@ class Key:
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise ValueError("Invalid checksum, not a valid WIF compressed key")
-                if import_key[0] in "KLc":
+                # TODO: Use NETWORKS DICT FOR CODE BELOW
+                if key[0] in "KLc":
                     if key[-1:] != chr(1):
                         raise ValueError("Not a valid WIF private compressed key")
                     key = key[:-1]
@@ -702,14 +712,18 @@ if __name__ == '__main__':
     hdk = HDKey(network=NETWORK_BITCOIN_TESTNET)
     print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
 
-    print("\n==== Generate random HD Key on testnet ===")
+    print("\n==== Import HD Key from seed ===")
     k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-    k.extended_wif()
+    print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
+
+    print("\n==== Generate random Litecoin key ===")
+    lk = HDKey(network=NETWORK_LITECOIN)
+    lk.info()
 
     print("\n==== Derive path with Child Key derivation ===")
     print("Derive path path 'm/0H/1':")
-    print("  Private Extended WIF: %s" % k.subkey_for_path('M/0H/1').extended_wif())
-    print("  Public Extended WIF : %s\n" % k.subkey_for_path('M/0H/1').extended_wif_public())
+    print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').extended_wif())
+    print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').extended_wif_public())
 
     print("\n==== Test Child Key Derivation ===")
     print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
