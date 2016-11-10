@@ -93,6 +93,12 @@ class TestGlobalMethods(unittest.TestCase):
     def test_change_base_zero_int(self):
         self.assertEqual(0, change_base(b'\0', 256, 10))
 
+    def test_change_base_encodings_bytes(self):
+        self.assertEqual('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4'
+                         'f6795e98af20e6e57603314a662a49c198199',
+                         change_base(b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8'
+                                     b'\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c'
+                                     b'\x19\x81\x99', 256, 16))
 
 class TestPrivateKeyConversions(unittest.TestCase):
 
@@ -191,8 +197,8 @@ class TestPublicKeyUncompressed(unittest.TestCase):
         self.K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
 
     def test_public_key_point(self):
-        self.assertEqual((41637322786646325214887832269588396900663353932545912953362782457239403430124L,
-                          16388935128781238405526710466724741593761085120864331449066658622400339362166L),
+        self.assertEqual((41637322786646325214887832269588396900663353932545912953362782457239403430124,
+                          16388935128781238405526710466724741593761085120864331449066658622400339362166),
                          self.K.public_point(),)
 
     def test_public_key_uncompressed(self):
@@ -381,18 +387,18 @@ class TestBip38(unittest.TestCase):
     def test_encrypt_private_key(self):
         for v in self.vectors["valid"]:
             k = Key(v['wif'])
-            print "Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38'])
+            print("Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38']))
             self.assertEqual(str(v['bip38']), k.bip38_encrypt(str(v['passphrase'])))
 
     def test_decrypt_bip38_key(self):
         for v in self.vectors["valid"]:
             k = Key(v['bip38'], passphrase=str(v['passphrase']))
-            print "Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif'])
+            print("Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif']))
             self.assertEqual(str(v['wif']), k.wif())
 
     def test_bip38_invalid_keys(self):
         for v in self.vectors["invalid"]["verify"]:
-            print "Checking invalid key %s" % v['base58']
+            print("Checking invalid key %s" % v['base58'])
             self.assertRaisesRegexp(ValueError, "Unrecognised key format", Key, [str(v['base58'])])
 
 
@@ -419,7 +425,7 @@ class TestKeysBulk(unittest.TestCase):
             pub_with_pubparent = self.K.child_public(i).public().address()
             pub_with_privparent = self.k.child_private(i).public().address()
             if pub_with_privparent != pub_with_pubparent:
-                print "Error index %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent)
+                print("Error index %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent))
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
     def test_hdkey_derive_from_public_and_private_random(self):
@@ -432,7 +438,8 @@ class TestKeysBulk(unittest.TestCase):
             pub_with_pubparent = K.child_public().public().address()
             pub_with_privparent = k.child_private().public().address()
             if pub_with_privparent != pub_with_pubparent:
-                print "Error random key: %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent)
+                print("Error random key: %4d: pub-child %s, priv-child %s" %
+                      (i, pub_with_privparent, pub_with_pubparent))
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
 

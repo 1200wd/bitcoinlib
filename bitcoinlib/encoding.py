@@ -41,6 +41,17 @@ def get_code_string(base):
         return range(0,base)
 
 
+# def normalize_string(cls, txt):
+#     if isinstance(txt, str if sys.version < '3' else bytes):
+#         utxt = txt.decode('utf8')
+#     elif isinstance(txt, unicode if sys.version < '3' else str):
+#         utxt = txt
+#     else:
+#         raise TypeError("String value expected")
+#
+#     return unicodedata.normalize('NFKD', utxt)
+
+
 def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=None):
     """
     Convert input chars from one base to another.
@@ -87,8 +98,9 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
             inp = str(inp)
         except UnicodeEncodeError:
             raise ValueError("Cannot convert this unicode to string format")
+    elif isinstance(inp, bytes):
+        inp = inp.decode('utf-8')
 
-    # if isinstance(inp, (int, long)):
     if isinstance(inp, numbers.Number):
         input_dec = inp
     elif isinstance(inp, (str, list)):
@@ -154,6 +166,9 @@ if __name__ == '__main__':
     #
 
     examples = [
+        (b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c\x19\x81\x99', 256, 16),
+        ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e57603314a662a49c198199', 16, 256),
+        ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 256, 16),
         ('FF', 16, 10),
         ('AF', 16, 2),
         (200, 10, 16, 2),

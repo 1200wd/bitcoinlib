@@ -25,7 +25,7 @@ import hmac
 from pbkdf2 import PBKDF2
 import unicodedata
 
-from .encoding import change_base
+from bitcoinlib.encoding import change_base
 
 PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
@@ -59,8 +59,8 @@ class Mnemonic:
 
         return unicodedata.normalize('NFKD', utxt)
 
-    @staticmethod
-    def checksum(hexdata):
+    # @staticmethod
+    def checksum(self, hexdata):
         """
         Calculates checksum for given hexdata key
 
@@ -70,7 +70,10 @@ class Mnemonic:
         if len(hexdata) % 8 > 0:
             raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
                              (len(hexdata), len(hexdata) * 8))
+        # data = self.normalize_string(change_base(hexdata, 16, 256))
         data = change_base(hexdata, 16, 256)
+        if sys.version_info > (3,):
+            data = data.encode('utf-8')
         hashhex = hashlib.sha256(data).hexdigest()
         return change_base(hashhex, 16, 2, 256)[:len(data) * 8 // 32]
 
@@ -84,8 +87,8 @@ class Mnemonic:
         """
         words = self.sanitize_mnemonic(words)
         mnemonic = self.normalize_string(words)
-        passphrase = self.normalize_string(passphrase)
-        return PBKDF2(mnemonic, u'mnemonic' + passphrase,
+        passphrase = passphrase.encode()
+        return PBKDF2(mnemonic, b'mnemonic' + passphrase,
                       iterations=PBKDF2_ROUNDS,
                       macmodule=hmac,
                       digestmodule=hashlib.sha512).read(64)
@@ -124,7 +127,7 @@ class Mnemonic:
         :return: Hex entrophy string
         """
         words = self.sanitize_mnemonic(words)
-        if isinstance(words, (str, unicode)):
+        if isinstance(words, (str, unicode if sys.version < '3' else str)):
             words = words.split(' ')
         wi = []
         for word in words:
@@ -143,14 +146,16 @@ class Mnemonic:
 
     def detect_language(self, words):
         words = self.normalize_string(words)
-        if isinstance(words, (str, unicode)):
+        if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
             words = words.split(' ')
         firstword = words[0]
+        if sys.version < '3':
+            firstword = firstword.encode('utf-8')
         for fn in os.listdir(WORDLIST_DIR):
             if fn.endswith(".txt"):
                 with open('%s/%s' % (WORDLIST_DIR, fn), 'r') as f:
                     wordlist = [w.strip() for w in f.readlines()]
-                    if firstword.encode('utf8') in wordlist:
+                    if firstword in wordlist:
                         return fn.split('.')[0]
 
         raise Warning("Could not detect language of Mnemonic sentence %s" % words)
@@ -158,12 +163,14 @@ class Mnemonic:
     def sanitize_mnemonic(self, words):
         words = self.normalize_string(words)
         language = self.detect_language(words)
-        if isinstance(words, (str, unicode)):
+        if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
             words = words.split(' ')
         with open('%s/%s.txt' % (WORDLIST_DIR, language), 'r') as f:
             wordlist = [w.strip() for w in f.readlines()]
             for word in words:
-                if word.encode('utf8') not in wordlist:
+                if sys.version < '3':
+                    word = word.encode('utf-8')
+                if word not in wordlist:
                     raise Warning("Unrecognised word %s in mnemonic sentence" % word.encode('utf8'))
         return ' '.join(words)
 
@@ -172,7 +179,7 @@ if __name__ == '__main__':
     # SOME EXAMPLES
     #
 
-    from keys import HDKey
+    from bitcoinlib.keys import HDKey
 
     # Convert hexadecimal to mnemonic and back again to hex
     print("\nConvert hexadecimal to mnemonic and back again to hex")
@@ -181,6 +188,7 @@ if __name__ == '__main__':
     print("Hex                %s" % pk)
     print("Checksum bin       %s" % Mnemonic().checksum(pk))
     print("Mnemonic           %s" % words)
+    print(Mnemonic().to_seed(words, 'test'))
     print("Seed for HD Key    %s" % change_base(Mnemonic().to_seed(words, 'test'), 256, 16))
     print("Back to Hex        %s" % Mnemonic().to_entropy(words))
 
