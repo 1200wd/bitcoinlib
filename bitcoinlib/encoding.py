@@ -22,14 +22,20 @@ import sys
 import math
 import numbers
 
+bytesascii = b''
+for x in range(256):
+    bytesascii += bytes(bytearray((x,)))
+
 code_strings = {
-    2: '01',
-    3: ' ,.',
-    10: '0123456789',
-    16: '0123456789abcdef',
-    32: 'abcdefghijklmnopqrstuvwxyz234567',
-    58: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
-    256: ''.join([chr(x) for x in range(256)]),
+    2: b'01',
+    3: b' ,.',
+    10: b'0123456789',
+    16: b'0123456789abcdef',
+    32: b'abcdefghijklmnopqrstuvwxyz234567',
+    58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
+    # 256: bytesascii,
+    256: b''.join([bytes(bytearray((x,))) for x in range(256)]),
+    # 256: ''.join([chr(x) for x in range(256)]),
 }
 
 
@@ -77,11 +83,11 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
     code_str = get_code_string(base_to)
     if int(base_to) not in code_strings:
         output_as_list = True
-    elif not output_as_list:
-        if isinstance(code_str, list):
-            output_as_list = True
-        else:
-            output_as_list = False
+    # elif not output_as_list:
+    #     if isinstance(code_str, list):
+    #         output_as_list = True
+    #     else:
+    #         output_as_list = False
     code_str_from = get_code_string(base_from)
     output = []
     input_dec = 0
@@ -93,17 +99,15 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
         else:
             output_even = False
 
-    if sys.version_info < (3,):
+    if sys.version < '3' and isinstance(inp, unicode):
         try:
             inp = str(inp)
         except UnicodeEncodeError:
             raise ValueError("Cannot convert this unicode to string format")
-    elif isinstance(inp, bytes):
-        inp = inp.decode('utf-8')
 
     if isinstance(inp, numbers.Number):
         input_dec = inp
-    elif isinstance(inp, (str, list)):
+    elif isinstance(inp, (str, list, bytes)):
         factor = 1
         while len(inp):
             if isinstance(inp, list):
@@ -112,17 +116,34 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
                 item = inp[-1:]
                 inp = inp[:-1]
             try:
-                pos = code_str_from.index(item)
+                if sys.version > '3' and isinstance(item, str):
+                    itemindex = item.encode('ISO-8859-1')
+                else:
+                    itemindex = item
+                pos = code_str_from.index(itemindex)
             except ValueError:
                 try:
-                    pos = code_str_from.index(item.lower())
+                    if sys.version > '3' and isinstance(item, str):
+                        itemindex = item.encode('ISO-8859-1').lower()
+                    else:
+                        itemindex = item.lower()
+                    pos = code_str_from.index(itemindex)
                 except ValueError:
                     raise ValueError("Unknown character '%s' in input format" % item)
             input_dec += pos * factor
             # Add leading zero if there are leading zero's in input
             if not pos * factor:
+                if sys.version < '3':
+                    firstchar = code_str_from[0]
+                elif isinstance(code_str_from[0], bytes):
+                    firstchar = code_str_from[0].decode('utf-8')
+                elif isinstance(inp, bytes):
+                    firstchar = chr(code_str_from[0]).encode('utf-8')
+                else:
+                    firstchar = chr(code_str_from[0])
                 if (len(inp) and isinstance(inp, list) and inp[0] == code_str_from[0]) \
-                        or (isinstance(inp, str) and not len(inp.strip(code_str_from[0]))):
+                        or (isinstance(inp, str) and not len(inp.strip(firstchar))) \
+                        or (isinstance(inp, bytes) and not len(inp.strip(firstchar))):
                     addzeros += 1
             factor *= base_from
     else:
@@ -134,41 +155,60 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
         input_dec = str((int(input_dec)-r) // base_to)
         output = [code_str[r]] + output
 
-    if base_to == 10:
-        output = ''.join(output)
-        return int(0) or (output != '' and int(output))
+    if base_to != 10:
+        pos_fact = math.log(base_to, base_from)
+        expected_length = len(str(chars)) / pos_fact
+        zeros = int(addzeros / pos_fact)
+        if addzeros == 1:
+            zeros = 1
 
-    pos_fact = math.log(base_to, base_from)
-    expected_length = len(str(chars)) / pos_fact
-    zeros = int(addzeros / pos_fact)
-    if addzeros == 1:
-        zeros = 1
+        for _ in range(zeros):
+            if base_to != 10 and not expected_length == len(output):
+                output = [code_str[0]] + output
 
-    for _ in range(zeros):
-        if base_to != 10 and not expected_length == len(output):
+        # Add zero's to make even number of digits on Hex output (or if specified)
+        if output_even and len(output) % 2:
             output = [code_str[0]] + output
 
-    # Add zero's to make even number of digits on Hex output (or if specified)
-    if output_even and len(output) % 2:
-        output = [code_str[0]] + output
-
-    # Add leading zero's
-    while len(output) < min_lenght:
-        output = [code_str[0]] + output
+        # Add leading zero's
+        while len(output) < min_lenght:
+            output = [code_str[0]] + output
 
     if not output_as_list and isinstance(output, list):
-        output = ''.join(output)
-    return output
+        if len(output) == 0:
+            output = 0
+        elif isinstance(output[0], bytes):
+            output = b''.join(output)
+        elif isinstance(output[0], int):
+            co = ''
+            for c in output:
+                co += chr(c)
+            output = co
+        else:
+            output = ''.join(output)
+    if base_to == 10:
+        return int(0) or (output != '' and int(output))
+    if sys.version > '3' and base_to == 256:
+        return output.encode('ISO-8859-1')
+    else:
+        return output
 
 if __name__ == '__main__':
     #
     # SOME EXAMPLES
     #
+    # gg = change_base('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 256)
+    # print("type %s" % type(gg))
+    # sys.exit()
 
     examples = [
+        (b'\x00\t\xc6\xe7\x11\x18\xd8\xf1+\xeck\\a\x88K5g|\n\n\xe3*\x02\x1f\x87', 256, 58),
+        (b'\0', 256, 10),
+        ("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58),
         (b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c\x19\x81\x99', 256, 16),
         ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e57603314a662a49c198199', 16, 256),
         ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 256, 16),
+        ('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', 58, 16),
         ('FF', 16, 10),
         ('AF', 16, 2),
         (200, 10, 16, 2),

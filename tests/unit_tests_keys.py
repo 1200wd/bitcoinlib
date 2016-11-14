@@ -51,7 +51,7 @@ class TestGlobalMethods(unittest.TestCase):
                          change_base('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 10))
 
     def test_change_base_b58_bin(self):
-        self.assertEqual('\x00\xd7{\xf7b\x8c\x19\xe6\x99\x01\r)xz)\xaf\xcf\x8e\x92\xadZ\x05=U\xd7',
+        self.assertEqual(b'\x00\xd7{\xf7b\x8c\x19\xe6\x99\x01\r)xz)\xaf\xcf\x8e\x92\xadZ\x05=U\xd7',
                          change_base('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 256))
 
     def test_change_base_b58_hex(self):
@@ -70,7 +70,7 @@ class TestGlobalMethods(unittest.TestCase):
                          change_base("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58))
 
     def test_change_base_hex_bin(self):
-        self.assertEqual('\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f',
+        self.assertEqual(b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\x0c\r\x0e\x0f',
                          change_base("000102030405060708090a0b0c0d0e0f", 16, 256))
 
     def test_change_base32_base3(self):
@@ -79,7 +79,7 @@ class TestGlobalMethods(unittest.TestCase):
 
     # Tests for bug with leading zero's
     def test_change_base_leading_zeros(self):
-        self.assertEqual('\x00\x00\x03', change_base("000003", 16, 256))
+        self.assertEqual(b'\x00\x00\x03', change_base("000003", 16, 256))
 
     def test_change_base_leading_zeros2(self):
         self.assertEqual('1L', change_base('0013', 16, 58))
@@ -88,7 +88,7 @@ class TestGlobalMethods(unittest.TestCase):
         self.assertEqual('1L', change_base('013', 16, 58))
 
     def test_change_base_leading_zeros4(self):
-        self.assertEqual('\x04G\x81', change_base('044781',16,256))
+        self.assertEqual(b'\x04G\x81', change_base('044781',16,256))
 
     def test_change_base_zero_int(self):
         self.assertEqual(0, change_base(b'\0', 256, 10))
@@ -207,7 +207,6 @@ class TestPublicKeyUncompressed(unittest.TestCase):
                          self.K.public_uncompressed())
 
     def test_public_key_address_uncompressed(self):
-        # print self.K.address()
         self.assertEqual('1thMirt546nngXqyPEz532S8fLwbozud8', self.K.address_uncompressed())
 
 

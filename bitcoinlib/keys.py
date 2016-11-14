@@ -147,18 +147,16 @@ class Key:
                 # Check and remove Checksum, prefix and postfix tags
                 key = change_base(import_key, 58, 256)
                 checksum = key[-4:]
-                ckey = key = key[:-4]
-                if sys.version_info > (3,):
-                    ckey = key.encode('utf-8')
-                if checksum != hashlib.sha256(hashlib.sha256(ckey).digest()).digest()[:4]:
+                key = key[:-4]
+                if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise ValueError("Invalid checksum, not a valid WIF key")
-                if key[0] in network_get_values('wif'):
-                    if key[-1:] == chr(1):
+                if key[0:1] in network_get_values('wif'):
+                    if key[-1:] == chr(1) or key[-1:] == chr(1).encode():
                         self._compressed = True
                         key = key[:-1]
                     else:
                         self._compressed = False
-                    network = get_network_by_value('wif', key[0])
+                    network = get_network_by_value('wif', key[0:1])
                     if len(network) == 1:
                         self._network = network[0]
                     else:
@@ -217,8 +215,8 @@ class Key:
         k = Key(priv, compressed=compressed)
         wif = k.wif()
         addr = k.address()
-        if sys.version_info > (3,):
-            addr = addr.encode('utf-8')
+        # if sys.version_info > (3,):
+        #     addr = addr.encode('utf-8')
         if hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4] != addresshash:
             print('Addresshash verification failed! Password is likely incorrect.')
         return wif, key_format
@@ -239,8 +237,8 @@ class Key:
             addr = self.address_uncompressed()
 
         privkey = self.private_hex()
-        if sys.version_info > (3,):
-            addr = addr.encode('utf-8')
+        # if sys.version_info > (3,):
+        #     addr = addr.encode('utf-8')
         addresshash = hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4]
         key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
         derivedhalf1 = key[0:32]
@@ -282,11 +280,11 @@ class Key:
         version = NETWORKS[self._network]['wif']
         key = version + change_base(str(self._secret), 10, 256, 32)
         if self._compressed:
-            key += chr(1)
-        ckey = key
-        if sys.version_info > (3,):
-            ckey = ckey.encode('utf-8')
-        key += hashlib.sha256(hashlib.sha256(ckey).digest()).digest()[:4]
+            key += b'\1'
+        # ckey = key
+        # if sys.version_info > (3,):
+        #     ckey = ckey.encode('utf-8')
+        key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key, 256, 58)
 
     def _create_public(self):
@@ -345,8 +343,8 @@ class Key:
         if not self._public:
             self._create_public()
         key = change_base(self._public, 16, 256)
-        if sys.version_info > (3,):
-            key = key.encode('utf-8')
+        # if sys.version_info > (3,):
+        #     key = key.encode('utf-8')
         return hashlib.new('ripemd160', hashlib.sha256(key).digest()).hexdigest()
 
     def address(self, compressed=None):
@@ -356,13 +354,15 @@ class Key:
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
+            # import binascii
+            # key = binascii.unhexlify(self._public_uncompressed)
         versionbyte = NETWORKS[self._network]['address']
-        ckey = key
-        if sys.version_info > (3,):
-            ckey = ckey.encode('utf-8')
-        key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(ckey).digest()).digest()
-        checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()
-        return change_base(key + checksum[:4], 256, 58)
+        # ckey = key
+        # if sys.version_info > (3,):
+        #     ckey = str.encode(key)
+        key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
+        checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
+        return change_base(key + checksum, 256, 58)
 
     def address_uncompressed(self):
         return self.address(compressed=False)
@@ -672,19 +672,19 @@ if __name__ == '__main__':
     # SOME EXAMPLES
     #
     
-    print("\n=== Import public key ===")
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    K.info()
+    # print("\n=== Import public key ===")
+    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    # K.info()
 
-    print("\n=== Import Private Key ===")
-    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    print("Private key     %s" % k.wif())
-    print("Private key hex %s " % k.private_hex())
-    print("Compressed      %s\n" % k.compressed())
-
-    print("\n=== Import Testnet Key ===")
-    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc')
-    k.info()
+    # print("\n=== Import Private Key ===")
+    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    # print("Private key     %s" % k.wif())
+    # print("Private key hex %s " % k.private_hex())
+    # print("Compressed      %s\n" % k.compressed())
+    #
+    # print("\n=== Import Testnet Key ===")
+    # k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc')
+    # k.info()
 
     print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
     k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
