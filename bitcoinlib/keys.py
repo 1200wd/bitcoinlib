@@ -151,7 +151,7 @@ class Key:
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise ValueError("Invalid checksum, not a valid WIF key")
                 if key[0:1] in network_get_values('wif'):
-                    if key[-1:] == chr(1) or key[-1:] == chr(1).encode():
+                    if key[-1:] == b'\x01':
                         self._compressed = True
                         key = key[:-1]
                     else:
@@ -189,9 +189,9 @@ class Key:
         d = change_base(encrypted_privkey, 58, 256)[2:]
         flagbyte = d[0:1]
         d = d[1:]
-        if flagbyte == '\xc0':
+        if flagbyte == b'\xc0':
             compressed = False
-        elif flagbyte == '\xe0':
+        elif flagbyte == b'\xe0':
             compressed = True
         else:
             raise Warning("Unrecognised password protected key format. Flagbyte incorrect.")
@@ -215,8 +215,8 @@ class Key:
         k = Key(priv, compressed=compressed)
         wif = k.wif()
         addr = k.address()
-        # if sys.version_info > (3,):
-        #     addr = addr.encode('utf-8')
+        if isinstance(addr, str) and sys.version_info > (3,):
+            addr = addr.encode('utf-8')
         if hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4] != addresshash:
             print('Addresshash verification failed! Password is likely incorrect.')
         return wif, key_format
@@ -230,15 +230,15 @@ class Key:
         :return: BIP38 passphrase encrypted private key
         """
         if self._compressed:
-            flagbyte = '\xe0'
+            flagbyte = b'\xe0'
             addr = self.address()
         else:
-            flagbyte = '\xc0'
+            flagbyte = b'\xc0'
             addr = self.address_uncompressed()
 
         privkey = self.private_hex()
-        # if sys.version_info > (3,):
-        #     addr = addr.encode('utf-8')
+        if isinstance(addr, str) and sys.version_info > (3,):
+            addr = addr.encode('utf-8')
         addresshash = hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4]
         key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
         derivedhalf1 = key[0:32]
@@ -248,7 +248,7 @@ class Key:
                                                                     int(binascii.hexlify(derivedhalf1[0:16]), 16))))
         encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[32:64], 16) ^
                                                                     int(binascii.hexlify(derivedhalf1[16:32]), 16))))
-        encrypted_privkey = ('\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2)
+        encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
         encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
         return change_base(encrypted_privkey, 256, 58)
 
@@ -410,7 +410,7 @@ class HDKey:
         :return: HDKey class object
         """
         seed = change_base(import_seed, 16, 256)
-        I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
+        I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
         return HDKey(key=key, chain=chain)
@@ -447,12 +447,12 @@ class HDKey:
                     self._network = NETWORK_BITCOIN_TESTNET
                 # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                 bkey = change_base(import_key, 58, 256)
-                if ord(bkey[45]):
+                if ord(bkey[45:46]):
                     isprivate = False
                     key = bkey[45:78]
                 else:
                     key = bkey[46:78]
-                depth = ord(bkey[4])
+                depth = ord(bkey[4:5])
                 parent_fingerprint = bkey[5:9]
                 child_index = int(change_base(bkey[9:13], 256, 10))
                 chain = bkey[13:45]
@@ -505,7 +505,7 @@ class HDKey:
         print("\n")
 
     def _key_derivation(self, seed):
-        chain = hasattr(self, '_chain') and self._chain or "Bitcoin seed"
+        chain = hasattr(self, '_chain') and self._chain or b"Bitcoin seed"
         I = hmac.new(chain, seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
@@ -520,15 +520,15 @@ class HDKey:
             return ''
         if self._isprivate and not public:
             raw = NETWORKS[self._network]['hdkey_private']
-            typebyte = '\x00'
+            typebyte = b'\x00'
         else:
             raw = NETWORKS[self._network]['hdkey_public']
-            typebyte = ''
+            typebyte = b''
             if public:
                 rkey = self.public().public_byte()
         if child_index:
             self._child_index = child_index
-        raw += chr(self._depth) + self._parent_fingerprint + \
+        raw += change_base(self._depth, 10, 256, 1) + self._parent_fingerprint + \
               struct.pack('>L', self._child_index) + \
               self._chain + typebyte + rkey
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]

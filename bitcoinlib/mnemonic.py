@@ -72,8 +72,6 @@ class Mnemonic:
                              (len(hexdata), len(hexdata) * 8))
         # data = self.normalize_string(change_base(hexdata, 16, 256))
         data = change_base(hexdata, 16, 256)
-        if sys.version_info > (3,):
-            data = data.encode('utf-8')
         hashhex = hashlib.sha256(data).hexdigest()
         return change_base(hashhex, 16, 2, 256)[:len(data) * 8 // 32]
 
