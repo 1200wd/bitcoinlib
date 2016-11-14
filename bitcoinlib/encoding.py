@@ -33,9 +33,7 @@ code_strings = {
     16: b'0123456789abcdef',
     32: b'abcdefghijklmnopqrstuvwxyz234567',
     58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
-    # 256: bytesascii,
     256: b''.join([bytes(bytearray((x,))) for x in range(256)]),
-    # 256: ''.join([chr(x) for x in range(256)]),
 }
 
 
@@ -45,18 +43,6 @@ def get_code_string(base):
         return code_strings[base]
     else:
         return range(0,base)
-
-
-# def normalize_string(cls, txt):
-#     if isinstance(txt, str if sys.version < '3' else bytes):
-#         utxt = txt.decode('utf8')
-#     elif isinstance(txt, unicode if sys.version < '3' else str):
-#         utxt = txt
-#     else:
-#         raise TypeError("String value expected")
-#
-#     return unicodedata.normalize('NFKD', utxt)
-
 
 def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=None):
     """
@@ -83,11 +69,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
     code_str = get_code_string(base_to)
     if int(base_to) not in code_strings:
         output_as_list = True
-    # elif not output_as_list:
-    #     if isinstance(code_str, list):
-    #         output_as_list = True
-    #     else:
-    #         output_as_list = False
+
     code_str_from = get_code_string(base_from)
     output = []
     input_dec = 0
@@ -197,9 +179,6 @@ if __name__ == '__main__':
     #
     # SOME EXAMPLES
     #
-    # gg = change_base('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 256)
-    # print("type %s" % type(gg))
-    # sys.exit()
 
     examples = [
         (b'\x00\t\xc6\xe7\x11\x18\xd8\xf1+\xeck\\a\x88K5g|\n\n\xe3*\x02\x1f\x87', 256, 58),

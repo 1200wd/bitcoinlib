@@ -281,9 +281,6 @@ class Key:
         key = version + change_base(str(self._secret), 10, 256, 32)
         if self._compressed:
             key += b'\1'
-        # ckey = key
-        # if sys.version_info > (3,):
-        #     ckey = ckey.encode('utf-8')
         key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key, 256, 58)
 
@@ -354,12 +351,7 @@ class Key:
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
-            # import binascii
-            # key = binascii.unhexlify(self._public_uncompressed)
         versionbyte = NETWORKS[self._network]['address']
-        # ckey = key
-        # if sys.version_info > (3,):
-        #     ckey = str.encode(key)
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key + checksum, 256, 58)
@@ -672,19 +664,19 @@ if __name__ == '__main__':
     # SOME EXAMPLES
     #
     
-    # print("\n=== Import public key ===")
-    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    # K.info()
+    print("\n=== Import public key ===")
+    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    K.info()
 
-    # print("\n=== Import Private Key ===")
-    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    # print("Private key     %s" % k.wif())
-    # print("Private key hex %s " % k.private_hex())
-    # print("Compressed      %s\n" % k.compressed())
-    #
-    # print("\n=== Import Testnet Key ===")
-    # k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc')
-    # k.info()
+    print("\n=== Import Private Key ===")
+    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    print("Private key     %s" % k.wif())
+    print("Private key hex %s " % k.private_hex())
+    print("Compressed      %s\n" % k.compressed())
+
+    print("\n=== Import Testnet Key ===")
+    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc')
+    k.info()
 
     print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
     k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
