@@ -29,6 +29,6 @@ print k.get_address()
 #### Requirements
 * ecdsa
 * pbkdf2
-* AES from Crypto.Cipher
+* pycrypto
 * scrypt
 * binascii

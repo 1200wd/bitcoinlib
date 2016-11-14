@@ -26,7 +26,7 @@ def readme():
 
 setup(
       name='bitcoinlib',
-      version='0.1',
+      version='0.2',
       description='Bitcoin and Other cryptocurrency Library',
       long_description='Bitcoin library with key manipulation function to generate, import and convert cryptograpic keys. '
                        'Implements BIP0032, BIP0039, BIP0033 and BIP0044',
@@ -37,6 +37,7 @@ setup(
             'Intended Audience :: Financial and Insurance Industry',
             'Intended Audience :: Information Technology',
             'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3.5',
             'Topic :: Software Development :: Libraries :: Python Modules',
             'Topic :: Security :: Cryptography',
             'Topic :: Office/Business :: Financial :: Accounting',
