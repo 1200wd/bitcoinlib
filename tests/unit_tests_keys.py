@@ -100,6 +100,11 @@ class TestGlobalMethods(unittest.TestCase):
                                      b'\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c'
                                      b'\x19\x81\x99', 256, 16))
 
+    def test_change_base_encodings_utf8(self):
+        self.assertEqual('e782ba20e5ae8b20e69ab420e6b2bb20e4bcaf20e58f8a20e7819820e586b620e5bf9920e9808320e6b99820e8'
+                         '898720e4be8b20e8ae9320e5bfa0',
+                         change_base("為 宋 暴 治 伯 及 灘 冶 忙 逃 湘 艇 例 讓 忠", 256, 16))
+
 class TestPrivateKeyConversions(unittest.TestCase):
 
     def setUp(self):

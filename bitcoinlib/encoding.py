@@ -44,6 +44,25 @@ def get_code_string(base):
     else:
         return range(0,base)
 
+def to_bytearray(inp, code_str_from):
+    try:
+        if sys.version > '3' and isinstance(inp, str):
+            itemindex = inp.encode('ISO-8859-1')
+        else:
+            itemindex = inp
+    except ValueError:
+        try:
+            if sys.version > '3' and isinstance(inp, str):
+                itemindex = inp.encode('ISO-8859-1').lower()
+            else:
+                itemindex = inp.lower()
+        except ValueError:
+            raise ValueError("Unknown character '%s' in input format" % inp)
+    if not itemindex in code_str_from:
+        itemindex = itemindex.lower()
+    return itemindex
+
+
 def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=None):
     """
     Convert input chars from one base to another.
@@ -71,6 +90,8 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
         output_as_list = True
 
     code_str_from = get_code_string(base_from)
+    if not isinstance(code_str_from, bytes):
+        raise ValueError("Code strings must be defined as bytes")
     output = []
     input_dec = 0
     addzeros = 0
@@ -97,21 +118,8 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
             else:
                 item = inp[-1:]
                 inp = inp[:-1]
-            try:
-                if sys.version > '3' and isinstance(item, str):
-                    itemindex = item.encode('ISO-8859-1')
-                else:
-                    itemindex = item
-                pos = code_str_from.index(itemindex)
-            except ValueError:
-                try:
-                    if sys.version > '3' and isinstance(item, str):
-                        itemindex = item.encode('ISO-8859-1').lower()
-                    else:
-                        itemindex = item.lower()
-                    pos = code_str_from.index(itemindex)
-                except ValueError:
-                    raise ValueError("Unknown character '%s' in input format" % item)
+            itemindex = to_bytearray(item, code_str_from)
+            pos = code_str_from.index(itemindex)
             input_dec += pos * factor
             # Add leading zero if there are leading zero's in input
             if not pos * factor:
@@ -181,13 +189,14 @@ if __name__ == '__main__':
     #
 
     examples = [
-        (b'\x00\t\xc6\xe7\x11\x18\xd8\xf1+\xeck\\a\x88K5g|\n\n\xe3*\x02\x1f\x87', 256, 58),
-        (b'\0', 256, 10),
-        ("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58),
-        (b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c\x19\x81\x99', 256, 16),
-        ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e57603314a662a49c198199', 16, 256),
-        ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 256, 16),
-        ('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', 58, 16),
+        # ("為 宋 暴 治 伯 及 灘 冶 忙 逃 湘 艇 例 讓 忠", 256, 16),
+        # (b'\x00\t\xc6\xe7\x11\x18\xd8\xf1+\xeck\\a\x88K5g|\n\n\xe3*\x02\x1f\x87', 256, 58),
+        # (b'\0', 256, 10),
+        # ("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58),
+        # (b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c\x19\x81\x99', 256, 16),
+        # ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e57603314a662a49c198199', 16, 256),
+        # ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 256, 16),
+        # ('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', 58, 16),
         ('FF', 16, 10),
         ('AF', 16, 2),
         (200, 10, 16, 2),
