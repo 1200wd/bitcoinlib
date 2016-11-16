@@ -55,9 +55,9 @@ def normalize_var(var, base):
     For Python 2 convert variabele to string
     For Python 3 convert to bytes
     Convert decimals to integer type
-    :param var:
-    :param base:
-    :return:
+    :param var: input variable in any format
+    :param base: specify variable format, i.e. 10 for decimal, 16 for hex
+    :return: string for Python 2, bytes for Python 3, decimal for base10
     """
     try:
         if sys.version > '3' and isinstance(var, str):
@@ -129,19 +129,15 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
             itemindex = to_bytearray(item, code_str_from)
             pos = code_str_from.index(itemindex)
             input_dec += pos * factor
+
             # Add leading zero if there are leading zero's in input
             if not pos * factor:
                 if sys.version < '3':
                     firstchar = code_str_from[0]
-                elif isinstance(code_str_from[0], bytes):
-                    firstchar = code_str_from[0].decode('utf-8')
-                elif isinstance(inp, bytes):
-                    firstchar = chr(code_str_from[0]).encode('utf-8')
                 else:
-                    firstchar = chr(code_str_from[0])
+                    firstchar = chr(code_str_from[0]).encode('utf-8')
                 if (len(inp) and isinstance(inp, list) and inp[0] == code_str_from[0]) \
-                        or (isinstance(inp, str) and not len(inp.strip(firstchar))) \
-                        or (isinstance(inp, bytes) and not len(inp.strip(firstchar))):
+                        or (isinstance(inp, (str, bytes)) and not len(inp.strip(firstchar))):
                     addzeros += 1
             factor *= base_from
     else:
