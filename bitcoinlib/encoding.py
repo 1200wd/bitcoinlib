@@ -45,25 +45,41 @@ def get_code_string(base):
         return range(0,base)
 
 def to_bytearray(inp, code_str_from):
+    if inp in code_str_from:
+        return inp
+    else:
+        return inp.lower()
+
+def normalize_var(var, base):
+    """
+    For Python 2 convert variabele to string
+    For Python 3 convert to bytes
+    Convert decimals to integer type
+    :param var:
+    :param base:
+    :return:
+    """
     try:
-        if sys.version > '3' and isinstance(inp, str):
-            itemindex = inp.encode('ISO-8859-1')
-        else:
-            itemindex = inp
+        if sys.version > '3' and isinstance(var, str):
+            var = var.encode('ISO-8859-1')
     except ValueError:
         try:
-            if sys.version > '3' and isinstance(inp, str):
-                itemindex = inp.encode('ISO-8859-1').lower()
-            else:
-                itemindex = inp.lower()
+            var = var.encode('utf-8')
         except ValueError:
-            raise ValueError("Unknown character '%s' in input format" % inp)
-    if not itemindex in code_str_from:
-        itemindex = itemindex.lower()
-    return itemindex
+            raise ValueError("Unknown character '%s' in input format" % var)
 
+    if sys.version < '3' and isinstance(var, unicode):
+        try:
+            var = str(var)
+        except UnicodeEncodeError:
+            raise ValueError("Cannot convert this unicode to string format")
 
-def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_as_list=None):
+    if base==10:
+        return int(var)
+    else:
+        return var
+
+def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, output_as_list=None):
     """
     Convert input chars from one base to another.
 
@@ -95,18 +111,10 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=-1, output_
     output = []
     input_dec = 0
     addzeros = 0
-    inp = chars
-    if output_even == -1:
-        if base_to == 16:
-            output_even = True
-        else:
-            output_even = False
+    inp = normalize_var(chars, base_from)
 
-    if sys.version < '3' and isinstance(inp, unicode):
-        try:
-            inp = str(inp)
-        except UnicodeEncodeError:
-            raise ValueError("Cannot convert this unicode to string format")
+    if output_even is None and base_to == 16:
+        output_even = True
 
     if isinstance(inp, numbers.Number):
         input_dec = inp
@@ -189,14 +197,14 @@ if __name__ == '__main__':
     #
 
     examples = [
-        # ("為 宋 暴 治 伯 及 灘 冶 忙 逃 湘 艇 例 讓 忠", 256, 16),
-        # (b'\x00\t\xc6\xe7\x11\x18\xd8\xf1+\xeck\\a\x88K5g|\n\n\xe3*\x02\x1f\x87', 256, 58),
-        # (b'\0', 256, 10),
-        # ("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58),
-        # (b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c\x19\x81\x99', 256, 16),
-        # ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e57603314a662a49c198199', 16, 256),
-        # ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 256, 16),
-        # ('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', 58, 16),
+        ("為 宋 暴 治 伯 及 灘 冶 忙 逃 湘 艇 例 讓 忠", 256, 16),
+        (b'\x00\t\xc6\xe7\x11\x18\xd8\xf1+\xeck\\a\x88K5g|\n\n\xe3*\x02\x1f\x87', 256, 58),
+        (b'\0', 256, 10),
+        ("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58),
+        (b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c\x19\x81\x99', 256, 16),
+        ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e57603314a662a49c198199', 16, 256),
+        ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 256, 16),
+        ('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', 58, 16),
         ('FF', 16, 10),
         ('AF', 16, 2),
         (200, 10, 16, 2),
