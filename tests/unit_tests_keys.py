@@ -105,6 +105,10 @@ class TestGlobalMethods(unittest.TestCase):
                          '898720e4be8b20e8ae9320e5bfa0',
                          change_base("為 宋 暴 治 伯 及 灘 冶 忙 逃 湘 艇 例 讓 忠", 256, 16))
 
+    def test_change_base_list(self):
+        self.assertEqual('00124c', change_base([b'\0', b'\x12', b'L'], 256, 16, 6))
+
+
 class TestPrivateKeyConversions(unittest.TestCase):
 
     def setUp(self):

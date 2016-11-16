@@ -137,7 +137,8 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
                 else:
                     firstchar = chr(code_str_from[0]).encode('utf-8')
                 if (len(inp) and isinstance(inp, list) and inp[0] == code_str_from[0]) \
-                        or (isinstance(inp, (str, bytes)) and not len(inp.strip(firstchar))):
+                        or (isinstance(inp, (str, bytes)) and not len(inp.strip(firstchar))) \
+                        or isinstance(inp, list):
                     addzeros += 1
             factor *= base_from
     else:
@@ -193,12 +194,8 @@ if __name__ == '__main__':
     #
 
     examples = [
-        ("為 宋 暴 治 伯 及 灘 冶 忙 逃 湘 艇 例 讓 忠", 256, 16),
-        (b'\x00\t\xc6\xe7\x11\x18\xd8\xf1+\xeck\\a\x88K5g|\n\n\xe3*\x02\x1f\x87', 256, 58),
-        (b'\0', 256, 10),
-        ("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58),
-        (b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8\x99?E\xe7CA-e\xc7\xa5q\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c\x19\x81\x99', 256, 16),
-        ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e57603314a662a49c198199', 16, 256),
+        ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e'
+         '57603314a662a49c198199', 16, 256),
         ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 256, 16),
         ('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', 58, 16),
         ('FF', 16, 10),
@@ -210,6 +207,13 @@ if __name__ == '__main__':
         ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 32),
         ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 256),
         ('1LeNnaRtV52nNtZXvtw6PaGKpk46hU1Xmx', 58, 2048),
+        ([b'\0', b'\x12', b'L'], 256, 16, 6),
+        ("為 宋 暴 治 伯 及 灘 冶 忙 逃 湘 艇 例 讓 忠", 256, 16),
+        (b'\x00\t\xc6\xe7\x11\x18\xd8\xf1+\xeck\\a\x88K5g|\n\n\xe3*\x02\x1f\x87', 256, 58),
+        (b'\0', 256, 10),
+        ("\x00\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\xd6\x19g\xf6", 256, 58),
+        (b'LR\x12zr\xfbB\xb8$9\xab\x18i}\xcf\xcf\xb9j\xc6;\xa8 \x983\xb2\xe2\x9f#\x02\xb8\x99?E\xe7CA-e\xc7\xa5q'
+         b'\xdap%\x9dOg\x95\xe9\x8a\xf2\x0enW`3\x14\xa6b\xa4\x9c\x19\x81\x99', 256, 16),
     ]
 
     print("\n=== Change base: convert from base N to base M ===")
