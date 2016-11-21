@@ -18,5 +18,5 @@
 #
 
 from . import bitcoind
-from . import bitcoind_config
+from . import authproxy
 from . import blockchain_info

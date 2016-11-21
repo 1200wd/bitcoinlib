@@ -18,17 +18,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
-try:
-    from bitcoinrpc.authproxy import AuthServiceProxy
-except ImportError as exc:
-    sys.stderr.write("Error: install python-bitcoinrpc (https://github.com/jgarzik/python-bitcoinrpc)\n")
-    exit(-1)
-import bitcoind_config
+from bitcoinrpc.authproxy import AuthServiceProxy
+import configparser
+
 
 def create_bitcoind_service_proxy(rpc_username, rpc_password, server='127.0.0.1', port=8332, use_https=False):
     protocol = 'https' if use_https else 'http'
     uri = '%s://%s:%s@%s:%s' % (protocol, rpc_username, rpc_password, server, port)
+    print(uri)
     return AuthServiceProxy(uri)
 
 
@@ -36,9 +33,18 @@ class BitcoindClient:
 
     def __init__(self, use_https=False, server='127.0.0.1', port=8332, version_byte=0):
         self.type = 'bitcoind'
-        config = bitcoind_config.read_default_config()
-        if not all (u in config for u in ('rpcuser', 'rpcpassword')):
-            raise EnvironmentError("Bitcoind config file does not contain username and/or password")
-        self.proxy = create_bitcoind_service_proxy(config['rpcuser'], config['rpcpassword'], use_https=use_https, server=server, port=port)
+        config = configparser.ConfigParser()
+        config.read('bitcoind.ini')
+        self.proxy = create_bitcoind_service_proxy(config['rpc']['rpcuser'],
+                                                   config['rpc']['rpcpassword'],
+                                                   use_https=config['rpc']['use_https'],
+                                                   server=config['rpc']['server'],
+                                                   port=config['rpc']['port'])
         self.version_byte = version_byte
 
+
+if __name__ == '__main__':
+    bdc = BitcoindClient(server='192.168.13.20', port=18332)
+    # bdc = BitcoindClient(server='80.127.136.50')
+    commands = ["getblockhash", 400000]
+    print(bdc.proxy.getinfo())
