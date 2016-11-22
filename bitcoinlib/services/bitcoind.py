@@ -22,29 +22,20 @@ from bitcoinrpc.authproxy import AuthServiceProxy
 import configparser
 
 
-def create_bitcoind_service_proxy(rpc_username, rpc_password, server='127.0.0.1', port=8332, use_https=False):
-    protocol = 'https' if use_https else 'http'
-    uri = '%s://%s:%s@%s:%s' % (protocol, rpc_username, rpc_password, server, port)
-    print(uri)
-    return AuthServiceProxy(uri)
-
-
 class BitcoindClient:
 
-    def __init__(self, use_https=False, server='127.0.0.1', port=8332, version_byte=0):
+    def __init__(self, configfile='bitcoind.ini'):
         self.type = 'bitcoind'
         config = configparser.ConfigParser()
-        config.read('bitcoind.ini')
-        self.proxy = create_bitcoind_service_proxy(config['rpc']['rpcuser'],
-                                                   config['rpc']['rpcpassword'],
-                                                   use_https=config['rpc']['use_https'],
-                                                   server=config['rpc']['server'],
-                                                   port=config['rpc']['port'])
-        self.version_byte = version_byte
+        config.read(configfile)
+        protocol = 'https' if config['rpc'].getboolean('use_https') else 'http'
+        uri = '%s://%s:%s@%s:%s' % (protocol, config['rpc']['rpcuser'], config['rpc']['rpcpassword'],
+                                    config['rpc']['server'], config['rpc']['port'])
+        self.proxy = AuthServiceProxy(uri)
+        self.version_byte = config['rpc']['version_byte']
 
 
 if __name__ == '__main__':
-    bdc = BitcoindClient(server='192.168.13.20', port=18332)
-    # bdc = BitcoindClient(server='80.127.136.50')
+    bdc = BitcoindClient()
     commands = ["getblockhash", 400000]
     print(bdc.proxy.getinfo())
