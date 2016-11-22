@@ -24,18 +24,40 @@ import configparser
 
 class BitcoindClient:
 
-    def __init__(self, configfile='bitcoind.ini'):
-        self.type = 'bitcoind'
+    @classmethod
+    def from_config(cls, configfile='bitcoind.ini'):
         config = configparser.ConfigParser()
         config.read(configfile)
-        protocol = 'https' if config['rpc'].getboolean('use_https') else 'http'
-        uri = '%s://%s:%s@%s:%s' % (protocol, config['rpc']['rpcuser'], config['rpc']['rpcpassword'],
-                                    config['rpc']['server'], config['rpc']['port'])
+        cls.version_byte = config['rpc']['version_byte']
+        return BitcoindClient(config['rpc']['rpcuser'],
+                              config['rpc']['rpcpassword'],
+                              config['rpc'].getboolean('use_https'),
+                              config['rpc']['server'],
+                              config['rpc']['port'])
+
+    def __init__(self, user, password, use_https=False, server='127.0.0.1', port=8332):
+        self.type = 'bitcoind'
+        protocol = 'https' if use_https else 'http'
+        uri = '%s://%s:%s@%s:%s' % (protocol, user, password, server, port)
         self.proxy = AuthServiceProxy(uri)
-        self.version_byte = config['rpc']['version_byte']
 
 
 if __name__ == '__main__':
-    bdc = BitcoindClient()
-    commands = ["getblockhash", 400000]
-    print(bdc.proxy.getinfo())
+    #
+    # SOME EXAMPLES
+    #
+
+    from pprint import pprint
+    bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
+
+    print("\n=== SERVERINFO ===")
+    pprint(bdc.proxy.getinfo())
+
+    print("\n=== Best Block ===")
+    blockhash = bdc.proxy.getbestblockhash()
+    pprint(bdc.proxy.getblock(blockhash))
+
+    print("\n=== Mempool ===")
+    rmp = bdc.proxy.getrawmempool()
+    pprint(rmp)
+    print("Mempool Size %d" % len(rmp))
