@@ -63,7 +63,7 @@ def get_network_by_value(field, value):
 
 if __name__ == '__main__':
     #
-    # SOME EXAMPLES
+    # NETWORK EXAMPLES
     #
 
     print("\n=== Get all WIF prefixes ===")

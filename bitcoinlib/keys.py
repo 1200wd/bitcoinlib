@@ -661,7 +661,7 @@ class HDKey:
 
 if __name__ == '__main__':
     #
-    # SOME EXAMPLES
+    # KEYS EXAMPLES
     #
     
     print("\n=== Import public key ===")
