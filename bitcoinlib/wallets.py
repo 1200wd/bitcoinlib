@@ -18,23 +18,52 @@
 #
 
 from bitcoinlib.db import *
-from bitcoinlib.keys import *
+from bitcoinlib.keys import HDKey
+
+from sqlalchemy import or_
+
+class WalletError(Exception):
+    pass
 
 
-class Wallet:
+class HDWallet:
 
     @staticmethod
-    def from_key(key):
-        # if key is not known add it
-        k = Key(key)
-        k.info()
-        # c = conn.cursor()
-        # c.execute('SELECT * FROM keys WHERE key=?', (key,))
-        return Wallet
+    def from_key(key, name, wallet_id=0, owner='', network='bitcoin'):
+        k = HDKey(key)
+        # Check if wallet name and key are not in database yet
+        w = session.query(DbWallet).filter_by(name=name).first()
+        if w:
+            wallet_id = w.id
+        wk = session.query(DbWalletKey).filter(or_(DbWalletKey.key==str(k.private()),
+                                                   DbWalletKey.key_wif==k.extended_wif(),
+                                                   DbWalletKey.address==k.public().address())).first()
+        if wk:
+            return HDWallet(w.id, wk.id)
 
-    def __init__(self, id=0):
-        print(id)
+        if not wallet_id:
+            new_wallet = DbWallet(name=name, owner=owner)
+            session.add(new_wallet)
+            session.commit()
+            wallet_id = new_wallet.id
 
+        new_key = DbWalletKey(name=name, wallet_id=wallet_id, network=network, key=str(k.private()),
+                              key_wif=k.extended_wif(), address=k.public().address())
+        session.add(new_key)
+        session.commit()
+        return HDWallet(wallet_id, new_key.id)
+
+    def __init__(self, wallet_id=0, key_id=0):
+        print(wallet_id, key_id)
+
+    def current_key(self):
+        pass
+
+    def new_key(self):
+        pass
+
+    def info(self):
+        pass
 
 
 if __name__ == '__main__':
@@ -42,6 +71,12 @@ if __name__ == '__main__':
     # WALLETS EXAMPLES
     #
 
-    wallet = Wallet.from_key('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UX'
-                             'F75r2dKePyA7irEvBoe4aAn52')
+    # Create New Wallet with new imported Master Key on Bitcoin testnet3
+    wallet_import = HDWallet.from_key('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UX'
+                               'F75r2dKePyA7irEvBoe4aAn52', 'TestNetWallet', network='testnet')
 
+    # Create New Wallet and Generate a new Key
+    wallet_new = HDWallet()
+
+    # Get new Key for Imported Wallet
+    new_key = wallet_import.new_key()

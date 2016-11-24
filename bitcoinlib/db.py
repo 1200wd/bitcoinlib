@@ -18,33 +18,31 @@
 #
 
 from sqlalchemy import create_engine
+from sqlalchemy import Column, Integer, String, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Sequence
-from sqlalchemy import ForeignKey
+from sqlalchemy.orm import sessionmaker
+
 
 Base = declarative_base()
-engine = create_engine('sqlite:///data/bitcoinlib.sqlite', echo=True)
+engine = create_engine('sqlite:///data/bitcoinlib.sqlite')
+Session = sessionmaker(bind=engine)
+session = Session()
 
-class Wallet(Base):
-    __tablename__ = 'wallets'
+class DbWallet(Base):
+    __tablename__ = 'dbwallets'
     id = Column(Integer, Sequence('wallet_id_seq'), primary_key=True)
-    name = Column(String(50))
+    name = Column(String(50), unique=True)
     owner = Column(String(50))
 
-class Network(Base):
-    __tablename__ = 'networks'
-    id = Column(Integer, Sequence('network_id_seq'), primary_key=True)
-    name = Column(String(50))
-
-class Key(Base):
-    __tablename__ = 'keys'
+class DbWalletKey(Base):
+    __tablename__ = 'dbwalletkeys'
     id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
     name = Column(String(50))
-    network_id = Column(Integer, ForeignKey('networks.id'))
-    wallet_id = Column(Integer, ForeignKey('wallets.id'))
-    key = Column(Integer)
-    key_wif = Column(String(255))
-    address = Column(String(255))
+    network = Column(String(20))
+    wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
+    key = Column(String(255), unique=True)
+    key_wif = Column(String(255), unique=True)
+    address = Column(String(255), unique=True)
 
 
 Base.metadata.create_all(engine)
