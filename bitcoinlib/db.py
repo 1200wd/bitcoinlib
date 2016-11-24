@@ -34,12 +34,20 @@ class DbWallet(Base):
     name = Column(String(50), unique=True)
     owner = Column(String(50))
 
+
+# Use following BIP 44 path
+# m / purpose' / coin_type' / account' / change / address_index
+# Path: Master / Bip44 / Bitcoin / Account 1 / Internal or External / Index
 class DbWalletKey(Base):
     __tablename__ = 'dbwalletkeys'
     id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
     name = Column(String(50))
-    network = Column(String(20))
     wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
+    network = Column(String(20))
+    account_id = Column(Integer)
+    depth = Column(Integer)
+    change = Column(Integer) # TODO: 0 or 1 (0=external receiving address, 1=internal change addresses)
+    address_index = Column(Integer) # TODO: constraint gap no longer than 20
     key = Column(String(255), unique=True)
     key_wif = Column(String(255), unique=True)
     address = Column(String(255), unique=True)
