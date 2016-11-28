@@ -30,7 +30,7 @@ class WalletError(Exception):
 class HDWalletKey:
 
     @staticmethod
-    def from_key(name, wallet_id, key='', account_id=0, change=0, network='bitcoin'):
+    def from_key(name, wallet_id, key='', account_id=0, change=0, network='bitcoin', purpose=44):
         k = HDKey(key, network=network)
         # TODO: Check if wallet name and key are not in database yet
 
@@ -40,7 +40,7 @@ class HDWalletKey:
         if wk:
             return HDWallet(wk.id)
 
-        new_key = DbWalletKey(name=name, wallet_id=wallet_id, network=network, key=str(k.private()),
+        new_key = DbWalletKey(name=name, wallet_id=wallet_id, network=network, key=str(k.private()), purpose=purpose,
                               account_id=account_id, depth=k.depth(), change=change, address_index=k.child_index(),
                               key_wif=k.extended_wif(), address=k.public().address())
         session.add(new_key)
@@ -61,26 +61,26 @@ class HDWalletKey:
             self.address_index = wk.address_index
             self.key_wif = wk.key_wif
             self.address = wk.address
+            self.purpose = wk.purpose
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
     def path(self):
-        # m / purpose' / coin_type' / account' / change / address_index
+        # BIP43 + BIP44: m / purpose' / coin_type' / account' / change / address_index
+        print("Chain m/0'/1/2'/2/1000000000")
         if self.key:
             p = "m"
         else:
             p = "M"
-
-        depth = self.depth
-        if depth > 0:
-            p += "/44'"
-        if depth > 1:
+        if self.depth > 0:
+            p += "/" + str(self.purpose) + "'"
+        if self.depth > 1:
             p += "/" + str(networks.NETWORKS[self.network]['bip44_cointype']) + "'"
-        if depth > 2:
+        if self.depth > 2:
             p += "/" + str(self.account_id) + "'"
-        if depth > 3:
-            p += "/" + str(self.depth)
-        if depth > 4:
+        if self.depth > 3:
+            p += "/" + str(self.change)
+        if self.depth > 4:
             p += "/" + str(self.address_index)
         return p
 
@@ -101,7 +101,7 @@ class HDWalletKey:
 class HDWallet:
 
     @staticmethod
-    def create(name, key='', owner='', network='bitcoin'):
+    def create(name, key='', owner='', network='bitcoin', account_id=0, change=0, purpose=44):
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
         new_wallet = DbWallet(name=name, owner=owner, network=network)
@@ -113,16 +113,20 @@ class HDWallet:
             keyname = 'master'
         else:
             keyname = name + " key"
-        m = HDWalletKey.from_key(key=key, name=keyname, wallet_id=new_wallet.id, network=network)
+        m = HDWalletKey.from_key(key=key, name=keyname, wallet_id=new_wallet.id, network=network,
+                                 account_id=account_id, change=change, purpose=purpose)
         new_wallet.main_key_id = m.key_id
         session.commit()
 
         return HDWallet(new_wallet.id)
 
-    def __init__(self, wallet_id):
-        w = session.query(DbWallet).filter_by(id=wallet_id).first()
+    def __init__(self, wallet):
+        if isinstance(wallet, int):
+            w = session.query(DbWallet).filter_by(id=wallet).first()
+        else:
+            w = session.query(DbWallet).filter_by(name=wallet).first()
         if w:
-            self.wallet_id = wallet_id
+            self.wallet_id = w.id
             self.name = w.name
             self.owner = w.owner
             self.network = w.network
@@ -162,13 +166,14 @@ if __name__ == '__main__':
     #     network='testnet')
     # wallet_import.info()
 
-    # wallet_import2 = HDWallet.create(
-    #     name='TestNetWallet2',
-    #     key='xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREPSL39UNdE3BBDu76',
-    #     network='bitcoin')
-    wallet_import2 = HDWallet(1)
+    try:
+        wallet_import2 = HDWallet.create(
+            name='TestNetWallet2',
+            key='xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREPSL39UNdE3BBDu76',
+            network='bitcoin', account_id=2, change=2, purpose=0)
+    except WalletError:
+        wallet_import2 = HDWallet('TestNetWallet2')
     wallet_import2.info()
-    print("Chain m/0'/1/2'/2/1000000000")
 
     # Get new Key for Imported Wallet
     # new_key = wallet_import.new_key()

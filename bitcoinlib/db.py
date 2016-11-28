@@ -53,6 +53,7 @@ class DbWalletKey(Base):
     key = Column(String(255), unique=True)
     key_wif = Column(String(255), unique=True)
     address = Column(String(255), unique=True)
+    purpose = Column(Integer, default=44)
 
 
 Base.metadata.create_all(engine)
