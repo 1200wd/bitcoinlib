@@ -67,7 +67,6 @@ class HDWalletKey:
 
     def path(self):
         # BIP43 + BIP44: m / purpose' / coin_type' / account' / change / address_index
-        print("Chain m/0'/1/2'/2/1000000000")
         if self.key:
             p = "m"
         else:
@@ -96,6 +95,7 @@ class HDWalletKey:
         print(" Address Index                  %s" % self.address_index)
         print(" Address                        %s" % self.address)
         print(" Path                           %s" % self.path())
+        print("\n")
 
 
 class HDWallet:
@@ -133,7 +133,7 @@ class HDWallet:
             self.main_key_id = w.main_key_id
             self.key_cur = HDWalletKey(self.main_key_id)
         else:
-            raise WalletError("Wallet with id %s not found" % wallet_id)
+            raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
     def info(self):
         print("=== WALLET ===")
@@ -154,17 +154,22 @@ if __name__ == '__main__':
     #
 
     # Create New Wallet and Generate a new Key
-    # wallet_new = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
-    # wallet_new = HDWallet(wallet_id=1)
-    # wallet_new.info()
+    try:
+        wallet_new = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
+    except WalletError:
+        wallet_new = HDWallet('Personal')
+    wallet_new.info()
 
     # Create New Wallet with new imported Master Key on Bitcoin testnet3
-    # wallet_import = HDWallet.create(
-    #     name='TestNetWallet',
-    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
-    #         'A7irEvBoe4aAn52',
-    #     network='testnet')
-    # wallet_import.info()
+    try:
+        wallet_import = HDWallet.create(
+            name='TestNetWallet',
+            key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
+                'A7irEvBoe4aAn52',
+            network='testnet')
+    except WalletError:
+        wallet_import = HDWallet("TestNetWallet")
+    wallet_import.info()
 
     try:
         wallet_import2 = HDWallet.create(
