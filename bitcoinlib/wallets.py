@@ -62,8 +62,18 @@ class HDWalletKey:
             self.key_wif = wk.key_wif
             self.address = wk.address
             self.purpose = wk.purpose
+            self._k = HDKey(key = self.key)
         else:
             raise WalletError("Key with id %s not found" % key_id)
+
+    def subkey_for_path(self, path):
+        k = None
+        if self.path() in 'Mm':
+            k = self._k.subkey_for_path(path)
+
+        if isinstance(k, HDKey):
+            return False
+        
 
     def path(self):
         # BIP43 + BIP44: m / purpose' / coin_type' / account' / change / address_index
@@ -135,6 +145,9 @@ class HDWallet:
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
+    def new_key(self, path):
+        return self.key_cur.subkey_for_path(path)
+
     def info(self):
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
@@ -166,19 +179,23 @@ if __name__ == '__main__':
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
                 'A7irEvBoe4aAn52',
-            network='testnet')
+            network='testnet',
+            account_id=251)
     except WalletError:
         wallet_import = HDWallet("TestNetWallet")
     wallet_import.info()
 
     try:
         wallet_import2 = HDWallet.create(
-            name='TestNetWallet2',
-            key='xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREPSL39UNdE3BBDu76',
-            network='bitcoin', account_id=2, change=2, purpose=0)
+            name='Company Wallet',
+            key='xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREP'
+                'SL39UNdE3BBDu76',
+            network='bitcoin',
+            account_id=2, change=2, purpose=0)
     except WalletError:
-        wallet_import2 = HDWallet('TestNetWallet2')
+        wallet_import2 = HDWallet('Company Wallet')
     wallet_import2.info()
 
     # Get new Key for Imported Wallet
-    # new_key = wallet_import.new_key()
+    new_key = wallet_import.new_key('m/0H/1')
+    print(new_key)
