@@ -78,8 +78,12 @@ class HDWalletKey:
         if isinstance(k, HDKey):
             return False
 
-    def fullpath(self):
+    def fullpath(self, change=None, address_index=None):
         # BIP43 + BIP44: m / purpose' / coin_type' / account' / change / address_index
+        if change is None:
+            change = self.change
+        if address_index is None:
+            address_index = self.address_index
         if self.key:
             p = ["m"]
         else:
@@ -87,8 +91,8 @@ class HDWalletKey:
         p.append(str(self.purpose) + "'")
         p.append(str(networks.NETWORKS[self.network]['bip44_cointype']) + "'")
         p.append(str(self.account_id) + "'")
-        p.append(str(self.change))
-        p.append(str(self.address_index))
+        p.append(str(change))
+        p.append(str(address_index))
         return p
 
     def info(self):
@@ -111,7 +115,7 @@ class HDWalletKey:
 class HDWallet:
 
     @classmethod
-    def create(cls, name, key='', owner='', network='bitcoin', account_id=0, change=0, purpose=44):
+    def create(cls, name, key='', owner='', network='bitcoin', account_id=0, purpose=44):
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
         new_wallet = DbWallet(name=name, owner=owner, network=network)
@@ -124,15 +128,17 @@ class HDWallet:
         else:
             keyname = name + " key"
         m = HDWalletKey.from_key(key=key, name=keyname, wallet_id=new_wallet.id, network=network,
-                                 account_id=account_id, change=change, purpose=purpose)
+                                 account_id=account_id, purpose=purpose)
         new_wallet.main_key_id = m.key_id
         session.commit()
 
         # Create rest of Wallet Structure
         path = m.fullpath()
         cls._create_keys_from_path(m, path, wallet_id=new_wallet.id, network=network,
-                                    account_id=account_id, change=change, purpose=purpose)
-
+                                    account_id=account_id, change=0, purpose=purpose)
+        path = m.fullpath(change=1)
+        cls._create_keys_from_path(m, path, wallet_id=new_wallet.id, network=network,
+                                    account_id=account_id, change=1, purpose=purpose)
         return HDWallet(new_wallet.id)
 
     @staticmethod
@@ -164,8 +170,9 @@ class HDWallet:
 
     def new_key(self, name='', account_id=0, change=0, purpose=44):
         # Find main account key
-        acckey = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=purpose, network=self.network,
-                                                      account_id=account_id, change=0, depth=3).first()
+        acckey = session.query(DbWalletKey). \
+            filter_by(wallet_id=self.wallet_id, purpose=purpose, network=self.network,
+                      account_id=account_id, change=0, depth=3).first()
         prevkey = session.query(DbWalletKey). \
             filter_by(wallet_id=self.wallet_id, purpose=purpose, network=self.network,
                       account_id=account_id, change=change, depth=5). \
@@ -173,7 +180,7 @@ class HDWallet:
         if not acckey:
             raise WalletError("No account key found for account %d" % account_id)
         if not prevkey:
-            raise WalletError("No child key found for account %d" % account_id)
+            raise WalletError("No child key found for account %d and change %d" % (account_id, change))
 
         address_index = prevkey.address_index + 1
         accwk = HDWalletKey(acckey.id)
@@ -224,26 +231,25 @@ if __name__ == '__main__':
     new_key = wallet.new_key("Voor nog meer f#$%!^g Pizza!")
     new_key.info()
 
-    # new_key = wallet.new_key("Pizza change coins", change=1)
-    # new_key.info()
+    new_key = wallet.new_key("Pizza change coins", change=1)
+    new_key.info()
 
     # Create New Wallet with new imported Master Key on Bitcoin testnet3
-    # wallet_import = HDWallet.create(
-    #     name='TestNetWallet',
-    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
-    #         'A7irEvBoe4aAn52',
-    #     network='testnet',
-    #     account_id=251)
-    # wallet_import.info()
-    # print(wallet_import.main_key.fullpath())
+    wallet_import = HDWallet.create(
+        name='TestNetWallet',
+        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
+            'A7irEvBoe4aAn52',
+        network='testnet',
+        account_id=251)
+    wallet_import.info()
+    print(wallet_import.main_key.fullpath())
 
-    # try:
-    #     wallet_import2 = HDWallet.create(
-    #         name='Company Wallet',
-    #         key='xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREP'
-    #             'SL39UNdE3BBDu76',
-    #         network='bitcoin',
-    #         account_id=2, change=2, purpose=0)
-    # except WalletError:
-    #     wallet_import2 = HDWallet('Company Wallet')
-    # wallet_import2.info(True)
+    wallet_import2 = HDWallet.create(
+        name='Company Wallet',
+        key='xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREP'
+            'SL39UNdE3BBDu76',
+        network='bitcoin',
+        account_id=2, purpose=0)
+    wallet_import2.info(detail=1)
+
+    session.close()
