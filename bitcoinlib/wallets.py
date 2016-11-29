@@ -70,13 +70,6 @@ class HDWalletKey:
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
-    def subkey_for_path(self, path):
-        k = None
-        if self.path() in 'Mm':
-            k = self.k.subkey_for_path(path)
-
-        if isinstance(k, HDKey):
-            return False
 
     def fullpath(self, change=None, address_index=None):
         # BIP43 + BIP44: m / purpose' / coin_type' / account' / change / address_index
@@ -134,20 +127,23 @@ class HDWallet:
 
         # Create rest of Wallet Structure
         path = m.fullpath()
-        cls._create_keys_from_path(m, path, wallet_id=new_wallet.id, network=network,
+        cls._create_keys_from_path(m, path, name=keyname + ' #0', wallet_id=new_wallet.id, network=network,
                                     account_id=account_id, change=0, purpose=purpose)
         path = m.fullpath(change=1)
-        cls._create_keys_from_path(m, path, wallet_id=new_wallet.id, network=network,
+        cls._create_keys_from_path(m, path, name=keyname + ' #1/0', wallet_id=new_wallet.id, network=network,
                                     account_id=account_id, change=1, purpose=purpose)
         return HDWallet(new_wallet.id)
 
     @staticmethod
-    def _create_keys_from_path(masterkey, path, wallet_id, network, account_id, basepath='', change=0, purpose=44):
+    def _create_keys_from_path(masterkey, path, wallet_id, network, account_id,
+                               name='', basepath='', change=0, purpose=44):
         parent_id = 0
         for l in range(1, len(path)+1):
-            pp = "/".join(path[:l])
+            pp = nkname = "/".join(path[:l])
             ckwif = masterkey.k.subkey_for_path(pp).extended_wif()
-            nk = HDWalletKey.from_key(key=ckwif, name=pp, wallet_id=wallet_id, network=network,
+            if l == len(path):
+                nkname = name
+            nk = HDWalletKey.from_key(key=ckwif, name=nkname, wallet_id=wallet_id, network=network,
                                       account_id=account_id, change=change, purpose=purpose, path=basepath+pp,
                                       parent_id=parent_id)
             parent_id = nk.key_id
@@ -186,12 +182,9 @@ class HDWallet:
         accwk = HDWalletKey(acckey.id)
         newpath = [str(change), str(address_index)]
         bpath = accwk.path + '/'
-        newkey = self._create_keys_from_path(accwk, newpath, wallet_id=self.wallet_id, network=self.network,
+        newkey = self._create_keys_from_path(accwk, newpath, name=name, wallet_id=self.wallet_id, network=self.network,
                                              account_id=account_id, change=change, purpose=purpose, basepath=bpath)
-        newwkey = HDWalletKey(newkey)
-        newwkey.name = name
-        session.commit()
-        return newwkey
+        return HDWalletKey(newkey)
 
     def info(self, detail=0):
         print("=== WALLET ===")
