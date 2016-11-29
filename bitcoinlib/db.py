@@ -22,9 +22,9 @@ from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-
+DATABASEFILE = 'data/bitcoinlib.sqlite'
 Base = declarative_base()
-engine = create_engine('sqlite:///data/bitcoinlib.sqlite')
+engine = create_engine('sqlite:///%s' % DATABASEFILE)
 Session = sessionmaker(bind=engine)
 session = Session()
 

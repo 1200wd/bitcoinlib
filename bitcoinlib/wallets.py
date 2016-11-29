@@ -130,9 +130,14 @@ class HDWallet:
 
         # Create rest of Wallet Structure
         path = m.fullpath()
-        for l in range(0, len(path)):
-            ci = path[l]
-
+        parent_id = 0
+        for l in range(1, len(path)+1):
+            pp = "/".join(path[:l])
+            ckwif = m.k.subkey_for_path(pp).extended_wif()
+            nk = HDWalletKey.from_key(key=ckwif, name=pp, wallet_id=new_wallet.id, network=network,
+                                      account_id=account_id, change=change, purpose=purpose, path=pp,
+                                      parent_id=parent_id)
+            parent_id = nk.key_id
 
         return HDWallet(new_wallet.id)
 
@@ -156,9 +161,8 @@ class HDWallet:
             network = self.network
 
         # Find latest address_index for this purpose, network-cointype, account, change
-        prev = session.query(DbWalletKey).filter_by(id=self.wallet_id, purpose=purpose, network=network,
+        prev = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=purpose, network=network,
                                                     account_id=account_id, change=change, depth=5).first()
-
         if not prev:
             raise WalletError("No parent key found for this wallet and account. "
                               "Please reinitialize wallet or check new_key parameters.")
@@ -209,6 +213,9 @@ class HDWallet:
         if detail:
             print("= Main key =")
             self.main_key.info()
+        if detail == 2:
+            print("= Keys Overview = ")
+
 
 
 
@@ -217,28 +224,26 @@ if __name__ == '__main__':
     # WALLETS EXAMPLES
     #
 
+    import os
+    os.remove(DATABASEFILE)
+    Base.metadata.create_all(engine)
+
     # Create New Wallet and Generate a new Key
-    # try:
-    #     wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
-    # except WalletError:
-    #     wallet = HDWallet('Personal')
-    # wallet.info(True)
-    #
-    # new_key = wallet.new_key()
-    # print(new_key)
+    wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
+    wallet.info(detail=2)
+
+    new_key = wallet.new_key()
+    print(new_key)
 
     # Create New Wallet with new imported Master Key on Bitcoin testnet3
-    try:
-        wallet_import = HDWallet.create(
-            name='TestNetWallet',
-            key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
-                'A7irEvBoe4aAn52',
-            network='testnet',
-            account_id=251)
-    except WalletError:
-        wallet_import = HDWallet("TestNetWallet")
-    wallet_import.info()
-    print(wallet_import.main_key.fullpath())
+    # wallet_import = HDWallet.create(
+    #     name='TestNetWallet',
+    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
+    #         'A7irEvBoe4aAn52',
+    #     network='testnet',
+    #     account_id=251)
+    # wallet_import.info()
+    # print(wallet_import.main_key.fullpath())
 
     # try:
     #     wallet_import2 = HDWallet.create(
