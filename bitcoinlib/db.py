@@ -18,7 +18,7 @@
 #
 
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, Sequence, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -37,12 +37,20 @@ class DbWallet(Base):
     main_key_id = Column(Integer, ForeignKey('dbwalletkeys.id'))
 
 
+# class DbWalletAccount(Base):
+#     __tablename__ = 'dbwalletaccounts'
+#     id = Column(Integer, Sequence('account_id_seq'), primary_key=True)
+#     wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
+#     name = Column(String(50), unique=True)
+
+
 # Use following BIP 44 path
 # m / purpose' / coin_type' / account' / change / address_index
 # Path: Master / Bip44 / Bitcoin / Account 1 / Internal or External / Index
 class DbWalletKey(Base):
     __tablename__ = 'dbwalletkeys'
     id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
+    parent_id = Column(Integer, Sequence('parent_id_seq'))
     name = Column(String(50))
     wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
     network = Column(String(20))
@@ -54,6 +62,7 @@ class DbWalletKey(Base):
     key_wif = Column(String(255), unique=True)
     address = Column(String(255), unique=True)
     purpose = Column(Integer, default=44)
-
+    is_private = Column(Boolean)
+    path = Column(String(100))
 
 Base.metadata.create_all(engine)
