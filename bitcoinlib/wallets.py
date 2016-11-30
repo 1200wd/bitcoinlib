@@ -49,7 +49,7 @@ class HDWalletKey:
         return HDWalletKey(new_key.id)
 
     def __init__(self, key_id):
-        wk = session.query(DbWalletKey).filter_by(id=key_id).first()
+        wk = session.query(DbWalletKey).filter_by(id=key_id).scalar()
         if wk:
             self.key_id = key_id
             self.name = wk.name
@@ -115,23 +115,25 @@ class HDWallet:
         session.add(new_wallet)
         session.commit()
 
-        # Create new Master Key
         if not key:
             keyname = 'master'
         else:
-            keyname = name + " key"
-        m = HDWalletKey.from_key(key=key, name=keyname, wallet_id=new_wallet.id, network=network,
-                                 account_id=account_id, purpose=purpose)
-        new_wallet.main_key_id = m.key_id
+            keyname = name
+        mk = HDWalletKey.from_key(key=key, name=keyname, wallet_id=new_wallet.id, network=network,
+                                  account_id=account_id, purpose=purpose)
+        new_wallet.main_key_id = mk.key_id
         session.commit()
 
+        if mk.k.depth() > 4:
+            raise WalletError("Cannot create new wallet with main key of depth 5 or more")
         # Create rest of Wallet Structure
-        path = m.fullpath()
-        cls._create_keys_from_path(m, path, name=keyname + ' #0', wallet_id=new_wallet.id, network=network,
-                                    account_id=account_id, change=0, purpose=purpose)
-        path = m.fullpath(change=1)
-        cls._create_keys_from_path(m, path, name=keyname + ' #1/0', wallet_id=new_wallet.id, network=network,
-                                    account_id=account_id, change=1, purpose=purpose)
+        path = mk.fullpath()[mk.k.depth():]
+        basepath = '/'.join(mk.fullpath()[:mk.k.depth()]) + '/'
+        cls._create_keys_from_path(mk, path, name=keyname + ' #0', wallet_id=new_wallet.id, network=network,
+                                    account_id=account_id, change=0, purpose=purpose, basepath=basepath)
+        # path = mk.fullpath(change=1)
+        # cls._create_keys_from_path(mk, path, name=keyname + ' #1/0', wallet_id=new_wallet.id, network=network,
+        #                             account_id=account_id, change=1, purpose=purpose, basepath=basepath)
         return HDWallet(new_wallet.id)
 
     @staticmethod
@@ -151,14 +153,15 @@ class HDWallet:
 
     def __init__(self, wallet):
         if isinstance(wallet, int):
-            w = session.query(DbWallet).filter_by(id=wallet).first()
+            w = session.query(DbWallet).filter_by(id=wallet).scalar()
         else:
-            w = session.query(DbWallet).filter_by(name=wallet).first()
+            w = session.query(DbWallet).filter_by(name=wallet).scalar()
         if w:
             self.wallet_id = w.id
             self.name = w.name
             self.owner = w.owner
             self.network = w.network
+            self.purpose = w.purpose
             self.main_key_id = w.main_key_id
             self.main_key = HDWalletKey(self.main_key_id)
         else:
@@ -168,7 +171,7 @@ class HDWallet:
         # Find main account key
         acckey = session.query(DbWalletKey). \
             filter_by(wallet_id=self.wallet_id, purpose=purpose, network=self.network,
-                      account_id=account_id, change=0, depth=3).first()
+                      account_id=account_id, change=0, depth=3).scalar()
         prevkey = session.query(DbWalletKey). \
             filter_by(wallet_id=self.wallet_id, purpose=purpose, network=self.network,
                       account_id=account_id, change=change, depth=5). \
@@ -186,6 +189,17 @@ class HDWallet:
                                              account_id=account_id, change=change, purpose=purpose, basepath=bpath)
         return HDWalletKey(newkey)
 
+    def keys(self, account_id=None, change=None, depth=None):
+        qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network)
+        if account_id is not None:
+            qr = qr.filter(DbWalletKey.account_id == account_id)
+        if change is not None:
+            qr = qr.filter(DbWalletKey.change == change)
+        if depth is not None:
+            qr = qr.filter(DbWalletKey.depth == depth)
+        return qr.all()
+
+
     def info(self, detail=0):
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
@@ -197,9 +211,16 @@ class HDWallet:
         if detail:
             print("= Main key =")
             self.main_key.info()
-        if detail == 2:
+        if detail > 1:
             print("= Keys Overview = ")
-
+            if detail < 3:
+                ds = [0,3,5]
+            else:
+                ds = range(0,6)
+            for d in ds:
+                for key in self.keys(depth=d):
+                    print("%3s %20s %38s  %s" % (key.id, key.path, key.address, key.name))
+        print("\n")
 
 
 if __name__ == '__main__':
@@ -211,38 +232,29 @@ if __name__ == '__main__':
     os.remove(DATABASEFILE)
     Base.metadata.create_all(engine)
 
-    # Create New Wallet and Generate a new Key
-    wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
-    wallet.info()
-
-    new_key = wallet.new_key("Voor Pizza!")
-    new_key.info()
-
-    new_key = wallet.new_key("Voor meer Pizza!")
-    new_key.info()
-
-    new_key = wallet.new_key("Voor nog meer f#$%!^g Pizza!")
-    new_key.info()
-
-    new_key = wallet.new_key("Pizza change coins", change=1)
-    new_key.info()
-
-    # Create New Wallet with new imported Master Key on Bitcoin testnet3
-    wallet_import = HDWallet.create(
-        name='TestNetWallet',
-        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
-            'A7irEvBoe4aAn52',
-        network='testnet',
-        account_id=251)
-    wallet_import.info()
-    print(wallet_import.main_key.fullpath())
+    #-- Create New Wallet and Generate a some new Keys --
+    # wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
+    # new_key = wallet.new_key("Pizza")
+    # new_key = wallet.new_key("Pizza again!")
+    # new_key = wallet.new_key("And more pizza...")
+    # new_key = wallet.new_key("Pizza change coins", change=1)
+    # wallet.info(detail=3)
+    #
+    # #-- Create New Wallet with new imported Master Key on Bitcoin testnet3 --
+    # wallet_import = HDWallet.create(
+    #     name='TestNetWallet',
+    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
+    #         'A7irEvBoe4aAn52',
+    #     network='testnet',
+    #     account_id=251)
+    # wallet_import.info()
 
     wallet_import2 = HDWallet.create(
         name='Company Wallet',
-        key='xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREP'
-            'SL39UNdE3BBDu76',
+        key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
+            'TtpgP4mLTj34bhnZX7UiM',
         network='bitcoin',
         account_id=2, purpose=0)
-    wallet_import2.info(detail=1)
+    wallet_import2.info(detail=2)
 
     session.close()

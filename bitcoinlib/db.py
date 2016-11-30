@@ -34,6 +34,7 @@ class DbWallet(Base):
     name = Column(String(50), unique=True)
     owner = Column(String(50))
     network = Column(String(20))
+    purpose = Column(Integer, default=44)
     main_key_id = Column(Integer, ForeignKey('dbwalletkeys.id'))
 
 
