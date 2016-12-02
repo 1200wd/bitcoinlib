@@ -42,9 +42,9 @@ class HDWalletKey:
             return HDWalletKey(wk.id)
 
         nk = DbWalletKey(name=name, wallet_id=wallet_id, network=network, key=str(k.private()), purpose=purpose,
-                              account_id=account_id, depth=k.depth(), change=change, address_index=k.child_index(),
-                              key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
-                              is_private=True, path=path)
+                         account_id=account_id, depth=k.depth(), change=change, address_index=k.child_index(),
+                         key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
+                         is_private=True, path=path)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id)
@@ -66,7 +66,7 @@ class HDWalletKey:
             self.parent_id = wk.parent_id
             self.is_private = wk.is_private
             self.path = wk.path
-            self.k = HDKey(import_key = self.key_wif)
+            self.k = HDKey(import_key=self.key_wif)
             self.depth = wk.depth
         else:
             raise WalletError("Key with id %s not found" % key_id)
@@ -128,7 +128,9 @@ class HDWallet:
             raise WalletError("Cannot create new wallet with main key of depth 5 or more")
         # Create rest of Wallet Structure
         path = mk.fullpath()[mk.k.depth():]
-        basepath = '/'.join(mk.fullpath()[:mk.k.depth()]) + '/'
+        basepath = '/'.join(mk.fullpath()[:mk.k.depth()])
+        if basepath and len(path) and path[:1] != '/':
+            basepath += '/'
         cls._create_keys_from_path(mk, path, name=keyname + ' #0', wallet_id=new_wallet.id, network=network,
                                    account_id=account_id, change=0, purpose=purpose, basepath=basepath)
         path = mk.fullpath(change=1)
@@ -199,6 +201,9 @@ class HDWallet:
             qr = qr.filter(DbWalletKey.depth == depth)
         return qr.all()
 
+    def accounts(self, account_id):
+        return self.keys(self, account_id)
+
     def info(self, detail=0):
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
@@ -218,7 +223,7 @@ class HDWallet:
                 ds = range(0, 6)
             for d in ds:
                 for key in self.keys(depth=d):
-                    print("%3s %20s %38s  %s" % (key.id, key.path, key.address, key.name))
+                    print("%5s %-28s %-45s %s" % (key.id, key.path, key.address, key.name))
         print("\n")
 
 
@@ -227,8 +232,8 @@ if __name__ == '__main__':
     # WALLETS EXAMPLES
     #
 
+    # First recreate database to avoid already exist errors
     import os
-
     if os.path.isfile(DATABASEDIR+DATABASEFILE):
         os.remove(DATABASEDIR+DATABASEFILE)
     Base.metadata.create_all(engine)
