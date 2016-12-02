@@ -23,7 +23,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-DATABASEDIR = 'data/'
+DATABASEDIR = os.path.join(os.path.dirname(__file__), 'data/')
 DATABASEFILE = 'bitcoinlib.sqlite'
 Base = declarative_base()
 engine = create_engine('sqlite:///%s%s' % (DATABASEDIR, DATABASEFILE))

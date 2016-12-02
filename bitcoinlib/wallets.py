@@ -35,9 +35,9 @@ class HDWalletKey:
         k = HDKey(import_key=key, network=network)
         # TODO: Check if wallet name and key are not in database yet
 
-        wk = session.query(DbWalletKey).filter(or_(DbWalletKey.key==str(k.private()),
-                                                   DbWalletKey.key_wif==k.extended_wif(),
-                                                   DbWalletKey.address==k.public().address())).first()
+        wk = session.query(DbWalletKey).filter(or_(DbWalletKey.key == str(k.private()),
+                                                   DbWalletKey.key_wif == k.extended_wif(),
+                                                   DbWalletKey.address == k.public().address())).first()
         if wk:
             return HDWalletKey(wk.id)
 
