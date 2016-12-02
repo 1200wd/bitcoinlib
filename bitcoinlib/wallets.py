@@ -195,9 +195,9 @@ class HDWallet:
         return HDWalletKey(newkey)
 
     def new_key_change(self, name='', account_id=0, purpose=44):
-        return new_key(self, name=name, account_id=account_id, purpose=purpose)
+        return self.new_key(name=name, account_id=account_id, purpose=purpose)
 
-    def keys(self, account_id=None, change=None, depth=None, as_dict=True):
+    def keys(self, account_id=None, change=None, depth=None, as_dict=False):
         qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network)
         if account_id is not None:
             qr = qr.filter(DbWalletKey.account_id == account_id)
@@ -207,8 +207,17 @@ class HDWallet:
             qr = qr.filter(DbWalletKey.depth == depth)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
-    def accounts(self, account_id, as_dict=True):
+    def accounts(self, account_id, as_dict=False):
         return self.keys(account_id, depth=3, as_dict=as_dict)
+
+    def keys_addresses(self, account_id, as_dict=False):
+        return self.keys(account_id, depth=5, as_dict=as_dict)
+
+    def keys_address_payment(self, account_id, as_dict=False):
+        return self.keys(account_id, depth=5, change=0, as_dict=as_dict)
+
+    def keys_address_change(self, account_id, as_dict=False):
+        return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
 
     def info(self, detail=0):
         print("=== WALLET ===")
@@ -237,10 +246,6 @@ if __name__ == '__main__':
     #
     # WALLETS EXAMPLES
     #
-    from pprint import pprint
-    print(HDWallet(1).accounts(0))
-    print(HDWallet(1).accounts(0, False))
-    import sys; sys.exit()
 
     # First recreate database to avoid already exist errors
     import os
@@ -255,6 +260,10 @@ if __name__ == '__main__':
     new_key = wallet.new_key("And more pizza...")
     new_key = wallet.new_key("Pizza change coins", change=1)
     wallet.info(detail=3)
+    print("Used addresses:")
+    for a in wallet.keys_addresses(0):
+        print(a.address)
+    print("\n\n")
 
     # -- Create New Wallet with new imported Master Key on Bitcoin testnet3 --
     wallet_import = HDWallet.create(
