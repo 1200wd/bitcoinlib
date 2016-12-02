@@ -21,10 +21,12 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
-DATABASEFILE = 'data/bitcoinlib.sqlite'
+DATABASEDIR = 'data/'
+DATABASEFILE = 'bitcoinlib.sqlite'
 Base = declarative_base()
-engine = create_engine('sqlite:///%s' % DATABASEFILE)
+engine = create_engine('sqlite:///%s%s' % (DATABASEDIR, DATABASEFILE))
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -66,4 +68,6 @@ class DbWalletKey(Base):
     is_private = Column(Boolean)
     path = Column(String(100))
 
+if not os.path.exists(DATABASEDIR):
+    os.makedirs(DATABASEDIR)
 Base.metadata.create_all(engine)

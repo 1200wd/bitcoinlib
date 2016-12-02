@@ -23,6 +23,7 @@ from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
 from bitcoinlib.config import networks
 
+
 class WalletError(Exception):
     pass
 
@@ -40,13 +41,13 @@ class HDWalletKey:
         if wk:
             return HDWalletKey(wk.id)
 
-        new_key = DbWalletKey(name=name, wallet_id=wallet_id, network=network, key=str(k.private()), purpose=purpose,
+        nk = DbWalletKey(name=name, wallet_id=wallet_id, network=network, key=str(k.private()), purpose=purpose,
                               account_id=account_id, depth=k.depth(), change=change, address_index=k.child_index(),
                               key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
                               is_private=True, path=path)
-        session.add(new_key)
+        session.add(nk)
         session.commit()
-        return HDWalletKey(new_key.id)
+        return HDWalletKey(nk.id)
 
     def __init__(self, key_id):
         wk = session.query(DbWalletKey).filter_by(id=key_id).scalar()
@@ -69,7 +70,6 @@ class HDWalletKey:
             self.depth = wk.depth
         else:
             raise WalletError("Key with id %s not found" % key_id)
-
 
     def fullpath(self, change=None, address_index=None):
         # BIP43 + BIP44: m / purpose' / coin_type' / account' / change / address_index
@@ -130,10 +130,10 @@ class HDWallet:
         path = mk.fullpath()[mk.k.depth():]
         basepath = '/'.join(mk.fullpath()[:mk.k.depth()]) + '/'
         cls._create_keys_from_path(mk, path, name=keyname + ' #0', wallet_id=new_wallet.id, network=network,
-                                    account_id=account_id, change=0, purpose=purpose, basepath=basepath)
-        # path = mk.fullpath(change=1)
-        # cls._create_keys_from_path(mk, path, name=keyname + ' #1/0', wallet_id=new_wallet.id, network=network,
-        #                             account_id=account_id, change=1, purpose=purpose, basepath=basepath)
+                                   account_id=account_id, change=0, purpose=purpose, basepath=basepath)
+        path = mk.fullpath(change=1)
+        cls._create_keys_from_path(mk, path, name=keyname + ' #1/0', wallet_id=new_wallet.id, network=network,
+                                   account_id=account_id, change=1, purpose=purpose, basepath=basepath)
         return HDWallet(new_wallet.id)
 
     @staticmethod
@@ -199,7 +199,6 @@ class HDWallet:
             qr = qr.filter(DbWalletKey.depth == depth)
         return qr.all()
 
-
     def info(self, detail=0):
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
@@ -214,9 +213,9 @@ class HDWallet:
         if detail > 1:
             print("= Keys Overview = ")
             if detail < 3:
-                ds = [0,3,5]
+                ds = [0, 3, 5]
             else:
-                ds = range(0,6)
+                ds = range(0, 6)
             for d in ds:
                 for key in self.keys(depth=d):
                     print("%3s %20s %38s  %s" % (key.id, key.path, key.address, key.name))
@@ -229,25 +228,27 @@ if __name__ == '__main__':
     #
 
     import os
-    os.remove(DATABASEFILE)
+
+    if os.path.isfile(DATABASEDIR+DATABASEFILE):
+        os.remove(DATABASEDIR+DATABASEFILE)
     Base.metadata.create_all(engine)
 
-    #-- Create New Wallet and Generate a some new Keys --
-    # wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
-    # new_key = wallet.new_key("Pizza")
-    # new_key = wallet.new_key("Pizza again!")
-    # new_key = wallet.new_key("And more pizza...")
-    # new_key = wallet.new_key("Pizza change coins", change=1)
-    # wallet.info(detail=3)
-    #
-    # #-- Create New Wallet with new imported Master Key on Bitcoin testnet3 --
-    # wallet_import = HDWallet.create(
-    #     name='TestNetWallet',
-    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
-    #         'A7irEvBoe4aAn52',
-    #     network='testnet',
-    #     account_id=251)
-    # wallet_import.info()
+    # -- Create New Wallet and Generate a some new Keys --
+    wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
+    new_key = wallet.new_key("Pizza")
+    new_key = wallet.new_key("Pizza again!")
+    new_key = wallet.new_key("And more pizza...")
+    new_key = wallet.new_key("Pizza change coins", change=1)
+    wallet.info(detail=3)
+
+    # -- Create New Wallet with new imported Master Key on Bitcoin testnet3 --
+    wallet_import = HDWallet.create(
+        name='TestNetWallet',
+        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
+            'A7irEvBoe4aAn52',
+        network='testnet',
+        account_id=251)
+    wallet_import.info()
 
     wallet_import2 = HDWallet.create(
         name='Company Wallet',
