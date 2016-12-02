@@ -169,6 +169,9 @@ class HDWallet:
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
+    def __dict__(self):
+        return {'name': self.name}
+
     def new_key(self, name='', account_id=0, change=0, purpose=44):
         # Find main account key
         acckey = session.query(DbWalletKey). \
@@ -191,7 +194,10 @@ class HDWallet:
                                              account_id=account_id, change=change, purpose=purpose, basepath=bpath)
         return HDWalletKey(newkey)
 
-    def keys(self, account_id=None, change=None, depth=None):
+    def new_key_change(self, name='', account_id=0, purpose=44):
+        return new_key(self, name=name, account_id=account_id, purpose=purpose)
+
+    def keys(self, account_id=None, change=None, depth=None, as_dict=True):
         qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network)
         if account_id is not None:
             qr = qr.filter(DbWalletKey.account_id == account_id)
@@ -199,10 +205,10 @@ class HDWallet:
             qr = qr.filter(DbWalletKey.change == change)
         if depth is not None:
             qr = qr.filter(DbWalletKey.depth == depth)
-        return qr.all()
+        return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
-    def accounts(self, account_id):
-        return self.keys(self, account_id)
+    def accounts(self, account_id, as_dict=True):
+        return self.keys(account_id, depth=3, as_dict=as_dict)
 
     def info(self, detail=0):
         print("=== WALLET ===")
@@ -231,6 +237,10 @@ if __name__ == '__main__':
     #
     # WALLETS EXAMPLES
     #
+    from pprint import pprint
+    print(HDWallet(1).accounts(0))
+    print(HDWallet(1).accounts(0, False))
+    import sys; sys.exit()
 
     # First recreate database to avoid already exist errors
     import os
