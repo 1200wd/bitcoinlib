@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from bitcoinrpc.authproxy import AuthServiceProxy
+from bitcoinlib.services.authproxy import AuthServiceProxy
 import configparser
 
 

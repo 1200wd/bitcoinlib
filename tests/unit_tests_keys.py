@@ -385,6 +385,7 @@ class TestMnemonics(unittest.TestCase):
         for lang in vectors.keys():
             self._check_list(lang, vectors[lang])
 
+
 class TestBip38(unittest.TestCase):
 
     def setUp(self):

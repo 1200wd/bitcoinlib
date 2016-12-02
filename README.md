@@ -32,3 +32,10 @@ print k.get_address()
 * pycrypto
 * scrypt
 * binascii
+
+$ sudo apt install python-dev python3-dev
+To install OpenSSL development package on Debian, Ubuntu or their derivatives:
+$ sudo apt-get install libssl-dev
+
+To install OpenSSL development package on Fedora, CentOS or RHEL:
+$ sudo yum install openssl-devel
