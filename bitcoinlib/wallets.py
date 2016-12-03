@@ -133,7 +133,7 @@ class HDWallet:
             basepath += '/'
         cls._create_keys_from_path(mk, path, name=keyname + ' #0', wallet_id=new_wallet.id, network=network,
                                    account_id=account_id, change=0, purpose=purpose, basepath=basepath)
-        path = mk.fullpath(change=1)
+        path = mk.fullpath(change=1)[mk.k.depth():]
         cls._create_keys_from_path(mk, path, name=keyname + ' #1/0', wallet_id=new_wallet.id, network=network,
                                    account_id=account_id, change=1, purpose=purpose, basepath=basepath)
         return HDWallet(new_wallet.id)
@@ -264,39 +264,39 @@ if __name__ == '__main__':
     #
 
     # First recreate database to avoid already exist errors
-    # import os
-    # if os.path.isfile(DATABASEDIR+DATABASEFILE):
-    #     os.remove(DATABASEDIR+DATABASEFILE)
-    # Base.metadata.create_all(engine)
+    import os
+    if os.path.isfile(DATABASEDIR+DATABASEFILE):
+        os.remove(DATABASEDIR+DATABASEFILE)
+    Base.metadata.create_all(engine)
+
+    # -- Create New Wallet and Generate a some new Keys --
+    wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
+    new_key = wallet.new_key("Pizza")
+    new_key = wallet.new_key("Pizza again!")
+    new_key = wallet.new_key("And more pizza...")
+    new_key = wallet.new_key("Pizza change coins", change=1)
+    wallet.info(detail=3)
+    print("Used addresses:")
+    for a in wallet.keys_addresses(0):
+        print(a.address)
+    print("\n\n")
+
     #
-    # # -- Create New Wallet and Generate a some new Keys --
-    # wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
-    # new_key = wallet.new_key("Pizza")
-    # new_key = wallet.new_key("Pizza again!")
-    # new_key = wallet.new_key("And more pizza...")
-    # new_key = wallet.new_key("Pizza change coins", change=1)
-    # wallet.info(detail=3)
-    # print("Used addresses:")
-    # for a in wallet.keys_addresses(0):
-    #     print(a.address)
-    # print("\n\n")
-    #
-    # # -- Create New Wallet with new imported Master Key on Bitcoin testnet3 --
-    # wallet_import = HDWallet.create(
-    #     name='TestNetWallet',
-    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
-    #         'A7irEvBoe4aAn52',
-    #     network='testnet',
-    #     account_id=251)
-    # wallet_import.info()
-    #
-    # wallet_import2 = HDWallet.create(
-    #     name='Company Wallet',
-    #     key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
-    #         'TtpgP4mLTj34bhnZX7UiM',
-    #     network='bitcoin',
-    #     account_id=2, purpose=0)
-    wallet_import2 = HDWallet('Company Wallet')
+    wallet_import = HDWallet.create(
+        name='TestNetWallet',
+        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
+            'A7irEvBoe4aAn52',
+        network='testnet',
+        account_id=251)
+    wallet_import.info()
+
+    # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
+    wallet_import2 = HDWallet.create(
+        name='Company Wallet',
+        key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
+            'TtpgP4mLTj34bhnZX7UiM',
+        network='bitcoin',
+        account_id=2, purpose=0)
     wallet_import2.new_account('Incoming Payments', 3)
     wallet_import2.info(detail=2)
 
