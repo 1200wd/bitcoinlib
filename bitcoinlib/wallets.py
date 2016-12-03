@@ -111,7 +111,7 @@ class HDWallet:
     def create(cls, name, key='', owner='', network='bitcoin', account_id=0, purpose=44):
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
-        new_wallet = DbWallet(name=name, owner=owner, network=network)
+        new_wallet = DbWallet(name=name, owner=owner, network=network, purpose=purpose)
         session.add(new_wallet)
         session.commit()
 
@@ -194,8 +194,13 @@ class HDWallet:
                                              account_id=account_id, change=change, purpose=purpose, basepath=bpath)
         return HDWalletKey(newkey)
 
-    def new_key_change(self, name='', account_id=0, purpose=44):
-        return self.new_key(name=name, account_id=account_id, purpose=purpose)
+    def new_key_change(self, name='', account_id=0):
+        return self.new_key(name=name, account_id=account_id, purpose=self.purpose)
+
+    def new_account(self, name, account_id):
+        if self.keys(account_id=account_id):
+            raise WalletError("Account with ID %d already exists for this wallet")
+        return self.new_key(name=name, account_id=account_id, purpose=self.purpose)
 
     def keys(self, account_id=None, change=None, depth=None, as_dict=False):
         qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network)
@@ -248,38 +253,40 @@ if __name__ == '__main__':
     #
 
     # First recreate database to avoid already exist errors
-    import os
-    if os.path.isfile(DATABASEDIR+DATABASEFILE):
-        os.remove(DATABASEDIR+DATABASEFILE)
-    Base.metadata.create_all(engine)
-
-    # -- Create New Wallet and Generate a some new Keys --
-    wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
-    new_key = wallet.new_key("Pizza")
-    new_key = wallet.new_key("Pizza again!")
-    new_key = wallet.new_key("And more pizza...")
-    new_key = wallet.new_key("Pizza change coins", change=1)
-    wallet.info(detail=3)
-    print("Used addresses:")
-    for a in wallet.keys_addresses(0):
-        print(a.address)
-    print("\n\n")
-
-    # -- Create New Wallet with new imported Master Key on Bitcoin testnet3 --
-    wallet_import = HDWallet.create(
-        name='TestNetWallet',
-        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
-            'A7irEvBoe4aAn52',
-        network='testnet',
-        account_id=251)
-    wallet_import.info()
-
-    wallet_import2 = HDWallet.create(
-        name='Company Wallet',
-        key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
-            'TtpgP4mLTj34bhnZX7UiM',
-        network='bitcoin',
-        account_id=2, purpose=0)
+    # import os
+    # if os.path.isfile(DATABASEDIR+DATABASEFILE):
+    #     os.remove(DATABASEDIR+DATABASEFILE)
+    # Base.metadata.create_all(engine)
+    #
+    # # -- Create New Wallet and Generate a some new Keys --
+    # wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
+    # new_key = wallet.new_key("Pizza")
+    # new_key = wallet.new_key("Pizza again!")
+    # new_key = wallet.new_key("And more pizza...")
+    # new_key = wallet.new_key("Pizza change coins", change=1)
+    # wallet.info(detail=3)
+    # print("Used addresses:")
+    # for a in wallet.keys_addresses(0):
+    #     print(a.address)
+    # print("\n\n")
+    #
+    # # -- Create New Wallet with new imported Master Key on Bitcoin testnet3 --
+    # wallet_import = HDWallet.create(
+    #     name='TestNetWallet',
+    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
+    #         'A7irEvBoe4aAn52',
+    #     network='testnet',
+    #     account_id=251)
+    # wallet_import.info()
+    #
+    # wallet_import2 = HDWallet.create(
+    #     name='Company Wallet',
+    #     key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
+    #         'TtpgP4mLTj34bhnZX7UiM',
+    #     network='bitcoin',
+    #     account_id=2, purpose=0)
+    wallet_import2 = HDWallet('Company Wallet')
+    wallet_import2.new_account('Incoming Payments', 3)
     wallet_import2.info(detail=2)
 
     session.close()
