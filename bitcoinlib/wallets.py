@@ -172,35 +172,46 @@ class HDWallet:
     def __dict__(self):
         return {'name': self.name}
 
-    def new_key(self, name='', account_id=0, change=0, purpose=44):
+    def new_key(self, name='', account_id=0, change=0):
         # Find main account key
         acckey = session.query(DbWalletKey). \
-            filter_by(wallet_id=self.wallet_id, purpose=purpose, network=self.network,
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network,
                       account_id=account_id, change=0, depth=3).scalar()
         prevkey = session.query(DbWalletKey). \
-            filter_by(wallet_id=self.wallet_id, purpose=purpose, network=self.network,
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network,
                       account_id=account_id, change=change, depth=5). \
             order_by(DbWalletKey.address_index.desc()).first()
-        if not acckey:
-            raise WalletError("No account key found for account %d" % account_id)
-        if not prevkey:
-            raise WalletError("No child key found for account %d and change %d" % (account_id, change))
 
-        address_index = prevkey.address_index + 1
+        if not prevkey and acckey:
+            raise WalletError("No child key found for account %d and change %d" % (account_id, change))
+        elif prevkey:
+            address_index = prevkey.address_index + 1
+        else:
+            address_index = 0
+
+        if not acckey:
+            # raise WalletError("No account key found for account %d" % account_id)
+            acckey = session.query(DbWalletKey). \
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network,
+                          depth=2).scalar()
+
+        if not acckey:
+            raise WalletError("No key found this wallet_id, network and purpose")
+
         accwk = HDWalletKey(acckey.id)
         newpath = [str(change), str(address_index)]
         bpath = accwk.path + '/'
         newkey = self._create_keys_from_path(accwk, newpath, name=name, wallet_id=self.wallet_id, network=self.network,
-                                             account_id=account_id, change=change, purpose=purpose, basepath=bpath)
+                                             account_id=account_id, change=change, purpose=self.purpose, basepath=bpath)
         return HDWalletKey(newkey)
 
     def new_key_change(self, name='', account_id=0):
-        return self.new_key(name=name, account_id=account_id, purpose=self.purpose)
+        return self.new_key(name=name, account_id=account_id)
 
     def new_account(self, name, account_id):
         if self.keys(account_id=account_id):
             raise WalletError("Account with ID %d already exists for this wallet")
-        return self.new_key(name=name, account_id=account_id, purpose=self.purpose)
+        return self.new_key(name=name, account_id=account_id)
 
     def keys(self, account_id=None, change=None, depth=None, as_dict=False):
         qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network)
