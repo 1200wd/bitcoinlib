@@ -198,6 +198,8 @@ class HDWallet:
         newpath.append(str(address_index))
         bpath = accwk.path + '/'
         pathdepth = max_depth-accwk.k.depth()
+        if not name:
+            name = "Key %d" % address_index
         newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
                                              network=self.network, account_id=account_id, change=change,
                                              purpose=self.purpose, basepath=bpath)
@@ -207,8 +209,7 @@ class HDWallet:
         return self.new_key(name=name, account_id=account_id, change=1)
 
     def new_account(self, name='', account_id=0):
-        # TODO: Auto increment account_id number
-        if not self.keys(account_id=account_id, depth=3):
+        if self.keys(account_id=account_id):
             last_id = session.query(DbWalletKey). \
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
                           network=self.network). \
@@ -281,15 +282,15 @@ if __name__ == '__main__':
     Base.metadata.create_all(engine)
 
     # -- Create New Wallet and Generate a some new Keys --
-    wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
+    wallet = HDWallet.create(name='Personal', network='testnet')
     wallet.new_account()
-    new_key = wallet.new_key("Pizza")
-    new_key = wallet.new_key("Pizza again!")
-    new_key = wallet.new_key("And more pizza...")
-    new_key = wallet.new_key("Pizza change coins", change=1)
-    donations_account = wallet.new_account(name='Donations')
-    new_key = wallet.new_key("Receive donations", account_id=donations_account.account_id)
-    wallet.info(detail=2)
+    new_key = wallet.new_key()
+    new_key = wallet.new_key()
+    new_key = wallet.new_key()
+    new_key = wallet.new_key(change=1)
+    donations_account = wallet.new_account()
+    new_key = wallet.new_key(account_id=donations_account.account_id)
+    wallet.info(detail=3)
     print("Used addresses:")
     for a in wallet.keys_addresses(0):
         print(a.address)
