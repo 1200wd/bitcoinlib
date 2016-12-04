@@ -206,7 +206,7 @@ class HDWallet:
     def new_key_change(self, name='', account_id=0):
         return self.new_key(name=name, account_id=account_id, change=1)
 
-    def new_account(self, name, account_id=0):
+    def new_account(self, name='', account_id=0):
         # TODO: Auto increment account_id number
         if not self.keys(account_id=account_id, depth=3):
             last_id = session.query(DbWalletKey). \
@@ -214,6 +214,8 @@ class HDWallet:
                           network=self.network). \
                 order_by(DbWalletKey.account_id.desc()).first().account_id
             account_id = last_id + 1
+        if not name:
+            name = 'Account #%d' % account_id
         if self.keys(account_id=account_id):
             raise WalletError("Account with ID %d already exists for this wallet")
         ret = self.new_key(name=name, account_id=account_id, max_depth=4)
@@ -280,7 +282,7 @@ if __name__ == '__main__':
 
     # -- Create New Wallet and Generate a some new Keys --
     wallet = HDWallet.create(name='Personal', owner='Lennart', network='testnet')
-    wallet.new_account(name='Takeaway')
+    wallet.new_account()
     new_key = wallet.new_key("Pizza")
     new_key = wallet.new_key("Pizza again!")
     new_key = wallet.new_key("And more pizza...")
