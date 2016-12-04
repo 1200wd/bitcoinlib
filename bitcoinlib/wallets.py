@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib wallets
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2016 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -208,12 +208,17 @@ class HDWallet:
 
     def new_account(self, name, account_id=0):
         # TODO: Auto increment account_id number
+        if not self.keys(account_id=account_id, depth=3):
+            last_id = session.query(DbWalletKey). \
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
+                          network=self.network). \
+                order_by(DbWalletKey.account_id.desc()).first().account_id
+            account_id = last_id + 1
         if self.keys(account_id=account_id):
             raise WalletError("Account with ID %d already exists for this wallet")
         ret = self.new_key(name=name, account_id=account_id, max_depth=4)
         self.new_key(name=name, account_id=account_id, max_depth=4, change=1)
         return ret
-
 
     def keys(self, account_id=None, change=None, depth=None, as_dict=False):
         qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network)
@@ -280,6 +285,8 @@ if __name__ == '__main__':
     new_key = wallet.new_key("Pizza again!")
     new_key = wallet.new_key("And more pizza...")
     new_key = wallet.new_key("Pizza change coins", change=1)
+    donations_account = wallet.new_account(name='Donations')
+    new_key = wallet.new_key("Receive donations", account_id=donations_account.account_id)
     wallet.info(detail=2)
     print("Used addresses:")
     for a in wallet.keys_addresses(0):
