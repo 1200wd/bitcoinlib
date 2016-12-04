@@ -35,6 +35,15 @@ class HDWalletKey:
         k = HDKey(import_key=key, network=network)
         # TODO: Check if wallet name and key are not in database yet
 
+        if k.depth() != len(path.split('/'))-1:
+            if path == 'm' and k.depth() == 3:
+                # Create path when importing new account-key
+                networkcode = 0
+                path = "m/%d'/%d'/%d'" % (purpose, networkcode, account_id)
+            else:
+                print(path)
+                raise WalletError("Key depth of %d does not match path lenght of %d" % (k.depth(), len(path.split('/'))-1))
+
         wk = session.query(DbWalletKey).filter(or_(DbWalletKey.key == str(k.private()),
                                                    DbWalletKey.key_wif == k.extended_wif(),
                                                    DbWalletKey.address == k.public().address())).first()
@@ -127,14 +136,15 @@ class HDWallet:
         if mk.k.depth() > 4:
             raise WalletError("Cannot create new wallet with main key of depth 5 or more")
         # Create rest of Wallet Structure
-        path = mk.fullpath()[mk.k.depth():]
-        basepath = '/'.join(mk.fullpath()[:mk.k.depth()])
+        depth = mk.k.depth()+1
+        path = mk.fullpath()[depth:]
+        basepath = '/'.join(mk.fullpath()[:depth])
         if basepath and len(path) and path[:1] != '/':
             basepath += '/'
-        cls._create_keys_from_path(mk, path, name=keyname + ' #0', wallet_id=new_wallet.id, network=network,
+        cls._create_keys_from_path(mk, path, name=keyname, wallet_id=new_wallet.id, network=network,
                                    account_id=account_id, change=0, purpose=purpose, basepath=basepath)
-        path = mk.fullpath(change=1)[mk.k.depth():]
-        cls._create_keys_from_path(mk, path, name=keyname + ' #1/0', wallet_id=new_wallet.id, network=network,
+        path = mk.fullpath(change=1)[depth:]
+        cls._create_keys_from_path(mk, path, name=keyname, wallet_id=new_wallet.id, network=network,
                                    account_id=account_id, change=1, purpose=purpose, basepath=basepath)
         return HDWallet(new_wallet.id)
 
@@ -143,11 +153,9 @@ class HDWallet:
                                name='', basepath='', change=0, purpose=44):
         parent_id = 0
         for l in range(1, len(path)+1):
-            pp = nkname = "/".join(path[:l])
+            pp = "/".join(path[:l])
             ckwif = masterkey.k.subkey_for_path(pp).extended_wif()
-            if l == len(path):
-                nkname = name
-            nk = HDWalletKey.from_key(key=ckwif, name=nkname, wallet_id=wallet_id, network=network,
+            nk = HDWalletKey.from_key(key=ckwif, name=name, wallet_id=wallet_id, network=network,
                                       account_id=account_id, change=change, purpose=purpose, path=basepath+pp,
                                       parent_id=parent_id)
             parent_id = nk.key_id
@@ -182,24 +190,22 @@ class HDWallet:
                       account_id=account_id, change=change, depth=5). \
             order_by(DbWalletKey.address_index.desc()).first()
 
-        if not prevkey and acckey:
-            raise WalletError("No child key found for account %d and change %d" % (account_id, change))
-        elif prevkey:
+        address_index = 0
+        if prevkey:
             address_index = prevkey.address_index + 1
-        else:
-            address_index = 0
 
+        newpath = []
         if not acckey:
-            # raise WalletError("No account key found for account %d" % account_id)
             acckey = session.query(DbWalletKey). \
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network,
                           depth=2).scalar()
-
-        if not acckey:
-            raise WalletError("No key found this wallet_id, network and purpose")
+            newpath.append(str(account_id)+"'")
+            if not acckey:
+                raise WalletError("No key found this wallet_id, network and purpose. Is there a Master key imported?")
 
         accwk = HDWalletKey(acckey.id)
-        newpath = [str(change), str(address_index)]
+        newpath.append(str(address_index))
+        newpath.append(str(change))
         bpath = accwk.path + '/'
         newkey = self._create_keys_from_path(accwk, newpath, name=name, wallet_id=self.wallet_id, network=self.network,
                                              account_id=account_id, change=change, purpose=self.purpose, basepath=bpath)
@@ -211,7 +217,9 @@ class HDWallet:
     def new_account(self, name, account_id):
         if self.keys(account_id=account_id):
             raise WalletError("Account with ID %d already exists for this wallet")
-        return self.new_key(name=name, account_id=account_id)
+        ret = self.new_key(name=name, account_id=account_id)
+        self.new_key(name=name + ' Change', account_id=account_id, change=1)
+        return ret
 
     def keys(self, account_id=None, change=None, depth=None, as_dict=False):
         qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network)
@@ -275,20 +283,21 @@ if __name__ == '__main__':
     new_key = wallet.new_key("Pizza again!")
     new_key = wallet.new_key("And more pizza...")
     new_key = wallet.new_key("Pizza change coins", change=1)
-    wallet.info(detail=3)
+    wallet.info()
     print("Used addresses:")
     for a in wallet.keys_addresses(0):
         print(a.address)
     print("\n\n")
 
-    #
+    # -- Create New Wallet with Testnet master key and account ID 251 --
     wallet_import = HDWallet.create(
         name='TestNetWallet',
         key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
             'A7irEvBoe4aAn52',
         network='testnet',
         account_id=251)
-    wallet_import.info()
+    wallet_import.new_account(name='Incoming Payments', account_id=3)
+    wallet_import.info(detail=3)
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
     wallet_import2 = HDWallet.create(
@@ -297,7 +306,6 @@ if __name__ == '__main__':
             'TtpgP4mLTj34bhnZX7UiM',
         network='bitcoin',
         account_id=2, purpose=0)
-    wallet_import2.new_account('Incoming Payments', 3)
-    wallet_import2.info(detail=2)
+    wallet_import2.info()
 
     session.close()
