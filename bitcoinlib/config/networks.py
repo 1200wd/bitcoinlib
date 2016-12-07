@@ -55,11 +55,14 @@ NETWORKS = {
     },
 }
 
+
 def network_get_values(field):
     return [nv[field] for nv in NETWORKS.values()]
 
+
 def get_network_by_value(field, value):
-    return [nv for nv in NETWORKS if NETWORKS[nv][field]==value]
+    return [nv for nv in NETWORKS if NETWORKS[nv][field] == value]
+
 
 if __name__ == '__main__':
     #

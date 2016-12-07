@@ -29,6 +29,7 @@ from bitcoinlib.mnemonic import Mnemonic
 # WARNING: Can be slow for a larger number of tests
 BULKTESTCOUNT = 10
 
+
 class TestGlobalMethods(unittest.TestCase):
 
     def test_change_base_hex_bit(self):
@@ -88,7 +89,7 @@ class TestGlobalMethods(unittest.TestCase):
         self.assertEqual('1L', change_base('013', 16, 58))
 
     def test_change_base_leading_zeros4(self):
-        self.assertEqual(b'\x04G\x81', change_base('044781',16,256))
+        self.assertEqual(b'\x04G\x81', change_base('044781', 16, 256))
 
     def test_change_base_zero_int(self):
         self.assertEqual(0, change_base(b'\0', 256, 10))
@@ -260,7 +261,8 @@ class TestHDKeysImport(unittest.TestCase):
 
     def test_hdkey_import_public(self):
         self.assertEqual('15mKKb2eos1hWa6tisdPwwDC1a5J1y9nma', self.xpub.public().address())
-        self.assertEqual('0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2', self.xpub.public().public_hex())
+        self.assertEqual('0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2',
+                         self.xpub.public().public_hex())
 
     def test_hdkey_import_public_try_private(self):
         self.assertFalse(self.xpub.public().wif())
@@ -272,8 +274,8 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
 
     def setUp(self):
         self.k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-        self.k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a87848'
-                                 '17e7b7875726f6c696663605d5a5754514e4b484542')
+        self.k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8'
+                                  '784817e7b7875726f6c696663605d5a5754514e4b484542')
 
     def test_hdkey_path_m_0h(self):
         self.assertEqual('xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7'
@@ -337,7 +339,7 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
 
     def test_hdkey_private_key_hardened(self):
         self.k2 = HDKey('xprv9s21ZrQH143K31AgNK5pyVvW23gHnkBq2wh5aEk6g1s496M8ZMjxncCKZKgb5j'
-              'ZoY5eSJMJ2Vbyvi2hbmQnCuHBujZ2WXGTux1X2k9Krdtq')
+                        'ZoY5eSJMJ2Vbyvi2hbmQnCuHBujZ2WXGTux1X2k9Krdtq')
         self.assertEqual('xprv9wTErTSu5AWGkDeUPmqBcbZWX1xq85ZNX9iQRQW9DXwygFp7iRGJo79dsVctcsCHsnZ3XU3DhsuaGZbDh8iDkB'
                          'N45k67UKsJUXM1JfRCdn1', str(self.k2.subkey_for_path('3/2H')))
 
