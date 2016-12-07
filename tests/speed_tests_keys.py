@@ -25,34 +25,40 @@ ITERATIONS = 10
 keypairs = {}
 test_results = []
 
+
 def test_speed_generate(nkeys):
     for n in range(0, nkeys):
         keypairs.update({Key(): None})
+
 
 def test_speed_priv2pub():
     for k in keypairs.keys():
         keypairs[k] = k.public()
 
+
 def test_speed_pub2addr():
     for pub in keypairs.values():
         pub.address()
+
 
 def test_speed_pubkey_func(func='hex'):
     for pub in keypairs.values():
         try:
             eval("pub.%s()" % func)
-        except Exception, e:
-            print "EXCEPTION %s" % e
+        except Exception as e:
+            print("EXCEPTION %s" % e)
+
 
 def test_speed_privkey_func(func='hex'):
     for priv in keypairs.keys():
         try:
             eval("priv.%s()" % func)
-        except Exception, e:
-            print "EXCEPTION %s" % e
+        except Exception as e:
+            print("EXCEPTION %s" % e)
+
 
 def add_test_result(test, func='', time=0):
-    print test
+    print(test)
     test_results.append({
         'test': test,
         'function': func,
@@ -63,7 +69,7 @@ def add_test_result(test, func='', time=0):
 
 
 if __name__ == '__main__':
-    print "==== Speedtests bitcoinlib ===="
+    print("==== Speedtests bitcoinlib ====")
     testname = "Generate %d private keys" % ITERATIONS
     duration = timeit.timeit(
         'test_speed_generate(%d)' % ITERATIONS, number=1,
@@ -86,10 +92,10 @@ if __name__ == '__main__':
         setup='from __main__ import test_speed_pub2addr')
     add_test_result(testname, time=duration)
 
-    print "== Test all Private key functions =="
+    print("== Test all Private key functions ==")
     functions = Key.__dict__
     for func in functions:
-        if func[0] == '_'  or func == 'public':
+        if func[0] == '_' or func == 'public':
             continue
         testname = "Test PrivateKey function: %s()" % func
         duration = timeit.timeit(
@@ -97,7 +103,7 @@ if __name__ == '__main__':
             setup='from __main__ import test_speed_privkey_func')
         add_test_result(testname, time=duration, func=func)
 
-    print "== Test all Public key functions =="
+    print("== Test all Public key functions ==")
     functions = Key.__dict__
     for func in functions:
         if func[0] == '_':
@@ -108,6 +114,6 @@ if __name__ == '__main__':
             setup='from __main__ import test_speed_pubkey_func')
         add_test_result(testname, time=duration, func=func)
 
-    print "\n\n{:<50} {:<16}".format('Test','Milliseconds')
+    print("\n\n{:<50} {:<16}".format('Test', 'Milliseconds'))
     for t in test_results:
-        print "{:<50} {:10.3f} ms".format(t['test'], t['timems'])
+        print("{:<50} {:10.3f} ms".format(t['test'], t['timems']))

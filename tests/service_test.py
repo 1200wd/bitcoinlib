@@ -29,13 +29,13 @@ unspent = bd.listunspent(0)
 amount_total = 0
 inputs = []
 for utxo in unspent:
-    print "Transaction %s:%i has %i unspent satoshi's" % (utxo['txid'], utxo['vout'], utxo['amount']*10000000)
+    print("Transaction %s:%i has %i unspent satoshi's" % (utxo['txid'], utxo['vout'], utxo['amount']*10000000))
     inputs.append({
             "txid": utxo['txid'],
             "vout": utxo['vout'],
         })
     amount_total += utxo['amount']
-print "Total spendable is %i satoshi" % (amount_total*10000000)
+print("Total spendable is %i satoshi" % (amount_total*10000000))
 
 # Create raw transaction with unspent outputs
 output_address = '1LeNnarTMFen6kmZ4kB4VhUJivDa2mTa7w'
@@ -46,7 +46,7 @@ rt = bd.createrawtransaction(inputs, {output_address: amount_total})
 wallet_password = getpass.getpass("Enter wallet Passphrase:")
 bd.walletpassphrase(wallet_password, 3)
 srt = bd.signrawtransaction(rt)
-print "=== This is the transaction:"
+print("=== This is the transaction:")
 pprint(bd.decoderawtransaction(srt['hex']))
 
 # Do not uncomment this line, unless you really want to broadcast the transaction

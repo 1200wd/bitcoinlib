@@ -29,7 +29,8 @@ import scrypt
 import binascii
 import numbers
 
-from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, secp256k1_p, secp256k1_n
+from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
+    secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base
 from bitcoinlib.config.networks import *
 
@@ -57,9 +58,9 @@ def get_key_format(key, keytype=None):
         return 'bin_compressed'
     elif len(key) == 64:
         return 'hex'
-    elif len(key) == 66  and keytype != 'public':
+    elif len(key) == 66 and keytype != 'public':
         return 'hex_compressed'
-    elif len(key) == 58  and key[:1] == '6':
+    elif len(key) == 58 and key[:1] == '6':
         return 'wif_protected'
     elif key[:1] in ['K', 'L', 'c']:
         return 'wif_compressed'
@@ -67,6 +68,7 @@ def get_key_format(key, keytype=None):
         return 'wif'
     else:
         raise ValueError("Unrecognised key format")
+
 
 def ec_point(p):
     """
@@ -113,7 +115,7 @@ class Key:
 
         if key_format in ['public_uncompressed', 'public']:
             self._secret = None
-            if key_format=='public_uncompressed':
+            if key_format == 'public_uncompressed':
                 self._public = import_key
                 self._x = import_key[2:66]
                 self._y = import_key[66:130]
@@ -124,7 +126,7 @@ class Key:
                 self._compressed = True
                 # Calculate y from x with y=x^3 + 7 function
                 sign = import_key[:2] == '03'
-                x = change_base(self._x,16,10)
+                x = change_base(self._x, 16, 10)
                 ys = (x**3+7) % secp256k1_p
                 y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
                 if y & 1 != sign:
@@ -197,7 +199,7 @@ class Key:
             raise Warning("Unrecognised password protected key format. Flagbyte incorrect.")
         addresshash = d[0:4]
         d = d[4:-4]
-        key = scrypt.hash(passphrase,addresshash, 16384, 8, 8)
+        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
         derivedhalf1 = key[0:32]
         derivedhalf2 = key[32:64]
         encryptedhalf1 = d[0:16]
@@ -294,13 +296,17 @@ class Key:
             point = ec_point(self._secret)
             self._x = change_base(int(point.x()), 10, 16, 64)
             self._y = change_base(int(point.y()), 10, 16, 64)
-            if point.y() % 2: prefix = '03'
-            else: prefix = '02'
+            if point.y() % 2:
+                prefix = '03'
+            else:
+                prefix = '02'
             self._public = prefix + self._x
             self._public_uncompressed = '04' + self._x + self._y
         if hasattr(self, '_x') and hasattr(self, '_y') and self._x and self._y:
-            if change_base(self._y, 16, 10) % 2: prefix = '03'
-            else: prefix = '02'
+            if change_base(self._y, 16, 10) % 2:
+                prefix = '03'
+            else:
+                prefix = '02'
             self._public = prefix + self._x
             self._public_uncompressed = '04' + self._x + self._y
         else:
@@ -408,7 +414,7 @@ class HDKey:
         return HDKey(key=key, chain=chain)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index = 0, isprivate=True, network=NETWORK_BITCOIN, addresstype=''):
+                 child_index=0, isprivate=True, network=NETWORK_BITCOIN, addresstype=''):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
@@ -475,25 +481,25 @@ class HDKey:
     def info(self):
         if self._isprivate:
             print("SECRET EXPONENT")
-            print(" Private Key (hex)           %s" %change_base(self._key, 256, 16))
-            print(" Private Key (long)          %s" %self._secret)
-            print(" Private Key (wif)           %s" %self.private().wif())
+            print(" Private Key (hex)           %s" % change_base(self._key, 256, 16))
+            print(" Private Key (long)          %s" % self._secret)
+            print(" Private Key (wif)           %s" % self.private().wif())
             print("")
         print("PUBLIC KEY")
-        print(" Public Key (hex)            %s" %self.public())
-        print(" Address (b58)               %s" %self.public().address())
-        print(" Fingerprint (hex)           %s" %change_base(self.fingerprint(), 256, 16))
+        print(" Public Key (hex)            %s" % self.public())
+        print(" Address (b58)               %s" % self.public().address())
+        print(" Fingerprint (hex)           %s" % change_base(self.fingerprint(), 256, 16))
         point_x, point_y = self.public().public_point()
-        print(" Point x                     %s" %point_x)
-        print(" Point y                     %s" %point_y)
+        print(" Point x                     %s" % point_x)
+        print(" Point y                     %s" % point_y)
         print("")
         print("EXTENDED KEY INFO")
-        print(" Chain code (hex)            %s" %change_base(self.chain(), 256, 16))
-        print(" Child Index                 %s" %self.child_index())
-        print(" Parent Fingerprint (hex)    %s" %change_base(self.parent_fingerprint(), 256, 16))
-        print(" Depth                       %s" %self.depth())
-        print(" Extended Public Key (wif)   %s" %self.extended_wif_public())
-        print(" Extended Private Key (wif)  %s" %self.extended_wif(public=False))
+        print(" Chain code (hex)            %s" % change_base(self.chain(), 256, 16))
+        print(" Child Index                 %s" % self.child_index())
+        print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint(), 256, 16))
+        print(" Depth                       %s" % self.depth())
+        print(" Extended Public Key (wif)   %s" % self.extended_wif_public())
+        print(" Extended Private Key (wif)  %s" % self.extended_wif(public=False))
         print("\n")
 
     def _key_derivation(self, seed):
@@ -508,7 +514,7 @@ class HDKey:
 
     def extended_wif(self, public=None, child_index=None):
         rkey = self._key
-        if not self._isprivate and public == False:
+        if not self._isprivate and public is False:
             return ''
         if self._isprivate and not public:
             raw = NETWORKS[self._network]['hdkey_private']
@@ -521,8 +527,7 @@ class HDKey:
         if child_index:
             self._child_index = child_index
         raw += change_base(self._depth, 10, 256, 1) + self._parent_fingerprint + \
-              struct.pack('>L', self._child_index) + \
-              self._chain + typebyte + rkey
+            struct.pack('>L', self._child_index) + self._chain + typebyte + rkey
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
@@ -580,10 +585,10 @@ class HDKey:
         key = self
 
         first_public = False
-        if path[0] == 'm': # Use Private master key
+        if path[0] == 'm':  # Use Private master key
             path = path[2:]
         # TODO: Write code to use public master key
-        elif path[0] == 'M': # Use Public master key
+        elif path[0] == 'M':  # Use Public master key
             path = path[2:]
             first_public = True
         if path:
@@ -598,7 +603,7 @@ class HDKey:
                 if index<0:
                     raise ValueError("Could not parse path. Index must be a positive integer.")
                 if first_public:
-                    key = key.child_public(index=index) # TODO hardened=hardened key?
+                    key = key.child_public(index=index)  # TODO hardened=hardened key?
                     first_public = False
                 else:
                     key = key.child_private(index=index, hardened=hardened)
@@ -650,8 +655,10 @@ class HDKey:
         x, y = self.public().public_point()
         Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
 
-        if change_base(Ki.y(), 16, 10) % 2: prefix = '03'
-        else: prefix = '02'
+        if change_base(Ki.y(), 16, 10) % 2:
+            prefix = '03'
+        else:
+            prefix = '02'
         xhex = change_base(Ki.x(), 10, 16, 64)
         secret = change_base(prefix + xhex, 16, 256)
         return HDKey(key=secret, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),

@@ -60,8 +60,8 @@ class Mnemonic:
 
         return unicodedata.normalize('NFKD', utxt)
 
-    # @staticmethod
-    def checksum(self, hexdata):
+    @staticmethod
+    def checksum(hexdata):
         """
         Calculates checksum for given hexdata key
 
@@ -257,20 +257,25 @@ if __name__ == '__main__':
 
     # And Japanese
     # --- not supported at the moment ---
-    # print "\nGenerate a key from a Japanese UNICODE Mnemonic sentence"
-    # words = "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　ねもと"
+    # print("\nGenerate a key from a Japanese UNICODE Mnemonic sentence")
+    # words = "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　" \
+    #         "こもん　ねもと"
     # print("Your Mnemonic is   %s" % words)
     # seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)
     # hdk = HDKey().from_seed(seed)
     # print("Seed for HD Key    %s" % change_base(seed, 256, 16))
     # print("HD Key WIF is      %s" % hdk)
-    # print("HD Key WIF <==>    xprv9s21ZrQH143K2dq9wumtjiDMnMqF56xswR5ZQDpQehp34zNtAEHCADTDt6RAEpxtsEwQbissfq2p4Hq9NY6Fbf7F5pRKkddcXoTsu5xWziU")
+    # print("HD Key WIF <==>    xprv9s21ZrQH143K2dq9wumtjiDMnMqF56xswR5ZQDpQehp34zNtAEHCADTDt6RAEpxtsEwQbissfq2p4Hq9"
+    #       "NY6Fbf7F5pRKkddcXoTsu5xWziU")
 
     # Japanese Json test
     # [
     #     "",
-    #     "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　ねもと",
-    #     "6e0404f30a518af203d70ebc0b5839c04e70d671699ffaad9f0447592b59b68afae9d938db1834c0d1aeac3554212dfedf3c42f5afd60740a308589518174e10",
-    #     "xprv9s21ZrQH143K2dq9wumtjiDMnMqF56xswR5ZQDpQehp34zNtAEHCADTDt6RAEpxtsEwQbissfq2p4Hq9NY6Fbf7F5pRKkddcXoTsu5xWziU",
+    #     "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　"
+    #     "ねもと",
+    #     "6e0404f30a518af203d70ebc0b5839c04e70d671699ffaad9f0447592b59b68afae9d938db1834c0d1aeac3554212dfedf3c42f5a"
+    #     "fd60740a308589518174e10",
+    #     "xprv9s21ZrQH143K2dq9wumtjiDMnMqF56xswR5ZQDpQehp34zNtAEHCADTDt6RAEpxtsEwQbissfq2p4Hq9NY6Fbf7F5pRKkddcXoTsu"
+    #     "5xWziU",
     #     "1200 web development"
     # ]
