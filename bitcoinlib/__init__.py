@@ -20,5 +20,6 @@
 from . import encoding
 from . import mnemonic
 from . import keys
+from . import wallets
 
-__all__ = ["keys", "encoding", "mnemonic"]
+__all__ = ["keys", "wallets", "encoding", "mnemonic"]

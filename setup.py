@@ -53,6 +53,7 @@ setup(
             'pbkdf2',
             'pycrypto',
             'scrypt',
+            'sqlalchemy',
       ],
       include_package_data=True,
       zip_safe=False

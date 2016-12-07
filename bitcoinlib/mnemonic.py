@@ -180,6 +180,7 @@ class Mnemonic:
                     raise Warning("Unrecognised word %s in mnemonic sentence" % word.encode('utf8'))
         return ' '.join(words)
 
+
 if __name__ == '__main__':
     #
     # SOME EXAMPLES

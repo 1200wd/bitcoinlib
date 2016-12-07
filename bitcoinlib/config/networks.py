@@ -32,6 +32,7 @@ NETWORKS = {
         'wif': b'\x80',
         'hdkey_private': b'\x04\x88\xAD\xE4',
         'hdkey_public': b'\x04\x88\xB2\x1E',
+        'bip44_cointype': 0,
     },
     NETWORK_BITCOIN_TESTNET: {
         'name': 'Bitcoin Test Network 3',
@@ -42,6 +43,7 @@ NETWORKS = {
         'wif': b'\xEF',
         'hdkey_private': b'\x04\x35\x83\x94',
         'hdkey_public': b'\x04\x35\x87\xCF',
+        'bip44_cointype': 1,
     },
     NETWORK_LITECOIN: {
         'name': 'Litcoin Network',
@@ -52,6 +54,7 @@ NETWORKS = {
         'wif': b'\xB0',
         'hdkey_private': b'\x01\x9D\x9C\xFE',
         'hdkey_public': b'\x01\x9D\xA4\x62',
+        'bip44_cointype': 2,
     },
 }
 
@@ -66,7 +69,7 @@ def get_network_by_value(field, value):
 
 if __name__ == '__main__':
     #
-    # SOME EXAMPLES
+    # NETWORK EXAMPLES
     #
 
     print("\n=== Get all WIF prefixes ===")
