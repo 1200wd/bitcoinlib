@@ -37,18 +37,19 @@ code_strings = {
 }
 
 
-
 def get_code_string(base):
     if base in code_strings:
         return code_strings[base]
     else:
-        return range(0,base)
+        return list(range(0, base))
+
 
 def to_bytearray(inp, code_str_from):
     if inp in code_str_from:
         return inp
     else:
         return inp.lower()
+
 
 def normalize_var(var, base):
     """
@@ -79,6 +80,7 @@ def normalize_var(var, base):
     else:
         return var
 
+
 def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, output_as_list=None):
     """
     Convert input chars from one base to another.
@@ -106,8 +108,8 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
         output_as_list = True
 
     code_str_from = get_code_string(base_from)
-    if not isinstance(code_str_from, bytes):
-        raise ValueError("Code strings must be defined as bytes")
+    if not isinstance(code_str_from, (bytes, list)):
+        raise ValueError("Code strings must be a list or defined as bytes")
     output = []
     input_dec = 0
     addzeros = 0
@@ -187,6 +189,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
         return output.encode('ISO-8859-1')
     else:
         return output
+
 
 if __name__ == '__main__':
     #
