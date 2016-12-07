@@ -31,6 +31,7 @@ PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
 WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
 
+
 class Mnemonic:
     """
     Implementation of BIP0039 for Mnemonic keys.
@@ -146,17 +147,24 @@ class Mnemonic:
         words = self.normalize_string(words)
         if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
             words = words.split(' ')
-        firstword = words[0]
-        if sys.version < '3':
-            firstword = firstword.encode('utf-8')
+
+        wlcount = {}
         for fn in os.listdir(WORDLIST_DIR):
             if fn.endswith(".txt"):
                 with open('%s/%s' % (WORDLIST_DIR, fn), 'r') as f:
                     wordlist = [w.strip() for w in f.readlines()]
-                    if firstword in wordlist:
-                        return fn.split('.')[0]
-
-        raise Warning("Could not detect language of Mnemonic sentence %s" % words)
+                    language = fn.split('.')[0]
+                    wlcount[language] = 0
+                    for word in words:
+                        if sys.version < '3':
+                            word = word.encode('utf-8')
+                        if word in wordlist:
+                            wlcount[language] += 1
+        detlang = max(wlcount.keys(), key=(lambda key: wlcount[key]))
+        if wlcount[detlang] > 0:
+            return detlang
+        else:
+            raise Warning("Could not detect language of Mnemonic sentence %s" % words)
 
     def sanitize_mnemonic(self, words):
         words = self.normalize_string(words)
@@ -258,10 +266,10 @@ if __name__ == '__main__':
     # print("HD Key WIF <==>    xprv9s21ZrQH143K2dq9wumtjiDMnMqF56xswR5ZQDpQehp34zNtAEHCADTDt6RAEpxtsEwQbissfq2p4Hq9NY6Fbf7F5pRKkddcXoTsu5xWziU")
 
     # Japanese Json test
-        # [
-        #     "",
-        #     "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　ねもと",
-        #     "6e0404f30a518af203d70ebc0b5839c04e70d671699ffaad9f0447592b59b68afae9d938db1834c0d1aeac3554212dfedf3c42f5afd60740a308589518174e10",
-        #     "xprv9s21ZrQH143K2dq9wumtjiDMnMqF56xswR5ZQDpQehp34zNtAEHCADTDt6RAEpxtsEwQbissfq2p4Hq9NY6Fbf7F5pRKkddcXoTsu5xWziU",
-        #     "1200 web development"
-        # ]
+    # [
+    #     "",
+    #     "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　ねもと",
+    #     "6e0404f30a518af203d70ebc0b5839c04e70d671699ffaad9f0447592b59b68afae9d938db1834c0d1aeac3554212dfedf3c42f5afd60740a308589518174e10",
+    #     "xprv9s21ZrQH143K2dq9wumtjiDMnMqF56xswR5ZQDpQehp34zNtAEHCADTDt6RAEpxtsEwQbissfq2p4Hq9NY6Fbf7F5pRKkddcXoTsu5xWziU",
+    #     "1200 web development"
+    # ]
