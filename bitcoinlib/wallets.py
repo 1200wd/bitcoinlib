@@ -280,17 +280,13 @@ if __name__ == '__main__':
     # -- Create New Wallet and Generate a some new Keys --
     wallet = HDWallet.create(name='Personal', network='testnet')
     wallet.new_account()
-    new_key = wallet.new_key()
-    new_key = wallet.new_key()
-    new_key = wallet.new_key()
-    new_key = wallet.new_key(change=1)
+    new_key1 = wallet.new_key()
+    new_key2 = wallet.new_key()
+    new_key3 = wallet.new_key()
+    new_key4 = wallet.new_key(change=1)
     donations_account = wallet.new_account()
-    new_key = wallet.new_key(account_id=donations_account.account_id)
+    new_key5 = wallet.new_key(account_id=donations_account.account_id)
     wallet.info(detail=3)
-    print("Used addresses:")
-    for a in wallet.keys_addresses(0):
-        print(a.address)
-    print("\n\n")
 
     # -- Create New Wallet with Testnet master key and account ID 251 --
     wallet_import = HDWallet.create(

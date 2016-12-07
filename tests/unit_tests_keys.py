@@ -29,6 +29,7 @@ from bitcoinlib.mnemonic import Mnemonic
 # WARNING: Can be slow for a larger number of tests
 BULKTESTCOUNT = 10
 
+
 class TestGlobalMethods(unittest.TestCase):
 
     def test_change_base_hex_bit(self):

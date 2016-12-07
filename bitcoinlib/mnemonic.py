@@ -31,6 +31,7 @@ PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
 WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
 
+
 class Mnemonic:
     """
     Implementation of BIP0039 for Mnemonic keys.
@@ -171,6 +172,7 @@ class Mnemonic:
                 if word not in wordlist:
                     raise Warning("Unrecognised word %s in mnemonic sentence" % word.encode('utf8'))
         return ' '.join(words)
+
 
 if __name__ == '__main__':
     #

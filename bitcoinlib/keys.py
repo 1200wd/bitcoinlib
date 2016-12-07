@@ -658,7 +658,6 @@ class HDKey:
                      child_index=index, isprivate=False)
 
 
-
 if __name__ == '__main__':
     #
     # KEYS EXAMPLES
@@ -710,9 +709,9 @@ if __name__ == '__main__':
     print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
           "and one thought private parent. They should be the same.")
     K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
-                       '7nHUYwxHPhqmzUyeFG')
+              '7nHUYwxHPhqmzUyeFG')
     k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
-                       '1h3BoPuEJzsgeypdKj')
+              '1h3BoPuEJzsgeypdKj')
 
     index = 1000
     pub_with_pubparent = K.child_public(index).public().address()
