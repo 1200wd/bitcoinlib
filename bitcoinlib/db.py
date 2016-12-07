@@ -20,7 +20,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 import os
 
 DATABASEDIR = os.path.join(os.path.dirname(__file__), 'data/')
@@ -30,6 +30,7 @@ engine = create_engine('sqlite:///%s%s' % (DATABASEDIR, DATABASEFILE))
 Session = sessionmaker(bind=engine)
 session = Session()
 
+
 class DbWallet(Base):
     __tablename__ = 'dbwallets'
     id = Column(Integer, Sequence('wallet_id_seq'), primary_key=True)
@@ -37,14 +38,9 @@ class DbWallet(Base):
     owner = Column(String(50))
     network = Column(String(20))
     purpose = Column(Integer, default=44)
-    main_key_id = Column(Integer, ForeignKey('dbwalletkeys.id'))
-
-
-# class DbWalletAccount(Base):
-#     __tablename__ = 'dbwalletaccounts'
-#     id = Column(Integer, Sequence('account_id_seq'), primary_key=True)
-#     wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
-#     name = Column(String(50), unique=True)
+    # main_key_id = Column(Integer, ForeignKey('dbwalletkeys.id'))
+    main_key_id = Column(Integer)
+    keys = relationship("DbWalletKey", back_populates="wallet")
 
 
 # Use following BIP 44 path
@@ -55,18 +51,19 @@ class DbWalletKey(Base):
     id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
     parent_id = Column(Integer, Sequence('parent_id_seq'))
     name = Column(String(50))
-    wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
-    network = Column(String(20))
     account_id = Column(Integer)
     depth = Column(Integer)
-    change = Column(Integer) # TODO: 0 or 1 (0=external receiving address, 1=internal change addresses)
-    address_index = Column(Integer) # TODO: constraint gap no longer than 20
+    change = Column(Integer)  # TODO: 0 or 1 (0=external receiving address, 1=internal change addresses)
+    address_index = Column(Integer)  # TODO: constraint gap no longer than 20
     key = Column(String(255), unique=True)
     key_wif = Column(String(255), unique=True)
     address = Column(String(255), unique=True)
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
     path = Column(String(100))
+    wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
+    wallet = relationship("DbWallet", back_populates="keys")
+
 
 if not os.path.exists(DATABASEDIR):
     os.makedirs(DATABASEDIR)

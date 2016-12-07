@@ -31,7 +31,7 @@ class WalletError(Exception):
 class HDWalletKey:
 
     @staticmethod
-    def from_key(name, wallet_id, key='', account_id=0, change=0, network='bitcoin', purpose=44, parent_id=0, path='m'):
+    def from_key(name, wallet_id, key='', account_id=0, network='bitcoin', change=0, purpose=44, parent_id=0, path='m'):
         k = HDKey(import_key=key, network=network)
         # TODO: Check if wallet name and key are not in database yet
 
@@ -42,7 +42,8 @@ class HDWalletKey:
                 path = "m/%d'/%d'/%d'" % (purpose, networkcode, account_id)
             else:
                 print(path)
-                raise WalletError("Key depth of %d does not match path lenght of %d" % (k.depth(), len(path.split('/'))-1))
+                raise WalletError("Key depth of %d does not match path lenght of %d" % 
+                                  (k.depth(), len(path.split('/')) - 1))
 
         wk = session.query(DbWalletKey).filter(or_(DbWalletKey.key == str(k.private()),
                                                    DbWalletKey.key_wif == k.extended_wif(),
@@ -50,7 +51,7 @@ class HDWalletKey:
         if wk:
             return HDWalletKey(wk.id)
 
-        nk = DbWalletKey(name=name, wallet_id=wallet_id, network=network, key=str(k.private()), purpose=purpose,
+        nk = DbWalletKey(name=name, wallet_id=wallet_id, key=str(k.private()), purpose=purpose, 
                          account_id=account_id, depth=k.depth(), change=change, address_index=k.child_index(),
                          key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
                          is_private=True, path=path)
@@ -64,7 +65,6 @@ class HDWalletKey:
             self.key_id = key_id
             self.name = wk.name
             self.wallet_id = wk.wallet_id
-            self.network = wk.network
             self.key = wk.key
             self.account_id = wk.account_id
             self.change = wk.change
@@ -75,7 +75,8 @@ class HDWalletKey:
             self.parent_id = wk.parent_id
             self.is_private = wk.is_private
             self.path = wk.path
-            self.k = HDKey(import_key=self.key_wif)
+            self.network = wk.wallet.network
+            self.k = HDKey(import_key=self.key_wif, network=self.network)
             self.depth = wk.depth
         else:
             raise WalletError("Key with id %s not found" % key_id)
@@ -103,7 +104,6 @@ class HDWalletKey:
         print(" Is Private                     %s" % self.is_private)
         print(" Name                           %s" % self.name)
         print(" Key WIF                        %s" % self.key_wif)
-        print(" Network                        %s" % self.network)
         print(" Account ID                     %s" % self.account_id)
         print(" Parent ID                      %s" % self.parent_id)
         print(" Depth                          %s" % self.depth)
@@ -142,7 +142,7 @@ class HDWallet:
         return HDWallet(new_wallet.id)
 
     @staticmethod
-    def _create_keys_from_path(masterkey, path, wallet_id, network, account_id,
+    def _create_keys_from_path(masterkey, path, wallet_id, account_id, network,
                                name='', basepath='', change=0, purpose=44):
         parent_id = 0
         for l in range(1, len(path)+1):
@@ -173,11 +173,9 @@ class HDWallet:
     def new_key(self, name='', account_id=0, change=0, max_depth=5):
         # Find main account key
         acckey = session.query(DbWalletKey). \
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network,
-                      account_id=account_id, change=0, depth=3).scalar()
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id, change=0, depth=3).scalar()
         prevkey = session.query(DbWalletKey). \
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network,
-                      account_id=account_id, change=change, depth=5). \
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id, change=change, depth=5). \
             order_by(DbWalletKey.address_index.desc()).first()
 
         address_index = 0
@@ -187,8 +185,7 @@ class HDWallet:
         newpath = []
         if not acckey:
             acckey = session.query(DbWalletKey). \
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network,
-                          depth=2).scalar()
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=2).scalar()
             newpath.append(str(account_id)+"'")
             if not acckey:
                 raise WalletError("No key found this wallet_id, network and purpose. Is there a Master key imported?")
@@ -201,7 +198,7 @@ class HDWallet:
         if not name:
             name = "Key %d" % address_index
         newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
-                                             network=self.network, account_id=account_id, change=change,
+                                             account_id=account_id, change=change, network=self.network,
                                              purpose=self.purpose, basepath=bpath)
         return HDWalletKey(newkey)
 
@@ -211,8 +208,7 @@ class HDWallet:
     def new_account(self, name='', account_id=0):
         if self.keys(account_id=account_id):
             last_id = session.query(DbWalletKey). \
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
-                          network=self.network). \
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose). \
                 order_by(DbWalletKey.account_id.desc()).first().account_id
             account_id = last_id + 1
         if not name:
@@ -224,7 +220,7 @@ class HDWallet:
         return ret
 
     def keys(self, account_id=None, change=None, depth=None, as_dict=False):
-        qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network)
+        qr = session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if account_id is not None:
             qr = qr.filter(DbWalletKey.account_id == account_id)
             qr = qr.filter(DbWalletKey.depth > 3)
@@ -303,7 +299,8 @@ if __name__ == '__main__':
             'A7irEvBoe4aAn52',
         network='testnet',
         account_id=251)
-    wallet_import.new_account(name='Incoming Payments', account_id=3)
+    wallet_import.new_account()
+    wallet_import.new_key("Faucet gift")
     wallet_import.info(detail=3)
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
