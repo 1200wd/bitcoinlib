@@ -200,7 +200,7 @@ Install with pip
    
 
 [![Build Status](https://travis-ci.org/1200wd/bitcoinlib.svg?branch=master)](https://travis-ci.org/1200wd/bitcoinlib)
-
+[![PyPI](https://img.shields.io/pypi/v/bitcoinlib.svg)](https://pypi.python.org/pypi/bitcoinlib/)
 
 #### Package dependencies
 

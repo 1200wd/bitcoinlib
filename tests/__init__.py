@@ -17,4 +17,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from . import unit_tests_keys
+import tests.unit_tests_keys

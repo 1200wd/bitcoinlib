@@ -3,11 +3,11 @@ sudo: required
 language: python
 
 python:
-    - 2.7
+    - 3.3
+    - 3.4
     - 3.5
 
 before_script:
-  - sudo apt-get update
   - sudo apt-get install libssl-dev
   - sudo apt-get install python-dev python3-dev
 
