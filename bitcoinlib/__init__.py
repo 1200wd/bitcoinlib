@@ -17,9 +17,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import encoding
-import mnemonic
-import keys
-import wallets
+from . import encoding
+from . import mnemonic
+from . import keys
+from . import wallets
 
 __all__ = ["keys", "wallets", "encoding", "mnemonic"]

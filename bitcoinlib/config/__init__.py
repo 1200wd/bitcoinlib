@@ -17,5 +17,5 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import networks
-import secp256k1
+from . import networks
+from . import secp256k1
