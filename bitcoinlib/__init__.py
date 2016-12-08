@@ -17,9 +17,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from . import encoding
-from . import mnemonic
-from . import keys
-from . import wallets
+import bitcoinlib.encoding
+import bitcoinlib.mnemonic
+import bitcoinlib.keys
+import bitcoinlib.wallets
 
 __all__ = ["keys", "wallets", "encoding", "mnemonic"]
