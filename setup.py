@@ -58,7 +58,7 @@ For details see https://github.com/bitcoin/bips""",
       author_email='info@1200wd.com',
       license='GNU3',
       packages=['bitcoinlib'],
-      test_suite='tests.unit_tests_keys',
+      test_suite= 'tests',
       install_requires=[
             'ecdsa',
             'pbkdf2',

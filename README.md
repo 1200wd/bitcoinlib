@@ -209,7 +209,6 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 - pbkdf2
 - pycrypto
 - scrypt
-- binascii
 - sqlalchemy
 
 #### Python development packages

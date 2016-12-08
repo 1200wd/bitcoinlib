@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
+#    Unit Tests for Wallet Class
 #    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -17,7 +18,3 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import tests.encoding_test
-import tests.keys_test
-import tests.encoding_test
-import tests.wallets_test
