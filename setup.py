@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    Setup
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    PyPi Setup Tool
+#    © 2016 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -20,16 +20,25 @@
 
 from setuptools import setup
 
+
 def readme():
     with open('README.md') as f:
         return f.read()
 
 setup(
       name='bitcoinlib',
-      version='0.2',
+      version='0.2.1',
       description='Bitcoin and Other cryptocurrency Library',
-      long_description='Bitcoin library with key manipulation function to generate, import and convert cryptograpic keys. '
-                       'Implements BIP0032, BIP0039, BIP0033 and BIP0044',
+      long_description="""Bitcoin library with methods to generate, import, store and convert cryptograpic keys.
+
+Implements the following Bitcoin Improvement Proposals
+- Hierarchical Deterministic Wallets (BIP0032)
+- Passphrase-protected private key (BIP0038)
+- Mnemonic code for generating deterministic keys (BIP0039)
+- Purpose Field for Deterministic Wallets (BIP0043)
+- Multi-Account Hierarchy for Deterministic Wallets (BIP0044)
+
+For details see https://github.com/bitcoin/bips""",
       classifiers=[
             'Development Status :: 2 - Pre-Alpha',
             'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',

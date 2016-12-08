@@ -39,6 +39,7 @@ class BitcoindClient:
         self.type = 'bitcoind'
         protocol = 'https' if use_https else 'http'
         uri = '%s://%s:%s@%s:%s' % (protocol, user, password, server, port)
+        print(uri)
         self.proxy = AuthServiceProxy(uri)
 
 
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     #
 
     from pprint import pprint
-    bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
+    bdc = BitcoindClient.from_config('bitcoind-testnet-local.ini')
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getinfo())
