@@ -17,6 +17,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from . import bitcoind
-from . import authproxy
-from . import blockchain_info
+import bitcoind
+import authproxy
+import blockchain_info
