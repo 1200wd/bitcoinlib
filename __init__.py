@@ -18,5 +18,6 @@
 #
 
 from . import bitcoinlib
+from . import tests
 
-__all__ = ["bitcoinlib"]
+__all__ = ["bitcoinlib", "tests"]
