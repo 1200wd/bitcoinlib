@@ -199,6 +199,9 @@ Install with pip
     pip install bitcoinlib
    
 
+[![Build Status](https://travis-ci.org/1200wd/bitcoinlib.svg?branch=master)](https://travis-ci.org/1200wd/bitcoinlib)
+
+
 #### Package dependencies
 
 Required Python Packages, are automatically installed upon installing bitcoinlib:
