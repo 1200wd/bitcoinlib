@@ -18,3 +18,29 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import unittest
+
+from bitcoinlib.db import *
+from bitcoinlib.wallets import HDWallet
+
+
+class TestEncodingMethods(unittest.TestCase):
+
+    def SetUp(self):
+        import os
+        DATABASEFILE = 'bitcoinlib.unittest.sqlite'
+        if os.path.isfile(DATABASEDIR + DATABASEFILE):
+            os.remove(DATABASEDIR + DATABASEFILE)
+        Base.metadata.create_all(engine)
+
+    def test_change_base_hex_bit(self):
+        kstr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
+               'A7irEvBoe4aAn52'
+        wallet_import = HDWallet.create(
+            name='TestNetWallet',
+            key= kstr,
+            network='testnet',
+            account_id=251)
+        wallet_import.new_account()
+        wallet_import.new_key("Faucet gift")
+        self.assertEqual(wallet_import.main_key(), kstr)

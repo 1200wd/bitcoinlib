@@ -23,12 +23,21 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 import os
 
-DATABASEDIR = os.path.join(os.path.dirname(__file__), 'data/')
-DATABASEFILE = 'bitcoinlib.sqlite'
+DEFAULT_DATABASEDIR = os.path.join(os.path.dirname(__file__), 'data/')
+DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
+
 Base = declarative_base()
-engine = create_engine('sqlite:///%s%s' % (DATABASEDIR, DATABASEFILE))
-Session = sessionmaker(bind=engine)
-session = Session()
+
+
+class DbInit:
+    def __init__(self, databasedir=DEFAULT_DATABASEDIR, databasefile=DEFAULT_DATABASEFILE):
+        engine = create_engine('sqlite:///%s%s' % (databasedir, databasefile))
+        Session = sessionmaker(bind=engine)
+        self.session = Session()
+
+        if not os.path.exists(databasedir):
+            os.makedirs(databasedir)
+        Base.metadata.create_all(engine)
 
 
 class DbWallet(Base):
@@ -63,8 +72,3 @@ class DbWalletKey(Base):
     path = Column(String(100))
     wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
     wallet = relationship("DbWallet", back_populates="keys")
-
-
-if not os.path.exists(DATABASEDIR):
-    os.makedirs(DATABASEDIR)
-Base.metadata.create_all(engine)
