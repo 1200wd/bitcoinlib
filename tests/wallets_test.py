@@ -53,18 +53,41 @@ class TestEncodingMethods(unittest.TestCase):
 
     def test_wallet_import(self):
         keystr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
-               'A7irEvBoe4aAn52'
+                 'A7irEvBoe4aAn52'
         wallet_import = HDWallet.create(
             databasefile=DATABASEFILE_UNITTESTS,
             name='test_wallet_import',
-            key=keystr,
-            network='testnet',
-            account_id=251)
-        wallet_import.new_account()
-        wallet_import.new_key()
+            key=keystr)
         self.assertEqual(wallet_import.main_key.key_wif, keystr)
         self.assertEqual(wallet_import.main_key.address, u'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
         self.assertEqual(wallet_import.main_key.path, 'm')
 
-        accountkey = 'xprv9zczRjV7WKN3b1MaV61nq2o1JeQKbioJYNWLo4CVKdaxW92ub34h3X5uhuMCb9ACT8DzseYPG8vyKWC7pczfU' \
-                     'Eu1wEBLD8abV3pbWNSBxgT'
+    def test_wallet_import_account(self):
+        accountkey = 'tprv8h4wEmfC2aSYN5wABvg9Wucyc4itsK2QSEmKpRyDESvqJAEiFZ18Qmz3xt9oWHBWLoq9Ks36NAkRKyHDYP6KYqYkH' \
+                     'GZpdAqnj61cAgACmUY'
+        wallet_import = HDWallet.create(
+            databasefile=DATABASEFILE_UNITTESTS,
+            name='test_wallet_import_account',
+            key=accountkey,
+            account_id=99)
+        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
+        self.assertEqual(wallet_import.main_key.address, u'mtvLfcWMQPHVjjoKPR2Pyr42tB3BAfXQ4R')
+        self.assertEqual(wallet_import.main_key.path, "m/44'/0'/99'")
+
+    def test_wallet_import_account_new_keys(self):
+        accountkey = 'tprv8h4wEmfC2aSYN5wABvg9Wucyc4itsK2QSEmKpRyDESvqJAEiFZ18Qmz3xt9oWHBWLoq9Ks36NAkRKyHDYP6KYqYkH' \
+                     'GZpdAqnj61cAgACmUY'
+        wallet_import = HDWallet.create(
+            databasefile=DATABASEFILE_UNITTESTS,
+            name='test_wallet_import_account_new_key',
+            key=accountkey,
+            network='testnet',
+            account_id=99)
+        newkey = wallet_import.new_key(account_id=99)
+        newkey_change = wallet_import.new_key(account_id=99, change=1, name='change')
+        wallet_import.info(detail=3)
+        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
+        self.assertEqual(newkey.address, u'mweZrbny4fmpCmQw9hJH7EVfkuWX8te9jc')
+        self.assertEqual(newkey.path, "m/44'/0'/99'/0/0")
+        self.assertEqual(newkey_change.address, u'mrq34rE7e6E5mfhYeS7s2JinUX78e7r5cZ')
+        self.assertEqual(newkey_change.path, "m/44'/0'/99'/1/0")
