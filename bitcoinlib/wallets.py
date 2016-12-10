@@ -99,6 +99,9 @@ class HDWalletKey:
         p.append(str(address_index))
         return p[:max_depth]
 
+    def parent(self, session):
+        return HDWalletKey(self.parent_id, session=session)
+
     def info(self):
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
@@ -226,7 +229,7 @@ class HDWallet:
             raise WalletError("Account with ID %d already exists for this wallet")
         ret = self.new_key(name=name, account_id=account_id, max_depth=4)
         self.new_key(name=name, account_id=account_id, max_depth=4, change=1)
-        return ret
+        return ret.parent(session=self.session)
 
     def keys(self, account_id=None, change=None, depth=None, as_dict=False):
         qr = self.session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)

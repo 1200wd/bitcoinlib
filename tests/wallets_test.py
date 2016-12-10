@@ -21,7 +21,7 @@
 import unittest
 import os
 
-from bitcoinlib.db import *
+from bitcoinlib.db import DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet
 
 DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
@@ -32,18 +32,39 @@ class TestEncodingMethods(unittest.TestCase):
     def setUp(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
+        self.wallet = HDWallet.create(
+            name='test_wallet_create',
+            databasefile=DATABASEFILE_UNITTESTS)
 
     def test_wallet_create(self):
-        kstr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
+        self.assertTrue(isinstance(self.wallet, HDWallet))
+
+    def test_wallet_create_account(self):
+        new_account = self.wallet.new_account(account_id=100)
+        self.assertEqual(new_account.depth, 3)
+        self.assertEqual(new_account.key_wif[:4], 'xprv')
+        self.assertEqual(new_account.path, "m/44'/0'/100'")
+
+    def test_wallet_create_key(self):
+        new_key = self.wallet.new_key(account_id=100)
+        self.assertEqual(new_key.depth, 5)
+        self.assertEqual(new_key.key_wif[:4], 'xprv')
+        self.assertEqual(new_key.path, "m/44'/0'/100'/0/0")
+
+    def test_wallet_import(self):
+        keystr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
                'A7irEvBoe4aAn52'
         wallet_import = HDWallet.create(
             databasefile=DATABASEFILE_UNITTESTS,
-            name='TestNetWallet',
-            key= kstr,
+            name='test_wallet_import',
+            key=keystr,
             network='testnet',
             account_id=251)
         wallet_import.new_account()
-        wallet_import.new_key("Faucet gift")
-        self.assertEqual(wallet_import.main_key.key_wif, kstr)
+        wallet_import.new_key()
+        self.assertEqual(wallet_import.main_key.key_wif, keystr)
         self.assertEqual(wallet_import.main_key.address, u'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
         self.assertEqual(wallet_import.main_key.path, 'm')
+
+        accountkey = 'xprv9zczRjV7WKN3b1MaV61nq2o1JeQKbioJYNWLo4CVKdaxW92ub34h3X5uhuMCb9ACT8DzseYPG8vyKWC7pczfU' \
+                     'Eu1wEBLD8abV3pbWNSBxgT'
