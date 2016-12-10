@@ -17,27 +17,30 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-import os
+
 
 DEFAULT_DATABASEDIR = os.path.join(os.path.dirname(__file__), 'data/')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
+DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
 
 Base = declarative_base()
 
 
 class DbInit:
-    def __init__(self, databasedir=DEFAULT_DATABASEDIR, databasefile=DEFAULT_DATABASEFILE):
-        engine = create_engine('sqlite:///%s%s' % (databasedir, databasefile))
-        Session = sessionmaker(bind=engine)
-        self.session = Session()
 
-        if not os.path.exists(databasedir):
-            os.makedirs(databasedir)
+    def __init__(self, databasefile=DEFAULT_DATABASE):
+        engine = create_engine('sqlite:///%s' % databasefile)
+        Session = sessionmaker(bind=engine)
+
+        if not os.path.exists(DEFAULT_DATABASEDIR):
+            os.makedirs(DEFAULT_DATABASEDIR)
         Base.metadata.create_all(engine)
+        self.session = Session()
 
 
 class DbWallet(Base):

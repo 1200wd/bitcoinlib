@@ -19,28 +19,31 @@
 #
 
 import unittest
+import os
 
 from bitcoinlib.db import *
 from bitcoinlib.wallets import HDWallet
 
+DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
+
 
 class TestEncodingMethods(unittest.TestCase):
 
-    def SetUp(self):
-        import os
-        DATABASEFILE = 'bitcoinlib.unittest.sqlite'
-        if os.path.isfile(DATABASEDIR + DATABASEFILE):
-            os.remove(DATABASEDIR + DATABASEFILE)
-        Base.metadata.create_all(engine)
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
 
-    def test_change_base_hex_bit(self):
+    def test_wallet_create(self):
         kstr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
                'A7irEvBoe4aAn52'
         wallet_import = HDWallet.create(
+            databasefile=DATABASEFILE_UNITTESTS,
             name='TestNetWallet',
             key= kstr,
             network='testnet',
             account_id=251)
         wallet_import.new_account()
         wallet_import.new_key("Faucet gift")
-        self.assertEqual(wallet_import.main_key(), kstr)
+        self.assertEqual(wallet_import.main_key.key_wif, kstr)
+        self.assertEqual(wallet_import.main_key.address, u'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
+        self.assertEqual(wallet_import.main_key.path, 'm')
