@@ -600,9 +600,9 @@ class HDKey:
                 if hardened:
                     level = level[:-1]
                 index = int(level)
-                if index<0:
+                if index < 0:
                     raise ValueError("Could not parse path. Index must be a positive integer.")
-                if first_public:
+                if first_public or not key.isprivate():
                     key = key.child_public(index=index)  # TODO hardened=hardened key?
                     first_public = False
                 else:
@@ -669,6 +669,12 @@ if __name__ == '__main__':
     #
     # KEYS EXAMPLES
     #
+
+    k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8'
+                         '784817e7b7875726f6c696663605d5a5754514e4b484542')
+    k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif()
+    k2.info()
+    sys.exit()
     
     print("\n=== Import public key ===")
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')

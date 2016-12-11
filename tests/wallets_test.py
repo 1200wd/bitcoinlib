@@ -47,6 +47,7 @@ class TestEncodingMethods(unittest.TestCase):
 
     def test_wallet_create_key(self):
         new_key = self.wallet.new_key(account_id=100)
+        new_key.info()
         self.assertEqual(new_key.depth, 5)
         self.assertEqual(new_key.key_wif[:4], 'xprv')
         self.assertEqual(new_key.path, "m/44'/0'/100'/0/0")
@@ -94,3 +95,15 @@ class TestEncodingMethods(unittest.TestCase):
         self.assertEqual(newkey.path, "m/44'/1'/99'/0/0")
         self.assertEqual(newkey_change.address, u'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
         self.assertEqual(newkey_change.path, "m/44'/1'/99'/1/0")
+
+    def test_wallet_import_public_wallet(self):
+        pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
+                 'wt9SrsVeBeqfBbR3'
+        pubwal = HDWallet.create(
+            databasefile=DATABASEFILE_UNITTESTS,
+            name='test_wallet_import_public_wallet',
+            key=pubkey,
+            network='testnet',
+            account_id=0)
+        newkey = pubwal.new_key()
+        self.assertEqual(newkey.address, u'mweZrbny4fmpCmQw9hJH7EVfkuWX8te9jc')

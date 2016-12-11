@@ -332,3 +332,15 @@ if __name__ == '__main__':
         account_id=2, purpose=0,
         databasefile=test_database)
     wallet_import2.info(detail=3)
+
+    # -- Create online wallet to generate addresses without private key
+    pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
+             'wt9SrsVeBeqfBbR3'
+    pubwal = HDWallet.create(
+        databasefile=test_database,
+        name='test_wallet_import_public_wallet',
+        key=pubkey,
+        network='testnet',
+        account_id=0)
+    newkey = pubwal.new_key()
+    pubwal.info(detail=3)

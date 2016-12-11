@@ -222,6 +222,7 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
                          self.k.subkey_for_path('m/0h/1/2h/2/1000000000').extended_wif_public())
 
     def test_hdkey_path_key2(self):
+        self.k2.info()
         self.assertEqual('xprvA2nrNbFZABcdryreWet9Ea4LvTJcGsqrMzxHx98MMrotbir7yrKCEXw7nadnHM8Dq38EGfSh6dqA9QWTyefMLEc'
                          'BYJUuekgW4BYPJcr9E7j',
                          self.k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif())
