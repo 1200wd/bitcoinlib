@@ -107,3 +107,16 @@ class TestEncodingMethods(unittest.TestCase):
             account_id=0)
         newkey = pubwal.new_key()
         self.assertEqual(newkey.address, u'mweZrbny4fmpCmQw9hJH7EVfkuWX8te9jc')
+
+    def test_wallet_litecoin(self):
+        accountkey = 'Ltpv71G8qDifUiNet6mn25D7GPAVLZeaFRWzDABxx5xNeigVpFEviHK1ZggPS1kbtegB3U2i8w6ToNfM5sdvEQPW' \
+                     'tov4KWyQ5NxWUd3oDWXQb4C'
+        wallet_import = HDWallet.create(
+            databasefile=DATABASEFILE_UNITTESTS,
+            name='test_wallet_litecoin',
+            key=accountkey,
+            network='litecoin')
+        newkey = wallet_import.new_key()
+        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
+        self.assertEqual(newkey.address, u'LPkJcpV1cmT8qLFmUApySBtxt7UWavoQmh')
+        self.assertEqual(newkey.path, "m/44'/2'/0'/0/0")

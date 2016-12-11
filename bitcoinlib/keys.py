@@ -440,7 +440,7 @@ class HDKey:
             elif len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
-            elif import_key[:4] in ['xprv', 'xpub', 'tprv', 'tpub']:
+            elif import_key[:4] in ['xprv', 'xpub', 'tprv', 'tpub', 'Ltpv', 'Ltpb']:
                 if import_key[:1] == 't':
                     self._network = NETWORK_BITCOIN_TESTNET
                 # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
