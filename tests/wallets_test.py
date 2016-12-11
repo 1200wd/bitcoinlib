@@ -2,7 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Unit Tests for Wallet Class
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2016 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -57,26 +57,30 @@ class TestEncodingMethods(unittest.TestCase):
         wallet_import = HDWallet.create(
             databasefile=DATABASEFILE_UNITTESTS,
             name='test_wallet_import',
+            network='testnet',
             key=keystr)
+        wallet_import.new_account(account_id=99)
         self.assertEqual(wallet_import.main_key.key_wif, keystr)
         self.assertEqual(wallet_import.main_key.address, u'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
         self.assertEqual(wallet_import.main_key.path, 'm')
+        wallet_import.info(detail=3)
 
     def test_wallet_import_account(self):
-        accountkey = 'tprv8h4wEmfC2aSYN5wABvg9Wucyc4itsK2QSEmKpRyDESvqJAEiFZ18Qmz3xt9oWHBWLoq9Ks36NAkRKyHDYP6KYqYkH' \
-                     'GZpdAqnj61cAgACmUY'
+        accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+                     '8Y7KbKUnaMzx9nnsSvh'
         wallet_import = HDWallet.create(
             databasefile=DATABASEFILE_UNITTESTS,
             name='test_wallet_import_account',
             key=accountkey,
+            network='testnet',
             account_id=99)
         self.assertEqual(wallet_import.main_key.key_wif, accountkey)
-        self.assertEqual(wallet_import.main_key.address, u'mtvLfcWMQPHVjjoKPR2Pyr42tB3BAfXQ4R')
-        self.assertEqual(wallet_import.main_key.path, "m/44'/0'/99'")
+        self.assertEqual(wallet_import.main_key.address, u'mowRx2TNXTgRSUmepjqhx5C1TTigmHLGRh')
+        self.assertEqual(wallet_import.main_key.path, "m/44'/1'/99'")
 
     def test_wallet_import_account_new_keys(self):
-        accountkey = 'tprv8h4wEmfC2aSYN5wABvg9Wucyc4itsK2QSEmKpRyDESvqJAEiFZ18Qmz3xt9oWHBWLoq9Ks36NAkRKyHDYP6KYqYkH' \
-                     'GZpdAqnj61cAgACmUY'
+        accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+                     '8Y7KbKUnaMzx9nnsSvh'
         wallet_import = HDWallet.create(
             databasefile=DATABASEFILE_UNITTESTS,
             name='test_wallet_import_account_new_key',
@@ -84,10 +88,9 @@ class TestEncodingMethods(unittest.TestCase):
             network='testnet',
             account_id=99)
         newkey = wallet_import.new_key(account_id=99)
-        newkey_change = wallet_import.new_key(account_id=99, change=1, name='change')
-        wallet_import.info(detail=3)
+        newkey_change = wallet_import.new_key_change(account_id=99, name='change')
         self.assertEqual(wallet_import.main_key.key_wif, accountkey)
-        self.assertEqual(newkey.address, u'mweZrbny4fmpCmQw9hJH7EVfkuWX8te9jc')
-        self.assertEqual(newkey.path, "m/44'/0'/99'/0/0")
-        self.assertEqual(newkey_change.address, u'mrq34rE7e6E5mfhYeS7s2JinUX78e7r5cZ')
-        self.assertEqual(newkey_change.path, "m/44'/0'/99'/1/0")
+        self.assertEqual(newkey.address, u'mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ')
+        self.assertEqual(newkey.path, "m/44'/1'/99'/0/0")
+        self.assertEqual(newkey_change.address, u'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
+        self.assertEqual(newkey_change.path, "m/44'/1'/99'/1/0")

@@ -39,16 +39,15 @@ class HDWalletKey:
         if k.depth() != len(path.split('/'))-1:
             if path == 'm' and k.depth() == 3:
                 # Create path when importing new account-key
-                networkcode = 0
+                networkcode = networks.NETWORKS[network]['bip44_cointype']
                 path = "m/%d'/%d'/%d'" % (purpose, networkcode, account_id)
             else:
-                print(path)
-                raise WalletError("Key depth of %d does not match path lenght of %d" % 
+                raise WalletError("Key depth of %d does not match path lenght of %d" %
                                   (k.depth(), len(path.split('/')) - 1))
 
         wk = session.query(DbWalletKey).filter(or_(DbWalletKey.key == str(k.private()),
-                                                        DbWalletKey.key_wif == k.extended_wif(),
-                                                        DbWalletKey.address == k.public().address())).first()
+                                                   DbWalletKey.key_wif == k.extended_wif(),
+                                                   DbWalletKey.address == k.public().address())).first()
         if wk:
             return HDWalletKey(wk.id, session)
 
@@ -217,7 +216,7 @@ class HDWallet:
     def new_key_change(self, name='', account_id=0):
         return self.new_key(name=name, account_id=account_id, change=1)
 
-    def new_account(self, name='', account_id=0):
+    def new_account(self, name='', account_id=0, network='bitcoin'):
         if self.keys(account_id=account_id):
             last_id = self.session.query(DbWalletKey). \
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose). \
@@ -304,13 +303,24 @@ if __name__ == '__main__':
     # -- Create New Wallet with Testnet master key and account ID 251 --
     wallet_import = HDWallet.create(
         name='TestNetWallet',
-        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy'
-            'A7irEvBoe4aAn52',
+        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+            '7irEvBoe4aAn52',
         network='testnet',
-        account_id=251,
         databasefile=test_database)
-    wallet_import.new_account()
-    wallet_import.new_key("Faucet gift")
+    wallet_import.new_account(account_id=99)
+    wallet_import.new_key(account_id=99, name="Faucet gift")
+    wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
+    wallet_import.info(detail=3)
+
+    # -- Import Account Bitcoin Testnet key with depth 3
+    accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+                 '8Y7KbKUnaMzx9nnsSvh'
+    wallet_import = HDWallet.create(
+        databasefile=test_database,
+        name='test_wallet_import_account',
+        key=accountkey,
+        network='testnet',
+        account_id=99)
     wallet_import.info(detail=3)
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --

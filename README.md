@@ -159,7 +159,7 @@ This is a simple wallet implementation using sqlalchemy and sqllite3 to store ke
 
 ```python
 from bitcoinlib.wallets import HDWallet
-
+ 
 # -- Create New Wallet and Generate a some new Keys --
 wallet = HDWallet.create(name='Personal', network='testnet')
 wallet.new_account()
@@ -170,7 +170,7 @@ new_key4 = wallet.new_key(change=1)
 donations_account = wallet.new_account()
 new_key5 = wallet.new_key(account_id=donations_account.account_id)
 wallet.info(detail=3)
-
+ 
 # -- Create New Wallet with Testnet master key and account ID 251 --
 wallet_import = HDWallet.create(
     name='TestNetWallet',
@@ -181,7 +181,7 @@ wallet_import = HDWallet.create(
 wallet_import.new_account()
 wallet_import.new_key("Faucet gift")
 wallet_import.info(detail=3)
-
+ 
 # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
 wallet_import2 = HDWallet.create(
     name='Company Wallet',
