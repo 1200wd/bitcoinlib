@@ -19,4 +19,4 @@
 
 import bitcoinlib.services.bitcoind
 import bitcoinlib.services.authproxy
-import bitcoinlib.services.blockchain_info
+import bitcoinlib.services.blockexplorer

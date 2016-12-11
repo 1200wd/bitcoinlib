@@ -19,7 +19,7 @@
 #
 
 from bitcoinlib.services.authproxy import AuthServiceProxy
-import configparser
+import ConfigParser as configparser
 
 
 class BitcoindClient:

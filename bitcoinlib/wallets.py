@@ -101,6 +101,11 @@ class HDWalletKey:
     def parent(self, session):
         return HDWalletKey(self.parent_id, session=session)
 
+    def getbalance(self):
+        from bitcoinlib.services.blockexplorer import BlockExplorerClient
+        bec = BlockExplorerClient()
+        return bec.getbalance(self.address)
+
     def info(self):
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
@@ -254,6 +259,14 @@ class HDWallet:
     def keys_address_change(self, account_id, as_dict=False):
         return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
 
+    def getbalance(self, account_id=None):
+        from bitcoinlib.services.blockexplorer import BlockExplorerClient
+        addresslist = []
+        for key in self.keys(account_id=account_id):
+            addresslist.append(key.address)
+        bec = BlockExplorerClient().getbalances(addresslist)
+        return bec
+
     def info(self, detail=0):
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
@@ -299,19 +312,20 @@ if __name__ == '__main__':
     # donations_account = wallet.new_account()
     # new_key5 = wallet.new_key(account_id=donations_account.account_id)
     # wallet.info(detail=3)
-    #
-    # # -- Create New Wallet with Testnet master key and account ID 251 --
-    # wallet_import = HDWallet.create(
-    #     name='TestNetWallet',
-    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-    #         '7irEvBoe4aAn52',
-    #     network='testnet',
-    #     databasefile=test_database)
-    # wallet_import.new_account(account_id=99)
-    # wallet_import.new_key(account_id=99, name="Faucet gift")
-    # wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
+
+    # -- Create New Wallet with Testnet master key and account ID 251 --
+    wallet_import = HDWallet.create(
+        name='TestNetWallet',
+        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+            '7irEvBoe4aAn52',
+        network='testnet',
+        databasefile=test_database)
+    wallet_import.new_account(account_id=99)
+    nk = wallet_import.new_key(account_id=99, name="Faucet gift")
+    wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
     # wallet_import.info(detail=3)
-    #
+    print("Balance %s" % wallet_import.getbalance())
+
     # # -- Import Account Bitcoin Testnet key with depth 3
     # accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
     #              '8Y7KbKUnaMzx9nnsSvh'
@@ -344,11 +358,11 @@ if __name__ == '__main__':
     #     account_id=0)
     # newkey = pubwal.new_key()
     # pubwal.info(detail=3)
-
-    # -- Litecoin wallet
-    litecoin_wallet = HDWallet.create(
-        databasefile=test_database,
-        name='litecoin_wallet',
-        network='litecoin')
-    newkey = litecoin_wallet.new_key()
-    litecoin_wallet.info(detail=3)
+    #
+    # # -- Litecoin wallet
+    # litecoin_wallet = HDWallet.create(
+    #     databasefile=test_database,
+    #     name='litecoin_wallet',
+    #     network='litecoin')
+    # newkey = litecoin_wallet.new_key()
+    # litecoin_wallet.info(detail=3)

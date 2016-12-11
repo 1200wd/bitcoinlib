@@ -27,7 +27,7 @@ from bitcoinlib.wallets import HDWallet
 DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
 
 
-class TestEncodingMethods(unittest.TestCase):
+class TestWallet(unittest.TestCase):
 
     def setUp(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):

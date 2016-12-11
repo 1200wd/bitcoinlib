@@ -60,6 +60,7 @@ For details see https://github.com/bitcoin/bips""",
       packages=['bitcoinlib'],
       test_suite= 'tests',
       install_requires=[
+            'requests',
             'ecdsa',
             'pbkdf2',
             'pycrypto',
