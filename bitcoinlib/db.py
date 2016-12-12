@@ -44,22 +44,19 @@ class DbInit:
 
 
 class DbWallet(Base):
-    __tablename__ = 'dbwallets'
+    __tablename__ = 'wallets'
     id = Column(Integer, Sequence('wallet_id_seq'), primary_key=True)
     name = Column(String(50), unique=True)
     owner = Column(String(50))
     network = Column(String(20))
     purpose = Column(Integer, default=44)
-    # main_key_id = Column(Integer, ForeignKey('dbwalletkeys.id'))
     main_key_id = Column(Integer)
-    keys = relationship("DbWalletKey", back_populates="wallet")
+    keys = relationship("DbKey", back_populates="wallet")
+    balance = Column(Integer)
 
 
-# Use following BIP 44 path
-# m / purpose' / coin_type' / account' / change / address_index
-# Path: Master / Bip44 / Bitcoin / Account 1 / Internal or External / Index
-class DbWalletKey(Base):
-    __tablename__ = 'dbwalletkeys'
+class DbKey(Base):
+    __tablename__ = 'keys'
     id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
     parent_id = Column(Integer, Sequence('parent_id_seq'))
     name = Column(String(50))
@@ -73,5 +70,21 @@ class DbWalletKey(Base):
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
     path = Column(String(100))
-    wallet_id = Column(Integer, ForeignKey('dbwallets.id'))
+    wallet_id = Column(Integer, ForeignKey('wallets.id'))
     wallet = relationship("DbWallet", back_populates="keys")
+    balance = Column(Integer)
+
+
+class DbNetwork(Base):
+    __tablename__ = 'network'
+    id = Column(Integer, Sequence('network_id_seq'), primary_key=True)
+    name = Column(String(50), unique=True)
+    description = Column(String(50))
+    symbol = Column(String(5), unique=True)
+    code = Column(String(10), unique=True)
+    address = Column(String(10), unique=True)
+    address_p2sh = Column(String(10), unique=True)
+    wif = Column(String(10), unique=True)
+    hdkey_private = Column(String(10), unique=True)
+    hdkey_public = Column(String(10), unique=True)
+    bip44_cointype = Column(String(10), unique=True)

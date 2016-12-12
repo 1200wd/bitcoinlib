@@ -45,22 +45,22 @@ class HDWalletKey:
                 raise WalletError("Key depth of %d does not match path lenght of %d" %
                                   (k.depth(), len(path.split('/')) - 1))
 
-        wk = session.query(DbWalletKey).filter(or_(DbWalletKey.key == str(k.private()),
-                                                   DbWalletKey.key_wif == k.extended_wif(),
-                                                   DbWalletKey.address == k.public().address())).first()
+        wk = session.query(DbKey).filter(or_(DbKey.key == str(k.private()),
+                                             DbKey.key_wif == k.extended_wif(),
+                                             DbKey.address == k.public().address())).first()
         if wk:
             return HDWalletKey(wk.id, session)
 
-        nk = DbWalletKey(name=name, wallet_id=wallet_id, key=str(k.private()), purpose=purpose, 
-                         account_id=account_id, depth=k.depth(), change=change, address_index=k.child_index(),
-                         key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
-                         is_private=True, path=path)
+        nk = DbKey(name=name, wallet_id=wallet_id, key=str(k.private()), purpose=purpose,
+                   account_id=account_id, depth=k.depth(), change=change, address_index=k.child_index(),
+                   key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
+                   is_private=True, path=path)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session)
 
     def __init__(self, key_id, session):
-        wk = session.query(DbWalletKey).filter_by(id=key_id).scalar()
+        wk = session.query(DbKey).filter_by(id=key_id).scalar()
         if wk:
             self.key_id = key_id
             self.name = wk.name
@@ -188,11 +188,11 @@ class HDWallet:
         
     def new_key(self, name='', account_id=0, change=0, max_depth=5):
         # Find main account key
-        acckey = self.session.query(DbWalletKey). \
+        acckey = self.session.query(DbKey). \
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id, change=0, depth=3).scalar()
-        prevkey = self.session.query(DbWalletKey). \
+        prevkey = self.session.query(DbKey). \
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id, change=change, depth=5). \
-            order_by(DbWalletKey.address_index.desc()).first()
+            order_by(DbKey.address_index.desc()).first()
 
         address_index = 0
         if prevkey:
@@ -200,7 +200,7 @@ class HDWallet:
 
         newpath = []
         if not acckey:
-            acckey = self.session.query(DbWalletKey). \
+            acckey = self.session.query(DbKey). \
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=2).scalar()
             newpath.append(str(account_id)+"'")
             if not acckey:
@@ -221,11 +221,11 @@ class HDWallet:
     def new_key_change(self, name='', account_id=0):
         return self.new_key(name=name, account_id=account_id, change=1)
 
-    def new_account(self, name='', account_id=0, network='bitcoin'):
+    def new_account(self, name='', account_id=0):
         if self.keys(account_id=account_id):
-            last_id = self.session.query(DbWalletKey). \
+            last_id = self.session.query(DbKey). \
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose). \
-                order_by(DbWalletKey.account_id.desc()).first().account_id
+                order_by(DbKey.account_id.desc()).first().account_id
             account_id = last_id + 1
         if not name:
             name = 'Account #%d' % account_id
@@ -236,15 +236,15 @@ class HDWallet:
         return ret.parent(session=self.session)
 
     def keys(self, account_id=None, change=None, depth=None, as_dict=False):
-        qr = self.session.query(DbWalletKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
+        qr = self.session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if account_id is not None:
-            qr = qr.filter(DbWalletKey.account_id == account_id)
-            qr = qr.filter(DbWalletKey.depth > 3)
+            qr = qr.filter(DbKey.account_id == account_id)
+            qr = qr.filter(DbKey.depth > 3)
         if change is not None:
-            qr = qr.filter(DbWalletKey.change == change)
-            qr = qr.filter(DbWalletKey.depth > 4)
+            qr = qr.filter(DbKey.change == change)
+            qr = qr.filter(DbKey.depth > 4)
         if depth is not None:
-            qr = qr.filter(DbWalletKey.depth == depth)
+            qr = qr.filter(DbKey.depth == depth)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
     def accounts(self, account_id, as_dict=False):
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     wallet_import.new_account(account_id=99)
     nk = wallet_import.new_key(account_id=99, name="Faucet gift")
     wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
-    # wallet_import.info(detail=3)
+    wallet_import.info(detail=3)
     print("Balance %s" % wallet_import.getbalance())
 
     # # -- Import Account Bitcoin Testnet key with depth 3
