@@ -39,17 +39,19 @@ class DbInit:
         engine = create_engine('sqlite:///%s' % databasefile)
         Session = sessionmaker(bind=engine)
 
-        if not os.path.exists(DEFAULT_DATABASEDIR):
-            os.makedirs(DEFAULT_DATABASEDIR)
-        Base.metadata.create_all(engine)
+        if not os.path.exists(databasefile):
+            if not os.path.exists(DEFAULT_DATABASEDIR):
+                os.makedirs(DEFAULT_DATABASEDIR)
+            Base.metadata.create_all(engine)
+            self._import_config_data(Session)
+
         self.session = Session()
-        self._import_config_data()
 
-
-    def _import_config_data(self):
+    def _import_config_data(self, ses):
         for fn in os.listdir(DEFAULT_DATABASEDIR):
             if fn.endswith(".csv"):
                 with open('%s%s' % (DEFAULT_DATABASEDIR, fn), 'r') as file:
+                    session = ses()
                     tablename = fn.split('.')[0]
                     reader = csv.DictReader(file)
                     for row in reader:
@@ -57,13 +59,14 @@ class DbInit:
                             if row[fld][:2] == 'h(':
                                 row[fld] = binascii.unhexlify(row[fld].strip('h(').strip(')'))
                         if tablename == 'networks':
-                            self.session.add(DbNetwork(**row))
+                            session.add(DbNetwork(**row))
                         elif tablename == 'providers':
-                            self.session.add(DbProvider(**row))
+                            session.add(DbProvider(**row))
                         else:
                             raise ImportError(
                                 "Unrecognised table '%s', please update import mapping or remove file" % tablename)
-                    self.session.commit()
+                    session.commit()
+                    session.close()
 
 
 class DbWallet(Base):

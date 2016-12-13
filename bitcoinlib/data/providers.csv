@@ -1,2 +1,4 @@
 name,network,base_url,api_key
-blockexplorer,testnet,https://testnet.blockexplorer.com/api/,
+blockexplorer,bitcoin,https://blockexplorer.com/api/,
+blockexplorer.testnet,testnet,https://testnet.blockexplorer.com/api/,
+blockexplorer.litecoin,litecoin,https://testnet.blockexplorer.com/api/,
