@@ -1,2 +1,2 @@
 name,description,symbol,code,address,address_p2sh,wif,hdkey_public,hdkey_private,bip44_cointype
-"bitcoin","Bitcoin","฿","BTC","h(00)","h(05)","h(80)","h(0488ADE4)","h(0488B21E)",0
+bitcoin,Bitcoin,u'\u0243',BTC,00,05,80,0488ADE4,0488B21E,0

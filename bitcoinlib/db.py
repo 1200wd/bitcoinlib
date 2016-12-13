@@ -47,7 +47,8 @@ class DbInit:
 
         self.session = Session()
 
-    def _import_config_data(self, ses):
+    @staticmethod
+    def _import_config_data(ses):
         for fn in os.listdir(DEFAULT_DATABASEDIR):
             if fn.endswith(".csv"):
                 with open('%s%s' % (DEFAULT_DATABASEDIR, fn), 'r') as file:
