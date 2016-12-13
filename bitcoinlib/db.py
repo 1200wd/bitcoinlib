@@ -18,6 +18,8 @@
 #
 
 import os
+import csv
+import binascii
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
@@ -41,6 +43,27 @@ class DbInit:
             os.makedirs(DEFAULT_DATABASEDIR)
         Base.metadata.create_all(engine)
         self.session = Session()
+        self._import_config_data()
+
+
+    def _import_config_data(self):
+        for fn in os.listdir(DEFAULT_DATABASEDIR):
+            if fn.endswith(".csv"):
+                with open('%s%s' % (DEFAULT_DATABASEDIR, fn), 'r') as file:
+                    tablename = fn.split('.')[0]
+                    reader = csv.DictReader(file)
+                    for row in reader:
+                        for fld in row:
+                            if row[fld][:2] == 'h(':
+                                row[fld] = binascii.unhexlify(row[fld].strip('h(').strip(')'))
+                        if tablename == 'networks':
+                            self.session.add(DbNetwork(**row))
+                        elif tablename == 'providers':
+                            self.session.add(DbProvider(**row))
+                        else:
+                            raise ImportError(
+                                "Unrecognised table '%s', please update import mapping or remove file" % tablename)
+                    self.session.commit()
 
 
 class DbWallet(Base):
@@ -77,8 +100,7 @@ class DbKey(Base):
 
 class DbNetwork(Base):
     __tablename__ = 'networks'
-    id = Column(Integer, Sequence('network_id_seq'), primary_key=True)
-    name = Column(String(50), unique=True)
+    name = Column(String(20), unique=True, primary_key=True)
     description = Column(String(50))
     symbol = Column(String(5), unique=True)
     code = Column(String(10), unique=True)
@@ -108,3 +130,7 @@ class DbTransaction(Base):
 class DbUtxo(Base):
     __tablename__ = 'utxos'
     id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)
+
+
+if __name__ == '__main__':
+    DbInit()

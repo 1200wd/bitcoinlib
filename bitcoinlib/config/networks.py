@@ -24,7 +24,7 @@ NETWORK_BITCOIN_TESTNET = 'testnet'
 NETWORK_LITECOIN = 'litecoin'
 NETWORKS = {
     NETWORK_BITCOIN: {
-        'name': 'Bitcoin',
+        'description': 'Bitcoin',
         'symbol': '฿',
         'code': 'BTC',
         'address': b'\x00',
@@ -35,7 +35,7 @@ NETWORKS = {
         'bip44_cointype': 0,
     },
     NETWORK_BITCOIN_TESTNET: {
-        'name': 'Bitcoin Test Network 3',
+        'description': 'Bitcoin Test Network 3',
         'symbol': 'TBTC',
         'code': 'TBTC',
         'address': b'\x6F',
@@ -46,7 +46,7 @@ NETWORKS = {
         'bip44_cointype': 1,
     },
     NETWORK_LITECOIN: {
-        'name': 'Litcoin Network',
+        'description': 'Litcoin Network',
         'symbol': 'LTC',
         'code': 'LTC',
         'address': b'\x30',
