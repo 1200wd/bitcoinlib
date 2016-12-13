@@ -303,15 +303,15 @@ if __name__ == '__main__':
         os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    # wallet = HDWallet.create(name='Personal', network='testnet', databasefile=test_database)
-    # wallet.new_account()
-    # new_key1 = wallet.new_key()
-    # new_key2 = wallet.new_key()
-    # new_key3 = wallet.new_key()
-    # new_key4 = wallet.new_key(change=1)
-    # donations_account = wallet.new_account()
-    # new_key5 = wallet.new_key(account_id=donations_account.account_id)
-    # wallet.info(detail=3)
+    wallet = HDWallet.create(name='Personal', network='testnet', databasefile=test_database)
+    wallet.new_account()
+    new_key1 = wallet.new_key()
+    new_key2 = wallet.new_key()
+    new_key3 = wallet.new_key()
+    new_key4 = wallet.new_key(change=1)
+    donations_account = wallet.new_account()
+    new_key5 = wallet.new_key(account_id=donations_account.account_id)
+    wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 251 --
     wallet_import = HDWallet.create(
@@ -326,43 +326,43 @@ if __name__ == '__main__':
     wallet_import.info(detail=3)
     print("Balance %s" % wallet_import.getbalance())
 
-    # # -- Import Account Bitcoin Testnet key with depth 3
-    # accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
-    #              '8Y7KbKUnaMzx9nnsSvh'
-    # wallet_import = HDWallet.create(
-    #     databasefile=test_database,
-    #     name='test_wallet_import_account',
-    #     key=accountkey,
-    #     network='testnet',
-    #     account_id=99)
-    # wallet_import.info(detail=3)
-    #
-    # # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
-    # wallet_import2 = HDWallet.create(
-    #     name='Company Wallet',
-    #     key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
-    #         'TtpgP4mLTj34bhnZX7UiM',
-    #     network='bitcoin',
-    #     account_id=2, purpose=0,
-    #     databasefile=test_database)
-    # wallet_import2.info(detail=3)
-    #
-    # # -- Create online wallet to generate addresses without private key
-    # pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
-    #          'wt9SrsVeBeqfBbR3'
-    # pubwal = HDWallet.create(
-    #     databasefile=test_database,
-    #     name='test_wallet_import_public_wallet',
-    #     key=pubkey,
-    #     network='testnet',
-    #     account_id=0)
-    # newkey = pubwal.new_key()
-    # pubwal.info(detail=3)
-    #
-    # # -- Litecoin wallet
-    # litecoin_wallet = HDWallet.create(
-    #     databasefile=test_database,
-    #     name='litecoin_wallet',
-    #     network='litecoin')
-    # newkey = litecoin_wallet.new_key()
-    # litecoin_wallet.info(detail=3)
+    # -- Import Account Bitcoin Testnet key with depth 3
+    accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+                 '8Y7KbKUnaMzx9nnsSvh'
+    wallet_import = HDWallet.create(
+        databasefile=test_database,
+        name='test_wallet_import_account',
+        key=accountkey,
+        network='testnet',
+        account_id=99)
+    wallet_import.info(detail=3)
+
+    # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
+    wallet_import2 = HDWallet.create(
+        name='Company Wallet',
+        key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
+            'TtpgP4mLTj34bhnZX7UiM',
+        network='bitcoin',
+        account_id=2, purpose=0,
+        databasefile=test_database)
+    wallet_import2.info(detail=3)
+
+    # -- Create online wallet to generate addresses without private key
+    pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
+             'wt9SrsVeBeqfBbR3'
+    pubwal = HDWallet.create(
+        databasefile=test_database,
+        name='test_wallet_import_public_wallet',
+        key=pubkey,
+        network='testnet',
+        account_id=0)
+    newkey = pubwal.new_key()
+    pubwal.info(detail=3)
+
+    # -- Litecoin wallet
+    litecoin_wallet = HDWallet.create(
+        databasefile=test_database,
+        name='litecoin_wallet',
+        network='litecoin')
+    newkey = litecoin_wallet.new_key()
+    litecoin_wallet.info(detail=3)

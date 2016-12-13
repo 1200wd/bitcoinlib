@@ -76,7 +76,7 @@ class DbKey(Base):
 
 
 class DbNetwork(Base):
-    __tablename__ = 'network'
+    __tablename__ = 'networks'
     id = Column(Integer, Sequence('network_id_seq'), primary_key=True)
     name = Column(String(50), unique=True)
     description = Column(String(50))
@@ -88,3 +88,23 @@ class DbNetwork(Base):
     hdkey_private = Column(String(10), unique=True)
     hdkey_public = Column(String(10), unique=True)
     bip44_cointype = Column(String(10), unique=True)
+
+
+class DbProvider(Base):
+    __tablename__ = 'providers'
+    id = Column(Integer, Sequence('provider_id_seq'), primary_key=True)
+    name = Column(String(50), unique=True)
+    network = Column(String(20))
+    base_url = Column(String(100))
+    api_key = Column(String(100))
+
+
+class DbTransaction(Base):
+    __tablename__ = 'transactions'
+    id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
+    transaction_id = Column(String(50), unique=True)
+
+
+class DbUtxo(Base):
+    __tablename__ = 'utxos'
+    id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)
