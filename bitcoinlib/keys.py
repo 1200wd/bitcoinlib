@@ -18,21 +18,22 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
+import binascii
 import hashlib
 import hmac
+import numbers
 import random
 import struct
+import sys
+
 import ecdsa
-from Crypto.Cipher import AES
 import scrypt
-import binascii
-import numbers
+from Crypto.Cipher import AES
 
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base
-from bitcoinlib.networks import *
+from bitcoinlib.config.networks import *
 
 
 def get_key_format(key, keytype=None):
@@ -357,7 +358,7 @@ class Key:
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
-        versionbyte = b'\x00'  # FIXME NETWORKS[self._network]['address']
+        versionbyte = NETWORKS[self._network]['address']
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key + checksum, 256, 58)
@@ -517,10 +518,10 @@ class HDKey:
         if not self._isprivate and public is False:
             return ''
         if self._isprivate and not public:
-            raw = b'\x04\x88\xAD\xE4'  # FIXME NETWORKS[self._network]['hdkey_private']
+            raw = NETWORKS[self._network]['hdkey_private']
             typebyte = b'\x00'
         else:
-            raw = b'\x04\x88\xB2\x1E'  # FIXME NETWORKS[self._network]['hdkey_public']
+            raw = NETWORKS[self._network]['hdkey_public']
             typebyte = b''
             if public:
                 rkey = self.public().public_byte()

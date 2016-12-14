@@ -51,18 +51,15 @@ class DbInit:
     def _import_config_data(ses):
         for fn in os.listdir(DEFAULT_DATABASEDIR):
             if fn.endswith(".csv"):
-                with open('%s%s' % (DEFAULT_DATABASEDIR, fn), 'r') as file:
+                with open('%s%s' % (DEFAULT_DATABASEDIR, fn), 'r') as csvfile:
                     session = ses()
                     tablename = fn.split('.')[0]
-                    reader = csv.DictReader(file)
+                    reader = csv.DictReader(csvfile)
                     for row in reader:
-                        for fld in row:
-                            if row[fld][:2] == 'h(':
-                                row[fld] = binascii.unhexlify(row[fld].strip('h(').strip(')'))
-                        if tablename == 'networks':
-                            session.add(DbNetwork(**row))
-                        elif tablename == 'providers':
+                        if tablename == 'providers':
                             session.add(DbProvider(**row))
+                        elif tablename == 'networks':
+                            session.add(DbNetwork(**row))
                         else:
                             raise ImportError(
                                 "Unrecognised table '%s', please update import mapping or remove file" % tablename)
@@ -107,14 +104,14 @@ class DbNetwork(Base):
     __tablename__ = 'networks'
     name = Column(String(20), unique=True, primary_key=True)
     description = Column(String(50))
-    symbol = Column(String(5), unique=True)
-    code = Column(String(10), unique=True)
-    address = Column(String(10))
-    address_p2sh = Column(String(10))
-    wif = Column(String(10))
-    hdkey_private = Column(String(10))
-    hdkey_public = Column(String(10))
-    bip44_cointype = Column(String(10), unique=True)
+    # symbol = Column(String(5), unique=True)
+    # code = Column(String(10), unique=True)
+    # address = Column(String(10))
+    # address_p2sh = Column(String(10))
+    # wif = Column(String(10))
+    # hdkey_private = Column(String(10))
+    # hdkey_public = Column(String(10))
+    # bip44_cointype = Column(String(10), unique=True)
 
 
 class DbProvider(Base):

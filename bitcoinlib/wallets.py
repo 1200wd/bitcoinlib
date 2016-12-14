@@ -21,6 +21,7 @@ from sqlalchemy import or_
 
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
+from bitcoinlib.config import networks
 
 
 class WalletError(Exception):
@@ -38,7 +39,7 @@ class HDWalletKey:
         if k.depth() != len(path.split('/'))-1:
             if path == 'm' and k.depth() == 3:
                 # Create path when importing new account-key
-                networkcode = session.query(DbNetwork).filter(DbNetwork.name == network).one().bip44_cointype
+                networkcode = networks.NETWORKS[network]['bip44_cointype']
                 path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
             else:
                 raise WalletError("Key depth of %d does not match path lenght of %d" %
@@ -76,7 +77,7 @@ class HDWalletKey:
             self.path = wk.path
             self.wallet = wk.wallet
             self.network = wk.wallet.network
-            self.k = HDKey(import_key=self.key_wif, network=self.network)
+            self.k = HDKey(import_key=self.key_wif, network=self.network.name)
             self.depth = wk.depth
         else:
             raise WalletError("Key with id %s not found" % key_id)
@@ -92,7 +93,7 @@ class HDWalletKey:
         else:
             p = ["M"]
         p.append(str(self.purpose) + "'")
-        p.append(str(self.network.bip44_cointype + "'"))
+        p.append(str(networks.NETWORKS[self.network.name]['bip44_cointype']) + "'")
         p.append(str(self.account_id) + "'")
         p.append(str(change))
         p.append(str(address_index))
@@ -214,7 +215,7 @@ class HDWallet:
         if not name:
             name = "Key %d" % address_index
         newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
-                                             account_id=account_id, change=change, network=self.network,
+                                             account_id=account_id, change=change, network=self.network.name,
                                              purpose=self.purpose, basepath=bpath, session=self.session)
         return HDWalletKey(newkey, session=self.session)
 

@@ -1,4 +1,4 @@
-name,description,symbol,code,address,address_p2sh,wif,hdkey_public,hdkey_private,bip44_cointype
-bitcoin,Bitcoin,u'\u0243',BTC,00,05,80,0488ADE4,0488B21E,0
-testnet,Bitcoin Testnet 3,TBTC,TBTC,6F,05,EF,04358394,043587CF,1
-litecoin,Litecoin,u'\u0141',LTC,30,05,B0,019D9CFE,019DA462,2
+name,description
+bitcoin,Bitcoin
+testnet,Bitcoin Testnet 3
+litecoin,Litecoin
