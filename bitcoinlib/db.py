@@ -75,7 +75,8 @@ class DbWallet(Base):
     id = Column(Integer, Sequence('wallet_id_seq'), primary_key=True)
     name = Column(String(50), unique=True)
     owner = Column(String(50))
-    network = Column(String(20))
+    network_name = Column(String, ForeignKey('networks.name'))
+    network = relationship("DbNetwork")
     purpose = Column(Integer, default=44)
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
@@ -108,19 +109,19 @@ class DbNetwork(Base):
     description = Column(String(50))
     symbol = Column(String(5), unique=True)
     code = Column(String(10), unique=True)
-    address = Column(String(10), unique=True)
-    address_p2sh = Column(String(10), unique=True)
-    wif = Column(String(10), unique=True)
-    hdkey_private = Column(String(10), unique=True)
-    hdkey_public = Column(String(10), unique=True)
+    address = Column(String(10))
+    address_p2sh = Column(String(10))
+    wif = Column(String(10))
+    hdkey_private = Column(String(10))
+    hdkey_public = Column(String(10))
     bip44_cointype = Column(String(10), unique=True)
 
 
 class DbProvider(Base):
     __tablename__ = 'providers'
-    id = Column(Integer, Sequence('provider_id_seq'), primary_key=True)
-    name = Column(String(50), unique=True)
-    network = Column(String(20))
+    name = Column(String(50), primary_key=True, unique=True)
+    network_name = Column(String, ForeignKey('networks.name'))
+    network = relationship("DbNetwork")
     base_url = Column(String(100))
     api_key = Column(String(100))
 

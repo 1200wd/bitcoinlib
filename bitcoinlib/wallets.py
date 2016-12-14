@@ -21,7 +21,6 @@ from sqlalchemy import or_
 
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
-from bitcoinlib.config import networks
 
 
 class WalletError(Exception):
@@ -39,8 +38,8 @@ class HDWalletKey:
         if k.depth() != len(path.split('/'))-1:
             if path == 'm' and k.depth() == 3:
                 # Create path when importing new account-key
-                networkcode = networks.NETWORKS[network]['bip44_cointype']
-                path = "m/%d'/%d'/%d'" % (purpose, networkcode, account_id)
+                networkcode = session.query(DbNetwork).filter(DbNetwork.name == network).one().bip44_cointype
+                path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
             else:
                 raise WalletError("Key depth of %d does not match path lenght of %d" %
                                   (k.depth(), len(path.split('/')) - 1))
@@ -75,6 +74,7 @@ class HDWalletKey:
             self.parent_id = wk.parent_id
             self.is_private = wk.is_private
             self.path = wk.path
+            self.wallet = wk.wallet
             self.network = wk.wallet.network
             self.k = HDKey(import_key=self.key_wif, network=self.network)
             self.depth = wk.depth
@@ -92,7 +92,7 @@ class HDWalletKey:
         else:
             p = ["M"]
         p.append(str(self.purpose) + "'")
-        p.append(str(networks.NETWORKS[self.network]['bip44_cointype']) + "'")
+        p.append(str(self.network.bip44_cointype + "'"))
         p.append(str(self.account_id) + "'")
         p.append(str(change))
         p.append(str(address_index))
@@ -130,7 +130,7 @@ class HDWallet:
         session = DbInit(databasefile=databasefile).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
-        new_wallet = DbWallet(name=name, owner=owner, network=network, purpose=purpose)
+        new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose)
         session.add(new_wallet)
         session.commit()
 
@@ -167,7 +167,7 @@ class HDWallet:
 
     def __init__(self, wallet, databasefile=DEFAULT_DATABASE):
         self.session = DbInit(databasefile=databasefile).session
-        if isinstance(wallet, int):
+        if isinstance(wallet, int) or wallet.isdigit():
             w = self.session.query(DbWallet).filter_by(id=wallet).scalar()
         else:
             w = self.session.query(DbWallet).filter_by(name=wallet).scalar()
@@ -272,7 +272,7 @@ class HDWallet:
         print(" ID                             %s" % self.wallet_id)
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self.owner)
-        print(" Network                        %s" % self.network)
+        print(" Network                        %s" % self.network.description)
         print("")
 
         if detail:

@@ -17,5 +17,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import bitcoinlib.config.networks
 import bitcoinlib.config.secp256k1

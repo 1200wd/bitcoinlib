@@ -32,7 +32,7 @@ import numbers
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base
-from bitcoinlib.config.networks import *
+from bitcoinlib.networks import *
 
 
 def get_key_format(key, keytype=None):
@@ -357,7 +357,7 @@ class Key:
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
-        versionbyte = NETWORKS[self._network]['address']
+        versionbyte = b'\x00'  # FIXME NETWORKS[self._network]['address']
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key + checksum, 256, 58)
@@ -517,10 +517,10 @@ class HDKey:
         if not self._isprivate and public is False:
             return ''
         if self._isprivate and not public:
-            raw = NETWORKS[self._network]['hdkey_private']
+            raw = b'\x04\x88\xAD\xE4'  # FIXME NETWORKS[self._network]['hdkey_private']
             typebyte = b'\x00'
         else:
-            raw = NETWORKS[self._network]['hdkey_public']
+            raw = b'\x04\x88\xB2\x1E'  # FIXME NETWORKS[self._network]['hdkey_public']
             typebyte = b''
             if public:
                 rkey = self.public().public_byte()
@@ -669,12 +669,6 @@ if __name__ == '__main__':
     #
     # KEYS EXAMPLES
     #
-
-    k2 = HDKey.from_seed('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8'
-                         '784817e7b7875726f6c696663605d5a5754514e4b484542')
-    k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif()
-    k2.info()
-    sys.exit()
     
     print("\n=== Import public key ===")
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
