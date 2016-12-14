@@ -18,53 +18,35 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Network, address_type_normal, address_type_p2sh, wif, extended_wif_public and extended_wif_private
+from bitcoinlib.db import *
+
 NETWORK_BITCOIN = 'bitcoin'
 NETWORK_BITCOIN_TESTNET = 'testnet'
 NETWORK_LITECOIN = 'litecoin'
-NETWORKS = {
-    NETWORK_BITCOIN: {
-        'description': 'Bitcoin',
-        'symbol': '฿',
-        'code': 'BTC',
-        'address': b'\x00',
-        'address_p2sh': b'\x05',
-        'wif': b'\x80',
-        'hdkey_private': b'\x04\x88\xAD\xE4',
-        'hdkey_public': b'\x04\x88\xB2\x1E',
-        'bip44_cointype': 0,
-    },
-    NETWORK_BITCOIN_TESTNET: {
-        'description': 'Bitcoin Test Network 3',
-        'symbol': 'TBTC',
-        'code': 'TBTC',
-        'address': b'\x6F',
-        'address_p2sh': b'\x05',
-        'wif': b'\xEF',
-        'hdkey_private': b'\x04\x35\x83\x94',
-        'hdkey_public': b'\x04\x35\x87\xCF',
-        'bip44_cointype': 1,
-    },
-    NETWORK_LITECOIN: {
-        'description': 'Litcoin Network',
-        'symbol': 'LTC',
-        'code': 'LTC',
-        'address': b'\x30',
-        'address_p2sh': b'\x05',
-        'wif': b'\xB0',
-        'hdkey_private': b'\x01\x9D\x9C\xFE',
-        'hdkey_public': b'\x01\x9D\xA4\x62',
-        'bip44_cointype': 2,
-    },
-}
 
 
-def network_get_values(field):
-    return [nv[field] for nv in NETWORKS.values()]
+class Network:
 
+    def __init__(self, databasefile=DEFAULT_DATABASE):
+        self.session = DbInit(databasefile=databasefile).session
+        dbnetwork = self.session.query(DbNetwork).all()
+        self.network = {}
+        for r in dbnetwork:
+            dict = r.__dict__
+            try:
+                dict.pop('_sa_instance_state')
+            except:
+                pass
+            for item in dict:
+                if item in ['address', 'address_p2sh', 'wif', 'hdkey_private', 'hdkey_public']:
+                    dict[item] = binascii.unhexlify(dict[item])
+            self.network.update({dict['name']: dict})
 
-def get_network_by_value(field, value):
-    return [nv for nv in NETWORKS if NETWORKS[nv][field] == value]
+    def network_get_values(self, field):
+        return [nv[field] for nv in self.network.values()]
+
+    def get_network_by_value(self, field, value):
+        return [nv for nv in self.network if self.network[nv][field] == value]
 
 
 if __name__ == '__main__':
@@ -72,8 +54,21 @@ if __name__ == '__main__':
     # NETWORK EXAMPLES
     #
 
+    # First recreate database to avoid already exist errors
+    import os
+    test_databasefile = 'bitcoinlib.test.sqlite'
+    test_database = DEFAULT_DATABASEDIR + test_databasefile
+    if os.path.isfile(test_database):
+        os.remove(test_database)
+
+    nw = Network(databasefile=test_databasefile)
+
+    print("\n=== Bitcoin Testnet 3 parameters ===")
+    from pprint import pprint
+    pprint(nw.network['testnet'])
+
     print("\n=== Get all WIF prefixes ===")
-    print("WIF Prefixes: %s" % network_get_values('wif'))
+    print("WIF Prefixes: %s" % nw.network_get_values('wif'))
 
     print("\n=== Get network for WIF prefix B0 ===")
-    print("WIF Prefixes: %s" % get_network_by_value('wif', b'\xB0'))
+    print("WIF Prefixes: %s" % nw.get_network_by_value('wif', b'\xB0'))
