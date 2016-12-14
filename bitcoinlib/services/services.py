@@ -40,5 +40,5 @@ class Service(object):
                 client = getattr(services, provider)
                 servicemethod = getattr(client, serviceproviders[self.network][provider][0])
                 return servicemethod(network=self.network).getbalance(addresslist)
-            except Exception, e:
+            except Exception as e:
                 print("Error calling balance method of %s. Error message %s" % (provider, e))
