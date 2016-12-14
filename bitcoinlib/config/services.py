@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    Service Provider definitions
+#    © 2016 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -17,7 +18,16 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import bitcoinlib.services.bitcoind
-import bitcoinlib.services.authproxy
-import bitcoinlib.services.blockexplorer
-import bitcoinlib.services.blockr
+serviceproviders = {
+    'bitcoin': {
+        'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/'),
+        'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/'),
+    },
+    'testnet': {
+        'blockexplorer': ('BlockExplorerClient', 'https://testnet3.blockexplorer.com/api/'),
+        'blockr': ('BlockrClient', 'http://tbtc.blockr.io/api/v1/'),
+    },
+    'litecoin': {
+        'blockr': ('BlockrClient', 'http://ltc.blockr.io/api/v1/'),
+    }
+}

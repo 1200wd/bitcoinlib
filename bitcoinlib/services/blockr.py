@@ -23,27 +23,24 @@ import json
 from bitcoinlib.config.services import serviceproviders
 
 
-class BlockExplorerClient:
+class BlockrClient:
 
     def __init__(self, network):
         try:
-            self.url = serviceproviders[network]['blockexplorer'][1]
+            self.url = serviceproviders[network]['blockr'][1]
         except:
-            raise Warning("This Network is not supported by BlockExplorerClient")
+            raise Warning("This Network is not supported by BlockrClient")
 
-    def request(self, category, data, method):
-        url = self.url + category + '/' + data + '/' + method
+    def request(self, category, method, data):
+        url = self.url + category + '/' + method + '/' + data
         resp = requests.get(url)
-        data = json.loads(resp.text)
+        data = json.loads(resp.text)['data']
         return data
 
-    def utxos(self, addresslist):
-        addresses = ','.join(addresslist)
-        return self.request('addrs', addresses, 'utxo')
-
     def getbalance(self, addresslist):
-        utxos = self.utxos(addresslist)
+        addresses = ','.join(addresslist)
+        resplst = self.request('address', 'balance', addresses)
         balance = 0
-        for utxo in utxos:
-            balance += utxo['amount']
+        for rec in resplst:
+            balance += float(rec['balance'])
         return balance

@@ -19,26 +19,8 @@
 #
 
 from bitcoinlib.config.networks import NETWORK_BITCOIN
-from bitcoinlib.services.blockexplorer import BlockExplorerClient
+from bitcoinlib.config.services import serviceproviders
 from bitcoinlib import services
-
-
-# name,network_name,base_url,api_key
-# blockexplorer,bitcoin,https://blockexplorer.com/api/,
-# blockexplorer.testnet,testnet,https://testnet.blockexplorer.com/api/,
-# blockexplorer.litecoin,litecoin,https://testnet.blockexplorer.com/api/,
-
-serviceproviders = {
-    'bitcoin': {
-        'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/'),
-    },
-    'testnet': {
-        'blockexplorer': ('BlockExplorerClient', 'https://testnet.blockexplorer.com/api/'),
-    },
-    'litecoin': {
-        'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/'),
-    }
-}
 
 
 class Service(object):
@@ -47,13 +29,16 @@ class Service(object):
         self.network = network
 
         # Find available providers for this network
-        self.providers = ['blockexplorer']
+        self.providers = [x for x in serviceproviders[network]]
 
     def getbalance(self, addresslist):
         if len(addresslist) == 1:
             addresslist = [addresslist]
 
         for provider in self.providers:
-            client = getattr(services, provider)
-            servicemethod = getattr(client, serviceproviders[self.network][provider][0])
-            return servicemethod(network=self.network).getbalances(addresslist)
+            try:
+                client = getattr(services, provider)
+                servicemethod = getattr(client, serviceproviders[self.network][provider][0])
+                return servicemethod(network=self.network).getbalance(addresslist)
+            except Exception, e:
+                print("Error calling balance method of %s. Error message %s" % (provider, e))

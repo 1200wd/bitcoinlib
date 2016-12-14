@@ -53,7 +53,7 @@ if __name__ == '__main__':
     #
 
     from pprint import pprint
-    bdc = BitcoindClient.from_config('bitcoind-testnet-local.ini')
+    bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getinfo())
