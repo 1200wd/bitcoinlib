@@ -22,6 +22,7 @@ from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
 from bitcoinlib.config import networks
+from bitcoinlib.services.services import Service
 
 
 class WalletError(Exception):
@@ -261,12 +262,10 @@ class HDWallet:
         return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
 
     def getbalance(self, account_id=None):
-        from bitcoinlib.services.blockexplorer import BlockExplorerClient
         addresslist = []
         for key in self.keys(account_id=account_id):
             addresslist.append(key.address)
-        bec = BlockExplorerClient().getbalances(addresslist)
-        return bec
+        return Service(network=self.network.name).getbalance(addresslist)
 
     def info(self, detail=0):
         print("=== WALLET ===")
@@ -295,6 +294,12 @@ if __name__ == '__main__':
     #
     # WALLETS EXAMPLES
     #
+
+    wallet = HDWallet('TestNetWallet')
+    print("Balance %s" % wallet.getbalance())
+
+    import sys
+    sys.exit()
 
     # First recreate database to avoid already exist errors
     import os

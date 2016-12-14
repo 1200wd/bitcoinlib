@@ -27,7 +27,7 @@ def readme():
 
 setup(
       name='bitcoinlib',
-      version='0.2.1',
+      version='0.3.0.2',
       description='Bitcoin and Other cryptocurrency Library',
       long_description="""Bitcoin library with methods to generate, import, store and convert cryptograpic keys.
 
@@ -40,7 +40,7 @@ Implements the following Bitcoin Improvement Proposals
 
 For details see https://github.com/bitcoin/bips""",
       classifiers=[
-            'Development Status :: 2 - Pre-Alpha',
+            'Development Status :: 3 - Alpha',
             'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
             'Intended Audience :: Developers',
             'Intended Audience :: Financial and Insurance Industry',

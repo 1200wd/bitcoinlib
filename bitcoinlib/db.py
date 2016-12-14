@@ -19,7 +19,6 @@
 
 import os
 import csv
-import binascii
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
@@ -104,19 +103,12 @@ class DbNetwork(Base):
     __tablename__ = 'networks'
     name = Column(String(20), unique=True, primary_key=True)
     description = Column(String(50))
-    # symbol = Column(String(5), unique=True)
-    # code = Column(String(10), unique=True)
-    # address = Column(String(10))
-    # address_p2sh = Column(String(10))
-    # wif = Column(String(10))
-    # hdkey_private = Column(String(10))
-    # hdkey_public = Column(String(10))
-    # bip44_cointype = Column(String(10), unique=True)
 
 
 class DbProvider(Base):
     __tablename__ = 'providers'
     name = Column(String(50), primary_key=True, unique=True)
+    provider = Column(String(50))
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
     base_url = Column(String(100))

@@ -21,32 +21,28 @@
 import requests
 import json
 
-BLOCKEXPLORER_API_BASE_URL = "https://testnet.blockexplorer.com/api/"
-
 
 class BlockExplorerClient:
 
-    def __init__(self, api_key=None):
-        self.provider = 'blockexplorer'
-        if api_key:
-            self.auth = (api_key, '')
+    def __init__(self, network):
+        if network == 'bitcoin':
+            self.url = "https://blockexplorer.com/api/"
+        elif network == 'testnet':
+            self.url = "https://testnet.blockexplorer.com/api/"
         else:
-            self.auth = None
+            raise Warning("This Network is not supported by BlockExplorerClient")
 
     def request(self, category, data, method):
-        url = BLOCKEXPLORER_API_BASE_URL + category + '/' + data + '/' + method
+        url = self.url + category + '/' + data + '/' + method
         resp = requests.get(url)
         data = json.loads(resp.text)
         return data
-
-    def getbalance(self, address):
-        return self.request('addr', address, 'balance')
 
     def utxos(self, addresslist):
         addresses = ','.join(addresslist)
         return self.request('addrs', addresses, 'utxo')
 
-    def getbalances(self, addresslist):
+    def getbalance(self, addresslist):
         utxos = self.utxos(addresslist)
         balance = 0
         for utxo in utxos:
