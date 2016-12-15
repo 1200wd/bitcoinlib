@@ -37,8 +37,6 @@ class HDWalletKey:
         k = HDKey(import_key=key, network=network)
         keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).all()
         if keyexists:
-            print("Key %s already exists" % k.extended_wif())
-            # return HDWalletKey(keyexists[0].id, session)
             raise WalletError("Key %s already exists" % k.extended_wif())
 
         if k.depth() != len(path.split('/'))-1:
@@ -162,9 +160,13 @@ class HDWallet:
         parent_id = 0
         for l in range(1, len(path)+1):
             pp = "/".join(path[:l])
+            fullpath = basepath+pp
+            if session.query(DbKey).filter_by(wallet_id=wallet_id, path=fullpath).all():
+                print("_create_keys_from_path fullpath %s" % fullpath)
+                continue
             ck = masterkey.k.subkey_for_path(pp)
             nk = HDWalletKey.from_key(key=ck.extended_wif(), name=name, wallet_id=wallet_id, network=network,
-                                      account_id=account_id, change=change, purpose=purpose, path=basepath+pp,
+                                      account_id=account_id, change=change, purpose=purpose, path=fullpath,
                                       parent_id=parent_id, session=session)
             parent_id = nk.key_id
         return parent_id
@@ -313,7 +315,9 @@ if __name__ == '__main__':
     # -- Create New Wallet and Generate a some new Keys --
     with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
         wallet.new_account()
+        wallet.info(detail=3)
         new_key1 = wallet.new_key()
+        wallet.info(detail=3)
         new_key2 = wallet.new_key()
         new_key3 = wallet.new_key()
         new_key4 = wallet.new_key(change=1)
@@ -335,7 +339,7 @@ if __name__ == '__main__':
 
     # -- Import Account Bitcoin Testnet key with depth 3
     accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
-                 '8Y7KbKUnaMzx9nnsSvh'
+                 '8Y7KbKUnaMzxnnnsSvh'
     wallet_import2 = HDWallet.create(
         databasefile=test_database,
         name='AccountImport',
@@ -343,8 +347,6 @@ if __name__ == '__main__':
         network='testnet',
         account_id=99)
     wallet_import2.info(detail=3)
-
-    import sys; sys.exit()
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
     wallet_import2 = HDWallet.create(
