@@ -25,20 +25,38 @@ from bitcoinlib import services
 
 class Service(object):
 
-    def __init__(self, network=NETWORK_BITCOIN, max_providers=99):
+    def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5):
         self.network = network
 
         # Find available providers for this network
         self.providers = [x for x in serviceproviders[network]]
+        self.min_providers = min_providers
+        self.max_providers = max_providers
 
     def getbalance(self, addresslist):
-        if len(addresslist) == 1:
+        # if not addresslist:
+        #     return False
+        if isinstance(addresslist, (str, unicode)):
             addresslist = [addresslist]
 
+        provcount = 0
+        provresults = []
         for provider in self.providers:
             try:
                 client = getattr(services, provider)
                 servicemethod = getattr(client, serviceproviders[self.network][provider][0])
-                return servicemethod(network=self.network).getbalance(addresslist)
+                res = servicemethod(network=self.network).getbalance(addresslist)
+                if self.min_providers <= 1:
+                    return res
+                else:
+                    provresults.append(
+                        {provcount: res}
+                    )
             except Exception as e:
                 print("Error calling balance method of %s. Error message %s" % (provider, e))
+
+            provcount += 1
+            if provcount >= self.max_providers:
+                return provresults
+
+        return provresults

@@ -35,7 +35,11 @@ class HDWalletKey:
     def from_key(name, wallet_id, session, key='', account_id=0, network='bitcoin', change=0, purpose=44, parent_id=0,
                  path='m'):
         k = HDKey(import_key=key, network=network)
-        # TODO: Check if wallet name and key are not in database yet
+        keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).all()
+        if keyexists:
+            print("Key %s already exists" % k.extended_wif())
+            # return HDWalletKey(keyexists[0].id, session)
+            raise WalletError("Key %s already exists" % k.extended_wif())
 
         if k.depth() != len(path.split('/'))-1:
             if path == 'm' and k.depth() == 3:
@@ -104,9 +108,7 @@ class HDWalletKey:
         return HDWalletKey(self.parent_id, session=session)
 
     def getbalance(self):
-        from bitcoinlib.services.blockexplorer import BlockExplorerClient
-        bec = BlockExplorerClient()
-        return bec.getbalance(self.address)
+        return Service(network=self.network.name).getbalance([self.address])
 
     def info(self):
         print("--- Key ---")
@@ -167,6 +169,9 @@ class HDWallet:
             parent_id = nk.key_id
         return parent_id
 
+    def __enter__(self):
+        return self
+
     def __init__(self, wallet, databasefile=DEFAULT_DATABASE):
         self.session = DbInit(databasefile=databasefile).session
         if isinstance(wallet, int) or wallet.isdigit():
@@ -184,10 +189,12 @@ class HDWallet:
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.session.close()
+
     def __del__(self):
-        pass
-        # TODO close db
-        
+        self.session.close()
+
     def new_key(self, name='', account_id=0, change=0, max_depth=5):
         # Find main account key
         acckey = self.session.query(DbKey). \
@@ -265,7 +272,7 @@ class HDWallet:
         addresslist = []
         for key in self.keys(account_id=account_id):
             addresslist.append(key.address)
-        return Service(network=self.network.name).getbalance(addresslist)
+        return Service(network=self.network.name, min_providers=2).getbalance(addresslist)
 
     def info(self, detail=0):
         print("=== WALLET ===")
@@ -273,6 +280,7 @@ class HDWallet:
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self.owner)
         print(" Network                        %s" % self.network.description)
+        print(" Balance                        %s" % self.getbalance())
         print("")
 
         if detail:
@@ -295,12 +303,6 @@ if __name__ == '__main__':
     # WALLETS EXAMPLES
     #
 
-    wallet = HDWallet('TestNetWallet')
-    print("Balance %s" % wallet.getbalance())
-
-    import sys
-    sys.exit()
-
     # First recreate database to avoid already exist errors
     import os
     test_databasefile = 'bitcoinlib.test.sqlite'
@@ -309,17 +311,17 @@ if __name__ == '__main__':
         os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    wallet = HDWallet.create(name='Personal', network='testnet', databasefile=test_database)
-    wallet.new_account()
-    new_key1 = wallet.new_key()
-    new_key2 = wallet.new_key()
-    new_key3 = wallet.new_key()
-    new_key4 = wallet.new_key(change=1)
-    donations_account = wallet.new_account()
-    new_key5 = wallet.new_key(account_id=donations_account.account_id)
-    wallet.info(detail=3)
+    with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
+        wallet.new_account()
+        new_key1 = wallet.new_key()
+        new_key2 = wallet.new_key()
+        new_key3 = wallet.new_key()
+        new_key4 = wallet.new_key(change=1)
+        donations_account = wallet.new_account()
+        new_key5 = wallet.new_key(account_id=donations_account.account_id)
+        wallet.info(detail=3)
 
-    # -- Create New Wallet with Testnet master key and account ID 251 --
+    # -- Create New Wallet with Testnet master key and account ID 99 --
     wallet_import = HDWallet.create(
         name='TestNetWallet',
         key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
@@ -330,18 +332,19 @@ if __name__ == '__main__':
     nk = wallet_import.new_key(account_id=99, name="Faucet gift")
     wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
     wallet_import.info(detail=3)
-    print("Balance %s" % wallet_import.getbalance())
 
     # -- Import Account Bitcoin Testnet key with depth 3
     accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
                  '8Y7KbKUnaMzx9nnsSvh'
-    wallet_import = HDWallet.create(
+    wallet_import2 = HDWallet.create(
         databasefile=test_database,
-        name='test_wallet_import_account',
+        name='AccountImport',
         key=accountkey,
         network='testnet',
         account_id=99)
-    wallet_import.info(detail=3)
+    wallet_import2.info(detail=3)
+
+    import sys; sys.exit()
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
     wallet_import2 = HDWallet.create(

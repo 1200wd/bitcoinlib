@@ -39,8 +39,11 @@ class BlockrClient:
 
     def getbalance(self, addresslist):
         addresses = ','.join(addresslist)
-        resplst = self.request('address', 'balance', addresses)
-        balance = 0
-        for rec in resplst:
-            balance += float(rec['balance'])
-        return balance
+        res = self.request('address', 'balance', addresses)
+        if isinstance(res, dict):
+            return float(res['balance'])
+        else:
+            balance = 0
+            for rec in res:
+                balance += float(rec['balance'])
+            return balance
