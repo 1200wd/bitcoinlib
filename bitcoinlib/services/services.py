@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import sys
 from bitcoinlib.config.networks import NETWORK_BITCOIN
 from bitcoinlib.config.services import serviceproviders
 from bitcoinlib import services
@@ -36,7 +37,7 @@ class Service(object):
     def getbalance(self, addresslist):
         # if not addresslist:
         #     return False
-        if isinstance(addresslist, (str, unicode)):
+        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
             addresslist = [addresslist]
 
         provcount = 0
