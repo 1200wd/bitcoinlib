@@ -20,8 +20,9 @@
 
 serviceproviders = {
     'bitcoin': {
-        'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/'),
-        'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/'),
+        'blockchaininfo': ('BlockchainInfoClient', 'https://blockchain.info/'),
+        # 'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/'),
+        # 'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/'),
     },
     'testnet': {
         'blockexplorer': ('BlockExplorerClient', 'https://testnet.blockexplorer.com/api/'),

@@ -21,3 +21,4 @@ import bitcoinlib.services.bitcoind
 import bitcoinlib.services.authproxy
 import bitcoinlib.services.blockexplorer
 import bitcoinlib.services.blockr
+import bitcoinlib.services.blockchaininfo
