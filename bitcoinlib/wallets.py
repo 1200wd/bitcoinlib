@@ -65,6 +65,7 @@ class HDWalletKey:
     def __init__(self, key_id, session):
         wk = session.query(DbKey).filter_by(id=key_id).scalar()
         if wk:
+            self.dbkey = wk
             self.key_id = key_id
             self.name = wk.name
             self.wallet_id = wk.wallet_id
@@ -74,6 +75,7 @@ class HDWalletKey:
             self.address_index = wk.address_index
             self.key_wif = wk.key_wif
             self.address = wk.address
+            self.balance = wk.balance
             self.purpose = wk.purpose
             self.parent_id = wk.parent_id
             self.is_private = wk.is_private
@@ -105,10 +107,12 @@ class HDWalletKey:
     def parent(self, session):
         return HDWalletKey(self.parent_id, session=session)
 
-    def getbalance(self):
-        return Service(network=self.network.name).getbalance([self.address])
+    def updatebalance(self):
+        self.balance = Service(network=self.network.name).getbalance([self.address])
+        self.dbkey.balance = self.balance
 
     def info(self):
+        self.updatebalance()
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
         print(" Is Private                     %s" % self.is_private)
@@ -121,6 +125,7 @@ class HDWalletKey:
         print(" Address Index                  %s" % self.address_index)
         print(" Address                        %s" % self.address)
         print(" Path                           %s" % self.path)
+        print(" Balance                        %s" % self.balance)
         print("\n")
 
 
@@ -162,7 +167,6 @@ class HDWallet:
             pp = "/".join(path[:l])
             fullpath = basepath+pp
             if session.query(DbKey).filter_by(wallet_id=wallet_id, path=fullpath).all():
-                print("_create_keys_from_path fullpath %s" % fullpath)
                 continue
             ck = masterkey.k.subkey_for_path(pp)
             nk = HDWalletKey.from_key(key=ck.extended_wif(), name=name, wallet_id=wallet_id, network=network,
@@ -181,11 +185,13 @@ class HDWallet:
         else:
             w = self.session.query(DbWallet).filter_by(name=wallet).scalar()
         if w:
+            self.dbwallet = w
             self.wallet_id = w.id
             self.name = w.name
             self.owner = w.owner
             self.network = w.network
             self.purpose = w.purpose
+            self.balance = w.balance
             self.main_key_id = w.main_key_id
             self.main_key = HDWalletKey(self.main_key_id, session=self.session)
         else:
@@ -270,19 +276,22 @@ class HDWallet:
     def keys_address_change(self, account_id, as_dict=False):
         return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
 
-    def getbalance(self, account_id=None):
+    def updatebalance(self, account_id=None):
         addresslist = []
         for key in self.keys(account_id=account_id):
             addresslist.append(key.address)
-        return Service(network=self.network.name, min_providers=2).getbalance(addresslist)
+        self.balance = Service(network=self.network.name).getbalance(addresslist)
+        self.dbwallet.balance = self.balance
+        self.session.commit()
 
     def info(self, detail=0):
+        self.updatebalance()
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self.owner)
         print(" Network                        %s" % self.network.description)
-        print(" Balance                        %s" % self.getbalance())
+        print(" Balance                        %s" % self.balance)
         print("")
 
         if detail:
