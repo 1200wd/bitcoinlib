@@ -281,12 +281,25 @@ class HDWallet:
     def keys_address_change(self, account_id, as_dict=False):
         return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
 
-    def updatebalance(self, account_id=None):
+    def addresslist(self, account_id=None):
         addresslist = []
         for key in self.keys(account_id=account_id):
             addresslist.append(key.address)
-        self.balance = Service(network=self.network.name).getbalance(addresslist)
+        return addresslist
+
+    def updatebalance(self, account_id=None):
+        self.balance = Service(network=self.network.name).getbalance(self.addresslist(account_id=account_id))
         self.dbwallet.balance = self.balance
+        self.session.commit()
+
+    def updateutxos(self, account_id=None):
+        utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id))
+        for utxo in utxos:
+            key = self.session.query(DbKey).filter_by(address=utxo['address']).scalar()
+            del(utxo['address'])
+            utxo['key_id'] = key.id
+            new_utxo = DbUtxo(**utxo)
+            self.session.add(new_utxo)
         self.session.commit()
 
     def info(self, detail=0):
@@ -350,6 +363,7 @@ if __name__ == '__main__':
     nk = wallet_import.new_key(account_id=99, name="Faucet gift")
     wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
     wallet_import.info(detail=3)
+    wallet_import.updateutxos()
 
     # -- Import Account Bitcoin Testnet key with depth 3
     accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
