@@ -39,11 +39,23 @@ class BlockExplorerClient:
 
     def utxos(self, addresslist):
         addresses = ','.join(addresslist)
-        return self.request('addrs', addresses, 'utxo')
+        res = self.request('addrs', addresses, 'utxo')
+        utxos = []
+        for utxo in res:
+            utxos.append({
+                'address': utxo['address'],
+                'tx_hash': utxo['txid'],
+                'confirmations': utxo['confirmations'],
+                'output_n': utxo['vout'],
+                'index': 0,
+                'value': utxo['amount'],
+                'script': utxo['scriptPubKey'],
+            })
+        return utxos
 
     def getbalance(self, addresslist):
         utxos = self.utxos(addresslist)
         balance = 0
         for utxo in utxos:
-            balance += utxo['amount']
+            balance += utxo['value']
         return balance

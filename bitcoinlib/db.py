@@ -122,39 +122,6 @@ class DbTransaction(Base):
     transaction_id = Column(String(50), unique=True)
 
 
-# BLOCKEXPLORER
-# {
-#   "address": "n2PuaAguxZqLddRbTnAoAuwKYgN2w2hZk7",
-#   "txid": "dbfdc2a0d22a8282c4e7be0452d595695f3a39173bed4f48e590877382b112fc",
-#   "vout": 0,
-#   "ts": 1401276201,
-#   "scriptPubKey": "76a914e50575162795cd77366fb80d728e3216bd52deac88ac",
-#   "amount": 0.001,
-#   "confirmations": 3
-# },
-#
-# BLOCKR.IO
-# {"address": "n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw",
-#  "unspent": [
-#      {"tx": "d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955",
-#       "amount": "0.00890000",
-#       "n": 1,
-#       "confirmations": 46949,
-#       "script": "76a914f0d34949650af161e7cb3f0325a1a8833075165088ac"}],
-#  "with_multisigs": True},
-#
-# BLOCKCHAIN.INFO
-#     "unspent_outputs":[
-#         {
-#             "tx_age":"1322659106",
-#             "tx_hash":"e6452a2cb71aa864aaa959e647e7a4726a22e640560f199f79b56b5502114c37",
-#             "tx_index":"12790219",
-#             "tx_output_n":"0",
-#             "script":"76a914641ad5051edd97029a003fe9efb29359fcee409d88ac", (Hex encoded)
-#             "value":"5000661330"
-#         }
-#     ]
-
 class DbUtxo(Base):
     __tablename__ = 'utxos'
     id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)

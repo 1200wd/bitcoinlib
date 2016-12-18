@@ -50,4 +50,18 @@ class BlockrClient:
 
     def utxos(self, addresslist):
         addresses = ','.join(addresslist)
-        return self.request('address', 'unspent', addresses)
+        res = self.request('address', 'unspent', addresses)
+        utxos = []
+        for a in res:
+            address = a['address']
+            for utxo in a['unspent']:
+                utxos.append({
+                    'address': address,
+                    'tx_hash': utxo['tx'],
+                    'confirmations': utxo['confirmations'],
+                    'output_n': utxo['n'],
+                    'index': 0,
+                    'value': utxo['amount'],
+                    'script': utxo['script'],
+                })
+        return utxos

@@ -47,10 +47,10 @@ class Service(object):
                     return res
                 else:
                     provresults.append(
-                        {provcount: res}
+                        {provider: res}
                     )
             except Exception as e:
-                print("Error calling balance method of %s. Error message %s" % (provider, e))
+                print("Error calling %s method of %s. Error message %s" % (method, provider, e))
 
             provcount += 1
             if provcount >= self.max_providers:
@@ -76,7 +76,7 @@ class Service(object):
 
 
 if __name__ == '__main__':
-    address = 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw'
-    print(Service(network='testnet').getbalance([address]))
-
-    print(Service(network='testnet').getutxos([address]))
+    addresslst = ['n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw', 'mvA148DL7EFtWxM3VoZjRVcpg2f1VDJadq']
+    print(Service(network='testnet', min_providers=3).getbalance(addresslst))
+    from pprint import pprint
+    pprint(Service(network='testnet', min_providers=3).getutxos(addresslst))
