@@ -322,40 +322,40 @@ if __name__ == '__main__':
         os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    # with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
-    #     wallet.new_account()
-    #     wallet.info(detail=3)
-    #     new_key1 = wallet.new_key()
-    #     wallet.info(detail=3)
-    #     new_key2 = wallet.new_key()
-    #     new_key3 = wallet.new_key()
-    #     new_key4 = wallet.new_key(change=1)
-    #     donations_account = wallet.new_account()
-    #     new_key5 = wallet.new_key(account_id=donations_account.account_id)
-    #     wallet.info(detail=3)
-    #
-    # # -- Create New Wallet with Testnet master key and account ID 99 --
-    # wallet_import = HDWallet.create(
-    #     name='TestNetWallet',
-    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-    #         '7irEvBoe4aAn52',
-    #     network='testnet',
-    #     databasefile=test_database)
-    # wallet_import.new_account(account_id=99)
-    # nk = wallet_import.new_key(account_id=99, name="Faucet gift")
-    # wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
-    # wallet_import.info(detail=3)
-    #
-    # # -- Import Account Bitcoin Testnet key with depth 3
-    # accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
-    #              '8Y7KbKUnaMzxnnnsSvh'
-    # wallet_import2 = HDWallet.create(
-    #     databasefile=test_database,
-    #     name='AccountImport',
-    #     key=accountkey,
-    #     network='testnet',
-    #     account_id=99)
-    # wallet_import2.info(detail=3)
+    with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
+        wallet.new_account()
+        wallet.info(detail=3)
+        new_key1 = wallet.new_key()
+        wallet.info(detail=3)
+        new_key2 = wallet.new_key()
+        new_key3 = wallet.new_key()
+        new_key4 = wallet.new_key(change=1)
+        donations_account = wallet.new_account()
+        new_key5 = wallet.new_key(account_id=donations_account.account_id)
+        wallet.info(detail=3)
+
+    # -- Create New Wallet with Testnet master key and account ID 99 --
+    wallet_import = HDWallet.create(
+        name='TestNetWallet',
+        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+            '7irEvBoe4aAn52',
+        network='testnet',
+        databasefile=test_database)
+    wallet_import.new_account(account_id=99)
+    nk = wallet_import.new_key(account_id=99, name="Faucet gift")
+    wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
+    wallet_import.info(detail=3)
+
+    # -- Import Account Bitcoin Testnet key with depth 3
+    accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+                 '8Y7KbKUnaMzxnnnsSvh'
+    wallet_import2 = HDWallet.create(
+        databasefile=test_database,
+        name='AccountImport',
+        key=accountkey,
+        network='testnet',
+        account_id=99)
+    wallet_import2.info(detail=3)
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
     wallet_import2 = HDWallet.create(
