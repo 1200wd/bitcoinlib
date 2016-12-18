@@ -47,3 +47,7 @@ class BlockrClient:
             for rec in res:
                 balance += float(rec['balance'])
             return balance
+
+    def utxos(self, addresslist):
+        addresses = ','.join(addresslist)
+        return self.request('address', 'unspent', addresses)
