@@ -34,19 +34,15 @@ class Service(object):
         self.min_providers = min_providers
         self.max_providers = max_providers
 
-    def getbalance(self, addresslist):
-        if not addresslist:
-            return
-        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
-            addresslist = [addresslist]
-
+    def _provider_execute(self, method, argument):
         provcount = 0
         provresults = []
         for provider in self.providers:
             try:
                 client = getattr(services, provider)
-                servicemethod = getattr(client, serviceproviders[self.network][provider][0])
-                res = servicemethod(network=self.network).getbalance(addresslist)
+                providerclient = getattr(client, serviceproviders[self.network][provider][0])
+                providermethod = getattr(providerclient(network=self.network), method)
+                res = providermethod(argument)
                 if self.min_providers <= 1:
                     return res
                 else:
@@ -61,3 +57,26 @@ class Service(object):
                 return provresults
 
         return provresults
+
+    def getbalance(self, addresslist):
+        if not addresslist:
+            return
+        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
+            addresslist = [addresslist]
+
+        return self._provider_execute('getbalance', addresslist)
+
+    def getutxos(self, addresslist):
+        if not addresslist:
+            return
+        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
+            addresslist = [addresslist]
+
+        return self._provider_execute('utxos', addresslist)
+
+
+if __name__ == '__main__':
+    address = 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw'
+    print(Service(network='testnet').getbalance([address]))
+
+    print(Service(network='testnet').getutxos([address]))

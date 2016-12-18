@@ -111,6 +111,11 @@ class HDWalletKey:
         self.balance = Service(network=self.network.name).getbalance([self.address])
         self.dbkey.balance = self.balance
 
+    def updateutxo(self):
+        utxos = Service(network=self.network.name).getutxos([self.address])
+        from pprint import pprint
+        pprint(utxos)
+
     def info(self):
         self.updatebalance()
         print("--- Key ---")
