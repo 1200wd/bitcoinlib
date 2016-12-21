@@ -29,6 +29,34 @@ class WalletError(Exception):
     pass
 
 
+def list_wallets(databasefile=DEFAULT_DATABASE):
+    session = DbInit(databasefile=databasefile).session
+    wallets = session.query(DbWallet).all()
+    wlst = []
+    for w in wallets:
+        wlst.append({
+            'id': w.id,
+            'name': w.name,
+            'owner': w.owner,
+            'network': w.network.name,
+            'purpose': w.purpose,
+            'balance': w.balance,
+        })
+    session.close()
+    return wlst
+
+
+def del_wallet(wallet, databasefile=DEFAULT_DATABASE):
+    session = DbInit(databasefile=databasefile).session
+    if isinstance(wallet, int) or wallet.isdigit():
+        w = session.query(DbWallet).filter_by(id=wallet)
+    else:
+        w = session.query(DbWallet).filter_by(name=wallet)
+    w.delete()
+    session.commit()
+    session.close()
+
+
 class HDWalletKey:
 
     @staticmethod
@@ -410,3 +438,8 @@ if __name__ == '__main__':
     newkey = litecoin_wallet.new_key()
     litecoin_wallet.info(detail=3)
     del litecoin_wallet
+
+    # -- List wallets
+    from pprint import pprint
+    pprint(list_wallets(databasefile=test_database))
+    del_wallet(1, databasefile=test_database)
