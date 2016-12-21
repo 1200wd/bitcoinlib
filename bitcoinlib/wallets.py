@@ -364,6 +364,7 @@ if __name__ == '__main__':
     wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
     wallet_import.info(detail=3)
     wallet_import.updateutxos()
+    del wallet_import
 
     # -- Import Account Bitcoin Testnet key with depth 3
     accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
@@ -375,6 +376,7 @@ if __name__ == '__main__':
         network='testnet',
         account_id=99)
     wallet_import2.info(detail=3)
+    del wallet_import2
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
     wallet_import2 = HDWallet.create(
@@ -385,6 +387,7 @@ if __name__ == '__main__':
         account_id=2, purpose=0,
         databasefile=test_database)
     wallet_import2.info(detail=3)
+    del wallet_import2
 
     # -- Create online wallet to generate addresses without private key
     pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
@@ -397,6 +400,7 @@ if __name__ == '__main__':
         account_id=0)
     newkey = pubwal.new_key()
     pubwal.info(detail=3)
+    del pubwal
 
     # -- Litecoin wallet
     litecoin_wallet = HDWallet.create(
@@ -405,3 +409,4 @@ if __name__ == '__main__':
         network='litecoin')
     newkey = litecoin_wallet.new_key()
     litecoin_wallet.info(detail=3)
+    del litecoin_wallet

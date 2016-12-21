@@ -18,3 +18,4 @@
 #
 
 import bitcoinlib.config.secp256k1
+import bitcoinlib.config.networks
