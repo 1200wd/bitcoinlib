@@ -399,7 +399,7 @@ if __name__ == '__main__':
                  '8Y7KbKUnaMzxnnnsSvh'
     wallet_import2 = HDWallet.create(
         databasefile=test_database,
-        name='AccountImport',
+        name='Account Import',
         key=accountkey,
         network='testnet',
         account_id=99)
@@ -422,7 +422,7 @@ if __name__ == '__main__':
              'wt9SrsVeBeqfBbR3'
     pubwal = HDWallet.create(
         databasefile=test_database,
-        name='test_wallet_import_public_wallet',
+        name='Import Public Key Wallet',
         key=pubkey,
         network='testnet',
         account_id=0)
@@ -433,13 +433,13 @@ if __name__ == '__main__':
     # -- Litecoin wallet
     litecoin_wallet = HDWallet.create(
         databasefile=test_database,
-        name='litecoin_wallet',
+        name='Litecoin Wallet',
         network='litecoin')
     newkey = litecoin_wallet.new_key()
     litecoin_wallet.info(detail=3)
     del litecoin_wallet
 
-    # -- List wallets
-    from pprint import pprint
-    pprint(list_wallets(databasefile=test_database))
+    # -- List wallets & delete a wallet
+    print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
     del_wallet(1, databasefile=test_database)
+    print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
