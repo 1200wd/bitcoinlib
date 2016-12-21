@@ -19,26 +19,20 @@
 #
 
 from setuptools import setup
+from codecs import open
+from os import path
 
+here = path.abspath(path.dirname(__file__))
 
-def readme():
-    with open('README.md') as f:
-        return f.read()
+# Get the long description from the relevant file
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    readmetxt = f.read()
 
 setup(
       name='bitcoinlib',
-      version='0.3.0.2',
+      version='0.3.0.5',
       description='Bitcoin and Other cryptocurrency Library',
-      long_description="""Bitcoin library with methods to generate, import, store and convert cryptograpic keys.
-
-Implements the following Bitcoin Improvement Proposals
-- Hierarchical Deterministic Wallets (BIP0032)
-- Passphrase-protected private key (BIP0038)
-- Mnemonic code for generating deterministic keys (BIP0039)
-- Purpose Field for Deterministic Wallets (BIP0043)
-- Multi-Account Hierarchy for Deterministic Wallets (BIP0044)
-
-For details see https://github.com/bitcoin/bips""",
+      long_description=readmetxt,
       classifiers=[
             'Development Status :: 3 - Alpha',
             'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
@@ -68,5 +62,6 @@ For details see https://github.com/bitcoin/bips""",
             'sqlalchemy',
       ],
       include_package_data=True,
+      keywords='bitcoin library cryptocurrency wallet crypto keys',
       zip_safe=False
 )

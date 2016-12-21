@@ -1,4 +1,7 @@
-include bitcoinlib/wordlist/*.txt
 include README.md
-include tests/*.json
-include data/*.csv
+include LICENSE
+recursive-include bitcoinlib/wordlist *.txt
+recursive-include bitcoinlib/data *.csv
+recursive-include bitcoinlib/config *.py
+recursive-include bitcoinlib/services *.py *.sample
+recursive-include tests *.json *.py

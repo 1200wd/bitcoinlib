@@ -19,3 +19,6 @@
 
 import bitcoinlib.config.secp256k1
 import bitcoinlib.config.networks
+import bitcoinlib.config.services
+
+__all__ = ["secp256k1", "networks", "services"]
