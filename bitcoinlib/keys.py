@@ -458,7 +458,7 @@ class HDKey:
                 # chk = bkey[78:82]
             else:
                 try:
-                    ki = Key(import_key)
+                    ki = Key(import_key, passphrase=passphrase)
                     chain = b'\0'*32
                     key = ki.private_byte()
                 except Exception:
@@ -675,7 +675,7 @@ if __name__ == '__main__':
     #
     # KEYS EXAMPLES
     #
-    
+
     print("\n=== Import public key ===")
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
     K.info()
@@ -710,8 +710,9 @@ if __name__ == '__main__':
     print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
 
     print("\n==== Import simple private key as HDKey ===")
-    k = HDKey('KxBcX2WnGe5zQPSssqp1WPWFkb9cjFSJhMvq6BdCBgzXy9msNGg4')
-    print("HD Key WIF for Private Key KxBcX2WnGe5zQPSssqp1WPWFkb9cjFSJhMvq6BdCBgzXy9msNGg4:  %s" % k.extended_wif())
+    k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
+    k.info()
+    print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
 
     print("\n==== Generate random Litecoin key ===")
     lk = HDKey(network=NETWORK_LITECOIN)

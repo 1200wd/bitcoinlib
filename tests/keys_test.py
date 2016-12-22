@@ -178,6 +178,17 @@ class TestHDKeysImport(unittest.TestCase):
         self.k = HDKey(extkey)
         self.assertEqual(extkey, self.k.extended_wif())
 
+    def test_hdkey_import_simple_key(self):
+        self.k = HDKey('L45TpiVN3C8Q3MoosGDzug1acpnFjysseBLVboszztmEyotdSJ9g')
+        self.assertEqual(
+            'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzFAbeoRRpMHE67jGmBQKCr2YovK2G23x5uzaztRbEW9pc'
+            'j6SqMFd', self.k.extended_wif())
+
+    def test_hdkey_import_bip38_key(self):
+        self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo',
+                       passphrase='TestingOneTwoThree')
+        self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.private().wif())
+
     def test_hdkey_import_public(self):
         self.assertEqual('15mKKb2eos1hWa6tisdPwwDC1a5J1y9nma', self.xpub.public().address())
         self.assertEqual('0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2',
