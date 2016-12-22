@@ -36,6 +36,10 @@ from bitcoinlib.encoding import change_base
 from bitcoinlib.config.networks import *
 
 
+class BKeyError(Exception):
+    pass
+
+
 def get_key_format(key, keytype=None):
     """
     Determins the type and format of a public or private key by length and prefix.
@@ -46,7 +50,7 @@ def get_key_format(key, keytype=None):
     :return: format of key as string
     """
     if keytype not in [None, 'private', 'public']:
-        raise ValueError("Keytype must be 'private' or 'public")
+        raise BKeyError("Keytype must be 'private' or 'public")
     if isinstance(key, numbers.Number):
         return 'decimal'
     elif len(key) == 130 and key[:2] == '04' and keytype != 'private':
@@ -68,7 +72,7 @@ def get_key_format(key, keytype=None):
     elif key[:1] in ['5', '9']:
         return 'wif'
     else:
-        raise ValueError("Unrecognised key format")
+        raise BKeyError("Unrecognised key format")
 
 
 def ec_point(p):
@@ -152,7 +156,7 @@ class Key:
                 checksum = key[-4:]
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
-                    raise ValueError("Invalid checksum, not a valid WIF key")
+                    raise BKeyError("Invalid checksum, not a valid WIF key")
                 if key[0:1] in network_get_values('wif'):
                     if key[-1:] == b'\x01':
                         self._compressed = True
@@ -163,9 +167,9 @@ class Key:
                     if len(network) == 1:
                         self._network = network[0]
                     else:
-                        raise ValueError("Unrecognised WIF private key, version byte unknown. Found: %s" % network)
+                        raise BKeyError("Unrecognised WIF private key, version byte unknown. Found: %s" % network)
                 else:
-                    raise ValueError("Unrecognised WIF private key, prefix unknown")
+                    raise BKeyError("Unrecognised WIF private key, prefix unknown")
                 key = key[1:]
                 self._secret = change_base(key, 256, 10)
 
@@ -311,7 +315,7 @@ class Key:
             self._public = prefix + self._x
             self._public_uncompressed = '04' + self._x + self._y
         else:
-            raise ValueError("Key error, no secret key or public key point found.")
+            raise BKeyError("Key error, no secret key or public key point found.")
 
     def public(self, compressed=None):
         if not self._public or not self._public_uncompressed:
@@ -415,7 +419,7 @@ class HDKey:
         return HDKey(key=key, chain=chain)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, isprivate=True, network=NETWORK_BITCOIN, addresstype='', passphrase=''):
+                 child_index=0, isprivate=True, network=NETWORK_BITCOIN, keytype='bip32', passphrase=''):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
@@ -428,7 +432,7 @@ class HDKey:
         :param child_index: Index number of child as integer
         :param isprivate: True for private, False for public key
         :param network: Bitcoin normal or test network. Derived from import_key if possible.
-        :param addresstype: Pay-to-script, etc.
+        :param keytype: Pay-to-script, etc.
         :return:
         """
         self._network = network
@@ -461,8 +465,9 @@ class HDKey:
                     ki = Key(import_key, passphrase=passphrase)
                     chain = b'\0'*32
                     key = ki.private_byte()
-                except Exception:
-                    raise ValueError("Key format not recognised")
+                    keytype = 'private'
+                except BKeyError:
+                    raise BKeyError("Key format not recognised")
 
         self._key = key
         self._chain = chain
@@ -479,7 +484,7 @@ class HDKey:
         else:
             self._public = change_base(key, 256, 16)
             self._secret = None
-        self._addresstype = addresstype
+        self.keytype = keytype
 
     def __repr__(self):
         return self.extended_wif()
@@ -601,13 +606,13 @@ class HDKey:
             levels = path.split("/")
             for level in levels:
                 if not level:
-                    raise ValueError("Could not parse path. Index is empty.")
+                    raise BKeyError("Could not parse path. Index is empty.")
                 hardened = level[-1] in "'HhPp"
                 if hardened:
                     level = level[:-1]
                 index = int(level)
                 if index < 0:
-                    raise ValueError("Could not parse path. Index must be a positive integer.")
+                    raise BKeyError("Could not parse path. Index must be a positive integer.")
                 if first_public or not key.isprivate():
                     key = key.child_public(index=index)  # TODO hardened=hardened key?
                     first_public = False
@@ -624,7 +629,7 @@ class HDKey:
         :return: HD Key class object
         """
         if not self._isprivate:
-            raise ValueError("Need a private key to create child private key")
+            raise BKeyError("Need a private key to create child private key")
         if hardened:
             index |= 0x80000000
             data = b'\0' + self._key + struct.pack('>L', index)
@@ -634,10 +639,10 @@ class HDKey:
 
         key = change_base(key, 256, 10)
         if key > secp256k1_n:
-            raise ValueError("Key cannot be greater then secp256k1_n. Try another index number.")
+            raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
         newkey = (key + self._secret) % secp256k1_n
         if newkey == 0:
-            raise ValueError("Key cannot be zero. Try another index number.")
+            raise BKeyError("Key cannot be zero. Try another index number.")
         newkey = change_base(newkey, 10, 256, 32)
 
         return HDKey(key=newkey, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
@@ -651,12 +656,12 @@ class HDKey:
         :return: HD Key class object
         """
         if index > 0x80000000:
-            raise ValueError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
+            raise BKeyError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
         data = self.public().public_byte() + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
         key = change_base(key, 256, 10)
         if key > secp256k1_n:
-            raise ValueError("Key cannot be greater then secp256k1_n. Try another index number.")
+            raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
 
         x, y = self.public().public_point()
         Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
@@ -708,11 +713,12 @@ if __name__ == '__main__':
     print("\n==== Import HD Key from seed ===")
     k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
     print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
+    print("Key type is : %s" % k.keytype)
 
     print("\n==== Import simple private key as HDKey ===")
-    k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
-    k.info()
+    k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALME-q6ZApD7wkHZoMUsBWcktBev73')
     print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
+    print("Key type is : %s" % k.keytype)
 
     print("\n==== Generate random Litecoin key ===")
     lk = HDKey(network=NETWORK_LITECOIN)

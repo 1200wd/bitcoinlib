@@ -367,7 +367,7 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
-    # -- Create New Wallet and Generate a some new Keys --
+    # # -- Create New Wallet and Generate a some new Keys --
     # with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
     #     wallet.new_account()
     #     wallet.info(detail=3)
@@ -405,18 +405,28 @@ if __name__ == '__main__':
     #     account_id=99)
     # wallet_import2.info(detail=3)
     # del wallet_import2
-
+    #
     # # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
-    wallet_import2 = HDWallet.create(
-        name='Company Wallet',
-        key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
-            'TtpgP4mLTj34bhnZX7UiM',
+    # wallet_import2 = HDWallet.create(
+    #     name='Company Wallet',
+    #     key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
+    #         'TtpgP4mLTj34bhnZX7UiM',
+    #     network='bitcoin',
+    #     account_id=2, purpose=0,
+    #     databasefile=test_database)
+    # wallet_import2.info(detail=3)
+    # del wallet_import2
+
+    # -- Create simple wallet with just some private keys --
+    simple_wallet = HDWallet.create(
+        name='Simple Wallet',
+        key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
         network='bitcoin',
         account_id=2, purpose=0,
         databasefile=test_database)
-    wallet_import2.info(detail=3)
-    del wallet_import2
-    #
+    simple_wallet.info(detail=3)
+    del simple_wallet
+
     # # -- Create online wallet to generate addresses without private key
     # pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
     #          'wt9SrsVeBeqfBbR3'

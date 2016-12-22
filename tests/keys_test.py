@@ -74,11 +74,11 @@ class TestPrivateKeyImport(unittest.TestCase):
         self.assertEqual(52, len(self.k.wif()))
 
     def test_private_key_import_error_1(self):
-        self.assertRaisesRegexp(ValueError, "Invalid checksum, not a valid WIF key",
+        self.assertRaisesRegexp(BKeyError, "Invalid checksum, not a valid WIF key",
                                 Key, 'L1odb1uUozbfK2NrsMyhJfvRsxGM2axixgPL8vG9BUBnE6W1VyTX')
 
     def test_private_key_import_error_2(self):
-        self.assertRaisesRegexp(ValueError, "Unrecognised key format",
+        self.assertRaisesRegexp(BKeyError, "Unrecognised key format",
                                 Key, 'M1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
 
     def test_private_key_import_testnet(self):
@@ -116,7 +116,7 @@ class TestPublicKeyConversion(unittest.TestCase):
         self.assertFalse(self.K.private_hex())
 
     def test_public_key_import_error(self):
-        self.assertRaisesRegexp(ValueError, "Unrecognised key format",
+        self.assertRaisesRegexp(BKeyError, "Unrecognised key format",
                                 Key, ['064781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5', 'public'])
 
 
@@ -242,11 +242,11 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
                          self.k2.subkey_for_path('m/0/2147483647h/1/2147483646h/2').extended_wif_public())
 
     def test_hdkey_path_invalid(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(BKeyError):
             self.k2.subkey_for_path('m/0/').extended_wif()
 
     def test_hdkey_path_invalid2(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(BKeyError):
             self.k2.subkey_for_path('m/-1').extended_wif()
 
 
@@ -316,7 +316,7 @@ class TestBip38(unittest.TestCase):
     def test_bip38_invalid_keys(self):
         for v in self.vectors["invalid"]["verify"]:
             print("Checking invalid key %s" % v['base58'])
-            self.assertRaisesRegexp(ValueError, "Unrecognised key format", Key, [str(v['base58'])])
+            self.assertRaisesRegexp(BKeyError, "Unrecognised key format", Key, [str(v['base58'])])
 
 
 class TestKeysBulk(unittest.TestCase):
