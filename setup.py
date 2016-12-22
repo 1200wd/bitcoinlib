@@ -30,7 +30,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
       name='bitcoinlib',
-      version='0.3.0.5',
+      version='0.3.0.7',
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[
@@ -62,6 +62,6 @@ setup(
             'sqlalchemy',
       ],
       include_package_data=True,
-      keywords='bitcoin library cryptocurrency wallet crypto keys',
+      keywords='bitcoin library cryptocurrency tools wallet crypto keys',
       zip_safe=False
 )

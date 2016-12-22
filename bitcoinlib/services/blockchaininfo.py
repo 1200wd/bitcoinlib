@@ -19,7 +19,10 @@
 #
 
 import requests
-import urllib
+try:
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
 import json
 from bitcoinlib.config.services import serviceproviders
 
@@ -37,7 +40,7 @@ class BlockchainInfoClient:
             parameter += '/'
         url = self.url + method + parameter
         if parlist:
-            url += '?' + urllib.urlencode(parlist)
+            url += '?' + urlencode(parlist)
         resp = requests.get(url)
         data = json.loads(resp.text)
         return data

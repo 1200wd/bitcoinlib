@@ -49,10 +49,10 @@ class Service(object):
                     provresults.append(
                         {provider: res}
                     )
+                    provcount += 1
             except Exception as e:
                 print("Error calling %s method of %s. Error message %s" % (method, provider, e))
 
-            provcount += 1
             if provcount >= self.max_providers:
                 return provresults
 
