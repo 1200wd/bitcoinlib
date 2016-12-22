@@ -90,6 +90,7 @@ class DbKey(Base):
     address_index = Column(Integer)  # TODO: constraint gap no longer than 20
     key = Column(String(255), unique=True)
     key_wif = Column(String(255), unique=True)
+    key_type = Column(String(10))
     address = Column(String(255), unique=True)
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)

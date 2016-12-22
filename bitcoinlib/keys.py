@@ -419,7 +419,7 @@ class HDKey:
         return HDKey(key=key, chain=chain)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, isprivate=True, network=NETWORK_BITCOIN, keytype='bip32', passphrase=''):
+                 child_index=0, isprivate=True, network=NETWORK_BITCOIN, key_type='bip32', passphrase=''):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
@@ -432,7 +432,7 @@ class HDKey:
         :param child_index: Index number of child as integer
         :param isprivate: True for private, False for public key
         :param network: Bitcoin normal or test network. Derived from import_key if possible.
-        :param keytype: Pay-to-script, etc.
+        :param key_type: HD BIP32 or normal Private Key
         :return:
         """
         self._network = network
@@ -465,7 +465,7 @@ class HDKey:
                     ki = Key(import_key, passphrase=passphrase)
                     chain = b'\0'*32
                     key = ki.private_byte()
-                    keytype = 'private'
+                    key_type = 'private'
                 except BKeyError:
                     raise BKeyError("Key format not recognised")
 
@@ -484,7 +484,7 @@ class HDKey:
         else:
             self._public = change_base(key, 256, 16)
             self._secret = None
-        self.keytype = keytype
+        self.key_type = key_type
 
     def __repr__(self):
         return self.extended_wif()
@@ -505,6 +505,7 @@ class HDKey:
         print(" Point y                     %s" % point_y)
         print("")
         print("EXTENDED KEY INFO")
+        print(" Key Type                    %s" % self.key_type)
         print(" Chain code (hex)            %s" % change_base(self.chain(), 256, 16))
         print(" Child Index                 %s" % self.child_index())
         print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint(), 256, 16))
@@ -713,12 +714,12 @@ if __name__ == '__main__':
     print("\n==== Import HD Key from seed ===")
     k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
     print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
-    print("Key type is : %s" % k.keytype)
+    print("Key type is : %s" % k.key_type)
 
     print("\n==== Import simple private key as HDKey ===")
-    k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALME-q6ZApD7wkHZoMUsBWcktBev73')
+    k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
     print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
-    print("Key type is : %s" % k.keytype)
+    print("Key type is : %s" % k.key_type)
 
     print("\n==== Generate random Litecoin key ===")
     lk = HDKey(network=NETWORK_LITECOIN)
