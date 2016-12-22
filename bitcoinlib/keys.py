@@ -415,7 +415,7 @@ class HDKey:
         return HDKey(key=key, chain=chain)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, isprivate=True, network=NETWORK_BITCOIN, addresstype=''):
+                 child_index=0, isprivate=True, network=NETWORK_BITCOIN, addresstype='', passphrase=''):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
@@ -457,7 +457,12 @@ class HDKey:
                 chain = bkey[13:45]
                 # chk = bkey[78:82]
             else:
-                raise ValueError("Key format not recognised")
+                try:
+                    ki = Key(import_key)
+                    chain = b'\0'*32
+                    key = ki.private_byte()
+                except Exception:
+                    raise ValueError("Key format not recognised")
 
         self._key = key
         self._chain = chain
@@ -703,6 +708,10 @@ if __name__ == '__main__':
     print("\n==== Import HD Key from seed ===")
     k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
     print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
+
+    print("\n==== Import simple private key as HDKey ===")
+    k = HDKey('KxBcX2WnGe5zQPSssqp1WPWFkb9cjFSJhMvq6BdCBgzXy9msNGg4')
+    print("HD Key WIF for Private Key KxBcX2WnGe5zQPSssqp1WPWFkb9cjFSJhMvq6BdCBgzXy9msNGg4:  %s" % k.extended_wif())
 
     print("\n==== Generate random Litecoin key ===")
     lk = HDKey(network=NETWORK_LITECOIN)
