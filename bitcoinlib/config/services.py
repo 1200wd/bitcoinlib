@@ -21,14 +21,17 @@
 serviceproviders = {
     'bitcoin': {
         'blockchaininfo': ('BlockchainInfoClient', 'https://blockchain.info/'),
-        # 'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/'),
-        # 'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/'),
+        'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/'),
+        'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/'),
+        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/main/'),
     },
     'testnet': {
         'blockexplorer': ('BlockExplorerClient', 'https://testnet.blockexplorer.com/api/'),
         'blockr': ('BlockrClient', 'http://tbtc.blockr.io/api/v1/'),
+        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/test3/'),
     },
     'litecoin': {
         'blockr': ('BlockrClient', 'http://ltc.blockr.io/api/v1/'),
+        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/ltc/main/'),
     }
 }

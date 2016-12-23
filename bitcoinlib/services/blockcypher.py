@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    Blockr.io Client
+#    BlockCypher client
 #    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -23,23 +23,24 @@ import json
 from bitcoinlib.config.services import serviceproviders
 
 
-class BlockrClient:
+class BlockCypher:
 
     def __init__(self, network):
         try:
-            self.url = serviceproviders[network]['blockr'][1]
+            self.url = serviceproviders[network]['blockcypher'][1]
         except:
-            raise Warning("This Network is not supported by BlockrClient")
+            raise Warning("This Network is not supported by BlockCypher")
 
-    def request(self, category, method, data):
-        url = self.url + category + '/' + method + '/' + data
+    def request(self, method, data):
+        url = self.url + + method + '/' + data
         resp = requests.get(url)
         data = json.loads(resp.text)['data']
         return data
 
+    # /v1/{coin}/{chain}/addrs(/v1/btc/main/addrs)
     def getbalance(self, addresslist):
         addresses = ','.join(addresslist)
-        res = self.request('address', 'balance', addresses)
+        res = self.request('addrs', 'balance', addresses)
         if isinstance(res, dict):
             return float(res['balance'])
         else:

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    blockchain_info client
+#    Block Explorer Client
 #    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
