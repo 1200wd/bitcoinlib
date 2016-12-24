@@ -65,7 +65,7 @@ class HDWalletKey:
         k = HDKey(import_key=key, network=network)
         keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).all()
         if keyexists:
-            raise WalletError("Key %s already exists" % k.extended_wif())
+            raise WalletError("Key %s already exists" % (key or k.extended_wif()))
 
         if k.depth() != len(path.split('/'))-1:
             if path == 'm' and k.depth() == 3:
@@ -172,6 +172,9 @@ class HDWallet:
         session = DbInit(databasefile=databasefile).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
+        # if key and get_key_format(key) in ['wif', 'wif_compressed', 'wif_protected']:
+        #     raise WalletError("Cannot create a HD Wallet from a simple private key. Create wallet first and then "
+        #                       "import new Private key.")
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose)
         session.add(new_wallet)
         session.commit()
@@ -382,9 +385,7 @@ if __name__ == '__main__':
     # -- Create New Wallet and Generate a some new Keys --
     with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
         wallet.new_account()
-        wallet.info(detail=3)
         new_key1 = wallet.new_key()
-        wallet.info(detail=3)
         new_key2 = wallet.new_key()
         new_key3 = wallet.new_key()
         new_key4 = wallet.new_key(change=1)
@@ -434,6 +435,7 @@ if __name__ == '__main__':
         name='Simple Wallet',
         key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
         databasefile=test_database)
+    simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
     simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
     simple_wallet.info(detail=3)
     del simple_wallet

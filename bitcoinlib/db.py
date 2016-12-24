@@ -24,8 +24,8 @@ from sqlalchemy import Column, Integer, Float, String, Boolean, Sequence, Foreig
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
-
-DEFAULT_DATABASEDIR = os.path.join(os.path.dirname(__file__), 'data/')
+DEFAULT_DATABASEDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
+INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data/')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
 DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
 
@@ -41,6 +41,8 @@ class DbInit:
         if not os.path.exists(databasefile):
             if not os.path.exists(DEFAULT_DATABASEDIR):
                 os.makedirs(DEFAULT_DATABASEDIR)
+            if not os.path.exists(INSTALLDIR_DATA):
+                os.makedirs(INSTALLDIR_DATA)
             Base.metadata.create_all(engine)
             self._import_config_data(Session)
 
@@ -48,9 +50,9 @@ class DbInit:
 
     @staticmethod
     def _import_config_data(ses):
-        for fn in os.listdir(DEFAULT_DATABASEDIR):
+        for fn in os.listdir(INSTALLDIR_DATA):
             if fn.endswith(".csv"):
-                with open('%s%s' % (DEFAULT_DATABASEDIR, fn), 'r') as csvfile:
+                with open('%s%s' % (INSTALLDIR_DATA, fn), 'r') as csvfile:
                     session = ses()
                     tablename = fn.split('.')[0]
                     reader = csv.DictReader(csvfile)
