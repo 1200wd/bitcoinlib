@@ -35,12 +35,12 @@ class BlockchainInfoClient:
         except:
             raise Warning("This Network is not supported by BlockchainInfoClient")
 
-    def request(self, method, parameter, parlist):
+    def request(self, method, parameter, variables=None):
         if parameter:
             parameter += '/'
         url = self.url + method + parameter
-        if parlist:
-            url += '?' + urlencode(parlist)
+        if variables:
+            url += '?' + urlencode(variables)
         resp = requests.get(url)
         data = json.loads(resp.text)
         return data

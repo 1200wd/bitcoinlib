@@ -20,6 +20,11 @@
 
 import requests
 import json
+try:
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
+
 from bitcoinlib.config.services import serviceproviders
 
 
@@ -31,8 +36,12 @@ class BlockCypher:
         except:
             raise Warning("This Network is not supported by BlockCypher")
 
-    def request(self, method, data):
-        url = self.url + method + '/' + data + '/balance'
+    def request(self, method, data, parameter='', variables=[]):
+        url = self.url + method + '/' + data
+        if parameter:
+            url += '/' + parameter
+        if variables:
+            url += '?' + urlencode(variables)
         resp = requests.get(url)
         print(url + '\n')
         data = json.loads(resp.text)
@@ -41,7 +50,7 @@ class BlockCypher:
     # /v1/{coin}/{chain}/addrs(/v1/btc/main/addrs)
     def getbalance(self, addresslist):
         addresses = ';'.join(addresslist)
-        res = self.request('addrs', addresses)
+        res = self.request('addrs', addresses, 'balance')
         if isinstance(res, dict):
             return float(res['final_balance'])
         else:
@@ -52,7 +61,7 @@ class BlockCypher:
 
     def utxos(self, addresslist):
         addresses = ';'.join(addresslist)
-        res = self.request('address', 'unspent', addresses)
+        res = self.request('addrs', addresses, variables=['unspentOnly'])
         utxos = []
         for a in res:
             address = a['address']

@@ -431,14 +431,14 @@ if __name__ == '__main__':
     # del wallet_import2
 
     # -- Create simple wallet with just some private keys --
-    simple_wallet = HDWallet.create(
-        name='Simple Wallet',
-        key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
-        databasefile=test_database)
-    simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
-    # simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
-    simple_wallet.info(detail=3)
-    del simple_wallet
+    # simple_wallet = HDWallet.create(
+    #     name='Simple Wallet',
+    #     key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
+    #     databasefile=test_database)
+    # simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
+    # # simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
+    # simple_wallet.info(detail=3)
+    # del simple_wallet
     import sys;
 
     sys.exit()
