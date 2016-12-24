@@ -32,25 +32,26 @@ class BlockCypher:
             raise Warning("This Network is not supported by BlockCypher")
 
     def request(self, method, data):
-        url = self.url + + method + '/' + data
+        url = self.url + method + '/' + data + '/balance'
         resp = requests.get(url)
-        data = json.loads(resp.text)['data']
+        print(url + '\n')
+        data = json.loads(resp.text)
         return data
 
     # /v1/{coin}/{chain}/addrs(/v1/btc/main/addrs)
     def getbalance(self, addresslist):
-        addresses = ','.join(addresslist)
-        res = self.request('addrs', 'balance', addresses)
+        addresses = ';'.join(addresslist)
+        res = self.request('addrs', addresses)
         if isinstance(res, dict):
-            return float(res['balance'])
+            return float(res['final_balance'])
         else:
             balance = 0
             for rec in res:
-                balance += float(rec['balance'])
+                balance += float(rec['final_balance'])
             return balance
 
     def utxos(self, addresslist):
-        addresses = ','.join(addresslist)
+        addresses = ';'.join(addresslist)
         res = self.request('address', 'unspent', addresses)
         utxos = []
         for a in res:
