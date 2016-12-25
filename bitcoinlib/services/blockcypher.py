@@ -36,7 +36,7 @@ class BlockCypher:
         except:
             raise Warning("This Network is not supported by BlockCypher")
 
-    def request(self, method, data, parameter='', variables=[]):
+    def request(self, method, data, parameter='', variables=None):
         url = self.url + method + '/' + data
         if parameter:
             url += '/' + parameter
@@ -61,7 +61,7 @@ class BlockCypher:
 
     def utxos(self, addresslist):
         addresses = ';'.join(addresslist)
-        res = self.request('addrs', addresses, variables=['unspentOnly'])
+        res = self.request('addrs', addresses, variables=[('unspentOnly', 1)])
         utxos = []
         for a in res:
             address = a['address']
