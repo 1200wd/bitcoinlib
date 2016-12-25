@@ -24,6 +24,10 @@ from bitcoinlib.config.services import serviceproviders
 from bitcoinlib import services
 
 
+class ServiceError(Exception):
+    pass
+
+
 class Service(object):
 
     def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5):
@@ -53,6 +57,8 @@ class Service(object):
             except Exception as e:
                 print("Error calling %s method of %s. Error message %s" % (method, provider, e))
 
+            if not provcount:
+                raise ServiceError("No valid service provider found")
             if provcount >= self.max_providers:
                 return provresults
 

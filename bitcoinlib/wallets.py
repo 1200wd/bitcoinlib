@@ -405,7 +405,6 @@ if __name__ == '__main__':
     wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
     wallet_import.info(detail=3)
     wallet_import.updateutxos()
-    del wallet_import
 
     # -- Import Account Bitcoin Testnet key with depth 3
     accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
@@ -436,7 +435,7 @@ if __name__ == '__main__':
         key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
         databasefile=test_database)
     simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
-    # simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
+    simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
     simple_wallet.updateutxos()
     simple_wallet.info(detail=3)
     del simple_wallet

@@ -28,13 +28,17 @@ except ImportError:
 from bitcoinlib.config.services import serviceproviders
 
 
+class BlockCypherError(Exception):
+    pass
+
+
 class BlockCypher:
 
     def __init__(self, network):
         try:
             self.url = serviceproviders[network]['blockcypher'][1]
         except:
-            raise Warning("This Network is not supported by BlockCypher")
+            raise BlockCypherError("This Network is not supported by BlockCypher")
 
     def request(self, method, data, parameter='', variables=None):
         url = self.url + method + '/' + data
@@ -43,11 +47,18 @@ class BlockCypher:
         if variables:
             url += '?' + urlencode(variables)
         resp = requests.get(url)
-        print(url + '\n')
         data = json.loads(resp.text)
+        from pprint import pprint
+        pprint(data)
+        if resp.status_code != 200:
+            if resp.status_code == 429:
+                message = "Maximum number of request reached for BlockCypher"
+            else:
+                message = "Error connecting to BlockCypher, response code %d. Message %s" % \
+                          (resp.status_code, resp.text)
+            raise BlockCypherError(message)
         return data
 
-    # /v1/{coin}/{chain}/addrs(/v1/btc/main/addrs)
     def getbalance(self, addresslist):
         addresses = ';'.join(addresslist)
         res = self.request('addrs', addresses, 'balance')
@@ -65,6 +76,8 @@ class BlockCypher:
         utxos = []
         for a in res:
             address = a['address']
+            if a['n_tx'] == 0:
+                continue
             for utxo in a['unspent']:
                 utxos.append({
                     'address': address,
