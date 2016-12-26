@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib - Compact Python Bitcoin Library
-#    blockchain_info client
+#    Main Service connector
 #    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -54,13 +54,16 @@ class Service(object):
                         {provider: res}
                     )
                     provcount += 1
+            # except services.baseclient.ClientError or AttributeError as e:
             except Exception as e:
-                print("Error calling %s method of %s. Error message %s" % (method, provider, e))
+                print(e)
+                # pass
 
-            if not provcount:
-                raise ServiceError("No valid service provider found")
             if provcount >= self.max_providers:
                 return provresults
+
+        if not provcount:
+            raise ServiceError("No valid service provider found")
 
         return provresults
 

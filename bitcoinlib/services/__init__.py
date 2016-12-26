@@ -17,8 +17,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import bitcoinlib.services.bitcoind
+import bitcoinlib.services.baseclient
 import bitcoinlib.services.authproxy
+import bitcoinlib.services.bitcoind
 import bitcoinlib.services.blockexplorer
 import bitcoinlib.services.blockr
 import bitcoinlib.services.blockchaininfo

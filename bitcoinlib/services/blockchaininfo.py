@@ -18,35 +18,23 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import requests
-try:
-    from urllib.parse import urlencode
-except ImportError:
-    from urllib import urlencode
-import json
-from bitcoinlib.config.services import serviceproviders
+
+from bitcoinlib.services.baseclient import BaseClient
 
 
-class BlockchainInfoClient:
+class BlockchainInfoClient(BaseClient):
 
     def __init__(self, network):
-        try:
-            self.url = serviceproviders[network]['blockchaininfo'][1]
-        except:
-            raise Warning("This Network is not supported by BlockchainInfoClient")
+        super(BlockchainInfoClient, self).__init__(network, 'blockchaininfo')
 
     def request(self, method, parameter, variables=None):
         if parameter:
             parameter += '/'
         url = self.url + method + parameter
-        if variables:
-            url += '?' + urlencode(variables)
-        resp = requests.get(url)
-        data = json.loads(resp.text)
-        return data
+        return super(BlockchainInfoClient, self).request(url, variables)
 
     def getbalance(self, addresslist):
-        parlist = [('active', '|'.join(addresslist))]
+        parlist = [('active', 'o'.join(addresslist))]
         res = self.request('multiaddr', '', parlist)
         balance = 0
         for address in res['addresses']:
