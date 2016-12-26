@@ -38,16 +38,16 @@ class BaseClient(object):
             self.network = network
             self.provider = provider
             self.url = serviceproviders[network][provider][1]
+            self.resp = None
         except:
             raise Warning("This Network is not supported by %s Client" % provider)
 
     def request(self, url, variables):
         if variables:
-            url += '?' + urlencode(variables)
+            self.url += '?' + urlencode(variables)
         print(url)
-        resp = requests.get(url)
-        if resp.status_code != 200:
+        self.resp = requests.get(url)
+        if self.resp.status_code != 200:
             raise ClientError("Error connecting to %s on url %s, response [%d] %s" %
-                              (self.provider, url, resp.status_code, resp.text))
-        data = json.loads(resp.text)
-        return data
+                              (self.provider, url, self.resp.status_code, self.resp.text))
+        return json.loads(self.resp.text)

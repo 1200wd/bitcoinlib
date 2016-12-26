@@ -21,11 +21,13 @@
 
 from bitcoinlib.services.baseclient import BaseClient
 
+PROVIDERNAME = 'blockchaininfo'
+
 
 class BlockchainInfoClient(BaseClient):
 
     def __init__(self, network):
-        super(BlockchainInfoClient, self).__init__(network, 'blockchaininfo')
+        super(self.__class__, self).__init__(network, PROVIDERNAME)
 
     def request(self, method, parameter, variables=None):
         if parameter:

@@ -18,46 +18,32 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import requests
-import json
-try:
-    from urllib.parse import urlencode
-except ImportError:
-    from urllib import urlencode
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 
-from bitcoinlib.config.services import serviceproviders
+PROVIDERNAME = 'blockcypher'
 
 
-class BlockCypherError(Exception):
-    pass
-
-
-class BlockCypher:
+class BlockCypher(BaseClient):
 
     def __init__(self, network):
-        try:
-            self.url = serviceproviders[network]['blockcypher'][1]
-        except:
-            raise BlockCypherError("This Network is not supported by BlockCypher")
+        super(self.__class__, self).__init__(network, PROVIDERNAME)
 
     def request(self, method, data, parameter='', variables=None):
         url = self.url + method + '/' + data
         if parameter:
             url += '/' + parameter
-        if variables:
-            url += '?' + urlencode(variables)
-        resp = requests.get(url)
-        data = json.loads(resp.text)
-        from pprint import pprint
-        pprint(data)
-        if resp.status_code != 200:
-            if resp.status_code == 429:
-                message = "Maximum number of request reached for BlockCypher"
-            else:
-                message = "Error connecting to BlockCypher, response code %d. Message %s" % \
-                          (resp.status_code, resp.text)
-            raise BlockCypherError(message)
-        return data
+        try:
+            resp = super(self.__class__, self).request(url, variables)
+            return resp
+        except ClientError:
+            if self.resp.status_code != 200:
+                if self.resp.status_code == 429:
+                    message = "Maximum number of request reached for BlockCypher"
+                else:
+                    message = "Error connecting to BlockCypher, response code %d. Message %s" % \
+                              (self.resp.status_code, self.resp.text)
+                raise ClientError(message)
+            return self.resp
 
     def getbalance(self, addresslist):
         addresses = ';'.join(addresslist)
