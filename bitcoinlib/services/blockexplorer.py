@@ -18,28 +18,23 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import requests
-import json
-from bitcoinlib.config.services import serviceproviders
+from bitcoinlib.services.baseclient import BaseClient
+
+PROVIDERNAME = 'blockexplorer'
 
 
-class BlockExplorerClient:
+class BlockExplorerClient(BaseClient):
 
     def __init__(self, network):
-        try:
-            self.url = serviceproviders[network]['blockexplorer'][1]
-        except:
-            raise Warning("This Network is not supported by BlockExplorerClient")
+        super(self.__class__, self).__init__(network, PROVIDERNAME)
 
-    def request(self, category, data, method):
-        url = self.url + category + '/' + data + '/' + method
-        resp = requests.get(url)
-        data = json.loads(resp.text)
-        return data
+    def compose_request(self, category, data, method='', variables=None):
+        url_path = category + '/' + data + '/' + method
+        return self.request(url_path, variables)
 
     def utxos(self, addresslist):
         addresses = ','.join(addresslist)
-        res = self.request('addrs', addresses, 'utxo')
+        res = self.compose_request('addrs', addresses, 'utxo')
         utxos = []
         for utxo in res:
             utxos.append({

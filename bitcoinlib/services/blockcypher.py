@@ -28,12 +28,12 @@ class BlockCypher(BaseClient):
     def __init__(self, network):
         super(self.__class__, self).__init__(network, PROVIDERNAME)
 
-    def request(self, method, data, parameter='', variables=None):
-        url = self.url + method + '/' + data
+    def compose_request(self, method, data, parameter='', variables=None):
+        url_path = method + '/' + data
         if parameter:
-            url += '/' + parameter
+            url_path += '/' + parameter
         try:
-            resp = super(self.__class__, self).request(url, variables)
+            resp = self.request(url_path, variables)
             return resp
         except ClientError:
             if self.resp.status_code != 200:
@@ -47,7 +47,7 @@ class BlockCypher(BaseClient):
 
     def getbalance(self, addresslist):
         addresses = ';'.join(addresslist)
-        res = self.request('addrs', addresses, 'balance')
+        res = self.compose_request('addrs', addresses, 'balance')
         if isinstance(res, dict):
             return float(res['final_balance'])
         else:

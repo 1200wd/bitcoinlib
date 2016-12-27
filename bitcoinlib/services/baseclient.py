@@ -37,14 +37,18 @@ class BaseClient(object):
         try:
             self.network = network
             self.provider = provider
-            self.url = serviceproviders[network][provider][1]
+            self.base_url = serviceproviders[network][provider][1]
             self.resp = None
         except:
             raise Warning("This Network is not supported by %s Client" % provider)
 
-    def request(self, url, variables):
+    def request(self, url_path, variables=None):
+        url_vars = ''
+        if variables is None:
+            variables = []
         if variables:
-            self.url += '?' + urlencode(variables)
+            url_vars = '?' + urlencode(variables)
+        url = self.base_url + url_path + url_vars
         print(url)
         self.resp = requests.get(url)
         if self.resp.status_code != 200:

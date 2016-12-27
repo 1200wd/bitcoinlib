@@ -29,15 +29,15 @@ class BlockchainInfoClient(BaseClient):
     def __init__(self, network):
         super(self.__class__, self).__init__(network, PROVIDERNAME)
 
-    def request(self, method, parameter, variables=None):
+    def compose_request(self, method, parameter, variables=None):
         if parameter:
             parameter += '/'
-        url = self.url + method + parameter
-        return super(BlockchainInfoClient, self).request(url, variables)
+        url_path = method + parameter
+        return self.request(url_path, variables)
 
     def getbalance(self, addresslist):
-        parlist = [('active', 'o'.join(addresslist))]
-        res = self.request('multiaddr', '', parlist)
+        variables = [('active', '|'.join(addresslist))]
+        res = self.compose_request('multiaddr', '', variables)
         balance = 0
         for address in res['addresses']:
             balance += address['final_balance']

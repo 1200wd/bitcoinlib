@@ -393,7 +393,7 @@ if __name__ == '__main__':
         new_key5 = wallet.new_key(account_id=donations_account.account_id)
         wallet.info(detail=3)
 
-    # -- Create New Wallet with Testnet master key and account ID 99 --
+    # # -- Create New Wallet with Testnet master key and account ID 99 --
     wallet_import = HDWallet.create(
         name='TestNetWallet',
         key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
