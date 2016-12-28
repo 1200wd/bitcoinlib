@@ -58,7 +58,10 @@ class BaseClient(object):
         url = self.base_url + url_path + url_vars
         print(url)
         self.resp = requests.get(url)
-        if self.resp.status_code != 200:
+        if self.resp.status_code == 429:
+            raise ClientError("Maximum number of requests reached for %s with url %s, response [%d] %s" %
+                              (self.provider, url, self.resp.status_code, self.resp.text))
+        elif self.resp.status_code != 200:
             raise ClientError("Error connecting to %s on url %s, response [%d] %s" %
                               (self.provider, url, self.resp.status_code, self.resp.text))
         return json.loads(self.resp.text)

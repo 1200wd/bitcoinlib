@@ -32,18 +32,7 @@ class BlockCypher(BaseClient):
         url_path = method + '/' + data
         if parameter:
             url_path += '/' + parameter
-        try:
-            resp = self.request(url_path, variables)
-            return resp
-        except ClientError:
-            if self.resp.status_code != 200:
-                if self.resp.status_code == 429:
-                    message = "Maximum number of request reached for BlockCypher"
-                else:
-                    message = "Error connecting to BlockCypher, response code %d. Message %s" % \
-                              (self.resp.status_code, self.resp.text)
-                raise ClientError(message)
-            return self.resp
+        return self.request(url_path, variables)
 
     def getbalance(self, addresslist):
         addresses = ';'.join(addresslist)
