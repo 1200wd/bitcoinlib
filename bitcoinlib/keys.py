@@ -30,14 +30,21 @@ import ecdsa
 import scrypt
 from Crypto.Cipher import AES
 
+from bitcoinlib.main import *
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base
 from bitcoinlib.config.networks import *
 
+_logger = logging.getLogger(__name__)
 
 class BKeyError(Exception):
-    pass
+    def __init__(self, msg=''):
+        self.msg = msg
+        _logger.error(msg)
+
+    def __str__(self):
+        return self.msg
 
 
 def get_key_format(key, keytype=None):

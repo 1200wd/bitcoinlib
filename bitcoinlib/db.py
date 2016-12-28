@@ -17,18 +17,16 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
 import csv
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, Float, String, Boolean, Sequence, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
-DEFAULT_DATABASEDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
-INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data/')
-DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
-DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
+from bitcoinlib.main import *
 
+_logger = logging.getLogger(__name__)
+_logger.info("Using Database %s" % DEFAULT_DATABASE)
 Base = declarative_base()
 
 
@@ -41,8 +39,8 @@ class DbInit:
         if not os.path.exists(databasefile):
             if not os.path.exists(DEFAULT_DATABASEDIR):
                 os.makedirs(DEFAULT_DATABASEDIR)
-            if not os.path.exists(INSTALLDIR_DATA):
-                os.makedirs(INSTALLDIR_DATA)
+            if not os.path.exists(CURRENT_INSTALLDIR_DATA):
+                os.makedirs(CURRENT_INSTALLDIR_DATA)
             Base.metadata.create_all(engine)
             self._import_config_data(Session)
 
@@ -50,9 +48,9 @@ class DbInit:
 
     @staticmethod
     def _import_config_data(ses):
-        for fn in os.listdir(INSTALLDIR_DATA):
+        for fn in os.listdir(CURRENT_INSTALLDIR_DATA):
             if fn.endswith(".csv"):
-                with open('%s%s' % (INSTALLDIR_DATA, fn), 'r') as csvfile:
+                with open('%s%s' % (CURRENT_INSTALLDIR_DATA, fn), 'r') as csvfile:
                     session = ses()
                     tablename = fn.split('.')[0]
                     reader = csv.DictReader(csvfile)

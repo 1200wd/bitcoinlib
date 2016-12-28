@@ -24,9 +24,15 @@ from bitcoinlib.keys import HDKey
 from bitcoinlib.config import networks
 from bitcoinlib.services.services import Service
 
+_logger = logging.getLogger(__name__)
 
 class WalletError(Exception):
-    pass
+    def __init__(self, msg=''):
+        self.msg = msg
+        _logger.error(msg)
+
+    def __str__(self):
+        return self.msg
 
 
 def list_wallets(databasefile=DEFAULT_DATABASE):
@@ -172,6 +178,8 @@ class HDWallet:
         session = DbInit(databasefile=databasefile).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
+        else:
+            _logger.info("Create new wallet '%s'" % name)
         # if key and get_key_format(key) in ['wif', 'wif_compressed', 'wif_protected']:
         #     raise WalletError("Cannot create a HD Wallet from a simple private key. Create wallet first and then "
         #                       "import new Private key.")
