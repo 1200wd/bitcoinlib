@@ -36,3 +36,5 @@ logging.basicConfig(
     filename=os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log'),
     level=logging.INFO)
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
+logging.info('Logger name: %s' % logging.__name__)
+

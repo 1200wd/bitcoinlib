@@ -19,13 +19,20 @@
 #
 
 import sys
+import logging
 from bitcoinlib.config.networks import NETWORK_BITCOIN
 from bitcoinlib.config.services import serviceproviders
 from bitcoinlib import services
 
+_logger = logging.getLogger(__name__)
 
 class ServiceError(Exception):
-    pass
+    def __init__(self, msg=''):
+        self.msg = msg
+        _logger.error(msg)
+
+    def __str__(self):
+        return self.msg
 
 
 class Service(object):
@@ -56,8 +63,7 @@ class Service(object):
                     provcount += 1
             # except services.baseclient.ClientError or AttributeError as e:
             except Exception as e:
-                print(e)
-                # pass
+                _logger.warning(e)
 
             if provcount >= self.max_providers:
                 return provresults
