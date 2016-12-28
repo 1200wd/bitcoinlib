@@ -22,7 +22,7 @@ from bitcoinlib.services.authproxy import AuthServiceProxy
 
 try:
     import configparser
-except:
+except ImportError:
     import ConfigParser as configparser
 
 

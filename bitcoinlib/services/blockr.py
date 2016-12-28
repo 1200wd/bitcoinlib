@@ -18,28 +18,23 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import requests
-import json
-from bitcoinlib.config.services import serviceproviders
+from bitcoinlib.services.baseclient import BaseClient
+
+PROVIDERNAME = 'blockr'
 
 
-class BlockrClient:
+class BlockrClient(BaseClient):
 
     def __init__(self, network):
-        try:
-            self.url = serviceproviders[network]['blockr'][1]
-        except:
-            raise Warning("This Network is not supported by BlockrClient")
+        super(self.__class__, self).__init__(network, PROVIDERNAME)
 
-    def request(self, category, method, data):
-        url = self.url + category + '/' + method + '/' + data
-        resp = requests.get(url)
-        data = json.loads(resp.text)['data']
-        return data
+    def compose_request(self, category, method, data, variables=None):
+        url_path = category + '/' + method + '/' + data
+        return self.request(url_path, variables)
 
     def getbalance(self, addresslist):
         addresses = ','.join(addresslist)
-        res = self.request('address', 'balance', addresses)
+        res = self.compose_request('address', 'balance', addresses)
         if isinstance(res, dict):
             return float(res['balance'])
         else:
@@ -50,7 +45,7 @@ class BlockrClient:
 
     def utxos(self, addresslist):
         addresses = ','.join(addresslist)
-        res = self.request('address', 'unspent', addresses)
+        res = self.compose_request('address', 'unspent', addresses)
         utxos = []
         for a in res:
             address = a['address']
