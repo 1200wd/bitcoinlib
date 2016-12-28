@@ -34,7 +34,7 @@ if not os.path.exists(DEFAULT_LOGDIR):
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s', datefmt='%Y/%m/%d %H:%M:%S',
     filename=os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log'),
-    level=logging.INFO)
+    level=logging.DEBUG)
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
 

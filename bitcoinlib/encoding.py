@@ -21,6 +21,18 @@
 import sys
 import math
 import numbers
+from bitcoinlib.main import *
+
+_logger = logging.getLogger(__name__)
+
+
+class EncodingError(Exception):
+    def __init__(self, msg=''):
+        self.msg = msg
+        _logger.error(msg)
+
+    def __str__(self):
+        return self.msg
 
 bytesascii = b''
 for x in range(256):
@@ -67,13 +79,13 @@ def normalize_var(var, base):
         try:
             var = var.encode('utf-8')
         except ValueError:
-            raise ValueError("Unknown character '%s' in input format" % var)
+            raise EncodingError("Unknown character '%s' in input format" % var)
 
     if sys.version < '3' and isinstance(var, unicode):
         try:
             var = str(var)
         except UnicodeEncodeError:
-            raise ValueError("Cannot convert this unicode to string format")
+            raise EncodingError("Cannot convert this unicode to string format")
 
     if base==10:
         return int(var)
@@ -102,14 +114,14 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
     :return: Base converted input as string or list.
     """
     if base_from == 10 and not min_lenght:
-        raise ValueError("For a decimal input a minimum output lenght is required!")
+        raise EncodingError("For a decimal input a minimum output lenght is required!")
     code_str = get_code_string(base_to)
     if int(base_to) not in code_strings:
         output_as_list = True
 
     code_str_from = get_code_string(base_from)
     if not isinstance(code_str_from, (bytes, list)):
-        raise ValueError("Code strings must be a list or defined as bytes")
+        raise EncodingError("Code strings must be a list or defined as bytes")
     output = []
     input_dec = 0
     addzeros = 0
@@ -129,7 +141,10 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
                 item = inp[-1:]
                 inp = inp[:-1]
             itemindex = to_bytearray(item, code_str_from)
-            pos = code_str_from.index(itemindex)
+            try:
+                pos = code_str_from.index(itemindex)
+            except ValueError:
+                raise EncodingError("Unknown character '%s' in input" % item)
             input_dec += pos * factor
 
             # Add leading zero if there are leading zero's in input
@@ -144,7 +159,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
                     addzeros += 1
             factor *= base_from
     else:
-        raise ValueError("Unknown input format %s" % inp)
+        raise EncodingError("Unknown input format %s" % inp)
 
     # Convert decimal to output base
     while int(input_dec) != 0:
@@ -200,6 +215,7 @@ if __name__ == '__main__':
         ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e'
          '57603314a662a49c198199', 16, 256),
         ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 256, 16),
+        # ('LRzrûB¸$9«i}ÏÏ¹jÆ;¨ 3²â#¸?EçCA-eÇ¥qÚp%OgéònW`3¦b¤', 16, 256),  # Test EncodingError
         ('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', 58, 16),
         ('FF', 16, 10),
         ('AF', 16, 2),

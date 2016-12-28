@@ -57,8 +57,9 @@ class BaseClient(object):
         if variables:
             url_vars = '?' + urlencode(variables)
         url = self.base_url + url_path + url_vars
-        print(url)
+        _logger.debug("Url request %s" % url)
         self.resp = requests.get(url)
+        _logger.debug("Response [%d] %s" % (self.resp.status_code, self.resp.text))
         if self.resp.status_code == 429:
             raise ClientError("Maximum number of requests reached for %s with url %s, response [%d] %s" %
                               (self.provider, url, self.resp.status_code, self.resp.text))

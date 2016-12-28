@@ -17,7 +17,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import tests.encoding_test
-import tests.keys_test
-import tests.encoding_test
-import tests.wallets_test
+import tests.test_encoding
+import tests.test_keys
+import tests.test_mnemonic
+import tests.test_wallets
