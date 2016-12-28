@@ -40,27 +40,27 @@ class BlockCypher(BaseClient):
         if isinstance(res, dict):
             return float(res['final_balance'])
         else:
-            balance = 0
+            balance = 0.0
             for rec in res:
                 balance += float(rec['final_balance'])
-            return balance
+            return balance * self.units
 
     def utxos(self, addresslist):
         addresses = ';'.join(addresslist)
-        res = self.request('addrs', addresses, variables=[('unspentOnly', 1)])
+        res = self.compose_request('addrs', addresses, variables=[('unspentOnly', 1)])
         utxos = []
         for a in res:
             address = a['address']
             if a['n_tx'] == 0:
                 continue
-            for utxo in a['unspent']:
+            for utxo in a['txrefs']:
                 utxos.append({
                     'address': address,
-                    'tx_hash': utxo['tx'],
+                    'tx_hash': utxo['tx_hash'],
                     'confirmations': utxo['confirmations'],
-                    'output_n': utxo['n'],
+                    'output_n': utxo['tx_output_n'],
                     'index': 0,
-                    'value': utxo['amount'],
-                    'script': utxo['script'],
+                    'value': utxo['value'] * self.units,
+                    'script': '',
                 })
         return utxos

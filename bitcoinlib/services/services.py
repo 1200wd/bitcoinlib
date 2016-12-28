@@ -63,7 +63,7 @@ class Service(object):
                     provcount += 1
             # except services.baseclient.ClientError or AttributeError as e:
             except Exception as e:
-                _logger.warning(e)
+                _logger.warning("%s.%s(%s) Error %s" % (provider, method, argument, e))
 
             if provcount >= self.max_providers:
                 return provresults

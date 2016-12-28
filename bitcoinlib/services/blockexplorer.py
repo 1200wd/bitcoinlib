@@ -53,4 +53,4 @@ class BlockExplorerClient(BaseClient):
         balance = 0
         for utxo in utxos:
             balance += utxo['value']
-        return balance
+        return balance * self.units

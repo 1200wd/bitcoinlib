@@ -46,6 +46,7 @@ class BaseClient(object):
             self.provider = provider
             self.base_url = serviceproviders[network][provider][1]
             self.resp = None
+            self.units = serviceproviders[network][provider][2]
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 

@@ -30,7 +30,8 @@ class BlockrClient(BaseClient):
 
     def compose_request(self, category, method, data, variables=None):
         url_path = category + '/' + method + '/' + data
-        return self.request(url_path, variables)
+        r = self.request(url_path, variables)
+        return r['data']
 
     def getbalance(self, addresslist):
         addresses = ','.join(addresslist)
