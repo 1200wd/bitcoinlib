@@ -97,7 +97,7 @@ class DbKey(Base):
     path = Column(String(100))
     wallet_id = Column(Integer, ForeignKey('wallets.id'))
     wallet = relationship("DbWallet", back_populates="keys")
-    utxos = relationship("DbUtxo", back_populates="key")
+    utxos = relationship("DbUtxo", cascade="all,delete", back_populates="key")
     balance = Column(Float, default=0)
 
 

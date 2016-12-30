@@ -26,6 +26,7 @@ from bitcoinlib.services.services import Service
 
 _logger = logging.getLogger(__name__)
 
+
 class WalletError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
@@ -52,12 +53,17 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
     return wlst
 
 
-def del_wallet(wallet, databasefile=DEFAULT_DATABASE):
+def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
     session = DbInit(databasefile=databasefile).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
     else:
         w = session.query(DbWallet).filter_by(name=wallet)
+    # Also delete all keys and transactions in this wallet
+    ks = session.query(DbKey).filter_by(wallet_id=w.first().id)
+    for k in ks:
+        session.query(DbUtxo).filter_by(key_id=k.id).delete()
+    ks.delete()
     w.delete()
     session.commit()
     session.close()
@@ -472,5 +478,5 @@ if __name__ == '__main__':
 
     # -- List wallets & delete a wallet
     print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
-    del_wallet(1, databasefile=test_database)
+    delete_wallet(1, databasefile=test_database)
     print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
