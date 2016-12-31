@@ -474,13 +474,12 @@ class HDKey:
                 except BKeyError:
                     raise BKeyError("Key format not recognised")
 
-        self._key = key
-        self._chain = chain
-        self._depth = depth
-        self._parent_fingerprint = parent_fingerprint
-        self._child_index = child_index
-        self._isprivate = isprivate
-        self._path = None
+        self.key = key
+        self.chain = chain
+        self.depth = depth
+        self.parent_fingerprint = parent_fingerprint
+        self.child_index = child_index
+        self.isprivate = isprivate
         self._public_key_object = None
         self._public_uncompressed = None
         if isprivate:
@@ -495,9 +494,9 @@ class HDKey:
         return self.extended_wif()
 
     def info(self):
-        if self._isprivate:
+        if self.isprivate:
             print("SECRET EXPONENT")
-            print(" Private Key (hex)           %s" % change_base(self._key, 256, 16))
+            print(" Private Key (hex)           %s" % change_base(self.key, 256, 16))
             print(" Private Key (long)          %s" % self.secret)
             print(" Private Key (wif)           %s" % self.private().wif())
             print("")
@@ -511,16 +510,16 @@ class HDKey:
         print("")
         print("EXTENDED KEY INFO")
         print(" Key Type                    %s" % self.key_type)
-        print(" Chain code (hex)            %s" % change_base(self.chain(), 256, 16))
-        print(" Child Index                 %s" % self.child_index())
-        print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint(), 256, 16))
-        print(" Depth                       %s" % self.depth())
+        print(" Chain code (hex)            %s" % change_base(self.chain, 256, 16))
+        print(" Child Index                 %s" % self.child_index)
+        print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint, 256, 16))
+        print(" Depth                       %s" % self.depth)
         print(" Extended Public Key (wif)   %s" % self.extended_wif_public())
         print(" Extended Private Key (wif)  %s" % self.extended_wif(public=False))
         print("\n")
 
     def _key_derivation(self, seed):
-        chain = hasattr(self, '_chain') and self._chain or b"Bitcoin seed"
+        chain = hasattr(self, 'chain') and self.chain or b"Bitcoin seed"
         I = hmac.new(chain, seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
@@ -530,10 +529,10 @@ class HDKey:
         return hashlib.new('ripemd160', hashlib.sha256(self.public().public_byte()).digest()).digest()[:4]
 
     def extended_wif(self, public=None, child_index=None):
-        rkey = self._key
-        if not self._isprivate and public is False:
+        rkey = self.key
+        if not self.isprivate and public is False:
             return ''
-        if self._isprivate and not public:
+        if self.isprivate and not public:
             raw = NETWORKS[self.network]['hdkey_private']
             typebyte = b'\x00'
         else:
@@ -542,9 +541,9 @@ class HDKey:
             if public:
                 rkey = self.public().public_byte()
         if child_index:
-            self._child_index = child_index
-        raw += change_base(self._depth, 10, 256, 1) + self._parent_fingerprint + \
-            struct.pack('>L', self._child_index) + self._chain + typebyte + rkey
+            self.child_index = child_index
+        raw += change_base(self.depth, 10, 256, 1) + self.parent_fingerprint + \
+            struct.pack('>L', self.child_index) + self.chain + typebyte + rkey
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
@@ -552,42 +551,24 @@ class HDKey:
     def extended_wif_public(self):
         return self.extended_wif(public=True)
 
-    def key(self):
-        return self._key or ''
-
-    def chain(self):
-        return self._chain or ''
-
-    def depth(self):
-        return self._depth or 0
-
-    def parent_fingerprint(self):
-        return self._parent_fingerprint or b'\0\0\0\0'
-
-    def child_index(self):
-        return self._child_index or 0
-
-    def isprivate(self):
-        return self._isprivate
-
     def public(self):
         if not self._public_key_object:
             if self._public:
                 self._public_key_object = Key(self._public, network=self.network)
             else:
-                pub = Key(self._key).public()
+                pub = Key(self.key).public()
                 self._public_key_object = Key(pub, network=self.network)
         return self._public_key_object
 
     def public_uncompressed(self):
         if not self._public_uncompressed:
-            pub = Key(self._key).public_uncompressed()
+            pub = Key(self.key).public_uncompressed()
             return Key(pub, network=self.network)
         return self._public_uncompressed
 
     def private(self):
-        if self._key:
-            return Key(self._key, network=self.network)
+        if self.key:
+            return Key(self.key, network=self.network)
 
     def subkey_for_path(self, path):
         """
@@ -618,7 +599,7 @@ class HDKey:
                 index = int(level)
                 if index < 0:
                     raise BKeyError("Could not parse path. Index must be a positive integer.")
-                if first_public or not key.isprivate():
+                if first_public or not key.isprivate:
                     key = key.child_public(index=index)  # TODO hardened=hardened key?
                     first_public = False
                 else:
@@ -633,11 +614,11 @@ class HDKey:
         :param hardened: Specify if key must be hardened (True) or normal (False)
         :return: HD Key class object
         """
-        if not self._isprivate:
+        if not self.isprivate:
             raise BKeyError("Need a private key to create child private key")
         if hardened:
             index |= 0x80000000
-            data = b'\0' + self._key + struct.pack('>L', index)
+            data = b'\0' + self.key + struct.pack('>L', index)
         else:
             data = self.public().public_byte() + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
@@ -650,7 +631,7 @@ class HDKey:
             raise BKeyError("Key cannot be zero. Try another index number.")
         newkey = change_base(newkey, 10, 256, 32)
 
-        return HDKey(key=newkey, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
+        return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index)
 
     def child_public(self, index=0):
@@ -677,7 +658,7 @@ class HDKey:
             prefix = '02'
         xhex = change_base(Ki.x(), 10, 16, 64)
         secret = change_base(prefix + xhex, 16, 256)
-        return HDKey(key=secret, chain=chain, depth=self._depth+1, parent_fingerprint=self.fingerprint(),
+        return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False)
 
 

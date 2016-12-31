@@ -79,14 +79,14 @@ class HDWalletKey:
         if keyexists:
             raise WalletError("Key %s already exists" % (key or k.extended_wif()))
 
-        if k.depth() != len(path.split('/'))-1:
-            if path == 'm' and k.depth() == 3:
+        if k.depth != len(path.split('/'))-1:
+            if path == 'm' and k.depth == 3:
                 # Create path when importing new account-key
                 networkcode = networks.NETWORKS[network]['bip44_cointype']
                 path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
             else:
                 raise WalletError("Key depth of %d does not match path lenght of %d" %
-                                  (k.depth(), len(path.split('/')) - 1))
+                                  (k.depth, len(path.split('/')) - 1))
 
         wk = session.query(DbKey).filter(or_(DbKey.key == str(k.private()),
                                              DbKey.key_wif == k.extended_wif(),
@@ -95,7 +95,7 @@ class HDWalletKey:
             return HDWalletKey(wk.id, session)
 
         nk = DbKey(name=name, wallet_id=wallet_id, key=str(k.private()), purpose=purpose,
-                   account_id=account_id, depth=k.depth(), change=change, address_index=k.child_index(),
+                   account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
                    is_private=True, path=path, key_type=k.key_type)
         session.add(nk)
@@ -196,14 +196,14 @@ class HDWallet:
 
         mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                   account_id=account_id, purpose=purpose)
-        if mk.k.depth() > 4:
+        if mk.k.depth > 4:
             raise WalletError("Cannot create new wallet with main key of depth 5 or more")
         new_wallet.main_key_id = mk.key_id
         session.commit()
 
         if mk.key_type == 'bip32':
             # Create rest of Wallet Structure
-            depth = mk.k.depth()+1
+            depth = mk.k.depth+1
             path = mk.fullpath(max_depth=3)[depth:]
             basepath = '/'.join(mk.fullpath(max_depth=3)[:depth])
             if basepath and len(path) and path[:1] != '/':
@@ -289,7 +289,7 @@ class HDWallet:
         newpath.append(str(change))
         newpath.append(str(address_index))
         bpath = accwk.path + '/'
-        pathdepth = max_depth-accwk.k.depth()
+        pathdepth = max_depth-accwk.k.depth
         if not name:
             name = "Key %d" % address_index
         newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
