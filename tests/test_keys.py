@@ -65,7 +65,7 @@ class TestPrivateKeyImport(unittest.TestCase):
 
     def test_private_key_import_wif_uncompressed(self):
         self.k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
-        self.assertFalse(self.k.compressed())
+        self.assertFalse(self.k.compressed)
         self.assertEqual('c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a', self.k.private_hex())
 
     def test_private_key_import_generate_random(self):
