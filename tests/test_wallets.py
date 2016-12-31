@@ -39,6 +39,12 @@ class TestWallet(unittest.TestCase):
     def test_wallet_create(self):
         self.assertTrue(isinstance(self.wallet, HDWallet))
 
+    def test_wallet_info(self):
+        self.assertIsNot(self.wallet.info(), "")
+
+    def test_wallet_key_info(self):
+        self.assertIsNot(self.wallet.main_key.info(), "")
+        
     def test_wallet_create_account(self):
         new_account = self.wallet.new_account(account_id=100)
         self.assertEqual(new_account.depth, 3)
@@ -47,7 +53,6 @@ class TestWallet(unittest.TestCase):
 
     def test_wallet_create_key(self):
         new_key = self.wallet.new_key(account_id=100)
-        new_key.info()
         self.assertEqual(new_key.depth, 5)
         self.assertEqual(new_key.key_wif[:4], 'xprv')
         self.assertEqual(new_key.path, "m/44'/0'/100'/0/0")
@@ -64,7 +69,6 @@ class TestWallet(unittest.TestCase):
         self.assertEqual(wallet_import.main_key.key_wif, keystr)
         self.assertEqual(wallet_import.main_key.address, u'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
         self.assertEqual(wallet_import.main_key.path, 'm')
-        wallet_import.info(detail=3)
 
     def test_wallet_import_account(self):
         accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \

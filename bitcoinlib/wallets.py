@@ -158,7 +158,6 @@ class HDWalletKey:
         pprint(utxos)
 
     def info(self):
-        self.updatebalance()
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
         print(" Key Type                       %s" % self.key_type)
@@ -360,7 +359,6 @@ class HDWallet:
         self.session.commit()
 
     def info(self, detail=0):
-        self.updatebalance()
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
         print(" Name                           %s" % self.name)
