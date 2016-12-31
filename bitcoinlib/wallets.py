@@ -59,14 +59,17 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
         w = session.query(DbWallet).filter_by(id=wallet)
     else:
         w = session.query(DbWallet).filter_by(name=wallet)
+    if not w or not w.first():
+        raise WalletError("Wallet '%s' not found" % wallet)
     # Also delete all keys and transactions in this wallet
     ks = session.query(DbKey).filter_by(wallet_id=w.first().id)
     for k in ks:
         session.query(DbUtxo).filter_by(key_id=k.id).delete()
     ks.delete()
-    w.delete()
+    res = w.delete()
     session.commit()
     session.close()
+    return res
 
 
 class HDWalletKey:
@@ -393,6 +396,7 @@ if __name__ == '__main__':
     test_database = DEFAULT_DATABASEDIR + test_databasefile
     if os.path.isfile(test_database):
         os.remove(test_database)
+    delete_wallet('hoi', databasefile=test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
     with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:

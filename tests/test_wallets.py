@@ -22,7 +22,7 @@ import unittest
 import os
 
 from bitcoinlib.db import DEFAULT_DATABASEDIR
-from bitcoinlib.wallets import HDWallet
+from bitcoinlib.wallets import HDWallet, list_wallets, delete_wallet, WalletError
 
 DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
 
@@ -44,7 +44,7 @@ class TestWallet(unittest.TestCase):
 
     def test_wallet_key_info(self):
         self.assertIsNot(self.wallet.main_key.info(), "")
-        
+
     def test_wallet_create_account(self):
         new_account = self.wallet.new_account(account_id=100)
         self.assertEqual(new_account.depth, 3)
@@ -124,3 +124,16 @@ class TestWallet(unittest.TestCase):
         self.assertEqual(wallet_import.main_key.key_wif, accountkey)
         self.assertEqual(newkey.address, u'LPkJcpV1cmT8qLFmUApySBtxt7UWavoQmh')
         self.assertEqual(newkey.path, "m/44'/2'/0'/0/0")
+
+    def test_list_wallets(self):
+        wallets = list_wallets(databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wallets[0]['name'], 'test_wallet_create')
+
+    def test_delete_wallet(self):
+        HDWallet.create(
+            name='wallet_to_remove',
+            databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(delete_wallet('wallet_to_remove', databasefile=DATABASEFILE_UNITTESTS), 1)
+
+    def test_delete_wallet_exception(self):
+        self.assertRaisesRegexp(WalletError, '', delete_wallet, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
