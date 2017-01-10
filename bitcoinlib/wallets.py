@@ -75,9 +75,13 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
 class HDWalletKey:
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='', account_id=0, network='bitcoin', change=0, purpose=44, parent_id=0,
-                 path='m'):
-        k = HDKey(import_key=key, network=network)
+    def from_key(name, wallet_id, session, key='', hdkey_object=0, account_id=0, network='bitcoin', change=0,
+                 purpose=44, parent_id=0, path='m'):
+        # TODO: Test key and throw warning if invalid network, account_id etc
+        if not hdkey_object:
+            k = HDKey(import_key=key, network=network)
+        else:
+            k = hdkey_object
         keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).all()
         if keyexists:
             raise WalletError("Key %s already exists" % (key or k.extended_wif()))
@@ -104,6 +108,15 @@ class HDWalletKey:
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session)
+
+    @classmethod
+    def from_key_object(cls, hdkey_object, name, wallet_id, session, account_id=0, network='bitcoin', change=0,
+                        purpose=44, parent_id=0, path='m'):
+        if not isinstance(hdkey_object, HDKey):
+            raise WalletError("The hdkey_object variable must be a HDKey type")
+        return cls.from_key(name=name, wallet_id=wallet_id, session=session,
+                            hdkey_object=hdkey_object, account_id=account_id, network=network,
+                            change=change, purpose=purpose, parent_id=parent_id, path=path)
 
     def __init__(self, key_id, session):
         wk = session.query(DbKey).filter_by(id=key_id).scalar()
@@ -225,9 +238,9 @@ class HDWallet:
             if session.query(DbKey).filter_by(wallet_id=wallet_id, path=fullpath).all():
                 continue
             ck = masterkey.k.subkey_for_path(pp)
-            nk = HDWalletKey.from_key(key=ck.extended_wif(), name=name, wallet_id=wallet_id, network=network,
-                                      account_id=account_id, change=change, purpose=purpose, path=fullpath,
-                                      parent_id=parent_id, session=session)
+            nk = HDWalletKey.from_key_object(ck, name=name, wallet_id=wallet_id, network=network,
+                                             account_id=account_id, change=change, purpose=purpose, path=fullpath,
+                                             parent_id=parent_id, session=session)
             parent_id = nk.key_id
         return parent_id
 
@@ -264,6 +277,11 @@ class HDWallet:
             key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.name,
             account_id=account_id, purpose=self.purpose, session=self.session)
 
+    def import_hdkey_object(self, hdkey_object, account_id=None):
+        return HDWalletKey.from_key_object(
+            hdkey_object, name=self.name, wallet_id=self.wallet_id, network=self.network.name,
+            account_id=account_id, purpose=self.purpose, session=self.session)
+
     def new_key(self, name='', account_id=0, change=0, max_depth=5):
         # Find main account key
         acckey = self.session.query(DbKey). \
@@ -281,7 +299,8 @@ class HDWallet:
         newpath = []
         if not acckey:
             acckey = self.session.query(DbKey). \
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=2).scalar()
+                filter(DbKey.wallet_id == self.wallet_id, DbKey.purpose == self.purpose, DbKey.depth == 2,
+                       DbKey.parent_id != 0).scalar()
             newpath.append(str(account_id)+"'")
             if not acckey:
                 raise WalletError("No key found this wallet_id, network and purpose. "
@@ -315,6 +334,15 @@ class HDWallet:
         ret = self.new_key(name=name, account_id=account_id, max_depth=4)
         self.new_key(name=name, account_id=account_id, max_depth=4, change=1)
         return ret.parent(session=self.session)
+
+    def key_for_path(self, path, name='', account_id=0, change=0):
+        newkey = self.main_key.k.subkey_for_path(path)
+        if not name:
+            name = self.name
+        nk = HDWalletKey.from_key_object(newkey, name=name, wallet_id=self.wallet_id,
+                                         network=self.network, account_id=account_id, change=change,
+                                         purpose=self.purpose, path=path, session=self.session)
+        return nk
 
     def keys(self, account_id=None, change=None, depth=None, as_dict=False):
         qr = self.session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
@@ -396,20 +424,21 @@ if __name__ == '__main__':
     test_database = DEFAULT_DATABASEDIR + test_databasefile
     if os.path.isfile(test_database):
         os.remove(test_database)
-    delete_wallet('hoi', databasefile=test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
     with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
+        wallet.info(detail=3)
         wallet.new_account()
         new_key1 = wallet.new_key()
         new_key2 = wallet.new_key()
         new_key3 = wallet.new_key()
         new_key4 = wallet.new_key(change=1)
+        wallet.key_for_path('m/0/0')
         donations_account = wallet.new_account()
         new_key5 = wallet.new_key(account_id=donations_account.account_id)
         wallet.info(detail=3)
 
-    # # -- Create New Wallet with Testnet master key and account ID 99 --
+    # -- Create New Wallet with Testnet master key and account ID 99 --
     wallet_import = HDWallet.create(
         name='TestNetWallet',
         key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'

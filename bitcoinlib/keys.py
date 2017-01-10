@@ -436,7 +436,7 @@ class HDKey:
         :param parent_fingerprint: 4-byte fingerprint of parent
         :param child_index: Index number of child as integer
         :param isprivate: True for private, False for public key
-        :param network: Bitcoin normal or test network. Derived from import_key if possible.
+        :param network: Network name. Derived from import_key if possible.
         :param key_type: HD BIP32 or normal Private Key
         :return:
         """
@@ -632,7 +632,7 @@ class HDKey:
         newkey = change_base(newkey, 10, 256, 32)
 
         return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index)
+                     child_index=index, network=self.network)
 
     def child_public(self, index=0):
         """
@@ -659,7 +659,7 @@ class HDKey:
         xhex = change_base(Ki.x(), 10, 16, 64)
         secret = change_base(prefix + xhex, 16, 256)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, isprivate=False)
+                     child_index=index, isprivate=False, network=self.network)
 
 
 if __name__ == '__main__':
