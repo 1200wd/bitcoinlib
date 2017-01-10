@@ -20,6 +20,7 @@
 
 import unittest
 import os
+import json
 
 from bitcoinlib.db import DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet, list_wallets, delete_wallet, WalletError
@@ -137,3 +138,32 @@ class TestWallet(unittest.TestCase):
 
     def test_delete_wallet_exception(self):
         self.assertRaisesRegexp(WalletError, '', delete_wallet, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
+
+
+class TestWalletElectrum(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        self.pk = 'xprv9s21ZrQH143K2fuscnMTwUadsPqEbYdFQVJ1uWPawUYi7C485NHhCiotGy6Kz3Cz7ReVr65oXNwhREZ8ePrz8p7zy' \
+                  'Hra82D1EGS7cQQmreK'
+        self.wallet = HDWallet.create(
+            key=self.pk,
+            name='test_wallet_electrum',
+            databasefile=DATABASEFILE_UNITTESTS)
+        workdir = os.path.dirname(__file__)
+        with open('%s/%s' % (workdir, 'electrum_keys.json'), 'r') as f:
+            self.el_keys = json.load(f)
+        for i in range(0, 20):
+            self.wallet.key_for_path('m/0/%d' % i, name='Receiving #%d' % i)
+        for i in range(0, 6):
+            self.wallet.key_for_path('m/1/%d' % i, name='Change #%d' % i)
+
+    def test_electrum_keys(self):
+        for key in self.wallet.keys():
+            if key.name != 'test_wallet_electrum':
+                self.assertIn(key.address, self.el_keys.keys(),
+                              msg='Key %s (%s) not found in Electrum wallet key export' %
+                                  (key.name, key.address))
+
+
