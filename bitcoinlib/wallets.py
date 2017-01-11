@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib wallets
-#    © 2016 December - 1200 Web Development <http://1200wd.com/>
+#    © 2017 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -382,6 +382,10 @@ class HDWallet:
     def updateutxos(self, account_id=None):
         utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id))
         for utxo in utxos:
+            # Skip if utxo was already imported
+            if self.session.query(DbUtxo).filter_by(tx_hash=utxo['tx_hash']).count():
+                continue
+
             key = self.session.query(DbKey).filter_by(address=utxo['address']).scalar()
             del(utxo['address'])
             utxo['key_id'] = key.id
