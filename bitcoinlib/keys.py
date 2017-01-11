@@ -391,6 +391,7 @@ class Key:
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public())
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed())
+        print(" Public Key Hash160          %s" % self.hash160())
         print(" Address (b58)               %s" % self.address())
         print(" Address uncompressed (b58)  %s" % self.address_uncompressed())
         point_x, point_y = self.public_point()
@@ -410,18 +411,19 @@ class HDKey:
     """
 
     @staticmethod
-    def from_seed(import_seed):
+    def from_seed(import_seed, network=None):
         """
         Used by class init function, import key from seed
 
         :param import_seed: Hex representation of private key seed
+        :param network: Network to use
         :return: HDKey class object
         """
         seed = change_base(import_seed, 16, 256)
         I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
-        return HDKey(key=key, chain=chain)
+        return HDKey(key=key, chain=chain, network=network)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, isprivate=True, network=NETWORK_BITCOIN, key_type='bip32', passphrase=''):
@@ -502,6 +504,7 @@ class HDKey:
             print("")
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public())
+        print(" Public Key Hash160          %s" % self.public().hash160())
         print(" Address (b58)               %s" % self.public().address())
         print(" Fingerprint (hex)           %s" % change_base(self.fingerprint(), 256, 16))
         point_x, point_y = self.public().public_point()
@@ -670,6 +673,12 @@ if __name__ == '__main__':
     print("\n=== Import public key ===")
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
     K.info()
+
+    # TODO - this should work:
+    # print("\n==== Import private key as string ===")
+    # pk = '45552833878247474734848656701264879218668934469350493760914973828870088122784'
+    # k = Key(import_key=pk, network='testnet')
+    # k.info()
 
     print("\n=== Import Private Key ===")
     k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')

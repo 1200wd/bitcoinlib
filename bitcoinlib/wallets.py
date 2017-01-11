@@ -451,7 +451,7 @@ if __name__ == '__main__':
         databasefile=test_database)
     wallet_import.new_account(account_id=99)
     nk = wallet_import.new_key(account_id=99, name="Faucet gift")
-    wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
+    nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
     wallet_import.info(detail=3)
     wallet_import.updateutxos()
 
