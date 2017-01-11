@@ -411,7 +411,7 @@ class HDKey:
     """
 
     @staticmethod
-    def from_seed(import_seed, network=None):
+    def from_seed(import_seed, network=NETWORK_BITCOIN):
         """
         Used by class init function, import key from seed
 
