@@ -54,3 +54,7 @@ class BlockExplorerClient(BaseClient):
         for utxo in utxos:
             balance += utxo['value']
         return balance * self.units
+
+    def rawtransaction(self, txid):
+        res = self.compose_request('rawtx', txid)
+        return res['rawtx']

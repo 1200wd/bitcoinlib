@@ -95,10 +95,12 @@ class Service(object):
 
 
 if __name__ == '__main__':
-    # addresslst = ['n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw', 'mvA148DL7EFtWxM3VoZjRVcpg2f1VDJadq']
-    # print(Service(network='testnet', min_providers=3).getbalance(addresslst))
     from pprint import pprint
-    # pprint(Service(network='testnet', min_providers=3).getutxos(addresslst))
+    # Get Balance and UTXO's for given bitcoin testnet 3 addresses
+    addresslst = ['n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw', 'mvA148DL7EFtWxM3VoZjRVcpg2f1VDJadq']
+    pprint(Service(network='testnet', min_providers=3).getbalance(addresslst))
+    pprint(Service(network='testnet', min_providers=3).getutxos(addresslst))
 
+    # Get RAW Transaction data for given Transaction ID
     t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
-    pprint(Service(network='testnet', min_providers=3).getrawtransaction(t))
+    pprint(Service(network='testnet', min_providers=2).getrawtransaction(t))
