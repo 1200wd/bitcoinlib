@@ -91,7 +91,7 @@ class Service(object):
         return self._provider_execute('utxos', addresslist)
 
     def getrawtransaction(self, txid):
-        return self._provider_execute('rawtransaction', txid)
+        return self._provider_execute('getrawtransaction', txid)
 
 
 if __name__ == '__main__':

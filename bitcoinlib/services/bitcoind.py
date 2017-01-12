@@ -46,6 +46,10 @@ class BitcoindClient:
         print(uri)
         self.proxy = AuthServiceProxy(uri)
 
+    def getrawtransaction(self, txid):
+        res = self.proxy.getrawtransaction(txid)
+        return res
+
 
 if __name__ == '__main__':
     #
@@ -66,3 +70,7 @@ if __name__ == '__main__':
     rmp = bdc.proxy.getrawmempool()
     pprint(rmp)
     print("Mempool Size %d" % len(rmp))
+
+    print("\n=== Raw Transaction by txid ===")
+    t = bdc.getrawtransaction('1ff62e2cd1e6255cf840f1f4fa29b2c76b12b2efa5ac3335e68a6d5448956626')
+    pprint(t)
