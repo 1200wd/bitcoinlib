@@ -26,6 +26,7 @@ from bitcoinlib import services
 
 _logger = logging.getLogger(__name__)
 
+
 class ServiceError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
@@ -89,9 +90,15 @@ class Service(object):
 
         return self._provider_execute('utxos', addresslist)
 
+    def getrawtransaction(self, txid):
+        return self._provider_execute('rawtransaction', txid)
+
 
 if __name__ == '__main__':
-    addresslst = ['n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw', 'mvA148DL7EFtWxM3VoZjRVcpg2f1VDJadq']
-    print(Service(network='testnet', min_providers=3).getbalance(addresslst))
+    # addresslst = ['n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw', 'mvA148DL7EFtWxM3VoZjRVcpg2f1VDJadq']
+    # print(Service(network='testnet', min_providers=3).getbalance(addresslst))
     from pprint import pprint
-    pprint(Service(network='testnet', min_providers=3).getutxos(addresslst))
+    # pprint(Service(network='testnet', min_providers=3).getutxos(addresslst))
+
+    t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
+    pprint(Service(network='testnet', min_providers=3).getrawtransaction(t))

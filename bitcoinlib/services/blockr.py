@@ -61,3 +61,8 @@ class BlockrClient(BaseClient):
                     'script': utxo['script'],
                 })
         return utxos
+
+    # http: // tbtc.blockr.io / api / v1 / tx / raw / d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955
+    def rawtransaction(self, txid):
+        rawtx = self.compose_request('tx', 'raw', txid)
+        return rawtx['tx']['hex']
