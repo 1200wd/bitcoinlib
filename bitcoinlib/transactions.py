@@ -153,35 +153,42 @@ if __name__ == '__main__':
     t = Transaction.import_raw(r5)
     pprint(t.get())
 
-
     # Test all transactions in latest testnet block with bitcoind client
-    # bdc = BitcoindClient(user='bitcoinrpc', password='E0K2ySVA7Vz2PUqhEjqEtwnV9w2w7ci4lyneRco0flmE',
-    #                      server='80.127.136.50', port=8332)
-    #
-    # print("\n=== SERVERINFO ===")
-    # blockhash = bdc.proxy.getbestblockhash()
-    # bestblock = bdc.proxy.getblock(blockhash)
-    # print('... %d transactions found' % len(bestblock['tx']))
-    # for txid in bestblock['tx']:
-    #     print("=== DESERIALIZE TXID %s" % txid)
-    #     try:
-    #         rt = bdc.getrawtransaction(txid)
-    #     except:
-    #         pass
-    #     print("raw %s" % rt)
-    #     t = Transaction.import_raw(rt)
-    #     pprint(t.get())
-    #
-    # print("===   D O N E   ===")
-    #
-    # newtxs = bdc.proxy.getrawmempool()
-    # print(newtxs)
-    # for txid in newtxs:
-    #     print("=== DESERIALIZE TXID %s" % txid)
-    #     rt = bdc.getrawtransaction(txid)
-    #     print("raw %s" % rt)
-    #     t = Transaction.import_raw(rt)
-    #     pprint(t.get())
-    #
-    # print("===   %d verified   ===" % len(newtxs))
-    # print("===   D O N E   ===")
+    bdc = BitcoindClient(user='bitcoinrpc', password='E0K2ySVA7Vz2PUqhEjqEtwnV9w2w7ci4lyneRco0flmE',
+                         server='80.127.136.50', port=8332)
+
+    print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
+    blockhash = bdc.proxy.getbestblockhash()
+    bestblock = bdc.proxy.getblock(blockhash)
+    print('... %d transactions found' % len(bestblock['tx']))
+    ci = 0
+    ct = len(bestblock['tx'])
+    for txid in bestblock['tx']:
+        ci += 1
+        print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
+        try:
+            rt = bdc.getrawtransaction(txid)
+        except:
+            pass
+        print("- raw %s" % rt)
+        t = Transaction.import_raw(rt)
+        pprint(t.get())
+    print("===   D O N E   ===")
+
+    print("\n=== DESERIALIZE MEMPOOL TRANSACTIONS ===")
+    newtxs = bdc.proxy.getrawmempool()
+    ci = 0
+    ct = len(newtxs)
+    print("Found %d transactions in mempool" % len(newtxs))
+    for txid in newtxs:
+        ci += 1
+        print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
+        try:
+            rt = bdc.getrawtransaction(txid)
+            print("- raw %s" % rt)
+            t = Transaction.import_raw(rt)
+            pprint(t.get())
+        except:
+            print(txid)
+    print("===   %d verified   ===" % len(newtxs))
+    print("===   D O N E   ===")
