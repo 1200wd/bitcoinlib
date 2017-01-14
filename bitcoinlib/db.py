@@ -39,8 +39,8 @@ class DbInit:
         if not os.path.exists(databasefile):
             if not os.path.exists(DEFAULT_DATABASEDIR):
                 os.makedirs(DEFAULT_DATABASEDIR)
-            if not os.path.exists(CURRENT_INSTALLDIR_DATA):
-                os.makedirs(CURRENT_INSTALLDIR_DATA)
+            if not os.path.exists(DEFAULT_SETTINGSDIR):
+                os.makedirs(DEFAULT_SETTINGSDIR)
             Base.metadata.create_all(engine)
             self._import_config_data(Session)
 
@@ -48,9 +48,9 @@ class DbInit:
 
     @staticmethod
     def _import_config_data(ses):
-        for fn in os.listdir(CURRENT_INSTALLDIR_DATA):
+        for fn in os.listdir(DEFAULT_SETTINGSDIR):
             if fn.endswith(".csv"):
-                with open('%s%s' % (CURRENT_INSTALLDIR_DATA, fn), 'r') as csvfile:
+                with open('%s%s' % (DEFAULT_SETTINGSDIR, fn), 'r') as csvfile:
                     session = ses()
                     tablename = fn.split('.')[0]
                     reader = csv.DictReader(csvfile)

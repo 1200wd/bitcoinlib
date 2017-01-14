@@ -21,15 +21,45 @@ import os
 import logging
 
 
-DEFAULT_DATABASEDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
-DEFAULT_LOGDIR = DEFAULT_DATABASEDIR
+DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
+DEFAULT_DATABASEDIR = DEFAULT_DOCDIR
+DEFAULT_LOGDIR = DEFAULT_DOCDIR
+DEFAULT_SETTINGSDIR = DEFAULT_DOCDIR
+# -> Or put files in a seperate directory:
+# DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database')
+# DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log')
+# DEFAULT_SETTINGSDIR = os.path.join(DEFAULT_DOCDIR, 'config')
 CURRENT_INSTALLDIR = os.path.dirname(__file__)
-CURRENT_INSTALLDIR_DATA = os.path.join(CURRENT_INSTALLDIR, 'data/')
+CURRENT_INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
 DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
 
+if not os.path.exists(DEFAULT_DOCDIR):
+    os.makedirs(DEFAULT_DOCDIR)
 if not os.path.exists(DEFAULT_LOGDIR):
     os.makedirs(DEFAULT_LOGDIR)
+if not os.path.exists(DEFAULT_SETTINGSDIR):
+    os.makedirs(DEFAULT_SETTINGSDIR)
+
+
+def initialize_lib():
+    instlogfile = os.path.join(DEFAULT_LOGDIR, 'install.log')
+    if os.path.isfile(instlogfile):
+        return
+
+    with open(instlogfile, 'w') as f:
+        f.write('Bitcoinlibrary installed, check further logs in bitcoinlib.log')
+
+    # Copy data and settings file to DOCDIR
+    from shutil import copyfile
+    src_files = os.listdir(CURRENT_INSTALLDIR_DATA)
+    for file_name in src_files:
+        full_file_name = os.path.join(CURRENT_INSTALLDIR_DATA, file_name)
+        if os.path.isfile(full_file_name):
+            copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
+
+
+initialize_lib()
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s', datefmt='%Y/%m/%d %H:%M:%S',
