@@ -117,7 +117,6 @@ if __name__ == '__main__':
     with open('/home/lennart/code/bitcoinlib/tests/transactions_raw.json', 'r') as f:
         d = json.load(f)
 
-    pprint(d)
     # Simple raw transaction with 1 input and 2 outputs (destination and change address).
     # See http://www.siliconian.com/blog/16-bitcoin-blockchain/22-deconstructing-bitcoin-transactions
     # for a colorfull deserialisation example.
@@ -126,9 +125,19 @@ if __name__ == '__main__':
          'a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e' \
          '01000000' \
          '6a' \
-         '47304402201f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38022045e78c9e55df1cf3db74bf' \
-         'd52ff2add2b59ba63e068680f0023e6a80ac9f51f401210239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db' \
-         '1dab2816e9d' \
+         '47' \
+         '30' \
+         '44' \
+         '02' \
+         '20' \
+         '1f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38' \
+         '02' \
+         '20' \
+         '45e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f4' \
+         '01' \
+         '21' \
+         '02' \
+         '39a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9d' \
          'feffffff' \
          '02' \
          '3ef59804' \
@@ -141,10 +150,14 @@ if __name__ == '__main__':
          '00'
 
     t = Transaction.import_raw(rt)
-    pprint(t.get())
+    # pprint(t.get())
 
     for i in t.inputs:
-        print(i['script_sig'])
+        s = binascii.unhexlify(i['script_sig'])
+        l = s[0]
+        signature = s[1:l]
+        l2 = s[l+1]
+        public_key = s[l+1:l+l2+2]
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
