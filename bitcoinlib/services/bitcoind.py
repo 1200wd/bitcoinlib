@@ -58,6 +58,7 @@ class BitcoindClient:
         self.type = 'bitcoind'
         protocol = 'https' if use_https else 'http'
         uri = '%s://%s:%s@%s:%s' % (protocol, user, password, server, port)
+        _logger.debug("Connect to bitcoind on %s" % uri)
         self.proxy = AuthServiceProxy(uri)
 
     def getrawtransaction(self, txid):

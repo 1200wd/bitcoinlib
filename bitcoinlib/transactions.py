@@ -62,8 +62,6 @@ def deserialize_transaction(rawtx):
                        'script_sig': binascii.hexlify(scriptsig), 'sequence_number': sequence_number, })
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
-    if not inputs:
-        raise TransactionError("Error no inputs found in this transaction")
 
     outputs = []
     n_outputs, size = varbyteint_to_int(rawtx[cursor:cursor + 9])

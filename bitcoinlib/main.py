@@ -19,6 +19,7 @@
 
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 
 
 DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
@@ -33,6 +34,7 @@ CURRENT_INSTALLDIR = os.path.dirname(__file__)
 CURRENT_INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
 DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
+
 
 if not os.path.exists(DEFAULT_DOCDIR):
     os.makedirs(DEFAULT_DOCDIR)
@@ -61,10 +63,14 @@ def initialize_lib():
 
 initialize_lib()
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)s %(message)s', datefmt='%Y/%m/%d %H:%M:%S',
-    filename=os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log'),
-    level=logging.DEBUG)
+logfile = os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log')
+handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
+logger = logging.getLogger()
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
+                              datefmt='%Y/%m/%d %H:%M:%S')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
+
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
-
