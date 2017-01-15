@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib Transactions
-#    © 2016 December - 1200 Web Development <http://1200wd.com/>
+#    © 2017 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -19,6 +19,7 @@
 
 import binascii
 from bitcoinlib.encoding import change_base, varbyteint_to_int
+from bitcoinlib.config.opcodes import opcodes, opcodenames
 from bitcoinlib.main import *
 from bitcoinlib.services.bitcoind import BitcoindClient
 
@@ -141,6 +142,9 @@ if __name__ == '__main__':
 
     t = Transaction.import_raw(rt)
     pprint(t.get())
+
+    for i in t.inputs:
+        print(i['script_sig'])
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
