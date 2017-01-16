@@ -21,6 +21,7 @@
 import sys
 import math
 import numbers
+import ecdsa
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -227,6 +228,15 @@ def varbyteint_to_int(byteint):
     else:  # integer of 8 bytes
         size = 8
     return change_base(byteint[1:1+size][::-1], 256, 10), size + 1
+
+
+def convert_der_sig(s):
+    sg, junk = ecdsa.der.remove_sequence(s)
+    if junk != b'':
+        raise EncodingError("Junk found in encoding sequence %s" % junk)
+    x, sg = ecdsa.der.remove_integer(sg)
+    y, sg = ecdsa.der.remove_integer(sg)
+    return '%064x%064x' % (x, y)
 
 
 if __name__ == '__main__':

@@ -18,7 +18,8 @@
 #
 
 import binascii
-from bitcoinlib.encoding import change_base, varbyteint_to_int
+from bitcoinlib.encoding import change_base, varbyteint_to_int, convert_der_sig
+from bitcoinlib.keys import Key, get_key_format
 from bitcoinlib.config.opcodes import opcodes, opcodenames
 from bitcoinlib.main import *
 from bitcoinlib.services.bitcoind import BitcoindClient
@@ -109,8 +110,8 @@ class Transaction:
         }
 
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     from pprint import pprint
     import json
     workdir = os.path.dirname(__file__)
@@ -152,17 +153,35 @@ if __name__ == '__main__':
     rt += 'b7740f00'   # Locktime
 
     t = Transaction.import_raw(rt)
-    pprint(t.get())
+    # pprint(t.get())
 
     for i in t.inputs:
         s = binascii.unhexlify(i['script_sig'])
         l = s[0]
-        signature_der = s[1:l]
+        sig_der = s[1:l]
         l2 = s[l+1]
-        public_key_der = s[l+1:l+l2+2]
+        public_key = binascii.hexlify(s[l+2:l+l2+2]).decode('utf-8')
+        sig = convert_der_sig(sig_der)
 
-        print(binascii.hexlify(signature_der))
-        print(binascii.hexlify(public_key_der))
+        print("Public Key %s" % public_key)
+        first = '01000000'  # Version bytes in Little-Endian (reversed) format
+        first += '01'        # Number of UTXO's inputs
+        first += 'a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e'
+        first += '01000000'  # Index number of previous transaction
+        signable_transaction = first + "1976a914" + sig + "88ac" + "01000000"
+        print(signable_transaction)
+        import ecdsa
+        import hashlib
+        hashToSign = hashlib.sha256(hashlib.sha256(binascii.unhexlify(signable_transaction)).digest()).digest()
+        # assert (parsed[1][-2:] == '01')  # hashtype
+        # sig = keyUtils.derSigToHexSig(parsed[1][:-2])
+        # public_key = parsed[2]
+        vk = ecdsa.VerifyingKey.from_string(binascii.unhexlify(sig), curve=ecdsa.SECP256k1)
+        assert (vk.verify_digest(public_key[2:], hashToSign))
+
+        pk = Key(import_key=public_key, network='testnet')
+        pk.info()
+
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
