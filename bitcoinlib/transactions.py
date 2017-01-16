@@ -117,47 +117,52 @@ if __name__ == '__main__':
     with open('/home/lennart/code/bitcoinlib/tests/transactions_raw.json', 'r') as f:
         d = json.load(f)
 
-    # Simple raw transaction with 1 input and 2 outputs (destination and change address).
-    # See http://www.siliconian.com/blog/16-bitcoin-blockchain/22-deconstructing-bitcoin-transactions
-    # for a colorfull deserialisation example.
-    rt = '01000000' \
-         '01' \
-         'a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e' \
-         '01000000' \
-         '6a' \
-         '47' \
-         '30' \
-         '44' \
-         '02' \
-         '20' \
-         '1f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38' \
-         '02' \
-         '20' \
-         '45e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f4' \
-         '01' \
-         '21' \
-         '02' \
-         '39a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9d' \
-         'feffffff' \
-         '02' \
-         '3ef59804' \
-         '00000000' \
-         '1976a9' \
-         '14af8e14a2cecd715c363b3a72b55b59a31e2acac988ac90940d' \
-         '0000000000' \
-         '1976a9' \
-         '14f0d34949650af161e7cb3f0325a1a8833075165088acb7740f' \
-         '00'
+    # Example of a basic raw transaction with 1 input and 2 outputs
+    # (destination and change address).
+    rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
+    # --- INPUTS ---
+    rt += '01'        # Number of UTXO's inputs
+    # Previous transaction hash (Little Endian format):
+    rt += 'a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e'
+    rt += '01000000'  # Index number of previous transaction
+    # --- SCRIPTSIG ---
+    rt += '6a'        # Size of following unlocking script (ScripSig)
+    rt += '47'        # PUSHDATA 47 - Push following 47 bytes signature to stack
+    rt += '30'        # DER encoded Signature - Sequence
+    rt += '44'        # DER encoded Signature - Length
+    rt += '02'        # DER encoded Signature - Integer
+    rt += '20'        # DER encoded Signature - Length of X:
+    rt += '1f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38'
+    rt += '02'        # DER encoded Signature - Integer
+    rt += '20'        # DER encoded Signature - Lenght of Y:
+    rt += '45e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f4'
+    rt += '01'        # SIGHASH_ALL
+    # --- PUBLIC KEY ---
+    rt += '21'        # PUSHDATA 21 - Push following 21 bytes public key to stack:
+    rt += '0239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9d'
+    rt += 'feffffff'  # Sequence
+    # --- OUTPUTS ---
+    rt += '02'                  # Number of outputs
+    rt += '3ef5980400000000'    # Output value in Little Endian format
+    rt += '19'                  # Script length, of following scriptPubKey:
+    rt += '76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac'
+    rt += '90940d0000000000'    # Output value #2 in Little Endian format
+    rt += '19'                  # Script length, of following scriptPubKey:
+    rt += '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
+    rt += 'b7740f00'   # Locktime
 
     t = Transaction.import_raw(rt)
-    # pprint(t.get())
+    pprint(t.get())
 
     for i in t.inputs:
         s = binascii.unhexlify(i['script_sig'])
         l = s[0]
-        signature = s[1:l]
+        signature_der = s[1:l]
         l2 = s[l+1]
-        public_key = s[l+1:l+l2+2]
+        public_key_der = s[l+1:l+l2+2]
+
+        print(binascii.hexlify(signature_der))
+        print(binascii.hexlify(public_key_der))
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
