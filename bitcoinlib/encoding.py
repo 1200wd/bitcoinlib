@@ -206,6 +206,29 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
         return output
 
 
+def varbyteint_to_int(byteint):
+    """
+    Convert CompactSize Variable length integer in byte format to integer.
+
+    See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
+
+    :param byteint: 1-9 byte representation as integer
+    :return: normal integer
+    """
+    if not byteint:
+        print(byteint)
+    ni = byteint[0]
+    if ni < 253:
+        return ni, 1
+    if ni == 253:  # integer of 2 bytes
+        size = 2
+    elif ni == 254:  # integer of 4 bytes
+        size = 4
+    else:  # integer of 8 bytes
+        size = 8
+    return change_base(byteint[1:1+size][::-1], 256, 10), size + 1
+
+
 if __name__ == '__main__':
     #
     # SOME EXAMPLES
@@ -240,3 +263,5 @@ if __name__ == '__main__':
         print("\n>>> change_base%s     # Change from base%d to base%d" %
               (example, example[1], example[2]))
         print("%s" % change_base(*example))
+
+    print("\n")

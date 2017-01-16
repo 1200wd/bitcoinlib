@@ -61,3 +61,7 @@ class BlockrClient(BaseClient):
                     'script': utxo['script'],
                 })
         return utxos
+
+    def rawtransaction(self, txid):
+        res = self.compose_request('tx', 'raw', txid)
+        return res['tx']['hex']
