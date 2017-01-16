@@ -22,6 +22,7 @@ import sys
 import math
 import numbers
 import ecdsa
+import struct
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -88,7 +89,7 @@ def normalize_var(var, base):
         except UnicodeEncodeError:
             raise EncodingError("Cannot convert this unicode to string format")
 
-    if base==10:
+    if base == 10:
         return int(var)
     else:
         return var
@@ -216,8 +217,8 @@ def varbyteint_to_int(byteint):
     :param byteint: 1-9 byte representation as integer
     :return: normal integer
     """
-    if not byteint:
-        print(byteint)
+    if not isinstance(byteint, (bytes, list)):
+        raise EncodingError("Byteint be a list or defined as bytes")
     ni = byteint[0]
     if ni < 253:
         return ni, 1
@@ -228,6 +229,19 @@ def varbyteint_to_int(byteint):
     else:  # integer of 8 bytes
         size = 8
     return change_base(byteint[1:1+size][::-1], 256, 10), size + 1
+
+
+def int_to_varbyteint(inp):
+    if not isinstance(inp, int):
+        raise EncodingError("Input must be of type integer")
+    if inp < 0xfd:
+        return struct.pack('B', inp)
+    elif inp < 0xffff:
+        return struct.pack('<cH', '\xfd', inp)
+    elif inp < 0xffffffff:
+        return struct.pack('<cL', '\xfe', inp)
+    else:
+        return struct.pack('<cQ', '\xff', inp)
 
 
 def convert_der_sig(s):
