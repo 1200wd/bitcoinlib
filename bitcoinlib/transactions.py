@@ -18,8 +18,8 @@
 #
 
 import binascii
+import hashlib
 from bitcoinlib.encoding import *
-from bitcoinlib.keys import Key, get_key_format
 from bitcoinlib.config.opcodes import opcodes, opcodenames
 from bitcoinlib.main import *
 from bitcoinlib.services.bitcoind import BitcoindClient
@@ -161,6 +161,20 @@ class Transaction:
             r += b'\1\0\0\0'
         return r
 
+    def verify(self):
+        t_to_sign = self.raw(signable=True)
+        pub_key = t.input_addresses(return_type='byte')[0]
+        hashToSign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
+
+        # signature = convert_der_sig(t.inputs[0]['script_sig'][1:])
+        signature, pk = parse_script_sig(self.inputs[0]['script_sig'])
+        print("Public Key (in sig) %s" % binascii.hexlify(pk))
+        print("Public Key %s" % binascii.hexlify(pub_key))
+        print("Hash to Sign %s" % binascii.hexlify(hashToSign))
+        print("Signature %s" % signature)
+        vk = ecdsa.VerifyingKey.from_string(pub_key[1:], curve=ecdsa.SECP256k1)
+        vk.verify_digest(binascii.unhexlify(signature), hashToSign)
+
 
 if __name__ == '__main__':
     from pprint import pprint
@@ -202,55 +216,12 @@ if __name__ == '__main__':
     # rt = (
     # "0100000001a97830933769fe33c6155286ffae34db44c6b8783a2d8ca52ebee6414d399ec300000000" + "8a47" + "304402202c2e1a746c556546f2c959e92f2d0bd2678274823cc55e11628284e4a13016f80220797e716835f9dbcddb752cd0115a970a022ea6f2d8edafff6e087f928e41baac01" + "41" + "04392b964e911955ed50e4e368a9476bc3f9dcc134280e15636430eb91145dab739f0d68b82cf33003379d885a0b212ac95e9cddfd2d391807934d25995468bc55" + "ffffffff02015f0000000000001976a914c8e90996c7c6080ee06284600c684ed904d14c5c88ac204e000000000000" + "1976a914348514b329fda7bd33c7b2336cf7cd1fc9544c0588ac00000000")
 
-    rt = '01000000013420a0a70bf81cdb4afe531b00fa8fa87ad4c11715df44c624c12816d61e5305010000006b483045022100911c1fe6ff2fe7d6df5070e56b5ada1cb5d8b90200087352fd2b76616e75a06602203b915066d24c0d8393c166d58f7e4b642ecff8e966a52bd6cc14c6f231ccd45c012103f467003ac3c4230d4119d82cc73f329fc6405c65655322c2e27b4f3dd0481616feffffff02ba910000000000001600140c80795fe9dc1f7e902407168962b560c9f7c2f583d88c28000000001976a91488feddfdfb256fa7c077cbc09332d2253d76c83088ac00000000'
-
-    myTxn_forSig = (
-    "0100000001a97830933769fe33c6155286ffae34db44c6b8783a2d8ca52ebee6414d399ec300000000" + "1976a914" + "167c74f7491fe552ce9e1912810a984355b8ee07" + "88ac" + "ffffffff02015f0000000000001976a914c8e90996c7c6080ee06284600c684ed904d14c5c88ac204e000000000000" + "1976a914348514b329fda7bd33c7b2336cf7cd1fc9544c0588ac00000000" + "01000000")
+    # rt = '01000000013420a0a70bf81cdb4afe531b00fa8fa87ad4c11715df44c624c12816d61e5305010000006b483045022100911c1fe6ff2fe7d6df5070e56b5ada1cb5d8b90200087352fd2b76616e75a06602203b915066d24c0d8393c166d58f7e4b642ecff8e966a52bd6cc14c6f231ccd45c012103f467003ac3c4230d4119d82cc73f329fc6405c65655322c2e27b4f3dd0481616feffffff02ba910000000000001600140c80795fe9dc1f7e902407168962b560c9f7c2f583d88c28000000001976a91488feddfdfb256fa7c077cbc09332d2253d76c83088ac00000000'
 
     print("raw %s" % rt)
     t = Transaction.import_raw(rt)
-    # pprint(t.get())
-    t_to_sign = t.raw(signable=True)
-
-    import hashlib
-    pub_key = t.input_addresses(return_type='byte')[0]
-    hashToSign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
-
-    # signature = convert_der_sig(t.inputs[0]['script_sig'][1:])
-    signature, pk = parse_script_sig(t.inputs[0]['script_sig'])
-    print("Public Key (in sig) %s" % binascii.hexlify(pk))
-    print("Public Key %s" % binascii.hexlify(pub_key))
-    print("Hash to Sign %s" % binascii.hexlify(hashToSign))
-    print("Signature %s" % signature)
-    vk = ecdsa.VerifyingKey.from_string(pub_key[1:], curve=ecdsa.SECP256k1)
-    vk.verify_digest(binascii.unhexlify(signature), hashToSign)
-
-    # for i in t.inputs:
-    #     s = binascii.unhexlify(i['script_sig'])
-    #     l = s[0]
-    #     sig_der = s[1:l]
-    #     l2 = s[l+1]
-    #     public_key = binascii.hexlify(s[l+2:l+l2+2]).decode('utf-8')
-    #     sig = convert_der_sig(sig_der)
-    #
-    #     print("Public Key %s" % public_key)
-    #     first = '01000000'  # Version bytes in Little-Endian (reversed) format
-    #     first += '01'        # Number of UTXO's inputs
-    #     first += 'a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e'
-    #     first += '01000000'  # Index number of previous transaction
-    #     signable_transaction = first + "1976a914" + sig + "88ac" + "01000000"
-    #     print(signable_transaction)
-    #     import ecdsa
-    #     import hashlib
-    #     hashToSign = hashlib.sha256(hashlib.sha256(binascii.unhexlify(signable_transaction)).digest()).digest()
-    #     # assert (parsed[1][-2:] == '01')  # hashtype
-    #     # sig = keyUtils.derSigToHexSig(parsed[1][:-2])
-    #     # public_key = parsed[2]
-    #     vk = ecdsa.VerifyingKey.from_string(binascii.unhexlify(sig), curve=ecdsa.SECP256k1)
-    #     assert (vk.verify_digest(public_key[2:], hashToSign))
-    #
-    #     pk = Key(import_key=public_key, network='testnet')
-    #     pk.info()
+    pprint(t.get())
+    print("Verified %s" % t.verify())
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
