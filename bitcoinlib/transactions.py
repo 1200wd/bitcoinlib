@@ -172,9 +172,9 @@ class Transaction:
             try:
                 vk.verify_digest(binascii.unhexlify(signature), hashtosign)
             except:
-                print("Bad Signature", signature)
+                _logger.info("Bad Signature %s" % signature)
                 return False
-            print("OK", signature)
+            _logger.info("Signature Verified %s" % signature)
         return True
 
 
