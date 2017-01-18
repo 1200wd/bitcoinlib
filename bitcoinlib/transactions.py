@@ -61,8 +61,7 @@ def deserialize_transaction(rawtx):
         cursor += scriptsig_size
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
-        inputs.append({'id': i, 'prev_hash': inp_hash, 'output_index': inp_index,
-                       'script_sig': scriptsig, 'sequence_number': sequence_number, })
+        inputs.append(Input(inp_hash, inp_index, scriptsig, sequence_number))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
 
@@ -90,6 +89,26 @@ def parse_script_sig(s):
     l2 = s[l+1]
     public_key = s[l+2:l+l2+2]
     return sig, public_key
+
+
+class Input:
+
+    def __init__(self, prev_hash, output_index, script_sig, sequence):
+        self.prev_hash = prev_hash
+        self.output_index = output_index
+        self.script_sig = script_sig
+        self.sequence = sequence
+
+    def json(self):
+        return {
+            'prev_hash': binascii.hexlify(self.prev_hash).decode('utf-8'),
+            'output_index': binascii.hexlify(self.output_index).decode('utf-8'),
+            'script_sig': binascii.hexlify(self.script_sig).decode('utf-8'),
+            'sequence': binascii.hexlify(self.sequence).decode('utf-8'),
+        }
+
+    def __repr__(self):
+        return str(self.json())
 
 
 class Transaction:
@@ -132,8 +151,11 @@ class Transaction:
             return r[id]
 
     def get(self):
+        inputs = []
+        for i in self.inputs:
+            inputs.append(i.json())
         return {
-            'inputs': self.inputs,
+            'inputs': inputs,
             'outputs': self.outputs,
             'locktime': self.locktime,
         }
@@ -223,7 +245,7 @@ if __name__ == '__main__':
     # rt = '0100000004be8a976420ef000956142320e79d90dd2ce103dda9cf51efb280468ca7ac121d000000006b483045022100e80841d3a21a12c505e60d2896631edac06e0e0e7359207583cb31dd490a652502204fde02010706097f11acd0547c9dff0399354c065d7e1d1d17eeda031185804c0121029418397b2ad61b6d603fc865eb4ada9c5425952c4dbe948a0e0c75c36d4e740affffffffc4475d1a9a50aae5c608d20c28a1ca78bda39056d22aa3d869aefbdab83aa4b4000000006b483045022100cd986b35450080a2ee9397349d7513cecff5cf56c435cae43d33ca83c69cddb30220259f9460b372025dff475a534c472c3b2b7f558f393aedeb4c2a30fb6156f81c01210316dec74bb3f916cab37a979c076e03b54f347fa5a90bf2fc9f14e435c1a4ecbdffffffffaea58d46919cf6b7641a30a0a027f3318aee9173fc3f8f1f03c39670f7ce5c3a000000006a47304402206b3297db37c68ae172dc0de46cdb165ec79ce491edec7d59ed98c80d82edeffb0220244665fec2da49eae564d4cc78939ae2c04504294bbca76367d2e9ce5802f56d0121035b5ff8a770e99152d210f1d875d0e1c570dc9fbe332eaecfc405254f6df59edcffffffff85778efe6c0347762b404a6b5b00c45e7143861ccb2b4bd7b0927d0db9fee509010000006a473044022045330b90adba441e797350baa8a631c3b0d375598c88d6eaaae74526698a7fdc022066ffb7a61fcd394d8eed953eac5a792eccddb20f7b14f4e8dcbdc4e9207f1d1c0121032ebd92c614095f612a9e0dbcdb0d03e75481f9335c756f17bfc206d0dcddc644ffffffff02ce8fb400000000001976a914377ad7e288e893dc4473aeb28b18b1675067abaf88aca4823e00000000001976a914bfb2eb5487e238c7d34ea12b965ae169fba563ba88ac00000000'
 
     # new from the block
-    rt ='01000000027feae018535b4e8c4085842c8b1231e028a337f7479faf2223e492834561bc46010000006a47304402204093fdf0bda73daa6c9adb9c263ac2f2dc2bb5345a42e7d84ac4df5c56f9101402200a6d32cd9fa49e2ffccb6a45ff11ffdbdb2b6726f837f39889dc1a619259a313012102aede1735e06837692bd3ecb1cbc4f09f8f47d39138b92f5a39fdd1064cea9754ffffffff5d93cd125e1c1b032e49f86cfa1a6eef079110bc82bcedaba772bef6409f2c70010000006a47304402207afde02ff15c7011b003f42da7d5e566a11913e928c6dc8b1cbf0e5fb404073202202dcf97f4e0844c34abd676bf86e3df0b3e6261a1af5dae8944e99db8b2c9cd25012103b1dbc92fc9ab32fc9311eca4f8f64c8cc1bf08ba1581b76061cc4d1f5594c95fffffffff0260583daf000000001976a9141064198f6ac88004252c1a326a4e3ef62f40407188ac207154380b0000001976a914779ed60f20aed94a1134f2bf35d990935e83561288ac00000000'
+    # rt ='01000000027feae018535b4e8c4085842c8b1231e028a337f7479faf2223e492834561bc46010000006a47304402204093fdf0bda73daa6c9adb9c263ac2f2dc2bb5345a42e7d84ac4df5c56f9101402200a6d32cd9fa49e2ffccb6a45ff11ffdbdb2b6726f837f39889dc1a619259a313012102aede1735e06837692bd3ecb1cbc4f09f8f47d39138b92f5a39fdd1064cea9754ffffffff5d93cd125e1c1b032e49f86cfa1a6eef079110bc82bcedaba772bef6409f2c70010000006a47304402207afde02ff15c7011b003f42da7d5e566a11913e928c6dc8b1cbf0e5fb404073202202dcf97f4e0844c34abd676bf86e3df0b3e6261a1af5dae8944e99db8b2c9cd25012103b1dbc92fc9ab32fc9311eca4f8f64c8cc1bf08ba1581b76061cc4d1f5594c95fffffffff0260583daf000000001976a9141064198f6ac88004252c1a326a4e3ef62f40407188ac207154380b0000001976a914779ed60f20aed94a1134f2bf35d990935e83561288ac00000000'
 
     # verified ok, sig: 73a1f75574f6619b75fe0e00fc020b6293a0a47509e3b616d746f7f6d24ed14e50e04004d2cb6768d3f7d47f17bb
     # 4f9b1eac3503760f029cd84d2cc418e90a24
@@ -234,8 +256,8 @@ if __name__ == '__main__':
 
     print("raw %s" % rt)
     t = Transaction.import_raw(rt)
-    # pprint(t.get())
-    print("Verified %s" % t.verify())
+    pprint(t.get())
+    # print("Verified %s" % t.verify())
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
