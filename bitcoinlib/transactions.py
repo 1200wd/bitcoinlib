@@ -84,6 +84,8 @@ def deserialize_transaction(rawtx):
 
 
 def parse_script_sig(s):
+    if not s:
+        return "", ""
     l = s[0]
     sig = convert_der_sig(s[1:l])
     l2 = s[l+1]
@@ -98,11 +100,24 @@ class Input:
         self.prev_hash = prev_hash
         self.output_index = output_index
         self.script_sig = script_sig
+        self.signature, self._public_key = parse_script_sig(script_sig)
+        self.public_key = binascii.hexlify(self._public_key).decode('utf-8')
+        self.k = None
+        self.public_key_hash = ""
+        if self.public_key:
+            self.k = Key(self.public_key)
+            self.public_key_uncompressed = self.k.public_uncompressed()
+            self.public_key_hash = self.k.hash160()
+            self.address = self.k.address(compressed=True)
+            self.address_uncompressed = self.k.address_uncompressed()
         self.sequence = sequence
 
     def json(self):
         return {
             'prev_hash': binascii.hexlify(self.prev_hash).decode('utf-8'),
+            'address': self.address,
+            'public_key': self.public_key,
+            'public_key_hash': self.public_key_hash,
             'output_index': binascii.hexlify(self.output_index).decode('utf-8'),
             'script_sig': binascii.hexlify(self.script_sig).decode('utf-8'),
             'sequence': binascii.hexlify(self.sequence).decode('utf-8'),
@@ -131,26 +146,6 @@ class Transaction:
         self.version = version
         self.locktime = locktime
 
-    def input_addresses(self, id=None, return_type='hash160'):
-        r = []
-        for i in self.inputs:
-            s = i.script_sig
-            l = s[0]
-            sig_der = s[1:l]
-            l2 = s[l+1]
-            public_key = binascii.hexlify(s[l+2:l+l2+2]).decode('utf-8')
-            k = Key(public_key, compressed=False)
-            if return_type == 'hash160':
-                r.append(k.hash160())
-            elif return_type == 'hex':
-                r.append(k.public_uncompressed())
-            elif return_type == 'bytes':
-                r.append(binascii.unhexlify(k.public_uncompressed()))
-        if id is None:
-            return r
-        else:
-            return r[id]
-
     def get(self):
         inputs = []
         for i in self.inputs:
@@ -169,7 +164,7 @@ class Transaction:
             if sign_id is None:
                 r += struct.pack('B', len(i.script_sig)) + i.script_sig
             elif sign_id == i.id:
-                r += b'\x19\x76\xa9\x14' + binascii.unhexlify(self.input_addresses(id=i.id)) + \
+                r += b'\x19\x76\xa9\x14' + binascii.unhexlify(i.public_key_hash) + \
                      b'\x88\xac'
             else:
                 r += b'\0'
@@ -188,16 +183,14 @@ class Transaction:
         for i in self.inputs:
             t_to_sign = self.raw(i.id)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
-            signature, pub_key = parse_script_sig(i.script_sig)
-            if len(pub_key) == 33:
-                pub_key = binascii.unhexlify(Key(binascii.hexlify(pub_key).decode('utf-8')).public_uncompressed())
-            vk = ecdsa.VerifyingKey.from_string(pub_key[1:], curve=ecdsa.SECP256k1)
+            pk = binascii.unhexlify(i.public_key_uncompressed[2:])
+            vk = ecdsa.VerifyingKey.from_string(pk, curve=ecdsa.SECP256k1)
             try:
-                vk.verify_digest(binascii.unhexlify(signature), hashtosign)
-            except:
-                _logger.info("Bad Signature %s" % signature)
+                vk.verify_digest(binascii.unhexlify(i.signature), hashtosign)
+            except ecdsa.keys.BadDigestError as e:
+                _logger.info("Bad Signature %s (error %s)" % (i.signature, e))
                 return False
-            _logger.info("Signature Verified %s" % signature)
+            _logger.info("Signature Verified %s" % i.signature)
         return True
 
 
