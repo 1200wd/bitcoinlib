@@ -61,7 +61,7 @@ def deserialize_transaction(rawtx):
         cursor += scriptsig_size
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
-        inputs.append(Input(inp_hash, inp_index, scriptsig, sequence_number))
+        inputs.append(Input(inp_hash, inp_index, scriptsig, sequence_number, i))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
 
@@ -93,7 +93,8 @@ def parse_script_sig(s):
 
 class Input:
 
-    def __init__(self, prev_hash, output_index, script_sig, sequence):
+    def __init__(self, prev_hash, output_index, script_sig, sequence, id=0):
+        self.id = id
         self.prev_hash = prev_hash
         self.output_index = output_index
         self.script_sig = script_sig
@@ -133,7 +134,7 @@ class Transaction:
     def input_addresses(self, id=None, return_type='hash160'):
         r = []
         for i in self.inputs:
-            s = i['script_sig']
+            s = i.script_sig
             l = s[0]
             sig_der = s[1:l]
             l2 = s[l+1]
@@ -164,15 +165,15 @@ class Transaction:
         r = self.version[::-1]
         r += int_to_varbyteint(len(self.inputs))
         for i in self.inputs:
-            r += i['prev_hash'][::-1] + i['output_index'][::-1]
+            r += i.prev_hash[::-1] + i.output_index[::-1]
             if sign_id is None:
-                r += struct.pack('B', len(i['script_sig'])) + i['script_sig']
-            elif sign_id == i['id']:
-                r += b'\x19\x76\xa9\x14' + binascii.unhexlify(self.input_addresses(id=i['id'])) + \
+                r += struct.pack('B', len(i.script_sig)) + i.script_sig
+            elif sign_id == i.id:
+                r += b'\x19\x76\xa9\x14' + binascii.unhexlify(self.input_addresses(id=i.id)) + \
                      b'\x88\xac'
             else:
                 r += b'\0'
-            r += i['sequence_number']
+            r += i.sequence
 
         r += int_to_varbyteint(len(self.outputs))
         for o in self.outputs:
@@ -185,9 +186,9 @@ class Transaction:
 
     def verify(self):
         for i in self.inputs:
-            t_to_sign = self.raw(i['id'])
+            t_to_sign = self.raw(i.id)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
-            signature, pub_key = parse_script_sig(i['script_sig'])
+            signature, pub_key = parse_script_sig(i.script_sig)
             if len(pub_key) == 33:
                 pub_key = binascii.unhexlify(Key(binascii.hexlify(pub_key).decode('utf-8')).public_uncompressed())
             vk = ecdsa.VerifyingKey.from_string(pub_key[1:], curve=ecdsa.SECP256k1)
@@ -254,10 +255,10 @@ if __name__ == '__main__':
     # rt = '01000000014c428a09c84ed161bace114ee75e8c4067c688b8c6f5a4088b214644cb180cf1010000006a473044022073a1f75574f6619b75fe0e00fc020b6293a0a47509e3b616d746f7f6d24ed14e022050e04004d2cb6768d3f7d47f17bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286ffffffff02400d0300000000001976a91400264935f054ea1848a3f773df5a05682906188688aca066e80b000000001976a9145072694f9d4b01121070ca7345da8a38fa25fb7888ac00000000'
 
 
-    print("raw %s" % rt)
     t = Transaction.import_raw(rt)
+    print("raw %s" % binascii.hexlify(t.raw()))
     pprint(t.get())
-    # print("Verified %s" % t.verify())
+    print("Verified %s" % t.verify())
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
