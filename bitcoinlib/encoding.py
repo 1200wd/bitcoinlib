@@ -237,11 +237,11 @@ def int_to_varbyteint(inp):
     if inp < 0xfd:
         return struct.pack('B', inp)
     elif inp < 0xffff:
-        return struct.pack('<cH', '\xfd', inp)
+        return struct.pack('<cH', b'\xfd', inp)
     elif inp < 0xffffffff:
-        return struct.pack('<cL', '\xfe', inp)
+        return struct.pack('<cL', b'\xfe', inp)
     else:
-        return struct.pack('<cQ', '\xff', inp)
+        return struct.pack('<cQ', b'\xff', inp)
 
 
 def convert_der_sig(s):
