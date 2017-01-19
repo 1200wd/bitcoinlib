@@ -95,16 +95,30 @@ def parse_script_sig(s):
 
 class Input:
 
-    def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0):
+    @staticmethod
+    def add(prev_hash, output_index=0, public_key=b''):
+        if not isinstance(prev_hash, bytes):
+            prev_hash = binascii.unhexlify(prev_hash)
+        if not isinstance(output_index, bytes):
+            output_index = struct.pack('L', output_index)
+        return Input(prev_hash, output_index, b'', public_key=public_key)
+
+    def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', public_key='', id=0):
         self.id = id
         self.prev_hash = prev_hash
         self.output_index = output_index
         self.script_sig = script_sig
         self.signature = b''
         self._public_key = b''
+        self.public_key = public_key
+        if public_key:
+            self._public_key = binascii.unhexlify(public_key)
+        pk2 = b''
         if script_sig:
-            self.signature, self._public_key = parse_script_sig(script_sig)
-        self.public_key = binascii.hexlify(self._public_key).decode('utf-8')
+            self.signature, pk2 = parse_script_sig(script_sig)
+        if not public_key and pk2:
+            self._public_key = pk2
+            self.public_key = binascii.hexlify(self._public_key).decode('utf-8')
         self.k = None
         self.public_key_hash = ""
         self.address = ""
@@ -135,14 +149,16 @@ class Input:
 
 class Output:
 
-    def __init__(self, amount, script):
+    def __init__(self, amount, script, public_key=b''):
         self.amount = amount
         self.script = script
+        self.public_key = public_key
 
     def json(self):
         return {
             'amount': self.amount,
             'script': binascii.hexlify(self.script).decode('utf-8'),
+            'public_key': binascii.hexlify(self.public_key).decode('utf-8'),
         }
 
     def __repr__(self):
@@ -272,10 +288,12 @@ if __name__ == '__main__':
     # 7bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286
     # rt = '01000000014c428a09c84ed161bace114ee75e8c4067c688b8c6f5a4088b214644cb180cf1010000006a473044022073a1f75574f6619b75fe0e00fc020b6293a0a47509e3b616d746f7f6d24ed14e022050e04004d2cb6768d3f7d47f17bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286ffffffff02400d0300000000001976a91400264935f054ea1848a3f773df5a05682906188688aca066e80b000000001976a9145072694f9d4b01121070ca7345da8a38fa25fb7888ac00000000'
 
-    prev_hash = binascii.unhexlify('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955')
-    index = b'\x00\x00\x00\x01'
-    input = Input(prev_hash, index, b'')
-    print(input)
+    from bitcoinlib.keys import HDKey
+    k = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKe'
+              'PyA7irEvBoe4aAn52')
+    input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1, k.public_uncompressed().public_uncompressed())
+    output = Output()
+    t = Transaction([input])
     # print("raw %s" % rt)
     # t = Transaction.import_raw(rt)
     # print("raw %s" % binascii.hexlify(t.raw()).decode('utf-8'))
