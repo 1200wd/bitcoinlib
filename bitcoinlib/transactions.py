@@ -103,7 +103,7 @@ class Input:
             output_index = struct.pack('L', output_index)
         return Input(prev_hash, output_index, b'', public_key=public_key)
 
-    def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', public_key='', id=0):
+    def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0, public_key=''):
         self.id = id
         self.prev_hash = prev_hash
         self.output_index = output_index
@@ -124,7 +124,7 @@ class Input:
         self.address = ""
         self.address_uncompressed = ""
         if self.public_key:
-            self.k = Key(self.public_key)
+            self.k = Key(self.public_key, network='testnet')
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
             self.address = self.k.address(compressed=True)
@@ -149,7 +149,13 @@ class Input:
 
 class Output:
 
-    def __init__(self, amount, script, public_key=b''):
+    @staticmethod
+    def add(amount, public_key):
+        if not isinstance(public_key, bytes):
+            public_key = binascii.unhexlify(public_key)
+        return Output(amount, public_key=public_key)
+
+    def __init__(self, amount, script=b'', public_key=b''):
         self.amount = amount
         self.script = script
         self.public_key = public_key
@@ -288,17 +294,23 @@ if __name__ == '__main__':
     # 7bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286
     # rt = '01000000014c428a09c84ed161bace114ee75e8c4067c688b8c6f5a4088b214644cb180cf1010000006a473044022073a1f75574f6619b75fe0e00fc020b6293a0a47509e3b616d746f7f6d24ed14e022050e04004d2cb6768d3f7d47f17bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286ffffffff02400d0300000000001976a91400264935f054ea1848a3f773df5a05682906188688aca066e80b000000001976a9145072694f9d4b01121070ca7345da8a38fa25fb7888ac00000000'
 
-    from bitcoinlib.keys import HDKey
-    k = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKe'
-              'PyA7irEvBoe4aAn52')
-    input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1, k.public_uncompressed().public_uncompressed())
-    output = Output()
-    t = Transaction([input])
-    # print("raw %s" % rt)
-    # t = Transaction.import_raw(rt)
-    # print("raw %s" % binascii.hexlify(t.raw()).decode('utf-8'))
-    # pprint(t.get())
-    # print("Verified %s" % t.verify())
+    print("raw %s" % rt)
+    t = Transaction.import_raw(rt)
+    print("raw %s" % binascii.hexlify(t.raw()).decode('utf-8'))
+    pprint(t.get())
+    print("Verified %s" % t.verify())
+
+    # Create a new transaction
+    # from bitcoinlib.keys import HDKey
+    # ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKe'
+    #            'PyA7irEvBoe4aAn52', network='testnet')
+    # print(ki.public().address())
+    # input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
+    #                   ki.public().public_uncompressed())
+    # ko = HDKey('tprv8eb7i2C26Kngu1BW13Dc5VemHsVbp8g5CBiBwcQaL9odDDhcUUoE4QLC1G4yYHFDvhFaJmwtYw2snTWMEkz4ng9RTo'
+    #            'eesHUtqeGCuRD6qiW')
+    # output = Output.add(8900, ko.public().public_uncompressed())
+    # t = Transaction([input], [output])
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
