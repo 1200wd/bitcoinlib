@@ -453,7 +453,7 @@ if __name__ == '__main__':
     nk = wallet_import.new_key(account_id=99, name="Faucet gift")
     wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
     wallet_import.updateutxos()
-    # wallet_import.updatebalance()
+    wallet_import.updatebalance()
     wallet_import.info(detail=3)
 
     # -- Import Account Bitcoin Testnet key with depth 3

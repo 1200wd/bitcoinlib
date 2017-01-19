@@ -95,15 +95,20 @@ def parse_script_sig(s):
 
 class Input:
 
-    def __init__(self, prev_hash, output_index, script_sig, sequence, id=0):
+    def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0):
         self.id = id
         self.prev_hash = prev_hash
         self.output_index = output_index
         self.script_sig = script_sig
-        self.signature, self._public_key = parse_script_sig(script_sig)
+        self.signature = b''
+        self._public_key = b''
+        if script_sig:
+            self.signature, self._public_key = parse_script_sig(script_sig)
         self.public_key = binascii.hexlify(self._public_key).decode('utf-8')
         self.k = None
         self.public_key_hash = ""
+        self.address = ""
+        self.address_uncompressed = ""
         if self.public_key:
             self.k = Key(self.public_key)
             self.public_key_uncompressed = self.k.public_uncompressed()
@@ -116,6 +121,7 @@ class Input:
         return {
             'prev_hash': binascii.hexlify(self.prev_hash).decode('utf-8'),
             'address': self.address,
+            'address_uncompressed': self.address_uncompressed,
             'public_key': self.public_key,
             'public_key_hash': self.public_key_hash,
             'output_index': binascii.hexlify(self.output_index).decode('utf-8'),
@@ -252,8 +258,8 @@ if __name__ == '__main__':
     rt += 'b7740f00'   # Locktime
 
     # Verified ok, sig = 2c2e1a746c556546f2c959e92f2d0bd2678274823cc55e11628284e4a13016f8797e716835f9dbcddb752cd0115a970a022ea6f2d8edafff6e087f928e41baac
-    rt = (
-    "0100000001a97830933769fe33c6155286ffae34db44c6b8783a2d8ca52ebee6414d399ec300000000" + "8a47" + "304402202c2e1a746c556546f2c959e92f2d0bd2678274823cc55e11628284e4a13016f80220797e716835f9dbcddb752cd0115a970a022ea6f2d8edafff6e087f928e41baac01" + "41" + "04392b964e911955ed50e4e368a9476bc3f9dcc134280e15636430eb91145dab739f0d68b82cf33003379d885a0b212ac95e9cddfd2d391807934d25995468bc55" + "ffffffff02015f0000000000001976a914c8e90996c7c6080ee06284600c684ed904d14c5c88ac204e000000000000" + "1976a914348514b329fda7bd33c7b2336cf7cd1fc9544c0588ac00000000")
+    # rt = (
+    # "0100000001a97830933769fe33c6155286ffae34db44c6b8783a2d8ca52ebee6414d399ec300000000" + "8a47" + "304402202c2e1a746c556546f2c959e92f2d0bd2678274823cc55e11628284e4a13016f80220797e716835f9dbcddb752cd0115a970a022ea6f2d8edafff6e087f928e41baac01" + "41" + "04392b964e911955ed50e4e368a9476bc3f9dcc134280e15636430eb91145dab739f0d68b82cf33003379d885a0b212ac95e9cddfd2d391807934d25995468bc55" + "ffffffff02015f0000000000001976a914c8e90996c7c6080ee06284600c684ed904d14c5c88ac204e000000000000" + "1976a914348514b329fda7bd33c7b2336cf7cd1fc9544c0588ac00000000")
 
     # rt = '0100000004be8a976420ef000956142320e79d90dd2ce103dda9cf51efb280468ca7ac121d000000006b483045022100e80841d3a21a12c505e60d2896631edac06e0e0e7359207583cb31dd490a652502204fde02010706097f11acd0547c9dff0399354c065d7e1d1d17eeda031185804c0121029418397b2ad61b6d603fc865eb4ada9c5425952c4dbe948a0e0c75c36d4e740affffffffc4475d1a9a50aae5c608d20c28a1ca78bda39056d22aa3d869aefbdab83aa4b4000000006b483045022100cd986b35450080a2ee9397349d7513cecff5cf56c435cae43d33ca83c69cddb30220259f9460b372025dff475a534c472c3b2b7f558f393aedeb4c2a30fb6156f81c01210316dec74bb3f916cab37a979c076e03b54f347fa5a90bf2fc9f14e435c1a4ecbdffffffffaea58d46919cf6b7641a30a0a027f3318aee9173fc3f8f1f03c39670f7ce5c3a000000006a47304402206b3297db37c68ae172dc0de46cdb165ec79ce491edec7d59ed98c80d82edeffb0220244665fec2da49eae564d4cc78939ae2c04504294bbca76367d2e9ce5802f56d0121035b5ff8a770e99152d210f1d875d0e1c570dc9fbe332eaecfc405254f6df59edcffffffff85778efe6c0347762b404a6b5b00c45e7143861ccb2b4bd7b0927d0db9fee509010000006a473044022045330b90adba441e797350baa8a631c3b0d375598c88d6eaaae74526698a7fdc022066ffb7a61fcd394d8eed953eac5a792eccddb20f7b14f4e8dcbdc4e9207f1d1c0121032ebd92c614095f612a9e0dbcdb0d03e75481f9335c756f17bfc206d0dcddc644ffffffff02ce8fb400000000001976a914377ad7e288e893dc4473aeb28b18b1675067abaf88aca4823e00000000001976a914bfb2eb5487e238c7d34ea12b965ae169fba563ba88ac00000000'
 
@@ -266,11 +272,15 @@ if __name__ == '__main__':
     # 7bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286
     # rt = '01000000014c428a09c84ed161bace114ee75e8c4067c688b8c6f5a4088b214644cb180cf1010000006a473044022073a1f75574f6619b75fe0e00fc020b6293a0a47509e3b616d746f7f6d24ed14e022050e04004d2cb6768d3f7d47f17bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286ffffffff02400d0300000000001976a91400264935f054ea1848a3f773df5a05682906188688aca066e80b000000001976a9145072694f9d4b01121070ca7345da8a38fa25fb7888ac00000000'
 
-    print("rw  %s" % rt)
-    t = Transaction.import_raw(rt)
-    print("raw %s" % binascii.hexlify(t.raw()).decode('utf-8'))
-    pprint(t.get())
-    print("Verified %s" % t.verify())
+    prev_hash = binascii.unhexlify('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955')
+    index = b'\x00\x00\x00\x01'
+    input = Input(prev_hash, index, b'')
+    print(input)
+    # print("raw %s" % rt)
+    # t = Transaction.import_raw(rt)
+    # print("raw %s" % binascii.hexlify(t.raw()).decode('utf-8'))
+    # pprint(t.get())
+    # print("Verified %s" % t.verify())
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
