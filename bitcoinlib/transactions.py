@@ -96,20 +96,30 @@ def parse_script_sig(s):
 def output_script_type(script):
     output_script_types = {}
     output_script_types.update({'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG']})
+    output_script_types.update({'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL']})
+    output_script_types.update({'multisig': ['OP_0', 'signature', 'signature']})  # TODO - add more multisigs
+    output_script_types.update({'pubkey': ['signature', 'OP_CHECKSIG']})
+    output_script_types.update({'nulldata': ['OP_RETURN', 'return_data']})
 
     for tp in output_script_types:
         cur = 0
         ost = output_script_types[tp]
+        data = []
+        found = True
         for ch in ost:
             if ch == 'signature':
                 l = script[cur]
-                sig = script[cur+1:cur+1+l]
-                print(sig)
+                data.append(script[cur+1:cur+1+l])
+                cur += 1+l
+            elif ch == 'return_data':
+                data.append(script[cur+1:])
             elif opcodes[ch] == script[cur]:
                 cur += 1
             else:
-                continue
-            return tp
+                found = False
+                break
+        if found:
+            return [tp, data]
     return False
 
 
@@ -321,8 +331,11 @@ if __name__ == '__main__':
     output_script = t.outputs[0].script
     print(output_script_type(output_script))
     print(binascii.hexlify(output_script))
-    print(script_to_string(output_script))
+    print("type %s" % script_to_string(output_script))
     print("Verified %s" % t.verify())
+    print("type %s" % output_script_type(binascii.unhexlify('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac')))
+    print("type %s" % output_script_type(binascii.unhexlify('a914e3bdbeab033c7e03fd4cbf3a03ff14533260f3f487')))
+    print("type %s" % output_script_type(binascii.unhexlify('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd')))
 
     # Create a new transaction
     # from bitcoinlib.keys import HDKey
