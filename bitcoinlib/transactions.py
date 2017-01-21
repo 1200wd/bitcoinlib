@@ -20,7 +20,7 @@
 import binascii
 import hashlib
 from bitcoinlib.encoding import *
-from bitcoinlib.config.opcodes import opcodes, opcodenames
+from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import Key
 from bitcoinlib.main import *
 from bitcoinlib.services.bitcoind import BitcoindClient
@@ -91,6 +91,26 @@ def parse_script_sig(s):
     l2 = s[l+1]
     public_key = s[l+2:l+l2+2]
     return sig, public_key
+
+
+def output_script_type(script):
+    output_script_types = {}
+    output_script_types.update({'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG']})
+
+    for tp in output_script_types:
+        cur = 0
+        ost = output_script_types[tp]
+        for ch in ost:
+            if ch == 'signature':
+                l = script[cur]
+                sig = script[cur+1:cur+1+l]
+                print(sig)
+            elif opcodes[ch] == script[cur]:
+                cur += 1
+            else:
+                continue
+            return tp
+    return False
 
 
 class Input:
@@ -297,7 +317,11 @@ if __name__ == '__main__':
     print("raw %s" % rt)
     t = Transaction.import_raw(rt)
     print("raw %s" % binascii.hexlify(t.raw()).decode('utf-8'))
-    pprint(t.get())
+    # pprint(t.get())
+    output_script = t.outputs[0].script
+    print(output_script_type(output_script))
+    print(binascii.hexlify(output_script))
+    print(script_to_string(output_script))
     print("Verified %s" % t.verify())
 
     # Create a new transaction

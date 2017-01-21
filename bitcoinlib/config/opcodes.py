@@ -55,3 +55,16 @@ opcodenames, opcodes = _set_opcodes()
 if __name__ == '__main__':
     print("Opcodename for opcode 173 is", opcodenames[173])
     print("Opcode for OP_CHECKSIGVERIFY is", opcodes['OP_CHECKSIGVERIFY'])
+
+
+def script_to_string(script):
+    if not isinstance(script, bytes):
+        return ""
+    out = ""
+    for c in script:
+        try:
+            oc = opcodenames[c]
+        except:
+            oc = "."
+        out += oc + " "
+    return out
