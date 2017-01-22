@@ -49,12 +49,8 @@ def _set_opcodes():
         count += 1
     return cds, cds_rev
 
+
 opcodenames, opcodes = _set_opcodes()
-
-
-if __name__ == '__main__':
-    print("Opcodename for opcode 173 is", opcodenames[173])
-    print("Opcode for OP_CHECKSIGVERIFY is", opcodes['OP_CHECKSIGVERIFY'])
 
 
 def script_to_string(script):
@@ -68,3 +64,11 @@ def script_to_string(script):
             oc = "."
         out += oc + " "
     return out
+
+
+OP_N_CODES = range(opcodes['OP_1'], opcodes['OP_16'])
+
+
+if __name__ == '__main__':
+    print("Opcodename for opcode 173 is", opcodenames[173])
+    print("Opcode for OP_CHECKSIG is", opcodes['OP_CHECKSIG'])
