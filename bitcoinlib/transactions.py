@@ -93,6 +93,16 @@ def parse_script_sig(s):
     return sig, public_key
 
 
+def _parse_signatures(script, number_of_sigs):
+    data = []
+    total_lenght = 0
+    for _ in range(number_of_sigs):
+        l = script[0]
+        data.append(script[1:l])
+        total_lenght += l + 1
+    return data, total_lenght
+
+
 def output_script_type(script):
     output_script_types = {}
     output_script_types.update({'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG']})
@@ -120,10 +130,13 @@ def output_script_type(script):
             elif ch == 'return_data':
                 data.append(script[cur+1:])
             elif ch == 'multisig':  # one or more signature
-                pass  # TODO
+                s, total_lenght = _parse_signatures(script[cur:], number_of_sigs)
+                data += s
+                cur += total_lenght
             elif ch == 'op_m':  # one or more opcodes
                 if script[cur] in OP_N_CODES:
                     number_of_sigs = script[cur] - opcodes['OP_1'] + 1
+                cur += 1
             elif ch == 'op_n':
                 pass  # TODO
             else:
