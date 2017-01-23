@@ -93,13 +93,16 @@ def parse_script_sig(s):
     return sig, public_key
 
 
-def _parse_signatures(script, number_of_sigs):
+def _parse_signatures(script):
     data = []
     total_lenght = 0
-    for _ in range(number_of_sigs):
+    while len(script):
         l = script[0]
-        data.append(script[1:l])
+        if l not in [33, 65]:
+            break
+        data.append(script[1:l+1])
         total_lenght += l + 1
+        script = script[l+1:]
     return data, total_lenght
 
 
@@ -120,9 +123,13 @@ def output_script_type(script):
         cur = 0
         ost = output_script_types[tp]
         data = []
-        number_of_sigs = 1
+        number_of_sigs_n = 1
+        number_of_sigs_m = 1
         found = True
         for ch in ost:
+            if cur > len(script):
+                found = False
+                break
             if ch == 'signature':
                 l = script[cur]
                 data.append(script[cur+1:cur+1+l])
@@ -130,15 +137,21 @@ def output_script_type(script):
             elif ch == 'return_data':
                 data.append(script[cur+1:])
             elif ch == 'multisig':  # one or more signature
-                s, total_lenght = _parse_signatures(script[cur:], number_of_sigs)
+                s, total_length = _parse_signatures(script[cur:])
                 data += s
-                cur += total_lenght
-            elif ch == 'op_m':  # one or more opcodes
+                cur += total_length
+            elif ch == 'op_m':
                 if script[cur] in OP_N_CODES:
-                    number_of_sigs = script[cur] - opcodes['OP_1'] + 1
+                    number_of_sigs_m = script[cur] - opcodes['OP_1'] + 1
+                else:
+                    raise TransactionError("%s is not an op_m code" % ch)
                 cur += 1
             elif ch == 'op_n':
-                pass  # TODO
+                if script[cur] in OP_N_CODES:
+                    number_of_sigs_n = script[cur] - opcodes['OP_1'] + 1
+                else:
+                    raise TransactionError("%s is not an op_n code" % ch)
+                cur += 1
             else:
                 try:
                     if opcodes[ch] == script[cur]:
@@ -147,10 +160,10 @@ def output_script_type(script):
                         found = False
                         break
                 except IndexError:
-                    print("opcode %s not found" % ch)
+                    raise TransactionError("Opcode %s not found" % ch)
 
         if found:
-            return [tp, data]
+            return [tp, data, number_of_sigs_m, number_of_sigs_n]
     return "unknown"
 
 
@@ -370,6 +383,8 @@ if __name__ == '__main__':
     print("type %s" % output_script_type(binascii.unhexlify('6a')))
     print("type %s" % output_script_type(binascii.unhexlify('')))
     print("type %s" % output_script_type(binascii.unhexlify('514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')))
+    print("type %s" % output_script_type(binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')))
+
 
     # Create a new transaction
     # from bitcoinlib.keys import HDKey
