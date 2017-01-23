@@ -53,19 +53,6 @@ def _set_opcodes():
 opcodenames, opcodes = _set_opcodes()
 
 
-def script_to_string(script):
-    if not isinstance(script, bytes):
-        return ""
-    out = ""
-    for c in script:
-        try:
-            oc = opcodenames[c]
-        except:
-            oc = "."
-        out += oc + " "
-    return out
-
-
 OP_N_CODES = range(opcodes['OP_1'], opcodes['OP_16'])
 
 
