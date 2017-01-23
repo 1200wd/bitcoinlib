@@ -115,7 +115,7 @@ def _parse_signatures(script):
     return data, total_lenght
 
 
-def output_script_type(script):
+def output_script_parse(script):
     if isinstance(script, str):
         script = binascii.unhexlify(script)
     if not isinstance(script, bytes):
@@ -173,13 +173,17 @@ def output_script_type(script):
     return "unknown"
 
 
+def output_script_type(script):
+    return output_script_parse(script)[0]
+
+
 def script_to_string(script):
     if isinstance(script, str):
         script = binascii.unhexlify(script)
     if not isinstance(script, bytes):
         raise TransactionError("Script must be in string or bytes format")
 
-    tp, data, number_of_sigs_m, number_of_sigs_n = output_script_type(script)
+    tp, data, number_of_sigs_m, number_of_sigs_n = output_script_parse(script)
     sigs = ' '.join([binascii.hexlify(i).decode('utf-8') for i in data])
 
     scriptstr = OUTPUT_SCRIPT_TYPES[tp]
@@ -387,12 +391,10 @@ if __name__ == '__main__':
     print("\n=== Determine Output Script Type ===")
     os = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
     print("Output Script: %s" % os)
-    pprint("Type: %s" % output_script_type(os))
     print("Output Script String: %s" % script_to_string(os))
     os = '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6' \
          'fe3695e758c19f46ce604e174dac315e685a52ae'
     print("\nOutput Script: %s" % os)
-    pprint("Type: %s" % output_script_type(os))
     print("Output Script String: %s" % script_to_string(os))
 
     # Create a new transaction
