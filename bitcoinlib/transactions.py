@@ -111,7 +111,6 @@ def output_script_type(script):
     output_script_types.update({'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG']})
     output_script_types.update({'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL']})
     output_script_types.update({'multisig2': ['OP_0', 'multisig']})
-    # TODO add multisig "OP_1 33 33 33 OP_3 OP_CHECKMULTISIG"
     output_script_types.update({'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG']})
     output_script_types.update({'pubkey': ['signature', 'OP_CHECKSIG']})
     output_script_types.update({'nulldata': ['OP_RETURN', 'return_data']})
@@ -151,7 +150,7 @@ def output_script_type(script):
                 if script[cur] in OP_N_CODES:
                     number_of_sigs_n = script[cur] - opcodes['OP_1'] + 1
                 else:
-                    raise TransactionError("%s is not an op_n code" % ch)
+                    raise TransactionError("%s is not an op_n code" % script[cur])
                 cur += 1
             else:
                 try:
@@ -319,7 +318,6 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
-    # verified ok, signature 1f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb3845e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f4
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
     rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
