@@ -144,7 +144,8 @@ def output_script_type(script):
                 if script[cur] in OP_N_CODES:
                     number_of_sigs_m = script[cur] - opcodes['OP_1'] + 1
                 else:
-                    raise TransactionError("%s is not an op_m code" % ch)
+                    found = False
+                    break
                 cur += 1
             elif ch == 'op_n':
                 if script[cur] in OP_N_CODES:
@@ -160,7 +161,7 @@ def output_script_type(script):
                         found = False
                         break
                 except IndexError:
-                    raise TransactionError("Opcode %s not found" % ch)
+                    raise TransactionError("Opcode %s not found [type %s]" % (ch, tp))
 
         if found:
             return [tp, data, number_of_sigs_m, number_of_sigs_n]
