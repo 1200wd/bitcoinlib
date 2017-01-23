@@ -107,6 +107,8 @@ def _parse_signatures(script):
 
 
 def output_script_type(script):
+    if isinstance(script, str):
+        script = binascii.unhexlify(script)
     output_script_types = {}
     output_script_types.update({'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG']})
     output_script_types.update({'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL']})
@@ -352,38 +354,23 @@ if __name__ == '__main__':
     rt += '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
     rt += 'b7740f00'   # Locktime
 
-    # Verified ok, sig = 2c2e1a746c556546f2c959e92f2d0bd2678274823cc55e11628284e4a13016f8797e716835f9dbcddb752cd0115a970a022ea6f2d8edafff6e087f928e41baac
-    # rt = (
-    # "0100000001a97830933769fe33c6155286ffae34db44c6b8783a2d8ca52ebee6414d399ec300000000" + "8a47" + "304402202c2e1a746c556546f2c959e92f2d0bd2678274823cc55e11628284e4a13016f80220797e716835f9dbcddb752cd0115a970a022ea6f2d8edafff6e087f928e41baac01" + "41" + "04392b964e911955ed50e4e368a9476bc3f9dcc134280e15636430eb91145dab739f0d68b82cf33003379d885a0b212ac95e9cddfd2d391807934d25995468bc55" + "ffffffff02015f0000000000001976a914c8e90996c7c6080ee06284600c684ed904d14c5c88ac204e000000000000" + "1976a914348514b329fda7bd33c7b2336cf7cd1fc9544c0588ac00000000")
-
-    # rt = '0100000004be8a976420ef000956142320e79d90dd2ce103dda9cf51efb280468ca7ac121d000000006b483045022100e80841d3a21a12c505e60d2896631edac06e0e0e7359207583cb31dd490a652502204fde02010706097f11acd0547c9dff0399354c065d7e1d1d17eeda031185804c0121029418397b2ad61b6d603fc865eb4ada9c5425952c4dbe948a0e0c75c36d4e740affffffffc4475d1a9a50aae5c608d20c28a1ca78bda39056d22aa3d869aefbdab83aa4b4000000006b483045022100cd986b35450080a2ee9397349d7513cecff5cf56c435cae43d33ca83c69cddb30220259f9460b372025dff475a534c472c3b2b7f558f393aedeb4c2a30fb6156f81c01210316dec74bb3f916cab37a979c076e03b54f347fa5a90bf2fc9f14e435c1a4ecbdffffffffaea58d46919cf6b7641a30a0a027f3318aee9173fc3f8f1f03c39670f7ce5c3a000000006a47304402206b3297db37c68ae172dc0de46cdb165ec79ce491edec7d59ed98c80d82edeffb0220244665fec2da49eae564d4cc78939ae2c04504294bbca76367d2e9ce5802f56d0121035b5ff8a770e99152d210f1d875d0e1c570dc9fbe332eaecfc405254f6df59edcffffffff85778efe6c0347762b404a6b5b00c45e7143861ccb2b4bd7b0927d0db9fee509010000006a473044022045330b90adba441e797350baa8a631c3b0d375598c88d6eaaae74526698a7fdc022066ffb7a61fcd394d8eed953eac5a792eccddb20f7b14f4e8dcbdc4e9207f1d1c0121032ebd92c614095f612a9e0dbcdb0d03e75481f9335c756f17bfc206d0dcddc644ffffffff02ce8fb400000000001976a914377ad7e288e893dc4473aeb28b18b1675067abaf88aca4823e00000000001976a914bfb2eb5487e238c7d34ea12b965ae169fba563ba88ac00000000'
-
-    # new from the block
-    # rt ='01000000027feae018535b4e8c4085842c8b1231e028a337f7479faf2223e492834561bc46010000006a47304402204093fdf0bda73daa6c9adb9c263ac2f2dc2bb5345a42e7d84ac4df5c56f9101402200a6d32cd9fa49e2ffccb6a45ff11ffdbdb2b6726f837f39889dc1a619259a313012102aede1735e06837692bd3ecb1cbc4f09f8f47d39138b92f5a39fdd1064cea9754ffffffff5d93cd125e1c1b032e49f86cfa1a6eef079110bc82bcedaba772bef6409f2c70010000006a47304402207afde02ff15c7011b003f42da7d5e566a11913e928c6dc8b1cbf0e5fb404073202202dcf97f4e0844c34abd676bf86e3df0b3e6261a1af5dae8944e99db8b2c9cd25012103b1dbc92fc9ab32fc9311eca4f8f64c8cc1bf08ba1581b76061cc4d1f5594c95fffffffff0260583daf000000001976a9141064198f6ac88004252c1a326a4e3ef62f40407188ac207154380b0000001976a914779ed60f20aed94a1134f2bf35d990935e83561288ac00000000'
-
-    # verified ok, sig: 73a1f75574f6619b75fe0e00fc020b6293a0a47509e3b616d746f7f6d24ed14e50e04004d2cb6768d3f7d47f17bb
-    # 4f9b1eac3503760f029cd84d2cc418e90a24
-    # ssig = 473044022073a1f75574f6619b75fe0e00fc020b6293a0a47509e3b616d746f7f6d24ed14e022050e04004d2cb6768d3f7d47f1
-    # 7bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286
-    # rt = '01000000014c428a09c84ed161bace114ee75e8c4067c688b8c6f5a4088b214644cb180cf1010000006a473044022073a1f75574f6619b75fe0e00fc020b6293a0a47509e3b616d746f7f6d24ed14e022050e04004d2cb6768d3f7d47f17bb4f9b1eac3503760f029cd84d2cc418e90a2401210245377a30fc048b5ffa8a772fda927605b25313dec255892bcc625f09c5c32286ffffffff02400d0300000000001976a91400264935f054ea1848a3f773df5a05682906188688aca066e80b000000001976a9145072694f9d4b01121070ca7345da8a38fa25fb7888ac00000000'
-
-    print("raw %s" % rt)
+    print("\n=== Import Raw Transaction ===")
     t = Transaction.import_raw(rt)
-    print("raw %s" % binascii.hexlify(t.raw()).decode('utf-8'))
-    # pprint(t.get())
+    print("Raw: %s" % binascii.hexlify(t.raw()).decode('utf-8'))
+    pprint(t.get())
     output_script = t.outputs[0].script
-    print(output_script_type(output_script))
-    print(binascii.hexlify(output_script))
-    print("type %s" % script_to_string(output_script))
-    # print("Verified %s" % t.verify())
-    print("type %s" % output_script_type(binascii.unhexlify('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac')))
-    print("type %s" % output_script_type(binascii.unhexlify('a914e3bdbeab033c7e03fd4cbf3a03ff14533260f3f487')))
-    print("type %s" % output_script_type(binascii.unhexlify('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd')))
-    print("type %s" % output_script_type(binascii.unhexlify('6a')))
-    print("type %s" % output_script_type(binascii.unhexlify('')))
-    print("type %s" % output_script_type(binascii.unhexlify('514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')))
-    print("type %s" % output_script_type(binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')))
+    print("\nOutput Script Type: %s " % output_script_type(output_script))
+    print("Output Script String: %s" % script_to_string(output_script))
+    print("\nt.verified() ==> %s" % t.verify())
 
+    print("\n=== Determine Output Script Type ===")
+    os = '76a914a13fdfc301c89094f5dc1089e61888794130e38188ac'
+    print("Output Script: %s" % os)
+    pprint("Type: %s" % output_script_type(os))
+    os = '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6' \
+         'fe3695e758c19f46ce604e174dac315e685a52ae'
+    print("\nOutput Script: %s" % os)
+    pprint("Type: %s" % output_script_type(os))
 
     # Create a new transaction
     # from bitcoinlib.keys import HDKey
