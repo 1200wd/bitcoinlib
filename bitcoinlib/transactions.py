@@ -27,6 +27,15 @@ from bitcoinlib.services.bitcoind import BitcoindClient
 
 _logger = logging.getLogger(__name__)
 
+OUTPUT_SCRIPT_TYPES = {
+    'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
+    'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
+    'multisig2': ['OP_0', 'multisig'],
+    'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
+    'pubkey': ['signature', 'OP_CHECKSIG'],
+    'nulldata': ['OP_RETURN', 'return_data']
+}
+
 
 class TransactionError(Exception):
     def __init__(self, msg=''):
@@ -109,20 +118,13 @@ def _parse_signatures(script):
 def output_script_type(script):
     if isinstance(script, str):
         script = binascii.unhexlify(script)
-    output_script_types = {}
-    output_script_types.update({'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG']})
-    output_script_types.update({'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL']})
-    output_script_types.update({'multisig2': ['OP_0', 'multisig']})
-    output_script_types.update({'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG']})
-    output_script_types.update({'pubkey': ['signature', 'OP_CHECKSIG']})
-    output_script_types.update({'nulldata': ['OP_RETURN', 'return_data']})
 
     if not script:
         return "unknown"
 
-    for tp in output_script_types:
+    for tp in OUTPUT_SCRIPT_TYPES:
         cur = 0
-        ost = output_script_types[tp]
+        ost = OUTPUT_SCRIPT_TYPES[tp]
         data = []
         number_of_sigs_n = 1
         number_of_sigs_m = 1
