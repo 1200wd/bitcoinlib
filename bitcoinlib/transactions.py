@@ -343,6 +343,7 @@ class Transaction:
 
 
 if __name__ == '__main__':
+    from pprint import pprint
 
     # Create a new transaction
     from bitcoinlib.keys import HDKey
@@ -353,15 +354,15 @@ if __name__ == '__main__':
                       ki.public().public_uncompressed())
     ko = HDKey('tprv8eb7i2C26Kngu1BW13Dc5VemHsVbp8g5CBiBwcQaL9odDDhcUUoE4QLC1G4yYHFDvhFaJmwtYw2snTWMEkz4ng9RTo'
                'eesHUtqeGCuRD6qiW')
-    output = Output.add(8900, ko.public().public_uncompressed())
+    output = Output.add(890000, ko.public().public_uncompressed())
     t = Transaction([input], [output])
-    print(t.get())
+    pprint(t.get())
     print(t.raw())
     print(binascii.hexlify(t.raw()))
 
     sys.exit()
 
-    from pprint import pprint
+
 
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).

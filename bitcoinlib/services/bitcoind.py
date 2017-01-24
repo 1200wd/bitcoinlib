@@ -79,13 +79,16 @@ if __name__ == '__main__':
 
     print("\n=== Best Block ===")
     blockhash = bdc.proxy.getbestblockhash()
-    pprint(bdc.proxy.getblock(blockhash))
+    bestblock = bdc.proxy.getblock(blockhash)
+    bestblock['tx'] = '...' + str(len(bestblock['tx'])) + ' transactions...'
+    pprint(bestblock)
 
     print("\n=== Mempool ===")
     rmp = bdc.proxy.getrawmempool()
-    pprint(rmp)
+    pprint(rmp[:25])
+    print('... truncated ...')
     print("Mempool Size %d" % len(rmp))
 
     print("\n=== Raw Transaction by txid ===")
-    t = bdc.getrawtransaction('1ff62e2cd1e6255cf840f1f4fa29b2c76b12b2efa5ac3335e68a6d5448956626')
+    t = bdc.getrawtransaction('7eb5332699644b753cd3f5afba9562e67612ea71ef119af1ac46559adb69ea0d')
     pprint(t)
