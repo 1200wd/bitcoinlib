@@ -36,7 +36,6 @@ OUTPUT_SCRIPT_TYPES = {
     'nulldata': ['OP_RETURN', 'return_data']
 }
 
-
 class TransactionError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
@@ -258,9 +257,12 @@ class Output:
 
     def __init__(self, amount, script=b'', public_key=b''):
         self.amount = amount
-        self.script = script
         self.public_key = public_key
         self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network='testnet')
+        if script == b'':
+            #     76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac
+            script = b'\x76\xa9\x14' + binascii.unhexlify(self.k.hash160()) + b'\x88\xac'
+        self.script = script
         self.public_key_uncompressed = self.k.public_uncompressed()
         self.public_key_hash = self.k.hash160()
         self.address = self.k.address(compressed=True)
@@ -359,8 +361,9 @@ if __name__ == '__main__':
     print(ki.public().address())
     input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
                       ki.public().public_uncompressed())
-    ko = HDKey('tprv8eb7i2C26Kngu1BW13Dc5VemHsVbp8g5CBiBwcQaL9odDDhcUUoE4QLC1G4yYHFDvhFaJmwtYw2snTWMEkz4ng9RToeesHUtqeGCuRD6qiW')
-    output = Output.add(880000, ko.public().public_uncompressed())
+    # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
+    ko = HDKey('tpubDHcePHDp7EdKBegz9ZZ98FGaLQnaftxubowrHAMDASjbmLgg3BRnLGkR49wkxri9g8xei7fHsErVgWbUAH8xgkubbHqGLJHTdir4pNap67u')
+    output = Output.add(880000, ko.public().public())
     t = Transaction([input], [output])
     pprint(t.get())
     rt = t.raw()
