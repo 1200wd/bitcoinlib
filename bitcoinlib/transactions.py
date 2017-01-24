@@ -122,7 +122,7 @@ def output_script_parse(script):
         raise TransactionError("Script must be in string or bytes format")
 
     if not script:
-        return "unknown"
+        return ["unknown"]
 
     for tp in OUTPUT_SCRIPT_TYPES:
         cur = 0
@@ -170,7 +170,7 @@ def output_script_parse(script):
 
         if found:
             return [tp, data, number_of_sigs_m, number_of_sigs_n]
-    return "unknown"
+    return ["unknown"]
 
 
 def output_script_type(script):
@@ -343,6 +343,24 @@ class Transaction:
 
 
 if __name__ == '__main__':
+
+    # Create a new transaction
+    from bitcoinlib.keys import HDKey
+    ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKe'
+               'PyA7irEvBoe4aAn52', network='testnet')
+    print(ki.public().address())
+    input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
+                      ki.public().public_uncompressed())
+    ko = HDKey('tprv8eb7i2C26Kngu1BW13Dc5VemHsVbp8g5CBiBwcQaL9odDDhcUUoE4QLC1G4yYHFDvhFaJmwtYw2snTWMEkz4ng9RTo'
+               'eesHUtqeGCuRD6qiW')
+    output = Output.add(8900, ko.public().public_uncompressed())
+    t = Transaction([input], [output])
+    print(t.get())
+    print(t.raw())
+    print(binascii.hexlify(t.raw()))
+
+    sys.exit()
+
     from pprint import pprint
 
     # Example of a basic raw transaction with 1 input and 2 outputs
@@ -396,18 +414,6 @@ if __name__ == '__main__':
          'fe3695e758c19f46ce604e174dac315e685a52ae'
     print("\nOutput Script: %s" % os)
     print("Output Script String: %s" % script_to_string(os))
-
-    # Create a new transaction
-    # from bitcoinlib.keys import HDKey
-    # ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKe'
-    #            'PyA7irEvBoe4aAn52', network='testnet')
-    # print(ki.public().address())
-    # input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
-    #                   ki.public().public_uncompressed())
-    # ko = HDKey('tprv8eb7i2C26Kngu1BW13Dc5VemHsVbp8g5CBiBwcQaL9odDDhcUUoE4QLC1G4yYHFDvhFaJmwtYw2snTWMEkz4ng9RTo'
-    #            'eesHUtqeGCuRD6qiW')
-    # output = Output.add(8900, ko.public().public_uncompressed())
-    # t = Transaction([input], [output])
 
     if False:  # Set to True to enable example
         # Deserialize transactions in latest block with bitcoind client
