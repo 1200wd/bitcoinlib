@@ -201,7 +201,7 @@ class Input:
         if not isinstance(prev_hash, bytes):
             prev_hash = binascii.unhexlify(prev_hash)
         if not isinstance(output_index, bytes):
-            output_index = struct.pack('L', output_index)
+            output_index = struct.pack('>I', output_index)
         return Input(prev_hash, output_index, b'', public_key=public_key)
 
     def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0, public_key=''):
@@ -260,12 +260,20 @@ class Output:
         self.amount = amount
         self.script = script
         self.public_key = public_key
+        self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network='testnet')
+        self.public_key_uncompressed = self.k.public_uncompressed()
+        self.public_key_hash = self.k.hash160()
+        self.address = self.k.address(compressed=True)
+        self.address_uncompressed = self.k.address_uncompressed()
 
     def json(self):
         return {
             'amount': self.amount,
             'script': binascii.hexlify(self.script).decode('utf-8'),
             'public_key': binascii.hexlify(self.public_key).decode('utf-8'),
+            'public_key_hash': self.public_key_hash,
+            'address': self.address,
+            'address_uncompressed': self.address_uncompressed,
         }
 
     def __repr__(self):
@@ -285,7 +293,7 @@ class Transaction:
 
         return Transaction(inputs, outputs, locktime, version)
 
-    def __init__(self, inputs, outputs, locktime=0, version=b'00000001'):
+    def __init__(self, inputs, outputs, locktime=0, version=b'\x00\x00\x00\x01'):
         self.inputs = inputs
         self.outputs = outputs
         self.version = version
@@ -347,19 +355,21 @@ if __name__ == '__main__':
 
     # Create a new transaction
     from bitcoinlib.keys import HDKey
-    ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKe'
-               'PyA7irEvBoe4aAn52', network='testnet')
+    ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52', network='testnet')
     print(ki.public().address())
     input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
                       ki.public().public_uncompressed())
-    ko = HDKey('tprv8eb7i2C26Kngu1BW13Dc5VemHsVbp8g5CBiBwcQaL9odDDhcUUoE4QLC1G4yYHFDvhFaJmwtYw2snTWMEkz4ng9RTo'
-               'eesHUtqeGCuRD6qiW')
-    output = Output.add(890000, ko.public().public_uncompressed())
+    ko = HDKey('tprv8eb7i2C26Kngu1BW13Dc5VemHsVbp8g5CBiBwcQaL9odDDhcUUoE4QLC1G4yYHFDvhFaJmwtYw2snTWMEkz4ng9RToeesHUtqeGCuRD6qiW')
+    output = Output.add(880000, ko.public().public_uncompressed())
     t = Transaction([input], [output])
     pprint(t.get())
-    print(t.raw())
+    rt = t.raw()
+    print(rt)
     print(binascii.hexlify(t.raw()))
 
+    ti = Transaction.import_raw(rt)
+    print("Import this transaction: ")
+    pprint(t.get())
     sys.exit()
 
 
