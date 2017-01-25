@@ -348,17 +348,17 @@ class Key:
     def public_hex(self):
         if not self._public:
             self._create_public()
-        return self._public
+        return self._public if self.compressed else self._public_uncompressed
 
     def public_byte(self):
         if not self._public:
             self._create_public()
-        return change_base(self._public, 16, 256, 32)
+        return change_base(self._public if self.compressed else self._public_uncompressed, 16, 256, 32)
 
     def hash160(self):
         if not self._public:
             self._create_public()
-        key = change_base(self._public, 16, 256)
+        key = change_base(self._public if self.compressed else self._public_uncompressed, 16, 256)
         # if sys.version_info > (3,):
         #     key = key.encode('utf-8')
         return hashlib.new('ripemd160', hashlib.sha256(key).digest()).hexdigest()
