@@ -245,6 +245,8 @@ def int_to_varbyteint(inp):
 
 
 def convert_der_sig(s):
+    if not s:
+        return ""
     sg, junk = ecdsa.der.remove_sequence(s)
     if junk != b'':
         raise EncodingError("Junk found in encoding sequence %s" % junk)

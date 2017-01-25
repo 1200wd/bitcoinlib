@@ -197,14 +197,15 @@ def script_to_string(script):
 class Input:
 
     @staticmethod
-    def add(prev_hash, output_index=0, public_key=b''):
+    def add(prev_hash, output_index=0, public_key=b'', network='bitcoin'):
         if not isinstance(prev_hash, bytes):
             prev_hash = binascii.unhexlify(prev_hash)
         if not isinstance(output_index, bytes):
             output_index = struct.pack('>I', output_index)
-        return Input(prev_hash, output_index, b'', public_key=public_key)
+        return Input(prev_hash, output_index, b'', public_key=public_key, network=network)
 
-    def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0, public_key=''):
+    def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0, public_key='',
+                 network='bitcoin'):
         self.id = id
         self.prev_hash = prev_hash
         self.output_index = output_index
@@ -228,7 +229,7 @@ class Input:
         self.address = ""
         self.address_uncompressed = ""
         if self.public_key:
-            self.k = Key(self.public_key, network='testnet')
+            self.k = Key(self.public_key, network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
             self.address = self.k.address(compressed=True)
@@ -255,17 +256,16 @@ class Input:
 class Output:
 
     @staticmethod
-    def add(amount, public_key):
+    def add(amount, public_key, network='bitcoin'):
         if not isinstance(public_key, bytes):
             public_key = binascii.unhexlify(public_key)
-        return Output(amount, public_key=public_key)
+        return Output(amount, public_key=public_key, network=network)
 
-    def __init__(self, amount, script=b'', public_key=b''):
+    def __init__(self, amount, script=b'', public_key=b'', network='bitcoin'):
         self.amount = amount
         self.public_key = public_key
-        self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network='testnet')
+        self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network=network)
         if script == b'':
-            #     76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac
             script = b'\x76\xa9\x14' + binascii.unhexlify(self.k.hash160()) + b'\x88\xac'
         self.script = script
         self.public_key_uncompressed = self.k.public_uncompressed()
@@ -298,9 +298,10 @@ class Transaction:
 
         inputs, outputs, locktime, version = deserialize_transaction(rawtx)
 
-        return Transaction(inputs, outputs, locktime, version)
+        return Transaction(inputs, outputs, locktime, version, rawtx)
 
-    def __init__(self, inputs, outputs, locktime=0, version=b'\x00\x00\x00\x01'):
+    def __init__(self, inputs, outputs, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b''):
+        self.rawtx = rawtx
         self.inputs = inputs
         self.outputs = outputs
         self.version = version
@@ -356,25 +357,38 @@ class Transaction:
             _logger.info("Signature Verified %s" % i.signature)
         return True
 
-    def sign(self, pkey, id=0):
-        pass
+    def sign(self, priv_key, id=0):
+        # myTxn_forSig = (
+        # makeRawTransaction(outputTransactionHash, sourceIndex, scriptPubKey, outputs) + "01000000")  # hash code
+
+        s256 = hashlib.sha256(hashlib.sha256(self.rawtx + b'\01\0\0\0').digest()).digest()
+        sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
+        sig = sk.sign_digest(s256, sigencode=ecdsa.util.sigencode_der) + b'\01'  # 01 is hashtype
+        pub_key = self.inputs[id]._public_key
+        # scriptsig = utils.varstr(sig).encode('hex') + utils.varstr(pubKey.decode('hex')).encode('hex')
+        script_sig = sig + pub_key
+        self.inputs[id].script_sig = int_to_varbyteint(len(script_sig)) + script_sig
+        # signed_txn = makeRawTransaction(outputTransactionHash, sourceIndex, scriptSig, outputs)
+
+        print(binascii.hexlify(self.inputs[id].script_sig))
+        print(binascii.hexlify(t.raw()))
 
 
 if __name__ == '__main__':
     from pprint import pprint
 
-    if False:
+    if True:
         # Create a new transaction
         from bitcoinlib.keys import HDKey
-        ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52', network='testnet')
+        ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52')
         print(ki.public().address())
         input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
-                          ki.public().public_uncompressed())
+                          ki.public().public_uncompressed(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         ko = HDKey('tpubDHcePHDp7EdKBegz9ZZ98FGaLQnaftxubowrHAMDASjbmLgg3BRnLGkR49wkxri9g8xei7fHsErVgWbUAH8xgkubbHqGLJHTdir4pNap67u')
-        output = Output.add(880000, ko.public().public())
+        output = Output.add(880000, ko.public().public(), network='testnet')
         t = Transaction([input], [output])
-        pprint(t.get())
+
         rt = t.raw()
         print(rt)
         print(binascii.hexlify(t.raw()))
@@ -382,6 +396,10 @@ if __name__ == '__main__':
         ti = Transaction.import_raw(rt)
         print("Import this transaction: ")
         pprint(t.get())
+        t.sign(ki.private().private_byte(), 0)
+        pprint(t.get())
+
+        import sys; sys.exit()
 
         # Example of a basic raw transaction with 1 input and 2 outputs
         # (destination and change address).
@@ -435,50 +453,64 @@ if __name__ == '__main__':
         print("\nOutput Script: %s" % os)
         print("Output Script String: %s" % script_to_string(os))
 
+    #
     # === TRANSACTIONS AND BITCOIND EXAMPLES
-    MAX_TRANSACTIONS_VIEW = 10
-    # Deserialize transactions in latest block with bitcoind client
+    #
+
     from bitcoinlib.services.bitcoind import BitcoindClient
     bdc = BitcoindClient.from_config()
 
-    print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
-    blockhash = bdc.proxy.getbestblockhash()
-    bestblock = bdc.proxy.getblock(blockhash)
-    print('... %d transactions found' % len(bestblock['tx']))
-    ci = 0
-    ct = len(bestblock['tx'])
-    for txid in bestblock['tx']:
-        ci += 1
-        print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
-        try:
-            rt = bdc.getrawtransaction(txid)
-        except:
-            pass
+    if False:
+        # Deserialize 1 transaction
+        txid = '4d6b58b01522443acec344bab9e709d0ff428fce5cd491b18ce1d076353245ae'
+        rt = bdc.getrawtransaction(txid)
         print("- raw %s" % rt)
         t = Transaction.import_raw(rt)
         pprint(t.get())
-        if ci > MAX_TRANSACTIONS_VIEW:
-            break
-    print("===   %d raw transactions deserialised   ===" % ct)
-    print("===   D O N E   ===")
 
-    # Deserialize transactions in the bitcoind mempool client
-    print("\n=== DESERIALIZE MEMPOOL TRANSACTIONS ===")
-    newtxs = bdc.proxy.getrawmempool()
-    ci = 0
-    ct = len(newtxs)
-    print("Found %d transactions in mempool" % len(newtxs))
-    for txid in newtxs:
-        ci += 1
-        print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
-        try:
-            rt = bdc.getrawtransaction(txid)
+    # Deserialize transactions in latest block with bitcoind client
+    MAX_TRANSACTIONS_VIEW = 0
+    if MAX_TRANSACTIONS_VIEW:
+        print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
+        blockhash = bdc.proxy.getbestblockhash()
+        bestblock = bdc.proxy.getblock(blockhash)
+        print('... %d transactions found' % len(bestblock['tx']))
+        ci = 0
+        ct = len(bestblock['tx'])
+        for txid in bestblock['tx']:
+            ci += 1
+            print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
+            try:
+                rt = bdc.getrawtransaction(txid)
+            except:
+                pass
             print("- raw %s" % rt)
             t = Transaction.import_raw(rt)
             pprint(t.get())
-        except:
-            print(txid)
-        if ci > MAX_TRANSACTIONS_VIEW:
-            break
-    print("===   %d mempool transactions deserialised   ===" % ct)
-    print("===   D O N E   ===")
+            if ci > MAX_TRANSACTIONS_VIEW:
+                break
+        print("===   %d raw transactions deserialised   ===" %
+              (ct if ct < MAX_TRANSACTIONS_VIEW else MAX_TRANSACTIONS_VIEW))
+        print("===   D O N E   ===")
+
+        # Deserialize transactions in the bitcoind mempool client
+        print("\n=== DESERIALIZE MEMPOOL TRANSACTIONS ===")
+        newtxs = bdc.proxy.getrawmempool()
+        ci = 0
+        ct = len(newtxs)
+        print("Found %d transactions in mempool" % len(newtxs))
+        for txid in newtxs:
+            ci += 1
+            print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
+            try:
+                rt = bdc.getrawtransaction(txid)
+                print("- raw %s" % rt)
+                t = Transaction.import_raw(rt)
+                pprint(t.get())
+            except:
+                print(txid)
+            if ci > MAX_TRANSACTIONS_VIEW:
+                break
+        print("===   %d mempool transactions deserialised   ===" %
+              (ct if ct < MAX_TRANSACTIONS_VIEW else MAX_TRANSACTIONS_VIEW))
+        print("===   D O N E   ===")
