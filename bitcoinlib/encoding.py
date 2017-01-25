@@ -244,6 +244,10 @@ def int_to_varbyteint(inp):
         return struct.pack('<cQ', b'\xff', inp)
 
 
+def varstr(s):
+    return int_to_varbyteint(len(s)) + s
+
+
 def convert_der_sig(s):
     if not s:
         return ""
