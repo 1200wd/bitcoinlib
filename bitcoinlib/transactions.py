@@ -23,7 +23,7 @@ from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import Key
 from bitcoinlib.main import *
-from bitcoinlib.services.bitcoind import BitcoindClient
+
 
 _logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ OUTPUT_SCRIPT_TYPES = {
     'pubkey': ['signature', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data']
 }
+
 
 class TransactionError(Exception):
     def __init__(self, msg=''):
@@ -214,7 +215,10 @@ class Input:
         if public_key:
             self._public_key = binascii.unhexlify(public_key)
         pk2 = b''
-        if script_sig:
+        self.type = ''
+        if prev_hash == b'\0' * 32:
+            self.type = 'coinbase'
+        if script_sig and self.type != 'coinbase':
             self.signature, pk2 = parse_script_sig(script_sig)
         if not public_key and pk2:
             self._public_key = pk2
@@ -234,6 +238,7 @@ class Input:
     def json(self):
         return {
             'prev_hash': binascii.hexlify(self.prev_hash).decode('utf-8'),
+            'type': self.type,
             'address': self.address,
             'address_uncompressed': self.address_uncompressed,
             'public_key': self.public_key,
@@ -351,122 +356,129 @@ class Transaction:
             _logger.info("Signature Verified %s" % i.signature)
         return True
 
+    def sign(self, pkey, id=0):
+        pass
+
 
 if __name__ == '__main__':
     from pprint import pprint
 
-    # Create a new transaction
-    from bitcoinlib.keys import HDKey
-    ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52', network='testnet')
-    print(ki.public().address())
-    input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
-                      ki.public().public_uncompressed())
-    # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
-    ko = HDKey('tpubDHcePHDp7EdKBegz9ZZ98FGaLQnaftxubowrHAMDASjbmLgg3BRnLGkR49wkxri9g8xei7fHsErVgWbUAH8xgkubbHqGLJHTdir4pNap67u')
-    output = Output.add(880000, ko.public().public())
-    t = Transaction([input], [output])
-    pprint(t.get())
-    rt = t.raw()
-    print(rt)
-    print(binascii.hexlify(t.raw()))
+    if False:
+        # Create a new transaction
+        from bitcoinlib.keys import HDKey
+        ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52', network='testnet')
+        print(ki.public().address())
+        input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
+                          ki.public().public_uncompressed())
+        # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
+        ko = HDKey('tpubDHcePHDp7EdKBegz9ZZ98FGaLQnaftxubowrHAMDASjbmLgg3BRnLGkR49wkxri9g8xei7fHsErVgWbUAH8xgkubbHqGLJHTdir4pNap67u')
+        output = Output.add(880000, ko.public().public())
+        t = Transaction([input], [output])
+        pprint(t.get())
+        rt = t.raw()
+        print(rt)
+        print(binascii.hexlify(t.raw()))
 
-    ti = Transaction.import_raw(rt)
-    print("Import this transaction: ")
-    pprint(t.get())
-    sys.exit()
+        ti = Transaction.import_raw(rt)
+        print("Import this transaction: ")
+        pprint(t.get())
 
+        # Example of a basic raw transaction with 1 input and 2 outputs
+        # (destination and change address).
+        rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
+        # --- INPUTS ---
+        rt += '01'        # Number of UTXO's inputs
+        # Previous transaction hash (Little Endian format):
+        rt += 'a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e'
+        rt += '01000000'  # Index number of previous transaction
+        # - INPUT: SCRIPTSIG -
+        rt += '6a'        # Size of following unlocking script (ScripSig)
+        rt += '47'        # PUSHDATA 47 - Push following 47 bytes signature to stack
+        rt += '30'        # DER encoded Signature - Sequence
+        rt += '44'        # DER encoded Signature - Length
+        rt += '02'        # DER encoded Signature - Integer
+        rt += '20'        # DER encoded Signature - Length of X:
+        rt += '1f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38'
+        rt += '02'        # DER encoded Signature - Integer
+        rt += '20'        # DER encoded Signature - Lenght of Y:
+        rt += '45e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f4'
+        rt += '01'        # SIGHASH_ALL
+        # - INPUT: PUBLIC KEY -
+        rt += '21'        # PUSHDATA 21 - Push following 21 bytes public key to stack:
+        rt += '0239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9d'
+        rt += 'feffffff'  # Sequence
+        # --- OUTPUTS ---
+        rt += '02'                  # Number of outputs
+        rt += '3ef5980400000000'    # Output value in Little Endian format
+        rt += '19'                  # Script length, of following scriptPubKey:
+        rt += '76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac'
+        rt += '90940d0000000000'    # Output value #2 in Little Endian format
+        rt += '19'                  # Script length, of following scriptPubKey:
+        rt += '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
+        rt += 'b7740f00'   # Locktime
 
+        print("\n=== Import Raw Transaction ===")
+        t = Transaction.import_raw(rt)
+        print("Raw: %s" % binascii.hexlify(t.raw()).decode('utf-8'))
+        pprint(t.get())
+        output_script = t.outputs[0].script
+        print("\nOutput Script Type: %s " % output_script_type(output_script))
+        print("Output Script String: %s" % script_to_string(output_script))
+        print("\nt.verified() ==> %s" % t.verify())
 
-    # Example of a basic raw transaction with 1 input and 2 outputs
-    # (destination and change address).
-    rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
-    # --- INPUTS ---
-    rt += '01'        # Number of UTXO's inputs
-    # Previous transaction hash (Little Endian format):
-    rt += 'a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e'
-    rt += '01000000'  # Index number of previous transaction
-    # - INPUT: SCRIPTSIG -
-    rt += '6a'        # Size of following unlocking script (ScripSig)
-    rt += '47'        # PUSHDATA 47 - Push following 47 bytes signature to stack
-    rt += '30'        # DER encoded Signature - Sequence
-    rt += '44'        # DER encoded Signature - Length
-    rt += '02'        # DER encoded Signature - Integer
-    rt += '20'        # DER encoded Signature - Length of X:
-    rt += '1f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38'
-    rt += '02'        # DER encoded Signature - Integer
-    rt += '20'        # DER encoded Signature - Lenght of Y:
-    rt += '45e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f4'
-    rt += '01'        # SIGHASH_ALL
-    # - INPUT: PUBLIC KEY -
-    rt += '21'        # PUSHDATA 21 - Push following 21 bytes public key to stack:
-    rt += '0239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9d'
-    rt += 'feffffff'  # Sequence
-    # --- OUTPUTS ---
-    rt += '02'                  # Number of outputs
-    rt += '3ef5980400000000'    # Output value in Little Endian format
-    rt += '19'                  # Script length, of following scriptPubKey:
-    rt += '76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac'
-    rt += '90940d0000000000'    # Output value #2 in Little Endian format
-    rt += '19'                  # Script length, of following scriptPubKey:
-    rt += '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
-    rt += 'b7740f00'   # Locktime
+        print("\n=== Determine Output Script Type ===")
+        os = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
+        print("Output Script: %s" % os)
+        print("Output Script String: %s" % script_to_string(os))
+        os = '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6' \
+             'fe3695e758c19f46ce604e174dac315e685a52ae'
+        print("\nOutput Script: %s" % os)
+        print("Output Script String: %s" % script_to_string(os))
 
-    print("\n=== Import Raw Transaction ===")
-    t = Transaction.import_raw(rt)
-    print("Raw: %s" % binascii.hexlify(t.raw()).decode('utf-8'))
-    pprint(t.get())
-    output_script = t.outputs[0].script
-    print("\nOutput Script Type: %s " % output_script_type(output_script))
-    print("Output Script String: %s" % script_to_string(output_script))
-    print("\nt.verified() ==> %s" % t.verify())
+    # === TRANSACTIONS AND BITCOIND EXAMPLES
+    MAX_TRANSACTIONS_VIEW = 10
+    # Deserialize transactions in latest block with bitcoind client
+    from bitcoinlib.services.bitcoind import BitcoindClient
+    bdc = BitcoindClient.from_config()
 
-    print("\n=== Determine Output Script Type ===")
-    os = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
-    print("Output Script: %s" % os)
-    print("Output Script String: %s" % script_to_string(os))
-    os = '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6' \
-         'fe3695e758c19f46ce604e174dac315e685a52ae'
-    print("\nOutput Script: %s" % os)
-    print("Output Script String: %s" % script_to_string(os))
+    print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
+    blockhash = bdc.proxy.getbestblockhash()
+    bestblock = bdc.proxy.getblock(blockhash)
+    print('... %d transactions found' % len(bestblock['tx']))
+    ci = 0
+    ct = len(bestblock['tx'])
+    for txid in bestblock['tx']:
+        ci += 1
+        print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
+        try:
+            rt = bdc.getrawtransaction(txid)
+        except:
+            pass
+        print("- raw %s" % rt)
+        t = Transaction.import_raw(rt)
+        pprint(t.get())
+        if ci > MAX_TRANSACTIONS_VIEW:
+            break
+    print("===   %d raw transactions deserialised   ===" % ct)
+    print("===   D O N E   ===")
 
-    if False:  # Set to True to enable example
-        # Deserialize transactions in latest block with bitcoind client
-        bdc = BitcoindClient.from_config()
-
-        print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
-        blockhash = bdc.proxy.getbestblockhash()
-        bestblock = bdc.proxy.getblock(blockhash)
-        print('... %d transactions found' % len(bestblock['tx']))
-        ci = 0
-        ct = len(bestblock['tx'])
-        for txid in bestblock['tx']:
-            ci += 1
-            print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
-            try:
-                rt = bdc.getrawtransaction(txid)
-            except:
-                pass
+    # Deserialize transactions in the bitcoind mempool client
+    print("\n=== DESERIALIZE MEMPOOL TRANSACTIONS ===")
+    newtxs = bdc.proxy.getrawmempool()
+    ci = 0
+    ct = len(newtxs)
+    print("Found %d transactions in mempool" % len(newtxs))
+    for txid in newtxs:
+        ci += 1
+        print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
+        try:
+            rt = bdc.getrawtransaction(txid)
             print("- raw %s" % rt)
             t = Transaction.import_raw(rt)
             pprint(t.get())
-        print("===   %d raw transactions deserialised   ===" % ct)
-        print("===   D O N E   ===")
-
-        # Deserialize transactions in the bitcoind mempool client
-        print("\n=== DESERIALIZE MEMPOOL TRANSACTIONS ===")
-        newtxs = bdc.proxy.getrawmempool()
-        ci = 0
-        ct = len(newtxs)
-        print("Found %d transactions in mempool" % len(newtxs))
-        for txid in newtxs:
-            ci += 1
-            print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
-            try:
-                rt = bdc.getrawtransaction(txid)
-                print("- raw %s" % rt)
-                t = Transaction.import_raw(rt)
-                pprint(t.get())
-            except:
-                print(txid)
-        print("===   %d mempool transactions deserialised   ===" % ct)
-        print("===   D O N E   ===")
+        except:
+            print(txid)
+        if ci > MAX_TRANSACTIONS_VIEW:
+            break
+    print("===   %d mempool transactions deserialised   ===" % ct)
+    print("===   D O N E   ===")
