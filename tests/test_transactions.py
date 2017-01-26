@@ -45,6 +45,12 @@ class TestTransactions(unittest.TestCase):
             if len(t.inputs) < 5:
                 self.assertTrue(t.verify(), msg="Can not verify transaction '%s'" % r[0])
 
+    def test_transactions_serialize_raw(self):
+        for r in self.rawtxs:
+            t = Transaction.import_raw(r[1])
+            self.assertEqual(binascii.hexlify(t.raw()).decode(), r[1])
+
+    # TODO - test signable transaction
 
 class TestTransactionsOutputScriptType(unittest.TestCase):
 
