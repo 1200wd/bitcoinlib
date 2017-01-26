@@ -339,24 +339,24 @@ class Key:
         return self._public_uncompressed
 
     def public_point(self):
-        if not self._public:
+        if not self._public or not self._public_uncompressed:
             self._create_public()
         x = self._x and int(change_base(self._x, 16, 10))
         y = self._y and int(change_base(self._y, 16, 10))
         return (x, y)
 
     def public_hex(self):
-        if not self._public:
+        if not self._public or not self._public_uncompressed:
             self._create_public()
         return self._public if self.compressed else self._public_uncompressed
 
     def public_byte(self):
-        if not self._public:
+        if not self._public or not self._public_uncompressed:
             self._create_public()
         return change_base(self._public if self.compressed else self._public_uncompressed, 16, 256, 32)
 
     def hash160(self):
-        if not self._public:
+        if not self._public or not self._public_uncompressed:
             self._create_public()
         key = change_base(self._public if self.compressed else self._public_uncompressed, 16, 256)
         # if sys.version_info > (3,):
