@@ -337,9 +337,11 @@ class Transaction:
             if sign_id is None:
                 r += struct.pack('B', len(i.script_sig)) + i.script_sig
             elif sign_id == i.id:
-                locking_script = varstr(b'\x19\x76\xa9\x14' + binascii.unhexlify(i.public_key_hash) + b'\x88\xac')
-                pub_key = binascii.unhexlify(i.public_key)
-                r += varstr(locking_script + b'\1' + varstr(pub_key))
+                r += b'\x19\x76\xa9\x14' + binascii.unhexlify(i.public_key_hash) + \
+                     b'\x88\xac'
+                # locking_script = varstr(b'\x19\x76\xa9\x14' + binascii.unhexlify(i.public_key_hash) + b'\x88\xac')
+                # pub_key = binascii.unhexlify(i.public_key)
+                # r += varstr(locking_script + b'\1' + varstr(pub_key))
             else:
                 r += b'\0'
             r += i.sequence
@@ -358,11 +360,12 @@ class Transaction:
             t_to_sign = self.raw(i.id)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             pk = binascii.unhexlify(i.public_key_uncompressed[2:])
-            sig, pk2 = parse_script_sig(i.script_sig)
-            pk3 = binascii.unhexlify(Key(pk2).public_uncompressed())[1:]
+            # sig, pk2 = parse_script_sig(i.script_sig)
+            sig = binascii.unhexlify(i.signature)
+            # pk3 = binascii.unhexlify(Key(pk2).public_uncompressed())[1:]
             vk = ecdsa.VerifyingKey.from_string(pk, curve=ecdsa.SECP256k1)
             try:
-                vk.verify_digest(binascii.unhexlify(sig), hashtosign)
+                vk.verify_digest(sig, hashtosign)
             except ecdsa.keys.BadDigestError as e:
                 _logger.info("Bad Signature %s (error %s)" % (sig, e))
                 return False
