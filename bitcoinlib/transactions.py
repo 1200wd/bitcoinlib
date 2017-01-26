@@ -266,6 +266,7 @@ class Output:
         self.public_key = public_key
         self.address = ''
         self.address_uncompressed = ''
+        self.k = None
         if public_key:
             self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
@@ -386,40 +387,41 @@ if __name__ == '__main__':
     if True:
         # Create a new transaction
         from bitcoinlib.keys import HDKey
-        ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
-        txid = "484d40d45b9ea0d652fca8258ab7caa42541eb52975857f96fb50cd732c8b481"
-        print(ki.address())
-        input = Input.add(binascii.unhexlify(txid), 0, ki.public_hex())
-        print(input)
-        pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
-        output = Output.add(91234, binascii.unhexlify(pkh))
-
-        t = Transaction([input], [output])
-
-        pprint(t.get())
-        t.sign(ki.private_byte(), 0)
-        pprint(t.get())
-        print(binascii.hexlify(t.raw()))
-
-        # ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52', network='testnet')
-        # print(ki.public().address())
-        # input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
-        #                   ki.public().public_uncompressed(), network='testnet')
-        # # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
-        # ko = HDKey('tpubDHcePHDp7EdKBegz9ZZ98FGaLQnaftxubowrHAMDASjbmLgg3BRnLGkR49wkxri9g8xei7fHsErVgWbUAH8xgkubbHqGLJHTdir4pNap67u', network='testnet')
-        # output = Output.add(880000, ko.public().public(), network='testnet')
+        # ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
+        # txid = "484d40d45b9ea0d652fca8258ab7caa42541eb52975857f96fb50cd732c8b481"
+        # print(ki.address())
+        # input = Input.add(binascii.unhexlify(txid), 0, ki.public_hex())
+        # print(input)
+        # pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
+        # output = Output.add(91234, binascii.unhexlify(pkh))
+        #
         # t = Transaction([input], [output])
         #
-        # rt = t.raw()
-        # print(rt)
+        # pprint(t.get())
+        # t.sign(ki.private_byte(), 0)
+        # pprint(t.get())
         # print(binascii.hexlify(t.raw()))
-        #
-        # ti = Transaction.import_raw(rt)
-        # print("Import this transaction: ")
-        # pprint(t.get())
-        # t.sign(ki.private().private_byte(), 0)
-        #
-        # pprint(t.get())
+
+        # ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52', network='testnet')
+        ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')
+        print(ki.address())
+        input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
+                          ki.public(), network='testnet')
+        # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
+        ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
+        output = Output.add(880000, public_key_hash=ko.hash160(), network='testnet')
+        t = Transaction([input], [output])
+
+        rt = t.raw()
+        print(rt)
+        print(binascii.hexlify(t.raw()))
+
+        ti = Transaction.import_raw(rt)
+        print("Import this transaction: ")
+        pprint(t.get())
+        t.sign(ki.private_byte(), 0)
+
+        pprint(t.get())
         # print("Verified %s " % t.verify())
 
         import sys; sys.exit()
