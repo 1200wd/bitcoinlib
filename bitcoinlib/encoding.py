@@ -23,6 +23,7 @@ import math
 import numbers
 import ecdsa
 import struct
+import hashlib
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -259,6 +260,26 @@ def convert_der_sig(s):
     return '%064x%064x' % (x, y)
 
 
+def addr2pubkeyhash(address, as_hex=False):
+    address = change_base(address, 58, 256, 25)
+    check = address[-4:]
+    pkh = address[:-4]
+    checksum = hashlib.sha256(hashlib.sha256(pkh).digest()).digest()[0:4]
+    assert (check == checksum), "Invalid address, checksum incorrect"
+    if as_hex:
+        return change_base(pkh, 256, 16)[2:]
+    else:
+        return pkh[1:]
+
+
+def pubkeyhash2addr(pkh, versionbyte=b'\x00'):
+    if isinstance(pkh, str):
+        pkh = change_base(pkh, 16, 256, 20)
+    key = versionbyte + pkh
+    addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
+    return change_base(addr256, 256, 58)
+
+
 if __name__ == '__main__':
     #
     # SOME EXAMPLES
@@ -294,4 +315,10 @@ if __name__ == '__main__':
               (example, example[1], example[2]))
         print("%s" % change_base(*example))
 
-    print("\n")
+    print("\n=== Conversion of Bitcoin Addresses to Public Key Hashes ===")
+    addrs = ['12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', '1111111111111111111114oLvT2',
+             '1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr']
+    for addr in addrs:
+        print("Public Key Hash of address '%s' is '%s'" % (addr, addr2pubkeyhash(addr, True)))
+
+    print(pubkeyhash2addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
