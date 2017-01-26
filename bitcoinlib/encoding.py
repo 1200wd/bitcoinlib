@@ -21,6 +21,7 @@
 import sys
 import math
 import numbers
+import hashlib
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -206,6 +207,18 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
         return output
 
 
+def addr2pubkeyhash(address, as_hex=False):
+    address = change_base(address, 58, 256, 25)
+    check = address[-4:]
+    pkh = address[:-4]
+    checksum = hashlib.sha256(hashlib.sha256(pkh).digest()).digest()[0:4]
+    assert (check == checksum), "Invalid address, checksum incorrect"
+    if as_hex:
+        return change_base(pkh, 256, 16)[2:]
+    else:
+        return pkh[1:]
+
+
 if __name__ == '__main__':
     #
     # SOME EXAMPLES
@@ -240,3 +253,9 @@ if __name__ == '__main__':
         print("\n>>> change_base%s     # Change from base%d to base%d" %
               (example, example[1], example[2]))
         print("%s" % change_base(*example))
+
+    print("\n=== Conversion of Bitcoin Addresses and Public Keys ===")
+    addrs = ['12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', '1111111111111111111114oLvT2',
+             '1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr']
+    for addr in addrs:
+        print("Public Key Hash of address '%s' is '%s'" % (addr, addr2pubkeyhash(addr, True)))

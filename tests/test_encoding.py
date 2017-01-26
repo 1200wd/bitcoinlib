@@ -20,7 +20,7 @@
 
 import unittest
 
-from bitcoinlib.encoding import change_base
+from bitcoinlib.encoding import change_base, addr2pubkeyhash
 
 
 class TestEncodingMethods(unittest.TestCase):
@@ -101,6 +101,18 @@ class TestEncodingMethods(unittest.TestCase):
 
     def test_change_base_list(self):
         self.assertEqual('00124c', change_base([b'\0', b'\x12', b'L'], 256, 16, 6))
+
+    def test_address_to_pkh_conversion_1(self):
+        self.assertEqual('13d215d212cd5188ae02c5635faabdc4d7d4ec91',
+                         addr2pubkeyhash('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', True))
+
+    def test_address_to_pkh_conversion_2(self):
+        self.assertEqual('00' * 20,
+                         addr2pubkeyhash('1111111111111111111114oLvT2', True))
+
+    def test_address_to_pkh_conversion_3(self):
+        self.assertEqual(b'\xFF' * 20,
+                         addr2pubkeyhash('1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr', False))
 
 
 if __name__ == '__main__':
