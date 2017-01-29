@@ -259,6 +259,7 @@ def convert_der_sig(s):
     y, sg = ecdsa.der.remove_integer(sg)
     return '%064x%064x' % (x, y)
 
+
 def addr_to_pubkeyhash(address, as_hex=False):
     address = change_base(address, 58, 256, 25)
     check = address[-4:]

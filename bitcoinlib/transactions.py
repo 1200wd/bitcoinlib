@@ -230,13 +230,13 @@ class Input:
         self.k = None
         self.public_key_hash = ""
         self.address = ""
-        self.address_uncompressed = ""
+        # self.address_uncompressed = ""
         if self.public_key:
             self.k = Key(self.public_key, network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
-            self.address = self.k.address(compressed=True)
-            self.address_uncompressed = self.k.address_uncompressed()
+            self.address = self.k.address()
+            # self.address_uncompressed = self.k.address_uncompressed()
         self.sequence = sequence
 
     def json(self):
@@ -244,7 +244,7 @@ class Input:
             'prev_hash': binascii.hexlify(self.prev_hash).decode('utf-8'),
             'type': self.type,
             'address': self.address,
-            'address_uncompressed': self.address_uncompressed,
+            # 'address_uncompressed': self.address_uncompressed,
             'public_key': self.public_key,
             'public_key_hash': self.public_key_hash,
             'output_index': binascii.hexlify(self.output_index).decode('utf-8'),
@@ -259,23 +259,28 @@ class Input:
 class Output:
 
     @staticmethod
-    def add(amount, public_key_hash, network='bitcoin'):
+    def add(amount, public_key_hash=b'', address='', network='bitcoin'):
         if not isinstance(public_key_hash, bytes):
             public_key_hash = binascii.unhexlify(public_key_hash)
-        return Output(amount, public_key_hash=public_key_hash, network=network)
+        return Output(amount, public_key_hash=public_key_hash, address=address, network=network)
 
-    def __init__(self, amount, script=b'', public_key_hash=b'', public_key=b'', network='bitcoin'):
+    def __init__(self, amount, script=b'', public_key_hash=b'', address='', public_key=b'', network='bitcoin'):
         self.amount = amount
         self.public_key = public_key
-        self.address = ''
-        self.address_uncompressed = ''
+        self.public_key_hash = public_key_hash
+        self.address = address
+        # self.address_uncompressed = ''
         self.k = None
         if public_key:
             self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network=network)
-            self.public_key_uncompressed = self.k.public_uncompressed()
-            self.address = self.k.address(compressed=True)
-            self.address_uncompressed = self.k.address_uncompressed()
-        self.public_key_hash = public_key_hash
+            # self.public_key_uncompressed = self.k.public_uncompressed()
+            self.address = self.k.address()
+            # self.address_uncompressed = self.k.address_uncompressed()
+        if public_key_hash:
+            self.address = pubkeyhash_to_addr(public_key_hash)
+        if address and not public_key_hash:
+            self.public_key_hash = addr_to_pubkeyhash(address)
+
         if not public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
         if script == b'':
@@ -289,7 +294,7 @@ class Output:
             'public_key': binascii.hexlify(self.public_key).decode('utf-8'),
             'public_key_hash': self.public_key_hash,
             'address': self.address,
-            'address_uncompressed': self.address_uncompressed,
+            # 'address_uncompressed': self.address_uncompressed,
         }
 
     def __repr__(self):
@@ -391,13 +396,18 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
-    prev_tx = 'eccf7e3034189b851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2'
+    prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
 
-    ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725)
-    input = Input.add(binascii.unhexlify(prev_tx), 1, b'', ki.public_hex())
+    ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
+    input = Input.add(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
 
-    pkh = addr2publickeyhash
-    output = Output.add(99900000, pkh)
+    output = Output.add(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
+
+    t = Transaction([input], [output])
+    t.sign(ki.private_byte())
+    pprint(t.get())
+    print(binascii.hexlify(t.raw(0)))
+
 
     # rt = '0100000001a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e010000006a47304402201f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38022045e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f401210239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9dfeffffff023ef59804000000001976a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac90940d00000000001976a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
     # rt = '01000000' \
