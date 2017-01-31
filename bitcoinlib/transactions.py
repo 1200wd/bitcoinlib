@@ -46,7 +46,7 @@ class TransactionError(Exception):
         return self.msg
 
 
-def deserialize_transaction(rawtx):
+def deserialize_transaction(rawtx, network='bitcoin'):
     """
     Deserialize a raw transaction
 
@@ -70,7 +70,8 @@ def deserialize_transaction(rawtx):
         cursor += scriptsig_size
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
-        inputs.append(Input(inp_hash, inp_index, scriptsig, sequence_number, i))
+        inputs.append(Input(prev_hash=inp_hash, output_index=inp_index, script_sig=scriptsig,
+                            sequence=sequence_number, id=i, network=network))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
 
@@ -84,7 +85,7 @@ def deserialize_transaction(rawtx):
         cursor += size
         script = rawtx[cursor:cursor + script_size]
         cursor += script_size
-        outputs.append(Output(amount, script))
+        outputs.append(Output(amount=amount, script=script, network=network))
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
@@ -302,7 +303,7 @@ class Transaction:
         elif not isinstance(rawtx, bytes):
             raise TransactionError("Raw Transaction must be of type bytes or str")
 
-        inputs, outputs, locktime, version = deserialize_transaction(rawtx)
+        inputs, outputs, locktime, version = deserialize_transaction(rawtx, network=network)
 
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
@@ -388,12 +389,13 @@ if __name__ == '__main__':
     from pprint import pprint
 
     rt = '0100000001a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e010000006a47304402201f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38022045e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f401210239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9dfeffffff023ef59804000000001976a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac90940d00000000001976a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
-    t = Transaction.import_raw(rt)
+    t = Transaction.import_raw(rt, network='testnet')
     rta = binascii.hexlify(t.raw(0)).decode()
     pprint("Signable Raw: %s " % rta)
-
-    ti = Transaction.import_raw(rta)
-    ti.get()
+    pprint(t.get())
+    # t.verify()
+    # ti = Transaction.import_raw(rta)
+    # ti.get()
 
     if False:
         # Create a new transaction
