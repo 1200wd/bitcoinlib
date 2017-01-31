@@ -21,7 +21,7 @@ import binascii
 import hashlib
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
-from bitcoinlib.keys import Key
+from bitcoinlib.keys import Key, BKeyError
 from bitcoinlib.main import *
 from bitcoinlib.config.networks import *
 
@@ -407,62 +407,9 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
-    # Example based on explanation on
-    # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
+    # Example of a basic raw transaction with 1 input and 2 outputs
+    # (destination and change address).
     if False:
-        prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
-        ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        input = Input.add(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
-        output = Output.add(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
-        t = Transaction([input], [output])
-        print(binascii.hexlify(t.raw(0)))
-        t.sign(ki.private_byte())
-        pprint(t.get())
-        print(binascii.hexlify(t.raw()))
-        print("Verified %s " % t.verify())
-
-    # Example based on
-    # http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html
-    if False:
-        # Create a new transaction
-        ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
-        txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-        input = Input.add(prev_hash=binascii.unhexlify(txid), output_index=0, public_key=ki.public_hex())
-        pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
-        output = Output.add(amount=91234, public_key_hash=binascii.unhexlify(pkh))
-        t = Transaction([input], [output])
-        t.sign(ki.private_byte())
-        print(binascii.hexlify(t.raw()))
-        pprint(t.get())
-        print("Verified %s " % t.verify())
-
-    if True:
-        # ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52', network='testnet')
-        ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')
-        input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
-                          b'',
-                          ki.public(), network='testnet')
-        # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
-        ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
-        output = Output.add(880000, public_key_hash=ko.hash160(), network='testnet')
-        t = Transaction([input], [output], network='testnet')
-        pprint(t.get())
-        t.sign(ki.private_byte(), 0)
-        pprint(t.get())
-        print(binascii.hexlify(t.raw()))
-        print("Verified %s\n\n\n" % t.verify())
-
-        rt2 = t.raw()
-        # rt2 = '0100000001552980326afb3552e838ed75cd1db23bcbfa868a34609578ca1ccaa4d3fbc7d3010000008a4730440220008a673095001fb8c128b3f19026fac500aa62b46487fb7ac602b391532414c3022071eb501b1550d3464f4fa474dc622560428dc8315945e7624af9f823d16946cf014104ee58ff546d92040652920e512dbab45911de4a03da232c3a228964d2ef9ef7ca6670005218e406985bda769b2f8a4f38dd7f45524776ef4fd8344a120d8a0518ffffffff01806d0d00000000001976a9143c1e136fbc9cfabe35d6d5d41474295721d44f9c88ac00000000'
-        t2 = Transaction.import_raw(rt2, network='testnet')
-        pprint(t2.get())
-        print(binascii.hexlify(t2.raw()))
-        # print("t = t2? %s" % (t.raw() == t2.raw()))
-
-
-    if False:
-        # Example of a basic raw transaction with 1 input and 2 outputs
-        # (destination and change address).
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
@@ -513,6 +460,50 @@ if __name__ == '__main__':
         print("\nOutput Script: %s" % os)
         print("Output Script String: %s" % script_to_string(os))
 
+    # Example based on explanation on
+    # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
+    if False:
+        prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
+        ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
+        input = Input.add(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
+        output = Output.add(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
+        t = Transaction([input], [output])
+        print(binascii.hexlify(t.raw(0)))
+        t.sign(ki.private_byte())
+        pprint(t.get())
+        print(binascii.hexlify(t.raw()))
+        print("Verified %s " % t.verify())
+
+    # Example based on
+    # http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html
+    if False:
+        # Create a new transaction
+        ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
+        txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
+        input = Input.add(prev_hash=binascii.unhexlify(txid), output_index=0, public_key=ki.public_hex())
+        pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
+        output = Output.add(amount=91234, public_key_hash=binascii.unhexlify(pkh))
+        t = Transaction([input], [output])
+        t.sign(ki.private_byte())
+        print(binascii.hexlify(t.raw()))
+        pprint(t.get())
+        print("Verified %s " % t.verify())
+
+    # Testnet Transaction using Wallet class keys
+    # txid is 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7
+    if False:
+        ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')
+        input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
+                          public_key=ki.public(), network='testnet')
+        # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
+        ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
+        output = Output.add(880000, public_key_hash=ko.hash160(), network='testnet')
+        t = Transaction([input], [output], network='testnet')
+        t.sign(ki.private_byte(), 0)
+        pprint(t.get())
+        print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+        print("Verified %s\n\n\n" % t.verify())
+
     #
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
@@ -530,6 +521,7 @@ if __name__ == '__main__':
 
     # Deserialize transactions in latest block with bitcoind client
     MAX_TRANSACTIONS_VIEW = 0
+    error_count = 0
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
         blockhash = bdc.proxy.getbestblockhash()
@@ -542,15 +534,24 @@ if __name__ == '__main__':
             print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
             try:
                 rt = bdc.getrawtransaction(txid)
-            except:
+            except Exception as e:
+                print("Error fetching transaction", e)
+                error_count += 1
                 pass
             print("- raw %s" % rt)
-            t = Transaction.import_raw(rt)
+            try:
+                t = Transaction.import_raw(rt)
+            except BKeyError as e:
+                print("Error when import raw transaction", e)
+                error_count += 1
+                continue
+
             pprint(t.get())
             if ci > MAX_TRANSACTIONS_VIEW:
                 break
         print("===   %d raw transactions deserialised   ===" %
               (ct if ct < MAX_TRANSACTIONS_VIEW else MAX_TRANSACTIONS_VIEW))
+        print("===   errorcount %d" % error_count)
         print("===   D O N E   ===")
 
         # Deserialize transactions in the bitcoind mempool client
@@ -567,10 +568,12 @@ if __name__ == '__main__':
                 print("- raw %s" % rt)
                 t = Transaction.import_raw(rt)
                 pprint(t.get())
-            except:
-                print(txid)
+            except Exception as e:
+                print("Error when import raw transaction %d, error %s", (txid, e))
+                error_count += 1
             if ci > MAX_TRANSACTIONS_VIEW:
                 break
         print("===   %d mempool transactions deserialised   ===" %
               (ct if ct < MAX_TRANSACTIONS_VIEW else MAX_TRANSACTIONS_VIEW))
+        print("===   errorcount %d" % error_count)
         print("===   D O N E   ===")
