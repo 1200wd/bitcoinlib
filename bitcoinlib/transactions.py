@@ -492,8 +492,8 @@ if __name__ == '__main__':
     # Testnet Transaction using Wallet class keys
     # txid is 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7
     if False:
-        ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')
-        input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
+        ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
+        input = Input.add(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
                           public_key=ki.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')

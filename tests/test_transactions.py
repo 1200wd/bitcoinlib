@@ -53,7 +53,18 @@ class TestTransactions(unittest.TestCase):
             t = Transaction.import_raw(r[1], r[4])
             self.assertEqual(binascii.hexlify(t.raw()).decode(), r[1])
 
-    # TODO - test signable transaction
+    def test_transactions_sign_1(self):
+        pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
+        inp = Input.add(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
+                        public_key=pk.public(), network='testnet')
+        # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
+        pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
+        out = Output.add(880000, public_key_hash=pubkey.hash160(), network='testnet')
+        t = Transaction([inp], [out], network='testnet')
+        t.sign(pk.private_byte(), 0)
+        self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
+        self.assertEqual(t.get()['inputs'][0]['address'], 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
+        self.assertEqual(t.get()['outputs'][0]['address'], 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
 
 
 class TestTransactionsOutputScriptType(unittest.TestCase):
