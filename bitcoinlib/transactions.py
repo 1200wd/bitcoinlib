@@ -489,8 +489,8 @@ if __name__ == '__main__':
         pprint(t.get())
         print("Verified %s " % t.verify())
 
-    # Testnet Transaction using Wallet class keys
-    # txid is 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7
+    # Create and sign Testnet Transaction using keys from Wallet class 'TestNetWallet' example
+    # See txid 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7
     if False:
         ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
         input = Input.add(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
@@ -500,6 +500,23 @@ if __name__ == '__main__':
         output = Output.add(880000, public_key_hash=ko.hash160(), network='testnet')
         t = Transaction([input], [output], network='testnet')
         t.sign(ki.private_byte(), 0)
+        pprint(t.get())
+        print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+        print("Verified %s\n\n\n" % t.verify())
+
+    # Create bitcoin transaction with UTXO, amount, address and private key
+    # See txid d99070c63e04a6bdb38b553733838d6196198908c8b8930bec0ba502bc483b72
+    if True:
+        private_key = 'KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4'
+        utxo = 'fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3'
+        amount = 95000
+        send_to_address = '1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF'
+
+        key_input = Key(private_key)
+        utxo_input = Input.add(prev_hash=utxo, output_index=1, public_key=key_input.public())
+        output_to = Output.add(amount, address=send_to_address)
+        t = Transaction([utxo_input], [output_to])
+        t.sign(key_input.private_byte(), 0)
         pprint(t.get())
         print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
         print("Verified %s\n\n\n" % t.verify())

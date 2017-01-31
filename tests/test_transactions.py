@@ -66,6 +66,15 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(t.get()['inputs'][0]['address'], 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
         self.assertEqual(t.get()['outputs'][0]['address'], 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
 
+    def test_transactions_sign_2(self):
+        pk = Key('KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4')  # Private key for import
+        inp = Input.add(prev_hash='fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3',
+                        output_index=1, public_key=pk.public())
+        out = Output.add(95000, address='1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF')
+        t = Transaction([inp], [out])
+        t.sign(pk.private_byte(), 0)
+        self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
+
 
 class TestTransactionsOutputScriptType(unittest.TestCase):
 
