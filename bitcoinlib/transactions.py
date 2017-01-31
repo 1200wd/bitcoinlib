@@ -23,6 +23,7 @@ from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import Key
 from bitcoinlib.main import *
+from bitcoinlib.config.networks import *
 
 
 _logger = logging.getLogger(__name__)
@@ -46,11 +47,12 @@ class TransactionError(Exception):
         return self.msg
 
 
-def deserialize_transaction(rawtx, network='bitcoin'):
+def deserialize_transaction(rawtx, network=NETWORK_BITCOIN):
     """
     Deserialize a raw transaction
 
     :param rawtx: Raw transaction in bytes
+    :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc
     :return: json list with inputs, outputs, locktime and version
     """
     version = rawtx[0:4][::-1]
@@ -198,7 +200,7 @@ def script_to_string(script):
 class Input:
 
     @staticmethod
-    def add(prev_hash, output_index=0, script_sig=b'', public_key='', network='bitcoin'):
+    def add(prev_hash, output_index=0, script_sig=b'', public_key='', network=NETWORK_BITCOIN):
         if not isinstance(prev_hash, bytes):
             prev_hash = binascii.unhexlify(prev_hash)
         if not isinstance(output_index, bytes):
@@ -206,47 +208,48 @@ class Input:
         return Input(prev_hash, output_index, script_sig=script_sig, public_key=public_key, network=network)
 
     def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0, public_key='',
-                 network='bitcoin'):
-        self.id = id
+                 network=NETWORK_BITCOIN):
         self.prev_hash = prev_hash
         self.output_index = output_index
         self.script_sig = script_sig
+        self.sequence = sequence
+        self.id = id
+        self.public_key = public_key
+
         self.signature = b''
         self._public_key = b''
-        self.public_key = public_key
+        self.compressed = True
         self.public_key_uncompressed = ''
-        if public_key:
-            self._public_key = binascii.unhexlify(public_key)
-        pk2 = b''
+        self.k = None
+        self.public_key_hash = ''
+        self.address = ''
         self.type = ''
+
         if prev_hash == b'\0' * 32:
             self.type = 'coinbase'
+        pk2 = b''
         if script_sig and self.type != 'coinbase':
             try:
                 self.signature, pk2 = parse_script_sig(script_sig)
             except:
                 pass
+
         if not public_key and pk2:
             self._public_key = pk2
             self.public_key = binascii.hexlify(self._public_key).decode('utf-8')
-        self.k = None
-        self.public_key_hash = ""
-        self.address = ""
-        # self.address_uncompressed = ""
+
         if self.public_key:
             self.k = Key(self.public_key, network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
             self.address = self.k.address()
-            # self.address_uncompressed = self.k.address_uncompressed()
-        self.sequence = sequence
+            self.compressed = self.k.compressed
 
     def json(self):
         return {
             'prev_hash': binascii.hexlify(self.prev_hash).decode('utf-8'),
             'type': self.type,
             'address': self.address,
-            # 'address_uncompressed': self.address_uncompressed,
             'public_key': self.public_key,
             'public_key_hash': self.public_key_hash,
             'output_index': binascii.hexlify(self.output_index).decode('utf-8'),
@@ -261,38 +264,42 @@ class Input:
 class Output:
 
     @staticmethod
-    def add(amount, public_key_hash=b'', address='', network='bitcoin'):
+    def add(amount, public_key_hash=b'', address='', network=NETWORK_BITCOIN):
         if not isinstance(public_key_hash, bytes):
             public_key_hash = binascii.unhexlify(public_key_hash)
         return Output(amount, public_key_hash=public_key_hash, address=address, network=network)
 
-    def __init__(self, amount, script=b'', public_key_hash=b'', address='', public_key=b'', network='bitcoin'):
+    def __init__(self, amount, script=b'', public_key_hash=b'', address='', public_key=b'', network=NETWORK_BITCOIN):
         self.amount = amount
-        self.public_key = public_key
+        self.script = script
         self.public_key_hash = public_key_hash
         self.address = address
-        self.address_uncompressed = ''
+        self.public_key = public_key
+        self.network = network
+
+        self.compressed = True
         self.k = None
+        versionbyte = NETWORKS[self.network]['address']
+
         if public_key:
             self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network=network)
-            # self.public_key_uncompressed = self.k.public_uncompressed()
             self.address = self.k.address()
-            # self.address_uncompressed = self.k.address_uncompressed()
+            self.compressed = self.k.compressed
         if public_key_hash:
-            self.address = pubkeyhash_to_addr(public_key_hash)
+            self.address = pubkeyhash_to_addr(public_key_hash, versionbyte=versionbyte)
         if address and not public_key_hash:
             self.public_key_hash = addr_to_pubkeyhash(address)
-
         if not public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
+
         if script and not self.public_key_hash:
             ps = output_script_parse(script)
             if ps[0] == 'p2pkh':
                 self.public_key_hash = binascii.hexlify(ps[1][0])
-                self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=b'\x6F')
-        if script == b'':
-            script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
-        self.script = script
+                self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=versionbyte)
+
+        if self.script == b'':
+            self.script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
 
     def json(self):
         return {
@@ -301,7 +308,6 @@ class Output:
             'public_key': binascii.hexlify(self.public_key).decode('utf-8'),
             'public_key_hash': self.public_key_hash,
             'address': self.address,
-            # 'address_uncompressed': self.address_uncompressed,
         }
 
     def __repr__(self):
@@ -311,7 +317,7 @@ class Output:
 class Transaction:
 
     @staticmethod
-    def import_raw(rawtx, network='bitcoin'):
+    def import_raw(rawtx, network=NETWORK_BITCOIN):
         if isinstance(rawtx, str):
             rawtx = binascii.unhexlify(rawtx)
         elif not isinstance(rawtx, bytes):
@@ -321,7 +327,7 @@ class Transaction:
 
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
-    def __init__(self, inputs, outputs, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'', network='bitcoin'):
+    def __init__(self, inputs, outputs, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'', network=NETWORK_BITCOIN):
         self.inputs = inputs
         self.outputs = outputs
         self.version = version
@@ -391,8 +397,8 @@ class Transaction:
         sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
         sig_der = sk.sign_digest(sig, sigencode=ecdsa.util.sigencode_der) + b'\01'  # 01 is hashtype
         k = Key(priv_key)
-        pub_key = binascii.unhexlify(k.public_uncompressed())
-        # pub_key = binascii.unhexlify(k.public())
+        # pub_key = binascii.unhexlify(k.public_uncompressed())
+        pub_key = binascii.unhexlify(k.public())
         self.inputs[id].script_sig = varstr(sig_der) + varstr(pub_key)
         self.inputs[id].signature = binascii.hexlify(sig)
         # self.inputs[id].public_key = pub_key
@@ -439,12 +445,19 @@ if __name__ == '__main__':
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
         output = Output.add(880000, public_key_hash=ko.hash160(), network='testnet')
-        t = Transaction([input], [output])
+        t = Transaction([input], [output], network='testnet')
         pprint(t.get())
         t.sign(ki.private_byte(), 0)
         pprint(t.get())
         print(binascii.hexlify(t.raw()))
-        print("Verified %s " % t.verify())
+        print("Verified %s\n\n\n" % t.verify())
+
+        rt2 = t.raw()
+        # rt2 = '0100000001552980326afb3552e838ed75cd1db23bcbfa868a34609578ca1ccaa4d3fbc7d3010000008a4730440220008a673095001fb8c128b3f19026fac500aa62b46487fb7ac602b391532414c3022071eb501b1550d3464f4fa474dc622560428dc8315945e7624af9f823d16946cf014104ee58ff546d92040652920e512dbab45911de4a03da232c3a228964d2ef9ef7ca6670005218e406985bda769b2f8a4f38dd7f45524776ef4fd8344a120d8a0518ffffffff01806d0d00000000001976a9143c1e136fbc9cfabe35d6d5d41474295721d44f9c88ac00000000'
+        t2 = Transaction.import_raw(rt2, network='testnet')
+        pprint(t2.get())
+        print(binascii.hexlify(t2.raw()))
+        # print("t = t2? %s" % (t.raw() == t2.raw()))
 
 
     if False:
