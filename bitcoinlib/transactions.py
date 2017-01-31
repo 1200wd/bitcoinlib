@@ -285,8 +285,10 @@ class Output:
         if not public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
         if script and not self.public_key_hash:
-            self.public_key_hash = binascii.hexlify(output_script_parse(script)[1][0])
-            self.address = pubkeyhash_to_addr(output_script_parse(script)[1][0], versionbyte=b'\x6F')
+            ps = output_script_parse(script)
+            if ps[0] == 'p2pkh':
+                self.public_key_hash = binascii.hexlify(ps[1][0])
+                self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=b'\x6F')
         if script == b'':
             script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
         self.script = script
@@ -400,26 +402,17 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
-    rt = '0100000001a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e010000006a47304402201f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38022045e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f401210239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9dfeffffff023ef59804000000001976a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac90940d00000000001976a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
-    t = Transaction.import_raw(rt, network='testnet')
-    rta = binascii.hexlify(t.raw(0)).decode()
-    pprint("Signable Raw: %s " % rta)
+    prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
+
+    ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
+    input = Input.add(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
+
+    output = Output.add(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
+
+    t = Transaction([input], [output])
+    t.sign(ki.private_byte())
     pprint(t.get())
-    print("Verified %s" % t.verify())
-
-    if False:
-        prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
-
-        ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        input = Input.add(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
-
-        output = Output.add(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
-
-        t = Transaction([input], [output])
-        t.sign(ki.private_byte())
-        pprint(t.get())
-        print(binascii.hexlify(t.raw(0)))
-
+    print(binascii.hexlify(t.raw()))
 
     # rt = '0100000001a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e010000006a47304402201f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38022045e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f401210239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9dfeffffff023ef59804000000001976a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac90940d00000000001976a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
     # rt = '01000000' \
@@ -471,7 +464,6 @@ if __name__ == '__main__':
 
         # ki = HDKey('tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA7irEvBoe4aAn52', network='testnet')
         ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')
-        print(ki.address())
         input = Input.add('d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', 1,
                           b'',
                           ki.public(), network='testnet')
@@ -479,9 +471,10 @@ if __name__ == '__main__':
         ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
         output = Output.add(880000, public_key_hash=ko.hash160(), network='testnet')
         t = Transaction([input], [output])
-        t.sign(ki.private_byte(), 0)
         pprint(t.get())
-        print(binascii.hexlify(t.raw()))
+        # t.sign(ki.private_byte(), 0)
+        # pprint(t.get())
+        # print(binascii.hexlify(t.raw()))
         # print("Verified %s " % t.verify())
 
 

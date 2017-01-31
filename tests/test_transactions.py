@@ -35,19 +35,22 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_deserialize_raw(self):
         for r in self.rawtxs:
-            t = Transaction.import_raw(r[1])
+            print("Deserialize %s" % r[0])
+            t = Transaction.import_raw(r[1], r[4])
             self.assertEqual(len(t.inputs), r[2], msg="Incorrect numbers of inputs for tx '%s'" % r[0])
             self.assertEqual(len(t.outputs), r[3], msg="Incorrect numbers of outputs for tx '%s'" % r[0])
 
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:
-            t = Transaction.import_raw(r[1])
+            print("Verify %s" % r[0])
+            t = Transaction.import_raw(r[1], r[4])
             if len(t.inputs) < 5:
                 self.assertTrue(t.verify(), msg="Can not verify transaction '%s'" % r[0])
 
     def test_transactions_serialize_raw(self):
         for r in self.rawtxs:
-            t = Transaction.import_raw(r[1])
+            print("Serialize %s" % r[0])
+            t = Transaction.import_raw(r[1], r[4])
             self.assertEqual(binascii.hexlify(t.raw()).decode(), r[1])
 
     # TODO - test signable transaction
