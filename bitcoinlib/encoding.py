@@ -260,7 +260,7 @@ def convert_der_sig(s):
     return '%064x%064x' % (x, y)
 
 
-def addr2pubkeyhash(address, as_hex=False):
+def addr_to_pubkeyhash(address, as_hex=False):
     address = change_base(address, 58, 256, 25)
     check = address[-4:]
     pkh = address[:-4]
@@ -272,7 +272,7 @@ def addr2pubkeyhash(address, as_hex=False):
         return pkh[1:]
 
 
-def pubkeyhash2addr(pkh, versionbyte=b'\x00'):
+def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     if isinstance(pkh, str):
         pkh = change_base(pkh, 16, 256, 20)
     key = versionbyte + pkh
@@ -319,6 +319,6 @@ if __name__ == '__main__':
     addrs = ['12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', '1111111111111111111114oLvT2',
              '1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr']
     for addr in addrs:
-        print("Public Key Hash of address '%s' is '%s'" % (addr, addr2pubkeyhash(addr, True)))
+        print("Public Key Hash of address '%s' is '%s'" % (addr, addr_to_pubkeyhash(addr, True)))
 
-    print(pubkeyhash2addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
+    print(pubkeyhash_to_addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))

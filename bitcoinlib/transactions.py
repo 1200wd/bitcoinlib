@@ -221,20 +221,23 @@ class Input:
         if prev_hash == b'\0' * 32:
             self.type = 'coinbase'
         if script_sig and self.type != 'coinbase':
-            self.signature, pk2 = parse_script_sig(script_sig)
+            try:
+                self.signature, pk2 = parse_script_sig(script_sig)
+            except:
+                pass
         if not public_key and pk2:
             self._public_key = pk2
             self.public_key = binascii.hexlify(self._public_key).decode('utf-8')
         self.k = None
         self.public_key_hash = ""
         self.address = ""
-        self.address_uncompressed = ""
+        # self.address_uncompressed = ""
         if self.public_key:
             self.k = Key(self.public_key, network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
-            self.address = self.k.address(compressed=True)
-            self.address_uncompressed = self.k.address_uncompressed()
+            self.address = self.k.address()
+            # self.address_uncompressed = self.k.address_uncompressed()
         self.sequence = sequence
 
     def json(self):
@@ -242,7 +245,7 @@ class Input:
             'prev_hash': binascii.hexlify(self.prev_hash).decode('utf-8'),
             'type': self.type,
             'address': self.address,
-            'address_uncompressed': self.address_uncompressed,
+            # 'address_uncompressed': self.address_uncompressed,
             'public_key': self.public_key,
             'public_key_hash': self.public_key_hash,
             'output_index': binascii.hexlify(self.output_index).decode('utf-8'),
@@ -257,28 +260,33 @@ class Input:
 class Output:
 
     @staticmethod
-    def add(amount, public_key_hash, network='bitcoin'):
+    def add(amount, public_key_hash=b'', address='', network='bitcoin'):
         if not isinstance(public_key_hash, bytes):
             public_key_hash = binascii.unhexlify(public_key_hash)
-        return Output(amount, public_key_hash=public_key_hash, network=network)
+        return Output(amount, public_key_hash=public_key_hash, address=address, network=network)
 
-    def __init__(self, amount, script=b'', public_key_hash=b'', public_key=b'', network='bitcoin'):
+    def __init__(self, amount, script=b'', public_key_hash=b'', address='', public_key=b'', network='bitcoin'):
         self.amount = amount
         self.public_key = public_key
-        self.address = ''
-        self.address_uncompressed = ''
+        self.public_key_hash = public_key_hash
+        self.address = address
+        # self.address_uncompressed = ''
         self.k = None
         if public_key:
             self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network=network)
-            self.public_key_uncompressed = self.k.public_uncompressed()
-            self.address = self.k.address(compressed=True)
-            self.address_uncompressed = self.k.address_uncompressed()
-        self.public_key_hash = public_key_hash
+            # self.public_key_uncompressed = self.k.public_uncompressed()
+            self.address = self.k.address()
+            # self.address_uncompressed = self.k.address_uncompressed()
+        if public_key_hash:
+            self.address = pubkeyhash_to_addr(public_key_hash)
+        if address and not public_key_hash:
+            self.public_key_hash = addr_to_pubkeyhash(address)
+
         if not public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
         if script and not self.public_key_hash:
             self.public_key_hash = binascii.hexlify(output_script_parse(script)[1][0])
-            self.address = pubkeyhash2addr(output_script_parse(script)[1][0], versionbyte=b'\x6F')
+            self.address = pubkeyhash_to_addr(output_script_parse(script)[1][0], versionbyte=b'\x6F')
         if script == b'':
             script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
         self.script = script
@@ -290,7 +298,7 @@ class Output:
             'public_key': binascii.hexlify(self.public_key).decode('utf-8'),
             'public_key_hash': self.public_key_hash,
             'address': self.address,
-            'address_uncompressed': self.address_uncompressed,
+            # 'address_uncompressed': self.address_uncompressed,
         }
 
     def __repr__(self):
@@ -341,9 +349,8 @@ class Transaction:
             if sign_id is None:
                 r += struct.pack('B', len(i.script_sig)) + i.script_sig
             elif sign_id == i.id:
-                locking_script = varstr(b'\x19\x76\xa9\x14' + binascii.unhexlify(i.public_key_hash) + b'\x88\xac')
-                pub_key = binascii.unhexlify(i.public_key)
-                r += varstr(locking_script + b'\1' + varstr(pub_key))
+                r += b'\x19\x76\xa9\x14' + binascii.unhexlify(i.public_key_hash) + \
+                     b'\x88\xac'
             else:
                 r += b'\0'
             r += i.sequence
@@ -362,11 +369,12 @@ class Transaction:
             t_to_sign = self.raw(i.id)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             pk = binascii.unhexlify(i.public_key_uncompressed[2:])
-            sig, pk2 = parse_script_sig(i.script_sig)
-            pk3 = binascii.unhexlify(Key(pk2).public_uncompressed())[1:]
+            # sig, pk2 = parse_script_sig(i.script_sig)
+            sig = binascii.unhexlify(i.signature)
+            # pk3 = binascii.unhexlify(Key(pk2).public_uncompressed())[1:]
             vk = ecdsa.VerifyingKey.from_string(pk, curve=ecdsa.SECP256k1)
             try:
-                vk.verify_digest(binascii.unhexlify(sig), hashtosign)
+                vk.verify_digest(sig, hashtosign)
             except ecdsa.keys.BadDigestError as e:
                 _logger.info("Bad Signature %s (error %s)" % (sig, e))
                 return False
@@ -376,13 +384,14 @@ class Transaction:
     def sign(self, priv_key, id=0):
         # myTxn_forSig = (
         # makeRawTransaction(outputTransactionHash, sourceIndex, scriptPubKey, outputs) + "01000000")  # hash code
-        s256 = hashlib.sha256(hashlib.sha256(self.raw(id) + b'\01\0\0\0').digest()).digest()
+        s256 = hashlib.sha256(hashlib.sha256(self.raw() + b'\01\0\0\0').digest()).digest()
         sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
         sig = sk.sign_digest(s256, sigencode=ecdsa.util.sigencode_der) + b'\01'  # 01 is hashtype
-        pub_key = self.inputs[id]._public_key
+        # pub_key = binascii.unhexlify('0450863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b23522cd470243453a299fa9e77237716103abc11a1df38855ed6f2ee187e9c582ba6')
+        k = Key(priv_key)
+        pub_key = binascii.unhexlify(k.public_uncompressed())
         # scriptsig = utils.varstr(sig).encode('hex') + utils.varstr(pubKey.decode('hex')).encode('hex')
         self.inputs[id].script_sig = varstr(sig) + varstr(pub_key)
-        # signed_txn = makeRawTransaction(outputTransactionHash, sourceIndex, scriptSig, outputs)
 
         print(binascii.hexlify(self.inputs[id].script_sig))
         print(binascii.hexlify(t.raw()))
@@ -396,26 +405,67 @@ if __name__ == '__main__':
     rta = binascii.hexlify(t.raw(0)).decode()
     pprint("Signable Raw: %s " % rta)
     pprint(t.get())
+    print("Verified %s" % t.verify())
+
+    if False:
+        prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
+
+        ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
+        input = Input.add(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
+
+        output = Output.add(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
+
+        t = Transaction([input], [output])
+        t.sign(ki.private_byte())
+        pprint(t.get())
+        print(binascii.hexlify(t.raw(0)))
+
+
+    # rt = '0100000001a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e010000006a47304402201f6e18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38022045e78c9e55df1cf3db74bfd52ff2add2b59ba63e068680f0023e6a80ac9f51f401210239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9dfeffffff023ef59804000000001976a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac90940d00000000001976a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
+    # rt = '01000000' \
+    #      '01' \
+    #      'eccf7e3034189b851985d871f91384b8ee357cd47c3024736e5676eb2debb3f2' \
+    #      '01000000' \
+    #      '19' \
+    #      '76a914010966776006953d5567439e5e39f86a0d273bee88ac' \
+    #      'ffffffff' \
+    #      '01' \
+    #      '605af40500000000' \
+    #      '19' \
+    #      '76a914097072524438d003d23a2f23edb65aae1bb3e46988ac' \
+    #      '00000000' \
+    #      '01000000'
+    # t = Transaction.import_raw(rt)
+    # print(rt)
+    # print(binascii.hexlify(t.raw()).decode())
+    # print(binascii.hexlify(t.raw(1)).decode())
+    # k = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725)
+    #
+    # t.sign(k.private_byte())
+    #
     # t.verify()
+    # rta = binascii.hexlify(t.raw(0)).decode()
+    # pprint("Signable Raw: %s " % rta)
+    #
     # ti = Transaction.import_raw(rta)
     # ti.get()
 
     if False:
         # Create a new transaction
-        from bitcoinlib.keys import HDKey
-        ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
-        txid = "484d40d45b9ea0d652fca8258ab7caa42541eb52975857f96fb50cd732c8b481"
-        input = Input.add(binascii.unhexlify(txid), 0, b'', ki.public_hex())
-        pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
-        output = Output.add(91234, binascii.unhexlify(pkh))
-        t = Transaction([input], [output])
-
-        pprint(t.get())
-        t.sign(ki.private_byte(), 0)
-        pprint(t.get())
-
-        print(binascii.hexlify(t.raw()))
-        print("Verified %s " % t.verify())
+        # from bitcoinlib.keys import HDKey
+        # ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
+        # txid = "484d40d45b9ea0d652fca8258ab7caa42541eb52975857f96fb50cd732c8b481"
+        # input = Input.add(binascii.unhexlify(txid), 0, b'', ki.public_hex())
+        # pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
+        # output = Output.add(91234, binascii.unhexlify(pkh))
+        # t = Transaction([input], [output])
+        #
+        # pprint(t.get())
+        # t.sign(ki.private_byte(), 0)
+        # pprint(t.get())
+        #
+        # print(binascii.hexlify(t.raw()))
+        # print("Verified %s " % t.verify())
 
         # import sys; sys.exit()
 
@@ -431,10 +481,11 @@ if __name__ == '__main__':
         t = Transaction([input], [output])
         t.sign(ki.private_byte(), 0)
         pprint(t.get())
+        print(binascii.hexlify(t.raw()))
         # print("Verified %s " % t.verify())
 
 
-
+    if False:
         # Example of a basic raw transaction with 1 input and 2 outputs
         # (destination and change address).
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format

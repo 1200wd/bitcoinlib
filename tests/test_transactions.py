@@ -52,6 +52,7 @@ class TestTransactions(unittest.TestCase):
 
     # TODO - test signable transaction
 
+
 class TestTransactionsOutputScriptType(unittest.TestCase):
 
     def test_transaction_output_script_type_p2pkh(self):

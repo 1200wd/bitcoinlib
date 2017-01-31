@@ -104,19 +104,19 @@ class TestEncodingMethods(unittest.TestCase):
 
     def test_address_to_pkh_conversion_1(self):
         self.assertEqual('13d215d212cd5188ae02c5635faabdc4d7d4ec91',
-                         addr2pubkeyhash('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', True))
+                         addr_to_pubkeyhash('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', True))
 
     def test_address_to_pkh_conversion_2(self):
         self.assertEqual('00' * 20,
-                         addr2pubkeyhash('1111111111111111111114oLvT2', True))
+                         addr_to_pubkeyhash('1111111111111111111114oLvT2', True))
 
     def test_address_to_pkh_conversion_3(self):
         self.assertEqual(b'\xFF' * 20,
-                         addr2pubkeyhash('1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr', False))
+                         addr_to_pubkeyhash('1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr', False))
 
     def test_pkh_to_addr_conversion(self):
         self.assertEqual('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH',
-                         pubkeyhash2addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
+                         pubkeyhash_to_addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
 
 if __name__ == '__main__':
     unittest.main()
