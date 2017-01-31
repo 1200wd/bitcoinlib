@@ -276,6 +276,9 @@ class Output:
         self.public_key_hash = public_key_hash
         if not public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
+        if script and not self.public_key_hash:
+            self.public_key_hash = binascii.hexlify(output_script_parse(script)[1][0])
+            self.address = pubkeyhash2addr(output_script_parse(script)[1][0], versionbyte=b'\x6F')
         if script == b'':
             script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
         self.script = script
