@@ -111,9 +111,8 @@ def _parse_signatures(script):
     total_lenght = 0
     while len(script):
         l = script[0]
-        # if l not in [33, 65]:
-        #     _logger.warning("Unknown signature size %d" % l)
-        #     break
+        if l not in [33, 65]:
+            break
         data.append(script[1:l+1])
         total_lenght += l + 1
         script = script[l+1:]
