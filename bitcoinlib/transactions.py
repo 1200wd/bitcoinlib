@@ -97,6 +97,7 @@ def deserialize_transaction(rawtx, network=NETWORK_BITCOIN):
 
 def parse_script_sig(s):
     if not s:
+        _logger.warning("Parsing empty script sig in 'parse_script_sig(s)")
         return "", ""
     l = s[0]
     sig = convert_der_sig(s[1:l])
@@ -110,8 +111,9 @@ def _parse_signatures(script):
     total_lenght = 0
     while len(script):
         l = script[0]
-        if l not in [33, 65]:
-            break
+        # if l not in [33, 65]:
+        #     _logger.warning("Unknown signature size %d" % l)
+        #     break
         data.append(script[1:l+1])
         total_lenght += l + 1
         script = script[l+1:]
@@ -173,6 +175,7 @@ def output_script_parse(script):
 
         if found:
             return [tp, data, number_of_sigs_m, number_of_sigs_n]
+    _logger.warning("Could not parse script, unrecognized script")
     return ["unknown"]
 
 
@@ -232,6 +235,7 @@ class Input:
             try:
                 self.signature, pk2 = parse_script_sig(script_sig)
             except:
+                _logger.warning("Could not parse input script signature")
                 pass
 
         if not public_key and pk2:
@@ -389,7 +393,6 @@ class Transaction:
             except ecdsa.keys.BadDigestError as e:
                 _logger.info("Bad Signature %s (error %s)" % (sig, e))
                 return False
-            _logger.info("Signature Verified %s" % sig)
         return True
 
     def sign(self, priv_key, id=0):
