@@ -521,6 +521,14 @@ if __name__ == '__main__':
         print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
         print("Verified %s\n\n\n" % t.verify())
 
+        from bitcoinlib.services.bitcoind import BitcoindClient
+        bdc = BitcoindClient.from_config()
+        try:
+            res = bdc.proxy.sendrawtransaction(binascii.hexlify(t.raw()).decode('utf-8'))
+            print("Send raw transaction, result %s" % res)
+        except Exception as e:
+            print("Error sending Transaction.", e)
+
     #
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
