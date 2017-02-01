@@ -20,7 +20,8 @@
 import bitcoinlib.encoding
 import bitcoinlib.mnemonic
 import bitcoinlib.keys
+import bitcoinlib.transactions
 import bitcoinlib.wallets
 import bitcoinlib.config
 
-__all__ = ["keys", "wallets", "encoding", "mnemonic", "config"]
+__all__ = ["keys", "transactions", "wallets", "encoding", "mnemonic", "config"]

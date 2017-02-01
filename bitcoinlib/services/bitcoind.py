@@ -18,7 +18,19 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
+
+_logger = logging.getLogger(__name__)
+
+
+class ConfigError(Exception):
+    def __init__(self, msg=''):
+        self.msg = msg
+        _logger.error(msg)
+
+    def __str__(self):
+        return self.msg
 
 try:
     import configparser
@@ -31,7 +43,10 @@ class BitcoindClient:
     @classmethod
     def from_config(cls, configfile='bitcoind.ini'):
         config = configparser.ConfigParser()
-        config.read(configfile)
+        cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
+        if not os.path.isfile(cfn):
+            raise ConfigError("Config file %s not found" % cfn)
+        config.read(cfn)
         cls.version_byte = config['rpc']['version_byte']
         return BitcoindClient(config['rpc']['rpcuser'],
                               config['rpc']['rpcpassword'],
@@ -43,8 +58,12 @@ class BitcoindClient:
         self.type = 'bitcoind'
         protocol = 'https' if use_https else 'http'
         uri = '%s://%s:%s@%s:%s' % (protocol, user, password, server, port)
-        print(uri)
+        _logger.debug("Connect to bitcoind on %s" % uri)
         self.proxy = AuthServiceProxy(uri)
+
+    def getrawtransaction(self, txid):
+        res = self.proxy.getrawtransaction(txid)
+        return res
 
 
 if __name__ == '__main__':
@@ -53,16 +72,23 @@ if __name__ == '__main__':
     #
 
     from pprint import pprint
-    bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
+    bdc = BitcoindClient.from_config()
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getinfo())
 
     print("\n=== Best Block ===")
     blockhash = bdc.proxy.getbestblockhash()
-    pprint(bdc.proxy.getblock(blockhash))
+    bestblock = bdc.proxy.getblock(blockhash)
+    bestblock['tx'] = '...' + str(len(bestblock['tx'])) + ' transactions...'
+    pprint(bestblock)
 
     print("\n=== Mempool ===")
     rmp = bdc.proxy.getrawmempool()
-    pprint(rmp)
+    pprint(rmp[:25])
+    print('... truncated ...')
     print("Mempool Size %d" % len(rmp))
+
+    print("\n=== Raw Transaction by txid ===")
+    t = bdc.getrawtransaction('7eb5332699644b753cd3f5afba9562e67612ea71ef119af1ac46559adb69ea0d')
+    pprint(t)

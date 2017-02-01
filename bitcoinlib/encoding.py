@@ -21,6 +21,8 @@
 import sys
 import math
 import numbers
+import ecdsa
+import struct
 import hashlib
 from bitcoinlib.main import *
 
@@ -88,7 +90,7 @@ def normalize_var(var, base):
         except UnicodeEncodeError:
             raise EncodingError("Cannot convert this unicode to string format")
 
-    if base==10:
+    if base == 10:
         return int(var)
     else:
         return var
@@ -207,7 +209,58 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
         return output
 
 
-def addr2pubkeyhash(address, as_hex=False):
+def varbyteint_to_int(byteint):
+    """
+    Convert CompactSize Variable length integer in byte format to integer.
+
+    See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
+
+    :param byteint: 1-9 byte representation as integer
+    :return: normal integer
+    """
+    if not isinstance(byteint, (bytes, list)):
+        raise EncodingError("Byteint be a list or defined as bytes")
+    ni = byteint[0]
+    if ni < 253:
+        return ni, 1
+    if ni == 253:  # integer of 2 bytes
+        size = 2
+    elif ni == 254:  # integer of 4 bytes
+        size = 4
+    else:  # integer of 8 bytes
+        size = 8
+    return change_base(byteint[1:1+size][::-1], 256, 10), size + 1
+
+
+def int_to_varbyteint(inp):
+    if not isinstance(inp, int):
+        raise EncodingError("Input must be of type integer")
+    if inp < 0xfd:
+        return struct.pack('B', inp)
+    elif inp < 0xffff:
+        return struct.pack('<cH', b'\xfd', inp)
+    elif inp < 0xffffffff:
+        return struct.pack('<cL', b'\xfe', inp)
+    else:
+        return struct.pack('<cQ', b'\xff', inp)
+
+
+def varstr(s):
+    return int_to_varbyteint(len(s)) + s
+
+
+def convert_der_sig(s):
+    if not s:
+        return ""
+    sg, junk = ecdsa.der.remove_sequence(s)
+    if junk != b'':
+        raise EncodingError("Junk found in encoding sequence %s" % junk)
+    x, sg = ecdsa.der.remove_integer(sg)
+    y, sg = ecdsa.der.remove_integer(sg)
+    return '%064x%064x' % (x, y)
+
+
+def addr_to_pubkeyhash(address, as_hex=False):
     address = change_base(address, 58, 256, 25)
     check = address[-4:]
     pkh = address[:-4]
@@ -219,7 +272,7 @@ def addr2pubkeyhash(address, as_hex=False):
         return pkh[1:]
 
 
-def pubkeyhash2addr(pkh, versionbyte=b'\x00'):
+def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     if isinstance(pkh, str):
         pkh = change_base(pkh, 16, 256, 20)
     key = versionbyte + pkh
@@ -266,6 +319,6 @@ if __name__ == '__main__':
     addrs = ['12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', '1111111111111111111114oLvT2',
              '1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr']
     for addr in addrs:
-        print("Public Key Hash of address '%s' is '%s'" % (addr, addr2pubkeyhash(addr, True)))
+        print("Public Key Hash of address '%s' is '%s'" % (addr, addr_to_pubkeyhash(addr, True)))
 
-    print(pubkeyhash2addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
+    print(pubkeyhash_to_addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
