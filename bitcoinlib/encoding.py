@@ -236,8 +236,8 @@ def varbyteint_to_int(byteint):
 
 
 def int_to_varbyteint(inp):
-    if not isinstance(inp, int):
-        raise EncodingError("Input must be of type integer")
+    if not isinstance(inp, numbers.Number):
+        raise EncodingError("Input must be a number type")
     if inp < 0xfd:
         return struct.pack('B', inp)
     elif inp < 0xffff:
@@ -249,6 +249,7 @@ def int_to_varbyteint(inp):
 
 
 def varstr(s):
+    s = normalize_var(s, 256)
     return int_to_varbyteint(len(s)) + s
 
 

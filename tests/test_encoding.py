@@ -23,7 +23,7 @@ import unittest
 from bitcoinlib.encoding import *
 
 
-class TestEncodingMethods(unittest.TestCase):
+class TestEncodingMethodsChangeBase(unittest.TestCase):
 
     def test_change_base_hex_bit(self):
         self.assertEqual('11110001', change_base('F1', 16, 2))
@@ -102,6 +102,9 @@ class TestEncodingMethods(unittest.TestCase):
     def test_change_base_list(self):
         self.assertEqual('00124c', change_base([b'\0', b'\x12', b'L'], 256, 16, 6))
 
+
+class TestEncodingMethodsAddressConversion(unittest.TestCase):
+
     def test_address_to_pkh_conversion_1(self):
         self.assertEqual('13d215d212cd5188ae02c5635faabdc4d7d4ec91',
                          addr_to_pubkeyhash('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', True))
@@ -114,9 +117,46 @@ class TestEncodingMethods(unittest.TestCase):
         self.assertEqual(b'\xFF' * 20,
                          addr_to_pubkeyhash('1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr', False))
 
-    def test_pkh_to_addr_conversion(self):
+    def test_pkh_to_addr_conversion_1(self):
         self.assertEqual('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH',
                          pubkeyhash_to_addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
+
+    def test_pkh_to_addr_conversion_2(self):
+        self.assertEqual('11111111111111111111111111114oLvT2',
+                         pubkeyhash_to_addr('00' * 20))
+
+
+class TestEncodingMethodsStructures(unittest.TestCase):
+
+    def test_varbyteint_to_int_1(self):
+        self.assertEqual(100, varbyteint_to_int(b'd')[0])
+
+    def test_varbyteint_to_int_2(self):
+        self.assertEqual(254, varbyteint_to_int(b'\xfe\xfe\x00')[0])
+
+    def test_varbyteint_to_int_3(self):
+        self.assertEqual(18440744073009551600, varbyteint_to_int(b'\xff\xf0\xd8\x9f\xf9\x07\xaf\xea\xff')[0])
+
+    def test_int_to_varbyteint_1(self):
+        self.assertEqual(b'd', int_to_varbyteint(100))
+
+    def test_int_to_varbyteint_2(self):
+        self.assertEqual(b'\xfd\xfd\x00', int_to_varbyteint(253))
+
+    def test_int_to_varbyteint_3(self):
+        self.assertEqual(b'\xff\xff\xff\xff\xff\xff\xff\xff\xff', int_to_varbyteint(18446744073709551615))
+
+    def test_varstr(self):
+        self.assertEqual(b'\x1eThis string has a lenght of 30',
+                         varstr('This string has a lenght of 30'))
+
+    def test_convert_der_sig(self):
+        sig = b'0E\x02!\x00\xe7\x1a\x8d\xd8>y\xfb\xd6/r\xa3\xd0\xd8\xa8\x1f\xdd\xbaS[\xd0\xf0\x88\xfa\x8b\xe1L' \
+              b'\xd3F\x7f\xe5\x17\xae\x02 _l\xa4\x89LS\xcd\x8em&\xf7\x99uN\xb6\xfc\x0e\x86\xf6\x12\xd6\xdejL|' \
+              b'\x07\xdcX \xa0\xe5\x18'
+
+        self.assertEqual('e71a8dd83e79fbd62f72a3d0d8a81fddba535bd0f088fa8be14cd3467fe517ae5f6ca4894c53cd8e6d26f'
+                         '799754eb6fc0e86f612d6de6a4c7c07dc5820a0e518', convert_der_sig(sig))
 
 
 if __name__ == '__main__':
