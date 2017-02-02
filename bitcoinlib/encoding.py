@@ -66,7 +66,7 @@ def to_bytearray(inp, code_str_from):
         return inp.lower()
 
 
-def normalize_var(var, base):
+def normalize_var(var, base=256):
     """
     For Python 2 convert variabele to string
     For Python 3 convert to bytes
@@ -249,7 +249,7 @@ def int_to_varbyteint(inp):
 
 
 def varstr(s):
-    s = normalize_var(s, 256)
+    s = normalize_var(s)
     return int_to_varbyteint(len(s)) + s
 
 

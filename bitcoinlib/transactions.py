@@ -107,22 +107,23 @@ def parse_script_sig(s):
     return sig, public_key
 
 
-def _parse_signatures(script):
+def _parse_signatures(script, max_signatures=None):
     data = []
     total_lenght = 0
-    while len(script):
-        l = script[0]
-        if l not in [33, 65]:
+    count = 0
+    while len(script) and (max_signatures is None or max_signatures > count):
+        l, _ = varbyteint_to_int(script[0:9])
+        if l not in [20, 33, 65]:
             break
         data.append(script[1:l+1])
         total_lenght += l + 1
         script = script[l+1:]
+        count += 1
     return data, total_lenght
 
 
 def output_script_parse(script):
-    if isinstance(script, str):
-        script = binascii.unhexlify(script)
+    script = normalize_var(script)
     if not isinstance(script, bytes):
         raise TransactionError("Script must be in string or bytes format")
 
@@ -141,9 +142,12 @@ def output_script_parse(script):
                 found = False
                 break
             if ch == 'signature':
-                l = script[cur]
-                data.append(script[cur+1:cur+1+l])
-                cur += 1+l
+                s, total_length = _parse_signatures(script[cur:], 1)
+                data += s
+                cur += total_length
+                # l = script[cur]
+                # data.append(script[cur+1:cur+1+l])
+                # cur += 1+l
             elif ch == 'return_data':
                 data.append(script[cur+1:])
             elif ch == 'multisig':  # one or more signature
@@ -509,7 +513,7 @@ if __name__ == '__main__':
 
     # Create bitcoin transaction with UTXO, amount, address and private key
     # See txid d99070c63e04a6bdb38b553733838d6196198908c8b8930bec0ba502bc483b72
-    if True:
+    if False:
         private_key = 'KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4'
         utxo = 'fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3'
         amount = 95000
@@ -548,7 +552,7 @@ if __name__ == '__main__':
         pprint(t.get())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 5
+    MAX_TRANSACTIONS_VIEW = 0
     error_count = 0
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
