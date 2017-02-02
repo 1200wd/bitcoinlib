@@ -118,5 +118,6 @@ class TestEncodingMethods(unittest.TestCase):
         self.assertEqual('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH',
                          pubkeyhash_to_addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
 
+
 if __name__ == '__main__':
     unittest.main()

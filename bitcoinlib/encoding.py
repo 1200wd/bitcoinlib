@@ -220,7 +220,10 @@ def varbyteint_to_int(byteint):
     """
     if not isinstance(byteint, (bytes, list)):
         raise EncodingError("Byteint be a list or defined as bytes")
-    ni = byteint[0]
+    if sys.version > '3':
+        ni = byteint[0]
+    else:
+        ni = ord(byteint[0])
     if ni < 253:
         return ni, 1
     if ni == 253:  # integer of 2 bytes

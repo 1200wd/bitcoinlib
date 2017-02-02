@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib Transactions
-#    © 2017 January - 1200 Web Development <http://1200wd.com/>
+#    © 2017 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -99,10 +99,11 @@ def parse_script_sig(s):
     if not s:
         _logger.warning("Parsing empty script sig in 'parse_script_sig(s)")
         return "", ""
-    l = s[0]
-    sig = convert_der_sig(s[1:l])
-    l2 = s[l+1]
-    public_key = s[l+2:l+l2+2]
+    sig_size, size = varbyteint_to_int(s[0:9])
+    sig = convert_der_sig(s[1:sig_size])
+    cur = size+sig_size
+    pk_size, size = varbyteint_to_int(s[cur:cur+9])
+    public_key = s[cur+size:cur+size+pk_size]
     return sig, public_key
 
 
@@ -523,13 +524,13 @@ if __name__ == '__main__':
         print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
         print("Verified %s\n\n\n" % t.verify())
 
-        from bitcoinlib.services.bitcoind import BitcoindClient
-        bdc = BitcoindClient.from_config()
-        try:
-            res = bdc.proxy.sendrawtransaction(binascii.hexlify(t.raw()).decode('utf-8'))
-            print("Send raw transaction, result %s" % res)
-        except Exception as e:
-            print("Error sending Transaction.", e)
+        # from bitcoinlib.services.bitcoind import BitcoindClient
+        # bdc = BitcoindClient.from_config()
+        # try:
+        #     res = bdc.proxy.sendrawtransaction(binascii.hexlify(t.raw()).decode('utf-8'))
+        #     print("Send raw transaction, result %s" % res)
+        # except Exception as e:
+        #     print("Error sending Transaction.", e)
 
     #
     # === TRANSACTIONS AND BITCOIND EXAMPLES
@@ -547,7 +548,7 @@ if __name__ == '__main__':
         pprint(t.get())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 0
+    MAX_TRANSACTIONS_VIEW = 5
     error_count = 0
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
@@ -569,7 +570,7 @@ if __name__ == '__main__':
             try:
                 t = Transaction.import_raw(rt)
             except BKeyError as e:
-                print("Error when import raw transaction", e)
+                print("Error when importing raw transaction", e)
                 error_count += 1
                 continue
 
@@ -596,7 +597,7 @@ if __name__ == '__main__':
                 t = Transaction.import_raw(rt)
                 pprint(t.get())
             except Exception as e:
-                print("Error when import raw transaction %d, error %s", (txid, e))
+                print("Error when importing raw transaction %d, error %s", (txid, e))
                 error_count += 1
             if ci > MAX_TRANSACTIONS_VIEW:
                 break

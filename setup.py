@@ -30,7 +30,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
       name='bitcoinlib',
-      version='0.3.0.12',
+      version='0.3.0.13',
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[
