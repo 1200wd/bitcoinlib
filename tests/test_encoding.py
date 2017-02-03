@@ -102,6 +102,10 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
     def test_change_base_list(self):
         self.assertEqual('00124c', change_base([b'\0', b'\x12', b'L'], 256, 16, 6))
 
+    def test_change_base_bytes_as_string(self):
+        s = '\xc8\xe9\t\x96\xc7\xc6\x08\x0e\xe0b\x84`\x0chN\xd9\x04\xd1L\\'
+        self.assertEqual('c8e90996c7c6080ee06284600c684ed904d14c5c', change_base(s, 256, 16))
+
 
 class TestEncodingMethodsAddressConversion(unittest.TestCase):
 

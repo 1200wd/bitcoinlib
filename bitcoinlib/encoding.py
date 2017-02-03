@@ -2,7 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Common includes and helper methods
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -75,7 +75,7 @@ def to_bytearray(s):
     :param s: String, Unicode, Bytes or ByteArray
     :return: ByteArray
     """
-    if isinstance(s, str):
+    if isinstance(s, (str, unicode if sys.version < '3' else str)):
         try:
             s = binascii.unhexlify(s)
         except:
@@ -174,7 +174,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
                 else:
                     firstchar = chr(code_str_from[0]).encode('utf-8')
                 if (len(inp) and isinstance(inp, list) and inp[0] == code_str_from[0]) \
-                        or (isinstance(inp, (str, bytes)) and not len(inp.strip(firstchar))) \
+                        or (isinstance(inp, (str, bytes, bytearray)) and not len(inp.strip(firstchar))) \
                         or isinstance(inp, list):
                     addzeros += 1
             factor *= base_from
@@ -235,12 +235,12 @@ def varbyteint_to_int(byteint):
     :param byteint: 1-9 byte representation as integer
     :return: normal integer
     """
+    # byteint = to_bytearray(byteint)
     if not isinstance(byteint, (bytes, list, bytearray)):
         raise EncodingError("Byteint be a list or defined as bytes")
     if sys.version > '3' or isinstance(byteint, (list, bytearray)):
         ni = byteint[0]
     else:
-        print(type(byteint))
         ni = ord(byteint[0])
     if ni < 253:
         return ni, 1
@@ -295,8 +295,7 @@ def addr_to_pubkeyhash(address, as_hex=False):
 
 
 def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
-    if isinstance(pkh, str):
-        pkh = change_base(pkh, 16, 256, 20)
+    pkh = to_bytearray(pkh)
     key = versionbyte + pkh
     addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
     return change_base(addr256, 256, 58)
@@ -344,3 +343,4 @@ if __name__ == '__main__':
         print("Public Key Hash of address '%s' is '%s'" % (addr, addr_to_pubkeyhash(addr, True)))
 
     print(pubkeyhash_to_addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
+    print(pubkeyhash_to_addr('00' * 20))

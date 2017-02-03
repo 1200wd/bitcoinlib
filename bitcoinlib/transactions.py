@@ -414,7 +414,7 @@ if __name__ == '__main__':
 
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if True:
+    if False:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
@@ -456,7 +456,7 @@ if __name__ == '__main__':
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
 
-    if True:
+    if False:
         print("\n=== Determine Output Script Type ===")
         os = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
         print("Output Script: %s" % os)
@@ -555,7 +555,7 @@ if __name__ == '__main__':
         pprint(t.get())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 0
+    MAX_TRANSACTIONS_VIEW = 1
     error_count = 0
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
