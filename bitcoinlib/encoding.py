@@ -218,11 +218,12 @@ def varbyteint_to_int(byteint):
     :param byteint: 1-9 byte representation as integer
     :return: normal integer
     """
-    if not isinstance(byteint, (bytes, list)):
+    if not isinstance(byteint, (bytes, list, bytearray)):
         raise EncodingError("Byteint be a list or defined as bytes")
-    if sys.version > '3':
+    if sys.version > '3' or isinstance(byteint, (list, bytearray)):
         ni = byteint[0]
     else:
+        print(type(byteint))
         ni = ord(byteint[0])
     if ni < 253:
         return ni, 1

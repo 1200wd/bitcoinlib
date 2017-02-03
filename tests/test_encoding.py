@@ -154,7 +154,6 @@ class TestEncodingMethodsStructures(unittest.TestCase):
         sig = b'0E\x02!\x00\xe7\x1a\x8d\xd8>y\xfb\xd6/r\xa3\xd0\xd8\xa8\x1f\xdd\xbaS[\xd0\xf0\x88\xfa\x8b\xe1L' \
               b'\xd3F\x7f\xe5\x17\xae\x02 _l\xa4\x89LS\xcd\x8em&\xf7\x99uN\xb6\xfc\x0e\x86\xf6\x12\xd6\xdejL|' \
               b'\x07\xdcX \xa0\xe5\x18'
-
         self.assertEqual('e71a8dd83e79fbd62f72a3d0d8a81fddba535bd0f088fa8be14cd3467fe517ae5f6ca4894c53cd8e6d26f'
                          '799754eb6fc0e86f612d6de6a4c7c07dc5820a0e518', convert_der_sig(sig))
 

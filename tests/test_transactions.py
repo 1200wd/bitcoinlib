@@ -124,7 +124,7 @@ class TestTransactionsOutputScriptType(unittest.TestCase):
 
     def test_transaction_output_script_type_empty_unknown(self):
         res = output_script_type(b'')
-        self.assertEqual('unknown', res)
+        self.assertEqual('empty', res)
 
     def test_transaction_output_script_type_string(self):
         s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'

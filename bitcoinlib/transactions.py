@@ -123,12 +123,13 @@ def _parse_signatures(script, max_signatures=None):
 
 
 def output_script_parse(script):
-    script = normalize_var(script)
-    if not isinstance(script, bytes):
-        raise TransactionError("Script must be in string or bytes format")
+    if sys.version < '3':
+        script = bytearray(script)
+    # if not isinstance(script, bytes):
+    #     raise TransactionError("Script must be in string or bytes format")
 
     if not script:
-        return ["unknown"]
+        return ["empty", '', '', '']
 
     for tp in OUTPUT_SCRIPT_TYPES:
         cur = 0
@@ -145,9 +146,6 @@ def output_script_parse(script):
                 s, total_length = _parse_signatures(script[cur:], 1)
                 data += s
                 cur += total_length
-                # l = script[cur]
-                # data.append(script[cur+1:cur+1+l])
-                # cur += 1+l
             elif ch == 'return_data':
                 data.append(script[cur+1:])
             elif ch == 'multisig':  # one or more signature
@@ -180,7 +178,7 @@ def output_script_parse(script):
         if found:
             return [tp, data, number_of_sigs_m, number_of_sigs_n]
     _logger.warning("Could not parse script, unrecognized script")
-    return ["unknown"]
+    return ["unknown", '', '', '']
 
 
 def output_script_type(script):
@@ -188,8 +186,9 @@ def output_script_type(script):
 
 
 def script_to_string(script):
-    if isinstance(script, str):
-        script = binascii.unhexlify(script)
+    script = normalize_var(script)
+    # if isinstance(script, str):
+    #     script = binascii.unhexlify(script)
     if not isinstance(script, bytes):
         raise TransactionError("Script must be in string or bytes format")
 
@@ -414,9 +413,12 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
+    s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
+    print(output_script_type(s))
+
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if True:
+    if False:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
