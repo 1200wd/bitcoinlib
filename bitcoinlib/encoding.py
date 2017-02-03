@@ -24,6 +24,7 @@ import numbers
 import ecdsa
 import struct
 import hashlib
+import binascii
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -59,11 +60,27 @@ def get_code_string(base):
         return list(range(0, base))
 
 
-def to_bytearray(inp, code_str_from):
+def in_code_string_check(inp, code_str_from):
+    if sys.version < '3' and isinstance(inp, bytearray):
+        inp = str(inp)
     if inp in code_str_from:
         return inp
     else:
         return inp.lower()
+
+
+def to_bytearray(s):
+    """
+    Convert String, Unicode or Bytes to Python 2 and 3 compatible ByteArray
+    :param s: String, Unicode, Bytes or ByteArray
+    :return: ByteArray
+    """
+    if isinstance(s, str):
+        try:
+            s = binascii.unhexlify(s)
+        except:
+            pass
+    return bytearray(s)
 
 
 def normalize_var(var, base=256):
@@ -135,7 +152,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
 
     if isinstance(inp, numbers.Number):
         input_dec = inp
-    elif isinstance(inp, (str, list, bytes)):
+    elif isinstance(inp, (str, list, bytes, bytearray)):
         factor = 1
         while len(inp):
             if isinstance(inp, list):
@@ -143,7 +160,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
             else:
                 item = inp[-1:]
                 inp = inp[:-1]
-            itemindex = to_bytearray(item, code_str_from)
+            itemindex = in_code_string_check(item, code_str_from)
             try:
                 pos = code_str_from.index(itemindex)
             except ValueError:

@@ -51,10 +51,11 @@ def deserialize_transaction(rawtx, network=NETWORK_BITCOIN):
     """
     Deserialize a raw transaction
 
-    :param rawtx: Raw transaction in bytes
+    :param rawtx: Raw transaction as String, Byte or Bytearray
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc
     :return: json list with inputs, outputs, locktime and version
     """
+    rawtx = to_bytearray(rawtx)
     version = rawtx[0:4][::-1]
     n_inputs, size = varbyteint_to_int(rawtx[4:13])
     cursor = 4 + size
@@ -96,6 +97,7 @@ def deserialize_transaction(rawtx, network=NETWORK_BITCOIN):
 
 
 def parse_script_sig(s):
+    s = to_bytearray(s)
     if not s:
         _logger.warning("Parsing empty script sig in 'parse_script_sig(s)")
         return "", ""
@@ -108,6 +110,9 @@ def parse_script_sig(s):
 
 
 def _parse_signatures(script, max_signatures=None):
+    if not isinstance(script, bytearray):
+        raise TransactionError("Method '_parse_signatures' needs script in ByteArray format")
+    script = to_bytearray(script)
     data = []
     total_lenght = 0
     count = 0
@@ -123,8 +128,7 @@ def _parse_signatures(script, max_signatures=None):
 
 
 def output_script_parse(script):
-    if sys.version < '3':
-        script = bytearray(script)
+    script = to_bytearray(script)
     # if not isinstance(script, bytes):
     #     raise TransactionError("Script must be in string or bytes format")
 
@@ -186,11 +190,11 @@ def output_script_type(script):
 
 
 def script_to_string(script):
-    script = normalize_var(script)
+    script = to_bytearray(script)
     # if isinstance(script, str):
     #     script = binascii.unhexlify(script)
-    if not isinstance(script, bytes):
-        raise TransactionError("Script must be in string or bytes format")
+    # if not isinstance(script, bytes):
+    #     raise TransactionError("Script must be in string or bytes format")
 
     tp, data, number_of_sigs_m, number_of_sigs_n = output_script_parse(script)
     sigs = ' '.join([binascii.hexlify(i).decode('utf-8') for i in data])
@@ -325,13 +329,8 @@ class Transaction:
 
     @staticmethod
     def import_raw(rawtx, network=NETWORK_BITCOIN):
-        if isinstance(rawtx, str):
-            rawtx = binascii.unhexlify(rawtx)
-        elif not isinstance(rawtx, bytes):
-            raise TransactionError("Raw Transaction must be of type bytes or str")
-
+        rawtx = to_bytearray(rawtx)
         inputs, outputs, locktime, version = deserialize_transaction(rawtx, network=network)
-
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
     def __init__(self, inputs, outputs, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'', network=NETWORK_BITCOIN):
@@ -413,12 +412,9 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
-    s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
-    print(output_script_type(s))
-
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if False:
+    if True:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
@@ -460,6 +456,7 @@ if __name__ == '__main__':
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
 
+    if True:
         print("\n=== Determine Output Script Type ===")
         os = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
         print("Output Script: %s" % os)
@@ -468,6 +465,10 @@ if __name__ == '__main__':
              'fe3695e758c19f46ce604e174dac315e685a52ae'
         print("\nOutput Script: %s" % os)
         print("Output Script String: %s" % script_to_string(os))
+        s = binascii.unhexlify('514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6e'
+                               'b426d1b1ec45d76724f26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b9'
+                               '8c49f58fec6650b64ff70e6ffccc3e6d0052ae')
+        res = output_script_parse(s)
 
     # Example based on explanation on
     # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
