@@ -129,9 +129,6 @@ def _parse_signatures(script, max_signatures=None):
 
 def output_script_parse(script):
     script = to_bytearray(script)
-    # if not isinstance(script, bytes):
-    #     raise TransactionError("Script must be in string or bytes format")
-
     if not script:
         return ["empty", '', '', '']
 
@@ -191,11 +188,6 @@ def output_script_type(script):
 
 def script_to_string(script):
     script = to_bytearray(script)
-    # if isinstance(script, str):
-    #     script = binascii.unhexlify(script)
-    # if not isinstance(script, bytes):
-    #     raise TransactionError("Script must be in string or bytes format")
-
     tp, data, number_of_sigs_m, number_of_sigs_n = output_script_parse(script)
     sigs = ' '.join([binascii.hexlify(i).decode('utf-8') for i in data])
 
@@ -211,9 +203,8 @@ class Input:
 
     @staticmethod
     def add(prev_hash, output_index=0, script_sig=b'', public_key='', network=NETWORK_BITCOIN):
-        if not isinstance(prev_hash, bytes):
-            prev_hash = binascii.unhexlify(prev_hash)
-        if not isinstance(output_index, bytes):
+        prev_hash = to_bytearray(prev_hash)
+        if isinstance(output_index, numbers.Number):
             output_index = struct.pack('>I', output_index)
         return Input(prev_hash, output_index, script_sig=script_sig, public_key=public_key, network=network)
 
@@ -414,7 +405,7 @@ if __name__ == '__main__':
 
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if False:
+    if True:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
