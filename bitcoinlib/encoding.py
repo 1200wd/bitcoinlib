@@ -69,20 +69,6 @@ def in_code_string_check(inp, code_str_from):
         return inp.lower()
 
 
-def to_bytearray(s):
-    """
-    Convert String, Unicode or Bytes to Python 2 and 3 compatible ByteArray
-    :param s: String, Unicode, Bytes or ByteArray
-    :return: ByteArray
-    """
-    if isinstance(s, (str, unicode if sys.version < '3' else str)):
-        try:
-            s = binascii.unhexlify(s)
-        except:
-            pass
-    return bytearray(s)
-
-
 def normalize_var(var, base=256):
     """
     For Python 2 convert variabele to string
@@ -299,6 +285,29 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     key = versionbyte + pkh
     addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
     return change_base(addr256, 256, 58)
+
+
+def to_bytearray(s):
+    """
+    Convert String, Unicode or Bytes to Python 2 and 3 compatible ByteArray
+    :param s: String, Unicode, Bytes or ByteArray
+    :return: ByteArray
+    """
+    if isinstance(s, (str, unicode if sys.version < '3' else str)):
+        try:
+            s = binascii.unhexlify(s)
+        except:
+            pass
+    return bytearray(s)
+
+
+def to_string(b):
+    """
+    Convert Bytes or ByteArray to printable string
+    :param b:
+    :return:
+    """
+    return binascii.hexlify(b).decode('utf-8')
 
 
 if __name__ == '__main__':

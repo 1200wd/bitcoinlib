@@ -189,7 +189,7 @@ def output_script_type(script):
 def script_to_string(script):
     script = to_bytearray(script)
     tp, data, number_of_sigs_m, number_of_sigs_n = output_script_parse(script)
-    sigs = ' '.join([binascii.hexlify(i).decode('utf-8') for i in data])
+    sigs = ' '.join([to_string(i) for i in data])
 
     scriptstr = OUTPUT_SCRIPT_TYPES[tp]
     scriptstr = [sigs if x in ['signature', 'multisig', 'return_data'] else x for x in scriptstr]
@@ -238,7 +238,7 @@ class Input:
 
         if not public_key and pk2:
             self._public_key = pk2
-            self.public_key = binascii.hexlify(self._public_key).decode('utf-8')
+            self.public_key = to_string(self._public_key)
 
         if self.public_key:
             self.k = Key(self.public_key, network=network)
@@ -249,14 +249,14 @@ class Input:
 
     def json(self):
         return {
-            'prev_hash': binascii.hexlify(self.prev_hash).decode('utf-8'),
+            'prev_hash': to_string(self.prev_hash),
             'type': self.type,
             'address': self.address,
             'public_key': self.public_key,
             'public_key_hash': self.public_key_hash,
-            'output_index': binascii.hexlify(self.output_index).decode('utf-8'),
-            'script_sig': binascii.hexlify(self.script_sig).decode('utf-8'),
-            'sequence': binascii.hexlify(self.sequence).decode('utf-8'),
+            'output_index': to_string(self.output_index),
+            'script_sig': to_string(self.script_sig),
+            'sequence': to_string(self.sequence),
         }
 
     def __repr__(self):
@@ -306,8 +306,8 @@ class Output:
     def json(self):
         return {
             'amount': self.amount,
-            'script': binascii.hexlify(self.script).decode('utf-8'),
-            'public_key': binascii.hexlify(self.public_key).decode('utf-8'),
+            'script': to_string(self.script),
+            'public_key': to_string(self.public_key),
             'public_key_hash': self.public_key_hash,
             'address': self.address,
         }
@@ -440,7 +440,7 @@ if __name__ == '__main__':
 
         print("\n=== Import Raw Transaction ===")
         t = Transaction.import_raw(rt)
-        print("Raw: %s" % binascii.hexlify(t.raw()).decode('utf-8'))
+        print("Raw: %s" % to_string(t.raw()))
         pprint(t.get())
         output_script = t.outputs[0].script
         print("\nOutput Script Type: %s " % output_script_type(output_script))
