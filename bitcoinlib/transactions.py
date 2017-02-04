@@ -47,7 +47,7 @@ class TransactionError(Exception):
         return self.msg
 
 
-def deserialize_transaction(rawtx, network=NETWORK_BITCOIN):
+def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
     """
     Deserialize a raw transaction
 
@@ -127,7 +127,7 @@ def _parse_signatures(script, max_signatures=None):
     return data, total_lenght
 
 
-def output_script_parse(script):
+def script_deserialize(script):
     script = to_bytearray(script)
     if not script:
         return ["empty", '', '', '']
@@ -182,13 +182,13 @@ def output_script_parse(script):
     return ["unknown", '', '', '']
 
 
-def output_script_type(script):
-    return output_script_parse(script)[0]
+def script_type(script):
+    return script_deserialize(script)[0]
 
 
 def script_to_string(script):
     script = to_bytearray(script)
-    tp, data, number_of_sigs_m, number_of_sigs_n = output_script_parse(script)
+    tp, data, number_of_sigs_m, number_of_sigs_n = script_deserialize(script)
     sigs = ' '.join([to_string(i) for i in data])
 
     scriptstr = OUTPUT_SCRIPT_TYPES[tp]
@@ -295,7 +295,7 @@ class Output:
             self.public_key_hash = self.k.hash160()
 
         if script and not self.public_key_hash:
-            ps = output_script_parse(script)
+            ps = script_deserialize(script)
             if ps[0] == 'p2pkh':
                 self.public_key_hash = binascii.hexlify(ps[1][0])
                 self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=versionbyte)
@@ -321,7 +321,7 @@ class Transaction:
     @staticmethod
     def import_raw(rawtx, network=NETWORK_BITCOIN):
         rawtx = to_bytearray(rawtx)
-        inputs, outputs, locktime, version = deserialize_transaction(rawtx, network=network)
+        inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
     def __init__(self, inputs, outputs, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'', network=NETWORK_BITCOIN):
@@ -405,7 +405,7 @@ if __name__ == '__main__':
 
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if True:
+    if False:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
@@ -443,12 +443,12 @@ if __name__ == '__main__':
         print("Raw: %s" % to_string(t.raw()))
         pprint(t.get())
         output_script = t.outputs[0].script
-        print("\nOutput Script Type: %s " % output_script_type(output_script))
+        print("\nOutput Script Type: %s " % script_type(output_script))
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
 
-    if False:
-        print("\n=== Determine Output Script Type ===")
+    if True:
+        print("\n=== Determine Script Type ===")
         os = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
         print("Output Script: %s" % os)
         print("Output Script String: %s" % script_to_string(os))
@@ -456,10 +456,15 @@ if __name__ == '__main__':
              'fe3695e758c19f46ce604e174dac315e685a52ae'
         print("\nOutput Script: %s" % os)
         print("Output Script String: %s" % script_to_string(os))
-        s = binascii.unhexlify('514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6e'
-                               'b426d1b1ec45d76724f26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b9'
-                               '8c49f58fec6650b64ff70e6ffccc3e6d0052ae')
-        res = output_script_parse(s)
+        s = '514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f' \
+            '26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae'
+        print("\nScript: %s" % s)
+        print("Deserialized:")
+        pprint(script_deserialize(binascii.unhexlify(s)))
+        s = '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
+        print("\nScriptsig is: %s" % s)
+        print("Deserialized:")
+        pprint(script_deserialize(binascii.unhexlify(s)))
 
     # Example based on explanation on
     # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
@@ -534,8 +539,9 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    from bitcoinlib.services.bitcoind import BitcoindClient
-    bdc = BitcoindClient.from_config()
+    if False:
+        from bitcoinlib.services.bitcoind import BitcoindClient
+        bdc = BitcoindClient.from_config()
 
     if False:
         # Deserialize 1 transaction
@@ -546,7 +552,7 @@ if __name__ == '__main__':
         pprint(t.get())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 1
+    MAX_TRANSACTIONS_VIEW = 0
     error_count = 0
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
