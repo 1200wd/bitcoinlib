@@ -113,14 +113,16 @@ def parse_script_sig(s):
 def _parse_signatures(script, max_signatures=None):
     if not isinstance(script, bytearray):
         raise TransactionError("Method '_parse_signatures' needs script in ByteArray format")
-    script = to_bytearray(script)
+    # script = to_bytearray(script)
     data = []
     total_lenght = 0
     count = 0
     while len(script) and (max_signatures is None or max_signatures > count):
         l, _ = varbyteint_to_int(script[0:9])
-        # if l not in [20, 33, 65]:
-        #     break
+        if l not in [20, 33, 65, 71, 72, 73]:
+            break
+        if len(script) < l:
+            break
         data.append(script[1:l+1])
         total_lenght += l + 1
         script = script[l+1:]
@@ -146,6 +148,9 @@ def script_deserialize(script):
                 break
             if ch == 'signature':
                 s, total_length = _parse_signatures(script[cur:], 1)
+                if not s:
+                    found = False
+                    break
                 data += s
                 cur += total_length
             elif ch == 'public_key':
@@ -197,6 +202,8 @@ def script_type(script):
 def script_to_string(script):
     script = to_bytearray(script)
     tp, data, number_of_sigs_m, number_of_sigs_n = script_deserialize(script)
+    if tp == "unknown":
+        return tp
     sigs = ' '.join([to_string(i) for i in data])
 
     scriptstr = OUTPUT_SCRIPT_TYPES[tp]
@@ -460,17 +467,17 @@ if __name__ == '__main__':
         scripts = [
             # '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
             #
-            # '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6f'
-            # 'e3695e758c19f46ce604e174dac315e685a52ae',
+            # '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6'
+            # 'fe3695e758c19f46ce604e174dac315e685a52ae',
             #
             # '514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f'
             # '26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae',
             #
             # '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac',
 
-            # '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b4'
-            # '12bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385'
-            # 'aa7446',
+            '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b4'
+            '12bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385'
+            'aa7446',
 
             '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a71'
             '5cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b756786098567550'
@@ -479,9 +486,9 @@ if __name__ == '__main__':
         for s in scripts:
             print("\nScript: %s" % s)
             # print("Parsed", parse_script_sig(s))
-            # print("Script as String: %s" % script_to_string(s))
-            print("Deserialized:")
-            pprint(script_deserialize(binascii.unhexlify(s)))
+            print("Script as String: %s" % script_to_string(s))
+            # print("Deserialized:")
+            # pprint(script_deserialize(binascii.unhexlify(s)))
 
     # Example based on explanation on
     # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580

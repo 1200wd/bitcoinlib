@@ -107,15 +107,15 @@ class TestTransactionsScriptType(unittest.TestCase):
                                'b426d1b1ec45d76724f26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b9'
                                '8c49f58fec6650b64ff70e6ffccc3e6d0052ae')
         res = script_deserialize(s)
-        self.assertEqual(res[0], 'multisig')
-        self.assertEqual(res[3], 2)
+        self.assertEqual('multisig', res[0])
+        self.assertEqual(2, res[3])
 
     def test_transaction_script_type_multisig_2(self):
         s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
                                '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
         res = script_deserialize(s)
-        self.assertEqual(res[0], 'multisig')
-        self.assertEqual(res[2], 1)
+        self.assertEqual('multisig', res[0])
+        self.assertEqual(1, res[2])
 
     def test_transaction_script_type_multisig_error(self):
         s = binascii.unhexlify('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
@@ -130,4 +130,4 @@ class TestTransactionsScriptType(unittest.TestCase):
                                '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
         os = "OP_1 032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca33016 " \
              "02308673d16987eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a OP_2 OP_CHECKMULTISIG"
-        self.assertEqual(script_to_string(s), os)
+        self.assertEqual(os, str(script_to_string(s)))
