@@ -97,6 +97,7 @@ def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
     return inputs, outputs, locktime, version
 
 
+# TODO: Remove method and update to use 'script_deserialize' instead
 def parse_script_sig(s):
     s = to_bytearray(s)
     if not s:
@@ -110,26 +111,24 @@ def parse_script_sig(s):
     return sig, public_key
 
 
-def _parse_signatures(script, max_signatures=None):
-    if not isinstance(script, bytearray):
-        raise TransactionError("Method '_parse_signatures' needs script in ByteArray format")
-    # script = to_bytearray(script)
-    data = []
-    total_lenght = 0
-    count = 0
-    while len(script) and (max_signatures is None or max_signatures > len(data)):
-        l, sl = varbyteint_to_int(script[0:9])
-        if l not in [20, 33, 65, 71, 72, 73]:
-            break
-        if len(script) < l:
-            break
-        data.append(script[1:l+1])
-        total_lenght += l + sl
-        script = script[l+1:]
-    return data, total_lenght
-
-
 def script_deserialize(script):
+
+    def _parse_signatures(scr, max_signatures=None):
+        if not isinstance(scr, bytearray):
+            raise TransactionError("Method '_parse_signatures' needs script in ByteArray format")
+        sigs = []
+        total_lenght = 0
+        while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
+            l, sl = varbyteint_to_int(scr[0:9])
+            if l not in [20, 33, 65, 71, 72, 73]:
+                break
+            if len(scr) < l:
+                break
+            sigs.append(scr[1:l + 1])
+            total_lenght += l + sl
+            scr = scr[l + 1:]
+        return sigs, total_lenght
+
     script = to_bytearray(script)
     if not script:
         return ["empty", '', '', '']
@@ -470,25 +469,25 @@ if __name__ == '__main__':
     if True:
         print("\n=== Determine Script Type ===")
         scripts = [
-            '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
-
-            '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6'
-            'fe3695e758c19f46ce604e174dac315e685a52ae',
-
-            '5141'
-            '04fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f'
-            '26901099416b9265b76ba67c8b0b73d'
-            '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae',
-
-            '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac',
-
+            # '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
+            #
+            # '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6'
+            # 'fe3695e758c19f46ce604e174dac315e685a52ae',
+            #
+            # '5141'
+            # '04fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f'
+            # '26901099416b9265b76ba67c8b0b73d'
+            # '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae',
+            #
+            # '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac',
+            #
             '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b4'
             '12bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385'
             'aa7446',
 
-            '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a71'
-            '5cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b756786098567550'
-            'd4820c09db988fe9997d049d687292f815ccd6e7fb5c1b1a91137999818d17c73d0f80aef9',
+            # '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a71'
+            # '5cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b756786098567550'
+            # 'd4820c09db988fe9997d049d687292f815ccd6e7fb5c1b1a91137999818d17c73d0f80aef9',
         ]
         for s in scripts:
             print("\nScript: %s" % s)
