@@ -117,6 +117,16 @@ class TestTransactionsScriptType(unittest.TestCase):
         self.assertEqual('multisig', res[0])
         self.assertEqual(1, res[2])
 
+    def test_transaction_script_type_multisig_error_count(self):
+        s = binascii.unhexlify('51'
+                               '4104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426'
+                               'd1b1ec45d76724f26901099416b9265b76ba67c8b0b73d'
+                               '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae'
+                               '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')
+        res = script_deserialize(s)
+        self.assertEqual('multisig', res[0])
+        self.assertEqual(1, res[2])
+
     def test_transaction_script_type_multisig_error(self):
         s = binascii.unhexlify('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
         self.assertRaisesRegexp(TransactionError, 'is not an op_n code', script_type, s)
