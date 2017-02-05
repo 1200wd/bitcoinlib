@@ -123,7 +123,7 @@ class TestTransactionsScriptType(unittest.TestCase):
                                'd1b1ec45d76724f26901099416b9265b76ba67c8b0b73d'
                                '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d00'
                                '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')
-        self.assertRaisesRegexp(TransactionError, '3 signatures found, but a max of 2 sigs expected',
+        self.assertRaisesRegexp(TransactionError, '3 signatures found, but 2 sigs expected',
                                 script_deserialize, s)
 
     def test_transaction_script_type_multisig_error(self):
