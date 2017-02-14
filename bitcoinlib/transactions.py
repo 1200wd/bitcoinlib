@@ -219,10 +219,10 @@ class Input:
 
     @staticmethod
     def add(prev_hash, output_index=0, script_sig=b'', public_key='', network=NETWORK_BITCOIN):
-        prev_hash = to_bytearray(prev_hash)
+        # prev_hash = to_bytearray(prev_hash)
         if isinstance(output_index, numbers.Number):
             output_index = struct.pack('>I', output_index)
-        return Input(prev_hash, output_index, script_sig=script_sig, public_key=public_key, network=network)
+        return Input(to_bytes(prev_hash), output_index, script_sig=script_sig, public_key=public_key, network=network)
 
     def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0, public_key='',
                  network=NETWORK_BITCOIN):
@@ -283,9 +283,7 @@ class Output:
 
     @staticmethod
     def add(amount, public_key_hash=b'', address='', network=NETWORK_BITCOIN):
-        if not isinstance(public_key_hash, bytes):
-            public_key_hash = binascii.unhexlify(public_key_hash)
-        return Output(amount, public_key_hash=public_key_hash, address=address, network=network)
+        return Output(amount, public_key_hash=to_bytes(public_key_hash), address=address, network=network)
 
     def __init__(self, amount, script=b'', public_key_hash=b'', address='', public_key=b'', network=NETWORK_BITCOIN):
         self.amount = amount
@@ -336,7 +334,7 @@ class Transaction:
 
     @staticmethod
     def import_raw(rawtx, network=NETWORK_BITCOIN):
-        rawtx = normalize_var(rawtx)
+        rawtx = to_bytes(rawtx)
         inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
