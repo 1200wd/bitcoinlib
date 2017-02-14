@@ -219,17 +219,16 @@ class Input:
 
     @staticmethod
     def add(prev_hash, output_index=0, script_sig=b'', public_key='', network=NETWORK_BITCOIN):
-        # prev_hash = to_bytearray(prev_hash)
         if isinstance(output_index, numbers.Number):
             output_index = struct.pack('>I', output_index)
-        return Input(to_bytes(prev_hash), output_index, script_sig=script_sig, public_key=public_key, network=network)
+        return Input(prev_hash, output_index, script_sig=script_sig, public_key=public_key, network=network)
 
     def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0, public_key='',
                  network=NETWORK_BITCOIN):
-        self.prev_hash = prev_hash
+        self.prev_hash = to_bytes(prev_hash)
         self.output_index = output_index
-        self.script_sig = script_sig
-        self.sequence = sequence
+        self.script_sig = to_bytes(script_sig)
+        self.sequence = to_bytes(sequence)
         self.id = id
         self.public_key = public_key
 
@@ -287,10 +286,10 @@ class Output:
 
     def __init__(self, amount, script=b'', public_key_hash=b'', address='', public_key=b'', network=NETWORK_BITCOIN):
         self.amount = amount
-        self.script = script
-        self.public_key_hash = public_key_hash
+        self.script = to_bytes(script)
+        self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
-        self.public_key = public_key
+        self.public_key = to_bytes(public_key)
         self.network = network
 
         self.compressed = True
@@ -322,7 +321,7 @@ class Output:
             'amount': self.amount,
             'script': to_string(self.script),
             'public_key': to_string(self.public_key),
-            'public_key_hash': self.public_key_hash,
+            'public_key_hash': to_string(self.public_key_hash),
             'address': self.address,
         }
 
