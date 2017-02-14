@@ -301,18 +301,19 @@ def to_bytearray(s):
     return bytearray(s)
 
 
-def to_bytes(s):
+def to_bytes(s, unhexlify=True):
     """
     Convert String, Unicode or ByteArray to Bytes
     :param s: String, Unicode, Bytes or ByteArray
     :return: Bytes var
     """
     s = normalize_var(s)
-    try:
-        s = binascii.unhexlify(s)
-        return s
-    except:
-        pass
+    if unhexlify:
+        try:
+            s = binascii.unhexlify(s)
+            return s
+        except:
+            pass
     return s
 
 

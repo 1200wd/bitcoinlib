@@ -161,6 +161,26 @@ class TestEncodingMethodsStructures(unittest.TestCase):
         self.assertEqual('e71a8dd83e79fbd62f72a3d0d8a81fddba535bd0f088fa8be14cd3467fe517ae5f6ca4894c53cd8e6d26f'
                          '799754eb6fc0e86f612d6de6a4c7c07dc5820a0e518', convert_der_sig(sig))
 
+    def test_to_bytes_hex(self):
+        self.assertEqual(b'\xde\xad\xbe\xef', to_bytes('deadbeef'))
+
+    def test_to_bytes_nohex(self):
+        self.assertEqual(b'deadbeefnohex', to_bytes('deadbeefnohex'))
+
+    def test_to_bytes_nounhexlify(self):
+        self.assertEqual(b'deadbeef', to_bytes('deadbeef', unhexlify=False))
+
+    def test_to_bytes_unicode(self):
+        self.assertEqual(b'\x07\xdcX \xa0\xe5\x18!]!,\xd5\x18\x8a\xe0,V5\xfa\xab',
+                         to_bytes(u'07dc5820a0e518215d212cd5188ae02c5635faab'))
+
+    def test_to_bytes_byteshex(self):
+        self.assertEqual(b'\x07\xdcX \xa0\xe5\x18!]!,\xd5\x18\x8a\xe0,V5\xfa\xab',
+                         to_bytes(b'07dc5820a0e518215d212cd5188ae02c5635faab'))
+
+    def test_to_bytes_bytearray(self):
+        self.assertEqual(bytearray(b'\x06\x07<F\x00\xff   \xc8\x1b'),
+                         to_bytes(bytearray([6, 7, 60, 70, 0, 255, 32, 32, 32, 200, 27])))
 
 if __name__ == '__main__':
     unittest.main()
