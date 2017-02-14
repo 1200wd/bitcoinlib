@@ -29,9 +29,11 @@ class TestTransactionInputs(unittest.TestCase):
 
 
 class TestTransactionOutputs(unittest.TestCase):
+
     def test_transaction_output_add(self):
-        to = Output(1000)
-        self.assertEqual('', to)
+        to = Output(1000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+        self.assertEqual(b'v\xa9\x14\x13\xd2\x15\xd2\x12\xcdQ\x88\xae\x02\xc5c_\xaa\xbd\xc4\xd7\xd4\xec\x91\x88\xac',
+                         to.script)
 
 
 class TestTransactions(unittest.TestCase):
