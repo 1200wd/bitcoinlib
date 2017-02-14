@@ -97,25 +97,9 @@ def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
     return inputs, outputs, locktime, version
 
 
-# TODO: Remove method and update to use 'script_deserialize' instead
-# def parse_script_sig(s):
-#     s = to_bytearray(s)
-#     if not s:
-#         _logger.warning("Parsing empty script sig in 'parse_script_sig(s)")
-#         return "", ""
-#     sig_size, size = varbyteint_to_int(s[0:9])
-#     sig = convert_der_sig(s[1:sig_size])
-#     cur = size+sig_size
-#     pk_size, size = varbyteint_to_int(s[cur:cur+9])
-#     public_key = s[cur+size:cur+size+pk_size]
-#     return sig, public_key
-
-
 def script_deserialize(script):
 
     def _parse_signatures(scr, max_signatures=None):
-        # if not isinstance(scr, bytearray):
-        #     raise TransactionError("Method '_parse_signatures' needs script in ByteArray format")
         scr = to_bytes(scr)
         sigs = []
         total_lenght = 0
@@ -200,6 +184,13 @@ def script_deserialize(script):
     return ["unknown", '', '', '']
 
 
+def script_deserialize_sigpk(script):
+    # TODO  _, data, _, _ = script_deserialize(script, 'sig_pubkey')
+    _, data, _, _ = script_deserialize(script)
+    # TODO convert_der_sig should return bytes not hexstr
+    return convert_der_sig(data[0][:-1]), data[1]
+
+
 def script_type(script):
     return script_deserialize(script)[0]
 
@@ -251,7 +242,7 @@ class Input:
         pk2 = b''
         if script_sig and self.type != 'coinbase':
             try:
-                self.signature, pk2 = parse_script_sig(script_sig)
+                self.signature, pk2 = script_deserialize_sigpk(script_sig)
             except:
                 _logger.warning("Could not parse input script signature")
                 pass
@@ -395,11 +386,8 @@ class Transaction:
             t_to_sign = self.raw(i.id)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             pk = binascii.unhexlify(i.public_key_uncompressed[2:])
-            # pk = binascii.unhexlify(i.public_key[2:])
-            sighex, pk2 = parse_script_sig(i.script_sig)
+            sighex, pk2 = script_deserialize_sigpk(i.script_sig)
             sig = binascii.unhexlify(sighex)
-            # sig = binascii.unhexlify(i.signature)
-            # pk3 = binascii.unhexlify(Key(pk2).public_uncompressed())[1:]
             vk = ecdsa.VerifyingKey.from_string(pk, curve=ecdsa.SECP256k1)
             try:
                 vk.verify_digest(sig, hashtosign)
@@ -467,7 +455,7 @@ if __name__ == '__main__':
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
 
-    if True:
+    if False:
         print("\n=== Determine Script Type ===")
         scripts = [
             '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
@@ -498,7 +486,7 @@ if __name__ == '__main__':
 
     # Example based on explanation on
     # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
-    if False:
+    if True:
         prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
         input = Input.add(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
