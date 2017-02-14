@@ -56,7 +56,7 @@ def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc
     :return: json list with inputs, outputs, locktime and version
     """
-    rawtx = to_bytearray(rawtx)
+    rawtx = to_bytes(rawtx)
     version = rawtx[0:4][::-1]
     n_inputs, size = varbyteint_to_int(rawtx[4:13])
     cursor = 4 + size
@@ -339,7 +339,7 @@ class Transaction:
 
     @staticmethod
     def import_raw(rawtx, network=NETWORK_BITCOIN):
-        rawtx = to_bytearray(rawtx)
+        rawtx = normalize_var(rawtx)
         inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
@@ -424,7 +424,7 @@ if __name__ == '__main__':
 
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if False:
+    if True:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
@@ -466,28 +466,28 @@ if __name__ == '__main__':
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
 
-    if True:
+    if False:
         print("\n=== Determine Script Type ===")
         scripts = [
-            # '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
-            #
-            # '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6'
-            # 'fe3695e758c19f46ce604e174dac315e685a52ae',
-            #
-            # '5141'
-            # '04fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f'
-            # '26901099416b9265b76ba67c8b0b73d'
-            # '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae',
-            #
-            # '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac',
-            #
+            '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
+
+            '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6'
+            'fe3695e758c19f46ce604e174dac315e685a52ae',
+
+            '5141'
+            '04fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f'
+            '26901099416b9265b76ba67c8b0b73d'
+            '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae',
+
+            '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac',
+
             '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b4'
             '12bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385'
             'aa7446',
 
-            # '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a71'
-            # '5cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b756786098567550'
-            # 'd4820c09db988fe9997d049d687292f815ccd6e7fb5c1b1a91137999818d17c73d0f80aef9',
+            '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a71'
+            '5cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b756786098567550'
+            'd4820c09db988fe9997d049d687292f815ccd6e7fb5c1b1a91137999818d17c73d0f80aef9',
         ]
         for s in scripts:
             print("\nScript: %s" % s)

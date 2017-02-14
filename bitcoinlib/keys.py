@@ -670,15 +670,21 @@ if __name__ == '__main__':
     # KEYS EXAMPLES
     #
 
-    print("\n=== Import public key ===")
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    K.info()
+    # print("\n=== Import public key ===")
+    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    # K.info()
 
     # TODO - this should work:
     # print("\n==== Import private key as string ===")
     # pk = '45552833878247474734848656701264879218668934469350493760914973828870088122784'
     # k = Key(import_key=pk, network='testnet')
     # k.info()
+
+    pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
+    # pk = u'0239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9d'
+    K = Key(pk)
+    K.info()
+    sys.exit()
 
     print("\n=== Import Private Key ===")
     k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')

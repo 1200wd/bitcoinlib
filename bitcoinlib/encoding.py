@@ -301,6 +301,21 @@ def to_bytearray(s):
     return bytearray(s)
 
 
+def to_bytes(s):
+    """
+    Convert String, Unicode or ByteArray to Bytes
+    :param s: String, Unicode, Bytes or ByteArray
+    :return: Bytes var
+    """
+    s = normalize_var(s)
+    try:
+        s = binascii.unhexlify(s)
+        return s
+    except:
+        pass
+    return s
+
+
 def to_string(b):
     """
     Convert Bytes or ByteArray to printable string
