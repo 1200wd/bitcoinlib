@@ -28,7 +28,7 @@ from bitcoinlib.config.networks import *
 
 _logger = logging.getLogger(__name__)
 
-OUTPUT_SCRIPT_TYPES = {
+SCRIPT_TYPES = {
     'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
     'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
@@ -97,7 +97,7 @@ def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
     return inputs, outputs, locktime, version
 
 
-def script_deserialize(script):
+def script_deserialize(script, script_types=None):
 
     def _parse_signatures(scr, max_signatures=None):
         scr = to_bytes(scr)
@@ -105,6 +105,7 @@ def script_deserialize(script):
         total_lenght = 0
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
             l, sl = varbyteint_to_int(scr[0:9])
+            # TODO: Rething and rewrite this:
             if l not in [20, 33, 65, 71, 72, 73]:
                 break
             if len(scr) < l:
@@ -118,9 +119,14 @@ def script_deserialize(script):
     if not script:
         return ["empty", '', '', '']
 
-    for tp in OUTPUT_SCRIPT_TYPES:
+    if script_types is None:
+        script_types = SCRIPT_TYPES
+    elif not isinstance(script_types, list):
+        script_types = [script_types]
+
+    for tp in script_types:
         cur = 0
-        ost = OUTPUT_SCRIPT_TYPES[tp]
+        ost = SCRIPT_TYPES[tp]
         data = []
         number_of_sigs_n = 1
         number_of_sigs_m = 1
@@ -185,8 +191,7 @@ def script_deserialize(script):
 
 
 def script_deserialize_sigpk(script):
-    # TODO  _, data, _, _ = script_deserialize(script, 'sig_pubkey')
-    _, data, _, _ = script_deserialize(script)
+    _, data, _, _ = script_deserialize(script, 'sig_pubkey')
     # TODO convert_der_sig should return bytes not hexstr
     return convert_der_sig(data[0][:-1]), data[1]
 
@@ -202,7 +207,7 @@ def script_to_string(script):
         return tp
     sigs = ' '.join([to_string(i) for i in data])
 
-    scriptstr = OUTPUT_SCRIPT_TYPES[tp]
+    scriptstr = SCRIPT_TYPES[tp]
     scriptstr = [sigs if x in ['signature', 'multisig', 'return_data'] else x for x in scriptstr]
     scriptstr = [opcodenames[80 + number_of_sigs_m] if x == 'op_m' else x for x in scriptstr]
     scriptstr = [opcodenames[80 + number_of_sigs_n] if x == 'op_n' else x for x in scriptstr]
@@ -455,7 +460,7 @@ if __name__ == '__main__':
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
 
-    if False:
+    if True:
         print("\n=== Determine Script Type ===")
         scripts = [
             '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
