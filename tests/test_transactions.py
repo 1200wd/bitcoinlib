@@ -30,10 +30,26 @@ class TestTransactionInputs(unittest.TestCase):
 
 class TestTransactionOutputs(unittest.TestCase):
 
-    def test_transaction_output_add(self):
+    def test_transaction_output_add_address(self):
         to = Output(1000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
         self.assertEqual(b'v\xa9\x14\x13\xd2\x15\xd2\x12\xcdQ\x88\xae\x02\xc5c_\xaa\xbd\xc4\xd7\xd4\xec\x91\x88\xac',
                          to.script)
+
+    def test_transaction_output_add_public_key(self):
+        to = Output(1000000000, public_key='0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470'
+                                           '243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6')
+        self.assertEqual(b"v\xa9\x14\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\x88\xac",
+                         to.script)
+
+    def test_transaction_output_add_public_key_hash(self):
+        to = Output(1000, public_key_hash='010966776006953d5567439e5e39f86a0d273bee')
+        self.assertEqual(b"v\xa9\x14\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\x88\xac",
+                         to.script)
+
+    def test_transaction_output_add_script(self):
+        to = Output(1000, script='76a91423e102597c4a99516f851406f935a6e634dbccec88ac')
+        self.assertEqual('14GiCdJHj3bznWpcocjcu9ByCmDPEhEoP8', to.address)
+
 
 
 class TestTransactions(unittest.TestCase):

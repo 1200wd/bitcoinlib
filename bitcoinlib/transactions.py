@@ -298,24 +298,24 @@ class Output:
 
         self.compressed = True
         self.k = None
-        versionbyte = NETWORKS[self.network]['address']
+        self.versionbyte = NETWORKS[self.network]['address']
 
-        if public_key:
-            self.k = Key(binascii.hexlify(public_key).decode('utf-8'), network=network)
+        if self.public_key:
+            self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
             self.address = self.k.address()
             self.compressed = self.k.compressed
-        if public_key_hash:
-            self.address = pubkeyhash_to_addr(public_key_hash, versionbyte=versionbyte)
-        if address and not public_key_hash:
-            self.public_key_hash = addr_to_pubkeyhash(address)
-        if not public_key_hash and self.k:
+        if self.public_key_hash:
+            self.address = pubkeyhash_to_addr(public_key_hash, versionbyte=self.versionbyte)
+        if self.address and not self.public_key_hash:
+            self.public_key_hash = addr_to_pubkeyhash(self.address)
+        if not self.public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
 
-        if script and not self.public_key_hash:
-            ps = script_deserialize(script)
+        if self.script and not self.public_key_hash:
+            ps = script_deserialize(self.script)
             if ps[0] == 'p2pkh':
                 self.public_key_hash = binascii.hexlify(ps[1][0])
-                self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=versionbyte)
+                self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=self.versionbyte)
 
         if self.script == b'':
             self.script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
@@ -419,7 +419,8 @@ if __name__ == '__main__':
 
     # ti = Input()
 
-    to = Output(1000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+    to = Output(1000000000, public_key='0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470'
+                                       '243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6')
     pprint(to)
 
     # Example of a basic raw transaction with 1 input and 2 outputs
