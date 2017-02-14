@@ -39,6 +39,26 @@ class TestTransactions(unittest.TestCase):
             self.assertEqual(len(t.inputs), r[2], msg="Incorrect numbers of inputs for tx '%s'" % r[0])
             self.assertEqual(len(t.outputs), r[3], msg="Incorrect numbers of outputs for tx '%s'" % r[0])
 
+    def test_transactions_deserialize_raw_unicode(self):
+        rawtx = u'01000000012ba87637d74080d041795915f843484523f7693ac1f1b359771b751acd2fef79010000006a4730440220722' \
+                u'7634b962914c3310c6f71fb37c25ad64f239aead11a1a1e2de8b6d95d4de6022072d3841de897be38bd9ae0067e059bd7' \
+                u'ad6947ae3731d97823801c09e00a70be0121033ef5447f54712d6a1aba7e77ad9f09ab77c21c84d1811a1b82a96fa08d9' \
+                u'733deffffffff02be9d9600000000001976a914b66e314587c282d5ce290918228e390c0279884688ace280590b0b0000' \
+                u'001976a914f2ea76adc2345f3591ce997def9043fbe68ecc1a88ac00000000'
+        self.assertEqual('1P9RQEr2XeE3PEb44ZE35sfZRRW1JHU8qx',
+                         Transaction.import_raw(rawtx).get()['outputs'][1]['address'])
+
+    def test_transactions_deserialize_raw_bytearray(self):
+        rawtx = bytearray(b'0100000001685c7c35aabe690cc99f947a8172ad075d4401448a212b9f26607d6ec5530915010000006a4730'
+                          b'440220337117278ee2fc7ae222ec1547b3a40fa39a05f91c1e19db60060541c4b3d6e4022020188e1d5d843c'
+                          b'045ddac78c42ed9ff6a1078414d15a9f065495628fde9d1e55012102d04293c65effbea9d61727374612820d'
+                          b'192cd6d04f106a62c6a6768719de41dcffffffff026804ab01000000001976a914cf75d22e78c86e2e3d29f7'
+                          b'a772f8ffd62391190388ac442d0304000000001976a9145b92b92ddd598d2d4977b3c4e5f552332aed743188'
+                          b'ac00000000')
+        print(rawtx)
+        self.assertEqual('19MCFyVmyEhFjYNS8aKJT454jm4YZQjbqm',
+                         Transaction.import_raw(rawtx).get()['outputs'][1]['address'])
+
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:
             print("Verify %s" % r[0])

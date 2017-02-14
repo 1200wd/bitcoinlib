@@ -568,13 +568,14 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if False:
+    if True:
         from bitcoinlib.services.bitcoind import BitcoindClient
         bdc = BitcoindClient.from_config()
 
-    if False:
+    if True:
         # Deserialize 1 transaction
-        txid = '4d6b58b01522443acec344bab9e709d0ff428fce5cd491b18ce1d076353245ae'
+        # txid = '4d6b58b01522443acec344bab9e709d0ff428fce5cd491b18ce1d076353245ae'
+        txid = '4dee0cfcb7273f366284efa45a93f17c21838ab4fa63c6a566ae40369c384088'
         rt = bdc.getrawtransaction(txid)
         print("- raw %s" % rt)
         t = Transaction.import_raw(rt)
