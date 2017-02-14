@@ -417,15 +417,9 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
-    # ti = Input()
-
-    to = Output(1000000000, public_key='0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470'
-                                       '243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6')
-    pprint(to)
-
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if True:
+    if False:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
@@ -493,13 +487,16 @@ if __name__ == '__main__':
         ]
         for s in scripts:
             print("\nScript: %s" % s)
-            print("Deserialized:")
-            pprint(script_deserialize(s))
-            # print("Script as String: %s" % script_to_string(s))
+            sp = script_deserialize(s)
+            print("Type: %s" % sp[0])
+            for d in sp[1]:
+                print("Data: %s" % binascii.hexlify(d))
+            print("Signatures n/m: %s/%s" % (sp[2], sp[3]))
+            print("Script as String: %s" % script_to_string(s))
 
     # Example based on explanation on
     # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
-    if True:
+    if False:
         prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
         input = Input(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
@@ -513,7 +510,7 @@ if __name__ == '__main__':
 
     # Example based on
     # http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html
-    if True:
+    if False:
         # Create a new transaction
         ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
         txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
@@ -528,7 +525,7 @@ if __name__ == '__main__':
 
     # Create and sign Testnet Transaction using keys from Wallet class 'TestNetWallet' example
     # See txid 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7
-    if True:
+    if False:
         ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
         input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
                           public_key=ki.public(), network='testnet')
@@ -543,7 +540,7 @@ if __name__ == '__main__':
 
     # Create bitcoin transaction with UTXO, amount, address and private key
     # See txid d99070c63e04a6bdb38b553733838d6196198908c8b8930bec0ba502bc483b72
-    if True:
+    if False:
         private_key = 'KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4'
         utxo = 'fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3'
         amount = 95000
@@ -570,11 +567,11 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if True:
+    if False:
         from bitcoinlib.services.bitcoind import BitcoindClient
         bdc = BitcoindClient.from_config()
 
-    if True:
+    if False:
         # Deserialize 1 transaction
         txid = '4d6b58b01522443acec344bab9e709d0ff428fce5cd491b18ce1d076353245ae'
         rt = bdc.getrawtransaction(txid)

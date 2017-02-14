@@ -51,7 +51,6 @@ class TestTransactionOutputs(unittest.TestCase):
         self.assertEqual('14GiCdJHj3bznWpcocjcu9ByCmDPEhEoP8', to.address)
 
 
-
 class TestTransactions(unittest.TestCase):
 
     def setUp(self):
