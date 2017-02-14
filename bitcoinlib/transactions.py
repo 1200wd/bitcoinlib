@@ -98,24 +98,25 @@ def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
 
 
 # TODO: Remove method and update to use 'script_deserialize' instead
-def parse_script_sig(s):
-    s = to_bytearray(s)
-    if not s:
-        _logger.warning("Parsing empty script sig in 'parse_script_sig(s)")
-        return "", ""
-    sig_size, size = varbyteint_to_int(s[0:9])
-    sig = convert_der_sig(s[1:sig_size])
-    cur = size+sig_size
-    pk_size, size = varbyteint_to_int(s[cur:cur+9])
-    public_key = s[cur+size:cur+size+pk_size]
-    return sig, public_key
+# def parse_script_sig(s):
+#     s = to_bytearray(s)
+#     if not s:
+#         _logger.warning("Parsing empty script sig in 'parse_script_sig(s)")
+#         return "", ""
+#     sig_size, size = varbyteint_to_int(s[0:9])
+#     sig = convert_der_sig(s[1:sig_size])
+#     cur = size+sig_size
+#     pk_size, size = varbyteint_to_int(s[cur:cur+9])
+#     public_key = s[cur+size:cur+size+pk_size]
+#     return sig, public_key
 
 
 def script_deserialize(script):
 
     def _parse_signatures(scr, max_signatures=None):
-        if not isinstance(scr, bytearray):
-            raise TransactionError("Method '_parse_signatures' needs script in ByteArray format")
+        # if not isinstance(scr, bytearray):
+        #     raise TransactionError("Method '_parse_signatures' needs script in ByteArray format")
+        scr = to_bytes(scr)
         sigs = []
         total_lenght = 0
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
@@ -129,7 +130,7 @@ def script_deserialize(script):
             scr = scr[l + 1:]
         return sigs, total_lenght
 
-    script = to_bytearray(script)
+    script = to_bytes(script)
     if not script:
         return ["empty", '', '', '']
 
@@ -204,7 +205,7 @@ def script_type(script):
 
 
 def script_to_string(script):
-    script = to_bytearray(script)
+    script = to_bytes(script)
     tp, data, number_of_sigs_m, number_of_sigs_n = script_deserialize(script)
     if tp == "unknown":
         return tp
@@ -424,7 +425,7 @@ if __name__ == '__main__':
 
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if True:
+    if False:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
@@ -466,7 +467,7 @@ if __name__ == '__main__':
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
 
-    if False:
+    if True:
         print("\n=== Determine Script Type ===")
         scripts = [
             '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
@@ -568,14 +569,13 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if True:
+    if False:
         from bitcoinlib.services.bitcoind import BitcoindClient
         bdc = BitcoindClient.from_config()
 
-    if True:
+    if False:
         # Deserialize 1 transaction
-        # txid = '4d6b58b01522443acec344bab9e709d0ff428fce5cd491b18ce1d076353245ae'
-        txid = '4dee0cfcb7273f366284efa45a93f17c21838ab4fa63c6a566ae40369c384088'
+        txid = '4d6b58b01522443acec344bab9e709d0ff428fce5cd491b18ce1d076353245ae'
         rt = bdc.getrawtransaction(txid)
         print("- raw %s" % rt)
         t = Transaction.import_raw(rt)
