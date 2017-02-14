@@ -113,7 +113,7 @@ class TestTransactionsScriptType(unittest.TestCase):
         s = binascii.unhexlify('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd')
         res = script_deserialize(s)
         self.assertEqual('nulldata', res[0])
-        self.assertEqual(b'985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
+        self.assertEqual(b'20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
                          binascii.hexlify(res[1][0]))
 
     def test_transaction_script_type_nulldata_2(self):
@@ -123,9 +123,8 @@ class TestTransactionsScriptType(unittest.TestCase):
         self.assertEqual(b'', binascii.hexlify(res[1][0]))
 
     def test_transaction_script_type_multisig(self):
-        s = binascii.unhexlify('514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6e'
-                               'b426d1b1ec45d76724f26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b9'
-                               '8c49f58fec6650b64ff70e6ffccc3e6d0052ae')
+        s = '514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f' \
+            '26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae'
         res = script_deserialize(s)
         self.assertEqual('multisig', res[0])
         self.assertEqual(2, res[3])
