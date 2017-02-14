@@ -226,16 +226,12 @@ def script_to_string(script):
 
 class Input:
 
-    @staticmethod
-    def add(prev_hash, output_index=0, script_sig=b'', public_key='', network=NETWORK_BITCOIN):
-        if isinstance(output_index, numbers.Number):
-            output_index = struct.pack('>I', output_index)
-        return Input(prev_hash, output_index, script_sig=script_sig, public_key=public_key, network=network)
-
-    def __init__(self, prev_hash, output_index, script_sig, sequence=b'\xff\xff\xff\xff', id=0, public_key='',
+    def __init__(self, prev_hash, output_index, script_sig=b'', sequence=b'\xff\xff\xff\xff', id=0, public_key='',
                  network=NETWORK_BITCOIN):
         self.prev_hash = to_bytes(prev_hash)
         self.output_index = output_index
+        if isinstance(output_index, numbers.Number):
+            self.output_index = struct.pack('>I', output_index)
         self.script_sig = to_bytes(script_sig)
         self.sequence = to_bytes(sequence)
         self.id = id
@@ -289,11 +285,10 @@ class Input:
 
 class Output:
 
-    @staticmethod
-    def add(amount, public_key_hash=b'', address='', network=NETWORK_BITCOIN):
-        return Output(amount, public_key_hash=to_bytes(public_key_hash), address=address, network=network)
+    def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', script=b'', network=NETWORK_BITCOIN):
+        if not (address or public_key_hash or public_key or script):
+            raise TransactionError("Please specify address, script, public key or public key hash when creating output")
 
-    def __init__(self, amount, script=b'', public_key_hash=b'', address='', public_key=b'', network=NETWORK_BITCOIN):
         self.amount = amount
         self.script = to_bytes(script)
         self.public_key_hash = to_bytes(public_key_hash)
@@ -422,9 +417,14 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
+    # ti = Input()
+
+    to = Output(1000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+    pprint(to)
+
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if False:
+    if True:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs
@@ -469,26 +469,26 @@ if __name__ == '__main__':
     if True:
         print("\n=== Determine Script Type ===")
         scripts = [
-            # '6a',
-            # '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
+            '6a',
+            '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
 
             '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6'
             'fe3695e758c19f46ce604e174dac315e685a52ae',
 
-            # '5141'
-            # '04fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f'
-            # '26901099416b9265b76ba67c8b0b73d'
-            # '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae',
-            #
-            # '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac',
-            #
-            # '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b4'
-            # '12bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385'
-            # 'aa7446',
-            #
-            # '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a71'
-            # '5cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b756786098567550'
-            # 'd4820c09db988fe9997d049d687292f815ccd6e7fb5c1b1a91137999818d17c73d0f80aef9',
+            '5141'
+            '04fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f'
+            '26901099416b9265b76ba67c8b0b73d'
+            '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae',
+
+            '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac',
+
+            '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b4'
+            '12bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385'
+            'aa7446',
+
+            '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a71'
+            '5cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b756786098567550'
+            'd4820c09db988fe9997d049d687292f815ccd6e7fb5c1b1a91137999818d17c73d0f80aef9',
         ]
         for s in scripts:
             print("\nScript: %s" % s)
@@ -498,11 +498,11 @@ if __name__ == '__main__':
 
     # Example based on explanation on
     # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
-    if False:
+    if True:
         prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        input = Input.add(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
-        output = Output.add(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
+        input = Input(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
+        output = Output(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
         t = Transaction([input], [output])
         print(binascii.hexlify(t.raw(0)))
         t.sign(ki.private_byte())
@@ -512,13 +512,13 @@ if __name__ == '__main__':
 
     # Example based on
     # http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html
-    if False:
+    if True:
         # Create a new transaction
         ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
         txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-        input = Input.add(prev_hash=binascii.unhexlify(txid), output_index=0, public_key=ki.public_hex())
+        input = Input(prev_hash=binascii.unhexlify(txid), output_index=0, public_key=ki.public_hex())
         pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
-        output = Output.add(amount=91234, public_key_hash=binascii.unhexlify(pkh))
+        output = Output(amount=91234, public_key_hash=binascii.unhexlify(pkh))
         t = Transaction([input], [output])
         t.sign(ki.private_byte())
         print(binascii.hexlify(t.raw()))
@@ -527,13 +527,13 @@ if __name__ == '__main__':
 
     # Create and sign Testnet Transaction using keys from Wallet class 'TestNetWallet' example
     # See txid 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7
-    if False:
+    if True:
         ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
-        input = Input.add(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
+        input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
                           public_key=ki.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
-        output = Output.add(880000, public_key_hash=ko.hash160(), network='testnet')
+        output = Output(880000, public_key_hash=ko.hash160(), network='testnet')
         t = Transaction([input], [output], network='testnet')
         t.sign(ki.private_byte(), 0)
         pprint(t.get())
@@ -542,15 +542,15 @@ if __name__ == '__main__':
 
     # Create bitcoin transaction with UTXO, amount, address and private key
     # See txid d99070c63e04a6bdb38b553733838d6196198908c8b8930bec0ba502bc483b72
-    if False:
+    if True:
         private_key = 'KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4'
         utxo = 'fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3'
         amount = 95000
         send_to_address = '1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF'
 
         key_input = Key(private_key)
-        utxo_input = Input.add(prev_hash=utxo, output_index=1, public_key=key_input.public())
-        output_to = Output.add(amount, address=send_to_address)
+        utxo_input = Input(prev_hash=utxo, output_index=1, public_key=key_input.public())
+        output_to = Output(amount, address=send_to_address)
         t = Transaction([utxo_input], [output_to])
         t.sign(key_input.private_byte(), 0)
         pprint(t.get())
@@ -569,11 +569,11 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if False:
+    if True:
         from bitcoinlib.services.bitcoind import BitcoindClient
         bdc = BitcoindClient.from_config()
 
-    if False:
+    if True:
         # Deserialize 1 transaction
         txid = '4d6b58b01522443acec344bab9e709d0ff428fce5cd491b18ce1d076353245ae'
         rt = bdc.getrawtransaction(txid)

@@ -24,6 +24,16 @@ import json
 from bitcoinlib.transactions import *
 
 
+class TestTransactionInputs(unittest.TestCase):
+    pass
+
+
+class TestTransactionOutputs(unittest.TestCase):
+    def test_transaction_output_add(self):
+        to = Output(1000)
+        self.assertEqual('', to)
+
+
 class TestTransactions(unittest.TestCase):
 
     def setUp(self):
@@ -74,11 +84,11 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_sign_1(self):
         pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
-        inp = Input.add(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
-                        public_key=pk.public(), network='testnet')
+        inp = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
+                    public_key=pk.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
-        out = Output.add(880000, public_key_hash=pubkey.hash160(), network='testnet')
+        out = Output(880000, public_key_hash=pubkey.hash160(), network='testnet')
         t = Transaction([inp], [out], network='testnet')
         t.sign(pk.private_byte(), 0)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
@@ -87,9 +97,9 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_sign_2(self):
         pk = Key('KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4')  # Private key for import
-        inp = Input.add(prev_hash='fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3',
-                        output_index=1, public_key=pk.public())
-        out = Output.add(95000, address='1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF')
+        inp = Input(prev_hash='fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3',
+                    output_index=1, public_key=pk.public())
+        out = Output(95000, address='1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF')
         t = Transaction([inp], [out])
         t.sign(pk.private_byte(), 0)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
