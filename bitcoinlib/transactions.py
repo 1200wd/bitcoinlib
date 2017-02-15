@@ -417,6 +417,23 @@ class Transaction:
 if __name__ == '__main__':
     from pprint import pprint
 
+    prev_hash = b"\xe3>\xbd\x17\x93\x8b\xc0\x13\xc6(\x95\x89*\xacT\xdf?[\xce\x96\xe4K\x89I\x94\x92ut\x1b\x14'\xe5"
+    input_index = b'\x00\x00\x00\x00'
+    script_sig = b"G0D\x02 l\xa2\x8f{\xaf\xdde\xbd\xfc\x0f\xbd\x88\xf5\xa5\xb0\x03i\x91'\xca\xf0\xff\xf6\xe6U5" \
+                 b"\xd7\xf11\x15,\x03\x02 \x16\x170?c\x8e\x08\x94\x7f\x18i~\xdc\xb3\xa7\xa5:\xe6m\xf9O&)\xdb\x98" \
+                 b"\xdc\x0c\xc5\x07k4\xb7\x01!\x020\x9a\x19i\x19\xcf\xf1\xd1\x87T'\x1b\xe7\xeeT\xd1\xb3\x7fAL" \
+                 b"\xbb)+U\xd7\xed\x1f\r\xc8 \x9d\x13"
+    ti = Input(prev_hash, input_index, script_sig=script_sig)
+    result = {'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
+        'script_sig': '47304402206ca28f7bafdd65bdfc0fbd88f5a5b003699127caf0fff6e65535d7f131152c0302201617303f63'
+                      '8e08947f18697edcb3a7a53ae66df94f2629db98dc0cc5076b34b7012102309a196919cff1d18754271be7ee'
+                      '54d1b37f414cbb292b55d7ed1f0dc8209d13', 'type': '',
+        'public_key': '02309a196919cff1d18754271be7ee54d1b37f414cbb292b55d7ed1f0dc8209d13', 'output_index': '00000000',
+        'sequence': 'ffffffff', 'public_key_hash': 'd077955d013e6c2ff161098c90a4ef1326853b9f',
+        'prev_hash': 'e33ebd17938bc013c62895892aac54df3f5bce96e44b8949949275741b1427e5'}
+
+    sys.exit()
+
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
     if False:
@@ -567,7 +584,7 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if False:
+    if True:
         from bitcoinlib.services.bitcoind import BitcoindClient
         bdc = BitcoindClient.from_config()
 
@@ -580,7 +597,7 @@ if __name__ == '__main__':
         pprint(t.get())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 0
+    MAX_TRANSACTIONS_VIEW = 2
     error_count = 0
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")

@@ -348,9 +348,6 @@ if __name__ == '__main__':
     # SOME EXAMPLES
     #
 
-    print(to_hexstring(b'\x07\xdcX \xa0\xe5\x18!]!,\xd5\x18\x8a\xe0,V5\xfa\xab'))
-    sys.exit()
-
     examples = [
         ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e'
          '57603314a662a49c198199', 16, 256),
