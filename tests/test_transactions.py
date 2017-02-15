@@ -26,10 +26,33 @@ from bitcoinlib.transactions import *
 
 class TestTransactionInputs(unittest.TestCase):
 
-    def test_transaction_input_add_simple(self):
+    def test_transaction_input_add_(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ti = Input(prev_hash=ph, output_index=0)
         self.assertEqual(ph, to_hexstring(ti.prev_hash))
+
+    def test_transaction_input_add_bytes(self):
+        ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
+        ti = Input(prev_hash=to_bytes(ph), output_index=0)
+        self.assertEqual(ph, to_hexstring(ti.prev_hash))
+
+    def test_transaction_input_add_bytearray(self):
+        ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
+        ti = Input(prev_hash=to_bytearray(ph), output_index=0)
+        self.assertEqual(ph, to_hexstring(ti.prev_hash))
+
+    def test_transaction_input_add_scriptsig(self):
+        pass
+
+    def test_transaction_input_add_coinbase(self):
+        ti = Input(b'\0'*32, 0)
+        self.assertEqual('coinbase', ti.type)
+
+    def test_transaction_input_add_public_key(self):
+        prev_hash = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
+        k = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
+        ti = Input(prev_hash=prev_hash, output_index=1, public_key=k.public_hex())
+        self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', ti.address)
 
 
 class TestTransactionOutputs(unittest.TestCase):
