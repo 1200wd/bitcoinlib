@@ -214,7 +214,7 @@ def script_to_string(script):
     tp, data, number_of_sigs_m, number_of_sigs_n = script_deserialize(script)
     if tp == "unknown":
         return tp
-    sigs = ' '.join([to_string(i) for i in data])
+    sigs = ' '.join([to_hexstring(i) for i in data])
 
     scriptstr = SCRIPT_TYPES[tp]
     scriptstr = [sigs if x in ['signature', 'multisig', 'return_data'] else x for x in scriptstr]
@@ -236,7 +236,7 @@ class Input:
         self.sequence = to_bytes(sequence)
         self.id = id
         self.public_key = to_bytes(public_key)
-        self._public_key = to_string(public_key)
+        self._public_key = to_hexstring(public_key)
 
         self.signature = b''
         self.compressed = True
@@ -258,10 +258,10 @@ class Input:
                 pass
         if not public_key and pk2:
             self.public_key = pk2
-            self._public_key = to_string(pk2)
+            self._public_key = to_hexstring(pk2)
 
         if self.public_key:
-            self.k = Key(to_string(self.public_key), network=network)
+            self.k = Key(to_hexstring(self.public_key), network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
             self.address = self.k.address()
@@ -269,14 +269,14 @@ class Input:
 
     def json(self):
         return {
-            'prev_hash': to_string(self.prev_hash),
+            'prev_hash': to_hexstring(self.prev_hash),
             'type': self.type,
             'address': self.address,
-            'public_key': to_string(self.public_key),
-            'public_key_hash': to_string(self.public_key_hash),
-            'output_index': to_string(self.output_index),
-            'script_sig': to_string(self.script_sig),
-            'sequence': to_string(self.sequence),
+            'public_key': to_hexstring(self.public_key),
+            'public_key_hash': to_hexstring(self.public_key_hash),
+            'output_index': to_hexstring(self.output_index),
+            'script_sig': to_hexstring(self.script_sig),
+            'sequence': to_hexstring(self.sequence),
         }
 
     def __repr__(self):
@@ -323,9 +323,9 @@ class Output:
     def json(self):
         return {
             'amount': self.amount,
-            'script': to_string(self.script),
-            'public_key': to_string(self.public_key),
-            'public_key_hash': to_string(self.public_key_hash),
+            'script': to_hexstring(self.script),
+            'public_key': to_hexstring(self.public_key),
+            'public_key_hash': to_hexstring(self.public_key_hash),
             'address': self.address,
         }
 
@@ -454,7 +454,7 @@ if __name__ == '__main__':
 
         print("\n=== Import Raw Transaction ===")
         t = Transaction.import_raw(rt)
-        print("Raw: %s" % to_string(t.raw()))
+        print("Raw: %s" % to_hexstring(t.raw()))
         pprint(t.get())
         output_script = t.outputs[0].script
         print("\nOutput Script Type: %s " % script_type(output_script))

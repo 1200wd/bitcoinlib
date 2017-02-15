@@ -182,5 +182,23 @@ class TestEncodingMethodsStructures(unittest.TestCase):
         self.assertEqual(bytearray(b'\x06\x07<F\x00\xff   \xc8\x1b'),
                          to_bytes(bytearray([6, 7, 60, 70, 0, 255, 32, 32, 32, 200, 27])))
 
+    def test_to_hexstring_string(self):
+        self.assertEqual('deadbeef', to_hexstring('deadbeef'))
+
+    def test_to_hexstring_bytes(self):
+        self.assertEqual('707974686f6e6973636f6f6c', to_hexstring(b'pythoniscool'))
+
+    def test_to_hexstring_bytes2(self):
+        self.assertEqual('07dc5820a0e518215d212cd5188ae02c5635faab',
+                         to_hexstring(b'\x07\xdcX \xa0\xe5\x18!]!,\xd5\x18\x8a\xe0,V5\xfa\xab'))
+
+    def test_to_hexstring_unicode(self):
+        self.assertEqual('07dc5820a0e518215d212cd5188ae02c5635faab',
+                         to_hexstring(u'07dc5820a0e518215d212cd5188ae02c5635faab'))
+
+    def test_to_hexstring_bytearray(self):
+        self.assertEqual('06073c4600ff202020c81b',
+                         to_hexstring(bytearray([6, 7, 60, 70, 0, 255, 32, 32, 32, 200, 27])))
+
 if __name__ == '__main__':
     unittest.main()

@@ -305,6 +305,7 @@ def to_bytes(s, unhexlify=True):
     """
     Convert String, Unicode or ByteArray to Bytes
     :param s: String, Unicode, Bytes or ByteArray
+    :param unhexlify: Try to unhexlify hexstring
     :return: Bytes var
     """
     s = normalize_var(s)
@@ -317,19 +318,38 @@ def to_bytes(s, unhexlify=True):
     return s
 
 
-def to_string(b):
+def to_hexstring(var):
     """
     Convert Bytes or ByteArray to printable string
-    :param b:
+    :param var: Bytes, ByteArray or other input variable
     :return:
     """
-    return binascii.hexlify(b).decode('utf-8')
+    var = normalize_var(var)
+
+    if isinstance(var, (str, bytes)):
+        try:
+            binascii.unhexlify(var)
+            if sys.version > '3':
+                return str(var, 'ISO-8859-1')
+            else:
+                return var
+        except:
+            pass
+
+    s = binascii.hexlify(var)
+    if sys.version > '3':
+        return str(s, 'ISO-8859-1')
+    else:
+        return s
 
 
 if __name__ == '__main__':
     #
     # SOME EXAMPLES
     #
+
+    print(to_hexstring(b'\x07\xdcX \xa0\xe5\x18!]!,\xd5\x18\x8a\xe0,V5\xfa\xab'))
+    sys.exit()
 
     examples = [
         ('4c52127a72fb42b82439ab18697dcfcfb96ac63ba8209833b2e29f2302b8993f45e743412d65c7a571da70259d4f6795e98af20e6e'
