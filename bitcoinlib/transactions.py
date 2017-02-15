@@ -236,7 +236,6 @@ class Input:
         self.sequence = to_bytes(sequence)
         self.id = id
         self.public_key = to_bytes(public_key)
-        self._public_key = to_hexstring(public_key)
 
         self.signature = b''
         self.compressed = True
@@ -245,6 +244,7 @@ class Input:
         self.public_key_hash = ''
         self.address = ''
         self.type = ''
+        self._public_key = None
 
         if prev_hash == b'\0' * 32:
             self.type = 'coinbase'
@@ -258,10 +258,10 @@ class Input:
                 pass
         if not public_key and pk2:
             self.public_key = pk2
-            self._public_key = to_hexstring(pk2)
 
         if self.public_key:
-            self.k = Key(to_hexstring(self.public_key), network=network)
+            self._public_key = to_hexstring(self.public_key)
+            self.k = Key(self._public_key, network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
             self.address = self.k.address()
@@ -272,7 +272,7 @@ class Input:
             'prev_hash': to_hexstring(self.prev_hash),
             'type': self.type,
             'address': self.address,
-            'public_key': to_hexstring(self.public_key),
+            'public_key': self._public_key,
             'public_key_hash': to_hexstring(self.public_key_hash),
             'output_index': to_hexstring(self.output_index),
             'script_sig': to_hexstring(self.script_sig),
