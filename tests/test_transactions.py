@@ -207,7 +207,7 @@ class TestTransactionsScriptType(unittest.TestCase):
         ds = script_deserialize(spk)
         self.assertEqual(ds[0], 'sig_pubkey')
         self.assertEqual(
-            to_string(ds[1][0]), '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e'
-                                 '002207345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d01')
+            to_hexstring(ds[1][0]), '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e'
+                                    '002207345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d01')
         self.assertEqual(
-            to_string(ds[1][1]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
+            to_hexstring(ds[1][1]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
