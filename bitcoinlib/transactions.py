@@ -226,8 +226,8 @@ def script_to_string(script):
 
 class Input:
 
-    def __init__(self, prev_hash, output_index, script_sig=b'', sequence=b'\xff\xff\xff\xff', id=0, public_key='',
-                 network=NETWORK_BITCOIN):
+    def __init__(self, prev_hash, output_index, script_sig=b'', public_key=b'', network=NETWORK_BITCOIN,
+                 sequence=b'\xff\xff\xff\xff', id=0):
         self.prev_hash = to_bytes(prev_hash)
         self.output_index = output_index
         if isinstance(output_index, numbers.Number):
@@ -235,10 +235,10 @@ class Input:
         self.script_sig = to_bytes(script_sig)
         self.sequence = to_bytes(sequence)
         self.id = id
-        self.public_key = public_key
+        self.public_key = to_bytes(public_key)
+        self._public_key = to_string(public_key)
 
         self.signature = b''
-        self._public_key = b''
         self.compressed = True
         self.public_key_uncompressed = ''
         self.k = None
@@ -248,6 +248,7 @@ class Input:
 
         if prev_hash == b'\0' * 32:
             self.type = 'coinbase'
+
         pk2 = b''
         if script_sig and self.type != 'coinbase':
             try:
@@ -255,13 +256,12 @@ class Input:
             except:
                 _logger.warning("Could not parse input script signature")
                 pass
-
         if not public_key and pk2:
-            self._public_key = pk2
-            self.public_key = to_string(self._public_key)
+            self.public_key = pk2
+            self._public_key = to_string(pk2)
 
         if self.public_key:
-            self.k = Key(self.public_key, network=network)
+            self.k = Key(to_string(self.public_key), network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
             self.address = self.k.address()
@@ -272,8 +272,8 @@ class Input:
             'prev_hash': to_string(self.prev_hash),
             'type': self.type,
             'address': self.address,
-            'public_key': self.public_key,
-            'public_key_hash': self.public_key_hash,
+            'public_key': to_string(self.public_key),
+            'public_key_hash': to_string(self.public_key_hash),
             'output_index': to_string(self.output_index),
             'script_sig': to_string(self.script_sig),
             'sequence': to_string(self.sequence),
@@ -372,7 +372,7 @@ class Transaction:
             if sign_id is None:
                 r += struct.pack('B', len(i.script_sig)) + i.script_sig
             elif sign_id == i.id:
-                r += b'\x19\x76\xa9\x14' + binascii.unhexlify(i.public_key_hash) + \
+                r += b'\x19\x76\xa9\x14' + to_bytes(i.public_key_hash) + \
                      b'\x88\xac'
             else:
                 r += b'\0'
@@ -461,7 +461,7 @@ if __name__ == '__main__':
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
 
-    if True:
+    if False:
         print("\n=== Determine Script Type ===")
         scripts = [
             '6a',
@@ -499,9 +499,9 @@ if __name__ == '__main__':
     if False:
         prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        input = Input(prev_hash=binascii.unhexlify(prev_tx), output_index=1, public_key=ki.public_hex())
-        output = Output(amount=99900000, address='1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
-        t = Transaction([input], [output])
+        utxo_input = Input(prev_hash=prev_tx, output_index=1, public_key=ki.public_hex())
+        transaction_output = Output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
+        t = Transaction([utxo_input], [transaction_output])
         print(binascii.hexlify(t.raw(0)))
         t.sign(ki.private_byte())
         pprint(t.get())
@@ -510,14 +510,14 @@ if __name__ == '__main__':
 
     # Example based on
     # http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html
-    if False:
+    if True:
         # Create a new transaction
         ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
         txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-        input = Input(prev_hash=binascii.unhexlify(txid), output_index=0, public_key=ki.public_hex())
+        utxo_input = Input(prev_hash=txid, output_index=0, public_key=ki.public_byte())
         pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
-        output = Output(amount=91234, public_key_hash=binascii.unhexlify(pkh))
-        t = Transaction([input], [output])
+        transaction_output = Output(amount=91234, public_key_hash=pkh)
+        t = Transaction([utxo_input], [transaction_output])
         t.sign(ki.private_byte())
         print(binascii.hexlify(t.raw()))
         pprint(t.get())
@@ -528,7 +528,7 @@ if __name__ == '__main__':
     if False:
         ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
         input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
-                          public_key=ki.public(), network='testnet')
+                      public_key=ki.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
         output = Output(880000, public_key_hash=ko.hash160(), network='testnet')
