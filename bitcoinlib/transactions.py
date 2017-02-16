@@ -195,7 +195,7 @@ def script_deserialize(script, script_types=None):
 
         if found:
             return [tp, data, number_of_sigs_m, number_of_sigs_n]
-    _logger.warning("Could not parse script, unrecognized script")
+    _logger.warning("Could not parse script, unrecognized script. Script: %s" % to_hexstring(script))
     return ["unknown", '', '', '']
 
 
@@ -394,7 +394,14 @@ class Transaction:
             t_to_sign = self.raw(i.id)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             pk = binascii.unhexlify(i.public_key_uncompressed[2:])
-            sighex, pk2 = script_deserialize_sigpk(i.script_sig)
+            try:
+                sighex, pk2 = script_deserialize_sigpk(i.script_sig)
+            except Exception as e:
+                # TODO: Add support for other script_types
+                _logger.warning("Error %s. No support for script type %s" % (e, script_type(i.script_sig)))
+                return False
+
+            # sighex, pk2 = script_deserialize(i.script_sig)
             sig = binascii.unhexlify(sighex)
             vk = ecdsa.VerifyingKey.from_string(pk, curve=ecdsa.SECP256k1)
             try:
@@ -577,7 +584,7 @@ if __name__ == '__main__':
 
     if True:
         # Deserialize and verify a transaction
-        txid = 'a969ea4ab60cfb1accbb451f59d44ce204b3e361888fce58a2a15d876487fe99'
+        txid = 'f9a8e620ad9be16318965ac983cc4f204894a4f27b2de680138bfe501bbdd7e3'
         rt = bdc.getrawtransaction(txid)
         print("Raw: %s" % rt)
         t = Transaction.import_raw(rt)
