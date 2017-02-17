@@ -584,7 +584,7 @@ if __name__ == '__main__':
 
     if True:
         # Deserialize and verify a transaction
-        txid = 'f9a8e620ad9be16318965ac983cc4f204894a4f27b2de680138bfe501bbdd7e3'
+        txid = 'e6a122dfd46970f8c473a1ddba23ba2e955d5edebea04506dd0026a470002e13'
         rt = bdc.getrawtransaction(txid)
         print("Raw: %s" % rt)
         t = Transaction.import_raw(rt)
@@ -592,8 +592,8 @@ if __name__ == '__main__':
         print("Verified: %s" % t.verify())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 0
-    error_count = 0
+    MAX_TRANSACTIONS_VIEW = 1
+    error_count = 1
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
         blockhash = bdc.proxy.getbestblockhash()
@@ -617,25 +617,25 @@ if __name__ == '__main__':
         print("===   D O N E   ===")
 
         # Deserialize transactions in the bitcoind mempool client
-        # print("\n=== DESERIALIZE MEMPOOL TRANSACTIONS ===")
-        # newtxs = bdc.proxy.getrawmempool()
-        # ci = 0
-        # ct = len(newtxs)
-        # print("Found %d transactions in mempool" % len(newtxs))
-        # for txid in newtxs:
-        #     ci += 1
-        #     print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
-        #     try:
-        #         rt = bdc.getrawtransaction(txid)
-        #         print("- raw %s" % rt)
-        #         t = Transaction.import_raw(rt)
-        #         pprint(t.get())
-        #     except Exception as e:
-        #         print("Error when importing raw transaction %d, error %s", (txid, e))
-        #         error_count += 1
-        #     if ci > MAX_TRANSACTIONS_VIEW:
-        #         break
-        # print("===   %d mempool transactions deserialised   ===" %
-        #       (ct if ct < MAX_TRANSACTIONS_VIEW else MAX_TRANSACTIONS_VIEW))
-        # print("===   errorcount %d" % error_count)
-        # print("===   D O N E   ===")
+        print("\n=== DESERIALIZE MEMPOOL TRANSACTIONS ===")
+        newtxs = bdc.proxy.getrawmempool()
+        ci = 0
+        ct = len(newtxs)
+        print("Found %d transactions in mempool" % len(newtxs))
+        for txid in newtxs:
+            ci += 1
+            print("[%d/%d] Deserialize txid %s" % (ci, ct, txid))
+            try:
+                rt = bdc.getrawtransaction(txid)
+                print("- raw %s" % rt)
+                t = Transaction.import_raw(rt)
+                pprint(t.get())
+            except Exception as e:
+                print("Error when importing raw transaction %d, error %s", (txid, e))
+                error_count += 1
+            if ci > MAX_TRANSACTIONS_VIEW:
+                break
+        print("===   %d mempool transactions deserialised   ===" %
+              (ct if ct < MAX_TRANSACTIONS_VIEW else MAX_TRANSACTIONS_VIEW))
+        print("===   errorcount %d" % error_count)
+        print("===   D O N E   ===")
