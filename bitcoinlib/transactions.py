@@ -550,15 +550,21 @@ if __name__ == '__main__':
         print("Verified %s\n\n\n" % t.verify())
 
     # Create and sign Testnet Transaction with multiple outputs using keys from Wallet class 'TestNetWallet' example
-    # See txid ...
+    # See txid f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618
     if True:
         ki = Key('cRMjy1LLMPsVU4uaAt3br8Ft5vdJLx6prY4Sx7WjPARrpYAnVEkV')  # Private key for import
         input = Input(prev_hash='adee8bdd011f60e52949b65b069ff9f19fc220815fdc1a6034613ed1f6b775f1', output_index=1,
                       public_key=ki.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
-        output = Output(880000, public_key_hash=ko.hash160(), network='testnet')
-        t = Transaction([input], [output], network='testnet')
+        amount_per_address = 27172943
+        output_addresses = ['mn6xJw1Cp2gLcSSQAYPnX4G2M6GARGyX5j', 'n3pdL33MgTA316odzeydhNrcKXdu6jy8ry',
+                            'n1Bq89KaJrcaXEMUEsDSyhKHfTGi8mkfRJ', 'mrqYnxFPcf6u5xkEfmA3dxQzjB7ZcPgtTq',
+                            'mwrETLWFdvEfDwRa44JvXngxCZp59MFcC6']
+        outputs = []
+        for oa in output_addresses:
+            outputs.append(Output(amount_per_address, address=oa, network='testnet'))
+        t = Transaction([input], outputs, network='testnet')
         t.sign(ki.private_byte(), 0)
         pprint(t.get())
         print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
