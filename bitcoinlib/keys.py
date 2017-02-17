@@ -670,9 +670,9 @@ if __name__ == '__main__':
     # KEYS EXAMPLES
     #
 
-    # print("\n=== Import public key ===")
-    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    # K.info()
+    print("\n=== Import public key ===")
+    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    K.info()
 
     # TODO - this should work:
     # print("\n==== Import private key as string ===")
@@ -684,7 +684,6 @@ if __name__ == '__main__':
     # pk = u'0239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e9d'
     K = Key(pk)
     K.info()
-    sys.exit()
 
     print("\n=== Import Private Key ===")
     k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')

@@ -549,6 +549,21 @@ if __name__ == '__main__':
         print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
         print("Verified %s\n\n\n" % t.verify())
 
+    # Create and sign Testnet Transaction with multiple outputs using keys from Wallet class 'TestNetWallet' example
+    # See txid ...
+    if True:
+        ki = Key('cRMjy1LLMPsVU4uaAt3br8Ft5vdJLx6prY4Sx7WjPARrpYAnVEkV')  # Private key for import
+        input = Input(prev_hash='adee8bdd011f60e52949b65b069ff9f19fc220815fdc1a6034613ed1f6b775f1', output_index=1,
+                      public_key=ki.public(), network='testnet')
+        # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
+        ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
+        output = Output(880000, public_key_hash=ko.hash160(), network='testnet')
+        t = Transaction([input], [output], network='testnet')
+        t.sign(ki.private_byte(), 0)
+        pprint(t.get())
+        print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+        print("Verified %s\n\n\n" % t.verify())
+
     # Create bitcoin transaction with UTXO, amount, address and private key
     # See txid d99070c63e04a6bdb38b553733838d6196198908c8b8930bec0ba502bc483b72
     if False:
@@ -578,11 +593,11 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if True:
+    if False:
         from bitcoinlib.services.bitcoind import BitcoindClient
         bdc = BitcoindClient.from_config()
 
-    if True:
+    if False:
         # Deserialize and verify a transaction
         txid = 'e6a122dfd46970f8c473a1ddba23ba2e955d5edebea04506dd0026a470002e13'
         rt = bdc.getrawtransaction(txid)
@@ -592,7 +607,7 @@ if __name__ == '__main__':
         print("Verified: %s" % t.verify())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 1
+    MAX_TRANSACTIONS_VIEW = 0
     error_count = 1
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
