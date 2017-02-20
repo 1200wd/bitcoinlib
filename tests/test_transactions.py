@@ -168,6 +168,16 @@ class TestTransactions(unittest.TestCase):
         t.sign(pk.private_byte(), 0)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
 
+    def test_transactions_multiple_outputs(self):
+        t = Transaction()
+        t.add_output(2710000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+        t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
+        t.add_output(2730000, '15pV2dYQAWeahtTVGAzDeX1K1ndqgRU2go')
+        self.assertEqual(3, len(t.outputs))
+
+    def test_transactions_sign_multiple_inputs(self):
+        pass
+
 
 class TestTransactionsScriptType(unittest.TestCase):
 
