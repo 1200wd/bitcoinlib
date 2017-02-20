@@ -575,11 +575,16 @@ if __name__ == '__main__':
     if True:
         # 5 inputs ('prev_hash', 'index', 'private_key')
         tis = [
-            ('', '', ''),
-            ('', '', ''),
-            ('', '', ''),
-            ('', '', ''),
-            ('', '', ''),
+            (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 0,
+             'cQowpHh56TrwVk3YSYFuUo8X4ZLXkGJMtbkuo7NyauZZBGs9Tb7U'),
+            (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 1,
+             'cSVr1HyJ2V2S2C57HsSF5QwkJjEhfLDpPporv6iFgJG2kFQqE9yh'),
+            (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 2,
+             'cPMakfwNRW2dzBBcfcxiJu7ucpD5Xjb1Zev88Tz6mYNrwU4ymZCf'),
+            (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 3,
+             'cR1TSoqB8vS3azmBMZa4khssXw1V2agPxM76Xc4ciULie3cdKPDr'),
+            (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 4,
+             'cW19vMM1k8x2Luawr1FZogQibggg5745eNE8GLJcZXYQb7eYc3Cf')
         ]
         inputs = []
         for ti in tis:
@@ -587,15 +592,12 @@ if __name__ == '__main__':
             inputs.append(Input(prev_hash=ti[0], output_index=ti[1],
                           public_key=ki.public(), network='testnet'))
 
-        # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
-        ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
-        amount = 27172943
-        outputs = [Output(amount, address=ko.address(), network='testnet')]
+        outputs = [Output(135860000, address='mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2', network='testnet')]
         t = Transaction(inputs, outputs, network='testnet')
 
         for ti in tis:
             ki = Key(ti[2])
-            t.sign(ki.private_byte(), 0)
+            t.sign(ki.private_byte(), ti[1])
         pprint(t.get())
         print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
         print("Verified %s\n\n\n" % t.verify())
