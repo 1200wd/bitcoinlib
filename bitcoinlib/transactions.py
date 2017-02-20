@@ -269,6 +269,7 @@ class Input:
 
     def json(self):
         return {
+            'id': self.id,
             'prev_hash': to_hexstring(self.prev_hash),
             'type': self.type,
             'address': self.address,
@@ -571,7 +572,7 @@ if __name__ == '__main__':
         print("Verified %s\n\n\n" % t.verify())
 
     # Create and sign Testnet Transaction with Multiple INPUTS using keys from Wallet class 'TestNetWallet' example
-    # See txid ...
+    # See txid 82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9
     if True:
         # 5 inputs ('prev_hash', 'index', 'private_key')
         tis = [
@@ -590,7 +591,7 @@ if __name__ == '__main__':
         for ti in tis:
             ki = Key(ti[2])
             inputs.append(Input(prev_hash=ti[0], output_index=ti[1],
-                          public_key=ki.public(), network='testnet'))
+                          public_key=ki.public(), network='testnet', id=ti[1]))
 
         outputs = [Output(135860000, address='mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2', network='testnet')]
         t = Transaction(inputs, outputs, network='testnet')
