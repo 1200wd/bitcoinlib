@@ -434,9 +434,7 @@ class Transaction:
 
     def add_input(self, prev_hash, output_index, script_sig=b'', public_key=b'', network=NETWORK_BITCOIN,
                   sequence=b'\xff\xff\xff\xff'):
-        new_id = 0
-        if len(self.inputs):
-            new_id = len(self.inputs) + 1
+        new_id = len(self.inputs)
         self.inputs.append(Input(prev_hash, output_index, script_sig, public_key, network, sequence, new_id))
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', script=b'', network=NETWORK_BITCOIN):
@@ -525,7 +523,7 @@ if __name__ == '__main__':
 
     # Example based on explanation on
     # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
-    if True:
+    if False:
         t = Transaction()
         prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
@@ -589,8 +587,10 @@ if __name__ == '__main__':
 
     # Create and sign Testnet Transaction with Multiple INPUTS using keys from Wallet class 'TestNetWallet' example
     # See txid 82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9
-    if False:
+    if True:
         # 5 inputs ('prev_hash', 'index', 'private_key')
+        outputs = [Output(135860000, address='mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2', network='testnet')]
+        t = Transaction(outputs=outputs, network='testnet')
         tis = [
             (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 0,
              'cQowpHh56TrwVk3YSYFuUo8X4ZLXkGJMtbkuo7NyauZZBGs9Tb7U'),
@@ -606,15 +606,12 @@ if __name__ == '__main__':
         inputs = []
         for ti in tis:
             ki = Key(ti[2])
-            inputs.append(Input(prev_hash=ti[0], output_index=ti[1],
-                          public_key=ki.public(), network='testnet', id=ti[1]))
-
-        outputs = [Output(135860000, address='mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2', network='testnet')]
-        t = Transaction(inputs, outputs, network='testnet')
-
+            t.add_input(prev_hash=ti[0], output_index=ti[1], public_key=ki.public(), network='testnet')
+        icount = 0
         for ti in tis:
             ki = Key(ti[2])
-            t.sign(ki.private_byte(), ti[1])
+            t.sign(ki.private_byte(), icount)
+            icount += 1
         pprint(t.get())
         print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
         print("Verified %s\n\n\n" % t.verify())
