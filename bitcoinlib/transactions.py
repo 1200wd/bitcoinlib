@@ -342,9 +342,16 @@ class Transaction:
         inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
-    def __init__(self, inputs, outputs, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'', network=NETWORK_BITCOIN):
-        self.inputs = inputs
-        self.outputs = outputs
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'',
+                 network=NETWORK_BITCOIN):
+        if inputs is None:
+            self.inputs = []
+        else:
+            self.inputs = inputs
+        if outputs is None:
+            self.outputs = []
+        else:
+            self.outputs = outputs
         self.version = version
         self.locktime = locktime
         self.rawtx = rawtx
@@ -424,6 +431,16 @@ class Transaction:
         self.inputs[id].script_sig = varstr(sig_der) + varstr(pub_key)
         self.inputs[id].signature = binascii.hexlify(sig)
         # self.inputs[id].public_key = pub_key
+
+    def add_input(self, prev_hash, output_index, script_sig=b'', public_key=b'', network=NETWORK_BITCOIN,
+                  sequence=b'\xff\xff\xff\xff'):
+        new_id = 0
+        if len(self.inputs):
+            new_id = len(self.inputs) + 1
+        self.inputs.append(Input(prev_hash, output_index, script_sig, public_key, network, sequence, new_id))
+
+    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', script=b'', network=NETWORK_BITCOIN):
+        self.outputs.append(Output(amount, address, public_key_hash, public_key, script, network))
 
 
 if __name__ == '__main__':
@@ -508,13 +525,12 @@ if __name__ == '__main__':
 
     # Example based on explanation on
     # http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580
-    if False:
+    if True:
+        t = Transaction()
         prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        utxo_input = Input(prev_hash=prev_tx, output_index=1, public_key=ki.public_hex())
-        transaction_output = Output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
-        t = Transaction([utxo_input], [transaction_output])
-        print(binascii.hexlify(t.raw(0)))
+        t.add_input(prev_hash=prev_tx, output_index=1, public_key=ki.public_hex())
+        t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
         t.sign(ki.private_byte())
         pprint(t.get())
         print(binascii.hexlify(t.raw()))
@@ -573,7 +589,7 @@ if __name__ == '__main__':
 
     # Create and sign Testnet Transaction with Multiple INPUTS using keys from Wallet class 'TestNetWallet' example
     # See txid 82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9
-    if True:
+    if False:
         # 5 inputs ('prev_hash', 'index', 'private_key')
         tis = [
             (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 0,
