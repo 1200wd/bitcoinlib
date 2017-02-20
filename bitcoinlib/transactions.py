@@ -75,7 +75,7 @@ def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
         inputs.append(Input(prev_hash=inp_hash, output_index=inp_index, script_sig=scriptsig,
-                            sequence=sequence_number, id=i, network=network))
+                            sequence=sequence_number, tid=i, network=network))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
 
@@ -227,14 +227,14 @@ def script_to_string(script):
 class Input:
 
     def __init__(self, prev_hash, output_index, script_sig=b'', public_key=b'', network=NETWORK_BITCOIN,
-                 sequence=b'\xff\xff\xff\xff', id=0):
+                 sequence=b'\xff\xff\xff\xff', tid=0):
         self.prev_hash = to_bytes(prev_hash)
         self.output_index = output_index
         if isinstance(output_index, numbers.Number):
             self.output_index = struct.pack('>I', output_index)
         self.script_sig = to_bytes(script_sig)
         self.sequence = to_bytes(sequence)
-        self.id = id
+        self.tid = tid
         self.public_key = to_bytes(public_key)
 
         self.signature = b''
@@ -269,7 +269,7 @@ class Input:
 
     def json(self):
         return {
-            'id': self.id,
+            'tid': self.tid,
             'prev_hash': to_hexstring(self.prev_hash),
             'type': self.type,
             'address': self.address,
@@ -379,7 +379,7 @@ class Transaction:
             r += i.prev_hash[::-1] + i.output_index[::-1]
             if sign_id is None:
                 r += struct.pack('B', len(i.script_sig)) + i.script_sig
-            elif sign_id == i.id:
+            elif sign_id == i.tid:
                 r += b'\x19\x76\xa9\x14' + to_bytes(i.public_key_hash) + \
                      b'\x88\xac'
             else:
@@ -399,7 +399,7 @@ class Transaction:
         for i in self.inputs:
             if i.type == 'coinbase':
                 return True
-            t_to_sign = self.raw(i.id)
+            t_to_sign = self.raw(i.tid)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             pk = binascii.unhexlify(i.public_key_uncompressed[2:])
             try:

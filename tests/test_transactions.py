@@ -50,6 +50,7 @@ class TestTransactionInputs(unittest.TestCase):
              b"\xbb)+U\xd7\xed\x1f\r\xc8 \x9d\x13"
         ti = Input(ph, ii, script_sig=ss)
         r = {
+            'tid': 0,
             'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
             'script_sig': '47304402206ca28f7bafdd65bdfc0fbd88f5a5b003699127caf0fff6e65535d7f131152c0302201617303f63'
                           '8e08947f18697edcb3a7a53ae66df94f2629db98dc0cc5076b34b7012102309a196919cff1d18754271be7ee'
