@@ -173,6 +173,7 @@ class TestTransactions(unittest.TestCase):
         t.add_output(2710000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
         t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
         t.add_output(2730000, '15pV2dYQAWeahtTVGAzDeX1K1ndqgRU2go')
+        t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
         self.assertEqual(3, len(t.outputs))
 
     def test_transactions_sign_multiple_inputs(self):

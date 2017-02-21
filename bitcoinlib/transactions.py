@@ -589,7 +589,7 @@ if __name__ == '__main__':
     # See txid 82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9
     if True:
         # 5 inputs ('prev_hash', 'index', 'private_key')
-        outputs = [Output(135860000, address='mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2', network='testnet')]
+        outputs = [Output(135000000, address='mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2', network='testnet')]
         t = Transaction(outputs=outputs, network='testnet')
         tis = [
             (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 0,
@@ -606,7 +606,8 @@ if __name__ == '__main__':
         inputs = []
         for ti in tis:
             ki = Key(ti[2])
-            t.add_input(prev_hash=ti[0], output_index=ti[1], public_key=ki.public(), network='testnet')
+            t.add_input(prev_hash=ti[0], output_index=ti[1], public_key=ki.public(), network='testnet',
+                        sequence=b'\xff\xff\xff\xff')
         icount = 0
         for ti in tis:
             ki = Key(ti[2])

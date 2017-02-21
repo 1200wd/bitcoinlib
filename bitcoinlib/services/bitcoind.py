@@ -65,6 +65,9 @@ class BitcoindClient:
         res = self.proxy.getrawtransaction(txid)
         return res
 
+    def sendrawtransaction(self, rawtx):
+        return self.proxy.sendrawtransaction(rawtx)
+
 
 if __name__ == '__main__':
     #
@@ -72,7 +75,7 @@ if __name__ == '__main__':
     #
 
     from pprint import pprint
-    bdc = BitcoindClient.from_config()
+    bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getinfo())
