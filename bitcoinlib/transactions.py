@@ -68,13 +68,13 @@ def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
         inp_index = rawtx[cursor + 32:cursor + 36][::-1]
         cursor += 36
 
-        scriptsig_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+        unlock_scr_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
-        scriptsig = rawtx[cursor:cursor + scriptsig_size]
-        cursor += scriptsig_size
+        unlock_scr = rawtx[cursor:cursor + unlock_scr_size]
+        cursor += unlock_scr_size
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
-        inputs.append(Input(prev_hash=inp_hash, output_index=inp_index, script_sig=scriptsig,
+        inputs.append(Input(prev_hash=inp_hash, output_index=inp_index, unlocking_script=unlock_scr,
                             sequence=sequence_number, tid=i, network=network))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
@@ -85,11 +85,11 @@ def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
     for o in range(0, n_outputs):
         amount = change_base(rawtx[cursor:cursor + 8][::-1], 256, 10)
         cursor += 8
-        script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+        lock_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
-        script = rawtx[cursor:cursor + script_size]
-        cursor += script_size
-        outputs.append(Output(amount=amount, script=script, network=network))
+        lock_script = rawtx[cursor:cursor + lock_script_size]
+        cursor += lock_script_size
+        outputs.append(Output(amount=amount, lock_script=lock_script, network=network))
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
@@ -195,7 +195,7 @@ def script_deserialize(script, script_types=None):
 
         if found:
             return [tp, data, number_of_sigs_m, number_of_sigs_n]
-    _logger.warning("Could not parse script, unrecognized script. Script: %s" % to_hexstring(script))
+    _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
     return ["unknown", '', '', '']
 
 
@@ -226,13 +226,13 @@ def script_to_string(script):
 
 class Input:
 
-    def __init__(self, prev_hash, output_index, script_sig=b'', public_key=b'', network=NETWORK_BITCOIN,
+    def __init__(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', network=NETWORK_BITCOIN,
                  sequence=b'\xff\xff\xff\xff', tid=0):
         self.prev_hash = to_bytes(prev_hash)
         self.output_index = output_index
         if isinstance(output_index, numbers.Number):
             self.output_index = struct.pack('>I', output_index)
-        self.script_sig = to_bytes(script_sig)
+        self.unlocking_script = to_bytes(unlocking_script)
         self.sequence = to_bytes(sequence)
         self.tid = tid
         self.public_key = to_bytes(public_key)
@@ -250,9 +250,9 @@ class Input:
             self.type = 'coinbase'
 
         pk2 = b''
-        if script_sig and self.type != 'coinbase':
+        if unlocking_script and self.type != 'coinbase':
             try:
-                self.signature, pk2 = script_deserialize_sigpk(script_sig)
+                self.signature, pk2 = script_deserialize_sigpk(unlocking_script)
             except:
                 _logger.warning("Could not parse input script signature")
                 pass
@@ -276,7 +276,7 @@ class Input:
             'public_key': self._public_key,
             'public_key_hash': to_hexstring(self.public_key_hash),
             'output_index': to_hexstring(self.output_index),
-            'script_sig': to_hexstring(self.script_sig),
+            'unlocking_script': to_hexstring(self.unlocking_script),
             'sequence': to_hexstring(self.sequence),
         }
 
@@ -286,12 +286,12 @@ class Input:
 
 class Output:
 
-    def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', script=b'', network=NETWORK_BITCOIN):
-        if not (address or public_key_hash or public_key or script):
-            raise TransactionError("Please specify address, script, public key or public key hash when creating output")
+    def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'', network=NETWORK_BITCOIN):
+        if not (address or public_key_hash or public_key or lock_script):
+            raise TransactionError("Please specify address, lock_script, public key or public key hash when creating output")
 
         self.amount = amount
-        self.script = to_bytes(script)
+        self.lock_script = to_bytes(lock_script)
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
         self.public_key = to_bytes(public_key)
@@ -312,19 +312,19 @@ class Output:
         if not self.public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
 
-        if self.script and not self.public_key_hash:
-            ps = script_deserialize(self.script)
+        if self.lock_script and not self.public_key_hash:
+            ps = script_deserialize(self.lock_script)
             if ps[0] == 'p2pkh':
                 self.public_key_hash = binascii.hexlify(ps[1][0])
                 self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=self.versionbyte)
 
-        if self.script == b'':
-            self.script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
+        if self.lock_script == b'':
+            self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
 
     def json(self):
         return {
             'amount': self.amount,
-            'script': to_hexstring(self.script),
+            'lock_script': to_hexstring(self.lock_script),
             'public_key': to_hexstring(self.public_key),
             'public_key_hash': to_hexstring(self.public_key_hash),
             'address': self.address,
@@ -378,7 +378,7 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_index[::-1]
             if sign_id is None:
-                r += struct.pack('B', len(i.script_sig)) + i.script_sig
+                r += struct.pack('B', len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.tid:
                 r += b'\x19\x76\xa9\x14' + to_bytes(i.public_key_hash) + \
                      b'\x88\xac'
@@ -389,7 +389,7 @@ class Transaction:
         r += int_to_varbyteint(len(self.outputs))
         for o in self.outputs:
             r += struct.pack('<Q', o.amount)
-            r += struct.pack('B', len(o.script)) + o.script
+            r += struct.pack('B', len(o.lock_script)) + o.lock_script
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += b'\1\0\0\0'
@@ -403,13 +403,13 @@ class Transaction:
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             pk = binascii.unhexlify(i.public_key_uncompressed[2:])
             try:
-                sighex, pk2 = script_deserialize_sigpk(i.script_sig)
+                sighex, pk2 = script_deserialize_sigpk(i.unlocking_script)
             except Exception as e:
                 # TODO: Add support for other script_types
-                _logger.warning("Error %s. No support for script type %s" % (e, script_type(i.script_sig)))
+                _logger.warning("Error %s. No support for script type %s" % (e, script_type(i.unlocking_script)))
                 return False
 
-            # sighex, pk2 = script_deserialize(i.script_sig)
+            # sighex, pk2 = script_deserialize(i.unlocking_script)
             sig = binascii.unhexlify(sighex)
             vk = ecdsa.VerifyingKey.from_string(pk, curve=ecdsa.SECP256k1)
             try:
@@ -428,17 +428,17 @@ class Transaction:
         k = Key(priv_key)
         # pub_key = binascii.unhexlify(k.public_uncompressed())
         pub_key = binascii.unhexlify(k.public())
-        self.inputs[id].script_sig = varstr(sig_der) + varstr(pub_key)
+        self.inputs[id].unlocking_script = varstr(sig_der) + varstr(pub_key)
         self.inputs[id].signature = binascii.hexlify(sig)
         # self.inputs[id].public_key = pub_key
 
-    def add_input(self, prev_hash, output_index, script_sig=b'', public_key=b'', network=NETWORK_BITCOIN,
+    def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', network=NETWORK_BITCOIN,
                   sequence=b'\xff\xff\xff\xff'):
         new_id = len(self.inputs)
-        self.inputs.append(Input(prev_hash, output_index, script_sig, public_key, network, sequence, new_id))
+        self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, network, sequence, new_id))
 
-    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', script=b'', network=NETWORK_BITCOIN):
-        self.outputs.append(Output(amount, address, public_key_hash, public_key, script, network))
+    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'', network=NETWORK_BITCOIN):
+        self.outputs.append(Output(amount, address, public_key_hash, public_key, lock_script, network))
 
 
 if __name__ == '__main__':
@@ -483,7 +483,7 @@ if __name__ == '__main__':
         t = Transaction.import_raw(rt)
         print("Raw: %s" % to_hexstring(t.raw()))
         pprint(t.get())
-        output_script = t.outputs[0].script
+        output_script = t.outputs[0].lock_script
         print("\nOutput Script Type: %s " % script_type(output_script))
         print("Output Script String: %s" % script_to_string(output_script))
         print("\nt.verified() ==> %s" % t.verify())
@@ -587,7 +587,7 @@ if __name__ == '__main__':
 
     # Create and sign Testnet Transaction with Multiple INPUTS using keys from Wallet class 'TestNetWallet' example
     # See txid 82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9
-    if True:
+    if False:
         # 5 inputs ('prev_hash', 'index', 'private_key')
         outputs = [Output(135000000, address='mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2', network='testnet')]
         t = Transaction(outputs=outputs, network='testnet')
@@ -646,11 +646,11 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if False:
+    if True:
         from bitcoinlib.services.bitcoind import BitcoindClient
         bdc = BitcoindClient.from_config()
 
-    if False:
+    if True:
         # Deserialize and verify a transaction
         txid = 'e6a122dfd46970f8c473a1ddba23ba2e955d5edebea04506dd0026a470002e13'
         rt = bdc.getrawtransaction(txid)
@@ -660,7 +660,7 @@ if __name__ == '__main__':
         print("Verified: %s" % t.verify())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 0
+    MAX_TRANSACTIONS_VIEW = 5
     error_count = 1
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
