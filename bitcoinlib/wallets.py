@@ -430,87 +430,94 @@ if __name__ == '__main__':
         os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
-        wallet.info(detail=3)
-        wallet.new_account()
-        new_key1 = wallet.new_key()
-        new_key2 = wallet.new_key()
-        new_key3 = wallet.new_key()
-        new_key4 = wallet.new_key(change=1)
-        wallet.key_for_path('m/0/0')
-        donations_account = wallet.new_account()
-        new_key5 = wallet.new_key(account_id=donations_account.account_id)
-        wallet.info(detail=3)
+    if False:
+        with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
+            wallet.info(detail=3)
+            wallet.new_account()
+            new_key1 = wallet.new_key()
+            new_key2 = wallet.new_key()
+            new_key3 = wallet.new_key()
+            new_key4 = wallet.new_key(change=1)
+            wallet.key_for_path('m/0/0')
+            donations_account = wallet.new_account()
+            new_key5 = wallet.new_key(account_id=donations_account.account_id)
+            wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    wallet_import = HDWallet.create(
-        name='TestNetWallet',
-        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-            '7irEvBoe4aAn52',
-        network='testnet',
-        databasefile=test_database)
-    wallet_import.new_account(account_id=99)
-    nk = wallet_import.new_key(account_id=99, name="Faucet gift")
-    nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
-    wallet_import.updateutxos()
-    wallet_import.updatebalance()
-    wallet_import.info(detail=3)
+    if True:
+        wallet_import = HDWallet.create(
+            name='TestNetWallet',
+            key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+                '7irEvBoe4aAn52',
+            network='testnet',
+            databasefile=test_database)
+        wallet_import.new_account(account_id=99)
+        nk = wallet_import.new_key(account_id=99, name="Faucet gift")
+        nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
+        wallet_import.updateutxos()
+        wallet_import.updatebalance()
+        wallet_import.info(detail=3)
 
     # -- Import Account Bitcoin Testnet key with depth 3
-    accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
-                 '8Y7KbKUnaMzxnnnsSvh'
-    wallet_import2 = HDWallet.create(
-        databasefile=test_database,
-        name='Account Import',
-        key=accountkey,
-        network='testnet',
-        account_id=99)
-    wallet_import2.info(detail=3)
-    del wallet_import2
+    if False:
+        accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+                     '8Y7KbKUnaMzxnnnsSvh'
+        wallet_import2 = HDWallet.create(
+            databasefile=test_database,
+            name='Account Import',
+            key=accountkey,
+            network='testnet',
+            account_id=99)
+        wallet_import2.info(detail=3)
+        del wallet_import2
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
-    wallet_import2 = HDWallet.create(
-        name='Company Wallet',
-        key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
-            'TtpgP4mLTj34bhnZX7UiM',
-        network='bitcoin',
-        account_id=2, purpose=0,
-        databasefile=test_database)
-    wallet_import2.info(detail=3)
-    del wallet_import2
+    if False:
+        wallet_import2 = HDWallet.create(
+            name='Company Wallet',
+            key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
+                'TtpgP4mLTj34bhnZX7UiM',
+            network='bitcoin',
+            account_id=2, purpose=0,
+            databasefile=test_database)
+        wallet_import2.info(detail=3)
+        del wallet_import2
 
     # -- Create simple wallet with just some private keys --
-    simple_wallet = HDWallet.create(
-        name='Simple Wallet',
-        key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
-        databasefile=test_database)
-    simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
-    simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
-    simple_wallet.updateutxos()
-    simple_wallet.info(detail=3)
-    del simple_wallet
+    if False:
+        simple_wallet = HDWallet.create(
+            name='Simple Wallet',
+            key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
+            databasefile=test_database)
+        simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
+        simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
+        simple_wallet.updateutxos()
+        simple_wallet.info(detail=3)
+        del simple_wallet
 
     # -- Create online wallet to generate addresses without private key
-    pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
-             'wt9SrsVeBeqfBbR3'
-    pubwal = HDWallet.create(
-        databasefile=test_database,
-        name='Import Public Key Wallet',
-        key=pubkey,
-        network='testnet',
-        account_id=0)
-    newkey = pubwal.new_key()
-    pubwal.info(detail=3)
-    del pubwal
+    if False:
+        pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
+                 'wt9SrsVeBeqfBbR3'
+        pubwal = HDWallet.create(
+            databasefile=test_database,
+            name='Import Public Key Wallet',
+            key=pubkey,
+            network='testnet',
+            account_id=0)
+        newkey = pubwal.new_key()
+        pubwal.info(detail=3)
+        del pubwal
 
     # -- Litecoin wallet
-    litecoin_wallet = HDWallet.create(
-        databasefile=test_database,
-        name='Litecoin Wallet',
-        network='litecoin')
-    newkey = litecoin_wallet.new_key()
-    litecoin_wallet.info(detail=3)
-    del litecoin_wallet
+    if False:
+        litecoin_wallet = HDWallet.create(
+            databasefile=test_database,
+            name='Litecoin Wallet',
+            network='litecoin')
+        newkey = litecoin_wallet.new_key()
+        litecoin_wallet.info(detail=3)
+        del litecoin_wallet
 
     # -- List wallets & delete a wallet
     print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))

@@ -652,7 +652,7 @@ if __name__ == '__main__':
 
     if True:
         # Deserialize and verify a transaction
-        txid = 'e6a122dfd46970f8c473a1ddba23ba2e955d5edebea04506dd0026a470002e13'
+        txid = '73652b5f704b0a112b8bc68d063dac6238eb3e2861074a7a12ce24e2a332bd45'
         rt = bdc.getrawtransaction(txid)
         print("Raw: %s" % rt)
         t = Transaction.import_raw(rt)
@@ -660,8 +660,8 @@ if __name__ == '__main__':
         print("Verified: %s" % t.verify())
 
     # Deserialize transactions in latest block with bitcoind client
-    MAX_TRANSACTIONS_VIEW = 5
-    error_count = 1
+    MAX_TRANSACTIONS_VIEW = 100
+    error_count = 0
     if MAX_TRANSACTIONS_VIEW:
         print("\n=== DESERIALIZE LAST BLOCKS TRANSACTIONS ===")
         blockhash = bdc.proxy.getbestblockhash()
