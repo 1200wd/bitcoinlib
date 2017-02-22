@@ -23,6 +23,7 @@ from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
 from bitcoinlib.config import networks
 from bitcoinlib.services.services import Service
+from bitcoinlib.transactions import Transaction
 
 _logger = logging.getLogger(__name__)
 
@@ -392,6 +393,33 @@ class HDWallet:
             new_utxo = DbUtxo(**utxo)
             self.session.add(new_utxo)
         self.session.commit()
+
+    def send(self, address, amount, fee=None):
+        outputs = [(address, amount)]
+        self.create_transaction(outputs, fee=fee)
+
+    def create_transaction(self, output_arr, input_arr=None, fee=None):
+        total_amount = 0
+        t = Transaction(network=self.network)
+        for o in output_arr:
+            total_amount += o.amount
+            t.add_output(output_arr[1], output_arr[0])
+
+        if input_arr is None:
+            # TODO: Select inputs
+            pass
+
+        # ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
+        # input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
+        #               public_key=ki.public(), network='testnet')
+        # # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
+        # ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
+        # output = Output(880000, public_key_hash=ko.hash160(), network='testnet')
+        # t = Transaction([input], [output], network='testnet')
+        # t.sign(ki.private_byte(), 0)
+        # pprint(t.get())
+        # print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+        # print("Verified %s\n\n\n" % t.verify())
 
     def info(self, detail=0):
         print("=== WALLET ===")

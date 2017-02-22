@@ -286,9 +286,11 @@ class Input:
 
 class Output:
 
-    def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'', network=NETWORK_BITCOIN):
+    def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
+                 network=NETWORK_BITCOIN):
         if not (address or public_key_hash or public_key or lock_script):
-            raise TransactionError("Please specify address, lock_script, public key or public key hash when creating output")
+            raise TransactionError("Please specify address, lock_script, public key or public key hash when "
+                                   "creating output")
 
         self.amount = amount
         self.lock_script = to_bytes(lock_script)
@@ -437,7 +439,8 @@ class Transaction:
         new_id = len(self.inputs)
         self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, network, sequence, new_id))
 
-    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'', network=NETWORK_BITCOIN):
+    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
+                   network=NETWORK_BITCOIN):
         self.outputs.append(Output(amount, address, public_key_hash, public_key, lock_script, network))
 
 
