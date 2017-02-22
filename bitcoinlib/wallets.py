@@ -394,27 +394,38 @@ class HDWallet:
             self.session.add(new_utxo)
         self.session.commit()
 
-    def send(self, to_address, amount, account=None, fee=None):
+    def send(self, to_address, amount, account_id=None, fee=None):
         outputs = [(to_address, amount)]
-        self.create_transaction(outputs, account=account, fee=fee)
+        self.create_transaction(outputs, account_id=account_id, fee=fee)
 
-    def create_transaction(self, output_arr, input_arr=None, account=None, fee=None):
+    def _select_inputs(self, amount, account_id=None):
+        self.updateutxos(account_id=account_id)
+        for k in self.keys():
+            print(k.balance)
+
+    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None):
         total_amount = 0
         t = Transaction(network=self.network)
         for o in output_arr:
-            total_amount += o.amount
-            t.add_output(output_arr[1], output_arr[0])
+            total_amount += o[1]
+            t.add_output(o[1], o[0])
 
         if input_arr is None:
             # TODO: Select inputs
+            input_arr = self._select_inputs(total_amount, account_id)
             pass
 
         # TODO: Add inputs
+        # for inp in input_arr:
+        #     t.add_input(inp[0], inp[1])
         # input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
         #               public_key=ki.public(), network='testnet')
         # TODO: Sign inputs
         # TODO: Verify transaction
         # TODO: Send transaction
+
+        from pprint import pprint
+        pprint(t.get())
 
     def info(self, detail=0):
         print("=== WALLET ===")
@@ -476,10 +487,14 @@ if __name__ == '__main__':
             databasefile=test_database)
         wallet_import.new_account(account_id=99)
         nk = wallet_import.new_key(account_id=99, name="Faucet gift")
+        nk2 = wallet_import.new_key(account_id=99, name="Send to test")
         nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
         wallet_import.updateutxos()
         wallet_import.updatebalance()
         wallet_import.info(detail=3)
+
+        # Send to test
+        wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 10)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
