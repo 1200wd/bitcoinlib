@@ -409,10 +409,14 @@ class HDWallet:
 
     def _select_inputs(self, amount, account_id=None):
         qr = self.session.query(DbUtxo)
-        if not account_id is None:
+        if account_id is not None:
             qr.filter(DbKey.account_id == account_id)
         utxos = qr.all()
-        print(utxos)
+        # TODO: select utxo's
+        # for utxo in utxos:
+        # 1. find utxo with exact value
+        # 2. find (oldest) utxo larger then amount
+        # 3. combine as less and as old as possible utxos 
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None):
         total_amount = 0
