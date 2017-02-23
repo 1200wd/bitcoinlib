@@ -388,11 +388,16 @@ class HDWallet:
                 continue
 
             key = self.session.query(DbKey).filter_by(address=utxo['address']).scalar()
-            del(utxo['address'])
-            utxo['key_id'] = key.id
-            new_utxo = DbUtxo(**utxo)
+            new_utxo = DbUtxo(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
+                              output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
+                              script=utxo['script'])
             self.session.add(new_utxo)
+            # TODO: Update balances
         self.session.commit()
+
+    def update(self, account_id):
+        pass
+        # TODO: call updateutxos
 
     def send(self, to_address, amount, account_id=None, fee=None):
         outputs = [(to_address, amount)]
@@ -559,5 +564,5 @@ if __name__ == '__main__':
 
     # -- List wallets & delete a wallet
     print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
-    delete_wallet(1, databasefile=test_database)
-    print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
+    # delete_wallet(1, databasefile=test_database)
+    # print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
