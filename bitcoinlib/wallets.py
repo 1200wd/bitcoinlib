@@ -403,18 +403,16 @@ class HDWallet:
             getkey.balance = key_balances[kb]
         self.session.commit()
 
-    def update(self, account_id):
-        pass
-        # TODO: call updateutxos
-
     def send(self, to_address, amount, account_id=None, fee=None):
         outputs = [(to_address, amount)]
         self.create_transaction(outputs, account_id=account_id, fee=fee)
 
     def _select_inputs(self, amount, account_id=None):
-        self.updateutxos(account_id=account_id)
-        for k in self.keys():
-            print(k.balance)
+        qr = self.session.query(DbUtxo)
+        if not account_id is None:
+            qr.filter(DbKey.account_id == account_id)
+        utxos = qr.all()
+        print(utxos)
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None):
         total_amount = 0
@@ -503,11 +501,10 @@ if __name__ == '__main__':
         nk2 = wallet_import.new_key(account_id=99, name="Send to test")
         nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
         wallet_import.updateutxos()
-        wallet_import.updatebalance()
         wallet_import.info(detail=3)
 
         # Send to test
-        wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 10)
+        wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 100000)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
