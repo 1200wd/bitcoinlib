@@ -382,17 +382,25 @@ class HDWallet:
 
     def updateutxos(self, account_id=None):
         utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id))
+        key_balances = {}
         for utxo in utxos:
+            key = self.session.query(DbKey).filter_by(address=utxo['address']).scalar()
+            if key.id in key_balances:
+                key_balances[key.id] += float(utxo['value'])
+            else:
+                key_balances[key.id] = float(utxo['value'])
+
             # Skip if utxo was already imported
             if self.session.query(DbUtxo).filter_by(tx_hash=utxo['tx_hash']).count():
                 continue
 
-            key = self.session.query(DbKey).filter_by(address=utxo['address']).scalar()
             new_utxo = DbUtxo(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
                               output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
                               script=utxo['script'])
             self.session.add(new_utxo)
-            # TODO: Update balances
+        for kb in key_balances:
+            getkey = self.session.query(DbKey).filter_by(id=kb).scalar()
+            getkey.balance = key_balances[kb]
         self.session.commit()
 
     def update(self, account_id):
