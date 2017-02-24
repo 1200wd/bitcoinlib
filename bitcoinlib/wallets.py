@@ -408,19 +408,20 @@ class HDWallet:
         self.create_transaction(outputs, account_id=account_id, fee=fee)
 
     @staticmethod
-    def _select_inputs(amount, utxos=None):
-        if not utxos:
+    def _select_inputs(amount, utxo_query=None):
+        if not utxo_query:
             return None
 
-        lessers = [utxo for utxo in utxos if utxo.value < amount]
-        greaters = [utxo for utxo in utxos if utxo.value >= amount]
-        if greaters:
-            return min(greaters)
-        # TODO: Sort utxos
-        # lessers.sort(key=operator.itemgetter('value'), reverse=True)
+        # Try to find one utxo with exact amount or higher
+        one_utxo = utxo_query.filter(DbUtxo.value >= amount).order_by(DbUtxo.value).first()
+        if one_utxo:
+            return one_utxo
+
+        # Otherwise compose of 2 or more lesser outputs
+        lessers = utxo_query.filter(DbUtxo.value < amount).order_by(DbUtxo.value.desc()).all()
         total_amount = 0
         selected_utxos = []
-        for utxo in utxos:
+        for utxo in lessers:
             if total_amount < amount:
                 selected_utxos.append(utxo)
                 total_amount += utxo.value
@@ -443,15 +444,18 @@ class HDWallet:
             return None
 
         # TODO: Estimate fees
+        if fee is None:
+            fee = 0.001
 
         if input_arr is None:
-            selected_utxos = self._select_inputs(total_amount, utxos)
-            from pprint import pprint
-            pprint(selected_utxos)
+            input_arr = []
+            selected_utxos = self._select_inputs(total_amount + fee, qr)
+            for utxo in selected_utxos:
+                input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
 
-        # TODO: Add inputs
-        # for inp in input_arr:
-        #     t.add_input(inp[0], inp[1])
+        # Add inputs
+        for inp in input_arr:
+            t.add_input(inp[0], inp[1])
         # input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
         #               public_key=ki.public(), network='testnet')
         # TODO: Sign inputs
