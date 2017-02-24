@@ -434,14 +434,12 @@ class Transaction:
         self.inputs[id].signature = binascii.hexlify(sig)
         # self.inputs[id].public_key = pub_key
 
-    def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', network=NETWORK_BITCOIN,
-                  sequence=b'\xff\xff\xff\xff'):
+    def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', sequence=b'\xff\xff\xff\xff'):
         new_id = len(self.inputs)
-        self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, network, sequence, new_id))
+        self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, self.network, sequence, new_id))
 
-    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
-                   network=NETWORK_BITCOIN):
-        self.outputs.append(Output(amount, address, public_key_hash, public_key, lock_script, network))
+    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
+        self.outputs.append(Output(amount, address, public_key_hash, public_key, lock_script, self.network))
 
 
 if __name__ == '__main__':

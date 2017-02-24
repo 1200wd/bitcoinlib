@@ -431,7 +431,7 @@ class HDWallet:
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None):
         total_amount = 0
-        t = Transaction(network=self.network)
+        t = Transaction(network=self.network.name)
         for o in output_arr:
             total_amount += o[1]
             t.add_output(o[1], o[0])
