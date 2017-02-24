@@ -415,7 +415,7 @@ class HDWallet:
         # Try to find one utxo with exact amount or higher
         one_utxo = utxo_query.filter(DbUtxo.value >= amount).order_by(DbUtxo.value).first()
         if one_utxo:
-            return one_utxo
+            return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
         lessers = utxo_query.filter(DbUtxo.value < amount).order_by(DbUtxo.value.desc()).all()
@@ -455,15 +455,18 @@ class HDWallet:
 
         # Add inputs
         for inp in input_arr:
-            t.add_input(inp[0], inp[1])
+            key = self.session.query(DbKey).filter_by(id=inp[2]).scalar()
+            k = HDKey(key.key_wif)
+            t.add_input(inp[0], inp[1], public_key=k.public().public_byte()
+)
         # input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
         #               public_key=ki.public(), network='testnet')
         # TODO: Sign inputs
         # TODO: Verify transaction
         # TODO: Send transaction
 
-        # from pprint import pprint
-        # pprint(t.get())
+        from pprint import pprint
+        pprint(t.get())
 
     def info(self, detail=0):
         print("=== WALLET ===")
