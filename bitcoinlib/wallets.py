@@ -398,9 +398,17 @@ class HDWallet:
                               output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
                               script=utxo['script'])
             self.session.add(new_utxo)
+
+        total_balance = 0
         for kb in key_balances:
             getkey = self.session.query(DbKey).filter_by(id=kb).scalar()
             getkey.balance = key_balances[kb]
+            total_balance += key_balances[kb]
+
+        # TODO: Fix this everywhere with setbalance(), balance(), _balance...
+        self.dbwallet.balance = total_balance
+        self.balance = total_balance
+
         self.session.commit()
 
     def send(self, to_address, amount, account_id=None, fee=None):
@@ -448,7 +456,7 @@ class HDWallet:
 
         # TODO: Estimate fees
         if fee is None:
-            fee = 1000000
+            fee = 200000
 
         # TODO: Put this in network definitions:
         denominator = pow(10, 8)
@@ -462,6 +470,9 @@ class HDWallet:
                 input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
 
             amount_change = int(amount_total_input - (amount_total_output + fee))
+        else:
+            # TODO:
+            raise WalletError("This is not implemented yet")
 
         # Add inputs
         sign_arr = []
@@ -524,8 +535,8 @@ if __name__ == '__main__':
     import os
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    # if os.path.isfile(test_database):
-    #     os.remove(test_database)
+    if os.path.isfile(test_database):
+        os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
     if False:
@@ -543,22 +554,27 @@ if __name__ == '__main__':
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
     if True:
-        # wallet_import = HDWallet.create(
-        #     name='TestNetWallet',
-        #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-        #         '7irEvBoe4aAn52',
-        #     network='testnet',
-        #     databasefile=test_database)
-        # wallet_import.new_account(account_id=99)
-        # nk = wallet_import.new_key(account_id=99, name="Faucet gift")
-        # nk2 = wallet_import.new_key(account_id=99, name="Send to test")
-        # nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
-        # wallet_import.updateutxos()
-        # wallet_import.info(detail=3)
+        wallet_import = HDWallet.create(
+            name='TestNetWallet',
+            key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+                '7irEvBoe4aAn52',
+            network='testnet',
+            databasefile=test_database)
+        wallet_import.new_account(account_id=99)
+        nk = wallet_import.new_key(account_id=99, name="Faucet gift")
+        nk2 = wallet_import.new_key(account_id=99, name="Send to test 2")
+        nk3 = wallet_import.new_key(account_id=99, name="Send to test 3")
+        nk4 = wallet_import.new_key(account_id=99, name="Send to test 4")
+        nk5 = wallet_import.new_key(account_id=99, name="Send to test 5")
+        nk6 = wallet_import.new_key(account_id=99, name="Send to test 6")
+        nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
+        nkc2 = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change 2)")
+        wallet_import.updateutxos()
+        wallet_import.info(detail=3)
 
-        wallet_import = HDWallet('TestNetWallet')
+        # wallet_import = HDWallet('TestNetWallet')
         # Send to test
-        wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 20000000)
+        wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 1000000)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
