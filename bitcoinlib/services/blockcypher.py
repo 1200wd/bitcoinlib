@@ -64,3 +64,6 @@ class BlockCypher(BaseClient):
                     'script': '',
                 })
         return utxos
+
+    def sendrawtransaction(self, rawtx):
+        return self.compose_request('txs', 'push', variables=[('tx', rawtx)])

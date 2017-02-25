@@ -93,6 +93,9 @@ class Service(object):
     def getrawtransaction(self, txid):
         return self._provider_execute('getrawtransaction', txid)
 
+    def sendrawtransaction(self, rawtx):
+        return self._provider_execute('sendrawtransaction', rawtx)
+
 
 if __name__ == '__main__':
     from pprint import pprint
@@ -104,3 +107,11 @@ if __name__ == '__main__':
     # Get RAW Transaction data for given Transaction ID
     t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
     pprint(Service(network='testnet', min_providers=2).getrawtransaction(t))
+
+    # Send RAW Transaction data (Should give 'outputs already spent' error)
+    rt = b'010000000108004b4c0394a211d4ec0d344b70bf1e3b1ce1731d11d1d30279ab0c0f6d9fd7000000006c493046022100ab18a72f7' \
+         b'87e4c8ea5d2f983b99df28d27e13482b91fd6d48701c055af92f525022100d1c26b8a779896a53a026248388896501e724e46407f' \
+         b'14a4a1b6478d3293da24012103e428723c145e61c35c070da86faadaf0fab21939223a5e6ce3e1cfd76bad133dffffffff0240420' \
+         b'f00000000001976a914bbaeed8a02f64c9d40462d323d379b8f27ad9f1a88ac905d1818000000001976a914046858970a72d33817' \
+         b'474c0e24e530d78716fc9c88ac00000000'
+    pprint(Service(network='testnet').sendrawtransaction(rt))

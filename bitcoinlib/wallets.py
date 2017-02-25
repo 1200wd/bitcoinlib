@@ -456,7 +456,7 @@ class HDWallet:
 
         # TODO: Estimate fees
         if fee is None:
-            fee = 200000
+            fee = 1000000
 
         # TODO: Put this in network definitions:
         denominator = pow(10, 8)
@@ -500,7 +500,8 @@ class HDWallet:
         from pprint import pprint
         import binascii
         pprint(t.get())
-        print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+        print("Send Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+        pprint(Service(network='testnet').sendrawtransaction(binascii.hexlify(t.raw())))
 
     def info(self, detail=0):
         print("=== WALLET ===")
