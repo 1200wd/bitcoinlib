@@ -66,4 +66,7 @@ class BlockCypher(BaseClient):
         return utxos
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('txs', 'push', variables=[('tx', rawtx)], method='post')
+        res = self.compose_request('txs', 'decode', variables=[('tx', rawtx)], method='post')
+        from pprint import pprint
+        pprint(res)
+        return res

@@ -22,6 +22,7 @@ from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
 from bitcoinlib.config import networks
+from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction
 
@@ -420,7 +421,7 @@ class HDWallet:
         import binascii
         pprint(t.get())
         print("Send Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
-        pprint(Service(network='testnet').sendrawtransaction(binascii.hexlify(t.raw())))
+        pprint(Service(network='testnet').sendrawtransaction(to_hexstring(t.raw())))
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
