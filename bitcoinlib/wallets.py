@@ -412,19 +412,21 @@ class HDWallet:
         if not utxo_query:
             return None
 
+        DENOMINATOR = pow(10, 8)
+
         # Try to find one utxo with exact amount or higher
-        one_utxo = utxo_query.filter(DbUtxo.value >= amount).order_by(DbUtxo.value).first()
+        one_utxo = utxo_query.filter(DbUtxo.value*DENOMINATOR >= amount).order_by(DbUtxo.value).first()
         if one_utxo:
             return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
-        lessers = utxo_query.filter(DbUtxo.value < amount).order_by(DbUtxo.value.desc()).all()
+        lessers = utxo_query.filter(DbUtxo.value*DENOMINATOR < amount).order_by(DbUtxo.value.desc()).all()
         total_amount = 0
         selected_utxos = []
         for utxo in lessers:
             if total_amount < amount:
                 selected_utxos.append(utxo)
-                total_amount += utxo.value
+                total_amount += utxo.value*DENOMINATOR
         if total_amount < amount:
             return None
         return selected_utxos
@@ -445,7 +447,7 @@ class HDWallet:
 
         # TODO: Estimate fees
         if fee is None:
-            fee = 0.001
+            fee = 100000
 
         if input_arr is None:
             input_arr = []
@@ -459,7 +461,7 @@ class HDWallet:
             key = self.session.query(DbKey).filter_by(id=inp[2]).scalar()
             k = HDKey(key.key_wif)
             id = t.add_input(inp[0], inp[1], public_key=k.public().public_byte())
-            sign_arr.append((k.private().public_byte(), id))
+            sign_arr.append((k.private().private_byte(), id))
 
         # Sign inputs
         for ti in sign_arr:
@@ -539,7 +541,7 @@ if __name__ == '__main__':
 
         wallet_import = HDWallet('TestNetWallet')
         # Send to test
-        wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 0.2)
+        wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 20000000)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
