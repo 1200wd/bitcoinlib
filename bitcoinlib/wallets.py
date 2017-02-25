@@ -454,17 +454,21 @@ class HDWallet:
                 input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
 
         # Add inputs
+        sign_arr = []
         for inp in input_arr:
             key = self.session.query(DbKey).filter_by(id=inp[2]).scalar()
             k = HDKey(key.key_wif)
-            t.add_input(inp[0], inp[1], public_key=k.public().public_byte()
-)
-        # input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
-        #               public_key=ki.public(), network='testnet')
-        # TODO: Sign inputs
-        # TODO: Verify transaction
-        # TODO: Send transaction
+            id = t.add_input(inp[0], inp[1], public_key=k.public().public_byte())
+            sign_arr.append((k.private().public_byte(), id))
 
+        # Sign inputs
+        for ti in sign_arr:
+            t.sign(ti[0], ti[1])
+
+        # Verify transaction
+        t.verify()
+
+        # TODO: Send transaction
         from pprint import pprint
         pprint(t.get())
 

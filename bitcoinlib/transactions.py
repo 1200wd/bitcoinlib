@@ -437,6 +437,7 @@ class Transaction:
     def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', sequence=b'\xff\xff\xff\xff'):
         new_id = len(self.inputs)
         self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, self.network, sequence, new_id))
+        return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
         self.outputs.append(Output(amount, address, public_key_hash, public_key, lock_script, self.network))
