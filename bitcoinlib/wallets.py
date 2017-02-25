@@ -412,30 +412,31 @@ class HDWallet:
         if not utxo_query:
             return None
 
-        DENOMINATOR = pow(10, 8)
+        # TODO: Put this in network definitions:
+        denominator = pow(10, 8)
 
         # Try to find one utxo with exact amount or higher
-        one_utxo = utxo_query.filter(DbUtxo.value*DENOMINATOR >= amount).order_by(DbUtxo.value).first()
+        one_utxo = utxo_query.filter(DbUtxo.value*denominator >= amount).order_by(DbUtxo.value).first()
         if one_utxo:
             return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
-        lessers = utxo_query.filter(DbUtxo.value*DENOMINATOR < amount).order_by(DbUtxo.value.desc()).all()
+        lessers = utxo_query.filter(DbUtxo.value*denominator < amount).order_by(DbUtxo.value.desc()).all()
         total_amount = 0
         selected_utxos = []
         for utxo in lessers:
             if total_amount < amount:
                 selected_utxos.append(utxo)
-                total_amount += utxo.value*DENOMINATOR
+                total_amount += utxo.value*denominator
         if total_amount < amount:
             return None
         return selected_utxos
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None):
-        total_amount = 0
+        amount_total_output = 0
         t = Transaction(network=self.network.name)
         for o in output_arr:
-            total_amount += o[1]
+            amount_total_output += o[1]
             t.add_output(o[1], o[0])
 
         qr = self.session.query(DbUtxo)
@@ -447,32 +448,48 @@ class HDWallet:
 
         # TODO: Estimate fees
         if fee is None:
-            fee = 100000
+            fee = 1000000
+
+        # TODO: Put this in network definitions:
+        denominator = pow(10, 8)
 
         if input_arr is None:
             input_arr = []
-            selected_utxos = self._select_inputs(total_amount + fee, qr)
+            amount_total_input = 0
+            selected_utxos = self._select_inputs(amount_total_output + fee, qr)
             for utxo in selected_utxos:
+                amount_total_input += utxo.value * denominator
                 input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
+
+            amount_change = int(amount_total_input - (amount_total_output + fee))
 
         # Add inputs
         sign_arr = []
         for inp in input_arr:
+            # TODO: Make this more efficient...
             key = self.session.query(DbKey).filter_by(id=inp[2]).scalar()
             k = HDKey(key.key_wif)
             id = t.add_input(inp[0], inp[1], public_key=k.public().public_byte())
             sign_arr.append((k.private().private_byte(), id))
+
+        # Add change output (now back to first input address)
+        # TODO: Return to new change address
+        key = self.session.query(DbKey).filter_by(id=input_arr[0][2]).scalar()
+        t.add_output(amount_change, key.address)
 
         # Sign inputs
         for ti in sign_arr:
             t.sign(ti[0], ti[1])
 
         # Verify transaction
-        t.verify()
+        if not t.verify():
+            raise WalletError("Cannot verify transaction. Create transaction failed")
 
         # TODO: Send transaction
         from pprint import pprint
+        import binascii
         pprint(t.get())
+        print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
 
     def info(self, detail=0):
         print("=== WALLET ===")
