@@ -28,11 +28,11 @@ class BlockCypher(BaseClient):
     def __init__(self, network):
         super(self.__class__, self).__init__(network, PROVIDERNAME)
 
-    def compose_request(self, method, data, parameter='', variables=None):
-        url_path = method + '/' + data
+    def compose_request(self, function, data, parameter='', variables=None, method='get'):
+        url_path = function + '/' + data
         if parameter:
             url_path += '/' + parameter
-        return self.request(url_path, variables)
+        return self.request(url_path, variables, method)
 
     def getbalance(self, addresslist):
         addresses = ';'.join(addresslist)
@@ -66,4 +66,4 @@ class BlockCypher(BaseClient):
         return utxos
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('txs', 'push', variables=[('tx', rawtx)])
+        return self.compose_request('txs', 'push', variables=[('tx', rawtx)], method='post')

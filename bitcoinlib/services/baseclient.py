@@ -29,6 +29,7 @@ from bitcoinlib.config.services import serviceproviders
 
 _logger = logging.getLogger(__name__)
 
+
 class ClientError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
@@ -50,15 +51,20 @@ class BaseClient(object):
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
-    def request(self, url_path, variables=None):
+    def request(self, url_path, variables=None, method='get'):
         url_vars = ''
-        if variables is None:
-            variables = []
-        if variables:
-            url_vars = '?' + urlencode(variables)
-        url = self.base_url + url_path + url_vars
-        _logger.debug("Url request %s" % url)
-        self.resp = requests.get(url)
+        url = self.base_url + url_path
+        if method == 'get':
+            if variables is None:
+                variables = []
+            if variables:
+                url_vars = '?' + urlencode(variables)
+            url += url_vars
+            _logger.debug("Url request %s" % url)
+            self.resp = requests.get(url)
+        elif method == 'post':
+            self.resp = requests.post(url, variables)
+
         _logger.debug("Response [%d] %s" % (self.resp.status_code, self.resp.text))
         if self.resp.status_code == 429:
             raise ClientError("Maximum number of requests reached for %s with url %s, response [%d] %s" %
