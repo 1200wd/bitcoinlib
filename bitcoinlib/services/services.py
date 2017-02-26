@@ -38,17 +38,19 @@ class ServiceError(Exception):
 
 class Service(object):
 
-    def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5):
+    def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5, verbose=False):
         self.network = network
 
         # Find available providers for this network
         self.providers = [x for x in serviceproviders[network]]
         self.min_providers = min_providers
         self.max_providers = max_providers
+        self.verbose = verbose
 
     def _provider_execute(self, method, argument):
         provcount = 0
         provresults = []
+        proverrors = []
         for provider in self.providers:
             try:
                 client = getattr(services, provider)
@@ -64,8 +66,18 @@ class Service(object):
                     provcount += 1
             # except services.baseclient.ClientError or AttributeError as e:
             except Exception as e:
+                if self.verbose and not isinstance(e, AttributeError):
+                    try:
+                        err = e.msg
+                    except Exception:
+                        err = e
+                    proverrors.append(
+                        {provider: err}
+                    )
                 _logger.warning("%s.%s(%s) Error %s" % (provider, method, argument, e))
 
+            if self.verbose and proverrors:
+                return provresults, proverrors
             if provcount >= self.max_providers:
                 return provresults
 

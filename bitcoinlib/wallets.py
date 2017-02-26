@@ -415,13 +415,10 @@ class HDWallet:
     def send(self, to_address, amount, account_id=None, fee=None):
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
-
-        # Send transaction
-        from pprint import pprint
-        import binascii
-        pprint(t.get())
-        print("Send Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
-        pprint(Service(network='testnet').sendrawtransaction(to_hexstring(t.raw())))
+        r, errors = Service(network='testnet', verbose=True).sendrawtransaction(to_hexstring(t.raw()))
+        if not r and errors:
+            raise WalletError("Could not send transaction: %s" % errors)
+        return r
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
@@ -558,27 +555,29 @@ if __name__ == '__main__':
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
     if True:
-        wallet_import = HDWallet.create(
-            name='TestNetWallet',
-            key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-                '7irEvBoe4aAn52',
-            network='testnet',
-            databasefile=test_database)
-        wallet_import.new_account(account_id=99)
-        nk = wallet_import.new_key(account_id=99, name="Faucet gift")
-        nk2 = wallet_import.new_key(account_id=99, name="Send to test 2")
-        nk3 = wallet_import.new_key(account_id=99, name="Send to test 3")
-        nk4 = wallet_import.new_key(account_id=99, name="Send to test 4")
-        nk5 = wallet_import.new_key(account_id=99, name="Send to test 5")
-        nk6 = wallet_import.new_key(account_id=99, name="Send to test 6")
-        nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
-        nkc2 = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change 2)")
-        wallet_import.updateutxos()
-        wallet_import.info(detail=3)
-
-        # wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
-        # Send to test
-        wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 1000000)
+        # wallet_import = HDWallet.create(
+        #     name='TestNetWallet',
+        #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+        #         '7irEvBoe4aAn52',
+        #     network='testnet',
+        #     databasefile=test_database)
+        # wallet_import.new_account(account_id=99)
+        # nk = wallet_import.new_key(account_id=99, name="Faucet gift")
+        # nk2 = wallet_import.new_key(account_id=99, name="Send to test 2")
+        # nk3 = wallet_import.new_key(account_id=99, name="Send to test 3")
+        # nk4 = wallet_import.new_key(account_id=99, name="Send to test 4")
+        # nk5 = wallet_import.new_key(account_id=99, name="Send to test 5")
+        # nk6 = wallet_import.new_key(account_id=99, name="Send to test 6")
+        # nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
+        # nkc2 = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change 2)")
+        # wallet_import.updateutxos()
+        # wallet_import.info(detail=3)
+        wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
+        # Send testbitcoins to an address
+        res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 10000000)
+        from pprint import pprint
+        print("Send transaction result:")
+        pprint(res)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
