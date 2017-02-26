@@ -265,6 +265,7 @@ class HDWallet:
             self.balance = w.balance
             self.main_key_id = w.main_key_id
             self.main_key = HDWalletKey(self.main_key_id, session=self.session)
+            self.default_account_id = 0
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -285,6 +286,7 @@ class HDWallet:
             account_id=account_id, purpose=self.purpose, session=self.session)
 
     def new_key(self, name='', account_id=0, change=0, max_depth=5):
+        # TODO: If wallet has only one account, select these when account not specified
         # Find main account key
         acckey = self.session.query(DbKey). \
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
@@ -452,9 +454,11 @@ class HDWallet:
             amount_total_output += o[1]
             t.add_output(o[1], o[0])
 
+        if account_id is None:
+            account_id = self.default_account_id
+
         qr = self.session.query(DbUtxo)
-        if account_id is not None:
-            qr.filter(DbKey.account_id == account_id)
+        qr.filter(DbKey.account_id == account_id)
         utxos = qr.all()
         if not utxos:
             return None
@@ -488,10 +492,10 @@ class HDWallet:
             id = t.add_input(inp[0], inp[1], public_key=k.public().public_byte())
             sign_arr.append((k.private().private_byte(), id))
 
-        # Add change output (now back to first input address)
-        # TODO: Return to new change address
-        key = self.session.query(DbKey).filter_by(id=input_arr[0][2]).scalar()
-        t.add_output(amount_change, key.address)
+        # Add change output
+        if amount_change:
+            ck = self.new_key_change('Change', account_id)
+            t.add_output(amount_change, ck.address)
 
         # Sign inputs
         for ti in sign_arr:
@@ -536,8 +540,8 @@ if __name__ == '__main__':
     import os
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    # if os.path.isfile(test_database):
-    #     os.remove(test_database)
+    if os.path.isfile(test_database):
+        os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
     if False:
@@ -555,26 +559,23 @@ if __name__ == '__main__':
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
     if True:
-        # wallet_import = HDWallet.create(
-        #     name='TestNetWallet',
-        #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-        #         '7irEvBoe4aAn52',
-        #     network='testnet',
-        #     databasefile=test_database)
-        # wallet_import.new_account(account_id=99)
-        # nk = wallet_import.new_key(account_id=99, name="Faucet gift")
-        # nk2 = wallet_import.new_key(account_id=99, name="Send to test 2")
-        # nk3 = wallet_import.new_key(account_id=99, name="Send to test 3")
-        # nk4 = wallet_import.new_key(account_id=99, name="Send to test 4")
-        # nk5 = wallet_import.new_key(account_id=99, name="Send to test 5")
-        # nk6 = wallet_import.new_key(account_id=99, name="Send to test 6")
-        # nkc = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change)")
-        # nkc2 = wallet_import.new_key_change(account_id=99, name="Faucet gift (Change 2)")
-        # wallet_import.updateutxos()
-        # wallet_import.info(detail=3)
-        wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
+        wallet_import = HDWallet.create(
+            name='TestNetWallet',
+            key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+                '7irEvBoe4aAn52',
+            network='testnet',
+            databasefile=test_database)
+        wallet_import.new_account(account_id=99)
+        nk = wallet_import.new_key(account_id=99, name="Address #1")
+        nk2 = wallet_import.new_key(account_id=99, name="Address #2")
+        nkc = wallet_import.new_key_change(account_id=99, name="Change #1")
+        wallet_import.updateutxos()
+        wallet_import.info(detail=3)
+
+    if True:
         # Send testbitcoins to an address
-        res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 10000000)
+        # wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
+        res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
         from pprint import pprint
         print("Send transaction result:")
         pprint(res)
