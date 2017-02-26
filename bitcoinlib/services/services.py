@@ -76,14 +76,13 @@ class Service(object):
                     )
                 _logger.warning("%s.%s(%s) Error %s" % (provider, method, argument, e))
 
-            if self.verbose and proverrors:
-                return provresults, proverrors
             if provcount >= self.max_providers:
                 return provresults
 
+        if self.verbose and proverrors:
+            return provresults, proverrors
         if not provcount:
             raise ServiceError("No valid service provider found")
-
         return provresults
 
     def getbalance(self, addresslist):
