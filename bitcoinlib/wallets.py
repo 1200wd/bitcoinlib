@@ -417,7 +417,8 @@ class HDWallet:
     def send(self, to_address, amount, account_id=None, fee=None):
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
-        r, errors = Service(network='testnet', verbose=True).sendrawtransaction(to_hexstring(t.raw()))
+        print(to_hexstring(t.raw()))
+        r, errors = Service(network='testnet', verbose=True).decoderawtransaction(to_hexstring(t.raw()))
         if not r and errors:
             raise WalletError("Could not send transaction: %s" % errors)
         return r
@@ -447,7 +448,7 @@ class HDWallet:
             return None
         return selected_utxos
 
-    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None):
+    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, include_unconfirmed=False):
         amount_total_output = 0
         t = Transaction(network=self.network.name)
         for o in output_arr:
@@ -459,6 +460,8 @@ class HDWallet:
 
         qr = self.session.query(DbUtxo)
         qr.filter(DbKey.account_id == account_id)
+        if not include_unconfirmed:
+            qr.filter(DbUtxo.confirmations > 0)
         utxos = qr.all()
         if not utxos:
             return None
@@ -575,7 +578,10 @@ if __name__ == '__main__':
     if True:
         # Send testbitcoins to an address
         # wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
-        res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
+        wallet_import.updateutxos(99)
+        wallet_import.info(detail=3)
+        # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
+        res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
         from pprint import pprint
         print("Send transaction result:")
         pprint(res)
