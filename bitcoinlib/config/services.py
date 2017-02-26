@@ -27,8 +27,8 @@ serviceproviders = {
     },
     'testnet': {
         # 'blockexplorer': ('BlockExplorerClient', 'https://testnet.blockexplorer.com/api/', 1),
-        # 'blockr': ('BlockrClient', 'http://tbtc.blockr.io/api/v1/', 1),
-        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/test3/', 0.00000001),
+        'blockr': ('BlockrClient', 'http://tbtc.blockr.io/api/v1/', 1),
+        # 'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/test3/', 0.00000001),
     },
     'litecoin': {
         'blockr': ('BlockrClient', 'http://ltc.blockr.io/api/v1/', 1),

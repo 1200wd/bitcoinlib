@@ -421,7 +421,7 @@ class HDWallet:
         import binascii
         pprint(t.get())
         print("Send Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
-        pprint(Service(network='testnet').sendrawtransaction(to_hexstring(t.raw())))
+        pprint(Service(network='testnet').decoderawtransaction(to_hexstring(t.raw())))
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):

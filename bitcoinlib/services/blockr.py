@@ -28,9 +28,9 @@ class BlockrClient(BaseClient):
     def __init__(self, network):
         super(self.__class__, self).__init__(network, PROVIDERNAME)
 
-    def compose_request(self, category, method, data, variables=None):
-        url_path = category + '/' + method + '/' + data
-        r = self.request(url_path, variables)
+    def compose_request(self, category, function, data, variables=None, method='get'):
+        url_path = category + '/' + function + '/' + data
+        r = self.request(url_path, variables, method)
         return r['data']
 
     def getbalance(self, addresslist):
@@ -65,3 +65,9 @@ class BlockrClient(BaseClient):
     def rawtransaction(self, txid):
         res = self.compose_request('tx', 'raw', txid)
         return res['tx']['hex']
+
+    def decoderawtransaction(self, rawtx):
+        res = self.compose_request('tx', 'decode', variables=[('hex', rawtx)], method='post')
+        from pprint import pprint
+        pprint(res)
+        return res

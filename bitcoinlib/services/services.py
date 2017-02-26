@@ -96,6 +96,9 @@ class Service(object):
     def sendrawtransaction(self, rawtx):
         return self._provider_execute('sendrawtransaction', rawtx)
 
+    def decoderawtransaction(self, rawtx):
+        return self._provider_execute('decoderawtransaction', rawtx)
+
 
 if __name__ == '__main__':
     from pprint import pprint

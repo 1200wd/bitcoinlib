@@ -63,7 +63,7 @@ class BaseClient(object):
             _logger.debug("Url request %s" % url)
             self.resp = requests.get(url)
         elif method == 'post':
-            self.resp = requests.post(url, dict(variables))
+            self.resp = requests.post(url, data=dict(variables))
 
         _logger.debug("Response [%d] %s" % (self.resp.status_code, self.resp.text))
         if self.resp.status_code == 429:
