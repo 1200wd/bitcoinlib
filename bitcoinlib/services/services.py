@@ -77,9 +77,9 @@ class Service(object):
                 _logger.warning("%s.%s(%s) Error %s" % (provider, method, argument, e))
 
             if provcount >= self.max_providers:
-                return provresults
+                break
 
-        if self.verbose and proverrors:
+        if self.verbose:
             return provresults, proverrors
         if not provcount:
             raise ServiceError("No valid service provider found")

@@ -414,11 +414,20 @@ class HDWallet:
 
         self.session.commit()
 
+    def getutxos(self, account_id):
+        utxos = self.session.query(DbUtxo).join(DbUtxo.key).filter_by(account_id=account_id).all()
+        res = []
+        for utxo in utxos:
+            u = utxo.__dict__
+            del u['_sa_instance_state']
+            res.append(u)
+        return res
+
     def send(self, to_address, amount, account_id=None, fee=None):
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
         print(to_hexstring(t.raw()))
-        r, errors = Service(network='testnet', verbose=True).decoderawtransaction(to_hexstring(t.raw()))
+        r, errors = Service(network='testnet', verbose=True).sendrawtransaction(to_hexstring(t.raw()))
         if not r and errors:
             raise WalletError("Could not send transaction: %s" % errors)
         return r
@@ -448,7 +457,7 @@ class HDWallet:
             return None
         return selected_utxos
 
-    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, include_unconfirmed=False):
+    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, minimum_confirmations=4):
         amount_total_output = 0
         t = Transaction(network=self.network.name)
         for o in output_arr:
@@ -459,9 +468,8 @@ class HDWallet:
             account_id = self.default_account_id
 
         qr = self.session.query(DbUtxo)
-        qr.filter(DbKey.account_id == account_id)
-        if not include_unconfirmed:
-            qr.filter(DbUtxo.confirmations > 0)
+        qr.join(DbUtxo.key).filter(DbKey.account_id == account_id)
+        qr.filter(DbUtxo.confirmations >= minimum_confirmations)
         utxos = qr.all()
         if not utxos:
             return None
@@ -543,8 +551,8 @@ if __name__ == '__main__':
     import os
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    if os.path.isfile(test_database):
-        os.remove(test_database)
+    # if os.path.isfile(test_database):
+    #     os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
     if False:
@@ -561,7 +569,7 @@ if __name__ == '__main__':
             wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    if True:
+    if False:
         wallet_import = HDWallet.create(
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
@@ -577,14 +585,14 @@ if __name__ == '__main__':
 
     if True:
         # Send testbitcoins to an address
-        # wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
+        wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.updateutxos(99)
-        wallet_import.info(detail=3)
-        # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
-        res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
         from pprint import pprint
-        print("Send transaction result:")
-        pprint(res)
+        pprint(wallet_import.getutxos(99))
+        # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
+        # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
+        # print("Send transaction result:")
+        # pprint(res)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
