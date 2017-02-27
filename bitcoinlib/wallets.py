@@ -384,6 +384,12 @@ class HDWallet:
         self.session.commit()
 
     def updateutxos(self, account_id=None):
+        # Delete all utxo's for this account
+        # TODO: This could be done more efficiently probably:
+        qr = self.session.query(DbUtxo).join(DbUtxo.key).filter(DbKey.account_id == account_id)
+        [self.session.delete(o) for o in qr.all()]
+        self.session.commit()
+
         utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id))
         key_balances = {}
         for utxo in utxos:
@@ -477,12 +483,12 @@ class HDWallet:
         if not utxos:
             return None
 
-        # TODO: Estimate fees
-        if fee is None:
-            fee = pow(0.0002, 8)
-
         # TODO: Put this in network definitions:
         denominator = pow(10, 8)
+
+        # TODO: Estimate fees
+        if fee is None:
+            fee = 0.0003 * pow(10, 8)
 
         if input_arr is None:
             input_arr = []
@@ -593,9 +599,10 @@ if __name__ == '__main__':
         for utxo in wallet_import.getutxos(99):
             print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
         # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
-        # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
-        # print("Send transaction result:")
-        # pprint(res)
+        res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
+        print("Send transaction result:")
+        from pprint import pprint
+        pprint(res)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
