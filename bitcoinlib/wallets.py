@@ -414,12 +414,15 @@ class HDWallet:
 
         self.session.commit()
 
-    def getutxos(self, account_id):
-        utxos = self.session.query(DbUtxo).join(DbUtxo.key).filter_by(account_id=account_id).all()
+    def getutxos(self, account_id, min_confirms=0):
+        utxos = self.session.query(DbUtxo, DbKey.address).join(DbUtxo.key).\
+            filter(DbKey.account_id == account_id, DbUtxo.confirmations >= min_confirms).\
+            order_by(DbUtxo.confirmations.desc()).all()
         res = []
         for utxo in utxos:
-            u = utxo.__dict__
-            del u['_sa_instance_state']
+            u = utxo[0].__dict__
+            del u['_sa_instance_state'], u['key_id']
+            u['address'] = utxo[1]
             res.append(u)
         return res
 
@@ -457,7 +460,7 @@ class HDWallet:
             return None
         return selected_utxos
 
-    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, minimum_confirmations=4):
+    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
         amount_total_output = 0
         t = Transaction(network=self.network.name)
         for o in output_arr:
@@ -469,14 +472,14 @@ class HDWallet:
 
         qr = self.session.query(DbUtxo)
         qr.join(DbUtxo.key).filter(DbKey.account_id == account_id)
-        qr.filter(DbUtxo.confirmations >= minimum_confirmations)
+        qr.filter(DbUtxo.confirmations >= min_confirms)
         utxos = qr.all()
         if not utxos:
             return None
 
         # TODO: Estimate fees
         if fee is None:
-            fee = 1000000
+            fee = pow(0.0002, 8)
 
         # TODO: Put this in network definitions:
         denominator = pow(10, 8)
@@ -587,8 +590,8 @@ if __name__ == '__main__':
         # Send testbitcoins to an address
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.updateutxos(99)
-        from pprint import pprint
-        pprint(wallet_import.getutxos(99))
+        for utxo in wallet_import.getutxos(99):
+            print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
         # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
         # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
         # print("Send transaction result:")
