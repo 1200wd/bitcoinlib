@@ -79,7 +79,9 @@ class Service(object):
             if provcount >= self.max_providers:
                 break
 
-        if not provcount and not self.verbose:
+        if self.verbose:
+            return provresults, proverrors
+        if not provcount:
             raise ServiceError("No valid service provider found")
         if self.verbose:
             return provresults, proverrors

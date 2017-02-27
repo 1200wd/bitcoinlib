@@ -384,6 +384,12 @@ class HDWallet:
         self.session.commit()
 
     def updateutxos(self, account_id=None):
+        # Delete all utxo's for this account
+        # TODO: This could be done more efficiently probably:
+        qr = self.session.query(DbUtxo).join(DbUtxo.key).filter(DbKey.account_id == account_id)
+        [self.session.delete(o) for o in qr.all()]
+        self.session.commit()
+
         utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id))
         key_balances = {}
         for utxo in utxos:
@@ -413,6 +419,18 @@ class HDWallet:
         self.balance = total_balance
 
         self.session.commit()
+
+    def getutxos(self, account_id, min_confirms=0):
+        utxos = self.session.query(DbUtxo, DbKey.address).join(DbUtxo.key).\
+            filter(DbKey.account_id == account_id, DbUtxo.confirmations >= min_confirms).\
+            order_by(DbUtxo.confirmations.desc()).all()
+        res = []
+        for utxo in utxos:
+            u = utxo[0].__dict__
+            del u['_sa_instance_state'], u['key_id']
+            u['address'] = utxo[1]
+            res.append(u)
+        return res
 
     def send(self, to_address, amount, account_id=None, fee=None):
         outputs = [(to_address, amount)]
@@ -448,7 +466,7 @@ class HDWallet:
             return None
         return selected_utxos
 
-    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, include_unconfirmed=False):
+    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
         amount_total_output = 0
         t = Transaction(network=self.network.name)
         for o in output_arr:
@@ -459,19 +477,18 @@ class HDWallet:
             account_id = self.default_account_id
 
         qr = self.session.query(DbUtxo)
-        qr.filter(DbKey.key_id.account_id == account_id)
-        if not include_unconfirmed:
-            qr.filter(DbUtxo.confirmations > 0)
+        qr.join(DbUtxo.key).filter(DbKey.account_id == account_id)
+        qr.filter(DbUtxo.confirmations >= min_confirms)
         utxos = qr.all()
         if not utxos:
             return None
 
-        # TODO: Estimate fees
-        if fee is None:
-            fee = 1000000
-
         # TODO: Put this in network definitions:
         denominator = pow(10, 8)
+
+        # TODO: Estimate fees
+        if fee is None:
+            fee = 0.0003 * pow(10, 8)
 
         if input_arr is None:
             input_arr = []
@@ -580,11 +597,12 @@ if __name__ == '__main__':
         # Send testbitcoins to an address
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.updateutxos(99)
-        wallet_import.info(detail=3)
+        for utxo in wallet_import.getutxos(99):
+            print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
         # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
         res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
-        from pprint import pprint
         print("Send transaction result:")
+        from pprint import pprint
         pprint(res)
 
     # -- Import Account Bitcoin Testnet key with depth 3
