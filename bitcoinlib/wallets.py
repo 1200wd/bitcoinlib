@@ -418,7 +418,7 @@ class HDWallet:
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
         print(to_hexstring(t.raw()))
-        r, errors = Service(network='testnet', verbose=True).decoderawtransaction(to_hexstring(t.raw()))
+        r, errors = Service(network='testnet', verbose=True).sendrawtransaction(to_hexstring(t.raw()))
         if not r and errors:
             raise WalletError("Could not send transaction: %s" % errors)
         return r
@@ -459,7 +459,7 @@ class HDWallet:
             account_id = self.default_account_id
 
         qr = self.session.query(DbUtxo)
-        qr.filter(DbKey.account_id == account_id)
+        qr.filter(DbKey.key_id.account_id == account_id)
         if not include_unconfirmed:
             qr.filter(DbUtxo.confirmations > 0)
         utxos = qr.all()
@@ -543,8 +543,8 @@ if __name__ == '__main__':
     import os
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    if os.path.isfile(test_database):
-        os.remove(test_database)
+    # if os.path.isfile(test_database):
+    #     os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
     if False:
@@ -561,7 +561,7 @@ if __name__ == '__main__':
             wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    if True:
+    if False:
         wallet_import = HDWallet.create(
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
@@ -572,12 +572,13 @@ if __name__ == '__main__':
         nk = wallet_import.new_key(account_id=99, name="Address #1")
         nk2 = wallet_import.new_key(account_id=99, name="Address #2")
         nkc = wallet_import.new_key_change(account_id=99, name="Change #1")
+        nkc2 = wallet_import.new_key_change(account_id=99, name="Change #2")
         wallet_import.updateutxos()
         wallet_import.info(detail=3)
 
     if True:
         # Send testbitcoins to an address
-        # wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
+        wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.updateutxos(99)
         wallet_import.info(detail=3)
         # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
