@@ -33,6 +33,7 @@ NETWORKS = {
         'hdkey_private': b'\x04\x88\xAD\xE4',
         'hdkey_public': b'\x04\x88\xB2\x1E',
         'bip44_cointype': 0,
+        'denominator': 0.00000001,
     },
     NETWORK_BITCOIN_TESTNET: {
         'description': 'Bitcoin Test Network 3',
@@ -44,6 +45,7 @@ NETWORKS = {
         'hdkey_private': b'\x04\x35\x83\x94',
         'hdkey_public': b'\x04\x35\x87\xCF',
         'bip44_cointype': 1,
+        'denominator': 0.00000001,
     },
     NETWORK_LITECOIN: {
         'description': 'Litcoin Network',
@@ -55,6 +57,7 @@ NETWORKS = {
         'hdkey_private': b'\x01\x9D\x9C\xFE',
         'hdkey_public': b'\x01\x9D\xA4\x62',
         'bip44_cointype': 2,
+        'denominator': 0.00000001,
     },
 }
 

@@ -447,22 +447,19 @@ class HDWallet:
         if not utxo_query:
             return None
 
-        # TODO: Put this in network definitions:
-        denominator = pow(10, 8)
-
         # Try to find one utxo with exact amount or higher
-        one_utxo = utxo_query.filter(DbUtxo.value*denominator >= amount).order_by(DbUtxo.value).first()
+        one_utxo = utxo_query.filter(DbUtxo.value >= amount).order_by(DbUtxo.value).first()
         if one_utxo:
             return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
-        lessers = utxo_query.filter(DbUtxo.value*denominator < amount).order_by(DbUtxo.value.desc()).all()
+        lessers = utxo_query.filter(DbUtxo.value < amount).order_by(DbUtxo.value.desc()).all()
         total_amount = 0
         selected_utxos = []
         for utxo in lessers:
             if total_amount < amount:
                 selected_utxos.append(utxo)
-                total_amount += utxo.value*denominator
+                total_amount += utxo.value
         if total_amount < amount:
             return None
         return selected_utxos
@@ -484,9 +481,6 @@ class HDWallet:
         if not utxos:
             return None
 
-        # TODO: Put this in network definitions:
-        denominator = pow(10, 8)
-
         # TODO: Estimate fees
         if fee is None:
             fee = 0.0003 * pow(10, 8)
@@ -496,7 +490,7 @@ class HDWallet:
             amount_total_input = 0
             selected_utxos = self._select_inputs(amount_total_output + fee, qr)
             for utxo in selected_utxos:
-                amount_total_input += utxo.value * denominator
+                amount_total_input += utxo.value
                 input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
 
             amount_change = int(amount_total_input - (amount_total_output + fee))
@@ -601,8 +595,8 @@ if __name__ == '__main__':
         wallet_import.updateutxos(99)
         for utxo in wallet_import.getutxos(99):
             print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
-        # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
-        res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
+        res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
+        # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
         print("Send transaction result:")
         from pprint import pprint
         pprint(res)

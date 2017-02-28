@@ -20,18 +20,18 @@
 
 serviceproviders = {
     'bitcoin': {
-        'blockchaininfo': ('BlockchainInfoClient', 'https://blockchain.info/', 1),
-        'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/', 1),
-        'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/', 1),
-        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/main/', 0.00000001),
+        'blockchaininfo': ('BlockchainInfoClient', 'https://blockchain.info/', 100000000),
+        'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/', 100000000),
+        'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/', 100000000),
+        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/main/', 1),
     },
     'testnet': {
-        'blockexplorer': ('BlockExplorerClient', 'https://testnet.blockexplorer.com/api/', 1),
-        'blockr': ('BlockrClient', 'http://tbtc.blockr.io/api/v1/', 1),
-        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/test3/', 0.00000001),
+        'blockexplorer': ('BlockExplorerClient', 'https://testnet.blockexplorer.com/api/', 100000000),
+        'blockr': ('BlockrClient', 'http://tbtc.blockr.io/api/v1/', 100000000),
+        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/test3/', 1),
     },
     'litecoin': {
-        'blockr': ('BlockrClient', 'http://ltc.blockr.io/api/v1/', 1),
-        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/ltc/main/', 0.00000001),
+        'blockr': ('BlockrClient', 'http://ltc.blockr.io/api/v1/', 100000000),
+        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/ltc/main/', 1),
     }
 }
