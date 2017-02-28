@@ -38,32 +38,30 @@ class ServiceError(Exception):
 
 class Service(object):
 
-    def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5, verbose=False):
+    def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5):
         self.network = network
 
         # Find available providers for this network
         self.providers = [x for x in serviceproviders[network]]
         self.min_providers = min_providers
         self.max_providers = max_providers
-        self.verbose = verbose
+        self.results = []
+        self.errors = []
+        self.resultcount = 0
 
-    def _provider_execute(self, method, argument):
-        provcount = 0
-        provresults = []
-        proverrors = []
+    def _provider_execute(self, method, argument, providers=None):
         for provider in self.providers:
+            if self.resultcount >= self.max_providers:
+                break
             try:
                 client = getattr(services, provider)
                 providerclient = getattr(client, serviceproviders[self.network][provider][0])
                 providermethod = getattr(providerclient(network=self.network), method)
                 res = providermethod(argument)
-                if self.min_providers <= 1:
-                    return res
-                else:
-                    provresults.append(
-                        {provider: res}
-                    )
-                    provcount += 1
+                self.results.append(
+                    {provider: res}
+                )
+                self.resultcount += 1
             # except services.baseclient.ClientError or AttributeError as e:
             except Exception as e:
                 if self.verbose and not isinstance(e, AttributeError):
@@ -71,21 +69,17 @@ class Service(object):
                         err = e.msg
                     except Exception:
                         err = e
-                    proverrors.append(
+                    self.errors.append(
                         {provider: err}
                     )
                 _logger.warning("%s.%s(%s) Error %s" % (provider, method, argument, e))
 
-            if provcount >= self.max_providers:
+            if self.resultcount >= self.max_providers:
                 break
 
-        if self.verbose:
-            return provresults, proverrors
-        if not provcount:
+        if not self.resultcount:
             raise ServiceError("No valid service provider found")
-        if self.verbose:
-            return provresults, proverrors
-        return provresults
+        return list(self.results[0].values())[0]
 
     def getbalance(self, addresslist):
         if not addresslist:
@@ -116,9 +110,12 @@ class Service(object):
 if __name__ == '__main__':
     from pprint import pprint
     # Get Balance and UTXO's for given bitcoin testnet 3 addresses
-    addresslst = ['n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw', 'mvA148DL7EFtWxM3VoZjRVcpg2f1VDJadq']
+    addresslst = ['mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf']
     pprint(Service(network='testnet', min_providers=3).getbalance(addresslst))
-    pprint(Service(network='testnet', min_providers=3).getutxos(addresslst))
+    # pprint(Service(network='testnet').getbalance(addresslst))
+    # pprint(Service(network='testnet', min_providers=3).getutxos(addresslst))
+
+    sys.exit()
 
     # GET Raw Transaction data for given Transaction ID
     t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
