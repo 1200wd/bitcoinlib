@@ -436,10 +436,11 @@ class HDWallet:
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
         print(to_hexstring(t.raw()))
-        r, errors = Service(network='testnet', verbose=True).sendrawtransaction(to_hexstring(t.raw()))
-        if not r and errors:
-            raise WalletError("Could not send transaction: %s" % errors)
-        return r
+        srv = Service(network='testnet')
+        txid = srv.sendrawtransaction(to_hexstring(t.raw()))
+        if not txid:
+            raise WalletError("Could not send transaction: %s" % res.errors)
+        return txid
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):

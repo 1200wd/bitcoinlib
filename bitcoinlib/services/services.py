@@ -2,7 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Main Service connector
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -79,7 +79,7 @@ class Service(object):
                 break
 
         if not self.resultcount:
-            raise ServiceError("No valid service provider found")
+            return False
         return list(self.results[0].values())[0]
 
     def getbalance(self, addresslist):
@@ -141,4 +141,10 @@ if __name__ == '__main__':
          b'f00000000001976a914bbaeed8a02f64c9d40462d323d379b8f27ad9f1a88ac905d1818000000001976a914046858970a72d33817' \
          b'474c0e24e530d78716fc9c88ac00000000'
     print("\nSEND Raw Transaction:")
-    pprint(Service(network='testnet').sendrawtransaction(rt))
+    srv = Service(network='testnet')
+    if srv.sendrawtransaction(rt):
+        print("Transaction send, result: ")
+        pprint(srv.results)
+    else:
+        print("Transaction could not be send, errors:")
+        pprint(srv.errors)
