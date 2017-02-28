@@ -49,6 +49,7 @@ class Service(object):
         self.errors = []
         self.resultcount = 0
 
+    # TODO: Add preferred provider
     def _provider_execute(self, method, argument, providers=None):
         for provider in self.providers:
             if self.resultcount >= self.max_providers:
@@ -64,7 +65,7 @@ class Service(object):
                 self.resultcount += 1
             # except services.baseclient.ClientError or AttributeError as e:
             except Exception as e:
-                if self.verbose and not isinstance(e, AttributeError):
+                if not isinstance(e, AttributeError):
                     try:
                         err = e.msg
                     except Exception:
@@ -109,13 +110,15 @@ class Service(object):
 
 if __name__ == '__main__':
     from pprint import pprint
-    # Get Balance and UTXO's for given bitcoin testnet 3 addresses
-    addresslst = ['mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf']
-    pprint(Service(network='testnet', min_providers=3).getbalance(addresslst))
-    # pprint(Service(network='testnet').getbalance(addresslst))
-    # pprint(Service(network='testnet', min_providers=3).getutxos(addresslst))
+    # Get Balance and UTXO's for given bitcoin testnet3 addresses
+    addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
+    srv = Service(network='testnet', min_providers=3)
+    # First result only
+    pprint(srv.getbalance(addresslst))
+    # All results as dict
+    pprint(srv.results)
 
-    sys.exit()
+    pprint(srv.getutxos(addresslst))
 
     # GET Raw Transaction data for given Transaction ID
     t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
@@ -138,4 +141,4 @@ if __name__ == '__main__':
          b'f00000000001976a914bbaeed8a02f64c9d40462d323d379b8f27ad9f1a88ac905d1818000000001976a914046858970a72d33817' \
          b'474c0e24e530d78716fc9c88ac00000000'
     print("\nSEND Raw Transaction:")
-    pprint(Service(network='testnet', verbose=True).sendrawtransaction(rt))
+    pprint(Service(network='testnet').sendrawtransaction(rt))

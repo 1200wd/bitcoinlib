@@ -62,7 +62,7 @@ class BlockrClient(BaseClient):
                 })
         return utxos
 
-    def rawtransaction(self, txid):
+    def getrawtransaction(self, txid):
         res = self.compose_request('tx', 'raw', txid)
         return res['tx']['hex']
 

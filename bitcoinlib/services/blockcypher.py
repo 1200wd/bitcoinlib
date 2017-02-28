@@ -38,7 +38,7 @@ class BlockCypher(BaseClient):
         addresses = ';'.join(addresslist)
         res = self.compose_request('addrs', addresses, 'balance')
         if isinstance(res, dict):
-            return float(res['final_balance'])
+            return float(res['final_balance']) * self.units
         else:
             balance = 0.0
             for rec in res:

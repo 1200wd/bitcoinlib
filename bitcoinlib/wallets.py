@@ -596,6 +596,7 @@ if __name__ == '__main__':
     if True:
         # Send testbitcoins to an address
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
+        wallet_import.info(detail=3)
         wallet_import.updateutxos(99)
         for utxo in wallet_import.getutxos(99):
             print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
