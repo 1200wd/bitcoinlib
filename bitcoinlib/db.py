@@ -106,6 +106,9 @@ class DbNetwork(Base):
     name = Column(String(20), unique=True, primary_key=True)
     description = Column(String(50))
 
+    def __repr__(self):
+        return "<DbNetwork(name='%s', description='%s'>" % (self.name, self.description)
+
 
 class DbProvider(Base):
     __tablename__ = 'providers'

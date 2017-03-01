@@ -278,7 +278,7 @@ class HDWallet:
         self.session.close()
 
     def balance_str(self):
-        return networks.print_value(self.balance, self.network)
+        return networks.print_value(self.balance, self.network.name)
 
     def import_key(self, key, account_id=None):
         return HDWalletKey.from_key(
@@ -602,7 +602,7 @@ if __name__ == '__main__':
         #     print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
         # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
         # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
-        print("Send transaction result:")
+        # print("Send transaction result:")
         # from pprint import pprint
         # pprint(res)
 
