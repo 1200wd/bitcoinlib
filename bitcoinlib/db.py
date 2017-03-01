@@ -78,6 +78,9 @@ class DbWallet(Base):
     keys = relationship("DbKey", back_populates="wallet")
     balance = Column(Integer, default=0)
 
+    def __repr__(self):
+        return "<DbWallet(name='%s', network='%s'>" % (self.name, self.network_name)
+
 
 class DbKey(Base):
     __tablename__ = 'keys'
@@ -100,6 +103,9 @@ class DbKey(Base):
     utxos = relationship("DbUtxo", cascade="all,delete", back_populates="key")
     balance = Column(Integer, default=0)
 
+    def __repr__(self):
+        return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.key_wif)
+
 
 class DbNetwork(Base):
     __tablename__ = 'networks'
@@ -119,6 +125,9 @@ class DbProvider(Base):
     base_url = Column(String(100))
     api_key = Column(String(100))
 
+    def __repr__(self):
+        return "<DbProvider(name='%s', network='%s'>" % (self.name, self.network_name)
+
 
 class DbTransaction(Base):
     __tablename__ = 'transactions'
@@ -137,6 +146,9 @@ class DbUtxo(Base):
     index = Column(Integer)
     value = Column(Integer)
     script = Column(String)
+
+    def __repr__(self):
+        return "<DbTransaction(id='%s', tx_hash='%s', output_n='%s'>" % (self.id, self.tx_hash, self.output_n)
 
 
 if __name__ == '__main__':
