@@ -278,13 +278,7 @@ class HDWallet:
         self.session.close()
 
     def balance_str(self):
-        # TODO: Move to network.py / create network class?
-        symb = networks.NETWORKS[self.network.name]['code']
-        denominator = float(networks.NETWORKS[self.network.name]['denominator'])
-        denominator_size = -int(math.log10(denominator))
-        balance = round(self.balance * denominator, denominator_size)
-        format_str = "%%.%df %%s" % denominator_size
-        return format_str % (balance, symb)
+        return networks.print_value(self.balance, self.network)
 
     def import_key(self, key, account_id=None):
         return HDWalletKey.from_key(

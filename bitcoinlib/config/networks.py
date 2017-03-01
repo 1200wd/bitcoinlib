@@ -18,6 +18,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import math
+
+
 # Network, address_type_normal, address_type_p2sh, wif, extended_wif_public and extended_wif_private
 NETWORK_BITCOIN = 'bitcoin'
 NETWORK_BITCOIN_TESTNET = 'testnet'
@@ -68,6 +71,23 @@ def network_get_values(field):
 
 def get_network_by_value(field, value):
     return [nv for nv in NETWORKS if NETWORKS[nv][field] == value]
+
+
+def network_defined(network):
+    if network not in list(NETWORKS.keys()):
+        return False
+    return True
+
+
+def print_value(value, network='bitcoin'):
+    if not network_defined(network):
+        raise ValueError("Network %s not defined!" % network)
+    symb = NETWORKS[network]['code']
+    denominator = float(NETWORKS[network]['denominator'])
+    denominator_size = -int(math.log10(denominator))
+    balance = round(value * denominator, denominator_size)
+    format_str = "%%.%df %%s" % denominator_size
+    return format_str % (balance, symb)
 
 
 if __name__ == '__main__':
