@@ -17,6 +17,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import math
+
 from sqlalchemy import or_
 
 from bitcoinlib.db import *
@@ -275,6 +277,15 @@ class HDWallet:
     def __del__(self):
         self.session.close()
 
+    def balance_str(self):
+        # TODO: Move to network.py / create network class?
+        symb = networks.NETWORKS[self.network.name]['code']
+        denominator = float(networks.NETWORKS[self.network.name]['denominator'])
+        denominator_size = -int(math.log10(denominator))
+        balance = round(self.balance * denominator, denominator_size)
+        format_str = "%%.%df %%s" % denominator_size
+        return format_str % (balance, symb)
+
     def import_key(self, key, account_id=None):
         return HDWalletKey.from_key(
             key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.name,
@@ -527,7 +538,7 @@ class HDWallet:
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self.owner)
         print(" Network                        %s" % self.network.description)
-        print(" Balance                        %s" % self.balance)
+        print(" Balance                        %s" % self.balance_str())
         print("")
 
         if detail:
@@ -591,15 +602,15 @@ if __name__ == '__main__':
         # Send testbitcoins to an address
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.info(detail=3)
-        wallet_import.updateutxos(99)
-        wallet_import.getutxos(99, 4)
-        for utxo in wallet_import.getutxos(99):
-            print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
-        res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
+        # wallet_import.updateutxos(99)
+        # wallet_import.getutxos(99, 4)
+        # for utxo in wallet_import.getutxos(99):
+        #     print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
+        # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
         # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
         print("Send transaction result:")
-        from pprint import pprint
-        pprint(res)
+        # from pprint import pprint
+        # pprint(res)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
