@@ -57,7 +57,7 @@ class BlockrClient(BaseClient):
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['n'],
                     'index': 0,
-                    'value': utxo['amount'],
+                    'value': utxo['amount'] * self.units,
                     'script': utxo['script'],
                 })
         return utxos

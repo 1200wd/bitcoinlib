@@ -76,7 +76,7 @@ class DbWallet(Base):
     purpose = Column(Integer, default=44)
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
-    balance = Column(Float, default=0)
+    balance = Column(Integer, default=0)
 
 
 class DbKey(Base):
@@ -98,7 +98,7 @@ class DbKey(Base):
     wallet_id = Column(Integer, ForeignKey('wallets.id'))
     wallet = relationship("DbWallet", back_populates="keys")
     utxos = relationship("DbUtxo", cascade="all,delete", back_populates="key")
-    balance = Column(Float, default=0)
+    balance = Column(Integer, default=0)
 
 
 class DbNetwork(Base):
@@ -132,7 +132,7 @@ class DbUtxo(Base):
     confirmations = Column(Integer)
     output_n = Column(Integer)
     index = Column(Integer)
-    value = Column(Float)
+    value = Column(Integer)
     script = Column(String)
 
 

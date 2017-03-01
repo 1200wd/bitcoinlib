@@ -435,17 +435,16 @@ class HDWallet:
     def send(self, to_address, amount, account_id=None, fee=None):
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
-        print(to_hexstring(t.raw()))
         srv = Service(network='testnet')
         txid = srv.sendrawtransaction(to_hexstring(t.raw()))
         if not txid:
-            raise WalletError("Could not send transaction: %s" % res.errors)
+            raise WalletError("Could not send transaction: %s" % srv.errors)
         return txid
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
         if not utxo_query:
-            return None
+            return []
 
         # Try to find one utxo with exact amount or higher
         one_utxo = utxo_query.filter(DbUtxo.value >= amount).order_by(DbUtxo.value).first()
@@ -461,7 +460,7 @@ class HDWallet:
                 selected_utxos.append(utxo)
                 total_amount += utxo.value
         if total_amount < amount:
-            return None
+            return []
         return selected_utxos
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
@@ -593,6 +592,7 @@ if __name__ == '__main__':
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.info(detail=3)
         wallet_import.updateutxos(99)
+        wallet_import.getutxos(99, 4)
         for utxo in wallet_import.getutxos(99):
             print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
         res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
