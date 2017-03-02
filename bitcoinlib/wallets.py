@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    bitcoinlib wallets
-#    © 2017 January - 1200 Web Development <http://1200wd.com/>
+#    © 2017 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -67,8 +67,9 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
         raise WalletError("Wallet '%s' not found" % wallet)
     # Also delete all keys and transactions in this wallet
     ks = session.query(DbKey).filter_by(wallet_id=w.first().id)
-    for k in ks:
-        session.query(DbUtxo).filter_by(key_id=k.id).delete()
+    # TODO : Do not delete but update keys
+    # for k in ks:
+    #     session.query(DbTransaction).filter_by(key_id=k.id, spend=False).delete()
     ks.delete()
     res = w.delete()
     session.commit()
@@ -391,7 +392,8 @@ class HDWallet:
     def updateutxos(self, account_id=None):
         # Delete all utxo's for this account
         # TODO: This could be done more efficiently probably:
-        qr = self.session.query(DbUtxo).join(DbUtxo.key).filter(DbKey.account_id == account_id)
+        qr = self.session.query(DbTransaction).join(DbTransaction.key).\
+            filter(DbTransaction.spend is False, DbKey.account_id == account_id)
         [self.session.delete(o) for o in qr.all()]
         self.session.commit()
 
@@ -405,12 +407,12 @@ class HDWallet:
                 key_balances[key.id] = float(utxo['value'])
 
             # Skip if utxo was already imported
-            if self.session.query(DbUtxo).filter_by(tx_hash=utxo['tx_hash']).count():
+            if self.session.query(DbTransaction).filter_by(tx_hash=utxo['tx_hash']).count():
                 continue
 
-            new_utxo = DbUtxo(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
-                              output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
-                              script=utxo['script'])
+            new_utxo = DbTransaction(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
+                                     output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
+                                     script=utxo['script'], spend=False)
             self.session.add(new_utxo)
 
         total_balance = 0
@@ -426,9 +428,10 @@ class HDWallet:
         self.session.commit()
 
     def getutxos(self, account_id, min_confirms=0):
-        utxos = self.session.query(DbUtxo, DbKey.address).join(DbUtxo.key).\
-            filter(DbKey.account_id == account_id, DbUtxo.confirmations >= min_confirms).\
-            order_by(DbUtxo.confirmations.desc()).all()
+        utxos = self.session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
+            filter(DbTransaction.spend is False, DbKey.account_id == account_id,
+                   DbTransaction.confirmations >= min_confirms).\
+            order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
             u = utxo[0].__dict__
@@ -452,12 +455,14 @@ class HDWallet:
             return []
 
         # Try to find one utxo with exact amount or higher
-        one_utxo = utxo_query.filter(DbUtxo.value >= amount).order_by(DbUtxo.value).first()
+        one_utxo = utxo_query.filter(DbTransaction.spend is False, DbTransaction.value >= amount).\
+            order_by(DbTransaction.value).first()
         if one_utxo:
             return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
-        lessers = utxo_query.filter(DbUtxo.value < amount).order_by(DbUtxo.value.desc()).all()
+        lessers = utxo_query.filter(DbTransaction.spend is False, DbTransaction.value < amount).\
+            order_by(DbTransaction.value.desc()).all()
         total_amount = 0
         selected_utxos = []
         for utxo in lessers:
@@ -478,9 +483,9 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
 
-        qr = self.session.query(DbUtxo)
-        qr.join(DbUtxo.key).filter(DbKey.account_id == account_id)
-        qr.filter(DbUtxo.confirmations >= min_confirms)
+        qr = self.session.query(DbTransaction)
+        qr.join(DbTransaction.key).filter(DbTransaction.spend is False, DbKey.account_id == account_id)
+        qr.filter(DbTransaction.confirmations >= min_confirms)
         utxos = qr.all()
         if not utxos:
             return None
@@ -559,11 +564,11 @@ if __name__ == '__main__':
     import os
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    # if os.path.isfile(test_database):
-    #     os.remove(test_database)
+    if os.path.isfile(test_database):
+        os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    if False:
+    if True:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             wallet.new_account()
@@ -592,7 +597,7 @@ if __name__ == '__main__':
         wallet_import.updateutxos()
         wallet_import.info(detail=3)
 
-    if True:
+    if False:
         # Send testbitcoins to an address
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.info(detail=3)
@@ -668,6 +673,6 @@ if __name__ == '__main__':
         del litecoin_wallet
 
     # -- List wallets & delete a wallet
-    # print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
+    print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
     # delete_wallet(1, databasefile=test_database)
     # print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))

@@ -18,8 +18,9 @@
 #
 
 import csv
+import enum
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, Float, String, Boolean, Sequence, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -100,7 +101,7 @@ class DbKey(Base):
     path = Column(String(100))
     wallet_id = Column(Integer, ForeignKey('wallets.id'))
     wallet = relationship("DbWallet", back_populates="keys")
-    utxos = relationship("DbUtxo", cascade="all,delete", back_populates="key")
+    transactions = relationship("DbTransaction", cascade="all,delete", back_populates="key")
     balance = Column(Integer, default=0)
 
     def __repr__(self):
@@ -129,23 +130,26 @@ class DbProvider(Base):
         return "<DbProvider(name='%s', network='%s'>" % (self.name, self.network_name)
 
 
+class TransactionType(enum.Enum):
+    incoming = 1
+    outgoing = 2
+
+
 class DbTransaction(Base):
     __tablename__ = 'transactions'
-    id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
-    transaction_id = Column(String(50), unique=True)
-
-
-class DbUtxo(Base):
-    __tablename__ = 'utxos'
     id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)
-    key_id = Column(Integer, ForeignKey('keys.id'))
-    key = relationship("DbKey", back_populates="utxos")
+    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
+    key = relationship("DbKey", back_populates="transactions")
     tx_hash = Column(String(64), unique=True)
     confirmations = Column(Integer)
     output_n = Column(Integer)
     index = Column(Integer)
     value = Column(Integer)
     script = Column(String)
+    description = Column(String(256))
+    date = Column(DateTime)
+    spend = Boolean()
+    # TODO: TYPE: watch-only, wallet, incoming, outgoing
 
     def __repr__(self):
         return "<DbTransaction(id='%s', tx_hash='%s', output_n='%s'>" % (self.id, self.tx_hash, self.output_n)
