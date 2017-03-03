@@ -96,7 +96,7 @@ class Service(object):
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
             addresslist = [addresslist]
 
-        return self._provider_execute('utxos', addresslist)
+        return self._provider_execute('getutxos', addresslist)
 
     def getrawtransaction(self, txid):
         return self._provider_execute('getrawtransaction', txid)

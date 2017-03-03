@@ -44,7 +44,7 @@ class BlockrClient(BaseClient):
                 balance += float(rec['balance'])
             return balance
 
-    def utxos(self, addresslist):
+    def getutxos(self, addresslist):
         addresses = ','.join(addresslist)
         res = self.compose_request('address', 'unspent', addresses)
         utxos = []

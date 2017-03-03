@@ -141,14 +141,14 @@ class DbTransaction(Base):
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transactions")
     tx_hash = Column(String(64), unique=True)
+    date = Column(DateTime)
     confirmations = Column(Integer)
     output_n = Column(Integer)
     index = Column(Integer)
     value = Column(Integer)
     script = Column(String)
     description = Column(String(256))
-    date = Column(DateTime)
-    spend = Boolean()
+    spend = Column(Boolean())
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
 
     def __repr__(self):

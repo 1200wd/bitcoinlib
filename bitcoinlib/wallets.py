@@ -74,6 +74,7 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
     res = w.delete()
     session.commit()
     session.close()
+    _logger.info("Wallet '%s' deleted" % wallet)
     return res
 
 
@@ -247,6 +248,7 @@ class HDWallet:
                                              account_id=account_id, change=change, purpose=purpose, path=fullpath,
                                              parent_id=parent_id, session=session)
             parent_id = nk.key_id
+        _logger.info("New key(s) created for parent_id %d" % parent_id)
         return parent_id
 
     def __enter__(self):
@@ -269,6 +271,7 @@ class HDWallet:
             self.main_key_id = w.main_key_id
             self.main_key = HDWalletKey(self.main_key_id, session=self.session)
             self.default_account_id = 0
+            _logger.info("Opening wallet '%s'" % self.name)
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -399,12 +402,13 @@ class HDWallet:
 
         utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id))
         key_balances = {}
+        count_utxos = 0
         for utxo in utxos:
             key = self.session.query(DbKey).filter_by(address=utxo['address']).scalar()
             if key.id in key_balances:
-                key_balances[key.id] += float(utxo['value'])
+                key_balances[key.id] += int(utxo['value'])
             else:
-                key_balances[key.id] = float(utxo['value'])
+                key_balances[key.id] = int(utxo['value'])
 
             # Skip if utxo was already imported
             if self.session.query(DbTransaction).filter_by(tx_hash=utxo['tx_hash']).count():
@@ -414,6 +418,7 @@ class HDWallet:
                                      output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
                                      script=utxo['script'], spend=False)
             self.session.add(new_utxo)
+            count_utxos += 1
 
         total_balance = 0
         for kb in key_balances:
@@ -424,6 +429,7 @@ class HDWallet:
         # TODO: Fix this everywhere with setbalance(), balance(), _balance...
         self.dbwallet.balance = total_balance
         self.balance = total_balance
+        _logger.info("Got %d new UTXOs for account %s. Total balance %s" % (count_utxos, account_id, total_balance))
 
         self.session.commit()
 
@@ -444,9 +450,11 @@ class HDWallet:
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
         srv = Service(network='testnet')
+        _logger.debug("Push send transaction to network: %s" % to_hexstring(t.raw()))
         txid = srv.sendrawtransaction(to_hexstring(t.raw()))
         if not txid:
             raise WalletError("Could not send transaction: %s" % srv.errors)
+        _logger.info("Succesfully pushed transaction, returned txid: %s" % txid)
         return txid
 
     @staticmethod
@@ -568,7 +576,7 @@ if __name__ == '__main__':
         os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    if True:
+    if False:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             wallet.new_account()
@@ -582,7 +590,7 @@ if __name__ == '__main__':
             wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    if False:
+    if True:
         wallet_import = HDWallet.create(
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
