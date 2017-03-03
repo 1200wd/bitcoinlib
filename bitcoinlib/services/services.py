@@ -51,6 +51,9 @@ class Service(object):
 
     # TODO: Add preferred provider
     def _provider_execute(self, method, argument, providers=None):
+        self.results = []
+        self.errors = []
+        self.resultcount = 0
         for provider in self.providers:
             if self.resultcount >= self.max_providers:
                 break
@@ -113,13 +116,13 @@ if __name__ == '__main__':
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
     srv = Service(network='testnet', min_providers=3)
-    # First result only
-    pprint(srv.getbalance(addresslst))
-    # All results as dict
+    print("Getbalance, First result only: %s" % srv.getbalance(addresslst))
+    print("\nAll results as dict:")
     pprint(srv.results)
-
+    print("\nUTXOs list:")
     pprint(srv.getutxos(addresslst))
 
+    sys.exit()
     # GET Raw Transaction data for given Transaction ID
     t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
     print("\nGET Raw Transaction:")
