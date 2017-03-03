@@ -13,8 +13,8 @@ before_script:
   - sudo apt-get install python-dev python3-dev
 
 before_install:
-  - python -m easy_install -U setuptools
-  
+  - sudo pip install setuptools -U
+
 install: python setup.py install
 
 script: python setup.py test
