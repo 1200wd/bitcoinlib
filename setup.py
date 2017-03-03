@@ -21,12 +21,19 @@
 from setuptools import setup
 from codecs import open
 from os import path
+import sys
 
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the relevant file
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     readmetxt = f.read()
+
+kwargs = {}
+install_requires = ['requests', 'ecdsa', 'pbkdf2', 'pycrypto', 'scrypt', 'sqlalchemy']
+if sys.version_info < (3, 4):
+    install_requires.append('enum34')
+kwargs['install_requires'] = install_requires
 
 setup(
       name='bitcoinlib',
@@ -55,16 +62,8 @@ setup(
       license='GNU3',
       packages=['bitcoinlib'],
       test_suite= 'tests',
-      install_requires=[
-            'requests',
-            'ecdsa',
-            'pbkdf2',
-            'pycrypto',
-            'scrypt',
-            'sqlalchemy',
-            'enum34;python_version<"3.4"',
-      ],
       include_package_data=True,
       keywords='bitcoin library cryptocurrency tools wallet crypto keys',
-      zip_safe=False
+      zip_safe=False,
+      **kwargs
 )
