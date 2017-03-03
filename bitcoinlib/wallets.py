@@ -193,7 +193,7 @@ class HDWalletKey:
         print(" Address Index                  %s" % self.address_index)
         print(" Address                        %s" % self.address)
         print(" Path                           %s" % self.path)
-        print(" Balance                        %s" % self.balance)
+        print(" Balance                        %s" % networks.print_value(self.balance, self.network.name))
         print("\n")
 
 
@@ -435,7 +435,7 @@ class HDWallet:
 
     def getutxos(self, account_id, min_confirms=0):
         utxos = self.session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
-            filter(DbTransaction.spend.op("IS NOT")(True), DbKey.account_id == account_id,
+            filter(DbTransaction.spend.op("IS")(False), DbKey.account_id == account_id,
                    DbTransaction.confirmations >= min_confirms).order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
@@ -463,13 +463,13 @@ class HDWallet:
             return []
 
         # Try to find one utxo with exact amount or higher
-        one_utxo = utxo_query.filter(DbTransaction.spend is False, DbTransaction.value >= amount).\
+        one_utxo = utxo_query.filter(DbTransaction.spend.op("IS")(False), DbTransaction.value >= amount).\
             order_by(DbTransaction.value).first()
         if one_utxo:
             return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
-        lessers = utxo_query.filter(DbTransaction.spend is False, DbTransaction.value < amount).\
+        lessers = utxo_query.filter(DbTransaction.spend.op("IS")(False), DbTransaction.value < amount).\
             order_by(DbTransaction.value.desc()).all()
         total_amount = 0
         selected_utxos = []
@@ -492,20 +492,23 @@ class HDWallet:
             account_id = self.default_account_id
 
         qr = self.session.query(DbTransaction)
-        qr.join(DbTransaction.key).filter(DbTransaction.spend is False, DbKey.account_id == account_id)
+        qr.join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False), DbKey.account_id == account_id)
         qr.filter(DbTransaction.confirmations >= min_confirms)
         utxos = qr.all()
         if not utxos:
+            _logger.warning("Create transaction: No unspent transaction outputs found")
             return None
 
         # TODO: Estimate fees
         if fee is None:
-            fee = 0.0003 * pow(10, 8)
+            fee = int(0.0003 * pow(10, 8))
 
         if input_arr is None:
             input_arr = []
             amount_total_input = 0
             selected_utxos = self._select_inputs(amount_total_output + fee, qr)
+            if not selected_utxos:
+                raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
                 input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
@@ -559,7 +562,8 @@ class HDWallet:
                 ds = range(0, 6)
             for d in ds:
                 for key in self.keys(depth=d):
-                    print("%5s %-28s %-45s %s" % (key.id, key.path, key.address, key.name))
+                    print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
+                                                          networks.print_value(key.balance, self.network.name)))
         print("\n")
 
 
@@ -615,8 +619,8 @@ if __name__ == '__main__':
         for utxo in wallet_import.getutxos(99):
             print("%s %s (%d confirms)" %
                   (utxo['address'], networks.print_value(utxo['value'], 'testnet'), utxo['confirmations']))
-        # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
-        res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
+        res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
+        # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
         print("Send transaction result:")
         from pprint import pprint
         pprint(res)
