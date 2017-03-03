@@ -38,22 +38,33 @@ class ServiceError(Exception):
 
 class Service(object):
 
-    def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5):
+    def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5, providers=None):
         self.network = network
 
-        # Find available providers for this network
-        self.providers = [x for x in serviceproviders[network]]
+        providers_defined = [x for x in serviceproviders[network]]
+        if providers is None:
+            self.providers = providers_defined
+        else:
+            if isinstance(providers, list):
+                self.providers = providers
+            else:
+                self.providers = [providers]
+
+            for p in self.providers:
+                if p not in providers_defined:
+                    raise ValueError("Provider '%s' not found in definitions" % p)
+
         self.min_providers = min_providers
         self.max_providers = max_providers
         self.results = []
         self.errors = []
         self.resultcount = 0
 
-    # TODO: Add preferred provider
-    def _provider_execute(self, method, argument, providers=None):
+    def _provider_execute(self, method, argument):
         self.results = []
         self.errors = []
         self.resultcount = 0
+
         for provider in self.providers:
             if self.resultcount >= self.max_providers:
                 break
@@ -115,7 +126,7 @@ if __name__ == '__main__':
     from pprint import pprint
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
-    srv = Service(network='testnet', min_providers=3)
+    srv = Service(network='testnet', min_providers=5)
     print("Getbalance, first result only: %s" % srv.getbalance(addresslst))
     print("\nAll results as dict:")
     pprint(srv.results)
