@@ -57,6 +57,14 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
     return wlst
 
 
+def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
+    if wallet in [x['name'] for x in list_wallets(databasefile)]:
+        return True
+    if isinstance(wallet, int) and wallet in [x['id'] for x in list_wallets(databasefile)]:
+        return True
+    return False
+
+
 def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
     session = DbInit(databasefile=databasefile).session
     if isinstance(wallet, int) or wallet.isdigit():
