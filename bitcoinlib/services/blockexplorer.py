@@ -32,7 +32,7 @@ class BlockExplorerClient(BaseClient):
         url_path = category + '/' + data + '/' + method
         return self.request(url_path, variables)
 
-    def utxos(self, addresslist):
+    def getutxos(self, addresslist):
         addresses = ','.join(addresslist)
         res = self.compose_request('addrs', addresses, 'utxo')
         utxos = []
@@ -43,17 +43,17 @@ class BlockExplorerClient(BaseClient):
                 'confirmations': utxo['confirmations'],
                 'output_n': utxo['vout'],
                 'index': 0,
-                'value': utxo['amount'] * self.units,
+                'value': int(utxo['amount'] * self.units),
                 'script': utxo['scriptPubKey'],
             })
         return utxos
 
     def getbalance(self, addresslist):
-        utxos = self.utxos(addresslist)
+        utxos = self.getutxos(addresslist)
         balance = 0
         for utxo in utxos:
             balance += utxo['value']
-        return balance * self.units
+        return balance
 
     def getrawtransaction(self, txid):
         res = self.compose_request('rawtx', txid)

@@ -116,7 +116,7 @@ if __name__ == '__main__':
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
     srv = Service(network='testnet', min_providers=3)
-    print("Getbalance, First result only: %s" % srv.getbalance(addresslst))
+    print("Getbalance, first result only: %s" % srv.getbalance(addresslst))
     print("\nAll results as dict:")
     pprint(srv.results)
     print("\nUTXOs list:")

@@ -36,13 +36,10 @@ class BlockrClient(BaseClient):
     def getbalance(self, addresslist):
         addresses = ','.join(addresslist)
         res = self.compose_request('address', 'balance', addresses)
-        if isinstance(res, dict):
-            return float(res['balance'])
-        else:
-            balance = 0
-            for rec in res:
-                balance += float(rec['balance'])
-            return balance
+        balance = 0
+        for rec in res:
+            balance += float(rec['balance'])
+        return int(balance * self.units)
 
     def getutxos(self, addresslist):
         addresses = ','.join(addresslist)
@@ -57,7 +54,7 @@ class BlockrClient(BaseClient):
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['n'],
                     'index': 0,
-                    'value': float(utxo['amount']) * self.units,
+                    'value': int(float(utxo['amount']) * self.units),
                     'script': utxo['script'],
                 })
         return utxos
