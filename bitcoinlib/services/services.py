@@ -122,7 +122,6 @@ if __name__ == '__main__':
     print("\nUTXOs list:")
     pprint(srv.getutxos(addresslst))
 
-    sys.exit()
     # GET Raw Transaction data for given Transaction ID
     t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
     print("\nGET Raw Transaction:")

@@ -435,14 +435,14 @@ class HDWallet:
 
     def getutxos(self, account_id, min_confirms=0):
         utxos = self.session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
-            filter(DbTransaction.spend is False, DbKey.account_id == account_id,
-                   DbTransaction.confirmations >= min_confirms).\
-            order_by(DbTransaction.confirmations.desc()).all()
+            filter(DbTransaction.spend.op("IS NOT")(True), DbKey.account_id == account_id,
+                   DbTransaction.confirmations >= min_confirms).order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
             u = utxo[0].__dict__
             del u['_sa_instance_state'], u['key_id']
             u['address'] = utxo[1]
+            u['value'] = int(u['value'])
             res.append(u)
         return res
 
@@ -572,8 +572,8 @@ if __name__ == '__main__':
     import os
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    if os.path.isfile(test_database):
-        os.remove(test_database)
+    # if os.path.isfile(test_database):
+    #     os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
     if False:
@@ -590,7 +590,7 @@ if __name__ == '__main__':
             wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    if True:
+    if False:
         wallet_import = HDWallet.create(
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
@@ -605,19 +605,21 @@ if __name__ == '__main__':
         wallet_import.updateutxos()
         wallet_import.info(detail=3)
 
-    if False:
+    if True:
         # Send testbitcoins to an address
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.info(detail=3)
-        # wallet_import.updateutxos(99)
-        # wallet_import.getutxos(99, 4)
-        # for utxo in wallet_import.getutxos(99):
-        #     print("%s %8.8f (%d confirms)" % (utxo['address'], utxo['value'], utxo['confirmations']))
+        wallet_import.updateutxos(99)
+        wallet_import.getutxos(99, 4)
+        print("\n= UTXOs =")
+        for utxo in wallet_import.getutxos(99):
+            print("%s %s (%d confirms)" %
+                  (utxo['address'], networks.print_value(utxo['value'], 'testnet'), utxo['confirmations']))
         # res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
-        # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
-        # print("Send transaction result:")
-        # from pprint import pprint
-        # pprint(res)
+        res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
+        print("Send transaction result:")
+        from pprint import pprint
+        pprint(res)
 
     # -- Import Account Bitcoin Testnet key with depth 3
     if False:
