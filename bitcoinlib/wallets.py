@@ -365,7 +365,7 @@ class HDWallet:
                                          purpose=self.purpose, path=path, session=self.session)
         return nk
 
-    def keys(self, account_id=None, change=None, depth=None, as_dict=False):
+    def keys(self, account_id=None, name=None, change=None, depth=None, as_dict=False):
         qr = self.session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
@@ -375,6 +375,8 @@ class HDWallet:
             qr = qr.filter(DbKey.depth > 4)
         if depth is not None:
             qr = qr.filter(DbKey.depth == depth)
+        if name is not None:
+            qr = qr.filter(DbKey.name == name)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
     def accounts(self, account_id, as_dict=False):

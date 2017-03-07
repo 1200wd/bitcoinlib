@@ -440,7 +440,7 @@ class Transaction:
         return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
-        self.outputs.append(Output(amount, address, public_key_hash, public_key, lock_script, self.network))
+        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script, self.network))
 
 
 if __name__ == '__main__':
