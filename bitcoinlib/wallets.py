@@ -393,9 +393,9 @@ class HDWallet:
     def keys_address_change(self, account_id, as_dict=False):
         return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
 
-    def addresslist(self, account_id=None):
+    def addresslist(self, account_id=None, key_id=None):
         addresslist = []
-        for key in self.keys(account_id=account_id):
+        for key in self.keys(account_id=account_id, id=key_id):
             addresslist.append(key.address)
         return addresslist
 
@@ -404,15 +404,17 @@ class HDWallet:
         self.dbwallet.balance = self.balance
         self.session.commit()
 
-    def updateutxos(self, account_id=None):
+    def updateutxos(self, account_id=None, key_id=None):
         # Delete all utxo's for this account
         # TODO: This could be done more efficiently probably:
         qr = self.session.query(DbTransaction).join(DbTransaction.key).\
             filter(DbTransaction.spend is False, DbKey.account_id == account_id)
+        if key_id is not None:
+            qr.filter(DbTransaction.key_id == key_id)
         [self.session.delete(o) for o in qr.all()]
         self.session.commit()
 
-        utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id))
+        utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id, key_id=key_id))
         key_balances = {}
         count_utxos = 0
         for utxo in utxos:

@@ -648,11 +648,11 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if True:
+    if False:
         from bitcoinlib.services.bitcoind import BitcoindClient
         bdc = BitcoindClient.from_config()
 
-    if True:
+    if False:
         # Deserialize and verify a transaction
         txid = '73652b5f704b0a112b8bc68d063dac6238eb3e2861074a7a12ce24e2a332bd45'
         rt = bdc.getrawtransaction(txid)
