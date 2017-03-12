@@ -17,10 +17,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import math
-
 from sqlalchemy import or_
-
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
 from bitcoinlib.config import networks
