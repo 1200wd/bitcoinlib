@@ -60,14 +60,7 @@ def initialize_lib():
             copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
 
 
-def db_update_from_files():
-    src_files = os.listdir(DEFAULT_SETTINGSDIR)
-    for file_name in src_files:
-        print(file_name)
-
-
 initialize_lib()
-db_update_from_files()
 
 logfile = os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log')
 handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
