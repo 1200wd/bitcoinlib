@@ -51,6 +51,8 @@ class Networks:
             r = self.networks[self.name][attr]
             if attr in ['address', 'address_p2sh', 'wif', 'hdkey_public', 'hdkey_private']:
                 return binascii.unhexlify(r)
+            elif attr == 'denominator':
+                return float(r)
             else:
                 return r
         else:
@@ -58,7 +60,7 @@ class Networks:
 
     def print_value(self, value):
         symb = self.networks[network]['code']
-        denominator = float(self.networks[network]['denominator'])
+        denominator = self.networks[network]['denominator']
         denominator_size = -int(math.log10(denominator))
         balance = round(value * denominator, denominator_size)
         format_str = "%%.%df %%s" % denominator_size
