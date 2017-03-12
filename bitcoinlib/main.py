@@ -23,13 +23,12 @@ from logging.handlers import RotatingFileHandler
 
 
 DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
-DEFAULT_DATABASEDIR = DEFAULT_DOCDIR
-DEFAULT_LOGDIR = DEFAULT_DOCDIR
-DEFAULT_SETTINGSDIR = DEFAULT_DOCDIR
-# -> Or put files in a seperate directory:
-# DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database')
-# DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log')
-# DEFAULT_SETTINGSDIR = os.path.join(DEFAULT_DOCDIR, 'config')
+# DEFAULT_DATABASEDIR = DEFAULT_DOCDIR
+# DEFAULT_LOGDIR = DEFAULT_DOCDIR
+# DEFAULT_SETTINGSDIR = DEFAULT_DOCDIR
+DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database')
+DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log')
+DEFAULT_SETTINGSDIR = os.path.join(DEFAULT_DOCDIR, 'config')
 CURRENT_INSTALLDIR = os.path.dirname(__file__)
 CURRENT_INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
@@ -50,7 +49,7 @@ def initialize_lib():
         return
 
     with open(instlogfile, 'w') as f:
-        f.write('Bitcoinlibrary installed, check further logs in bitcoinlib.log')
+        f.write('Bitcoinlibrary installed, check further logs in bitcoinlib.log\n')
 
     # Copy data and settings file to DOCDIR
     from shutil import copyfile
@@ -61,7 +60,14 @@ def initialize_lib():
             copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
 
 
+def db_update_from_files():
+    src_files = os.listdir(DEFAULT_SETTINGSDIR)
+    for file_name in src_files:
+        print(file_name)
+
+
 initialize_lib()
+db_update_from_files()
 
 logfile = os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log')
 handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
