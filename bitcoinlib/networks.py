@@ -50,7 +50,7 @@ class Networks:
         if attr in self.keys_network:
             r = self.networks[self.name][attr]
             if attr in ['address', 'address_p2sh', 'wif', 'hdkey_public', 'hdkey_private']:
-                return binascii.hexlify(r)
+                return binascii.unhexlify(r)
             else:
                 return r
         else:
