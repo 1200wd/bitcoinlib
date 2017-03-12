@@ -19,6 +19,8 @@
 #
 
 import json
+import binascii
+import math
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
 
 
@@ -46,20 +48,21 @@ class Networks:
 
     def __getattr__(self, attr):
         if attr in self.keys_network:
-            return self.networks[self.name][attr]
+            r = self.networks[self.name][attr]
+            if attr in ['address', 'address_p2sh', 'wif', 'hdkey_public', 'hdkey_private']:
+                return binascii.hexlify(r)
+            else:
+                return r
         else:
             raise ValueError("This class has no '%s' attribute" % attr)
 
-
-def print_value(value, network='bitcoin'):
-    if not network_defined(network):
-        raise ValueError("Network %s not defined!" % network)
-    symb = NETWORKS[network]['code']
-    denominator = float(NETWORKS[network]['denominator'])
-    denominator_size = -int(math.log10(denominator))
-    balance = round(value * denominator, denominator_size)
-    format_str = "%%.%df %%s" % denominator_size
-    return format_str % (balance, symb)
+    def print_value(self, value):
+        symb = self.networks[network]['code']
+        denominator = float(self.networks[network]['denominator'])
+        denominator_size = -int(math.log10(denominator))
+        balance = round(value * denominator, denominator_size)
+        format_str = "%%.%df %%s" % denominator_size
+        return format_str % (balance, symb)
 
 
 if __name__ == '__main__':
@@ -74,6 +77,6 @@ if __name__ == '__main__':
     print("\n=== Get network(s) for WIF prefix B0 ===")
     print("WIF Prefixes: %s" % network.network_by_value('wif', 'B0'))
 
-    print("\n=== Current network parameters ===")
+    print("\n=== Bitcoin network parameters ===")
     for k in network.keys_network:
         print("%25s: %s" % (k, eval("network.%s" % k)))
