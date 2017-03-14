@@ -459,29 +459,35 @@ class HDKey(Network):
             elif len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
-            elif import_key[:4] in ['xprv', 'xpub', 'tprv', 'tpub', 'Ltpv', 'Ltpb']:
-                if import_key[:1] == 't':
-                    self.network = NETWORK_BITCOIN_TESTNET
-                # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
-                bkey = change_base(import_key, 58, 256)
-                if ord(bkey[45:46]):
-                    isprivate = False
-                    key = bkey[45:78]
-                else:
-                    key = bkey[46:78]
-                depth = ord(bkey[4:5])
-                parent_fingerprint = bkey[5:9]
-                child_index = int(change_base(bkey[9:13], 256, 10))
-                chain = bkey[13:45]
-                # chk = bkey[78:82]
             else:
-                try:
-                    ki = Key(import_key, passphrase=passphrase)
-                    chain = b'\0'*32
-                    key = ki.private_byte()
-                    key_type = 'private'
-                except BKeyError:
-                    raise BKeyError("Key format not recognised")
+                bkey = change_base(import_key, 58, 256)
+                hdkey_code = bkey[:4]
+                if hdkey_code in self.network_values_for('hdkey_private') + self.network_values_for('hdkey_public'):
+                    nws = self.network_by_value('hdkey_private', hdkey_code) + \
+                          self.network_by_value('hdkey_public', hdkey_code)
+                    if len(nws) == 1:
+                        self.network = nws[0]
+                    else:
+                        # TODO: logs and stuff
+                    # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
+                    if ord(bkey[45:46]):
+                        isprivate = False
+                        key = bkey[45:78]
+                    else:
+                        key = bkey[46:78]
+                    depth = ord(bkey[4:5])
+                    parent_fingerprint = bkey[5:9]
+                    child_index = int(change_base(bkey[9:13], 256, 10))
+                    chain = bkey[13:45]
+                    # chk = bkey[78:82]
+                else:
+                    try:
+                        ki = Key(import_key, passphrase=passphrase)
+                        chain = b'\0'*32
+                        key = ki.private_byte()
+                        key_type = 'private'
+                    except BKeyError:
+                        raise BKeyError("Key format not recognised")
 
         self.key = key
         self.chain = chain
