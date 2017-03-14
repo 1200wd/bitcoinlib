@@ -176,8 +176,12 @@ class Key(Network):
                     network = self.network_by_value('wif', key[0:1])
                     if len(network) == 1:
                         self.network = network[0]
+                        #TODO: change networks class __init__ network
+                    elif len(network) > 1:
+                        # TODO
+                        _logger.warning("More then one network found with this versionbyte. Networks: " % network)
                     else:
-                        raise BKeyError("Unrecognised WIF private key, version byte unknown. Found: %s" % network)
+                        raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
                 else:
                     raise BKeyError("Unrecognised WIF private key, prefix unknown")
                 key = key[1:]

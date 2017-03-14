@@ -49,8 +49,8 @@ class Network:
         return [self._format_value(field, nv[field]) for nv in self.networks.values()]
 
     def network_by_value(self, field, value):
-        value = to_hexstring(value)
-        return [nv for nv in self.networks if self.networks[nv][field] == value]
+        value = to_hexstring(value).upper()
+        return [nv for nv in self.networks if self.networks[nv][field].upper() == value]
 
     def network_defined(self, network):
         if network not in list(self.networks.keys()):

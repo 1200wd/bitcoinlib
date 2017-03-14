@@ -64,7 +64,7 @@
     "bip44_cointype": 1,
     "denominator": 0.00000001
   },
-  "dash-testnet":
+  "dash_testnet":
   {
     "description": "Dash Testnet Network",
     "symbol": "tDASH",
