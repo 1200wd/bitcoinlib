@@ -22,6 +22,7 @@ import json
 import binascii
 import math
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
+from bitcoinlib.encoding import to_hexstring
 
 
 class Network:
@@ -48,6 +49,7 @@ class Network:
         return [self._format_value(field, nv[field]) for nv in self.networks.values()]
 
     def network_by_value(self, field, value):
+        value = to_hexstring(value)
         return [nv for nv in self.networks if self.networks[nv][field] == value]
 
     def network_defined(self, network):
