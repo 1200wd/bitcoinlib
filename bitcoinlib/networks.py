@@ -35,8 +35,17 @@ class Network:
         self.network_name = name
         self.keys_network = list(self.networks[name].keys())
 
+    @staticmethod
+    def _format_value(field, value):
+        if field in ['address', 'address_p2sh', 'wif', 'hdkey_public', 'hdkey_private']:
+            return binascii.unhexlify(value)
+        elif field == 'denominator':
+            return float(value)
+        else:
+            return value
+
     def network_values_for(self, field):
-        return [nv[field] for nv in self.networks.values()]
+        return [self._format_value(field, nv[field]) for nv in self.networks.values()]
 
     def network_by_value(self, field, value):
         return [nv for nv in self.networks if self.networks[nv][field] == value]
@@ -49,12 +58,7 @@ class Network:
     def get_network_attr(self, attr):
         if attr in self.keys_network:
             r = self.networks[self.network_name][attr]
-            if attr in ['address', 'address_p2sh', 'wif', 'hdkey_public', 'hdkey_private']:
-                return binascii.unhexlify(r)
-            elif attr == 'denominator':
-                return float(r)
-            else:
-                return r
+            return self._format_value(attr, r)
         else:
             raise ValueError("This class has no '%s' attribute" % attr)
 

@@ -114,7 +114,6 @@ class Key(Network):
         :param passphrase: Optional passphrase if imported key is password protected
         :return:
         """
-        # self.network = Network.__init__(self, network)
         self.network = network
         super().__init__(network)
         self._public = None
@@ -168,13 +167,13 @@ class Key(Network):
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise BKeyError("Invalid checksum, not a valid WIF key")
-                if key[0:1] in network_get_values('wif'):
+                if key[0:1] in self.network_values_for('wif'):
                     if key[-1:] == b'\x01':
                         self.compressed = True
                         key = key[:-1]
                     else:
                         self.compressed = False
-                    network = get_network_by_value('wif', key[0:1])
+                    network = self.network_by_value('wif', key[0:1])
                     if len(network) == 1:
                         self.network = network[0]
                     else:
@@ -295,7 +294,7 @@ class Key(Network):
         """
         if not self.secret:
             return False
-        version = NETWORKS[self.network]['wif']
+        version = self.get_network_attr('wif')
         key = version + change_base(str(self.secret), 10, 256, 32)
         if self.compressed:
             key += b'\1'
@@ -373,7 +372,7 @@ class Key(Network):
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
-        versionbyte = self.networks.address
+        versionbyte = self.get_network_attr('address')
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key + checksum, 256, 58)
@@ -403,7 +402,7 @@ class Key(Network):
         print("\n")
 
 
-class HDKey:
+class HDKey(Network):
     """
     Class for Hierarchical Deterministic keys as defined in BIP0032
 
@@ -446,6 +445,7 @@ class HDKey:
         :return:
         """
         self.network = network
+        super().__init__(network)
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -539,10 +539,10 @@ class HDKey:
         if not self.isprivate and public is False:
             return ''
         if self.isprivate and not public:
-            raw = NETWORKS[self.network]['hdkey_private']
+            raw = self.get_network_attr('hdkey_private')
             typebyte = b'\x00'
         else:
-            raw = NETWORKS[self.network]['hdkey_public']
+            raw = self.get_network_attr('hdkey_public')
             typebyte = b''
             if public:
                 rkey = self.public().public_byte()
