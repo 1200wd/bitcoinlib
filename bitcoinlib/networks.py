@@ -24,7 +24,7 @@ import math
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
 
 
-class Networks:
+class Network:
 
     def __init__(self, name='bitcoin'):
         try:
@@ -32,10 +32,10 @@ class Networks:
         except:
             f = open(CURRENT_INSTALLDIR_DATA + "/networks.json", "r")
         self.networks = json.loads(f.read())
-        self.name = name
+        self.network_name = name
         self.keys_network = list(self.networks[name].keys())
 
-    def values_for(self, field):
+    def network_values_for(self, field):
         return [nv[field] for nv in self.networks.values()]
 
     def network_by_value(self, field, value):
@@ -46,9 +46,9 @@ class Networks:
             return False
         return True
 
-    def __getattr__(self, attr):
+    def get_network_attr(self, attr):
         if attr in self.keys_network:
-            r = self.networks[self.name][attr]
+            r = self.networks[self.network_name][attr]
             if attr in ['address', 'address_p2sh', 'wif', 'hdkey_public', 'hdkey_private']:
                 return binascii.unhexlify(r)
             elif attr == 'denominator':
@@ -72,13 +72,13 @@ if __name__ == '__main__':
     # NETWORK EXAMPLES
     #
 
-    network = Networks('bitcoin')
+    network = Network('bitcoin')
     print("\n=== Get all WIF prefixes ===")
-    print("WIF Prefixes: %s" % network.values_for('wif'))
+    print("WIF Prefixes: %s" % network.network_values_for('wif'))
 
     print("\n=== Get network(s) for WIF prefix B0 ===")
     print("WIF Prefixes: %s" % network.network_by_value('wif', 'B0'))
 
     print("\n=== Bitcoin network parameters ===")
     for k in network.keys_network:
-        print("%25s: %s" % (k, eval("network.%s" % k)))
+        print("%25s: %s" % (k, network.get_network_attr(k)))

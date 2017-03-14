@@ -31,6 +31,7 @@ import scrypt
 from Crypto.Cipher import AES
 
 from bitcoinlib.main import *
+from bitcoinlib.networks import Network
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base
@@ -95,7 +96,7 @@ def ec_point(p):
     return point
 
 
-class Key:
+class Key(Network):
     """
     Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
 
@@ -113,10 +114,12 @@ class Key:
         :param passphrase: Optional passphrase if imported key is password protected
         :return:
         """
+        # self.network = Network.__init__(self, network)
+        self.network = network
+        super().__init__(network)
         self._public = None
         self._public_uncompressed = None
         self.compressed = compressed
-        self.network = network
         if not import_key:
             self.secret = random.SystemRandom().randint(0, secp256k1_n)
             return
@@ -370,7 +373,7 @@ class Key:
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
-        versionbyte = NETWORKS[self.network]['address']
+        versionbyte = self.networks.address
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key + checksum, 256, 58)

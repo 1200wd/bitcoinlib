@@ -18,85 +18,85 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import math
-
-
-# Network, address_type_normal, address_type_p2sh, wif, extended_wif_public and extended_wif_private
+# import math
+#
+#
+# # Network, address_type_normal, address_type_p2sh, wif, extended_wif_public and extended_wif_private
 NETWORK_BITCOIN = 'bitcoin'
 NETWORK_BITCOIN_TESTNET = 'testnet'
 NETWORK_LITECOIN = 'litecoin'
-NETWORKS = {
-    NETWORK_BITCOIN: {
-        'description': 'Bitcoin',
-        'symbol': '฿',
-        'code': 'BTC',
-        'address': b'\x00',
-        'address_p2sh': b'\x05',
-        'wif': b'\x80',
-        'hdkey_private': b'\x04\x88\xAD\xE4',
-        'hdkey_public': b'\x04\x88\xB2\x1E',
-        'bip44_cointype': 0,
-        'denominator': 0.00000001,
-    },
-    NETWORK_BITCOIN_TESTNET: {
-        'description': 'Bitcoin Test Network 3',
-        'symbol': 'TBTC',
-        'code': 'TBTC',
-        'address': b'\x6F',
-        'address_p2sh': b'\x05',
-        'wif': b'\xEF',
-        'hdkey_private': b'\x04\x35\x83\x94',
-        'hdkey_public': b'\x04\x35\x87\xCF',
-        'bip44_cointype': 1,
-        'denominator': 0.00000001,
-    },
-    NETWORK_LITECOIN: {
-        'description': 'Litcoin Network',
-        'symbol': 'LTC',
-        'code': 'LTC',
-        'address': b'\x30',
-        'address_p2sh': b'\x05',
-        'wif': b'\xB0',
-        'hdkey_private': b'\x01\x9D\x9C\xFE',
-        'hdkey_public': b'\x01\x9D\xA4\x62',
-        'bip44_cointype': 2,
-        'denominator': 0.00000001,
-    },
-}
-
-
-def network_get_values(field):
-    return [nv[field] for nv in NETWORKS.values()]
-
-
-def get_network_by_value(field, value):
-    return [nv for nv in NETWORKS if NETWORKS[nv][field] == value]
-
-
-def network_defined(network):
-    if network not in list(NETWORKS.keys()):
-        return False
-    return True
-
-
-def print_value(value, network='bitcoin'):
-    if not network_defined(network):
-        raise ValueError("Network %s not defined!" % network)
-    symb = NETWORKS[network]['code']
-    denominator = float(NETWORKS[network]['denominator'])
-    denominator_size = -int(math.log10(denominator))
-    balance = round(value * denominator, denominator_size)
-    format_str = "%%.%df %%s" % denominator_size
-    return format_str % (balance, symb)
-
-
-if __name__ == '__main__':
-    #
-    # NETWORK EXAMPLES
-    #
-
-    print("\n=== Get all WIF prefixes ===")
-    print("WIF Prefixes: %s" % network_get_values('wif'))
-
-    print("\n=== Get network for WIF prefix B0 ===")
-    print("WIF Prefixes: %s" % get_network_by_value('wif', b'\xB0'))
+# NETWORKS = {
+#     NETWORK_BITCOIN: {
+#         'description': 'Bitcoin',
+#         'symbol': '฿',
+#         'code': 'BTC',
+#         'address': b'\x00',
+#         'address_p2sh': b'\x05',
+#         'wif': b'\x80',
+#         'hdkey_private': b'\x04\x88\xAD\xE4',
+#         'hdkey_public': b'\x04\x88\xB2\x1E',
+#         'bip44_cointype': 0,
+#         'denominator': 0.00000001,
+#     },
+#     NETWORK_BITCOIN_TESTNET: {
+#         'description': 'Bitcoin Test Network 3',
+#         'symbol': 'TBTC',
+#         'code': 'TBTC',
+#         'address': b'\x6F',
+#         'address_p2sh': b'\x05',
+#         'wif': b'\xEF',
+#         'hdkey_private': b'\x04\x35\x83\x94',
+#         'hdkey_public': b'\x04\x35\x87\xCF',
+#         'bip44_cointype': 1,
+#         'denominator': 0.00000001,
+#     },
+#     NETWORK_LITECOIN: {
+#         'description': 'Litcoin Network',
+#         'symbol': 'LTC',
+#         'code': 'LTC',
+#         'address': b'\x30',
+#         'address_p2sh': b'\x05',
+#         'wif': b'\xB0',
+#         'hdkey_private': b'\x01\x9D\x9C\xFE',
+#         'hdkey_public': b'\x01\x9D\xA4\x62',
+#         'bip44_cointype': 2,
+#         'denominator': 0.00000001,
+#     },
+# }
+#
+#
+# def network_get_values(field):
+#     return [nv[field] for nv in NETWORKS.values()]
+#
+#
+# def get_network_by_value(field, value):
+#     return [nv for nv in NETWORKS if NETWORKS[nv][field] == value]
+#
+#
+# def network_defined(network):
+#     if network not in list(NETWORKS.keys()):
+#         return False
+#     return True
+#
+#
+# def print_value(value, network='bitcoin'):
+#     if not network_defined(network):
+#         raise ValueError("Network %s not defined!" % network)
+#     symb = NETWORKS[network]['code']
+#     denominator = float(NETWORKS[network]['denominator'])
+#     denominator_size = -int(math.log10(denominator))
+#     balance = round(value * denominator, denominator_size)
+#     format_str = "%%.%df %%s" % denominator_size
+#     return format_str % (balance, symb)
+#
+#
+# if __name__ == '__main__':
+#     #
+#     # NETWORK EXAMPLES
+#     #
+#
+#     print("\n=== Get all WIF prefixes ===")
+#     print("WIF Prefixes: %s" % network_get_values('wif'))
+#
+#     print("\n=== Get network for WIF prefix B0 ===")
+#     print("WIF Prefixes: %s" % get_network_by_value('wif', b'\xB0'))
