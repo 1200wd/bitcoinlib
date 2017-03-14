@@ -178,7 +178,7 @@ class Key(Network):
                         self.network = network[0]
                         #TODO: change networks class __init__ network
                     elif len(network) > 1:
-                        # TODO
+                        # TODO logger not working?
                         _logger.warning("More then one network found with this versionbyte. Networks: " % network)
                     else:
                         raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
@@ -676,6 +676,9 @@ if __name__ == '__main__':
     #
     # KEYS EXAMPLES
     #
+
+    print(HDKey('tprv8ZgxMBicQKsPf2S18qpSypHPZBK7mdiwvXHPh5TSjGjm2pLacP4tEqVjLVyagTLLgSZK4YyBNb4eytBykE755KcL9YXAqPtfERNRfwRt54M'))
+    sys.exit()
 
     print("\n=== Import public key ===")
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')

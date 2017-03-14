@@ -22,7 +22,7 @@ import json
 import binascii
 import math
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import to_hexstring, normalize_var
 
 
 class Network:
@@ -45,8 +45,12 @@ class Network:
         else:
             return value
 
-    def network_values_for(self, field):
-        return [self._format_value(field, nv[field]) for nv in self.networks.values()]
+    def network_values_for(self, field, output_as='default'):
+        r = [self._format_value(field, nv[field]) for nv in self.networks.values()]
+        if output_as == 'default':
+            return r
+        elif output_as == 'str':
+            return [normalize_var(i) for i in r]
 
     def network_by_value(self, field, value):
         value = to_hexstring(value).upper()
@@ -82,9 +86,13 @@ if __name__ == '__main__':
     print("\n=== Get all WIF prefixes ===")
     print("WIF Prefixes: %s" % network.network_values_for('wif'))
 
+    print("\n=== Get all HDkey private prefixes ===")
+    print("HDkey private prefixes: %s" % network.network_values_for('hdkey_private', output_as='str'))
+
     print("\n=== Get network(s) for WIF prefix B0 ===")
     print("WIF Prefixes: %s" % network.network_by_value('wif', 'B0'))
 
     print("\n=== Bitcoin network parameters ===")
     for k in network.keys_network:
         print("%25s: %s" % (k, network.get_network_attr(k)))
+
