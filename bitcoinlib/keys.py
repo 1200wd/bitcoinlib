@@ -2,7 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -166,23 +166,22 @@ class Key:
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise BKeyError("Invalid checksum, not a valid WIF key")
-                if key[0:1] in self.network.prefix_wif:
-                    if key[-1:] == b'\x01':
-                        self.compressed = True
-                        key = key[:-1]
+                found_networks = self.network.network_by_value('prefix_wif', key[0:1])
+                if not len(found_networks):
+                    raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
+                if self.network.network_name not in found_networks:
+                    if len(found_networks) > 1:
+                        raise BKeyError("More then one network found with this versionbyte, please specify network."
+                                        "Networks found: %s" % found_networks)
                     else:
-                        self.compressed = False
-                    network = self.network.network_by_value('wif', key[0:1])
-                    if len(network) == 1:
-                        self.network = Network(network[0])
-                        #TODO: change networks class __init__ network
-                    elif len(network) > 1:
-                        # TODO logger not working?
-                        _logger.warning("More then one network found with this versionbyte. Networks: " % network)
-                    else:
-                        raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
+                        _logger.warning("Current network %s is different then the one found in key: %s" %
+                                        (self.network.network_name, found_networks[0]))
+                        self.network = Network(found_networks[0])
+                if key[-1:] == b'\x01':
+                    self.compressed = True
+                    key = key[:-1]
                 else:
-                    raise BKeyError("Unrecognised WIF private key, prefix unknown")
+                    self.compressed = False
                 key = key[1:]
                 self.secret = change_base(key, 256, 10)
 
@@ -571,21 +570,21 @@ class HDKey:
     def public(self):
         if not self._public_key_object:
             if self._public:
-                self._public_key_object = Key(self._public, network=self.network)
+                self._public_key_object = Key(self._public, network=self.network.network_name)
             else:
                 pub = Key(self.key).public()
-                self._public_key_object = Key(pub, network=self.network)
+                self._public_key_object = Key(pub, network=self.network.network_name)
         return self._public_key_object
 
     def public_uncompressed(self):
         if not self._public_uncompressed:
             pub = Key(self.key).public_uncompressed()
-            return Key(pub, network=self.network)
+            return Key(pub, network=self.network.network_name)
         return self._public_uncompressed
 
     def private(self):
         if self.key:
-            return Key(self.key, network=self.network)
+            return Key(self.key, network=self.network.network_name)
 
     def subkey_for_path(self, path):
         """
@@ -649,7 +648,7 @@ class HDKey:
         newkey = change_base(newkey, 10, 256, 32)
 
         return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, network=self.network)
+                     child_index=index, network=self.network.network_name)
 
     def child_public(self, index=0):
         """
@@ -676,16 +675,13 @@ class HDKey:
         xhex = change_base(Ki.x(), 10, 16, 64)
         secret = change_base(prefix + xhex, 16, 256)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, isprivate=False, network=self.network)
+                     child_index=index, isprivate=False, network=self.network.network_name)
 
 
 if __name__ == '__main__':
     #
     # KEYS EXAMPLES
     #
-
-    print(HDKey('tprv8ZgxMBicQKsPf2S18qpSypHPZBK7mdiwvXHPh5TSjGjm2pLacP4tEqVjLVyagTLLgSZK4YyBNb4eytBykE755KcL9YXAqPtfERNRfwRt54M'))
-    sys.exit()
 
     print("\n=== Import public key ===")
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
@@ -709,7 +705,7 @@ if __name__ == '__main__':
     print("Compressed      %s\n" % k.compressed)
 
     print("\n=== Import Testnet Key ===")
-    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc')
+    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
     k.info()
 
     print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
