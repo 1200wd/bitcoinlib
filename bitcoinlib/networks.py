@@ -32,10 +32,23 @@ class Network:
             f = open(DEFAULT_SETTINGSDIR+"/networks.json", "r")
         except:
             f = open(CURRENT_INSTALLDIR_DATA + "/networks.json", "r")
+
         self.networks = json.loads(f.read())
         self.network_name = network_name
-        for f in list(self.networks[network_name].keys()):
-            exec("self.%s = self.networks[network_name]['%s']" % (f, f))
+        self.prefix_wif = self.networks[network_name]['prefix_wif']
+        self.currency_code = self.networks[network_name]['currency_code']
+        self.currency_symbol = self.networks[network_name]['currency_symbol']
+        self.prefix_address_p2sh = self.networks[network_name]['prefix_address_p2sh']
+        self.prefix_address = self.networks[network_name]['prefix_address']
+        self.prefix_hdkey_public = self.networks[network_name]['prefix_hdkey_public']
+        self.description = self.networks[network_name]['description']
+        self.prefix_hdkey_private = self.networks[network_name]['prefix_hdkey_private']
+        self.denominator = self.networks[network_name]['denominator']
+        self.bip44_cointype = self.networks[network_name]['bip44_cointype']
+
+        # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
+        # for f in list(self.networks[network_name].keys()):
+        #     exec("self.%s = self.networks[network_name]['%s']" % (f, f))
 
     def __repr__(self):
         return "<Network: %s>" % self.network_name
@@ -89,9 +102,13 @@ if __name__ == '__main__':
     print("\n=== Get network(s) for WIF prefix B0 ===")
     print("WIF Prefixes: %s" % network.network_by_value('prefix_wif', 'B0'))
 
+    print("\n=== Get HD key private prefix for current network ===")
+    print("self.prefix_hdkey_private: %s" % network.prefix_hdkey_private)
+
     print("\n=== Network parameters ===")
     for k in network.__dir__():
         if k[:1] != '_':
             v = eval('network.%s' % k)
             if not callable(v):
                 print("%25s: %s" % (k, v))
+                # print("self.%s = self.networks[network_name]['%s']" % (k, k))
