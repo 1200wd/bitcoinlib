@@ -96,7 +96,7 @@ def ec_point(p):
     return point
 
 
-class Key(Network):
+class Key:
     """
     Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
 
@@ -114,8 +114,7 @@ class Key(Network):
         :param passphrase: Optional passphrase if imported key is password protected
         :return:
         """
-        self.network = network
-        super().__init__(network)
+        self.network = Network(network)
         self._public = None
         self._public_uncompressed = None
         self.compressed = compressed
@@ -167,15 +166,15 @@ class Key(Network):
                 key = key[:-4]
                 if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
                     raise BKeyError("Invalid checksum, not a valid WIF key")
-                if key[0:1] in self.network_values_for('wif'):
+                if key[0:1] in self.network.prefix_wif:
                     if key[-1:] == b'\x01':
                         self.compressed = True
                         key = key[:-1]
                     else:
                         self.compressed = False
-                    network = self.network_by_value('wif', key[0:1])
+                    network = self.network.network_by_value('wif', key[0:1])
                     if len(network) == 1:
-                        self.network = network[0]
+                        self.network = Network(network[0])
                         #TODO: change networks class __init__ network
                     elif len(network) > 1:
                         # TODO logger not working?
@@ -298,7 +297,7 @@ class Key(Network):
         """
         if not self.secret:
             return False
-        version = self.get_network_attr('wif')
+        version = self.network.prefix_wif
         key = version + change_base(str(self.secret), 10, 256, 32)
         if self.compressed:
             key += b'\1'
@@ -376,7 +375,7 @@ class Key(Network):
             key = change_base(self._public, 16, 256)
         else:
             key = change_base(self._public_uncompressed, 16, 256)
-        versionbyte = self.get_network_attr('address')
+        versionbyte = self.network.prefix_address
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key + checksum, 256, 58)
@@ -406,7 +405,7 @@ class Key(Network):
         print("\n")
 
 
-class HDKey(Network):
+class HDKey:
     """
     Class for Hierarchical Deterministic keys as defined in BIP0032
 
@@ -448,8 +447,7 @@ class HDKey(Network):
         :param key_type: HD BIP32 or normal Private Key
         :return:
         """
-        self.network = network
-        super().__init__(network)
+        self.network = Network(network)
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -462,11 +460,13 @@ class HDKey(Network):
             else:
                 bkey = change_base(import_key, 58, 256)
                 hdkey_code = bkey[:4]
-                if hdkey_code in self.network_values_for('hdkey_private') + self.network_values_for('hdkey_public'):
-                    nws = self.network_by_value('hdkey_private', hdkey_code) + \
-                          self.network_by_value('hdkey_public', hdkey_code)
+                if hdkey_code in self.network.network_values_for('prefix_hdkey_private') + \
+                        self.network.network_values_for('prefix_hdkey_public'):
+                    nws = self.network.network_by_value('prefix_hdkey_private', hdkey_code) + \
+                          self.network.network_by_value('prefix_hdkey_public', hdkey_code)
                     if len(nws) == 1:
-                        self.network = nws[0]
+                        # TODO: Is this desirable?
+                        self.network = Network(nws[0])
                     else:
                         # TODO: logs and stuff
                         pass
@@ -550,10 +550,10 @@ class HDKey(Network):
         if not self.isprivate and public is False:
             return ''
         if self.isprivate and not public:
-            raw = self.get_network_attr('hdkey_private')
+            raw = self.network.prefix_hdkey_private
             typebyte = b'\x00'
         else:
-            raw = self.get_network_attr('hdkey_public')
+            raw = self.network.prefix_hdkey_public
             typebyte = b''
             if public:
                 rkey = self.public().public_byte()

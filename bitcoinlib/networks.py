@@ -35,14 +35,14 @@ class Network:
 
         self.networks = json.loads(f.read())
         self.network_name = network_name
-        self.prefix_wif = self.networks[network_name]['prefix_wif']
+        self.prefix_wif = binascii.unhexlify(self.networks[network_name]['prefix_wif'])
         self.currency_code = self.networks[network_name]['currency_code']
         self.currency_symbol = self.networks[network_name]['currency_symbol']
-        self.prefix_address_p2sh = self.networks[network_name]['prefix_address_p2sh']
-        self.prefix_address = self.networks[network_name]['prefix_address']
-        self.prefix_hdkey_public = self.networks[network_name]['prefix_hdkey_public']
+        self.prefix_address_p2sh = binascii.unhexlify(self.networks[network_name]['prefix_address_p2sh'])
+        self.prefix_address = binascii.unhexlify(self.networks[network_name]['prefix_address'])
+        self.prefix_hdkey_public = binascii.unhexlify(self.networks[network_name]['prefix_hdkey_public'])
         self.description = self.networks[network_name]['description']
-        self.prefix_hdkey_private = self.networks[network_name]['prefix_hdkey_private']
+        self.prefix_hdkey_private = binascii.unhexlify(self.networks[network_name]['prefix_hdkey_private'])
         self.denominator = self.networks[network_name]['denominator']
         self.bip44_cointype = self.networks[network_name]['bip44_cointype']
 
@@ -55,7 +55,7 @@ class Network:
 
     @staticmethod
     def _format_value(field, value):
-        if field in ['address', 'address_p2sh', 'wif', 'hdkey_public', 'hdkey_private']:
+        if field[:6] == 'prefix':
             return binascii.unhexlify(value)
         elif field == 'denominator':
             return float(value)
