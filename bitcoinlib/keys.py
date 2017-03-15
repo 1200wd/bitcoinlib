@@ -35,7 +35,6 @@ from bitcoinlib.networks import Network
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base
-from bitcoinlib.config.networks import *
 
 _logger = logging.getLogger(__name__)
 
@@ -104,7 +103,7 @@ class Key:
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, network=NETWORK_BITCOIN, compressed=True, passphrase=''):
+    def __init__(self, import_key=None, network=DEFAULT_NETWORK, compressed=True, passphrase=''):
         """
         Initialize a Key object
 
@@ -415,7 +414,7 @@ class HDKey:
     """
 
     @staticmethod
-    def from_seed(import_seed, network=NETWORK_BITCOIN):
+    def from_seed(import_seed, network=DEFAULT_NETWORK):
         """
         Used by class init function, import key from seed
 
@@ -430,7 +429,7 @@ class HDKey:
         return HDKey(key=key, chain=chain, network=network)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, isprivate=True, network=NETWORK_BITCOIN, key_type='bip32', passphrase=''):
+                 child_index=0, isprivate=True, network=DEFAULT_NETWORK, key_type='bip32', passphrase=''):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
@@ -723,7 +722,7 @@ if __name__ == '__main__':
     print("Is Compressed   %s\n" % k.compressed)
 
     print("\n==== Generate random HD Key on testnet ===")
-    hdk = HDKey(network=NETWORK_BITCOIN_TESTNET)
+    hdk = HDKey(network='testnet')
     print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
 
     print("\n==== Import HD Key from seed ===")
@@ -737,7 +736,7 @@ if __name__ == '__main__':
     print("Key type is : %s" % k.key_type)
 
     print("\n==== Generate random Litecoin key ===")
-    lk = HDKey(network=NETWORK_LITECOIN)
+    lk = HDKey(network='litecoin')
     lk.info()
 
     print("\n==== Derive path with Child Key derivation ===")

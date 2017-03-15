@@ -20,7 +20,7 @@
 from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
-from bitcoinlib.config import networks
+from bitcoinlib.networks import Network
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction
@@ -591,7 +591,7 @@ if __name__ == '__main__':
     #     os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    if False:
+    if True:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             wallet.new_account()
@@ -620,7 +620,7 @@ if __name__ == '__main__':
         wallet_import.updateutxos()
         wallet_import.info(detail=3)
 
-    if True:
+    if False:
         # Send testbitcoins to an address
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
         wallet_import.info(detail=3)

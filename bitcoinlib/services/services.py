@@ -20,7 +20,7 @@
 
 import sys
 import logging
-from bitcoinlib.config.networks import NETWORK_BITCOIN
+from bitcoinlib.main import DEFAULT_NETWORK
 from bitcoinlib.config.services import serviceproviders
 from bitcoinlib import services
 
@@ -38,7 +38,7 @@ class ServiceError(Exception):
 
 class Service(object):
 
-    def __init__(self, network=NETWORK_BITCOIN, min_providers=1, max_providers=5, providers=None):
+    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=5, providers=None):
         self.network = network
 
         providers_defined = [x for x in serviceproviders[network]]
