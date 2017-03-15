@@ -469,6 +469,7 @@ class HDKey(Network):
                         self.network = nws[0]
                     else:
                         # TODO: logs and stuff
+                        pass
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                     if ord(bkey[45:46]):
                         isprivate = False
