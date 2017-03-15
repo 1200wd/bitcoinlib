@@ -27,14 +27,18 @@ from bitcoinlib.encoding import to_hexstring, normalize_var
 
 class Network:
 
-    def __init__(self, name='bitcoin'):
+    def __init__(self, network_name='bitcoin'):
         try:
             f = open(DEFAULT_SETTINGSDIR+"/networks.json", "r")
         except:
             f = open(CURRENT_INSTALLDIR_DATA + "/networks.json", "r")
         self.networks = json.loads(f.read())
-        self.network_name = name
-        self.keys_network = list(self.networks[name].keys())
+        self.network_name = network_name
+        for f in list(self.networks[network_name].keys()):
+            exec("self.%s = self.networks[network_name]['%s']" % (f, f))
+
+    def __repr__(self):
+        return "<Network: %s>" % self.network_name
 
     @staticmethod
     def _format_value(field, value):
@@ -61,13 +65,6 @@ class Network:
             return False
         return True
 
-    def get_network_attr(self, attr):
-        if attr in self.keys_network:
-            r = self.networks[self.network_name][attr]
-            return self._format_value(attr, r)
-        else:
-            raise ValueError("This class has no '%s' attribute" % attr)
-
     def print_value(self, value):
         symb = self.networks[network]['code']
         denominator = self.networks[network]['denominator']
@@ -84,15 +81,17 @@ if __name__ == '__main__':
 
     network = Network('bitcoin')
     print("\n=== Get all WIF prefixes ===")
-    print("WIF Prefixes: %s" % network.network_values_for('wif'))
+    print("WIF Prefixes: %s" % network.network_values_for('prefix_wif'))
 
     print("\n=== Get all HDkey private prefixes ===")
-    print("HDkey private prefixes: %s" % network.network_values_for('hdkey_private', output_as='str'))
+    print("HDkey private prefixes: %s" % network.network_values_for('prefix_hdkey_private', output_as='str'))
 
     print("\n=== Get network(s) for WIF prefix B0 ===")
-    print("WIF Prefixes: %s" % network.network_by_value('wif', 'B0'))
+    print("WIF Prefixes: %s" % network.network_by_value('prefix_wif', 'B0'))
 
-    print("\n=== Bitcoin network parameters ===")
-    for k in network.keys_network:
-        print("%25s: %s" % (k, network.get_network_attr(k)))
-
+    print("\n=== Network parameters ===")
+    for k in network.__dir__():
+        if k[:1] != '_':
+            v = eval('network.%s' % k)
+            if not callable(v):
+                print("%25s: %s" % (k, v))
