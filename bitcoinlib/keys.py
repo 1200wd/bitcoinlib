@@ -461,14 +461,17 @@ class HDKey:
                 hdkey_code = bkey[:4]
                 if hdkey_code in self.network.network_values_for('prefix_hdkey_private') + \
                         self.network.network_values_for('prefix_hdkey_public'):
-                    nws = self.network.network_by_value('prefix_hdkey_private', hdkey_code) + \
+                    found_networks = self.network.network_by_value('prefix_hdkey_private', hdkey_code) + \
                           self.network.network_by_value('prefix_hdkey_public', hdkey_code)
-                    if len(nws) == 1:
-                        # TODO: Is this desirable?
-                        self.network = Network(nws[0])
-                    else:
-                        # TODO: logs and stuff
-                        pass
+                    if self.network.network_name not in found_networks:
+                        if len(found_networks) > 1:
+                            raise BKeyError("More then one network found with this versionbyte, please specify network."
+                                            "Networks found: %s" % found_networks)
+                        else:
+                            _logger.warning("Current network %s is different then the one found in key: %s" %
+                                            (self.network.network_name, found_networks[0]))
+                            self.network = Network(found_networks[0])
+
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                     if ord(bkey[45:46]):
                         isprivate = False
