@@ -592,7 +592,7 @@ if __name__ == '__main__':
         os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    if True:
+    if False:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             wallet.new_account()
@@ -606,7 +606,7 @@ if __name__ == '__main__':
             wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    if False:
+    if True:
         wallet_import = HDWallet.create(
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'

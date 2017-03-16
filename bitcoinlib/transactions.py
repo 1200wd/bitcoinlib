@@ -297,11 +297,11 @@ class Output:
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
         self.public_key = to_bytes(public_key)
-        self.network = network
+        self.network = Network(network)
 
         self.compressed = True
         self.k = None
-        self.versionbyte = NETWORKS[self.network]['address']
+        self.versionbyte = self.network.prefix_address
 
         if self.public_key:
             self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
@@ -448,7 +448,7 @@ if __name__ == '__main__':
 
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if False:
+    if True:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs

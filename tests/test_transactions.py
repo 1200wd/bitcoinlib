@@ -147,7 +147,7 @@ class TestTransactions(unittest.TestCase):
             self.assertEqual(binascii.hexlify(t.raw()).decode(), r[1])
 
     def test_transactions_sign_1(self):
-        pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
+        pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import
         inp = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
                     public_key=pk.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
