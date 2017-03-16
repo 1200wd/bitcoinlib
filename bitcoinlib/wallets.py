@@ -149,8 +149,8 @@ class HDWalletKey:
             self.is_private = wk.is_private
             self.path = wk.path
             self.wallet = wk.wallet
-            self.network = Network(wk.wallet.network)
-            self.k = HDKey(import_key=self.key_wif, network=wk.wallet.network)
+            self.network = Network(wk.wallet.network.name)
+            self.k = HDKey(import_key=self.key_wif, network=wk.wallet.network_name)
             self.depth = wk.depth
             self.key_type = wk.key_type
         else:
@@ -271,7 +271,7 @@ class HDWallet:
             self.wallet_id = w.id
             self.name = w.name
             self.owner = w.owner
-            self.network = Network(w.network)
+            self.network = Network(w.network_name)
             self.purpose = w.purpose
             self.balance = w.balance
             self.main_key_id = w.main_key_id

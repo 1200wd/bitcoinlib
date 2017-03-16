@@ -79,8 +79,8 @@ class Network:
         return True
 
     def print_value(self, value):
-        symb = self.networks[network]['code']
-        denominator = self.networks[network]['denominator']
+        symb = self.currency_code
+        denominator = self.denominator
         denominator_size = -int(math.log10(denominator))
         balance = round(value * denominator, denominator_size)
         format_str = "%%.%df %%s" % denominator_size
