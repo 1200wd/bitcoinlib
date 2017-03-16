@@ -21,13 +21,13 @@
 import json
 import binascii
 import math
-from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
+from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring, normalize_var
 
 
 class Network:
 
-    def __init__(self, network_name='bitcoin'):
+    def __init__(self, network_name=DEFAULT_NETWORK):
         try:
             f = open(DEFAULT_SETTINGSDIR+"/networks.json", "r")
         except:

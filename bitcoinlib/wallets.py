@@ -86,7 +86,7 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
 class HDWalletKey:
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='', hdkey_object=0, account_id=0, network='bitcoin', change=0,
+    def from_key(name, wallet_id, session, key='', hdkey_object=0, account_id=0, network=DEFAULT_NETWORK, change=0,
                  purpose=44, parent_id=0, path='m'):
         # TODO: Test key and throw warning if invalid network, account_id etc
         if not hdkey_object:
@@ -100,7 +100,8 @@ class HDWalletKey:
         if k.depth != len(path.split('/'))-1:
             if path == 'm' and k.depth == 3:
                 # Create path when importing new account-key
-                networkcode = networks.NETWORKS[network]['bip44_cointype']
+                nw = Network(network)
+                networkcode = nw.bip44_cointype
                 path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
             else:
                 raise WalletError("Key depth of %d does not match path lenght of %d" %
@@ -115,7 +116,7 @@ class HDWalletKey:
         nk = DbKey(name=name, wallet_id=wallet_id, key=str(k.private()), purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
-                   is_private=True, path=path, key_type=k.key_type)
+                   is_private=True, path=path, key_type=k.key_type)  #FIXME: missing , network=network
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session)
@@ -148,8 +149,8 @@ class HDWalletKey:
             self.is_private = wk.is_private
             self.path = wk.path
             self.wallet = wk.wallet
-            self.network = wk.wallet.network
-            self.k = HDKey(import_key=self.key_wif, network=self.network.name)
+            self.network = Network(wk.wallet.network)
+            self.k = HDKey(import_key=self.key_wif, network=wk.wallet.network)
             self.depth = wk.depth
             self.key_type = wk.key_type
         else:
@@ -166,7 +167,7 @@ class HDWalletKey:
         else:
             p = ["M"]
         p.append(str(self.purpose) + "'")
-        p.append(str(networks.NETWORKS[self.network.name]['bip44_cointype']) + "'")
+        p.append(str(self.network.bip44_cointype) + "'")
         p.append(str(self.account_id) + "'")
         p.append(str(change))
         p.append(str(address_index))
@@ -176,11 +177,11 @@ class HDWalletKey:
         return HDWalletKey(self.parent_id, session=session)
 
     def updatebalance(self):
-        self.balance = Service(network=self.network.name).getbalance([self.address])
+        self.balance = Service(network=self.network.network_name).getbalance([self.address])
         self.dbkey.balance = self.balance
 
     def updateutxo(self):
-        utxos = Service(network=self.network.name).getutxos([self.address])
+        utxos = Service(network=self.network.network_name).getutxos([self.address])
         from pprint import pprint
         pprint(utxos)
 
@@ -198,14 +199,14 @@ class HDWalletKey:
         print(" Address Index                  %s" % self.address_index)
         print(" Address                        %s" % self.address)
         print(" Path                           %s" % self.path)
-        print(" Balance                        %s" % networks.print_value(self.balance, self.network.name))
+        print(" Balance                        %s" % self.network.print_value(self.balance))
         print("\n")
 
 
 class HDWallet:
 
     @classmethod
-    def create(cls, name, key='', owner='', network='bitcoin', account_id=0, purpose=44,
+    def create(cls, name, key='', owner='', network=DEFAULT_NETWORK, account_id=0, purpose=44,
                databasefile=DEFAULT_DATABASE):
         session = DbInit(databasefile=databasefile).session
         if session.query(DbWallet).filter_by(name=name).count():
@@ -270,7 +271,7 @@ class HDWallet:
             self.wallet_id = w.id
             self.name = w.name
             self.owner = w.owner
-            self.network = w.network
+            self.network = Network(w.network)
             self.purpose = w.purpose
             self.balance = w.balance
             self.main_key_id = w.main_key_id
@@ -287,16 +288,16 @@ class HDWallet:
         self.session.close()
 
     def balance_str(self):
-        return networks.print_value(self.balance, self.network.name)
+        return self.network.print_value(self.balance)
 
     def import_key(self, key, account_id=None):
         return HDWalletKey.from_key(
-            key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.name,
+            key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
             account_id=account_id, purpose=self.purpose, session=self.session)
 
     def import_hdkey_object(self, hdkey_object, account_id=None):
         return HDWalletKey.from_key_object(
-            hdkey_object, name=self.name, wallet_id=self.wallet_id, network=self.network.name,
+            hdkey_object, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
             account_id=account_id, purpose=self.purpose, session=self.session)
 
     def new_key(self, name='', account_id=0, change=0, max_depth=5):
@@ -332,7 +333,7 @@ class HDWallet:
         if not name:
             name = "Key %d" % address_index
         newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
-                                             account_id=account_id, change=change, network=self.network.name,
+                                             account_id=account_id, change=change, network=self.network.network_name,
                                              purpose=self.purpose, basepath=bpath, session=self.session)
         return HDWalletKey(newkey, session=self.session)
 
@@ -397,7 +398,7 @@ class HDWallet:
         return addresslist
 
     def updatebalance(self, account_id=None):
-        self.balance = Service(network=self.network.name).getbalance(self.addresslist(account_id=account_id))
+        self.balance = Service(network=self.network.network_name).getbalance(self.addresslist(account_id=account_id))
         self.dbwallet.balance = self.balance
         self.session.commit()
 
@@ -411,7 +412,7 @@ class HDWallet:
         [self.session.delete(o) for o in qr.all()]
         self.session.commit()
 
-        utxos = Service(network=self.network.name).getutxos(self.addresslist(account_id=account_id, key_id=key_id))
+        utxos = Service(network=self.network.network_name).getutxos(self.addresslist(account_id=account_id, key_id=key_id))
         key_balances = {}
         count_utxos = 0
         for utxo in utxos:
@@ -494,7 +495,7 @@ class HDWallet:
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
         amount_total_output = 0
-        t = Transaction(network=self.network.name)
+        t = Transaction(network=self.network.network_name)
         for o in output_arr:
             amount_total_output += o[1]
             t.add_output(o[1], o[0])
@@ -574,7 +575,7 @@ class HDWallet:
             for d in ds:
                 for key in self.keys(depth=d):
                     print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
-                                                          networks.print_value(key.balance, self.network.name)))
+                                                          self.network.print_value(key.balance)))
         print("\n")
 
 
@@ -587,8 +588,8 @@ if __name__ == '__main__':
     import os
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    # if os.path.isfile(test_database):
-    #     os.remove(test_database)
+    if os.path.isfile(test_database):
+        os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
     if True:
@@ -629,7 +630,7 @@ if __name__ == '__main__':
         print("\n= UTXOs =")
         for utxo in wallet_import.getutxos(99):
             print("%s %s (%d confirms)" %
-                  (utxo['address'], networks.print_value(utxo['value'], 'testnet'), utxo['confirmations']))
+                  (utxo['address'], wallet_import.network.print_value(utxo['value']), utxo['confirmations']))
         res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
         # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
         print("Send transaction result:")
