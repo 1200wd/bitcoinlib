@@ -20,8 +20,9 @@
 
 import sys
 import logging
-from bitcoinlib.main import DEFAULT_NETWORK
-from bitcoinlib.config.services import serviceproviders
+import json
+from bitcoinlib.main import DEFAULT_NETWORK, DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
+# from bitcoinlib.config.services import serviceproviders
 from bitcoinlib import services
 
 _logger = logging.getLogger(__name__)
@@ -40,7 +41,12 @@ class Service(object):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=5, providers=None):
         self.network = network
+        try:
+            f = open(DEFAULT_SETTINGSDIR+"/providers.json", "r")
+        except:
+            f = open(CURRENT_INSTALLDIR_DATA + "/providers.json", "r")
 
+        self.providers = json.loads(f.read())
         providers_defined = [x for x in serviceproviders[network]]
         if providers is None:
             self.providers = providers_defined

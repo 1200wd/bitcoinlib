@@ -18,20 +18,20 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-serviceproviders = {
-    'bitcoin': {
-        'blockchaininfo': ('BlockchainInfoClient', 'https://blockchain.info/', 100000000),
-        'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/', 100000000),
-        'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/', 100000000),
-        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/main/', 1),
-    },
-    'testnet': {
-        # 'blockexplorer': ('BlockExplorerClient', 'https://testnet.blockexplorer.com/api/', 100000000),
-        # 'blockr': ('BlockrClient', 'http://tbtc.blockr.io/api/v1/', 100000000),
-        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/test3/', 1),
-    },
-    'litecoin': {
-        'blockr': ('BlockrClient', 'http://ltc.blockr.io/api/v1/', 100000000),
-        'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/ltc/main/', 1),
-    }
-}
+# serviceproviders = {
+#     'bitcoin': {
+#         'blockchaininfo': ('BlockchainInfoClient', 'https://blockchain.info/', 100000000),
+#         'blockexplorer': ('BlockExplorerClient', 'https://blockexplorer.com/api/', 100000000),
+#         'blockr': ('BlockrClient', 'http://btc.blockr.io/api/v1/', 100000000),
+#         'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/main/', 1),
+#     },
+#     'testnet': {
+#         # 'blockexplorer': ('BlockExplorerClient', 'https://testnet.blockexplorer.com/api/', 100000000),
+#         # 'blockr': ('BlockrClient', 'http://tbtc.blockr.io/api/v1/', 100000000),
+#         'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/btc/test3/', 1),
+#     },
+#     'litecoin': {
+#         'blockr': ('BlockrClient', 'http://ltc.blockr.io/api/v1/', 100000000),
+#         'blockcypher': ('BlockCypher', 'https://api.blockcypher.com/v1/ltc/main/', 1),
+#     }
+# }
