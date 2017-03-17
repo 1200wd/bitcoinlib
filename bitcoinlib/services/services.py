@@ -46,19 +46,23 @@ class Service(object):
         except:
             f = open(CURRENT_INSTALLDIR_DATA + "/providers.json", "r")
 
-        self.providers = json.loads(f.read())
-        providers_defined = [x for x in serviceproviders[network]]
-        if providers is None:
-            self.providers = providers_defined
-        else:
-            if isinstance(providers, list):
-                self.providers = providers
-            else:
-                self.providers = [providers]
-
-            for p in self.providers:
-                if p not in providers_defined:
-                    raise ValueError("Provider '%s' not found in definitions" % p)
+        self.providers_defined = json.loads(f.read())
+        self.providers = []
+        for p in self.providers_defined:
+            if self.providers_defined[p]['network'] == network and \
+                    (providers is None or self.providers_defined[p]['provider'] in providers):
+                self.providers.append({p: self.providers_defined[p]})
+        # if providers is None:
+        #     self.providers = providers_defined
+        # else:
+        #     if isinstance(providers, list):
+        #         self.providers = providers
+        #     else:
+        #         self.providers = [providers]
+        #
+        #     for p in self.providers:
+        #         if p not in providers_defined:
+        #             raise ValueError("Provider '%s' not found in definitions" % p)
 
         self.min_providers = min_providers
         self.max_providers = max_providers

@@ -1,5 +1,6 @@
 {
   "blockexplorer": {
+    "provider": "blockexplorer",
     "network": "bitcoin",
     "client_class": "BlockExplorerClient",
     "url": "https://blockexplorer.com/api/",
@@ -8,6 +9,7 @@
     "denominator": 100000000
   },
   "blockexplorer.testnet": {
+    "provider": "blockexplorer",
     "network": "testnet",
     "client_class": "BlockExplorerClient",
     "url": "https://testnet.blockexplorer.com/api/",
@@ -16,6 +18,7 @@
     "denominator": 100000000
   },
   "blockexplorer.litecoin": {
+    "provider": "blockexplorer",
     "network": "litecoin",
     "client_class": "BlockExplorerClient",
     "url": "https://litecoin.blockexplorer.com/api/",
@@ -24,6 +27,7 @@
     "denominator": 100000000
   },
   "blockchaininfo": {
+    "provider": "blockchaininfo",
     "network": "bitcoin",
     "client_class": "BlockchainInfoClient",
     "url": "https://blockchain.info/",
@@ -32,6 +36,7 @@
     "denominator": 100000000
   },
   "blockr": {
+    "provider": "blockr",
     "network": "bitcoin",
     "client_class": "BlockrClient",
     "url": "http://btc.blockr.io/api/v1/",
@@ -40,6 +45,7 @@
     "denominator": 100000000
   },
   "blockcypher": {
+    "provider": "blockcypher",
     "network": "bitcoin",
     "client_class": "BlockCypher",
     "url": "https://api.blockcypher.com/v1/btc/main/",
@@ -48,6 +54,7 @@
     "denominator": 1
   },
   "blockr.testnet": {
+    "provider": "blockr",
     "network": "testnet",
     "client_class": "BlockrClient",
     "url": "http://tbtc.blockr.io/api/v1/",
@@ -56,6 +63,7 @@
     "denominator": 100000000
   },
   "blockcypher.testnet": {
+    "provider": "blockcypher",
     "network": "testnet",
     "client_class": "BlockCypher",
     "url": "'https://api.blockcypher.com/v1/btc/test3/",
@@ -64,6 +72,7 @@
     "denominator": 1
   },
   "blockr.litecoin": {
+    "provider": "blockr",
     "network": "litecoin",
     "client_class": "BlockrClient",
     "url": "http://ltc.blockr.io/api/v1/",
@@ -72,6 +81,7 @@
     "denominator": 100000000
   },
   "blockcypher.litecoin": {
+    "provider": "blockcypher",
     "network": "litecoin",
     "client_class": "BlockCypher",
     "url": "https://api.blockcypher.com/v1/ltc/main/",
