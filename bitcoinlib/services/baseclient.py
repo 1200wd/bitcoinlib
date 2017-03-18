@@ -25,7 +25,7 @@ except ImportError:
     from urllib import urlencode
 import json
 from bitcoinlib.main import *
-# from bitcoinlib.config.services import serviceproviders
+from bitcoinlib.services.services import Service
 
 _logger = logging.getLogger(__name__)
 

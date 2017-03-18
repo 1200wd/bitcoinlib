@@ -47,22 +47,11 @@ class Service(object):
             f = open(CURRENT_INSTALLDIR_DATA + "/providers.json", "r")
 
         self.providers_defined = json.loads(f.read())
-        self.providers = []
+        self.providers = {}
         for p in self.providers_defined:
             if self.providers_defined[p]['network'] == network and \
                     (providers is None or self.providers_defined[p]['provider'] in providers):
-                self.providers.append({p: self.providers_defined[p]})
-        # if providers is None:
-        #     self.providers = providers_defined
-        # else:
-        #     if isinstance(providers, list):
-        #         self.providers = providers
-        #     else:
-        #         self.providers = [providers]
-        #
-        #     for p in self.providers:
-        #         if p not in providers_defined:
-        #             raise ValueError("Provider '%s' not found in definitions" % p)
+                self.providers.update({p: self.providers_defined[p]})
 
         self.min_providers = min_providers
         self.max_providers = max_providers
@@ -75,16 +64,16 @@ class Service(object):
         self.errors = []
         self.resultcount = 0
 
-        for provider in self.providers:
+        for sp in self.providers:
             if self.resultcount >= self.max_providers:
                 break
             try:
-                client = getattr(services, provider)
-                providerclient = getattr(client, serviceproviders[self.network][provider][0])
+                client = getattr(services, self.providers[sp]['provider'])
+                providerclient = getattr(client, self.providers[sp]['client_class'])
                 providermethod = getattr(providerclient(network=self.network), method)
                 res = providermethod(argument)
                 self.results.append(
-                    {provider: res}
+                    {sp: res}
                 )
                 self.resultcount += 1
             # except services.baseclient.ClientError or AttributeError as e:
@@ -95,9 +84,9 @@ class Service(object):
                     except Exception:
                         err = e
                     self.errors.append(
-                        {provider: err}
+                        {sp: err}
                     )
-                _logger.warning("%s.%s(%s) Error %s" % (provider, method, argument, e))
+                _logger.warning("%s.%s(%s) Error %s" % (sp, method, argument, e))
 
             if self.resultcount >= self.max_providers:
                 break
