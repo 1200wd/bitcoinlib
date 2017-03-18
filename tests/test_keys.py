@@ -59,6 +59,14 @@ class TestPrivateKeyConversions(unittest.TestCase):
 
 class TestPrivateKeyImport(unittest.TestCase):
 
+    def test_private_key_import_key(self):
+        self.k = Key(61876261089097932796193024729035977913579848833009517639587741086858579422075)
+        self.assertEqual('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', self.k.wif())
+
+    def test_private_key_import_key_str(self):
+        self.k = Key('61876261089097932796193024729035977913579848833009517639587741086858579422075')
+        self.assertEqual('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', self.k.wif())
+
     def test_private_key_import_wif(self):
         self.k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
         self.assertEqual('88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b', self.k.private_hex())
