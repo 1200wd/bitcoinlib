@@ -64,7 +64,7 @@ class BlockrClient(BaseClient):
         return res['tx']['hex']
 
     def decoderawtransaction(self, rawtx):
-        return self.compose_request('tx', 'decode', variables=[('hex', rawtx)], method='post')
+        return self.compose_request('tx', 'decode', variables={('hex', rawtx)}, method='post')
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('tx', 'push', variables=[('hex', rawtx)], method='post')
+        return self.compose_request('tx', 'push', variables={('hex', rawtx)}, method='post')
