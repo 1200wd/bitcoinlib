@@ -25,7 +25,7 @@ except ImportError:
     from urllib import urlencode
 import json
 from bitcoinlib.main import *
-from bitcoinlib.services.services import Service
+# from bitcoinlib.services.services import Service
 
 _logger = logging.getLogger(__name__)
 
@@ -41,13 +41,13 @@ class ClientError(Exception):
 
 class BaseClient(object):
 
-    def __init__(self, network, provider):
+    def __init__(self, network, provider, base_url, denominator):
         try:
             self.network = network
             self.provider = provider
-            self.base_url = serviceproviders[network][provider][1]
+            self.base_url = base_url
             self.resp = None
-            self.units = serviceproviders[network][provider][2]
+            self.units = denominator
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 

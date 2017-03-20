@@ -25,8 +25,8 @@ PROVIDERNAME = 'blockexplorer'
 
 class BlockExplorerClient(BaseClient):
 
-    def __init__(self, network):
-        super(self.__class__, self).__init__(network, PROVIDERNAME)
+    def __init__(self, network, base_url, denominator):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator)
 
     def compose_request(self, category, data, method='', variables=None):
         url_path = category + '/' + data + '/' + method

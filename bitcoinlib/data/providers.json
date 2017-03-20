@@ -66,7 +66,7 @@
     "provider": "blockcypher",
     "network": "testnet",
     "client_class": "BlockCypher",
-    "url": "'https://api.blockcypher.com/v1/btc/test3/",
+    "url": "https://api.blockcypher.com/v1/btc/test3/",
     "api_key": "",
     "priority": 10,
     "denominator": 1

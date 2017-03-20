@@ -43,7 +43,7 @@ class Service(object):
         self.network = network
         try:
             f = open(DEFAULT_SETTINGSDIR+"/providers.json", "r")
-        except:
+        except FileNotFoundError:
             f = open(CURRENT_INSTALLDIR_DATA + "/providers.json", "r")
 
         self.providers_defined = json.loads(f.read())
@@ -70,7 +70,8 @@ class Service(object):
             try:
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
-                providermethod = getattr(providerclient(network=self.network), method)
+                providermethod = getattr(providerclient(self.network, self.providers[sp]['url'],
+                                                        self.providers[sp]['denominator']), method)
                 res = providermethod(argument)
                 self.results.append(
                     {sp: res}
@@ -125,7 +126,8 @@ if __name__ == '__main__':
     from pprint import pprint
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
-    srv = Service(network='testnet', min_providers=5)
+    # srv = Service(network='testnet', min_providers=5)
+    srv = Service(network='testnet', providers=['blockcypher'])
     print("Getbalance, first result only: %s" % srv.getbalance(addresslst))
     print("\nAll results as dict:")
     pprint(srv.results)

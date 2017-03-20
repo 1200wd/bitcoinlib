@@ -25,8 +25,8 @@ PROVIDERNAME = 'blockcypher'
 
 class BlockCypher(BaseClient):
 
-    def __init__(self, network):
-        super(self.__class__, self).__init__(network, PROVIDERNAME)
+    def __init__(self, network, base_url, denominator):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator)
 
     def compose_request(self, function, data, parameter='', variables=None, method='get'):
         url_path = function + '/' + data
