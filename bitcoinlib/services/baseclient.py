@@ -55,10 +55,6 @@ class BaseClient(object):
     def request(self, url_path, variables=None, method='get'):
         url_vars = ''
         url = self.base_url + url_path
-        if variables is None:
-            variables = {}
-        if self.api_key:
-            variables.update({'token': self.api_key})
         if method == 'get':
             if variables is None:
                 variables = []

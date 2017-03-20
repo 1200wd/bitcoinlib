@@ -32,6 +32,10 @@ class BlockCypher(BaseClient):
         url_path = function + '/' + data
         if parameter:
             url_path += '/' + parameter
+        if variables is None:
+            variables = {}
+        if self.api_key:
+            variables.update({'token': self.api_key})
         return self.request(url_path, variables, method)
 
     def getbalance(self, addresslist):
@@ -63,10 +67,7 @@ class BlockCypher(BaseClient):
         return utxos
 
     def sendrawtransaction(self, rawtx):
-        params = {
-            'tx': rawtx
-        }
-        return self.compose_request('txs', 'push', variables=params, method='post')
+        return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
 
     def decoderawtransaction(self, rawtx):
         return self.compose_request('txs', 'decode', variables=[('tx', rawtx)], method='post')

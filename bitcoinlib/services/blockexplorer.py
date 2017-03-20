@@ -28,9 +28,9 @@ class BlockExplorerClient(BaseClient):
     def __init__(self, network, base_url, denominator, api_key=''):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
-    def compose_request(self, category, data, method='', variables=None):
-        url_path = category + '/' + data + '/' + method
-        return self.request(url_path, variables)
+    def compose_request(self, category, data, cmd='', variables=None, method='get'):
+        url_path = category + '/' + data + '/' + cmd
+        return self.request(url_path, variables, method=method)
 
     def getutxos(self, addresslist):
         addresses = ','.join(addresslist)
@@ -58,3 +58,6 @@ class BlockExplorerClient(BaseClient):
     def getrawtransaction(self, txid):
         res = self.compose_request('rawtx', txid)
         return res['rawtx']
+
+    def sendrawtransaction(self, rawtx):
+        return self.compose_request('tx', 'send', variables={'rawtx': rawtx}, method='post')
