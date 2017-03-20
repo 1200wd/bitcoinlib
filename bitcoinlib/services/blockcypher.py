@@ -25,8 +25,8 @@ PROVIDERNAME = 'blockcypher'
 
 class BlockCypher(BaseClient):
 
-    def __init__(self, network, base_url, denominator):
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator)
+    def __init__(self, network, base_url, denominator, api_key=''):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
     def compose_request(self, function, data, parameter='', variables=None, method='get'):
         url_path = function + '/' + data
@@ -63,7 +63,10 @@ class BlockCypher(BaseClient):
         return utxos
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('txs', 'push', variables=[('tx', rawtx)], method='post')
+        params = {
+            'tx': rawtx
+        }
+        return self.compose_request('txs', 'push', variables=params, method='post')
 
     def decoderawtransaction(self, rawtx):
         return self.compose_request('txs', 'decode', variables=[('tx', rawtx)], method='post')

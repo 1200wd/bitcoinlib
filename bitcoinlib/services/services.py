@@ -70,8 +70,10 @@ class Service(object):
             try:
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
-                providermethod = getattr(providerclient(self.network, self.providers[sp]['url'],
-                                                        self.providers[sp]['denominator']), method)
+                providermethod = getattr(
+                    providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
+                    self.providers[sp]['api_key']),
+                    method)
                 res = providermethod(argument)
                 self.results.append(
                     {sp: res}
@@ -124,29 +126,28 @@ class Service(object):
 
 if __name__ == '__main__':
     from pprint import pprint
-    # Get Balance and UTXO's for given bitcoin testnet3 addresses
-    addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
+    # # Get Balance and UTXO's for given bitcoin testnet3 addresses
+    # addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
     # srv = Service(network='testnet', min_providers=5)
-    srv = Service(network='testnet', providers=['blockcypher'])
-    print("Getbalance, first result only: %s" % srv.getbalance(addresslst))
-    print("\nAll results as dict:")
-    pprint(srv.results)
-    print("\nUTXOs list:")
-    pprint(srv.getutxos(addresslst))
-
-    # GET Raw Transaction data for given Transaction ID
-    t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
-    print("\nGET Raw Transaction:")
-    pprint(Service(network='testnet', min_providers=2).getrawtransaction(t))
-
-    # DECODE Raw Transaction
-    rt = '0100000001573ae2bb133f88cba0a96e9cf6179810a9fbdc2dc550c123b80c1ae1fc354855000000006b48304502200204f394bd46' \
-         '324d677cf94768be99f5f7a0225545d1c9a1250a644873109b11022100a7e0d741705f3ea4fee169fa1b7907ecc54a26927e74f1f0' \
-         'e339a824e55ee256012103e428723c145e61c35c070da86faadaf0fab21939223a5e6ce3e1cfd76bad133dffffffff02404b4c0000' \
-         '0000001976a914ac19d3fd17710e6b9a331022fe92c693fdf6659588ac88e3bf0b000000001976a91463c98ad8e6b43c9b68fd81b2' \
-         '02bb7266e439b1b988ac00000000'
-    print("\nDECODE Raw Transaction:")
-    pprint(Service(network='testnet').decoderawtransaction(rt))
+    # print("Getbalance, first result only: %s" % srv.getbalance(addresslst))
+    # print("\nAll results as dict:")
+    # pprint(srv.results)
+    # print("\nUTXOs list:")
+    # pprint(srv.getutxos(addresslst))
+    #
+    # # GET Raw Transaction data for given Transaction ID
+    # t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
+    # print("\nGET Raw Transaction:")
+    # pprint(Service(network='testnet', min_providers=2).getrawtransaction(t))
+    #
+    # # DECODE Raw Transaction
+    # rt = '0100000001573ae2bb133f88cba0a96e9cf6179810a9fbdc2dc550c123b80c1ae1fc354855000000006b48304502200204f394bd46' \
+    #      '324d677cf94768be99f5f7a0225545d1c9a1250a644873109b11022100a7e0d741705f3ea4fee169fa1b7907ecc54a26927e74f1f0' \
+    #      'e339a824e55ee256012103e428723c145e61c35c070da86faadaf0fab21939223a5e6ce3e1cfd76bad133dffffffff02404b4c0000' \
+    #      '0000001976a914ac19d3fd17710e6b9a331022fe92c693fdf6659588ac88e3bf0b000000001976a91463c98ad8e6b43c9b68fd81b2' \
+    #      '02bb7266e439b1b988ac00000000'
+    # print("\nDECODE Raw Transaction:")
+    # pprint(Service(network='testnet').decoderawtransaction(rt))
 
     # SEND Raw Transaction data (Should give 'outputs already spent' error)
     rt = b'010000000108004b4c0394a211d4ec0d344b70bf1e3b1ce1731d11d1d30279ab0c0f6d9fd7000000006c493046022100ab18a72f7' \

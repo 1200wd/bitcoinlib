@@ -41,19 +41,24 @@ class ClientError(Exception):
 
 class BaseClient(object):
 
-    def __init__(self, network, provider, base_url, denominator):
+    def __init__(self, network, provider, base_url, denominator, api_key=''):
         try:
             self.network = network
             self.provider = provider
             self.base_url = base_url
             self.resp = None
             self.units = denominator
+            self.api_key = api_key
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
     def request(self, url_path, variables=None, method='get'):
         url_vars = ''
         url = self.base_url + url_path
+        if variables is None:
+            variables = {}
+        if self.api_key:
+            variables.update({'token': self.api_key})
         if method == 'get':
             if variables is None:
                 variables = []
@@ -63,7 +68,7 @@ class BaseClient(object):
             _logger.debug("Url request %s" % url)
             self.resp = requests.get(url)
         elif method == 'post':
-            self.resp = requests.post(url, data=dict(variables))
+            self.resp = requests.post(url, json=dict(variables))
 
         _logger.debug("Response [%d] %s" % (self.resp.status_code, self.resp.text))
         if self.resp.status_code == 429:
