@@ -20,13 +20,12 @@
 
 import unittest
 import json
-
 from bitcoinlib.transactions import *
 
 
 class TestTransactionInputs(unittest.TestCase):
 
-    def test_transaction_input_add_(self):
+    def test_transaction_input_add_str(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ti = Input(prev_hash=ph, output_index=0)
         self.assertEqual(ph, to_hexstring(ti.prev_hash))
@@ -147,7 +146,7 @@ class TestTransactions(unittest.TestCase):
             self.assertEqual(binascii.hexlify(t.raw()).decode(), r[1])
 
     def test_transactions_sign_1(self):
-        pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
+        pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import
         inp = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
                     public_key=pk.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2

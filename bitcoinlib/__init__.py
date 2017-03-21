@@ -24,4 +24,4 @@ import bitcoinlib.transactions
 import bitcoinlib.wallets
 import bitcoinlib.config
 
-__all__ = ["keys", "transactions", "wallets", "encoding", "mnemonic", "config"]
+__all__ = ["networks", "keys", "transactions", "wallets", "encoding", "mnemonic", "config"]

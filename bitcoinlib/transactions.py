@@ -23,7 +23,7 @@ from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import Key, BKeyError
 from bitcoinlib.main import *
-from bitcoinlib.config.networks import *
+from bitcoinlib.networks import Network
 
 
 _logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class TransactionError(Exception):
         return self.msg
 
 
-def transaction_deserialize(rawtx, network=NETWORK_BITCOIN):
+def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     """
     Deserialize a raw transaction
 
@@ -226,7 +226,7 @@ def script_to_string(script):
 
 class Input:
 
-    def __init__(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', network=NETWORK_BITCOIN,
+    def __init__(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', network=DEFAULT_NETWORK,
                  sequence=b'\xff\xff\xff\xff', tid=0):
         self.prev_hash = to_bytes(prev_hash)
         self.output_index = output_index
@@ -287,7 +287,7 @@ class Input:
 class Output:
 
     def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
-                 network=NETWORK_BITCOIN):
+                 network=DEFAULT_NETWORK):
         if not (address or public_key_hash or public_key or lock_script):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
@@ -297,11 +297,11 @@ class Output:
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
         self.public_key = to_bytes(public_key)
-        self.network = network
+        self.network = Network(network)
 
         self.compressed = True
         self.k = None
-        self.versionbyte = NETWORKS[self.network]['address']
+        self.versionbyte = self.network.prefix_address
 
         if self.public_key:
             self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
@@ -339,13 +339,13 @@ class Output:
 class Transaction:
 
     @staticmethod
-    def import_raw(rawtx, network=NETWORK_BITCOIN):
+    def import_raw(rawtx, network=DEFAULT_NETWORK):
         rawtx = to_bytes(rawtx)
         inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'',
-                 network=NETWORK_BITCOIN):
+                 network=DEFAULT_NETWORK):
         if inputs is None:
             self.inputs = []
         else:
@@ -448,7 +448,7 @@ if __name__ == '__main__':
 
     # Example of a basic raw transaction with 1 input and 2 outputs
     # (destination and change address).
-    if False:
+    if True:
         rt =  '01000000'  # Version bytes in Little-Endian (reversed) format
         # --- INPUTS ---
         rt += '01'        # Number of UTXO's inputs

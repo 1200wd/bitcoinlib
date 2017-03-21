@@ -18,20 +18,24 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from bitcoinlib.services.baseclient import BaseClient, ClientError
+from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'blockcypher'
 
 
 class BlockCypher(BaseClient):
 
-    def __init__(self, network):
-        super(self.__class__, self).__init__(network, PROVIDERNAME)
+    def __init__(self, network, base_url, denominator, api_key=''):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
     def compose_request(self, function, data, parameter='', variables=None, method='get'):
         url_path = function + '/' + data
         if parameter:
             url_path += '/' + parameter
+        if variables is None:
+            variables = {}
+        if self.api_key:
+            variables.update({'token': self.api_key})
         return self.request(url_path, variables, method)
 
     def getbalance(self, addresslist):
@@ -63,7 +67,7 @@ class BlockCypher(BaseClient):
         return utxos
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('txs', 'push', variables=[('tx', rawtx)], method='post')
+        return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
 
     def decoderawtransaction(self, rawtx):
-        return self.compose_request('txs', 'decode', variables=[('tx', rawtx)], method='post')
+        return self.compose_request('txs', 'decode', variables={'tx': rawtx}, method='post')

@@ -26,14 +26,14 @@ PROVIDERNAME = 'blockchaininfo'
 
 class BlockchainInfoClient(BaseClient):
 
-    def __init__(self, network):
-        super(self.__class__, self).__init__(network, PROVIDERNAME)
+    def __init__(self, network, base_url, denominator, api_key=''):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
-    def compose_request(self, method, parameter, variables=None):
+    def compose_request(self, cmd, parameter, variables=None, method='get'):
         if parameter:
             parameter += '/'
-        url_path = method + parameter
-        return self.request(url_path, variables)
+        url_path = cmd + parameter
+        return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
         variables = [('active', '|'.join(addresslist))]
