@@ -21,3 +21,5 @@ import tests.test_encoding
 import tests.test_keys
 import tests.test_mnemonic
 import tests.test_wallets
+import tests.test_transactions
+import tests.test_services

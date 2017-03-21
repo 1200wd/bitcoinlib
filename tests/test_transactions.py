@@ -20,13 +20,12 @@
 
 import unittest
 import json
-
 from bitcoinlib.transactions import *
 
 
 class TestTransactionInputs(unittest.TestCase):
 
-    def test_transaction_input_add_(self):
+    def test_transaction_input_add_str(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ti = Input(prev_hash=ph, output_index=0)
         self.assertEqual(ph, to_hexstring(ti.prev_hash))
