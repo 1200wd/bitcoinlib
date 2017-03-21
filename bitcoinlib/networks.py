@@ -21,19 +21,40 @@
 import json
 import binascii
 import math
+import logging
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring, normalize_var
+
+
+_logger = logging.getLogger(__name__)
+
+
+class NetworkError(Exception):
+    def __init__(self, msg=''):
+        self.msg = msg
+        _logger.error(msg)
+
+    def __str__(self):
+        return self.msg
 
 
 class Network:
 
     def __init__(self, network_name=DEFAULT_NETWORK):
         try:
-            f = open(DEFAULT_SETTINGSDIR+"/networks.json", "r")
-        except:
-            f = open(CURRENT_INSTALLDIR_DATA + "/networks.json", "r")
+            fn = DEFAULT_SETTINGSDIR + "/networks.json"
+            f = open(fn, "r")
+        except FileNotFoundError:
+            fn = CURRENT_INSTALLDIR_DATA + "/networks.json"
+            f = open(fn, "r")
 
-        self.networks = json.loads(f.read())
+        try:
+            self.networks = json.loads(f.read())
+        except json.decoder.JSONDecodeError as e:
+            errstr = "Error reading provider definitions from %s: %s" % (fn, e)
+            _logger.warning(errstr)
+            raise NetworkError(errstr)
+
         self.network_name = network_name
         self.prefix_wif = binascii.unhexlify(self.networks[network_name]['prefix_wif'])
         self.currency_code = self.networks[network_name]['currency_code']
