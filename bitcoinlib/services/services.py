@@ -53,6 +53,7 @@ class Service(object):
             errstr = "Error reading provider definitions from %s: %s" % (fn, e)
             _logger.warning(errstr)
             raise ServiceError(errstr)
+        f.close()
 
         self.providers = {}
         for p in self.providers_defined:

@@ -54,6 +54,7 @@ class Network:
             errstr = "Error reading provider definitions from %s: %s" % (fn, e)
             _logger.warning(errstr)
             raise NetworkError(errstr)
+        f.close()
 
         self.network_name = network_name
         self.prefix_wif = binascii.unhexlify(self.networks[network_name]['prefix_wif'])
