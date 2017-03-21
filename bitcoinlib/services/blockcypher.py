@@ -70,4 +70,4 @@ class BlockCypher(BaseClient):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
 
     def decoderawtransaction(self, rawtx):
-        return self.compose_request('txs', 'decode', variables={('tx', rawtx)}, method='post')
+        return self.compose_request('txs', 'decode', variables={'tx': rawtx}, method='post')

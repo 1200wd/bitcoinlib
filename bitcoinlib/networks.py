@@ -132,4 +132,3 @@ if __name__ == '__main__':
             v = eval('network.%s' % k)
             if not callable(v):
                 print("%25s: %s" % (k, v))
-                # print("self.%s = self.networks[network_name]['%s']" % (k, k))
