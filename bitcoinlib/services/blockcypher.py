@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from bitcoinlib.services.baseclient import BaseClient, ClientError
+from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'blockcypher'
 

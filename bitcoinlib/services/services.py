@@ -22,7 +22,6 @@ import sys
 import logging
 import json
 from bitcoinlib.main import DEFAULT_NETWORK, DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
-# from bitcoinlib.config.services import serviceproviders
 from bitcoinlib import services
 
 _logger = logging.getLogger(__name__)
@@ -42,11 +41,19 @@ class Service(object):
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=5, providers=None):
         self.network = network
         try:
-            f = open(DEFAULT_SETTINGSDIR+"/providers.json", "r")
+            fn = DEFAULT_SETTINGSDIR + "/providers.json"
+            f = open(fn, "r")
         except FileNotFoundError:
-            f = open(CURRENT_INSTALLDIR_DATA + "/providers.json", "r")
+            fn = CURRENT_INSTALLDIR_DATA + "/providers.json"
+            f = open(fn, "r")
 
-        self.providers_defined = json.loads(f.read())
+        try:
+            self.providers_defined = json.loads(f.read())
+        except json.decoder.JSONDecodeError as e:
+            errstr = "Error reading provider definitions from %s: %s" % (fn, e)
+            _logger.warning(errstr)
+            raise ServiceError(errstr)
+
         self.providers = {}
         for p in self.providers_defined:
             if self.providers_defined[p]['network'] == network and \
@@ -72,19 +79,17 @@ class Service(object):
                 providerclient = getattr(client, self.providers[sp]['client_class'])
                 providermethod = getattr(
                     providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
-                    self.providers[sp]['api_key']),
-                    method)
+                                   self.providers[sp]['api_key']), method)
                 res = providermethod(argument)
                 self.results.append(
                     {sp: res}
                 )
                 self.resultcount += 1
-            # except services.baseclient.ClientError or AttributeError as e:
             except Exception as e:
                 if not isinstance(e, AttributeError):
                     try:
                         err = e.msg
-                    except Exception:
+                    except AttributeError:
                         err = e
                     self.errors.append(
                         {sp: err}

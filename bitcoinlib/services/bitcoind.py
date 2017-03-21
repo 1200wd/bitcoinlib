@@ -75,8 +75,8 @@ if __name__ == '__main__':
     #
 
     from pprint import pprint
-    # bdc = BitcoindClient.from_config()
-    bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
+    bdc = BitcoindClient.from_config()
+    # bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
 
     # TODO: Fix non-mandatory-script-verify-flag (Non-canonical signature: S value is unnecessarily high) error
     # see https://github.com/vbuterin/pybitcointools/issues/89
