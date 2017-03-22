@@ -592,7 +592,7 @@ if __name__ == '__main__':
         os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    if True:
+    if False:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             # wallet.new_account()
@@ -604,11 +604,9 @@ if __name__ == '__main__':
             # donations_account = wallet.new_account()
             # new_key5 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
-    import sys
-    sys.exit()
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    if True:
+    if False:
         wallet_import = HDWallet.create(
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
@@ -700,7 +698,21 @@ if __name__ == '__main__':
         litecoin_wallet.info(detail=3)
         del litecoin_wallet
 
-    # -- List wallets & delete a wallet
-    print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
-    # delete_wallet(1, databasefile=test_database)
-    # print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
+    # -- Wallet from mnemonic passphrase
+    if True:
+        from bitcoinlib.mnemonic import Mnemonic
+        import binascii
+        words = Mnemonic('english').generate()
+        print("Generated Passphrase: %s" % words)
+        seed = binascii.hexlify(Mnemonic().to_seed(words))
+        hdkey = HDKey().from_seed(seed)
+        wallet = HDWallet.create(name='Mnemonic Wallet', network='dash', key=hdkey.extended_wif(), databasefile=test_database)
+        # wallet.new_account("Inputs", 0)
+        wallet.new_key("Input", 0)
+        wallet.info(detail=3)
+
+    if False:
+        # -- List wallets & delete a wallet
+        print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
+        delete_wallet(1, databasefile=test_database)
+        print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
