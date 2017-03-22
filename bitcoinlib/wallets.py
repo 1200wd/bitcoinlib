@@ -149,7 +149,7 @@ class HDWalletKey:
             self.is_private = wk.is_private
             self.path = wk.path
             self.wallet = wk.wallet
-            self.network = Network(wk.wallet.network.name)
+            self.network = Network(wk.wallet.network_name)
             self.k = HDKey(import_key=self.key_wif, network=wk.wallet.network_name)
             self.depth = wk.depth
             self.key_type = wk.key_type
@@ -216,6 +216,7 @@ class HDWallet:
         # if key and get_key_format(key) in ['wif', 'wif_compressed', 'wif_protected']:
         #     raise WalletError("Cannot create a HD Wallet from a simple private key. Create wallet first and then "
         #                       "import new Private key.")
+        # TODO: If key is specified, check and determine network
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose)
         session.add(new_wallet)
         session.commit()
@@ -595,14 +596,14 @@ if __name__ == '__main__':
     if False:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
-            # wallet.new_account()
+            wallet.new_account()
             new_key1 = wallet.new_key()
-            # new_key2 = wallet.new_key()
-            # new_key3 = wallet.new_key()
-            # new_key4 = wallet.new_key(change=1)
-            # wallet.key_for_path('m/0/0')
-            # donations_account = wallet.new_account()
-            # new_key5 = wallet.new_key(account_id=donations_account.account_id)
+            new_key2 = wallet.new_key()
+            new_key3 = wallet.new_key()
+            new_key4 = wallet.new_key(change=1)
+            wallet.key_for_path('m/0/0')
+            donations_account = wallet.new_account()
+            new_key5 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
@@ -698,16 +699,16 @@ if __name__ == '__main__':
         litecoin_wallet.info(detail=3)
         del litecoin_wallet
 
-    # -- Wallet from mnemonic passphrase
+    # -- Dash testnet Wallet from mnemonic passphrase
     if True:
         from bitcoinlib.mnemonic import Mnemonic
         import binascii
         words = Mnemonic('english').generate()
         print("Generated Passphrase: %s" % words)
         seed = binascii.hexlify(Mnemonic().to_seed(words))
-        hdkey = HDKey().from_seed(seed)
-        wallet = HDWallet.create(name='Mnemonic Wallet', network='dash', key=hdkey.extended_wif(), databasefile=test_database)
-        # wallet.new_account("Inputs", 0)
+        hdkey = HDKey().from_seed(seed, network='litecoin_testnet')
+        wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
+                                 key=hdkey.extended_wif(), databasefile=test_database)
         wallet.new_key("Input", 0)
         wallet.info(detail=3)
 
