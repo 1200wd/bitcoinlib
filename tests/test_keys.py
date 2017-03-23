@@ -2,7 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -66,6 +66,10 @@ class TestPrivateKeyImport(unittest.TestCase):
     def test_private_key_import_key_str(self):
         self.k = Key('61876261089097932796193024729035977913579848833009517639587741086858579422075')
         self.assertEqual('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX', self.k.wif())
+
+    def test_private_key_import_key_hex_compressed(self):
+        self.k = Key('1E99423A4ED27608A15A2616A2B0E9E52CED330AC530EDCC32C8FFC6A526AEDD01')
+        self.assertEqual('KxFC1jmwwCoACiCAWZ3eXa96mBM6tb3TYzGmf6YwgdGWZgawvrtJ', self.k.wif())
 
     def test_private_key_import_key_byte(self):
         pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'

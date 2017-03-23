@@ -31,10 +31,10 @@ import scrypt
 from Crypto.Cipher import AES
 
 from bitcoinlib.main import *
-from bitcoinlib.networks import Network, NETWORK_DEFINITIONS, DEFAULT_NETWORK, network_by_value, network_values_for
+from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, network_values_for
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base, to_bytes
+from bitcoinlib.encoding import change_base, to_bytes, EncodingError
 
 _logger = logging.getLogger(__name__)
 
@@ -60,33 +60,48 @@ def get_key_format(key, keytype=None):
     if keytype not in [None, 'private', 'public']:
         raise BKeyError("Keytype must be 'private' or 'public")
     if isinstance(key, numbers.Number):
-        return 'decimal'
+        return {"format": "decimal"}
+
+    if isinstance(key, (bytes, bytearray)):
+        if len(key) == 33 and key[-1:] == b'\x01':
+            return {"format": "bin_compressed"}
+        elif len(key) == 32 or len(key) == 33:
+            return {"format": "bin"}
 
     if len(key) == 130 and key[:2] == '04' and keytype != 'private':
-        return "public_uncompressed"
+        return {"format": "public_uncompressed"}
     elif len(key) == 66 and key[:2] in ['02', '03'] and keytype != 'private':
-        return "public"
-    elif len(key) == 33 and key[-1:] == b'\x01':
-        return 'bin_compressed'
-    elif (len(key) == 32 or len(key) == 33) and isinstance(key, (bytes, bytearray)):
-        return 'bin'
+        return {"format": "public"}
     elif len(key) == 64:
-        return 'hex'
-    elif len(key) == 66 and keytype != 'public':
-        return 'hex_compressed'
-    elif len(key) == 58 and key[:1] == '6':
-        return 'wif_protected'
-    elif key[:1] in ['K', 'L', 'c']:
-        return 'wif_compressed'
-    elif key[:1] in ['5', '9']:
-        return 'wif'
+        return {"format": "hex"}
+    elif len(key) == 66 and keytype != 'public' and key[-2:] == '01':
+        return {"format": "hex_compressed"}
+    elif len(key) == 58 and key[:2] == '6P':
+        return {"format": "wif_protected"}
     else:
         try:
-            int(key)
-            if 70 < len(key) < 78:
-                return 'decimal'
-        except (TypeError, ValueError):
+            key_hex = change_base(key, 58, 16)
+            networks_wif = network_by_value('prefix_wif', key_hex[:2])
+            if networks_wif:
+                if key_hex[-10:-8] == '01':
+                    return {"format": "wif_compressed", "networks": networks_wif}
+                else:
+                    return {"format": "wif", "networks": networks_wif}
+            networks = network_by_value('prefix_hdkey_private', key_hex[:8])
+            if networks:
+                return {"format": "hdkey_private", "networks": networks}
+            networks = network_by_value('prefix_hdkey_public', key_hex[:8])
+            if networks:
+                return {"format": "hdkey_public", "networks": networks}
+
+        except (TypeError, EncodingError):
             pass
+    try:
+        int(key)
+        if 70 < len(key) < 78:
+            return {"format": "decimal"}
+    except (TypeError, ValueError):
+        pass
     raise BKeyError("Unrecognised key format")
 
 
@@ -128,7 +143,7 @@ class Key:
             self.secret = random.SystemRandom().randint(0, secp256k1_n)
             return
 
-        key_format = get_key_format(import_key)
+        key_format = get_key_format(import_key)["format"]
 
         if key_format == "wif_protected":
             import_key, key_format = self._bip38_decrypt(import_key, passphrase)
@@ -159,8 +174,10 @@ class Key:
             elif key_format == 'wif':
                 self.compressed = False
 
-            if key_format in ['hex', 'hex_compressed']:
+            if key_format == 'hex':
                 self.secret = change_base(import_key, 16, 10)
+            elif key_format == 'hex_compressed':
+                    self.secret = change_base(import_key[:-2], 16, 10)
             elif key_format == 'decimal':
                 self.secret = import_key
             elif key_format == 'bin':
@@ -694,47 +711,41 @@ if __name__ == '__main__':
     # KEYS EXAMPLES
     #
 
-    # print("\n=== Import Public key ===")
-    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    # K.info()
-    #
-    # print("\n==== Import Private key as decimal ===")
-    # pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
-    # k = Key(import_key=pk, network='testnet')
-    # k.info()
-    #
-    # print("\n==== Import Private key as byte ===")
-    # pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
-    # K = Key(pk)
-    # K.info()
-    #
-    # print("\n=== Import Private WIF Key ===")
-    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    # print("Private key     %s" % k.wif())
-    # print("Private key hex %s " % k.private_hex())
-    # print("Compressed      %s\n" % k.compressed)
-    #
-    # print("\n=== Import Private Testnet Key ===")
-    # k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
-    # k.info()
-    #
-    # print("\n==== Import Private Litecoin key ===")
-    # pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
-    # k = Key(import_key=pk)
-    # k.info()
-    #
-    # print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
-    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    # print("Private key     %s" % k.wif())
-    # print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    # print("Is Compressed   %s\n" % k.compressed)
+    print("\n=== Import Public key ===")
+    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    K.info()
 
-    print("\n==== Import and Decrypt BIP38 Key ===")
-    k = Key('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', passphrase='TestingOneTwoThree')
+    print("\n==== Import Private key as decimal ===")
+    pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
+    k = Key(import_key=pk, network='testnet')
+    k.info()
+
+    print("\n==== Import Private key as byte ===")
+    pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
+    K = Key(pk)
+    K.info()
+
+    print("\n=== Import Private WIF Key ===")
+    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
     print("Private key     %s" % k.wif())
+    print("Private key hex %s " % k.private_hex())
+    print("Compressed      %s\n" % k.compressed)
+
+    print("\n=== Import Private Testnet Key ===")
+    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
+    k.info()
+
+    print("\n==== Import Private Litecoin key ===")
+    pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
+    k = Key(import_key=pk)
+    k.info()
+
+    print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
+    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    print("Private key     %s" % k.wif())
+    print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
     print("Is Compressed   %s\n" % k.compressed)
 
-    sys.exit()
     print("\n==== Import and Decrypt BIP38 Key ===")
     k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
     print("Private key     %s" % k.wif())
