@@ -46,10 +46,11 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
             'id': w.id,
             'name': w.name,
             'owner': w.owner,
-            'network': w.network.name,
+            'network': w.network_name,
             'purpose': w.purpose,
             'balance': w.balance,
         })
+        print("--- Network: %s" % w.network)
     session.close()
     return wlst
 
@@ -748,7 +749,7 @@ if __name__ == '__main__':
         # wallet.updateutxos()  # TODO: fix for litecoin testnet
         wallet.info(detail=3)
 
-    if False:
+    if True:
         # -- List wallets & delete a wallet
         print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
         delete_wallet(1, databasefile=test_database)
