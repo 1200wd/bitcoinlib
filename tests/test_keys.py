@@ -29,6 +29,43 @@ from bitcoinlib.keys import *
 BULKTESTCOUNT = 10
 
 
+class TestGetKeyFormat(unittest.TestCase):
+
+    def test_format_wif_uncompressed(self):
+        key = '5Hwgr3u458GLafKBgxtssHSPqJnYoGrSzgQsPwLFhLNYskDPyyA'
+        self.assertEqual('wif', get_key_format(key)['format'])
+
+    def test_format_wif_compressed(self):
+        key = 'L2Q5U2zjxeoSf3dcNZsk19Z9bGr7RMeCTigvv7gJNJQq9uzQnF47'
+        self.assertEqual('wif_compressed', get_key_format(key)['format'])
+
+    def test_format_hdkey_private(self):
+        key = 'xprv9s21ZrQH143K2JF8RafpqtKiTbsbaxEeUaMnNHsm5o6wCW3z8ySyH4UxFVSfZ8n7ESu7fgir8imbZKLYVBxFPND1pniTZ81v' \
+              'Kfd45EHKX73'
+        self.assertEqual('hdkey_private', get_key_format(key)['format'])
+
+    def test_format_hdkey_public(self):
+        key = 'xpub6AHA9hZDN11k2ijHMeS5QqHx2KP9aMBRhTDqANMnwVtdyw2TDYRmF8PjpvwUFcL1Et8Hj59S3gTSMcUQ5gAqTz3Wd8EsMTmF3' \
+              'DChhqPQBnU'
+        self.assertEqual('hdkey_public', get_key_format(key)['format'])
+
+    def test_format_hdkey_private_litecoin(self):
+        key = 'ttpv9ATh1zJgV72nBiUqbMz5petg9XzPdsPoqjKesyLGf5kVsTbsYqejKVWxH9W7hv543tbfiw3uXDu4kDN6pgYdtfdSsrpeFghaA' \
+              'H2WGpLyu8B'
+        self.assertEqual('hdkey_private', get_key_format(key)['format'])
+        self.assertEqual(['litecoin_testnet'], get_key_format(key)['networks'])
+
+    def test_format_wif_compressed_private_dash(self):
+        key = 'XH2Yndjv6Ks3XEHGaSMDhUMTAMZTTWv5nEN958Y7VMyQXBCJVQmM'
+        self.assertEqual('wif_compressed', get_key_format(key)['format'])
+        self.assertEqual(['dash'], get_key_format(key)['networks'])
+
+    def test_format_wif_private_dash(self):
+        key = '7rrHic4Nzr8iMSfaSFMSXvKgTb7Sw3FHwevGsnD2vYwU5btpXRT'
+        self.assertEqual('wif', get_key_format(key)['format'])
+        self.assertEqual(['dash'], get_key_format(key)['networks'])
+
+
 class TestPrivateKeyConversions(unittest.TestCase):
 
     def setUp(self):
