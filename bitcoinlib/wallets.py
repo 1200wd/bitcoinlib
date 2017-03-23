@@ -133,10 +133,10 @@ class HDWalletKey:
     def __init__(self, key_id, session):
         wk = session.query(DbKey).filter_by(id=key_id).scalar()
         if wk:
-            self.dbkey = wk
+            self._dbkey = wk
             self.key_id = key_id
-            self._name = wk.name
-            self._wallet_id = wk.wallet_id
+            self.name = wk.name
+            self.wallet_id = wk.wallet_id
             self.key = wk.key
             self.account_id = wk.account_id
             self.change = wk.change
@@ -144,17 +144,23 @@ class HDWalletKey:
             self.key_wif = wk.key_wif
             self.address = wk.address
             self._balance = wk.balance
-            self._purpose = wk.purpose
+            self.purpose = wk.purpose
             self.parent_id = wk.parent_id
             self.is_private = wk.is_private
             self.path = wk.path
             self.wallet = wk.wallet
-            self._network = Network(wk.wallet.network_name)
+            self.network = Network(wk.wallet.network_name)
             self.k = HDKey(import_key=self.key_wif, network=wk.wallet.network_name)
             self.depth = wk.depth
             self.key_type = wk.key_type
         else:
             raise WalletError("Key with id %s not found" % key_id)
+
+    def balance(self, format=''):
+        if format == 'string':
+            return self.network.print_value(self._balance)
+        else:
+            return self._balance
 
     def fullpath(self, change=None, address_index=None, max_depth=5):
         # BIP43 + BIP44: m / purpose' / coin_type' / account' / change / address_index
@@ -166,8 +172,8 @@ class HDWalletKey:
             p = ["m"]
         else:
             p = ["M"]
-        p.append(str(self._purpose) + "'")
-        p.append(str(self._network.bip44_cointype) + "'")
+        p.append(str(self.purpose) + "'")
+        p.append(str(self.network.bip44_cointype) + "'")
         p.append(str(self.account_id) + "'")
         p.append(str(change))
         p.append(str(address_index))
@@ -177,11 +183,11 @@ class HDWalletKey:
         return HDWalletKey(self.parent_id, session=session)
 
     def updatebalance(self):
-        self.balance = Service(network=self._network.network_name).getbalance([self.address])
-        self.dbkey.balance = self.balance
+        self._balance = Service(network=self.network.network_name).getbalance([self.address])
+        self._dbkey.balance = self._balance
 
     def updateutxo(self):
-        utxos = Service(network=self._network.network_name).getutxos([self.address])
+        utxos = Service(network=self.network.network_name).getutxos([self.address])
         from pprint import pprint
         pprint(utxos)
 
@@ -190,7 +196,7 @@ class HDWalletKey:
         print(" ID                             %s" % self.key_id)
         print(" Key Type                       %s" % self.key_type)
         print(" Is Private                     %s" % self.is_private)
-        print(" Name                           %s" % self._name)
+        print(" Name                           %s" % self.name)
         print(" Key WIF                        %s" % self.key_wif)
         print(" Account ID                     %s" % self.account_id)
         print(" Parent ID                      %s" % self.parent_id)
@@ -199,12 +205,12 @@ class HDWalletKey:
         print(" Address Index                  %s" % self.address_index)
         print(" Address                        %s" % self.address)
         print(" Path                           %s" % self.path)
-        print(" Balance                        %s" % self._network.print_value(self._balance))
+        print(" Balance                        %s" % self.balance(format='string'))
         print("\n")
 
 
-@read_only_properties('_session', '_balance', '_network', '_dbwallet', '_wallet_id', '_purpose',
-                      '_main_key_id', '_main_key', '_default_account_id')
+@read_only_properties('_session', '_balance', 'network', '_dbwallet', 'wallet_id', 'purpose',
+                      'main_key_id', 'main_key', 'default_account_id')
 class HDWallet:
 
     @classmethod
@@ -271,16 +277,16 @@ class HDWallet:
             w = self._session.query(DbWallet).filter_by(name=wallet).scalar()
         if w:
             self._dbwallet = w
-            self._wallet_id = w.id
+            self.wallet_id = w.id
             self._name = w.name
             self._owner = w.owner
-            self._network = Network(w.network_name)
-            self._purpose = w.purpose
+            self.network = Network(w.network_name)
+            self.purpose = w.purpose
             self._balance = w.balance
-            self._main_key_id = w.main_key_id
-            self._main_key = HDWalletKey(self._main_key_id, session=self._session)
-            self._default_account_id = 0
-            _logger.info("Opening wallet '%s'" % self._name)
+            self.main_key_id = w.main_key_id
+            self.main_key = HDWalletKey(self.main_key_id, session=self._session)
+            self.default_account_id = 0
+            _logger.info("Opening wallet '%s'" % self.name)
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -292,7 +298,7 @@ class HDWallet:
 
     def balance(self, format=''):
         if format == 'string':
-            return self._network.print_value(self._balance)
+            return self.network.print_value(self._balance)
         else:
             return self._balance
 
@@ -308,32 +314,34 @@ class HDWallet:
 
     @property
     def name(self):
-        return self._owner
+        return self._name
 
     @name.setter
     def name(self, value):
+        if wallet_exists(value):
+            raise WalletError("Wallet with name '%s' already exists" % value)
         self._name = value
-        self._dbwallet.owner = value
+        self._dbwallet.name = value
         self._session.commit()
 
     def import_key(self, key, account_id=None):
         return HDWalletKey.from_key(
-            key=key, name=self._name, wallet_id=self._wallet_id, network=self._network.network_name,
-            account_id=account_id, purpose=self._purpose, session=self._session)
+            key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
+            account_id=account_id, purpose=self.purpose, session=self._session)
 
     def import_hdkey_object(self, hdkey_object, account_id=None):
         return HDWalletKey.from_key_object(
-            hdkey_object, name=self._name, wallet_id=self._wallet_id, network=self._network.network_name,
-            account_id=account_id, purpose=self._purpose, session=self._session)
+            hdkey_object, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
+            account_id=account_id, purpose=self.purpose, session=self._session)
 
     def new_key(self, name='', account_id=0, change=0, max_depth=5):
         # TODO: If wallet has only one account, select these when account not specified
         # Find main account key
         acckey = self._session.query(DbKey). \
-            filter_by(wallet_id=self._wallet_id, purpose=self._purpose,
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
                       account_id=account_id, change=0, depth=3).scalar()
         prevkey = self._session.query(DbKey). \
-            filter_by(wallet_id=self._wallet_id, purpose=self._purpose,
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
                       account_id=account_id, change=change, depth=5). \
             order_by(DbKey.address_index.desc()).first()
 
@@ -344,7 +352,7 @@ class HDWallet:
         newpath = []
         if not acckey:
             acckey = self._session.query(DbKey). \
-                filter(DbKey.wallet_id == self._wallet_id, DbKey.purpose == self._purpose, DbKey.depth == 2,
+                filter(DbKey.wallet_id == self.wallet_id, DbKey.purpose == self.purpose, DbKey.depth == 2,
                        DbKey.parent_id != 0).scalar()
             newpath.append(str(account_id)+"'")
             if not acckey:
@@ -358,9 +366,9 @@ class HDWallet:
         pathdepth = max_depth-accwk.k.depth
         if not name:
             name = "Key %d" % address_index
-        newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self._wallet_id,
-                                             account_id=account_id, change=change, network=self._network.network_name,
-                                             purpose=self._purpose, basepath=bpath, session=self._session)
+        newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
+                                             account_id=account_id, change=change, network=self.network.network_name,
+                                             purpose=self.purpose, basepath=bpath, session=self._session)
         return HDWalletKey(newkey, session=self._session)
 
     def new_key_change(self, name='', account_id=0):
@@ -369,7 +377,7 @@ class HDWallet:
     def new_account(self, name='', account_id=0):
         if self.keys(account_id=account_id):
             last_id = self._session.query(DbKey). \
-                filter_by(wallet_id=self._wallet_id, purpose=self._purpose). \
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose). \
                 order_by(DbKey.account_id.desc()).first().account_id
             account_id = last_id + 1
         if not name:
@@ -381,16 +389,16 @@ class HDWallet:
         return ret.parent(session=self._session)
 
     def key_for_path(self, path, name='', account_id=0, change=0):
-        newkey = self._main_key.k.subkey_for_path(path)
+        newkey = self.main_key.k.subkey_for_path(path)
         if not name:
-            name = self._name
-        nk = HDWalletKey.from_key_object(newkey, name=name, wallet_id=self._wallet_id,
-                                         network=self._network, account_id=account_id, change=change,
-                                         purpose=self._purpose, path=path, session=self._session)
+            name = self.name
+        nk = HDWalletKey.from_key_object(newkey, name=name, wallet_id=self.wallet_id,
+                                         network=self.network, account_id=account_id, change=change,
+                                         purpose=self.purpose, path=path, session=self._session)
         return nk
 
     def keys(self, account_id=None, name=None, id=None, change=None, depth=None, as_dict=False):
-        qr = self._session.query(DbKey).filter_by(wallet_id=self._wallet_id, purpose=self._purpose)
+        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
             qr = qr.filter(DbKey.depth > 3)
@@ -424,7 +432,7 @@ class HDWallet:
         return addresslist
 
     def updatebalance(self, account_id=None):
-        self._balance = Service(network=self._network.network_name).getbalance(self.addresslist(account_id=account_id))
+        self._balance = Service(network=self.network.network_name).getbalance(self.addresslist(account_id=account_id))
         self._dbwallet.balance = self._balance
         self._session.commit()
 
@@ -438,7 +446,7 @@ class HDWallet:
         [self._session.delete(o) for o in qr.all()]
         self._session.commit()
 
-        utxos = Service(network=self._network.network_name).getutxos(self.addresslist(account_id=account_id, key_id=key_id))
+        utxos = Service(network=self.network.network_name).getutxos(self.addresslist(account_id=account_id, key_id=key_id))
         key_balances = {}
         count_utxos = 0
         for utxo in utxos:
@@ -464,7 +472,6 @@ class HDWallet:
             getkey.balance = key_balances[kb]
             total_balance += key_balances[kb]
 
-        # TODO: Fix this everywhere with setbalance(), balance(), _balance...
         self._dbwallet.balance = total_balance
         self._balance = total_balance
         _logger.info("Got %d new UTXOs for account %s. Total balance %s" % (count_utxos, account_id, total_balance))
@@ -521,13 +528,13 @@ class HDWallet:
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
         amount_total_output = 0
-        t = Transaction(network=self._network.network_name)
+        t = Transaction(network=self.network.network_name)
         for o in output_arr:
             amount_total_output += o[1]
             t.add_output(o[1], o[0])
 
         if account_id is None:
-            account_id = self._default_account_id
+            account_id = self.default_account_id
 
         qr = self._session.query(DbTransaction)
         qr.join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False), DbKey.account_id == account_id)
@@ -582,16 +589,16 @@ class HDWallet:
 
     def info(self, detail=0):
         print("=== WALLET ===")
-        print(" ID                             %s" % self._wallet_id)
-        print(" Name                           %s" % self._name)
+        print(" ID                             %s" % self.wallet_id)
+        print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self._owner)
-        print(" Network                        %s" % self._network.description)
+        print(" Network                        %s" % self.network.description)
         print(" Balance                        %s" % self.balance(format='string'))
         print("")
 
         if detail:
             print("= Main key =")
-            self._main_key.info()
+            self.main_key.info()
         if detail > 1:
             print("= Keys Overview = ")
             if detail < 3:
@@ -601,7 +608,7 @@ class HDWallet:
             for d in ds:
                 for key in self.keys(depth=d):
                     print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
-                                                          self._network.print_value(key.balance)))
+                                                          self.network.print_value(key.balance)))
         print("\n")
 
 
