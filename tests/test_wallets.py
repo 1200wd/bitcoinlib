@@ -2,7 +2,7 @@
 #
 #    bitcoinlib - Compact Python Bitcoin Library
 #    Unit Tests for Wallet Class
-#    © 2016 December - 1200 Web Development <http://1200wd.com/>
+#    © 2017 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -44,7 +44,7 @@ class TestWallet(unittest.TestCase):
         self.assertIsNot(self.wallet.info(), "")
 
     def test_wallet_key_info(self):
-        self.assertIsNot(self.wallet.main_key.info(), "")
+        self.assertIsNot(self.wallet._main_key.info(), "")
 
     def test_wallet_create_account(self):
         new_account = self.wallet.new_account(account_id=100)
@@ -67,9 +67,9 @@ class TestWallet(unittest.TestCase):
             network='testnet',
             key=keystr)
         wallet_import.new_account(account_id=99)
-        self.assertEqual(wallet_import.main_key.key_wif, keystr)
-        self.assertEqual(wallet_import.main_key.address, u'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
-        self.assertEqual(wallet_import.main_key.path, 'm')
+        self.assertEqual(wallet_import._main_key.key_wif, keystr)
+        self.assertEqual(wallet_import._main_key.address, u'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
+        self.assertEqual(wallet_import._main_key.path, 'm')
 
     def test_wallet_import_account(self):
         accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
@@ -80,9 +80,9 @@ class TestWallet(unittest.TestCase):
             key=accountkey,
             network='testnet',
             account_id=99)
-        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
-        self.assertEqual(wallet_import.main_key.address, u'mowRx2TNXTgRSUmepjqhx5C1TTigmHLGRh')
-        self.assertEqual(wallet_import.main_key.path, "m/44'/1'/99'")
+        self.assertEqual(wallet_import._main_key.key_wif, accountkey)
+        self.assertEqual(wallet_import._main_key.address, u'mowRx2TNXTgRSUmepjqhx5C1TTigmHLGRh')
+        self.assertEqual(wallet_import._main_key.path, "m/44'/1'/99'")
 
     def test_wallet_import_account_new_keys(self):
         accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
@@ -95,7 +95,7 @@ class TestWallet(unittest.TestCase):
             account_id=99)
         newkey = wallet_import.new_key(account_id=99)
         newkey_change = wallet_import.new_key_change(account_id=99, name='change')
-        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
+        self.assertEqual(wallet_import._main_key.key_wif, accountkey)
         self.assertEqual(newkey.address, u'mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ')
         self.assertEqual(newkey.path, "m/44'/1'/99'/0/0")
         self.assertEqual(newkey_change.address, u'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
@@ -122,7 +122,7 @@ class TestWallet(unittest.TestCase):
             key=accountkey,
             network='litecoin')
         newkey = wallet_import.new_key()
-        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
+        self.assertEqual(wallet_import._main_key.key_wif, accountkey)
         self.assertEqual(newkey.address, u'LPkJcpV1cmT8qLFmUApySBtxt7UWavoQmh')
         self.assertEqual(newkey.path, "m/44'/2'/0'/0/0")
 
