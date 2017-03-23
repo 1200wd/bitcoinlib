@@ -62,7 +62,7 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
     return False
 
 
-def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
+def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     session = DbInit(databasefile=databasefile).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
@@ -72,9 +72,10 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
         raise WalletError("Wallet '%s' not found" % wallet)
     # Also delete all keys and transactions in this wallet
     ks = session.query(DbKey).filter_by(wallet_id=w.first().id)
-    # TODO : Do not delete but update keys
-    # for k in ks:
-    #     session.query(DbTransaction).filter_by(key_id=k.id, spend=False).delete()
+    for k in ks:
+        if not force and k.balance:
+            raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
+                              (k.id, k.address))
     ks.delete()
     res = w.delete()
     session.commit()
@@ -119,7 +120,7 @@ class HDWalletKey:
         nk = DbKey(name=name, wallet_id=wallet_id, key=str(k.private()), purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
-                   is_private=True, path=path, key_type=k.key_type)  #FIXME: missing? , network=network
+                   is_private=True, path=path, key_type=k.key_type)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session)
@@ -751,5 +752,5 @@ if __name__ == '__main__':
     if True:
         # -- List wallets & delete a wallet
         print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
-        delete_wallet(1, databasefile=test_database)
+        delete_wallet(1, databasefile=test_database, force=True)
         print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
