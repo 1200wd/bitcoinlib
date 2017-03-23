@@ -83,6 +83,9 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE):
     return res
 
 
+@read_only_properties('_dbkey', 'key_id', 'wallet_id', 'key', 'account_id', 'change', 'address_index', 'key_wif',
+                      'address', '_balance', 'purpose', 'parent_id', 'is_private', 'path', 'wallet', 'network',
+                      'k', 'depth', 'key_type')
 class HDWalletKey:
 
     @staticmethod
