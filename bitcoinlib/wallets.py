@@ -50,7 +50,6 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
             'purpose': w.purpose,
             'balance': w.balance,
         })
-        print("--- Network: %s" % w.network)
     session.close()
     return wlst
 
