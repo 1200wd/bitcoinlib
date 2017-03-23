@@ -66,7 +66,7 @@ def get_key_format(key, keytype=None):
         # TODO: Check lenght of private key
         if 70 < len(key) < 80:
             return 'decimal'
-    except:
+    except ValueError:
         pass
     if len(key) == 130 and key[:2] == '04' and keytype != 'private':
         return "public_uncompressed"
@@ -716,10 +716,10 @@ if __name__ == '__main__':
     k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
     k.info()
 
-    # print("\n==== Import Private Litecoin key ===")
-    # pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
-    # k = Key(import_key=pk)
-    # k.info()
+    print("\n==== Import Private Litecoin key ===")
+    pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
+    k = Key(import_key=pk)
+    k.info()
 
     print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
     k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
