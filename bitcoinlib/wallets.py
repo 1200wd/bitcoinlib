@@ -20,7 +20,7 @@
 from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey
-from bitcoinlib.networks import Network
+from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction
@@ -90,7 +90,7 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
 class HDWalletKey:
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='', hdkey_object=0, account_id=0, network=DEFAULT_NETWORK, change=0,
+    def from_key(name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=DEFAULT_NETWORK, change=0,
                  purpose=44, parent_id=0, path='m'):
         # TODO: Test key and throw warning if invalid network, account_id etc
         if not hdkey_object:
@@ -629,7 +629,7 @@ if __name__ == '__main__':
         os.remove(test_database)
 
     # -- Create New Wallet and Generate a some new Keys --
-    if True:
+    if False:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             wallet.new_account()
@@ -749,7 +749,14 @@ if __name__ == '__main__':
         # wallet.updateutxos()  # TODO: fix for litecoin testnet
         wallet.info(detail=3)
 
+    # -- Test import Litecoin key in Bitcoin wallet (should give error) --
     if True:
+        w = HDWallet.create(
+            name='Wallet Error',
+            databasefile=test_database)
+        w.import_key(key='T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
+
+    if False:
         # -- List wallets & delete a wallet
         print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
         delete_wallet(1, databasefile=test_database, force=True)

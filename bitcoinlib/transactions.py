@@ -23,7 +23,7 @@ from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import Key, BKeyError
 from bitcoinlib.main import *
-from bitcoinlib.networks import Network
+from bitcoinlib.networks import Network, DEFAULT_NETWORK, NETWORK_DEFINITIONS
 
 
 _logger = logging.getLogger(__name__)
@@ -648,18 +648,16 @@ if __name__ == '__main__':
     # === TRANSACTIONS AND BITCOIND EXAMPLES
     #
 
-    if False:
-        from bitcoinlib.services.bitcoind import BitcoindClient
-        bdc = BitcoindClient.from_config()
+    from bitcoinlib.services.bitcoind import BitcoindClient
+    bdc = BitcoindClient.from_config()
 
-    if False:
-        # Deserialize and verify a transaction
-        txid = '73652b5f704b0a112b8bc68d063dac6238eb3e2861074a7a12ce24e2a332bd45'
-        rt = bdc.getrawtransaction(txid)
-        print("Raw: %s" % rt)
-        t = Transaction.import_raw(rt)
-        pprint(t.get())
-        print("Verified: %s" % t.verify())
+    # Deserialize and verify a transaction
+    txid = '73652b5f704b0a112b8bc68d063dac6238eb3e2861074a7a12ce24e2a332bd45'
+    rt = bdc.getrawtransaction(txid)
+    print("Raw: %s" % rt)
+    t = Transaction.import_raw(rt)
+    pprint(t.get())
+    print("Verified: %s" % t.verify())
 
     # Deserialize transactions in latest block with bitcoind client
     MAX_TRANSACTIONS_VIEW = 100

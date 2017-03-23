@@ -22,11 +22,60 @@ import json
 import binascii
 import math
 import logging
-from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA, DEFAULT_NETWORK
+from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
 from bitcoinlib.encoding import to_hexstring, normalize_var
 
 
 _logger = logging.getLogger(__name__)
+
+
+DEFAULT_NETWORK = 'bitcoin'
+
+def read_network_definitions():
+    try:
+        fn = DEFAULT_SETTINGSDIR + "/networks.json"
+        f = open(fn, "r")
+    except FileNotFoundError:
+        fn = CURRENT_INSTALLDIR_DATA + "/networks.json"
+        f = open(fn, "r")
+
+    try:
+        network_definitions = json.loads(f.read())
+    except json.decoder.JSONDecodeError as e:
+        errstr = "Error reading provider definitions from %s: %s" % (fn, e)
+        _logger.warning(errstr)
+        raise NetworkError(errstr)
+    f.close()
+    return network_definitions
+
+NETWORK_DEFINITIONS = read_network_definitions()
+
+
+def _format_value(field, value):
+    if field[:6] == 'prefix':
+        return binascii.unhexlify(value)
+    elif field == 'denominator':
+        return float(value)
+    else:
+        return value
+
+def network_values_for(field, output_as='default'):
+    r = [_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]
+    if output_as == 'default':
+        return r
+    elif output_as == 'str':
+        return [normalize_var(i) for i in r]
+
+
+def network_by_value(field, value):
+    value = to_hexstring(value).upper()
+    return [nv for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field].upper() == value]
+
+
+def network_defined(network):
+    if network not in list(NETWORK_DEFINITIONS.keys()):
+        return False
+    return True
 
 
 class NetworkError(Exception):
@@ -41,64 +90,24 @@ class NetworkError(Exception):
 class Network:
 
     def __init__(self, network_name=DEFAULT_NETWORK):
-        try:
-            fn = DEFAULT_SETTINGSDIR + "/networks.json"
-            f = open(fn, "r")
-        except FileNotFoundError:
-            fn = CURRENT_INSTALLDIR_DATA + "/networks.json"
-            f = open(fn, "r")
-
-        try:
-            self.networks = json.loads(f.read())
-        except json.decoder.JSONDecodeError as e:
-            errstr = "Error reading provider definitions from %s: %s" % (fn, e)
-            _logger.warning(errstr)
-            raise NetworkError(errstr)
-        f.close()
-
         self.network_name = network_name
-        self.prefix_wif = binascii.unhexlify(self.networks[network_name]['prefix_wif'])
-        self.currency_code = self.networks[network_name]['currency_code']
-        self.currency_symbol = self.networks[network_name]['currency_symbol']
-        self.prefix_address_p2sh = binascii.unhexlify(self.networks[network_name]['prefix_address_p2sh'])
-        self.prefix_address = binascii.unhexlify(self.networks[network_name]['prefix_address'])
-        self.prefix_hdkey_public = binascii.unhexlify(self.networks[network_name]['prefix_hdkey_public'])
-        self.description = self.networks[network_name]['description']
-        self.prefix_hdkey_private = binascii.unhexlify(self.networks[network_name]['prefix_hdkey_private'])
-        self.denominator = self.networks[network_name]['denominator']
-        self.bip44_cointype = self.networks[network_name]['bip44_cointype']
+        self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
+        self.currency_code = NETWORK_DEFINITIONS[network_name]['currency_code']
+        self.currency_symbol = NETWORK_DEFINITIONS[network_name]['currency_symbol']
+        self.prefix_address_p2sh = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address_p2sh'])
+        self.prefix_address = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address'])
+        self.prefix_hdkey_public = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_public'])
+        self.description = NETWORK_DEFINITIONS[network_name]['description']
+        self.prefix_hdkey_private = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_private'])
+        self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
+        self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']
 
         # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
-        # for f in list(self.networks[network_name].keys()):
-        #     exec("self.%s = self.networks[network_name]['%s']" % (f, f))
+        # for f in list(NETWORK_DEFINITIONS[network_name].keys()):
+        #     exec("self.%s = NETWORK_DEFINITIONS[network_name]['%s']" % (f, f))
 
     def __repr__(self):
         return "<Network: %s>" % self.network_name
-
-    @staticmethod
-    def _format_value(field, value):
-        if field[:6] == 'prefix':
-            return binascii.unhexlify(value)
-        elif field == 'denominator':
-            return float(value)
-        else:
-            return value
-
-    def network_values_for(self, field, output_as='default'):
-        r = [self._format_value(field, nv[field]) for nv in self.networks.values()]
-        if output_as == 'default':
-            return r
-        elif output_as == 'str':
-            return [normalize_var(i) for i in r]
-
-    def network_by_value(self, field, value):
-        value = to_hexstring(value).upper()
-        return [nv for nv in self.networks if self.networks[nv][field].upper() == value]
-
-    def network_defined(self, network):
-        if network not in list(self.networks.keys()):
-            return False
-        return True
 
     def print_value(self, value):
         symb = self.currency_code
@@ -116,13 +125,13 @@ if __name__ == '__main__':
 
     network = Network('bitcoin')
     print("\n=== Get all WIF prefixes ===")
-    print("WIF Prefixes: %s" % network.network_values_for('prefix_wif'))
+    print("WIF Prefixes: %s" % network_values_for('prefix_wif'))
 
     print("\n=== Get all HDkey private prefixes ===")
-    print("HDkey private prefixes: %s" % network.network_values_for('prefix_hdkey_private', output_as='str'))
+    print("HDkey private prefixes: %s" % network_values_for('prefix_hdkey_private', output_as='str'))
 
     print("\n=== Get network(s) for WIF prefix B0 ===")
-    print("WIF Prefixes: %s" % network.network_by_value('prefix_wif', 'B0'))
+    print("WIF Prefixes: %s" % network_by_value('prefix_wif', 'B0'))
 
     print("\n=== Get HD key private prefix for current network ===")
     print("self.prefix_hdkey_private: %s" % network.prefix_hdkey_private)

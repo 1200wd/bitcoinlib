@@ -21,7 +21,8 @@
 import sys
 import logging
 import json
-from bitcoinlib.main import DEFAULT_NETWORK, DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
+from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
+from bitcoinlib.networks import DEFAULT_NETWORK
 from bitcoinlib import services
 
 _logger = logging.getLogger(__name__)
