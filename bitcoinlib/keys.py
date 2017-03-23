@@ -34,7 +34,7 @@ from bitcoinlib.main import *
 from bitcoinlib.networks import Network
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base
+from bitcoinlib.encoding import change_base, to_bytes
 
 _logger = logging.getLogger(__name__)
 
@@ -425,11 +425,11 @@ class HDKey:
         """
         Used by class init function, import key from seed
 
-        :param import_seed: Hex representation of private key seed
+        :param import_seed: Private key seed as bytes or hexstring
         :param network: Network to use
         :return: HDKey class object
         """
-        seed = change_base(import_seed, 16, 256)
+        seed = to_bytes(import_seed)
         I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
