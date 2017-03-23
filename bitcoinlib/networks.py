@@ -59,12 +59,15 @@ def _format_value(field, value):
     else:
         return value
 
+
 def network_values_for(field, output_as='default'):
     r = [_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]
-    if output_as == 'default':
-        return r
-    elif output_as == 'str':
+    if output_as == 'str':
         return [normalize_var(i) for i in r]
+    elif output_as == 'hex':
+        return [to_hexstring(i) for i in r]
+    else:
+        return r
 
 
 def network_by_value(field, value):
