@@ -139,6 +139,14 @@ class TestWallet(unittest.TestCase):
     def test_delete_wallet_exception(self):
         self.assertRaisesRegexp(WalletError, '', delete_wallet, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
 
+    def test_wallet_import_key_network_error(self):
+        w = HDWallet.create(
+            name='Wallet Error',
+            databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError,
+                                ".*is from different network then specified: bitcoin",
+                                w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
+
 
 class TestWalletElectrum(unittest.TestCase):
 

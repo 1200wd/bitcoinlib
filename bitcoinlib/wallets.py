@@ -19,7 +19,7 @@
 
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.keys import HDKey
+from bitcoinlib.keys import HDKey, get_key_format
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
@@ -90,13 +90,28 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
 class HDWalletKey:
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=DEFAULT_NETWORK, change=0,
+    def from_key(name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=None, change=0,
                  purpose=44, parent_id=0, path='m'):
-        # TODO: Test key and throw warning if invalid network, account_id etc
+        # TODO: Test key and check for invalid account id
         if not hdkey_object:
+            if key:
+                kf = get_key_format(key)
+                if network is not None and network not in kf['networks']:
+                    raise WalletError("Specified key %s is from different network then specified: %s" %
+                                      (kf['networks'], network))
+                elif network is None and len(kf['networks']) == 1:
+                    network = kf['networks'][0]
+                elif network is None and len(kf['networks']) > 1:
+                    raise WalletError("Could not determine network of specified key, multiple networks found: %s" %
+                                      kf['networks'])
+                elif network is None:
+                    network = DEFAULT_NETWORK
             k = HDKey(import_key=key, network=network)
         else:
+            if network is None:
+                network = DEFAULT_NETWORK
             k = hdkey_object
+
         keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).all()
         if keyexists:
             raise WalletError("Key %s already exists" % (key or k.extended_wif()))
