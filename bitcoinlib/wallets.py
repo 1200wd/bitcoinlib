@@ -84,6 +84,20 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     return res
 
 
+def check_network_and_key(key, network):
+    kf = get_key_format(key)
+    if network is not None and network not in kf['networks']:
+        raise WalletError("Specified key %s is from different network then specified: %s" % (kf['networks'], network))
+    elif network is None and len(kf['networks']) == 1:
+        return kf['networks'][0]
+    elif network is None and len(kf['networks']) > 1:
+        raise WalletError("Could not determine network of specified key, multiple networks found: %s" % kf['networks'])
+    elif network is None:
+        return DEFAULT_NETWORK
+    else:
+        return network
+
+
 @read_only_properties('_dbkey', 'key_id', 'wallet_id', 'key', 'account_id', 'change', 'address_index', 'key_wif',
                       'address', '_balance', 'purpose', 'parent_id', 'is_private', 'path', 'wallet', 'network',
                       'k', 'depth', 'key_type')
@@ -95,17 +109,7 @@ class HDWalletKey:
         # TODO: Test key and check for invalid account id
         if not hdkey_object:
             if key:
-                kf = get_key_format(key)
-                if network is not None and network not in kf['networks']:
-                    raise WalletError("Specified key %s is from different network then specified: %s" %
-                                      (kf['networks'], network))
-                elif network is None and len(kf['networks']) == 1:
-                    network = kf['networks'][0]
-                elif network is None and len(kf['networks']) > 1:
-                    raise WalletError("Could not determine network of specified key, multiple networks found: %s" %
-                                      kf['networks'])
-                elif network is None:
-                    network = DEFAULT_NETWORK
+                network = check_network_and_key(key, network)
             k = HDKey(import_key=key, network=network)
         else:
             if network is None:
@@ -233,17 +237,21 @@ class HDWalletKey:
 class HDWallet:
 
     @classmethod
-    def create(cls, name, key='', owner='', network=DEFAULT_NETWORK, account_id=0, purpose=44,
+    def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44,
                databasefile=DEFAULT_DATABASE):
         session = DbInit(databasefile=databasefile).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
         else:
             _logger.info("Create new wallet '%s'" % name)
+        # TODO: Can we remove this?
         # if key and get_key_format(key) in ['wif', 'wif_compressed', 'wif_protected']:
         #     raise WalletError("Cannot create a HD Wallet from a simple private key. Create wallet first and then "
         #                       "import new Private key.")
-        # TODO: If key is specified, check and determine network
+        if key:
+            network = check_network_and_key(key, network)
+        elif network is None:
+            network = DEFAULT_NETWORK
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose)
         session.add(new_wallet)
         session.commit()
