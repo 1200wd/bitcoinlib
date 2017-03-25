@@ -143,7 +143,7 @@ class TestWallet(unittest.TestCase):
         w = HDWallet.create(
             name='Wallet Error',
             databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError,
+        self.assertRaisesRegexp(KeyError,
                                 ".*is from different network then specified: bitcoin",
                                 w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
 
