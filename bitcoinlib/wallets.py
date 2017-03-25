@@ -19,7 +19,7 @@
 
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.keys import HDKey, get_key_format
+from bitcoinlib.keys import HDKey, get_key_format, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
@@ -82,20 +82,6 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     session.close()
     _logger.info("Wallet '%s' deleted" % wallet)
     return res
-
-
-def check_network_and_key(key, network):
-    kf = get_key_format(key)
-    if network is not None and network not in kf['networks']:
-        raise WalletError("Specified key %s is from different network then specified: %s" % (kf['networks'], network))
-    elif network is None and len(kf['networks']) == 1:
-        return kf['networks'][0]
-    elif network is None and len(kf['networks']) > 1:
-        raise WalletError("Could not determine network of specified key, multiple networks found: %s" % kf['networks'])
-    elif network is None:
-        return DEFAULT_NETWORK
-    else:
-        return network
 
 
 @read_only_properties('_dbkey', 'key_id', 'wallet_id', 'key', 'account_id', 'change', 'address_index', 'key_wif',

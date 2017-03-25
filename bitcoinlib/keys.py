@@ -48,6 +48,21 @@ class BKeyError(Exception):
         return self.msg
 
 
+def check_network_and_key(key, network):
+    kf = get_key_format(key)
+    if kf['networks']:
+        if network is not None and network not in kf['networks']:
+            raise KeyError("Specified key %s is from different network then specified: %s" % (kf['networks'], network))
+        elif network is None and len(kf['networks']) == 1:
+            return kf['networks'][0]
+        elif network is None and len(kf['networks']) > 1:
+            raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf['networks'])
+    if network is None:
+        return DEFAULT_NETWORK
+    else:
+        return network
+
+
 def get_key_format(key, keytype=None):
     """
     Determins the type and format of a public or private key by length and prefix.
@@ -55,54 +70,61 @@ def get_key_format(key, keytype=None):
 
     :param key: Any private or public key
     :param keytype: 'private' or 'public', is most cases not required as methods takes best guess
-    :return: format of key as string
+    :return: key_format of key as string
     """
+    key_format = ""
+    networks = None
     if keytype not in [None, 'private', 'public']:
         raise BKeyError("Keytype must be 'private' or 'public")
-    if isinstance(key, numbers.Number):
-        return {"format": "decimal"}
-
-    if isinstance(key, (bytes, bytearray)):
-        if len(key) == 33 and key[-1:] == b'\x01':
-            return {"format": "bin_compressed"}
-        elif len(key) == 32 or len(key) == 33:
-            return {"format": "bin"}
-
-    if len(key) == 130 and key[:2] == '04' and keytype != 'private':
-        return {"format": "public_uncompressed"}
+    elif isinstance(key, numbers.Number):
+        key_format = "decimal"
+    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\x01':
+        key_format = "bin_compressed"
+    elif isinstance(key, (bytes, bytearray)) and len(key) == 32 or len(key) == 33:
+        key_format = "bin"
+    elif len(key) == 130 and key[:2] == '04' and keytype != 'private':
+        key_format = "public_uncompressed"
     elif len(key) == 66 and key[:2] in ['02', '03'] and keytype != 'private':
-        return {"format": "public"}
+        key_format = "public"
     elif len(key) == 64:
-        return {"format": "hex"}
+        key_format = "hex"
     elif len(key) == 66 and keytype != 'public' and key[-2:] == '01':
-        return {"format": "hex_compressed"}
+        key_format = "hex_compressed"
     elif len(key) == 58 and key[:2] == '6P':
-        return {"format": "wif_protected"}
+        key_format = "wif_protected"
     else:
         try:
             key_hex = change_base(key, 58, 16)
-            networks_wif = network_by_value('prefix_wif', key_hex[:2])
-            if networks_wif:
+            networks = network_by_value('prefix_wif', key_hex[:2])
+            if networks:
                 if key_hex[-10:-8] == '01':
-                    return {"format": "wif_compressed", "networks": networks_wif}
+                    key_format = "wif_compressed"
                 else:
-                    return {"format": "wif", "networks": networks_wif}
-            networks = network_by_value('prefix_hdkey_private', key_hex[:8])
-            if networks:
-                return {"format": "hdkey_private", "networks": networks}
-            networks = network_by_value('prefix_hdkey_public', key_hex[:8])
-            if networks:
-                return {"format": "hdkey_public", "networks": networks}
-
+                    key_format = "wif"
+            else:
+                networks = network_by_value('prefix_hdkey_private', key_hex[:8])
+                if networks:
+                    key_format = "hdkey_private"
+                else:
+                    networks = network_by_value('prefix_hdkey_public', key_hex[:8])
+                    if networks:
+                        key_format = "hdkey_public"
         except (TypeError, EncodingError):
             pass
-    try:
-        int(key)
-        if 70 < len(key) < 78:
-            return {"format": "decimal"}
-    except (TypeError, ValueError):
-        pass
-    raise BKeyError("Unrecognised key format")
+    if not key_format:
+        try:
+            int(key)
+            if 70 < len(key) < 78:
+                key_format = "decimal"
+        except (TypeError, ValueError):
+            pass
+    if not key_format:
+        raise BKeyError("Unrecognised key key_format")
+    else:
+        return {
+            "format": key_format,
+            "networks": networks
+        }
 
 
 def ec_point(p):
@@ -135,7 +157,6 @@ class Key:
         :param passphrase: Optional passphrase if imported key is password protected
         :return:
         """
-        self.network = Network(network)
         self._public = None
         self._public_uncompressed = None
         self.compressed = compressed
@@ -143,7 +164,10 @@ class Key:
             self.secret = random.SystemRandom().randint(0, secp256k1_n)
             return
 
-        key_format = get_key_format(import_key)["format"]
+        kf = get_key_format(import_key)
+        key_format = kf["format"]
+        network = check_network_and_key(import_key, network)
+        self.network = Network(network)
 
         if key_format == "wif_protected":
             import_key, key_format = self._bip38_decrypt(import_key, passphrase)
