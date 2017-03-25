@@ -72,6 +72,8 @@ def get_key_format(key, keytype=None):
     :param keytype: 'private' or 'public', is most cases not required as methods takes best guess
     :return: key_format of key as string
     """
+    if not key:
+        raise BKeyError("Key empty, please specify a valid key")
     key_format = ""
     networks = None
     if keytype not in [None, 'private', 'public']:
@@ -119,7 +121,7 @@ def get_key_format(key, keytype=None):
         except (TypeError, ValueError):
             pass
     if not key_format:
-        raise BKeyError("Unrecognised key key_format")
+        raise BKeyError("Unrecognised key format")
     else:
         return {
             "format": key_format,
@@ -159,22 +161,23 @@ class Key:
         """
         self._public = None
         self._public_uncompressed = None
+        self._x = None
+        self._y = None
+        self.secret = None
         self.compressed = compressed
         if not import_key:
-            self.secret = random.SystemRandom().randint(0, secp256k1_n)
-            return
-
+            import_key = random.SystemRandom().randint(0, secp256k1_n)
         kf = get_key_format(import_key)
-        key_format = kf["format"]
+        self.key_format = kf["format"]
         network = check_network_and_key(import_key, network)
         self.network = Network(network)
 
-        if key_format == "wif_protected":
+        if self.key_format == "wif_protected":
             import_key, key_format = self._bip38_decrypt(import_key, passphrase)
 
-        if key_format in ['public_uncompressed', 'public']:
+        if self.key_format in ['public_uncompressed', 'public']:
             self.secret = None
-            if key_format == 'public_uncompressed':
+            if self.key_format == 'public_uncompressed':
                 self._public = import_key
                 self._x = import_key[2:66]
                 self._y = import_key[66:130]
@@ -193,22 +196,22 @@ class Key:
                 self._y = change_base(y, 10, 16, 32)
         else:
             # Overrule method compressed input
-            if key_format in ['bin_compressed', 'hex_compressed', 'wif_compressed']:
+            if self.key_format in ['bin_compressed', 'hex_compressed', 'wif_compressed']:
                 self.compressed = True
-            elif key_format == 'wif':
+            elif self.key_format == 'wif':
                 self.compressed = False
 
-            if key_format == 'hex':
+            if self.key_format == 'hex':
                 self.secret = change_base(import_key, 16, 10)
-            elif key_format == 'hex_compressed':
+            elif self.key_format == 'hex_compressed':
                     self.secret = change_base(import_key[:-2], 16, 10)
-            elif key_format == 'decimal':
+            elif self.key_format == 'decimal':
                 self.secret = import_key
-            elif key_format == 'bin':
+            elif self.key_format == 'bin':
                 self.secret = change_base(import_key, 256, 10)
-            elif key_format == 'bin_compressed':
+            elif self.key_format == 'bin_compressed':
                 self.secret = change_base(import_key[:-1], 256, 10)
-            elif key_format in ['wif', 'wif_compressed']:
+            elif self.key_format in ['wif', 'wif_compressed']:
                 # Check and remove Checksum, prefix and postfix tags
                 key = change_base(import_key, 58, 256)
                 checksum = key[-4:]
@@ -734,6 +737,10 @@ if __name__ == '__main__':
     #
     # KEYS EXAMPLES
     #
+
+    print("\n=== Generate random key ===")
+    k = Key()
+    k.info()
 
     print("\n=== Import Public key ===")
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
