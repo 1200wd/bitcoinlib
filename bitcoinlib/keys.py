@@ -173,7 +173,7 @@ class Key:
         self.network = Network(network)
 
         if self.key_format == "wif_protected":
-            import_key, key_format = self._bip38_decrypt(import_key, passphrase)
+            import_key, self.key_format = self._bip38_decrypt(import_key, passphrase)
 
         if self.key_format in ['public_uncompressed', 'public']:
             self.secret = None
@@ -738,44 +738,44 @@ if __name__ == '__main__':
     # KEYS EXAMPLES
     #
 
-    print("\n=== Generate random key ===")
-    k = Key()
-    k.info()
+    # print("\n=== Generate random key ===")
+    # k = Key()
+    # k.info()
+    #
+    # print("\n=== Import Public key ===")
+    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    # K.info()
+    #
+    # print("\n==== Import Private key as decimal ===")
+    # pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
+    # k = Key(import_key=pk, network='testnet')
+    # k.info()
+    #
+    # print("\n==== Import Private key as byte ===")
+    # pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
+    # K = Key(pk)
+    # K.info()
+    #
+    # print("\n=== Import Private WIF Key ===")
+    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    # print("Private key     %s" % k.wif())
+    # print("Private key hex %s " % k.private_hex())
+    # print("Compressed      %s\n" % k.compressed)
+    #
+    # print("\n=== Import Private Testnet Key ===")
+    # k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
+    # k.info()
+    #
+    # print("\n==== Import Private Litecoin key ===")
+    # pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
+    # k = Key(import_key=pk)
+    # k.info()
 
-    print("\n=== Import Public key ===")
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    K.info()
-
-    print("\n==== Import Private key as decimal ===")
-    pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
-    k = Key(import_key=pk, network='testnet')
-    k.info()
-
-    print("\n==== Import Private key as byte ===")
-    pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
-    K = Key(pk)
-    K.info()
-
-    print("\n=== Import Private WIF Key ===")
-    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    print("Private key     %s" % k.wif())
-    print("Private key hex %s " % k.private_hex())
-    print("Compressed      %s\n" % k.compressed)
-
-    print("\n=== Import Private Testnet Key ===")
-    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
-    k.info()
-
-    print("\n==== Import Private Litecoin key ===")
-    pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
-    k = Key(import_key=pk)
-    k.info()
-
-    print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
-    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    print("Private key     %s" % k.wif())
-    print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    print("Is Compressed   %s\n" % k.compressed)
+    # print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
+    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    # print("Private key     %s" % k.wif())
+    # print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
+    # print("Is Compressed   %s\n" % k.compressed)
 
     print("\n==== Import and Decrypt BIP38 Key ===")
     k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
