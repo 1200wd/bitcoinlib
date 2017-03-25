@@ -188,7 +188,7 @@ class Key:
                 self.compressed = True
                 # Calculate y from x with y=x^3 + 7 function
                 sign = import_key[:2] == '03'
-                x = change_base(self._x, 16, 10)
+                x = int(self._x, 16)
                 ys = (x**3+7) % secp256k1_p
                 y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
                 if y & 1 != sign:
@@ -202,9 +202,9 @@ class Key:
                 self.compressed = False
 
             if self.key_format == 'hex':
-                self.secret = change_base(import_key, 16, 10)
+                self.secret = int(import_key, 16)
             elif self.key_format == 'hex_compressed':
-                    self.secret = change_base(import_key[:-2], 16, 10)
+                    self.secret = int(import_key[:-2], 16)
             elif self.key_format == 'decimal':
                 self.secret = import_key
             elif self.key_format == 'bin':
@@ -397,8 +397,8 @@ class Key:
     def public_point(self):
         if not self._public or not self._public_uncompressed:
             self._create_public()
-        x = self._x and int(change_base(self._x, 16, 10))
-        y = self._y and int(change_base(self._y, 16, 10))
+        x = self._x and int(self._x, 16)
+        y = self._y and int(self._y, 16)
         return (x, y)
 
     def public_hex(self):
