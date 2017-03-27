@@ -121,7 +121,7 @@ def get_key_format(key, keytype=None):
         except (TypeError, ValueError):
             pass
     if not key_format:
-        raise BKeyError("Unrecognised key format")
+        raise BKeyError("Key: %s. Unrecognised key format" % key)
     else:
         return {
             "format": key_format,
@@ -279,7 +279,8 @@ class Key:
         priv = decryptedhalf1 + decryptedhalf2
         priv = binascii.unhexlify('%064x' % (int(binascii.hexlify(priv), 16) ^ int(binascii.hexlify(derivedhalf1), 16)))
         if compressed:
-            priv = b'\0' + priv
+            # priv = b'\0' + priv
+            priv = priv + b'\01'
             key_format = 'wif_compressed'
         else:
             key_format = 'wif'
@@ -541,8 +542,8 @@ class HDKey:
                         chain = b'\0'*32
                         key = ki.private_byte()
                         key_type = 'private'
-                    except BKeyError:
-                        raise BKeyError("Key format not recognised")
+                    except BKeyError as e:
+                        raise BKeyError("[BKeyError] %s" % e)
 
         self.key = key
         self.chain = chain
@@ -738,6 +739,7 @@ if __name__ == '__main__':
     # KEYS EXAMPLES
     #
     #
+
     # print("\n=== Generate random key ===")
     # k = Key()
     # k.info()
@@ -751,81 +753,86 @@ if __name__ == '__main__':
     # k = Key(import_key=pk, network='testnet')
     # k.info()
     #
-    print("\n==== Import Private key as byte ===")
-    pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
-    # pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
-    K = Key(pk)
-    K.info()
-    sys.exit()
+    # print("\n==== Import Private key as byte ===")
+    # pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
+    # # pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
+    # K = Key(pk)
+    # K.info()
+    # sys.exit()
+    #
+    # print("\n==== Import Private key as byte ===")
+    # pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
+    # K = HDKey(key=pk)
+    # K.info()
+    # sys.exit()
+    #
+    # print("\n=== Import Private WIF Key ===")
+    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    # print("Private key     %s" % k.wif())
+    # print("Private key hex %s " % k.private_hex())
+    # print("Compressed      %s\n" % k.compressed)
+    #
+    # print("\n=== Import Private Testnet Key ===")
+    # k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
+    # k.info()
+    #
+    # print("\n==== Import Private Litecoin key ===")
+    # pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
+    # k = Key(import_key=pk)
+    # k.info()
+    #
+    # print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
+    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    # print("Private key     %s" % k.wif())
+    # print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
+    # print("Is Compressed   %s\n" % k.compressed)
+    #
+    # print("\n==== Import and Decrypt BIP38 Key ===")
+    # k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
+    # print("Private key     %s" % k.wif())
+    # print("Is Compressed   %s\n" % k.compressed)
+    #
+    # print("\n==== Generate random HD Key on testnet ===")
+    # hdk = HDKey(network='testnet')
+    # print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
+    #
+    # print("\n==== Import HD Key from seed ===")
+    # k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+    # print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
+    # print("Key type is : %s" % k.key_type)
+    #
+    # print("\n==== Import simple private key as HDKey ===")
+    # k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
+    # print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
+    # print("Key type is : %s" % k.key_type)
+    #
+    # print("\n==== Generate random Litecoin key ===")
+    # lk = HDKey(network='litecoin')
+    # lk.info()
+    #
+    # print("\n==== Derive path with Child Key derivation ===")
+    # print("Derive path path 'm/0H/1':")
+    # print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').extended_wif())
+    # print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').extended_wif_public())
+    #
+    # print("\n==== Test Child Key Derivation ===")
+    # print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
+    #       "and one thought private parent. They should be the same.")
+    # K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
+    #           '7nHUYwxHPhqmzUyeFG')
+    # k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
+    #           '1h3BoPuEJzsgeypdKj')
+    #
+    # index = 1000
+    # pub_with_pubparent = K.child_public(index).public().address()
+    # pub_with_privparent = k.child_private(index).public().address()
+    # if pub_with_privparent != pub_with_pubparent:
+    #     print("Error index %4d: pub-child %s, priv-child %s" % (index, pub_with_privparent, pub_with_pubparent))
+    # else:
+    #     print("Child Key Derivation for key %d worked!" % index)
+    #     print("%s == %s" % (pub_with_pubparent, pub_with_privparent))
+    #
+    # tmp example
+    k = Key('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo', passphrase='TestingOneTwoThree')
+    print('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP == %s ' % k.wif())
 
-    print("\n==== Import Private key as byte ===")
-    pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
-    K = HDKey(key=pk)
-    K.info()
-    sys.exit()
-
-    print("\n=== Import Private WIF Key ===")
-    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    print("Private key     %s" % k.wif())
-    print("Private key hex %s " % k.private_hex())
-    print("Compressed      %s\n" % k.compressed)
-
-    print("\n=== Import Private Testnet Key ===")
-    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
-    k.info()
-
-    print("\n==== Import Private Litecoin key ===")
-    pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
-    k = Key(import_key=pk)
-    k.info()
-
-    print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
-    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    print("Private key     %s" % k.wif())
-    print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    print("Is Compressed   %s\n" % k.compressed)
-
-    print("\n==== Import and Decrypt BIP38 Key ===")
-    k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
-    print("Private key     %s" % k.wif())
-    print("Is Compressed   %s\n" % k.compressed)
-
-    print("\n==== Generate random HD Key on testnet ===")
-    hdk = HDKey(network='testnet')
-    print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
-
-    print("\n==== Import HD Key from seed ===")
-    k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-    print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
-    print("Key type is : %s" % k.key_type)
-
-    print("\n==== Import simple private key as HDKey ===")
-    k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
-    print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
-    print("Key type is : %s" % k.key_type)
-
-    print("\n==== Generate random Litecoin key ===")
-    lk = HDKey(network='litecoin')
-    lk.info()
-
-    print("\n==== Derive path with Child Key derivation ===")
-    print("Derive path path 'm/0H/1':")
-    print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').extended_wif())
-    print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').extended_wif_public())
-
-    print("\n==== Test Child Key Derivation ===")
-    print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
-          "and one thought private parent. They should be the same.")
-    K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
-              '7nHUYwxHPhqmzUyeFG')
-    k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
-              '1h3BoPuEJzsgeypdKj')
-
-    index = 1000
-    pub_with_pubparent = K.child_public(index).public().address()
-    pub_with_privparent = k.child_private(index).public().address()
-    if pub_with_privparent != pub_with_pubparent:
-        print("Error index %4d: pub-child %s, priv-child %s" % (index, pub_with_privparent, pub_with_pubparent))
-    else:
-        print("Child Key Derivation for key %d worked!" % index)
-        print("%s == %s" % (pub_with_pubparent, pub_with_privparent))
