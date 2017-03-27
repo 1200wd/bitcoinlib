@@ -84,9 +84,6 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     return res
 
 
-@read_only_properties('_dbkey', 'key_id', 'wallet_id', 'key', 'account_id', 'change', 'address_index', 'key_wif',
-                      'address', '_balance', 'purpose', 'parent_id', 'is_private', 'path', 'wallet', 'network',
-                      'k', 'depth', 'key_type')
 class HDWalletKey:
 
     @staticmethod
@@ -94,8 +91,6 @@ class HDWalletKey:
                  purpose=44, parent_id=0, path='m'):
         # TODO: Test key and check for invalid account id
         if not hdkey_object:
-            if key:
-                network = check_network_and_key(key, network)
             k = HDKey(import_key=key, network=network)
         else:
             if network is None:
@@ -116,13 +111,14 @@ class HDWalletKey:
                 raise WalletError("Key depth of %d does not match path lenght of %d" %
                                   (k.depth, len(path.split('/')) - 1))
 
-        wk = session.query(DbKey).filter(or_(DbKey.key == str(k.private()),
+
+        wk = session.query(DbKey).filter(or_(DbKey.key == k.key_hex,
                                              DbKey.key_wif == k.extended_wif(),
                                              DbKey.address == k.public().address())).first()
         if wk:
             return HDWalletKey(wk.id, session)
 
-        nk = DbKey(name=name, wallet_id=wallet_id, key=str(k.private()), purpose=purpose,
+        nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
                    is_private=True, path=path, key_type=k.key_type)
@@ -218,8 +214,6 @@ class HDWalletKey:
         print("\n")
 
 
-@read_only_properties('_session', '_balance', 'network', '_dbwallet', 'wallet_id', 'purpose',
-                      'main_key_id', 'main_key', 'default_account_id')
 class HDWallet:
 
     @classmethod
@@ -406,7 +400,7 @@ class HDWallet:
         if not name:
             name = self.name
         nk = HDWalletKey.from_key_object(newkey, name=name, wallet_id=self.wallet_id,
-                                         network=self.network, account_id=account_id, change=change,
+                                         network=self.network.network_name, account_id=account_id, change=change,
                                          purpose=self.purpose, path=path, session=self._session)
         return nk
 
@@ -721,7 +715,7 @@ if __name__ == '__main__':
         del simple_wallet
 
     # -- Create online wallet to generate addresses without private key
-    if False:
+    if True:
         pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
                  'wt9SrsVeBeqfBbR3'
         pubwal = HDWallet.create(
@@ -759,11 +753,14 @@ if __name__ == '__main__':
         wallet.info(detail=3)
 
     # -- Test import Litecoin key in Bitcoin wallet (should give error) --
-    if True:
+    if False:
         w = HDWallet.create(
             name='Wallet Error',
             databasefile=test_database)
-        w.import_key(key='T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
+        try:
+            w.import_key(key='T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
+        except KeyError as e:
+            print("Import litecoin key in bitcoin wallet gives an error: %s" % e)
 
     if False:
         # -- List wallets & delete a wallet

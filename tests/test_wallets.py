@@ -102,8 +102,7 @@ class TestWallet(unittest.TestCase):
         self.assertEqual(newkey_change.path, "m/44'/1'/99'/1/0")
 
     def test_wallet_import_public_wallet(self):
-        pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
-                 'wt9SrsVeBeqfBbR3'
+        pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqMwt9SrsVeBeqfBbR3'
         pubwal = HDWallet.create(
             databasefile=DATABASEFILE_UNITTESTS,
             name='test_wallet_import_public_wallet',
