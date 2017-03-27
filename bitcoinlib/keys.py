@@ -82,7 +82,7 @@ def get_key_format(key, keytype=None):
         key_format = "decimal"
     elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\x01':
         key_format = "bin_compressed"
-    elif isinstance(key, (bytes, bytearray)) and len(key) == 32 or len(key) == 33:
+    elif isinstance(key, (bytes, bytearray)) and len(key) == 32:
         key_format = "bin"
     elif len(key) == 130 and key[:2] == '04' and keytype != 'private':
         key_format = "public_uncompressed"
@@ -737,24 +737,32 @@ if __name__ == '__main__':
     #
     # KEYS EXAMPLES
     #
-
-    print("\n=== Generate random key ===")
-    k = Key()
-    k.info()
-
-    print("\n=== Import Public key ===")
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    #
+    # print("\n=== Generate random key ===")
+    # k = Key()
+    # k.info()
+    #
+    # print("\n=== Import Public key ===")
+    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    # K.info()
+    #
+    # print("\n==== Import Private key as decimal ===")
+    # pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
+    # k = Key(import_key=pk, network='testnet')
+    # k.info()
+    #
+    print("\n==== Import Private key as byte ===")
+    pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
+    # pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
+    K = Key(pk)
     K.info()
-
-    print("\n==== Import Private key as decimal ===")
-    pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
-    k = Key(import_key=pk, network='testnet')
-    k.info()
+    sys.exit()
 
     print("\n==== Import Private key as byte ===")
     pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
-    K = Key(pk)
+    K = HDKey(key=pk)
     K.info()
+    sys.exit()
 
     print("\n=== Import Private WIF Key ===")
     k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
