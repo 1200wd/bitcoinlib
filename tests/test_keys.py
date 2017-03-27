@@ -75,10 +75,10 @@ class TestPrivateKeyConversions(unittest.TestCase):
 
     def test_private_key_conversions_dec(self):
         self.assertEqual(83827997552125623280808720137320612316470870230953489181279239295529837939288,
-                         self.k.private_dec())
+                         self.k.secret)
 
     def test_private_key_conversions_hex(self):
-        self.assertEqual('b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58', self.k.private_hex())
+        self.assertEqual('b954f71933986e3de76d3a94454dc52ec082c662ba67ca3ba48ff72bc2704a58', self.k.private_hex)
 
     def test_private_key_conversions_wif_uncompressed(self):
         self.assertEqual('5KDudqswBNJ8mf2k7Gxn72UknDBh7GFjj9NGJrY22SY1hjKS1gF', self.ku.wif())
@@ -91,7 +91,7 @@ class TestPrivateKeyConversions(unittest.TestCase):
 
     def test_private_key_public_uncompressed(self):
         self.assertEqual('044781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733c'
-                         'd991064c2e7f7d532b9c9ca825671a8809ab6876c78b', self.ku.public_uncompressed())
+                         'd991064c2e7f7d532b9c9ca825671a8809ab6876c78b', self.ku.public_uncompressed_hex)
 
 
 class TestPrivateKeyImport(unittest.TestCase):
@@ -121,12 +121,12 @@ class TestPrivateKeyImport(unittest.TestCase):
 
     def test_private_key_import_wif(self):
         self.k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-        self.assertEqual('88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b', self.k.private_hex())
+        self.assertEqual('88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b', self.k.private_hex)
 
     def test_private_key_import_wif_uncompressed(self):
         self.k = Key('5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS')
         self.assertFalse(self.k.compressed)
-        self.assertEqual('c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a', self.k.private_hex())
+        self.assertEqual('c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a', self.k.private_hex)
 
     def test_private_key_import_generate_random(self):
         self.k = Key()
@@ -173,7 +173,7 @@ class TestPublicKeyConversion(unittest.TestCase):
         self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', self.KC.hash160())
 
     def test_public_key_try_private(self):
-        self.assertFalse(self.K.private_hex())
+        self.assertFalse(self.K.private_hex)
 
     def test_public_key_import_error(self):
         self.assertRaisesRegexp(BKeyError, "Unrecognised key format",
@@ -193,7 +193,7 @@ class TestPublicKeyUncompressed(unittest.TestCase):
     def test_public_key_uncompressed(self):
         self.assertEqual('045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d4'
                          '4bd7356d6a53c495737dd96295e2a9374bf5f02ebfc176',
-                         self.K.public_uncompressed())
+                         self.K.public_uncompressed_hex)
 
     def test_public_key_address_uncompressed(self):
         self.assertEqual('1thMirt546nngXqyPEz532S8fLwbozud8', self.K.address_uncompressed())
@@ -252,12 +252,12 @@ class TestHDKeysImport(unittest.TestCase):
     def test_hdkey_import_public(self):
         self.assertEqual('15mKKb2eos1hWa6tisdPwwDC1a5J1y9nma', self.xpub.public().address())
         self.assertEqual('0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2',
-                         self.xpub.public().public_hex())
+                         self.xpub.public().public_hex)
 
     def test_hdkey_import_public_try_private(self):
         self.assertFalse(self.xpub.public().wif())
-        self.assertFalse(self.xpub.public().private_hex())
-        self.assertFalse(self.xpub.public().private_byte())
+        self.assertFalse(self.xpub.public().private_hex)
+        self.assertFalse(self.xpub.public().private_byte)
 
 
 class TestHDKeysChildKeyDerivation(unittest.TestCase):

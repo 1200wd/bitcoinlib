@@ -111,7 +111,6 @@ class HDWalletKey:
                 raise WalletError("Key depth of %d does not match path lenght of %d" %
                                   (k.depth, len(path.split('/')) - 1))
 
-
         wk = session.query(DbKey).filter(or_(DbKey.key == k.key_hex,
                                              DbKey.key_wif == k.extended_wif(),
                                              DbKey.address == k.public().address())).first()
@@ -224,10 +223,6 @@ class HDWallet:
             raise WalletError("Wallet with name '%s' already exists" % name)
         else:
             _logger.info("Create new wallet '%s'" % name)
-        # TODO: Can we remove this?
-        # if key and get_key_format(key) in ['wif', 'wif_compressed', 'wif_protected']:
-        #     raise WalletError("Cannot create a HD Wallet from a simple private key. Create wallet first and then "
-        #                       "import new Private key.")
         if key:
             network = check_network_and_key(key, network)
         elif network is None:
@@ -631,6 +626,10 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
+    with HDWallet.create(name='tmp', key='6u8x9Tu1qYMGYR4WyTmB2e1H3AMadDpgRHqntYwigmkYzaA7Z2i',
+                         databasefile=test_database) as w:
+        w.info(detail=3)
+
     # -- Create New Wallet and Generate a some new Keys --
     if False:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
@@ -715,7 +714,7 @@ if __name__ == '__main__':
         del simple_wallet
 
     # -- Create online wallet to generate addresses without private key
-    if True:
+    if False:
         pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
                  'wt9SrsVeBeqfBbR3'
         pubwal = HDWallet.create(
