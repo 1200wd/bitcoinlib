@@ -34,7 +34,7 @@ from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, network_values_for
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base, to_bytes, EncodingError
+from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError
 
 _logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def check_network_and_key(key, network):
         return network
 
 
-def get_key_format(key, keytype=None):
+def get_key_format(key, key_type=None):
     """
     Determins the type and format of a public or private key by length and prefix.
     This method does not validate if a key is valid.
@@ -76,48 +76,66 @@ def get_key_format(key, keytype=None):
         raise BKeyError("Key empty, please specify a valid key")
     key_format = ""
     networks = None
-    if keytype not in [None, 'private', 'public']:
+
+    if isinstance(key, (bytes, bytearray)) and len(key) in [64, 66, 128, 130]:
+        key = to_hexstring(key)
+
+    if key_type not in [None, 'private', 'public']:
         raise BKeyError("Keytype must be 'private' or 'public")
     elif isinstance(key, numbers.Number):
-        key_format = "decimal"
-    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\x01':
-        key_format = "bin_compressed"
+        key_format = 'decimal'
+    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] in [b'\2', b'\3']:
+        key_format = 'bin_compressed'
+        key_type = 'public'
+    elif isinstance(key, (bytes, bytearray)) and (len(key) == 33 and key[-1:] == b'\4'):
+        key_format = 'bin'
+        key_type = 'public'
+    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\1':
+        key_format = 'bin_compressed'
+        key_type = 'private'
     elif isinstance(key, (bytes, bytearray)) and len(key) == 32:
-        key_format = "bin"
-    elif len(key) == 130 and key[:2] == '04' and keytype != 'private':
-        key_format = "public_uncompressed"
-    elif len(key) == 66 and key[:2] in ['02', '03'] and keytype != 'private':
-        key_format = "public"
+        key_format = 'bin'
+        key_type = 'private'
+    elif len(key) == 130 and key[:2] in ['04'] and key_type != 'private':
+        key_format = 'public_uncompressed'
+        key_type = 'public'
+    elif len(key) == 128 and key_type == 'private':
+        key_format = 'hex'
+    elif len(key) == 66 and key[:2] in ['02', '03'] and key_type != 'private':
+        key_format = 'public'
+        key_type = 'public'
     elif len(key) == 64:
-        key_format = "hex"
-    elif len(key) == 66 and keytype != 'public' and key[-2:] == '01':
-        key_format = "hex_compressed"
+        key_format = 'hex'
+    elif len(key) == 66 and key_type != 'public' and key[-2:] in ['01']:
+        key_format = 'hex_compressed'
     elif len(key) == 58 and key[:2] == '6P':
-        key_format = "wif_protected"
+        key_format = 'wif_protected'
     else:
         try:
             key_hex = change_base(key, 58, 16)
             networks = network_by_value('prefix_wif', key_hex[:2])
             if networks:
                 if key_hex[-10:-8] == '01':
-                    key_format = "wif_compressed"
+                    key_format = 'wif_compressed'
                 else:
-                    key_format = "wif"
+                    key_format = 'wif'
             else:
                 networks = network_by_value('prefix_hdkey_private', key_hex[:8])
                 if networks:
-                    key_format = "hdkey_private"
+                    key_format = 'hdkey_private'
+                    key_type = 'private'
                 else:
                     networks = network_by_value('prefix_hdkey_public', key_hex[:8])
                     if networks:
-                        key_format = "hdkey_public"
+                        key_format = 'hdkey_public'
+                        key_type = 'public'
         except (TypeError, EncodingError):
             pass
     if not key_format:
         try:
             int(key)
             if 70 < len(key) < 78:
-                key_format = "decimal"
+                key_format = 'decimal'
         except (TypeError, ValueError):
             pass
     if not key_format:
@@ -125,7 +143,8 @@ def get_key_format(key, keytype=None):
     else:
         return {
             "format": key_format,
-            "networks": networks
+            "networks": networks,
+            "type": key_type
         }
 
 
@@ -438,8 +457,8 @@ class Key:
     def info(self):
         if self.secret:
             print("SECRET EXPONENT")
-            print(" Private Key (hex)              %s" % change_base(self.secret, 256, 16))
-            print(" Private Key (long)             %s" % change_base(self.secret, 256, 10))
+            print(" Private Key (hex)              %s" % self.private_hex())
+            print(" Private Key (long)             %s" % self.secret, 256, 10)
             print(" Private Key (wif)              %s" % self.wif())
         else:
             print("PUBLIC KEY ONLY, NO SECRET EXPONENT")
@@ -488,9 +507,9 @@ class HDKey:
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
 
-        :param import_key: HD Key in WIF format to import
-        :param key: Private or public key
-        :param chain: A chain code
+        :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
+        :param key: Private or public key (32 bytes)
+        :param chain: A chain code (32 bytes)
         :param depth: Integer of level of depth in path (BIP0043/BIP0044)
         :param parent_fingerprint: 4-byte fingerprint of parent
         :param child_index: Index number of child as integer
@@ -514,17 +533,7 @@ class HDKey:
             else:
                 bkey = change_base(import_key, 58, 256)
                 hdkey_code = bkey[:4]
-                if hdkey_code in network_values_for('prefix_hdkey_private') + \
-                        network_values_for('prefix_hdkey_public'):
-                    # found_networks = network_by_value('prefix_hdkey_private', hdkey_code) + \
-                    #       network_by_value('prefix_hdkey_public', hdkey_code)
-                    # if network not in found_networks:
-                    #     if len(found_networks) > 1:
-                    #         raise BKeyError("More then one network found with this versionbyte, please specify network."
-                    #                         "Networks found: %s" % found_networks)
-                    #     else:
-                    #         _logger.warning("Current network %s is different then the one found in key: %s" %
-                    #                         (network, found_networks[0]))
+                if hdkey_code in network_values_for('prefix_hdkey_private') + network_values_for('prefix_hdkey_public'):
                     network = check_network_and_key(import_key, network)
 
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
@@ -548,7 +557,7 @@ class HDKey:
                         raise BKeyError("[BKeyError] %s" % e)
 
         self.key = key
-        self.key_hex = change_base(key, 256, 16)
+        self.key_hex = to_hexstring(binascii.hexlify(key))
         self.chain = chain
         self.depth = depth
         self.parent_fingerprint = parent_fingerprint
@@ -563,7 +572,7 @@ class HDKey:
             self._public = None
             self.secret = change_base(key, 256, 10)
         else:
-            self._public = change_base(key, 256, 16)
+            self._public = self.key_hex
             self.secret = None
         self.key_type = key_type
 
@@ -732,7 +741,8 @@ class HDKey:
         x, y = self.public().public_point()
         Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
 
-        if change_base(Ki.y(), 16, 10) % 2:
+        # if change_base(Ki.y(), 16, 10) % 2:
+        if Ki.y() % 2:
             prefix = '03'
         else:
             prefix = '02'

@@ -121,6 +121,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
     """
     if base_from == 10 and not min_lenght:
         raise EncodingError("For a decimal input a minimum output lenght is required!")
+
     code_str = get_code_string(base_to)
     if int(base_to) not in code_strings:
         output_as_list = True
@@ -132,6 +133,15 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
     input_dec = 0
     addzeros = 0
     inp = normalize_var(chars, base_from)
+
+    # Use binascii and int for standard conversions to speedup things
+    if not min_lenght:
+        if base_from == 256 and base_to == 16:
+            return to_hexstring(binascii.hexlify(inp))
+        elif base_from == 16 and base_to == 256:
+            return binascii.unhexlify(inp)
+    if base_from == 16 and base_to == 10:
+        return int(inp, 16)
 
     if output_even is None and base_to == 16:
         output_even = True
