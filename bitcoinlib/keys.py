@@ -279,8 +279,8 @@ class Key:
         priv = decryptedhalf1 + decryptedhalf2
         priv = binascii.unhexlify('%064x' % (int(binascii.hexlify(priv), 16) ^ int(binascii.hexlify(derivedhalf1), 16)))
         if compressed:
-            # priv = b'\0' + priv
-            priv = priv + b'\01'
+            # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
+            priv = priv + b'\1'
             key_format = 'wif_compressed'
         else:
             key_format = 'wif'
