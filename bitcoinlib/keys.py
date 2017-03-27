@@ -483,7 +483,7 @@ class HDKey:
         return HDKey(key=key, chain=chain, network=network)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, isprivate=True, network=DEFAULT_NETWORK, key_type='bip32', passphrase=''):
+                 child_index=0, isprivate=True, network=None, key_type='bip32', passphrase=''):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with system cryptographically random function.
@@ -499,7 +499,9 @@ class HDKey:
         :param key_type: HD BIP32 or normal Private Key
         :return:
         """
-        self.network = Network(network)
+
+        if (key and not chain) or (not key and chain):
+            raise KeyError("Please specify both key and chain, or use simple Key class instead")
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -514,16 +516,16 @@ class HDKey:
                 hdkey_code = bkey[:4]
                 if hdkey_code in network_values_for('prefix_hdkey_private') + \
                         network_values_for('prefix_hdkey_public'):
-                    found_networks = network_by_value('prefix_hdkey_private', hdkey_code) + \
-                          network_by_value('prefix_hdkey_public', hdkey_code)
-                    if network not in found_networks:
-                        if len(found_networks) > 1:
-                            raise BKeyError("More then one network found with this versionbyte, please specify network."
-                                            "Networks found: %s" % found_networks)
-                        else:
-                            _logger.warning("Current network %s is different then the one found in key: %s" %
-                                            (network, found_networks[0]))
-                            self.network = Network(found_networks[0])
+                    # found_networks = network_by_value('prefix_hdkey_private', hdkey_code) + \
+                    #       network_by_value('prefix_hdkey_public', hdkey_code)
+                    # if network not in found_networks:
+                    #     if len(found_networks) > 1:
+                    #         raise BKeyError("More then one network found with this versionbyte, please specify network."
+                    #                         "Networks found: %s" % found_networks)
+                    #     else:
+                    #         _logger.warning("Current network %s is different then the one found in key: %s" %
+                    #                         (network, found_networks[0]))
+                    network = check_network_and_key(import_key, network)
 
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                     if ord(bkey[45:46]):
@@ -554,6 +556,9 @@ class HDKey:
         self.isprivate = isprivate
         self._public_key_object = None
         self._public_uncompressed = None
+        if not network:
+            network = DEFAULT_NETWORK
+        self.network = Network(network)
         if isprivate:
             self._public = None
             self.secret = change_base(key, 256, 10)
@@ -756,16 +761,9 @@ if __name__ == '__main__':
     k.info()
 
     print("\n==== Import Private key as byte ===")
-    # FIXME: Why this gives errors:
-    # pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
     pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
-    K = Key(pk)
-    K.info()
-
-    print("\n==== Import Private key as byte ===")
-    pk = bytearray(b'\x029\xa1\x8dXl4\xe5\x128\xa7\xc9\xa2z4*\xbf\xb3^>J\xa5\xaceY\x88\x9d\xb1\xda\xb2\x81n\x9d')
-    K = HDKey(key=pk)
-    K.info()
+    k = Key(pk)
+    k.info()
 
     print("\n=== Import Private WIF Key ===")
     k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
@@ -792,6 +790,8 @@ if __name__ == '__main__':
     k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
     print("Private key     %s" % k.wif())
     print("Is Compressed   %s\n" % k.compressed)
+
+    k = HDKey('tprv8ZgxMBicQKsPf2S18qpSypHPZBK7mdiwvXHPh5TSjGjm2pLacP4tEqVjLVyagTLLgSZK4YyBNb4eytBykE755KcL9YXAqPtfERNRfwRt54M')
 
     print("\n==== Generate random HD Key on testnet ===")
     hdk = HDKey(network='testnet')
@@ -832,4 +832,3 @@ if __name__ == '__main__':
     else:
         print("Child Key Derivation for key %d worked!" % index)
         print("%s == %s" % (pub_with_pubparent, pub_with_privparent))
-
