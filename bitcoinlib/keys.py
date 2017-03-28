@@ -63,7 +63,7 @@ def check_network_and_key(key, network):
         return network
 
 
-def get_key_format(key, key_type=None):
+def get_key_format(key, isprivate=None):
     """
     Determins the type and format of a public or private key by length and prefix.
     This method does not validate if a key is valid.
@@ -80,43 +80,43 @@ def get_key_format(key, key_type=None):
     if isinstance(key, (bytes, bytearray)) and len(key) in [64, 66, 128, 130]:
         key = to_hexstring(key)
 
-    if key_type not in [None, 'private', 'public']:
-        raise BKeyError("Keytype must be 'private' or 'public")
+    if not (isprivate is None or isinstance(isprivate, bool)):
+        raise BKeyError("Attribute 'is_private' must be False or True")
     elif isinstance(key, numbers.Number):
         key_format = 'decimal'
-        key_type = 'private'
+        isprivate = True
     elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] in [b'\2', b'\3']:
         key_format = 'bin_compressed'
-        key_type = 'public'
+        isprivate = False
     elif isinstance(key, (bytes, bytearray)) and (len(key) == 33 and key[-1:] == b'\4'):
         key_format = 'bin'
-        key_type = 'public'
+        isprivate = False
     elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\1':
         key_format = 'bin_compressed'
-        key_type = 'private'
+        isprivate = True
     elif isinstance(key, (bytes, bytearray)) and len(key) == 32:
         key_format = 'bin'
-        key_type = 'private'
-    elif len(key) == 130 and key[:2] == '04' and key_type != 'private':
+        isprivate = True
+    elif len(key) == 130 and key[:2] == '04' and not isprivate:
         key_format = 'public_uncompressed'
-        key_type = 'public'
+        isprivate = False
     elif len(key) == 128:
         key_format = 'hex'
-        if key_type != 'public':
-            key_type = 'private'
-    elif len(key) == 66 and key[:2] in ['02', '03'] and key_type != 'private':
+        if isprivate is None:
+            isprivate = True
+    elif len(key) == 66 and key[:2] in ['02', '03'] and not isprivate:
         key_format = 'public'
-        key_type = 'public'
+        isprivate = False
     elif len(key) == 64:
         key_format = 'hex'
-        if key_type != 'public':
-            key_type = 'private'
-    elif len(key) == 66 and key_type != 'public' and key[-2:] in ['01']:
+        if isprivate is None:
+            isprivate = True
+    elif len(key) == 66 and key[-2:] in ['01'] and not(isprivate is False):
         key_format = 'hex_compressed'
-        key_type = 'private'
+        isprivate = True
     elif len(key) == 58 and key[:2] == '6P':
         key_format = 'wif_protected'
-        key_type = 'private'
+        isprivate = True
     else:
         try:
             key_hex = change_base(key, 58, 16)
@@ -126,17 +126,17 @@ def get_key_format(key, key_type=None):
                     key_format = 'wif_compressed'
                 else:
                     key_format = 'wif'
-                key_type = 'private'
+                isprivate = True
             else:
                 networks = network_by_value('prefix_hdkey_private', key_hex[:8])
                 if networks:
                     key_format = 'hdkey_private'
-                    key_type = 'private'
+                    isprivate = True
                 else:
                     networks = network_by_value('prefix_hdkey_public', key_hex[:8])
                     if networks:
                         key_format = 'hdkey_public'
-                        key_type = 'public'
+                        isprivate = False
         except (TypeError, EncodingError):
             pass
     if not key_format:
@@ -144,7 +144,7 @@ def get_key_format(key, key_type=None):
             int(key)
             if 70 < len(key) < 78:
                 key_format = 'decimal'
-                key_type = 'private'
+                isprivate = True
         except (TypeError, ValueError):
             pass
     if not key_format:
@@ -153,7 +153,7 @@ def get_key_format(key, key_type=None):
         return {
             "format": key_format,
             "networks": networks,
-            "type": key_type
+            "isprivate": isprivate
         }
 
 
@@ -203,12 +203,12 @@ class Key:
         self.key_format = kf["format"]
         network = check_network_and_key(import_key, network)
         self.network = Network(network)
-        if kf['type'] == 'private':
+        if kf['isprivate']:
             self.isprivate = True
-        elif kf['type'] == 'public':
-            self.isprivate = False
-        else:
+        elif kf['isprivate'] is None:
             raise KeyError("Could not determine if key is private or public")
+        else:
+            self.isprivate = False
 
         if self.key_format == "wif_protected":
             # TODO: return key as byte to make more efficient
@@ -517,7 +517,8 @@ class HDKey:
         """
 
         if (key and not chain) or (not key and chain):
-            raise KeyError("Please specify both key and chain, or use simple Key class instead")
+            raise KeyError("Please specify both key and chain, use import_key attribute "
+                           "or use simple Key class instead")
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -554,7 +555,7 @@ class HDKey:
                         raise BKeyError("[BKeyError] %s" % e)
 
         self.key = key
-        self.key_hex = binascii.hexlify(key)
+        self.key_hex = to_hexstring(key)
         self.public_hex = None
         self.chain = chain
         self.depth = depth
