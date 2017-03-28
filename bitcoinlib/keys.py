@@ -554,6 +554,9 @@ class HDKey:
                     except BKeyError as e:
                         raise BKeyError("[BKeyError] %s" % e)
 
+        if not isinstance(key, (bytes, bytearray)) or not(len(key) == 32 or len(key) == 33):
+            raise KeyError("Invalid key specified must be in bytes with lenght 32. You can use "
+                           "'import_key' attribute to import keys in other formats")
         self.key = key
         self.key_hex = to_hexstring(key)
         self.public_hex = None
@@ -638,18 +641,10 @@ class HDKey:
 
     def public(self):
         if not self._public_key_object:
-            if self.public_hex:
-                self._public_key_object = Key(self.public_hex, network=self.network.network_name)
-            else:
-                pub = Key(self.key).public()
-                self._public_key_object = Key(pub, network=self.network.network_name)
+            if not self.public_hex:
+                self.public_hex = Key(self.key).public()
+            self._public_key_object = Key(self.public_hex, network=self.network.network_name)
         return self._public_key_object
-
-    def public_uncompressed(self):
-        if not self.public_uncompressed_hex:
-            pub = Key(self.key).public_uncompressed()
-            return Key(pub, network=self.network.network_name)
-        return self.public_uncompressed_hex
 
     def private(self):
         if self.key and self.isprivate:

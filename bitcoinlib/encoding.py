@@ -178,10 +178,9 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
         raise EncodingError("Unknown input format %s" % inp)
 
     # Convert decimal to output base
-    while int(input_dec) != 0:
-        r = int(input_dec) % base_to
-        input_dec = str((int(input_dec)-r) // base_to)
-        output = [code_str[r]] + output
+    while input_dec != 0:
+        input_dec, remainder = divmod(input_dec, base_to)
+        output = [code_str[remainder]] + output
 
     if base_to != 10:
         pos_fact = math.log(base_to, base_from)
