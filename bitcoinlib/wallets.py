@@ -626,12 +626,8 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
-    with HDWallet.create(name='tmp', key='6u8x9Tu1qYMGYR4WyTmB2e1H3AMadDpgRHqntYwigmkYzaA7Z2i',
-                         databasefile=test_database) as w:
-        w.info(detail=3)
-
     # -- Create New Wallet and Generate a some new Keys --
-    if False:
+    if True:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             wallet.new_account()

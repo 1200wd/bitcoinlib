@@ -255,9 +255,14 @@ class TestHDKeysImport(unittest.TestCase):
                          self.xpub.public().public_hex)
 
     def test_hdkey_import_public_try_private(self):
-        self.assertFalse(self.xpub.public().wif())
-        self.assertFalse(self.xpub.public().private_hex)
-        self.assertFalse(self.xpub.public().private_byte)
+        try:
+            self.xpub.public().wif()
+        except KeyError as e:
+            self.assertEqual('WIF format not supported for public key', e.args[0])
+        try:
+            self.xpub.public().private_hex
+        except KeyError as e:
+            self.assertEqual('WIF format not supported for public key', e.args[0])
 
 
 class TestHDKeysChildKeyDerivation(unittest.TestCase):

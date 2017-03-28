@@ -216,6 +216,7 @@ class Key:
 
         if self.key_format in ['public_uncompressed', 'public']:
             self.secret = None
+            import_key = to_hexstring(import_key)
             if self.key_format == 'public_uncompressed':
                 self.public_uncompressed_hex = import_key
                 self._x = import_key[2:66]
@@ -291,6 +292,7 @@ class Key:
             if not (key_byte or key_hex):
                 raise KeyError("Cannot format key in hex or byte format")
             self.private_hex = key_hex
+            self.private_byte = key_byte
             self.secret = int(key_hex, 16)
         else:
             raise KeyError("Cannot import key. Public key format unknown")
@@ -421,6 +423,9 @@ class Key:
         else:
             return self.public_uncompressed_hex
 
+    def public_uncompressed(self):
+        return self.public_uncompressed_hex
+
     def public_point(self):
         x = self._x and int(self._x, 16)
         y = self._y and int(self._y, 16)
@@ -550,6 +555,7 @@ class HDKey:
 
         self.key = key
         self.key_hex = binascii.hexlify(key)
+        self.public_hex = None
         self.chain = chain
         self.depth = depth
         self.parent_fingerprint = parent_fingerprint
@@ -561,7 +567,6 @@ class HDKey:
             network = DEFAULT_NETWORK
         self.network = Network(network)
         if isprivate:
-            self.public_hex = None
             self.secret = change_base(key, 256, 10)
         else:
             self.public_hex = self.key_hex
@@ -639,11 +644,11 @@ class HDKey:
                 self._public_key_object = Key(pub, network=self.network.network_name)
         return self._public_key_object
 
-    # def public_uncompressed(self):
-    #     if not self.public_uncompressed_hex:
-    #         pub = Key(self.key).public_uncompressed()
-    #         return Key(pub, network=self.network.network_name)
-    #     return self.public_uncompressed_hex
+    def public_uncompressed(self):
+        if not self.public_uncompressed_hex:
+            pub = Key(self.key).public_uncompressed()
+            return Key(pub, network=self.network.network_name)
+        return self.public_uncompressed_hex
 
     def private(self):
         if self.key and self.isprivate:

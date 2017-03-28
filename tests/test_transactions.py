@@ -70,7 +70,7 @@ class TestTransactionInputs(unittest.TestCase):
     def test_transaction_input_add_public_key(self):
         ph = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         k = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        ti = Input(prev_hash=ph, output_index=1, public_key=k.public_hex)
+        ti = Input(prev_hash=ph, output_index=1, public_key=k.public())
         self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', ti.address)
 
 
@@ -153,7 +153,7 @@ class TestTransactions(unittest.TestCase):
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
         out = Output(880000, public_key_hash=pubkey.hash160(), network='testnet')
         t = Transaction([inp], [out], network='testnet')
-        t.sign(pk.private_byte(), 0)
+        t.sign(pk.private_byte, 0)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
         self.assertEqual(t.get()['inputs'][0]['address'], 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
         self.assertEqual(t.get()['outputs'][0]['address'], 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
@@ -164,7 +164,7 @@ class TestTransactions(unittest.TestCase):
                     output_index=1, public_key=pk.public())
         out = Output(95000, address='1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF')
         t = Transaction([inp], [out])
-        t.sign(pk.private_byte(), 0)
+        t.sign(pk.private_byte, 0)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
 
     def test_transactions_multiple_outputs(self):
