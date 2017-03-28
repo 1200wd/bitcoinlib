@@ -249,7 +249,6 @@ class Key:
             if self.key_format == 'hex':
                 key_hex = import_key
                 key_byte = binascii.unhexlify(key_hex)
-                # self.compressed = False
             elif self.key_format == 'hex_compressed':
                 key_hex = import_key[:-2]
                 key_byte = binascii.unhexlify(key_hex)
@@ -257,7 +256,6 @@ class Key:
             elif self.key_format == 'bin':
                 key_byte = import_key
                 key_hex = to_hexstring(key_byte)
-                # self.compressed = False
             elif self.key_format == 'bin_compressed':
                 key_byte = import_key[:-1]
                 key_hex = to_hexstring(key_byte)
@@ -400,21 +398,6 @@ class Key:
         encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
         return change_base(encrypted_privkey, 256, 58)
 
-    # def private_dec(self):
-    #     if not self.secret:
-    #         return False
-    #     return self.secret
-    #
-    # def private_hex(self):
-    #     if not self.secret:
-    #         return False
-    #     return change_base(self.secret, 10, 16, 64)
-    #
-    # def private_byte(self):
-    #     if not self.secret:
-    #         return False
-    #     return change_base(self.secret, 10, 256, 32)
-
     def wif(self):
         """
         Get Private Key in Wallet Import Format, steps:
@@ -432,59 +415,18 @@ class Key:
         key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key, 256, 58)
 
-    # def _create_public(self):
-    #     """
-    #     Create public key point and hex repressentation from private key.
-    #
-    #     :return:
-    #     """
-    #     if self.secret:
-    #         point = ec_point(self.secret)
-    #         self._x = change_base(int(point.x()), 10, 16, 64)
-    #         self._y = change_base(int(point.y()), 10, 16, 64)
-    #         if point.y() % 2:
-    #             prefix = '03'
-    #         else:
-    #             prefix = '02'
-    #         self.public_hex = prefix + self._x
-    #         self.public_uncompressed_hex = '04' + self._x + self._y
-    #     if hasattr(self, '_x') and hasattr(self, '_y') and self._x and self._y:
-    #         if int(self._y, 16) % 2:
-    #             prefix = '03'
-    #         else:
-    #             prefix = '02'
-    #         self.public_hex = prefix + self._x
-    #         self.public_uncompressed_hex = '04' + self._x + self._y
-    #     else:
-    #         raise BKeyError("Key error, no secret key or public key point found.")
-
     def public(self, return_compressed=None):
-        # if not self.public_hex or not self.public_uncompressed_hex:
-        #     self._create_public()
         if (self.compressed and return_compressed is None) or return_compressed:
             return self.public_hex
         else:
             return self.public_uncompressed_hex
 
-    # def public_uncompressed(self):
-    #     if not self.public_uncompressed_hex:
-    #         self._create_public()
-    #     return self.public_uncompressed_hex
-
     def public_point(self):
-        # if not self.public_hex or not self.public_uncompressed_hex:
-        #     self._create_public()
         x = self._x and int(self._x, 16)
         y = self._y and int(self._y, 16)
         return (x, y)
 
-    # def public_byte(self):
-    #     if not self.public_hex or not self.public_uncompressed_hex:
-    #         self._create_public()
-    #     return change_base(self.public_hex if self.compressed else self.public_uncompressed_hex, 16, 256, 32)
-
     def hash160(self):
-        # pb = self.public_byte()
         if self.compressed:
             pb = self.public_byte
         else:
@@ -492,12 +434,10 @@ class Key:
         return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).hexdigest()
 
     def address(self, compressed=None):
-        # if not self.public_hex or not self.public_uncompressed_hex:
-        #     self._create_public()
         if (self.compressed and compressed is None) or compressed:
             key = self.public_byte
         else:
-            key = change_base(self.public_uncompressed_hex, 16, 256)
+            key = self.public_uncompressed_byte
         versionbyte = self.network.prefix_address
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
