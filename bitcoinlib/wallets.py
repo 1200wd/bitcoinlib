@@ -112,14 +112,13 @@ class HDWalletKey:
                                   (k.depth, len(path.split('/')) - 1))
 
         wk = session.query(DbKey).filter(or_(DbKey.key == k.key_hex,
-                                             DbKey.key_wif == k.extended_wif(),
-                                             DbKey.address == k.public().address())).first()
+                                             DbKey.key_wif == k.extended_wif())).first()
         if wk:
             return HDWalletKey(wk.id, session)
 
         nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
-                   key_wif=k.extended_wif(), address=k.public().address(), parent_id=parent_id,
+                   key_wif=k.extended_wif(), address=k.key.address(), parent_id=parent_id,
                    is_private=True, path=path, key_type=k.key_type)
         session.add(nk)
         session.commit()
@@ -641,7 +640,7 @@ if __name__ == '__main__':
             wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    if False:
+    if True:
         wallet_import = HDWallet.create(
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
@@ -673,7 +672,7 @@ if __name__ == '__main__':
         pprint(res)
 
     # -- Import Account Bitcoin Testnet key with depth 3
-    if False:
+    if True:
         accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
                      '8Y7KbKUnaMzxnnnsSvh'
         wallet_import2 = HDWallet.create(
@@ -686,7 +685,7 @@ if __name__ == '__main__':
         del wallet_import2
 
     # -- Create New Wallet with account (depth=3) private key on bitcoin network and purpose 0 --
-    if False:
+    if True:
         wallet_import2 = HDWallet.create(
             name='Company Wallet',
             key='xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjAN'
@@ -698,7 +697,7 @@ if __name__ == '__main__':
         del wallet_import2
 
     # -- Create simple wallet with just some private keys --
-    if False:
+    if True:
         simple_wallet = HDWallet.create(
             name='Simple Wallet',
             key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
@@ -710,7 +709,7 @@ if __name__ == '__main__':
         del simple_wallet
 
     # -- Create online wallet to generate addresses without private key
-    if False:
+    if True:
         pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
                  'wt9SrsVeBeqfBbR3'
         pubwal = HDWallet.create(
@@ -724,7 +723,7 @@ if __name__ == '__main__':
         del pubwal
 
     # -- Litecoin wallet
-    if False:
+    if True:
         litecoin_wallet = HDWallet.create(
             databasefile=test_database,
             name='Litecoin Wallet',

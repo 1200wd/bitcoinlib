@@ -30,6 +30,10 @@ from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
 
 
+# True if we are running on Python 3.
+PY3 = sys.version_info[0] == 3
+
+
 class EncodingError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
@@ -61,7 +65,7 @@ def get_code_string(base):
 
 
 def in_code_string_check(inp, code_str_from):
-    if sys.version < '3' and isinstance(inp, bytearray):
+    if not PY3 and isinstance(inp, bytearray):
         inp = str(inp)
     if inp in code_str_from:
         return inp
@@ -79,7 +83,7 @@ def normalize_var(var, base=256):
     :return: string for Python 2, bytes for Python 3, decimal for base10
     """
     try:
-        if sys.version > '3' and isinstance(var, str):
+        if PY3 and isinstance(var, str):
             var = var.encode('ISO-8859-1')
     except ValueError:
         try:
@@ -87,7 +91,7 @@ def normalize_var(var, base=256):
         except ValueError:
             raise EncodingError("Unknown character '%s' in input format" % var)
 
-    if sys.version < '3' and isinstance(var, unicode):
+    if not PY3 and isinstance(var, unicode):
         try:
             var = str(var)
         except UnicodeEncodeError:
@@ -165,7 +169,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
 
             # Add leading zero if there are leading zero's in input
             if not pos * factor:
-                if sys.version < '3':
+                if not PY3:
                     firstchar = code_str_from[0]
                 else:
                     firstchar = chr(code_str_from[0]).encode('utf-8')
@@ -215,7 +219,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
             output = ''.join(output)
     if base_to == 10:
         return int(0) or (output != '' and int(output))
-    if sys.version > '3' and base_to == 256:
+    if PY3 and base_to == 256:
         return output.encode('ISO-8859-1')
     else:
         return output
@@ -233,7 +237,7 @@ def varbyteint_to_int(byteint):
     # byteint = to_bytearray(byteint)
     if not isinstance(byteint, (bytes, list, bytearray)):
         raise EncodingError("Byteint be a list or defined as bytes")
-    if sys.version > '3' or isinstance(byteint, (list, bytearray)):
+    if PY3 or isinstance(byteint, (list, bytearray)):
         ni = byteint[0]
     else:
         ni = ord(byteint[0])
@@ -302,7 +306,7 @@ def to_bytearray(s):
     :param s: String, Unicode, Bytes or ByteArray
     :return: ByteArray
     """
-    if isinstance(s, (str, unicode if sys.version < '3' else str)):
+    if isinstance(s, (str, unicode if not PY3 else str)):
         try:
             s = binascii.unhexlify(s)
         except:
@@ -338,7 +342,7 @@ def to_hexstring(var):
     if isinstance(var, (str, bytes)):
         try:
             binascii.unhexlify(var)
-            if sys.version > '3':
+            if PY3:
                 return str(var, 'ISO-8859-1')
             else:
                 return var
@@ -346,7 +350,7 @@ def to_hexstring(var):
             pass
 
     s = binascii.hexlify(var)
-    if sys.version > '3':
+    if PY3:
         return str(s, 'ISO-8859-1')
     else:
         return s

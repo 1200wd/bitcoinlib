@@ -85,10 +85,10 @@ def get_key_format(key, isprivate=None):
     elif isinstance(key, numbers.Number):
         key_format = 'decimal'
         isprivate = True
-    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] in [b'\2', b'\3']:
+    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[:1] in [b'\2', b'\3']:
         key_format = 'bin_compressed'
         isprivate = False
-    elif isinstance(key, (bytes, bytearray)) and (len(key) == 33 and key[-1:] == b'\4'):
+    elif isinstance(key, (bytes, bytearray)) and (len(key) == 33 and key[:1] == b'\4'):
         key_format = 'bin'
         isprivate = False
     elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\1':
@@ -214,13 +214,13 @@ class Key:
             # TODO: return key as byte to make more efficient
             import_key, self.key_format = self._bip38_decrypt(import_key, passphrase)
 
-        if self.key_format in ['public_uncompressed', 'public']:
+        if not self.isprivate:
             self.secret = None
-            import_key = to_hexstring(import_key)
-            if self.key_format == 'public_uncompressed':
-                self.public_uncompressed_hex = import_key
-                self._x = import_key[2:66]
-                self._y = import_key[66:130]
+            pub_key = to_hexstring(import_key)
+            if len(pub_key) == 130:
+                self.public_uncompressed_hex = pub_key
+                self._x = pub_key[2:66]
+                self._y = pub_key[66:130]
                 self.compressed = False
                 if int(self._y, 16) % 2:
                     prefix = '03'
@@ -228,11 +228,11 @@ class Key:
                     prefix = '02'
                 self.public_hex = prefix + self._x
             else:
-                self.public_hex = import_key
-                self._x = import_key[2:66]
+                self.public_hex = pub_key
+                self._x = pub_key[2:66]
                 self.compressed = True
                 # Calculate y from x with y=x^3 + 7 function
-                sign = import_key[:2] == '03'
+                sign = pub_key[:2] == '03'
                 x = int(self._x, 16)
                 ys = (x**3+7) % secp256k1_p
                 y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
@@ -261,7 +261,7 @@ class Key:
                 key_byte = import_key[:-1]
                 key_hex = to_hexstring(key_byte)
                 self.compressed = True
-            elif self.key_format in ['wif', 'wif_compressed']:
+            elif self.isprivate and self.key_format in ['wif', 'wif_compressed']:
                 # Check and remove Checksum, prefix and postfix tags
                 key = change_base(import_key, 58, 256)
                 checksum = key[-4:]
@@ -519,6 +519,7 @@ class HDKey:
         if (key and not chain) or (not key and chain):
             raise KeyError("Please specify both key and chain, use import_key attribute "
                            "or use simple Key class instead")
+        self.key = None
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -547,9 +548,9 @@ class HDKey:
                     # chk = bkey[78:82]
                 else:
                     try:
-                        ki = Key(import_key, passphrase=passphrase, network=network)
+                        self.key = Key(import_key, passphrase=passphrase, network=network)
                         chain = b'\0'*32
-                        key = ki.private_byte
+                        key = self.key.private_byte
                         key_type = 'private'
                     except BKeyError as e:
                         raise BKeyError("[BKeyError] %s" % e)
@@ -557,24 +558,40 @@ class HDKey:
         if not isinstance(key, (bytes, bytearray)) or not(len(key) == 32 or len(key) == 33):
             raise KeyError("Invalid key specified must be in bytes with lenght 32. You can use "
                            "'import_key' attribute to import keys in other formats")
-        self.key = key
-        self.key_hex = to_hexstring(key)
-        self.public_hex = None
+        # self.key = key
+        # self.key_hex = to_hexstring(key)
+        # self.public_hex = None
+        # self.public_byte = None
+        # self.private_hex = None
+        # self.private_byte = None
         self.chain = chain
+        if self.key is None:
+            self.key = Key(key, passphrase=passphrase, network=network)
         self.depth = depth
         self.parent_fingerprint = parent_fingerprint
         self.child_index = child_index
         self.isprivate = isprivate
         self._public_key_object = None
-        self.public_uncompressed_hex = None
+        # self.public_uncompressed_hex = None
         if not network:
             network = DEFAULT_NETWORK
         self.network = Network(network)
+        self.public_byte = self.key.public_byte
+        self.public_hex = self.key.public_hex
+        self.private_hex = None
+        self.private_byte = None
         if isprivate:
-            self.secret = change_base(key, 256, 10)
+            self.secret = self.key.secret
+            self.private_hex = self.key.private_hex
+            self.private_byte = self.key.private_byte
+            self.key_hex = self.private_hex
         else:
-            self.public_hex = self.key_hex
-            self.secret = None
+            self.key_hex = self.public_hex
+        #
+        # else:
+        #     self.public_hex = self.key_hex
+        #     self.public_byte = key
+        #     self.secret = None
         self.key_type = key_type
 
     def __repr__(self):
@@ -583,16 +600,16 @@ class HDKey:
     def info(self):
         if self.isprivate:
             print("SECRET EXPONENT")
-            print(" Private Key (hex)           %s" % self.key_hex)
+            print(" Private Key (hex)           %s" % self.private_hex)
             print(" Private Key (long)          %s" % self.secret)
-            print(" Private Key (wif)           %s" % self.private().wif())
+            print(" Private Key (wif)           %s" % self.key.wif())
             print("")
         print("PUBLIC KEY")
-        print(" Public Key (hex)            %s" % self.public())
-        print(" Public Key Hash160          %s" % self.public().hash160())
-        print(" Address (b58)               %s" % self.public().address())
+        print(" Public Key (hex)            %s" % self.public_hex)
+        print(" Public Key Hash160          %s" % self.key.hash160())
+        print(" Address (b58)               %s" % self.key.address())
         print(" Fingerprint (hex)           %s" % change_base(self.fingerprint(), 256, 16))
-        point_x, point_y = self.public().public_point()
+        point_x, point_y = self.key.public_point()
         print(" Point x                     %s" % point_x)
         print(" Point y                     %s" % point_y)
         print("")
@@ -614,10 +631,10 @@ class HDKey:
         return key, chain
 
     def fingerprint(self):
-        return hashlib.new('ripemd160', hashlib.sha256(self.public().public_byte).digest()).digest()[:4]
+        return hashlib.new('ripemd160', hashlib.sha256(self.public_byte).digest()).digest()[:4]
 
     def extended_wif(self, public=None, child_index=None):
-        rkey = self.key
+        rkey = self.private_byte or self.public_byte
         if not self.isprivate and public is False:
             return ''
         if self.isprivate and not public:
@@ -627,10 +644,10 @@ class HDKey:
             raw = self.network.prefix_hdkey_public
             typebyte = b''
             if public:
-                rkey = self.public().public_byte
+                rkey = self.public_byte
         if child_index:
             self.child_index = child_index
-        raw += change_base(self.depth, 10, 256, 1) + self.parent_fingerprint + \
+        raw += struct.pack('B', self.depth) + self.parent_fingerprint + \
             struct.pack('>L', self.child_index) + self.chain + typebyte + rkey
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
         ret = raw+chk
@@ -639,18 +656,18 @@ class HDKey:
     def extended_wif_public(self):
         return self.extended_wif(public=True)
 
-    def public(self):
-        if not self._public_key_object:
-            if not self.public_hex:
-                self.public_hex = Key(self.key).public()
-            self._public_key_object = Key(self.public_hex, network=self.network.network_name)
-        return self._public_key_object
-
-    def private(self):
-        if self.key and self.isprivate:
-            return Key(self.key, network=self.network.network_name)
-        else:
-            raise KeyError("No private key available")
+    # def public(self):
+    #     if not self._public_key_object:
+    #         if not self.public_hex:
+    #             self.public_hex = Key(self.key).public()
+    #         self._public_key_object = Key(self.public_hex, network=self.network.network_name)
+    #     return self._public_key_object
+    #
+    # def private(self):
+    #     if self.key and self.isprivate:
+    #         return Key(self.key, network=self.network.network_name)
+    #     else:
+    #         raise KeyError("No private key available")
 
     def subkey_for_path(self, path):
         """
@@ -700,9 +717,9 @@ class HDKey:
             raise BKeyError("Need a private key to create child private key")
         if hardened:
             index |= 0x80000000
-            data = b'\0' + self.key + struct.pack('>L', index)
+            data = b'\0' + self.private_byte + struct.pack('>L', index)
         else:
-            data = self.public().public_byte + struct.pack('>L', index)
+            data = self.public_byte + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
 
         key = change_base(key, 256, 10)
@@ -725,13 +742,13 @@ class HDKey:
         """
         if index > 0x80000000:
             raise BKeyError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
-        data = self.public().public_byte + struct.pack('>L', index)
+        data = self.public_byte + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
         key = change_base(key, 256, 10)
         if key > secp256k1_n:
             raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
 
-        x, y = self.public().public_point()
+        x, y = self.key.public_point()
         Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
 
         # if change_base(Ki.y(), 16, 10) % 2:
@@ -743,6 +760,27 @@ class HDKey:
         secret = change_base(prefix + xhex, 16, 256)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False, network=self.network.network_name)
+
+# if index > 0x80000000:
+#             raise BKeyError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
+#         data = self.public().public_byte + struct.pack('>L', index)
+#         key, chain = self._key_derivation(data)
+#         key = change_base(key, 256, 10)
+#         if key > secp256k1_n:
+#             raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
+#
+#         x, y = self.public().public_point()
+#         Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
+#
+#         # if change_base(Ki.y(), 16, 10) % 2:
+#         if Ki.y() % 2:
+#             prefix = '03'
+#         else:
+#             prefix = '02'
+#         xhex = change_base(Ki.x(), 10, 16, 64)
+#         secret = change_base(prefix + xhex, 16, 256)
+#         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
+#                      child_index=index, isprivate=False, network=self.network.network_name)
 
 
 if __name__ == '__main__':
@@ -826,8 +864,8 @@ if __name__ == '__main__':
               '1h3BoPuEJzsgeypdKj')
 
     index = 1000
-    pub_with_pubparent = K.child_public(index).public().address()
-    pub_with_privparent = k.child_private(index).public().address()
+    pub_with_pubparent = K.child_public(index).key.address()
+    pub_with_privparent = k.child_private(index).key.address()
     if pub_with_privparent != pub_with_pubparent:
         print("Error index %4d: pub-child %s, priv-child %s" % (index, pub_with_privparent, pub_with_pubparent))
     else:
