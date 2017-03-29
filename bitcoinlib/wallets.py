@@ -162,8 +162,8 @@ class HDWalletKey:
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
-    def balance(self, format=''):
-        if format == 'string':
+    def balance(self, fmt=''):
+        if fmt == 'string':
             return self.network.print_value(self._balance)
         else:
             return self._balance
@@ -211,7 +211,7 @@ class HDWalletKey:
         print(" Address Index                  %s" % self.address_index)
         print(" Address                        %s" % self.address)
         print(" Path                           %s" % self.path)
-        print(" Balance                        %s" % self.balance(format='string'))
+        print(" Balance                        %s" % self.balance(fmt='string'))
         print("\n")
 
 
@@ -309,8 +309,8 @@ class HDWallet:
     def __del__(self):
         self._session.close()
 
-    def balance(self, format=''):
-        if format == 'string':
+    def balance(self, fmt=''):
+        if fmt == 'string':
             return self.network.print_value(self._balance)
         else:
             return self._balance
@@ -412,6 +412,10 @@ class HDWallet:
             rkey = self._session.query(DbKey).filter_by(path=spath).first()
             spath = '/'.join(spath.split("/")[:-1])
 
+        # Key already found in db, return key
+        if rkey.path == path:
+            return HDWalletKey(rkey.id, self._session)
+
         parent_key = self.main_key
         subpath = path
         basepath = ''
@@ -426,7 +430,7 @@ class HDWallet:
             network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
         return newkey
 
-    def keys(self, account_id=None, name=None, id=None, change=None, depth=None, as_dict=False):
+    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, as_dict=False):
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
@@ -439,7 +443,7 @@ class HDWallet:
         if name is not None:
             qr = qr.filter(DbKey.name == name)
         if id is not None:
-            qr = qr.filter(DbKey.id == id)
+            qr = qr.filter(DbKey.id == key_id)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
     def accounts(self, account_id, as_dict=False):
@@ -456,7 +460,7 @@ class HDWallet:
 
     def addresslist(self, account_id=None, key_id=None):
         addresslist = []
-        for key in self.keys(account_id=account_id, id=key_id):
+        for key in self.keys(account_id=account_id, key_id=key_id):
             addresslist.append(key.address)
         return addresslist
 
@@ -475,7 +479,8 @@ class HDWallet:
         [self._session.delete(o) for o in qr.all()]
         self._session.commit()
 
-        utxos = Service(network=self.network.network_name).getutxos(self.addresslist(account_id=account_id, key_id=key_id))
+        utxos = Service(network=self.network.network_name).\
+            getutxos(self.addresslist(account_id=account_id, key_id=key_id))
         key_balances = {}
         count_utxos = 0
         for utxo in utxos:
@@ -622,7 +627,7 @@ class HDWallet:
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self._owner)
         print(" Network                        %s" % self.network.description)
-        print(" Balance                        %s" % self.balance(format='string'))
+        print(" Balance                        %s" % self.balance(fmt='string'))
         print("")
 
         if detail:
