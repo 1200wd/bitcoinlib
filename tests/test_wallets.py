@@ -161,16 +161,17 @@ class TestWalletElectrum(unittest.TestCase):
         workdir = os.path.dirname(__file__)
         with open('%s/%s' % (workdir, 'electrum_keys.json'), 'r') as f:
             self.el_keys = json.load(f)
-        for i in range(0, 20):
-            self.wallet.key_for_path('m/0/%d' % i, name='Receiving #%d' % i)
-        for i in range(0, 6):
-            self.wallet.key_for_path('m/1/%d' % i, name='Change #%d' % i)
+        for i in range(20):
+            self.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i)
+        for i in range(6):
+            self.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i)
 
     def test_electrum_keys(self):
         for key in self.wallet.keys():
-            if key.name != 'test_wallet_electrum':
+            print(key.address)
+            if key.name[:6] == '-test-' and key.path not in ['m/0', 'm/1']:
                 self.assertIn(key.address, self.el_keys.keys(),
-                              msg='Key %s (%s) not found in Electrum wallet key export' %
-                                  (key.name, key.address))
+                              msg='Key %s (%s, %s) not found in Electrum wallet key export' %
+                                  (key.name, key.path, key.address))
 
 

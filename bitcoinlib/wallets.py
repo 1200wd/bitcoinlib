@@ -19,7 +19,7 @@
 
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.keys import HDKey, get_key_format, check_network_and_key
+from bitcoinlib.keys import HDKey, normalize_path, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
@@ -109,8 +109,8 @@ class HDWalletKey:
                 networkcode = nw.bip44_cointype
                 path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
             else:
-                raise WalletError("Key depth of %d does not match path lenght of %d" %
-                                  (k.depth, len(path.split('/')) - 1))
+                raise WalletError("Key depth of %d does not match path lenght of %d for path %s" %
+                                  (k.depth, len(path.split('/')) - 1, path))
 
         wk = session.query(DbKey).filter(or_(DbKey.key == k.key_hex,
                                              DbKey.key_wif == k.extended_wif())).first()
@@ -259,6 +259,10 @@ class HDWallet:
         parent_id = 0
         nk = masterkey
         ck = masterkey.k
+        if not isinstance(path, list):
+            raise WalletError("Path must be of type 'list'")
+        if len(basepath) and basepath[-1] != "/":
+            basepath += "/"
         for l in range(len(path)):
             pp = "/".join(path[:l+1])
             fullpath = basepath + pp
@@ -360,9 +364,9 @@ class HDWallet:
 
         newpath = []
         if not acckey:
-            acckey = self._session.query(DbKey). \
-                filter(DbKey.wallet_id == self.wallet_id, DbKey.purpose == self.purpose, DbKey.depth == 2,
-                       DbKey.parent_id != 0).scalar()
+            acckey = self._session.query(DbKey). filter(DbKey.wallet_id == self.wallet_id,
+                                                        DbKey.purpose == self.purpose, DbKey.depth == 2,
+                                                        DbKey.parent_id != 0).scalar()
             newpath.append(str(account_id)+"'")
             if not acckey:
                 raise WalletError("No key found this wallet_id, network and purpose. "
@@ -375,9 +379,10 @@ class HDWallet:
         pathdepth = max_depth-accwk.k.depth
         if not name:
             name = "Key %d" % address_index
-        parent_id, newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
-                                             account_id=account_id, change=change, network=self.network.network_name,
-                                             purpose=self.purpose, basepath=bpath, session=self._session)
+        parent_id, newkey = self._create_keys_from_path(
+            accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,  account_id=account_id, change=change,
+            network=self.network.network_name, purpose=self.purpose, basepath=bpath, session=self._session
+        )
         return HDWalletKey(parent_id, session=self._session, hdkey_object=newkey)
 
     def new_key_change(self, name='', account_id=0):
@@ -399,15 +404,27 @@ class HDWallet:
 
     def key_for_path(self, path, name='', account_id=0, change=0):
         # Check for closest ancestor in wallet
-
-
-        newkey = self.main_key.k.subkey_for_path(path)
+        spath = normalize_path(path)
+        rkey = None
         if not name:
             name = self.name
-        nk = HDWalletKey.from_key_object(newkey, name=name, wallet_id=self.wallet_id,
-                                         network=self.network.network_name, account_id=account_id, change=change,
-                                         purpose=self.purpose, path=path, session=self._session)
-        return nk
+        while spath and not rkey:
+            rkey = self._session.query(DbKey).filter_by(path=spath).first()
+            spath = '/'.join(spath.split("/")[:-1])
+
+        parent_key = self.main_key
+        subpath = path
+        basepath = ''
+        if rkey is not None:
+            subpath = path.replace(rkey.path + '/', '')
+            basepath = rkey.path
+            if self.main_key.key_wif != rkey.key_wif:
+                parent_key = HDWalletKey(rkey.id, self._session)
+        parent_id, newkey = self._create_keys_from_path(
+            parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
+            account_id=account_id, change=change,
+            network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
+        return newkey
 
     def keys(self, account_id=None, name=None, id=None, change=None, depth=None, as_dict=False):
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
@@ -646,9 +663,11 @@ if __name__ == '__main__':
             new_key3 = wallet.new_key()
             new_key4 = wallet.new_key(change=1)
             wallet.key_for_path("m/44'/1'/1200/1200")
+            wallet.key_for_path("m/44'/1'/1200/1201")
             donations_account = wallet.new_account()
             new_key5 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
+            print('m/0/1', '1GcJUfD957MvusrNY1PEp6QZ5MMCFjJZyg')
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
     if True:

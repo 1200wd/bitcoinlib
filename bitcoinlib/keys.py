@@ -170,6 +170,25 @@ def ec_point(p):
     return point
 
 
+def normalize_path(path):
+    """ Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys 
+    
+    :param path: BIP0044 key path as string 
+    :return Normalized BIP004 key path with single quotes
+    """
+    levels = path.split("/")
+    npath = ""
+    for level in levels:
+        if not level:
+            raise BKeyError("Could not parse path. Index is empty.")
+        nlevel = level
+        if level[-1] in "'HhPp":
+            nlevel = level[:-1] + "'"
+        npath += nlevel + "/"
+    if npath[-1] == "/":
+        npath = npath[:-1]
+    return npath
+
 class Key:
     """
     Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
@@ -186,7 +205,7 @@ class Key:
         If not specified a new private key is generated.
         :param network: Bitcoin, testnet, litecoin or other network
         :param passphrase: Optional passphrase if imported key is password protected
-        :return:
+        :return: Key object
         """
         self.public_hex = None
         self.public_uncompressed_hex = None
@@ -744,67 +763,71 @@ if __name__ == '__main__':
     # KEYS EXAMPLES
     #
 
-    # print("\n=== Generate random key ===")
-    # k = Key()
-    # k.info()
-    #
-    # print("\n=== Import Public key ===")
-    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    # K.info()
-    #
-    # print("\n==== Import Private key as decimal ===")
-    # pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
-    # k = Key(import_key=pk, network='testnet')
-    # k.info()
-    #
-    # print("\n==== Import Private key as byte ===")
-    # pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
-    # k = Key(pk)
-    # k.info()
-    #
-    # print("\n=== Import Private WIF Key ===")
-    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    # print("Private key     %s" % k.wif())
-    # print("Private key hex %s " % k.private_hex)
-    # print("Compressed      %s\n" % k.compressed)
-    #
-    # print("\n=== Import Private Testnet Key ===")
-    # k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
-    # k.info()
-    #
-    # print("\n==== Import Private Litecoin key ===")
-    # pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
-    # k = Key(import_key=pk)
-    # k.info()
-    #
-    # print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
-    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    # print("Private key     %s" % k.wif())
-    # print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    # print("Is Compressed   %s\n" % k.compressed)
-    #
-    # print("\n==== Import and Decrypt BIP38 Key ===")
-    # k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
-    # print("Private key     %s" % k.wif())
-    # print("Is Compressed   %s\n" % k.compressed)
-    #
-    # print("\n==== Generate random HD Key on testnet ===")
-    # hdk = HDKey(network='testnet')
-    # print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
-    #
-    # print("\n==== Import HD Key from seed ===")
-    # k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-    # print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
-    # print("Key type is : %s" % k.key_type)
-    #
-    # print("\n==== Generate random Litecoin key ===")
-    # lk = HDKey(network='litecoin')
-    # lk.info()
-    #
+    print("\n=== Generate random key ===")
+    k = Key()
+    k.info()
+
+    print("\n=== Import Public key ===")
+    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    K.info()
+
+    print("\n==== Import Private key as decimal ===")
+    pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
+    k = Key(import_key=pk, network='testnet')
+    k.info()
+
+    print("\n==== Import Private key as byte ===")
+    pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
+    k = Key(pk)
+    k.info()
+
+    print("\n=== Import Private WIF Key ===")
+    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    print("Private key     %s" % k.wif())
+    print("Private key hex %s " % k.private_hex)
+    print("Compressed      %s\n" % k.compressed)
+
+    print("\n=== Import Private Testnet Key ===")
+    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
+    k.info()
+
+    print("\n==== Import Private Litecoin key ===")
+    pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
+    k = Key(import_key=pk)
+    k.info()
+
+    print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
+    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    print("Private key     %s" % k.wif())
+    print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
+    print("Is Compressed   %s\n" % k.compressed)
+
+    print("\n==== Import and Decrypt BIP38 Key ===")
+    k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
+    print("Private key     %s" % k.wif())
+    print("Is Compressed   %s\n" % k.compressed)
+
+    print("\n==== Generate random HD Key on testnet ===")
+    hdk = HDKey(network='testnet')
+    print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
+
+    print("\n==== Import HD Key from seed ===")
+    k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+    print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
+    print("Key type is : %s" % k.key_type)
+
+    print("\n==== Generate random Litecoin key ===")
+    lk = HDKey(network='litecoin')
+    lk.info()
+
     print("\n==== Import simple private key as HDKey ===")
     k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
     print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
     print("Key type is : %s" % k.key_type)
+
+    print("\n==== Normalize BIP48 key path ===")
+    key_path = "m/44h/1'/0p/2000/1"
+    print("Raw: %s, Normalized: %s" % (key_path, normalize_path(key_path)))
 
     print("\n==== Derive path with Child Key derivation ===")
     print("Derive path path 'm/0H/1':")
