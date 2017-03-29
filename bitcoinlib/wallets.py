@@ -435,7 +435,7 @@ class HDWallet:
         self.new_key(name=name, account_id=account_id, max_depth=4, change=1)
         return ret.parent(session=self._session)
 
-    def key_for_path(self, path, name='', account_id=0, change=0):
+    def key_for_path(self, path, name='', account_id=0, change=0, disable_check=False):
         # Validate key path
         pathdict = parse_bip44_path(path)
         purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
@@ -447,6 +447,9 @@ class HDWallet:
             raise WalletError("Multiple cointypes per wallet are not supported at the moment. "
                               "Cannot create key with different cointype field (%d) as existing wallet (%d)" %
                               (cointype, self.network.bip44_cointype))
+        if not disable_check and (pathdict['cointype'][-1] != "'" or pathdict['purpose'][-1] != "'"
+                              or pathdict['account'][-1] != "'"):
+            raise WalletError("Cointype, purpose and account must be hardened, see BIP43 and BIP44 definitions")
 
         # Check for closest ancestor in wallet
         spath = normalize_path(path)
@@ -487,7 +490,7 @@ class HDWallet:
             qr = qr.filter(DbKey.depth == depth)
         if name is not None:
             qr = qr.filter(DbKey.name == name)
-        if id is not None:
+        if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
@@ -698,12 +701,13 @@ if __name__ == '__main__':
 
     # First recreate database to avoid already exist errors
     import os
+    from pprint import pprint
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
     if os.path.isfile(test_database):
         os.remove(test_database)
 
-    print(parse_bip44_path("m/44'/0'/100'/1200/1201"))
+    pprint(parse_bip44_path("m/44'/0'/100'/1200/1201"))
 
     # -- Create New Wallet and Generate a some new Keys --
     if True:
@@ -714,9 +718,10 @@ if __name__ == '__main__':
             new_key2 = wallet.new_key()
             new_key3 = wallet.new_key()
             new_key4 = wallet.new_key(change=1)
-            new_key5 = wallet.key_for_path("m/44/1'/100'/1200/1200")
+            new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
             new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
             new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+            wallet.info(detail=3)
             donations_account = wallet.new_account()
             new_key8 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
