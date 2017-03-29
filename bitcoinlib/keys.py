@@ -164,8 +164,9 @@ def ec_point(p):
     :param p: A point on the eliptic curve
     :return: Point multiplied by generator G
     """
+    p = int(p)
     point = generator
-    point *= int(p)
+    point *= p
     return point
 
 
@@ -301,8 +302,8 @@ class Key:
             if not self.isprivate:
                 raise KeyError("Private key has no known secret number")
             point = ec_point(self.secret)
-            self._x = change_base(int(point.x()), 10, 16, 64)
-            self._y = change_base(int(point.y()), 10, 16, 64)
+            self._x = change_base(point.x(), 10, 16, 64)
+            self._y = change_base(point.y(), 10, 16, 64)
             if point.y() % 2:
                 prefix = '03'
             else:
@@ -558,12 +559,6 @@ class HDKey:
         if not isinstance(key, (bytes, bytearray)) or not(len(key) == 32 or len(key) == 33):
             raise KeyError("Invalid key specified must be in bytes with lenght 32. You can use "
                            "'import_key' attribute to import keys in other formats")
-        # self.key = key
-        # self.key_hex = to_hexstring(key)
-        # self.public_hex = None
-        # self.public_byte = None
-        # self.private_hex = None
-        # self.private_byte = None
         self.chain = chain
         if self.key is None:
             self.key = Key(key, passphrase=passphrase, network=network)
@@ -571,8 +566,6 @@ class HDKey:
         self.parent_fingerprint = parent_fingerprint
         self.child_index = child_index
         self.isprivate = isprivate
-        self._public_key_object = None
-        # self.public_uncompressed_hex = None
         if not network:
             network = DEFAULT_NETWORK
         self.network = Network(network)
@@ -587,11 +580,6 @@ class HDKey:
             self.key_hex = self.private_hex
         else:
             self.key_hex = self.public_hex
-        #
-        # else:
-        #     self.public_hex = self.key_hex
-        #     self.public_byte = key
-        #     self.secret = None
         self.key_type = key_type
 
     def __repr__(self):
@@ -656,19 +644,6 @@ class HDKey:
     def extended_wif_public(self):
         return self.extended_wif(public=True)
 
-    # def public(self):
-    #     if not self._public_key_object:
-    #         if not self.public_hex:
-    #             self.public_hex = Key(self.key).public()
-    #         self._public_key_object = Key(self.public_hex, network=self.network.network_name)
-    #     return self._public_key_object
-    #
-    # def private(self):
-    #     if self.key and self.isprivate:
-    #         return Key(self.key, network=self.network.network_name)
-    #     else:
-    #         raise KeyError("No private key available")
-
     def subkey_for_path(self, path):
         """
         Determine subkey for HD Key for given path.
@@ -689,6 +664,8 @@ class HDKey:
             first_public = True
         if path:
             levels = path.split("/")
+            if len(levels) > 1:
+                _logger.warning("Path length > 1 can be slow for larger paths, use Wallet Class to generate keys paths")
             for level in levels:
                 if not level:
                     raise BKeyError("Could not parse path. Index is empty.")
@@ -757,30 +734,9 @@ class HDKey:
         else:
             prefix = '02'
         xhex = change_base(Ki.x(), 10, 16, 64)
-        secret = change_base(prefix + xhex, 16, 256)
+        secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False, network=self.network.network_name)
-
-# if index > 0x80000000:
-#             raise BKeyError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
-#         data = self.public().public_byte + struct.pack('>L', index)
-#         key, chain = self._key_derivation(data)
-#         key = change_base(key, 256, 10)
-#         if key > secp256k1_n:
-#             raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
-#
-#         x, y = self.public().public_point()
-#         Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
-#
-#         # if change_base(Ki.y(), 16, 10) % 2:
-#         if Ki.y() % 2:
-#             prefix = '03'
-#         else:
-#             prefix = '02'
-#         xhex = change_base(Ki.x(), 10, 16, 64)
-#         secret = change_base(prefix + xhex, 16, 256)
-#         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-#                      child_index=index, isprivate=False, network=self.network.network_name)
 
 
 if __name__ == '__main__':
@@ -788,67 +744,67 @@ if __name__ == '__main__':
     # KEYS EXAMPLES
     #
 
-    print("\n=== Generate random key ===")
-    k = Key()
-    k.info()
-
-    print("\n=== Import Public key ===")
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    K.info()
-
-    print("\n==== Import Private key as decimal ===")
-    pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
-    k = Key(import_key=pk, network='testnet')
-    k.info()
-
-    print("\n==== Import Private key as byte ===")
-    pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
-    k = Key(pk)
-    k.info()
-
-    print("\n=== Import Private WIF Key ===")
-    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    print("Private key     %s" % k.wif())
-    print("Private key hex %s " % k.private_hex)
-    print("Compressed      %s\n" % k.compressed)
-
-    print("\n=== Import Private Testnet Key ===")
-    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
-    k.info()
-
-    print("\n==== Import Private Litecoin key ===")
-    pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
-    k = Key(import_key=pk)
-    k.info()
-
-    print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
-    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    print("Private key     %s" % k.wif())
-    print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    print("Is Compressed   %s\n" % k.compressed)
-
-    print("\n==== Import and Decrypt BIP38 Key ===")
-    k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
-    print("Private key     %s" % k.wif())
-    print("Is Compressed   %s\n" % k.compressed)
-
-    print("\n==== Generate random HD Key on testnet ===")
-    hdk = HDKey(network='testnet')
-    print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
-
-    print("\n==== Import HD Key from seed ===")
-    k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-    print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
-    print("Key type is : %s" % k.key_type)
-
+    # print("\n=== Generate random key ===")
+    # k = Key()
+    # k.info()
+    #
+    # print("\n=== Import Public key ===")
+    # K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
+    # K.info()
+    #
+    # print("\n==== Import Private key as decimal ===")
+    # pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
+    # k = Key(import_key=pk, network='testnet')
+    # k.info()
+    #
+    # print("\n==== Import Private key as byte ===")
+    # pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
+    # k = Key(pk)
+    # k.info()
+    #
+    # print("\n=== Import Private WIF Key ===")
+    # k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
+    # print("Private key     %s" % k.wif())
+    # print("Private key hex %s " % k.private_hex)
+    # print("Compressed      %s\n" % k.compressed)
+    #
+    # print("\n=== Import Private Testnet Key ===")
+    # k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
+    # k.info()
+    #
+    # print("\n==== Import Private Litecoin key ===")
+    # pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
+    # k = Key(import_key=pk)
+    # k.info()
+    #
+    # print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
+    # k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
+    # print("Private key     %s" % k.wif())
+    # print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
+    # print("Is Compressed   %s\n" % k.compressed)
+    #
+    # print("\n==== Import and Decrypt BIP38 Key ===")
+    # k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
+    # print("Private key     %s" % k.wif())
+    # print("Is Compressed   %s\n" % k.compressed)
+    #
+    # print("\n==== Generate random HD Key on testnet ===")
+    # hdk = HDKey(network='testnet')
+    # print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
+    #
+    # print("\n==== Import HD Key from seed ===")
+    # k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
+    # print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
+    # print("Key type is : %s" % k.key_type)
+    #
+    # print("\n==== Generate random Litecoin key ===")
+    # lk = HDKey(network='litecoin')
+    # lk.info()
+    #
     print("\n==== Import simple private key as HDKey ===")
     k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
     print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
     print("Key type is : %s" % k.key_type)
-
-    print("\n==== Generate random Litecoin key ===")
-    lk = HDKey(network='litecoin')
-    lk.info()
 
     print("\n==== Derive path with Child Key derivation ===")
     print("Derive path path 'm/0H/1':")

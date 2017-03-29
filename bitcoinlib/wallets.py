@@ -97,9 +97,10 @@ class HDWalletKey:
                 network = DEFAULT_NETWORK
             k = hdkey_object
 
-        keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).all()
+        keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).scalar()
         if keyexists:
-            raise WalletError("Key %s already exists" % (key or k.extended_wif()))
+            # raise WalletError("Key %s already exists" % (key or k.extended_wif()))
+            return HDWalletKey(keyexists.id, session)
 
         if k.depth != len(path.split('/'))-1:
             if path == 'm' and k.depth == 3:
@@ -254,12 +255,13 @@ class HDWallet:
     def _create_keys_from_path(masterkey, path, wallet_id, account_id, network, session,
                                name='', basepath='', change=0, purpose=44):
         parent_id = 0
+        ck = masterkey.k
         for l in range(1, len(path)+1):
             pp = "/".join(path[:l])
-            fullpath = basepath+pp
+            fullpath = basepath + pp
             if session.query(DbKey).filter_by(wallet_id=wallet_id, path=fullpath).all():
                 continue
-            ck = masterkey.k.subkey_for_path(pp)
+            ck = ck.subkey_for_path(path[l-1])
             nk = HDWalletKey.from_key_object(ck, name=name, wallet_id=wallet_id, network=network,
                                              account_id=account_id, change=change, purpose=purpose, path=fullpath,
                                              parent_id=parent_id, session=session)
@@ -570,8 +572,8 @@ class HDWallet:
             # TODO: Make this more efficient...
             key = self._session.query(DbKey).filter_by(id=inp[2]).scalar()
             k = HDKey(key.key_wif)
-            id = t.add_input(inp[0], inp[1], public_key=k.public().public_byte())
-            sign_arr.append((k.private().private_byte(), id))
+            id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
+            sign_arr.append((k.private_byte(), id))
 
         # Add change output
         if amount_change:
