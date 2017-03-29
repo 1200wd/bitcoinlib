@@ -146,6 +146,16 @@ class TestWallet(unittest.TestCase):
                                 ".*is from different network then specified: bitcoin",
                                 w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
 
+    def test_wallet_duplicate_key_for_path(self):
+        nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
+        nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
+        self.assertEqual(nkfp.k.extended_wif(), nkfp2.k.extended_wif())
+
+    def test_wallet_key_for_path_normalized(self):
+        nkfp = self.wallet.key_for_path("m/44h/0p/100H/1200/1201")
+        nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1201")
+        self.assertEqual(nkfp.k.extended_wif(), nkfp2.k.extended_wif())
+
 
 class TestWalletElectrum(unittest.TestCase):
 

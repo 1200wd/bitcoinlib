@@ -274,7 +274,7 @@ class HDWallet:
                                              parent_id=parent_id, session=session)
             parent_id = nk.key_id
         _logger.info("New key(s) created for parent_id %d" % parent_id)
-        return parent_id, nk.k
+        return nk
 
     def __enter__(self):
         return self
@@ -379,11 +379,11 @@ class HDWallet:
         pathdepth = max_depth-accwk.k.depth
         if not name:
             name = "Key %d" % address_index
-        parent_id, newkey = self._create_keys_from_path(
+        newkey = self._create_keys_from_path(
             accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,  account_id=account_id, change=change,
             network=self.network.network_name, purpose=self.purpose, basepath=bpath, session=self._session
         )
-        return HDWalletKey(parent_id, session=self._session, hdkey_object=newkey)
+        return HDWalletKey(newkey.key_id, session=self._session, hdkey_object=newkey.k)
 
     def new_key_change(self, name='', account_id=0):
         return self.new_key(name=name, account_id=account_id, change=1)
@@ -420,11 +420,11 @@ class HDWallet:
         subpath = path
         basepath = ''
         if rkey is not None:
-            subpath = path.replace(rkey.path + '/', '')
+            subpath = normalize_path(path).replace(rkey.path + '/', '')
             basepath = rkey.path
             if self.main_key.key_wif != rkey.key_wif:
                 parent_key = HDWalletKey(rkey.id, self._session)
-        parent_id, newkey = self._create_keys_from_path(
+        newkey = self._create_keys_from_path(
             parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
             account_id=account_id, change=change,
             network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
@@ -667,14 +667,12 @@ if __name__ == '__main__':
             new_key2 = wallet.new_key()
             new_key3 = wallet.new_key()
             new_key4 = wallet.new_key(change=1)
-            wallet.key_for_path("m/44'/1'/1200/1200")
-            wallet.key_for_path("m/44'/1'/1200/1201")
-            # TODO: Avoid error when importing key twice
-            wallet.key_for_path("m/44'/1'/1200/1201")
+            new_key5 = wallet.key_for_path("m/44'/0'/100'/1200/1200")
+            new_key6a = wallet.key_for_path("m/44'/0'/100'/1200/1200")
+            new_key6b = wallet.key_for_path("m/44'/0'/100'/1200/1201")
             donations_account = wallet.new_account()
-            new_key5 = wallet.new_key(account_id=donations_account.account_id)
+            new_key8 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
-            print('m/0/1', '1GcJUfD957MvusrNY1PEp6QZ5MMCFjJZyg')
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
     if True:
