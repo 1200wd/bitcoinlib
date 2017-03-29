@@ -109,11 +109,11 @@ def parse_bip44_path(path):
     pathl = normalize_path(path).split('/')
     return {
         'isprivate': True if pathl[0] == 'm' else False,
-        'purpose': pathl[1] if len(pathl) else '',
-        'cointype': pathl[2] if len(pathl) > 1 else '',
-        'account': pathl[3] if len(pathl) > 2 else '',
-        'change': pathl[4] if len(pathl) > 3 else '',
-        'address_index': pathl[5] if len(pathl) > 4 else '',
+        'purpose': '' if len(pathl) < 2 else pathl[1],
+        'cointype':'' if len(pathl) < 3 else pathl[2],
+        'account': '' if len(pathl) < 4 else pathl[3],
+        'change': '' if len(pathl) < 5 else pathl[4],
+        'address_index': '' if len(pathl) < 6 else pathl[5],
     }
 
 
@@ -437,19 +437,20 @@ class HDWallet:
 
     def key_for_path(self, path, name='', account_id=0, change=0, disable_check=False):
         # Validate key path
-        pathdict = parse_bip44_path(path)
-        purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
-        if purpose != self.purpose:
-            raise WalletError("Cannot create key with different purpose field (%d) as existing wallet (%d)" %
-                              (purpose, self.purpose))
-        cointype = 0 if not pathdict['cointype'] else int(pathdict['cointype'].replace("'", ""))
-        if cointype != self.network.bip44_cointype:
-            raise WalletError("Multiple cointypes per wallet are not supported at the moment. "
-                              "Cannot create key with different cointype field (%d) as existing wallet (%d)" %
-                              (cointype, self.network.bip44_cointype))
-        if not disable_check and (pathdict['cointype'][-1] != "'" or pathdict['purpose'][-1] != "'"
+        if not disable_check:
+            pathdict = parse_bip44_path(path)
+            purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
+            if purpose != self.purpose:
+                raise WalletError("Cannot create key with different purpose field (%d) as existing wallet (%d)" % (
+                purpose, self.purpose))
+            cointype = 0 if not pathdict['cointype'] else int(pathdict['cointype'].replace("'", ""))
+            if cointype != self.network.bip44_cointype:
+                raise WalletError("Multiple cointypes per wallet are not supported at the moment. "
+                                  "Cannot create key with different cointype field (%d) as existing wallet (%d)" % (
+                                  cointype, self.network.bip44_cointype))
+            if (pathdict['cointype'][-1] != "'" or pathdict['purpose'][-1] != "'"
                               or pathdict['account'][-1] != "'"):
-            raise WalletError("Cointype, purpose and account must be hardened, see BIP43 and BIP44 definitions")
+                raise WalletError("Cointype, purpose and account must be hardened, see BIP43 and BIP44 definitions")
 
         # Check for closest ancestor in wallet
         spath = normalize_path(path)
@@ -719,6 +720,7 @@ if __name__ == '__main__':
             new_key3 = wallet.new_key()
             new_key4 = wallet.new_key(change=1)
             new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
+            new_key5 = wallet.key_for_path("m/0/1")
             new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
             new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
             wallet.info(detail=3)
