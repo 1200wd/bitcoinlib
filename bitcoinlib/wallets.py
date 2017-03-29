@@ -19,7 +19,7 @@
 
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.keys import HDKey, normalize_path, check_network_and_key
+from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
@@ -82,6 +82,39 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     session.close()
     _logger.info("Wallet '%s' deleted" % wallet)
     return res
+
+
+def normalize_path(path):
+    """ Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys 
+
+    :param path: BIP0044 key path as string 
+    :return Normalized BIP004 key path with single quotes
+    """
+    levels = path.split("/")
+    npath = ""
+    for level in levels:
+        if not level:
+            raise WalletError("Could not parse path. Index is empty.")
+        nlevel = level
+        if level[-1] in "'HhPp":
+            nlevel = level[:-1] + "'"
+        npath += nlevel + "/"
+    if npath[-1] == "/":
+        npath = npath[:-1]
+    return npath
+
+
+def parse_bip44_path(path):
+    # BIP43 + BIP44: m / purpose' / cointype' / account' / change / address_index
+    pathl = normalize_path(path).split('/')
+    return {
+        'isprivate': True if pathl[0] == 'm' else False,
+        'purpose': pathl[1] if len(pathl) else '',
+        'cointype': pathl[2] if len(pathl) > 1 else '',
+        'account': pathl[3] if len(pathl) > 2 else '',
+        'change': pathl[4] if len(pathl) > 3 else '',
+        'address_index': pathl[5] if len(pathl) > 4 else '',
+    }
 
 
 class HDWalletKey:
@@ -403,6 +436,18 @@ class HDWallet:
         return ret.parent(session=self._session)
 
     def key_for_path(self, path, name='', account_id=0, change=0):
+        # Validate key path
+        pathdict = parse_bip44_path(path)
+        purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
+        if purpose != self.purpose:
+            raise WalletError("Cannot create key with different purpose field (%d) as existing wallet (%d)" %
+                              (purpose, self.purpose))
+        cointype = 0 if not pathdict['cointype'] else int(pathdict['cointype'].replace("'", ""))
+        if cointype != self.network.bip44_cointype:
+            raise WalletError("Multiple cointypes per wallet are not supported at the moment. "
+                              "Cannot create key with different cointype field (%d) as existing wallet (%d)" %
+                              (cointype, self.network.bip44_cointype))
+
         # Check for closest ancestor in wallet
         spath = normalize_path(path)
         rkey = None
@@ -658,6 +703,8 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
+    print(parse_bip44_path("m/44'/0'/100'/1200/1201"))
+
     # -- Create New Wallet and Generate a some new Keys --
     if True:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
@@ -667,9 +714,9 @@ if __name__ == '__main__':
             new_key2 = wallet.new_key()
             new_key3 = wallet.new_key()
             new_key4 = wallet.new_key(change=1)
-            new_key5 = wallet.key_for_path("m/44'/0'/100'/1200/1200")
-            new_key6a = wallet.key_for_path("m/44'/0'/100'/1200/1200")
-            new_key6b = wallet.key_for_path("m/44'/0'/100'/1200/1201")
+            new_key5 = wallet.key_for_path("m/44/1'/100'/1200/1200")
+            new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+            new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
             donations_account = wallet.new_account()
             new_key8 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
