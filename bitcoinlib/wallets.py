@@ -100,7 +100,7 @@ class HDWalletKey:
         keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).scalar()
         if keyexists:
             # raise WalletError("Key %s already exists" % (key or k.extended_wif()))
-            return HDWalletKey(keyexists.id, session)
+            return HDWalletKey(keyexists.id, session, k)
 
         if k.depth != len(path.split('/'))-1:
             if path == 'm' and k.depth == 3:
@@ -115,7 +115,7 @@ class HDWalletKey:
         wk = session.query(DbKey).filter(or_(DbKey.key == k.key_hex,
                                              DbKey.key_wif == k.extended_wif())).first()
         if wk:
-            return HDWalletKey(wk.id, session)
+            return HDWalletKey(wk.id, session, k)
 
         nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
@@ -123,7 +123,7 @@ class HDWalletKey:
                    is_private=True, path=path, key_type=k.key_type)
         session.add(nk)
         session.commit()
-        return HDWalletKey(nk.id, session)
+        return HDWalletKey(nk.id, session, k)
 
     @classmethod
     def from_key_object(cls, hdkey_object, name, wallet_id, session, account_id=0, network='bitcoin', change=0,
@@ -134,7 +134,7 @@ class HDWalletKey:
                             hdkey_object=hdkey_object, account_id=account_id, network=network,
                             change=change, purpose=purpose, parent_id=parent_id, path=path)
 
-    def __init__(self, key_id, session):
+    def __init__(self, key_id, session, hdkey_object=None):
         wk = session.query(DbKey).filter_by(id=key_id).scalar()
         if wk:
             self._dbkey = wk
@@ -154,7 +154,9 @@ class HDWalletKey:
             self.path = wk.path
             self.wallet = wk.wallet
             self.network = Network(wk.wallet.network_name)
-            self.k = HDKey(import_key=self.key_wif, network=wk.wallet.network_name)
+            self.k = hdkey_object
+            if hdkey_object is None:
+                self.k = HDKey(import_key=self.key_wif, network=wk.wallet.network_name)
             self.depth = wk.depth
             self.key_type = wk.key_type
         else:
@@ -184,7 +186,7 @@ class HDWalletKey:
         return p[:max_depth]
 
     def parent(self, session):
-        return HDWalletKey(self.parent_id, session=session)
+        return HDWalletKey(self.parent_id, session=session, hdkey_object=self.k)
 
     def updatebalance(self):
         self._balance = Service(network=self.network.network_name).getbalance([self.address])
@@ -249,30 +251,31 @@ class HDWallet:
             cls._create_keys_from_path(mk, path, name=name, wallet_id=new_wallet.id, network=network, session=session,
                                        account_id=account_id, change=0, purpose=purpose, basepath=basepath)
         session.close()
-        return HDWallet(new_wallet_id, databasefile=databasefile)
+        return HDWallet(new_wallet_id, databasefile=databasefile, main_key_object=mk.k)
 
     @staticmethod
     def _create_keys_from_path(masterkey, path, wallet_id, account_id, network, session,
                                name='', basepath='', change=0, purpose=44):
         parent_id = 0
+        nk = masterkey
         ck = masterkey.k
-        for l in range(1, len(path)+1):
-            pp = "/".join(path[:l])
+        for l in range(len(path)):
+            pp = "/".join(path[:l+1])
             fullpath = basepath + pp
             if session.query(DbKey).filter_by(wallet_id=wallet_id, path=fullpath).all():
                 continue
-            ck = ck.subkey_for_path(path[l-1])
+            ck = ck.subkey_for_path(path[l])
             nk = HDWalletKey.from_key_object(ck, name=name, wallet_id=wallet_id, network=network,
                                              account_id=account_id, change=change, purpose=purpose, path=fullpath,
                                              parent_id=parent_id, session=session)
             parent_id = nk.key_id
         _logger.info("New key(s) created for parent_id %d" % parent_id)
-        return parent_id
+        return parent_id, nk.k
 
     def __enter__(self):
         return self
 
-    def __init__(self, wallet, databasefile=DEFAULT_DATABASE):
+    def __init__(self, wallet, databasefile=DEFAULT_DATABASE, main_key_object=None):
         self._session = DbInit(databasefile=databasefile).session
         if isinstance(wallet, int) or wallet.isdigit():
             w = self._session.query(DbWallet).filter_by(id=wallet).scalar()
@@ -287,7 +290,10 @@ class HDWallet:
             self.purpose = w.purpose
             self._balance = w.balance
             self.main_key_id = w.main_key_id
-            self.main_key = HDWalletKey(self.main_key_id, session=self._session)
+            if main_key_object:
+                self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
+            else:
+                self.main_key = HDWalletKey(self.main_key_id, session=self._session)
             self.default_account_id = 0
             _logger.info("Opening wallet '%s'" % self.name)
         else:
@@ -369,10 +375,10 @@ class HDWallet:
         pathdepth = max_depth-accwk.k.depth
         if not name:
             name = "Key %d" % address_index
-        newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
+        parent_id, newkey = self._create_keys_from_path(accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,
                                              account_id=account_id, change=change, network=self.network.network_name,
                                              purpose=self.purpose, basepath=bpath, session=self._session)
-        return HDWalletKey(newkey, session=self._session)
+        return HDWalletKey(parent_id, session=self._session, hdkey_object=newkey)
 
     def new_key_change(self, name='', account_id=0):
         return self.new_key(name=name, account_id=account_id, change=1)
@@ -392,6 +398,9 @@ class HDWallet:
         return ret.parent(session=self._session)
 
     def key_for_path(self, path, name='', account_id=0, change=0):
+        # Check for closest ancestor in wallet
+
+
         newkey = self.main_key.k.subkey_for_path(path)
         if not name:
             name = self.name
@@ -607,7 +616,7 @@ class HDWallet:
             if detail < 3:
                 ds = [0, 3, 5]
             else:
-                ds = range(0, 6)
+                ds = range(6)
             for d in ds:
                 for key in self.keys(depth=d):
                     print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
@@ -636,7 +645,7 @@ if __name__ == '__main__':
             new_key2 = wallet.new_key()
             new_key3 = wallet.new_key()
             new_key4 = wallet.new_key(change=1)
-            wallet.key_for_path('m/0/0')
+            wallet.key_for_path("m/44'/1'/1200/1200")
             donations_account = wallet.new_account()
             new_key5 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
