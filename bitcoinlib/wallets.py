@@ -266,7 +266,7 @@ class HDWallet:
         for l in range(len(path)):
             pp = "/".join(path[:l+1])
             fullpath = basepath + pp
-            if session.query(DbKey).filter_by(wallet_id=wallet_id, path=fullpath).all():
+            if session.query(DbKey).filter_by(wallet_id=wallet_id, path=fullpath).first():
                 continue
             ck = ck.subkey_for_path(path[l])
             nk = HDWalletKey.from_key_object(ck, name=name, wallet_id=wallet_id, network=network,
@@ -663,6 +663,8 @@ if __name__ == '__main__':
             new_key3 = wallet.new_key()
             new_key4 = wallet.new_key(change=1)
             wallet.key_for_path("m/44'/1'/1200/1200")
+            wallet.key_for_path("m/44'/1'/1200/1201")
+            # TODO: Avoid error when importing key twice
             wallet.key_for_path("m/44'/1'/1200/1201")
             donations_account = wallet.new_account()
             new_key5 = wallet.new_key(account_id=donations_account.account_id)
