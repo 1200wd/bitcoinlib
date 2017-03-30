@@ -149,12 +149,12 @@ class TestWallet(unittest.TestCase):
     def test_wallet_duplicate_key_for_path(self):
         nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
         nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
-        self.assertEqual(nkfp.k.extended_wif(), nkfp2.k.extended_wif())
+        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
 
     def test_wallet_key_for_path_normalized(self):
         nkfp = self.wallet.key_for_path("m/44h/0p/100H/1200/1201")
         nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1201")
-        self.assertEqual(nkfp.k.extended_wif(), nkfp2.k.extended_wif())
+        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
 
 
 class TestWalletElectrum(unittest.TestCase):
