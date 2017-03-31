@@ -17,6 +17,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import numbers
 from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey, check_network_and_key
@@ -171,6 +172,7 @@ class HDWalletKey:
         wk = session.query(DbKey).filter_by(id=key_id).scalar()
         if wk:
             self._dbkey = wk
+            self._hdkey_object = hdkey_object
             self.key_id = key_id
             self.name = wk.name
             self.wallet_id = wk.wallet_id
@@ -187,9 +189,7 @@ class HDWalletKey:
             self.path = wk.path
             self.wallet = wk.wallet
             self.network = Network(wk.wallet.network_name)
-            self._hdkey_object = hdkey_object
-            # if hdkey_object is None:
-            #     self._hdkey_object = HDKey(import_key=self.key_wif, network=wk.wallet.network_name)
+
             self.depth = wk.depth
             self.key_type = wk.key_type
         else:
@@ -346,7 +346,8 @@ class HDWallet:
         self._session.close()
 
     def __del__(self):
-        self._session.close()
+        if self._session is not None:
+            self._session.close()
 
     def balance(self, fmt=''):
         if fmt == 'string':
@@ -500,6 +501,17 @@ class HDWallet:
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
+
+    def key(self, term):
+        dbkey = None
+        if isinstance(term, numbers.Number):
+            dbkey = self._session.query(DbKey).filter_by(id=term).scalar()
+        if not dbkey:
+            dbkey = self._session.query(DbKey).filter_by(address=term).first()
+        if dbkey:
+            return HDWalletKey(key_id=dbkey.id, session=self._session)
+        else:
+            raise KeyError("Key %s not found" % term)
 
     def accounts(self, account_id, as_dict=False):
         return self.keys(account_id, depth=3, as_dict=as_dict)
@@ -732,6 +744,10 @@ if __name__ == '__main__':
             donations_account = wallet.new_account()
             new_key8 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
+            print(wallet.key(1))
+            print(wallet.key('mouGRkHjZVWQRxcwEhhS1oUhEHKw3Qf27a').address)
+    import sys
+    sys.exit()
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
     if True:
