@@ -17,9 +17,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import numbers
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.keys import HDKey, normalize_path, check_network_and_key
+from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
@@ -84,6 +85,39 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     return res
 
 
+def normalize_path(path):
+    """ Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys 
+
+    :param path: BIP0044 key path as string 
+    :return Normalized BIP004 key path with single quotes
+    """
+    levels = path.split("/")
+    npath = ""
+    for level in levels:
+        if not level:
+            raise WalletError("Could not parse path. Index is empty.")
+        nlevel = level
+        if level[-1] in "'HhPp":
+            nlevel = level[:-1] + "'"
+        npath += nlevel + "/"
+    if npath[-1] == "/":
+        npath = npath[:-1]
+    return npath
+
+
+def parse_bip44_path(path):
+    # BIP43 + BIP44: m / purpose' / cointype' / account' / change / address_index
+    pathl = normalize_path(path).split('/')
+    return {
+        'isprivate': True if pathl[0] == 'm' else False,
+        'purpose': '' if len(pathl) < 2 else pathl[1],
+        'cointype':'' if len(pathl) < 3 else pathl[2],
+        'account': '' if len(pathl) < 4 else pathl[3],
+        'change': '' if len(pathl) < 5 else pathl[4],
+        'address_index': '' if len(pathl) < 6 else pathl[5],
+    }
+
+
 class HDWalletKey:
 
     @staticmethod
@@ -138,10 +172,11 @@ class HDWalletKey:
         wk = session.query(DbKey).filter_by(id=key_id).scalar()
         if wk:
             self._dbkey = wk
+            self._hdkey_object = hdkey_object
             self.key_id = key_id
             self.name = wk.name
             self.wallet_id = wk.wallet_id
-            self.key = wk.key
+            self.key_hex = wk.key
             self.account_id = wk.account_id
             self.change = wk.change
             self.address_index = wk.address_index
@@ -154,16 +189,19 @@ class HDWalletKey:
             self.path = wk.path
             self.wallet = wk.wallet
             self.network = Network(wk.wallet.network_name)
-            self.k = hdkey_object
-            if hdkey_object is None:
-                self.k = HDKey(import_key=self.key_wif, network=wk.wallet.network_name)
+
             self.depth = wk.depth
             self.key_type = wk.key_type
         else:
-            raise WalletError("Key with id %s not found" % key_id)
+            raise WalletError("Key with id %s cdnot found" % key_id)
 
-    def balance(self, format=''):
-        if format == 'string':
+    def key(self):
+        if self._hdkey_object is None:
+            self._hdkey_object = HDKey(import_key=self.key_wif, network=self.network.network_name)
+        return self._hdkey_object
+
+    def balance(self, fmt=''):
+        if fmt == 'string':
             return self.network.print_value(self._balance)
         else:
             return self._balance
@@ -174,7 +212,7 @@ class HDWalletKey:
             change = self.change
         if address_index is None:
             address_index = self.address_index
-        if self.key:
+        if self.key_hex:
             p = ["m"]
         else:
             p = ["M"]
@@ -186,7 +224,7 @@ class HDWalletKey:
         return p[:max_depth]
 
     def parent(self, session):
-        return HDWalletKey(self.parent_id, session=session, hdkey_object=self.k)
+        return HDWalletKey(self.parent_id, session=session, hdkey_object=self.key())
 
     def updatebalance(self):
         self._balance = Service(network=self.network.network_name).getbalance([self.address])
@@ -203,6 +241,7 @@ class HDWalletKey:
         print(" Key Type                       %s" % self.key_type)
         print(" Is Private                     %s" % self.is_private)
         print(" Name                           %s" % self.name)
+        print(" Key Hex                        %s" % self.key_hex)
         print(" Key WIF                        %s" % self.key_wif)
         print(" Account ID                     %s" % self.account_id)
         print(" Parent ID                      %s" % self.parent_id)
@@ -211,7 +250,7 @@ class HDWalletKey:
         print(" Address Index                  %s" % self.address_index)
         print(" Address                        %s" % self.address)
         print(" Path                           %s" % self.path)
-        print(" Balance                        %s" % self.balance(format='string'))
+        print(" Balance                        %s" % self.balance(fmt='string'))
         print("\n")
 
 
@@ -236,14 +275,14 @@ class HDWallet:
 
         mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                   account_id=account_id, purpose=purpose)
-        if mk.k.depth > 4:
+        if mk.depth > 4:
             raise WalletError("Cannot create new wallet with main key of depth 5 or more")
         new_wallet.main_key_id = mk.key_id
         session.commit()
 
         if mk.key_type == 'bip32':
             # Create rest of Wallet Structure
-            depth = mk.k.depth+1
+            depth = mk.depth+1
             path = mk.fullpath(max_depth=3)[depth:]
             basepath = '/'.join(mk.fullpath(max_depth=3)[:depth])
             if basepath and len(path) and path[:1] != '/':
@@ -251,14 +290,14 @@ class HDWallet:
             cls._create_keys_from_path(mk, path, name=name, wallet_id=new_wallet.id, network=network, session=session,
                                        account_id=account_id, change=0, purpose=purpose, basepath=basepath)
         session.close()
-        return HDWallet(new_wallet_id, databasefile=databasefile, main_key_object=mk.k)
+        return HDWallet(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
 
     @staticmethod
     def _create_keys_from_path(masterkey, path, wallet_id, account_id, network, session,
                                name='', basepath='', change=0, purpose=44):
         parent_id = 0
         nk = masterkey
-        ck = masterkey.k
+        ck = masterkey.key()
         if not isinstance(path, list):
             raise WalletError("Path must be of type 'list'")
         if len(basepath) and basepath[-1] != "/":
@@ -274,7 +313,7 @@ class HDWallet:
                                              parent_id=parent_id, session=session)
             parent_id = nk.key_id
         _logger.info("New key(s) created for parent_id %d" % parent_id)
-        return parent_id, nk.k
+        return nk
 
     def __enter__(self):
         return self
@@ -307,10 +346,11 @@ class HDWallet:
         self._session.close()
 
     def __del__(self):
-        self._session.close()
+        if self._session is not None:
+            self._session.close()
 
-    def balance(self, format=''):
-        if format == 'string':
+    def balance(self, fmt=''):
+        if fmt == 'string':
             return self.network.print_value(self._balance)
         else:
             return self._balance
@@ -376,14 +416,14 @@ class HDWallet:
         newpath.append(str(change))
         newpath.append(str(address_index))
         bpath = accwk.path + '/'
-        pathdepth = max_depth-accwk.k.depth
+        pathdepth = max_depth-accwk.depth
         if not name:
             name = "Key %d" % address_index
-        parent_id, newkey = self._create_keys_from_path(
+        newkey = self._create_keys_from_path(
             accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,  account_id=account_id, change=change,
             network=self.network.network_name, purpose=self.purpose, basepath=bpath, session=self._session
         )
-        return HDWalletKey(parent_id, session=self._session, hdkey_object=newkey)
+        return HDWalletKey(newkey.key_id, session=self._session, hdkey_object=newkey.key())
 
     def new_key_change(self, name='', account_id=0):
         return self.new_key(name=name, account_id=account_id, change=1)
@@ -402,7 +442,23 @@ class HDWallet:
         self.new_key(name=name, account_id=account_id, max_depth=4, change=1)
         return ret.parent(session=self._session)
 
-    def key_for_path(self, path, name='', account_id=0, change=0):
+    def key_for_path(self, path, name='', account_id=0, change=0, disable_check=False):
+        # Validate key path
+        if not disable_check:
+            pathdict = parse_bip44_path(path)
+            purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
+            if purpose != self.purpose:
+                raise WalletError("Cannot create key with different purpose field (%d) as existing wallet (%d)" % (
+                purpose, self.purpose))
+            cointype = 0 if not pathdict['cointype'] else int(pathdict['cointype'].replace("'", ""))
+            if cointype != self.network.bip44_cointype:
+                raise WalletError("Multiple cointypes per wallet are not supported at the moment. "
+                                  "Cannot create key with different cointype field (%d) as existing wallet (%d)" % (
+                                  cointype, self.network.bip44_cointype))
+            if (pathdict['cointype'][-1] != "'" or pathdict['purpose'][-1] != "'"
+                              or pathdict['account'][-1] != "'"):
+                raise WalletError("Cointype, purpose and account must be hardened, see BIP43 and BIP44 definitions")
+
         # Check for closest ancestor in wallet
         spath = normalize_path(path)
         rkey = None
@@ -412,21 +468,25 @@ class HDWallet:
             rkey = self._session.query(DbKey).filter_by(path=spath).first()
             spath = '/'.join(spath.split("/")[:-1])
 
+        # Key already found in db, return key
+        if rkey.path == path:
+            return HDWalletKey(rkey.id, self._session)
+
         parent_key = self.main_key
         subpath = path
         basepath = ''
         if rkey is not None:
-            subpath = path.replace(rkey.path + '/', '')
+            subpath = normalize_path(path).replace(rkey.path + '/', '')
             basepath = rkey.path
             if self.main_key.key_wif != rkey.key_wif:
                 parent_key = HDWalletKey(rkey.id, self._session)
-        parent_id, newkey = self._create_keys_from_path(
+        newkey = self._create_keys_from_path(
             parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
             account_id=account_id, change=change,
             network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
         return newkey
 
-    def keys(self, account_id=None, name=None, id=None, change=None, depth=None, as_dict=False):
+    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, as_dict=False):
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
@@ -438,9 +498,20 @@ class HDWallet:
             qr = qr.filter(DbKey.depth == depth)
         if name is not None:
             qr = qr.filter(DbKey.name == name)
-        if id is not None:
-            qr = qr.filter(DbKey.id == id)
+        if key_id is not None:
+            qr = qr.filter(DbKey.id == key_id)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
+
+    def key(self, term):
+        dbkey = None
+        if isinstance(term, numbers.Number):
+            dbkey = self._session.query(DbKey).filter_by(id=term).scalar()
+        if not dbkey:
+            dbkey = self._session.query(DbKey).filter_by(address=term).first()
+        if dbkey:
+            return HDWalletKey(key_id=dbkey.id, session=self._session)
+        else:
+            raise KeyError("Key %s not found" % term)
 
     def accounts(self, account_id, as_dict=False):
         return self.keys(account_id, depth=3, as_dict=as_dict)
@@ -456,7 +527,7 @@ class HDWallet:
 
     def addresslist(self, account_id=None, key_id=None):
         addresslist = []
-        for key in self.keys(account_id=account_id, id=key_id):
+        for key in self.keys(account_id=account_id, key_id=key_id):
             addresslist.append(key.address)
         return addresslist
 
@@ -475,7 +546,8 @@ class HDWallet:
         [self._session.delete(o) for o in qr.all()]
         self._session.commit()
 
-        utxos = Service(network=self.network.network_name).getutxos(self.addresslist(account_id=account_id, key_id=key_id))
+        utxos = Service(network=self.network.network_name).\
+            getutxos(self.addresslist(account_id=account_id, key_id=key_id))
         key_balances = {}
         count_utxos = 0
         for utxo in utxos:
@@ -622,7 +694,7 @@ class HDWallet:
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self._owner)
         print(" Network                        %s" % self.network.description)
-        print(" Balance                        %s" % self.balance(format='string'))
+        print(" Balance                        %s" % self.balance(fmt='string'))
         print("")
 
         if detail:
@@ -648,10 +720,13 @@ if __name__ == '__main__':
 
     # First recreate database to avoid already exist errors
     import os
+    from pprint import pprint
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
     if os.path.isfile(test_database):
         os.remove(test_database)
+
+    pprint(parse_bip44_path("m/44'/0'/100'/1200/1201"))
 
     # -- Create New Wallet and Generate a some new Keys --
     if True:
@@ -662,14 +737,17 @@ if __name__ == '__main__':
             new_key2 = wallet.new_key()
             new_key3 = wallet.new_key()
             new_key4 = wallet.new_key(change=1)
-            wallet.key_for_path("m/44'/1'/1200/1200")
-            wallet.key_for_path("m/44'/1'/1200/1201")
-            # TODO: Avoid error when importing key twice
-            wallet.key_for_path("m/44'/1'/1200/1201")
-            donations_account = wallet.new_account()
-            new_key5 = wallet.new_key(account_id=donations_account.account_id)
+            new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
+            new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+            new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
             wallet.info(detail=3)
-            print('m/0/1', '1GcJUfD957MvusrNY1PEp6QZ5MMCFjJZyg')
+            donations_account = wallet.new_account()
+            new_key8 = wallet.new_key(account_id=donations_account.account_id)
+            wallet.info(detail=3)
+            print(wallet.key(1))
+            print(wallet.key('mouGRkHjZVWQRxcwEhhS1oUhEHKw3Qf27a').address)
+    import sys
+    sys.exit()
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
     if True:

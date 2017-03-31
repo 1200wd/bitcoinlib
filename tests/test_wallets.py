@@ -146,6 +146,16 @@ class TestWallet(unittest.TestCase):
                                 ".*is from different network then specified: bitcoin",
                                 w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
 
+    def test_wallet_duplicate_key_for_path(self):
+        nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
+        nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
+        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
+
+    def test_wallet_key_for_path_normalized(self):
+        nkfp = self.wallet.key_for_path("m/44h/0p/100H/1200/1201")
+        nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1201")
+        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
+
 
 class TestWalletElectrum(unittest.TestCase):
 
@@ -162,9 +172,9 @@ class TestWalletElectrum(unittest.TestCase):
         with open('%s/%s' % (workdir, 'electrum_keys.json'), 'r') as f:
             self.el_keys = json.load(f)
         for i in range(20):
-            self.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i)
+            self.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i, disable_check=True)
         for i in range(6):
-            self.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i)
+            self.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i, disable_check=True)
 
     def test_electrum_keys(self):
         for key in self.wallet.keys():

@@ -170,25 +170,6 @@ def ec_point(p):
     return point
 
 
-def normalize_path(path):
-    """ Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys 
-    
-    :param path: BIP0044 key path as string 
-    :return Normalized BIP004 key path with single quotes
-    """
-    levels = path.split("/")
-    npath = ""
-    for level in levels:
-        if not level:
-            raise BKeyError("Could not parse path. Index is empty.")
-        nlevel = level
-        if level[-1] in "'HhPp":
-            nlevel = level[:-1] + "'"
-        npath += nlevel + "/"
-    if npath[-1] == "/":
-        npath = npath[:-1]
-    return npath
-
 class Key:
     """
     Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
