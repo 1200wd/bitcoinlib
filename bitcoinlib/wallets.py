@@ -279,25 +279,22 @@ class HDWallet:
             raise WalletError("Cannot create new wallet with main key of depth 5 or more")
         new_wallet.main_key_id = mk.key_id
         session.commit()
-
-        if mk.key_type == 'bip32':
-            # Create rest of Wallet Structure
-            depth = mk.depth+1
-            path = mk.fullpath(max_depth=3)[depth:]
-            basepath = '/'.join(mk.fullpath(max_depth=3)[:depth])
-            if basepath and len(path) and path[:1] != '/':
-                basepath += '/'
-            cls._create_keys_from_path(mk, path, name=name, wallet_id=new_wallet.id, network=network, session=session,
-                                       account_id=account_id, purpose=purpose, basepath=basepath)
         session.close()
-        return HDWallet(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
 
-    @staticmethod
-    def _create_keys_from_path(masterkey, path, wallet_id, account_id, network, session,
+        w = HDWallet(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
+        nw = Network(network)
+        networkcode = nw.bip44_cointype
+        path = ["%d'" % purpose, "%s'" % networkcode]
+        w._create_keys_from_path(mk, path, name=name, wallet_id=new_wallet_id, network=network, session=session,
+                                 account_id=account_id, purpose=purpose, basepath="m")
+        w.new_account(account_id=account_id)
+        return w
+
+    def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
                                name='', basepath='', change=0, purpose=44):
         parent_id = 0
-        nk = masterkey
-        ck = masterkey.key()
+        nk = parent
+        ck = parent.key()
         if not isinstance(path, list):
             raise WalletError("Path must be of type 'list'")
         if len(basepath) and basepath[-1] != "/":
@@ -311,6 +308,7 @@ class HDWallet:
             nk = HDWalletKey.from_key_object(ck, name=name, wallet_id=wallet_id, network=network,
                                              account_id=account_id, change=change, purpose=purpose, path=fullpath,
                                              parent_id=parent_id, session=session)
+            self.key_objects.update({nk.key_id: nk})
             parent_id = nk.key_id
         _logger.info("New key(s) created for parent_id %d" % parent_id)
         return nk
@@ -350,7 +348,11 @@ class HDWallet:
 
     def __del__(self):
         if self._session is not None:
-            self._session.close()
+            pprint(self._session)
+            try:
+                self._session.close()
+            except:
+                import pdb; pdb.set_trace()
 
     def balance(self, fmt=''):
         if fmt == 'string':
@@ -397,12 +399,14 @@ class HDWallet:
         acckey = self._session.query(DbKey). \
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id, depth=3).scalar()
         if not acckey:
-            acckey = self.new_account(account_id=account_id)
+            hk = self.new_account(account_id=account_id)
+            if hk:
+                acckey = hk._dbkey
         if not acckey:
             raise WalletError("No key found this wallet_id, network and purpose. "
                               "Is there a BIP32 Master key imported?")
         else:
-            main_acc_key = self.key(acckey.key_id)
+            main_acc_key = self.key(acckey.id)
 
         # Determine new key ID
         prevkey = self._session.query(DbKey). \
@@ -458,10 +462,10 @@ class HDWallet:
             network=self.network.network_name, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session
         )
         acckeypay = self._create_keys_from_path(
-            acckey, ['0'], name=acckey.name + ' payments', wallet_id=self.wallet_id, account_id=account_id,
+            acckey, ['0'], name=acckey.name + ' Payments', wallet_id=self.wallet_id, account_id=account_id,
             network=self.network.network_name, purpose=self.purpose, basepath=acckey.path, session=self._session)
         acckeychg = self._create_keys_from_path(
-            acckey, ['0'], name=acckey.name + ' change', wallet_id=self.wallet_id, account_id=account_id,
+            acckey, ['1'], name=acckey.name + ' Change', wallet_id=self.wallet_id, account_id=account_id,
             network=self.network.network_name, purpose=self.purpose, basepath=acckey.path, session=self._session)
         self.key_objects.update({acckey.key_id: acckey, acckeypay.key_id: acckeypay, acckeychg.key_id: acckeychg})
         return acckey
@@ -784,8 +788,9 @@ if __name__ == '__main__':
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
                 '7irEvBoe4aAn52',
             network='testnet',
+            account_id=99,
             databasefile=test_database)
-        wallet_import.new_account(account_id=99)
+        nk1 = wallet_import.new_key(account_id=99, name="test-tmp")
         # nk = wallet_import.new_key(account_id=99, name="Address #1")
         # nk2 = wallet_import.new_key(account_id=99, name="Address #2")
         # nkc = wallet_import.new_key_change(account_id=99, name="Change #1")
