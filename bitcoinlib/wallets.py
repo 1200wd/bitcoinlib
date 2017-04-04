@@ -508,10 +508,14 @@ class HDWallet:
             dbkey = self._session.query(DbKey).filter_by(id=term).scalar()
         if not dbkey:
             dbkey = self._session.query(DbKey).filter_by(address=term).first()
+        if not dbkey:
+            dbkey = self._session.query(DbKey).filter_by(key_wif=term).first()
+        if not dbkey:
+            dbkey = self._session.query(DbKey).filter_by(name=term).first()
         if dbkey:
             return HDWalletKey(key_id=dbkey.id, session=self._session)
         else:
-            raise KeyError("Key %s not found" % term)
+            raise KeyError("Key '%s' not found" % term)
 
     def accounts(self, account_id, as_dict=False):
         return self.keys(account_id, depth=3, as_dict=as_dict)
@@ -726,10 +730,8 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
-    pprint(parse_bip44_path("m/44'/0'/100'/1200/1201"))
-
     # -- Create New Wallet and Generate a some new Keys --
-    if True:
+    if False:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             wallet.new_account()
@@ -744,10 +746,6 @@ if __name__ == '__main__':
             donations_account = wallet.new_account()
             new_key8 = wallet.new_key(account_id=donations_account.account_id)
             wallet.info(detail=3)
-            print(wallet.key(1))
-            print(wallet.key('mouGRkHjZVWQRxcwEhhS1oUhEHKw3Qf27a').address)
-    import sys
-    sys.exit()
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
     if True:
@@ -762,8 +760,12 @@ if __name__ == '__main__':
         nk2 = wallet_import.new_key(account_id=99, name="Address #2")
         nkc = wallet_import.new_key_change(account_id=99, name="Change #1")
         nkc2 = wallet_import.new_key_change(account_id=99, name="Change #2")
-        wallet_import.updateutxos()
+        # wallet_import.updateutxos()
         wallet_import.info(detail=3)
+        # Three way of getting the same HDWalletKey, with ID, address and name:
+        print(wallet_import.key(1).address)
+        print(wallet_import.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
+        print(wallet_import.key('TestNetWallet').address)
 
     if False:
         # Send testbitcoins to an address
