@@ -288,7 +288,7 @@ class HDWallet:
             if basepath and len(path) and path[:1] != '/':
                 basepath += '/'
             cls._create_keys_from_path(mk, path, name=name, wallet_id=new_wallet.id, network=network, session=session,
-                                       account_id=account_id, change=0, purpose=purpose, basepath=basepath)
+                                       account_id=account_id, purpose=purpose, basepath=basepath)
         session.close()
         return HDWallet(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
 
@@ -340,7 +340,7 @@ class HDWallet:
             self.default_account_id = 0
             _logger.info("Opening wallet '%s'" % self.name)
             self.key_objects = {
-                self.main_key_id, self.main_key
+                self.main_key_id: self.main_key
             }
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
@@ -390,53 +390,43 @@ class HDWallet:
             hdkey_object, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
             account_id=account_id, purpose=self.purpose, session=self._session)
 
-    def new_key(self, name='', account_id=0, change=0, max_depth=5):
+    def new_key(self, name='', account_id=None, change=0, max_depth=5):
         # TODO: If wallet has only one account, select these when account not specified
-        # Find main account key and previous created key
-        accrootkey = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
-                                                          depth=2).scalar()
-        if not accrootkey:
-            self.new_account('Account #%d' % account_id, account_id)
-        if (self.main_acc_key is not None and self.main_acc_key.account_id != account_id) or \
-                        self.main_acc_key is None:
-            acckey = self._session.query(DbKey). \
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
-                          account_id=account_id, change=0, depth=3).scalar()
 
-            # No account found, create a new one
-            if not acckey:
-                self.new_account('Account #%d' % account_id, account_id)
-                # acckey = self._session.query(DbKey). filter(DbKey.wallet_id == self.wallet_id,
-                #                                             DbKey.purpose == self.purpose, DbKey.depth == 2,
-                #                                             DbKey.parent_id != 0).scalar()
-            # newpath.append(str(account_id)+"'")
-            if not acckey:
-                raise WalletError("No key found this wallet_id, network and purpose. "
-                                  "Is there a BIP32 Master key imported?")
-            else:
-                self.main_acc_key = HDWalletKey(acckey.id, session=self._session)
+        # Get account key, create one if it doesn't exist
+        acckey = self._session.query(DbKey). \
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id, depth=3).scalar()
+        if not acckey:
+            acckey = self.new_account(account_id=account_id)
+        if not acckey:
+            raise WalletError("No key found this wallet_id, network and purpose. "
+                              "Is there a BIP32 Master key imported?")
+        else:
+            main_acc_key = self.key(acckey.key_id)
 
+        # Determine new key ID
         prevkey = self._session.query(DbKey). \
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
                       account_id=account_id, change=change, depth=5). \
             order_by(DbKey.address_index.desc()).first()
-
         address_index = 0
         if prevkey:
             address_index = prevkey.address_index + 1
 
-        newpath = []
-        newpath.append(str(change))
-        newpath.append(str(address_index))
-        bpath = accwk.path + '/'
-        pathdepth = max_depth - accwk.depth
+        # Compose key path and create new key
+        newpath = [(str(change)), str(address_index)]
+        bpath = main_acc_key.path + '/'
+        pathdepth = max_depth - main_acc_key.depth
         if not name:
             name = "Key %d" % address_index
         newkey = self._create_keys_from_path(
-            accwk, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,  account_id=account_id, change=change,
-            network=self.network.network_name, purpose=self.purpose, basepath=bpath, session=self._session
+            main_acc_key, newpath[:pathdepth], name=name, wallet_id=self.wallet_id,  account_id=account_id,
+            change=change, network=self.network.network_name, purpose=self.purpose, basepath=bpath,
+            session=self._session
         )
-        return HDWalletKey(newkey.key_id, session=self._session, hdkey_object=newkey.key())
+        self.key_objects.update({newkey.key_id: newkey})
+        return newkey
+        # return HDWalletKey(newkey.key_id, session=self._session, hdkey_object=newkey.key())
 
     def new_key_change(self, name='', account_id=0):
         return self.new_key(name=name, account_id=account_id, change=1)
@@ -461,14 +451,20 @@ class HDWallet:
                               "Is there a BIP32 Master key imported?")
         accrootkey_obj = self.key(accrootkey.id)
 
-        # Create and return new account
+        # Create new account addresses and return main account key
         newpath = [str(account_id) + "'"]
-        accountkey = self._create_keys_from_path(
+        acckey = self._create_keys_from_path(
             accrootkey_obj, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
             network=self.network.network_name, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session
         )
-        self.key_objects.update({accountkey.key_id: accountkey})
-        return accountkey
+        acckeypay = self._create_keys_from_path(
+            acckey, ['0'], name=acckey.name + ' payments', wallet_id=self.wallet_id, account_id=account_id,
+            network=self.network.network_name, purpose=self.purpose, basepath=acckey.path, session=self._session)
+        acckeychg = self._create_keys_from_path(
+            acckey, ['0'], name=acckey.name + ' change', wallet_id=self.wallet_id, account_id=account_id,
+            network=self.network.network_name, purpose=self.purpose, basepath=acckey.path, session=self._session)
+        self.key_objects.update({acckey.key_id: acckey, acckeypay.key_id: acckeypay, acckeychg.key_id: acckeychg})
+        return acckey
 
     def key_for_path(self, path, name='', account_id=0, change=0, disable_check=False):
         # Validate key path
@@ -790,12 +786,13 @@ if __name__ == '__main__':
             network='testnet',
             databasefile=test_database)
         wallet_import.new_account(account_id=99)
-        nk = wallet_import.new_key(account_id=99, name="Address #1")
+        # nk = wallet_import.new_key(account_id=99, name="Address #1")
         # nk2 = wallet_import.new_key(account_id=99, name="Address #2")
         # nkc = wallet_import.new_key_change(account_id=99, name="Change #1")
         # nkc2 = wallet_import.new_key_change(account_id=99, name="Change #2")
         # wallet_import.updateutxos()
-        # wallet_import.info(detail=3)
+        wallet_import.info(detail=3)
+
         # Three way of getting the same HDWalletKey, with ID, address and name:
         # print(wallet_import.key(1).address)
         # print(wallet_import.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
