@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
-#    Network Definitions
+#    BitcoinLib - Python Cryptocurrency Library
+#    NETWORK class reads network definitions and with helper methods
 #    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -30,6 +30,7 @@ _logger = logging.getLogger(__name__)
 
 
 DEFAULT_NETWORK = 'bitcoin'
+
 
 def read_network_definitions():
     try:

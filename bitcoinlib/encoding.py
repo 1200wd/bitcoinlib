@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
-#    Common includes and helper methods
+#    BitcoinLib - Python Cryptocurrency Library
+#    ENCODING - Helper methods for encoding and conversion
 #    © 2017 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify

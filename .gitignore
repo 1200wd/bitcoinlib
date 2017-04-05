@@ -64,3 +64,6 @@ target/
 .idea
 *.sqlite
 .pypirc
+
+*.odt#
+.~*

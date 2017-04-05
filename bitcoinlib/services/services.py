@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
-#    Main Service connector
+#    BitcoinLib - Python Cryptocurrency Library
+#    SERVICES - Main Service connector
 #    © 2017 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify

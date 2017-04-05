@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
+#    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
 #    © 2017 March - 1200 Web Development <http://1200wd.com/>
 #

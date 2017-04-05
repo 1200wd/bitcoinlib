@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Main
+#    BitcoinLib - Python Cryptocurrency Library
+#    MAIN - Load configs, initialize logging and database
 #    © 2016 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify

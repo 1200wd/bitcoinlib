@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
+#    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Transaction Class
 #    © 2017 February - 1200 Web Development <http://1200wd.com/>
 #

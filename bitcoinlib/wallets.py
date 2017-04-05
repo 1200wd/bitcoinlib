@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib wallets
+#    BitcoinLib - Python Cryptocurrency Library
+#    WALLETS - HD wallet Class for key and transaction management
 #    © 2017 April - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -25,6 +26,7 @@ from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.mnemonic import Mnemonic
 
 _logger = logging.getLogger(__name__)
 
@@ -867,7 +869,6 @@ if __name__ == '__main__':
     del litecoin_wallet
 
     print("\n=== Create Litecoin testnet Wallet from Mnemonic Passphrase ===")
-    from bitcoinlib.mnemonic import Mnemonic
     # words = Mnemonic('english').generate()
     words = 'blind frequent camera goddess pottery repair skull year mistake wrist lonely mix'
     print("Generated Passphrase: %s" % words)

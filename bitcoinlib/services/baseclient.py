@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
+#    BitcoinLib - Python Cryptocurrency Library
 #    Base Client
 #    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #
@@ -25,7 +25,6 @@ except ImportError:
     from urllib import urlencode
 import json
 from bitcoinlib.main import *
-# from bitcoinlib.services.services import Service
 
 _logger = logging.getLogger(__name__)
 

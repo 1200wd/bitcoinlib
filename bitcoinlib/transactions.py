@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib Transactions
+#    BitcoinLib - Python Cryptocurrency Library
+#    TRANSACTION class to create, verify and sign Transactions
 #    © 2017 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -17,13 +18,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import binascii
-import hashlib
+# import binascii
+# import hashlib
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
-from bitcoinlib.keys import Key, BKeyError
-from bitcoinlib.main import *
-from bitcoinlib.networks import Network, DEFAULT_NETWORK, NETWORK_DEFINITIONS
+from bitcoinlib.keys import Key
+# from bitcoinlib.main import *
+from bitcoinlib.networks import Network, DEFAULT_NETWORK
 
 
 _logger = logging.getLogger(__name__)

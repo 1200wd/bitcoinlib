@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
+#    BitcoinLib - Python Cryptocurrency Library
 #    PyPi Setup Tool
 #    © 2016 December - 1200 Web Development <http://1200wd.com/>
 #

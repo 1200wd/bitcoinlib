@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
+#    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
 #    © 2016 November - 1200 Web Development <http://1200wd.com/>
 #

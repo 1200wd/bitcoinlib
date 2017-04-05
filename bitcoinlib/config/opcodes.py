@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#    bitcoinlib - Compact Python Bitcoin Library
+#    BitcoinLib - Python Cryptocurrency Library
 #    Script opcode definitions
 #    © 2017 January - 1200 Web Development <http://1200wd.com/>
 #
