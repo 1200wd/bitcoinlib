@@ -56,12 +56,12 @@ def check_network_and_key(key, network=None, kf_networks=None):
     
     A KeyError will be raised if key does not corresponds with network or if multiple network are found. 
     :param key: Key in any format recognized by get_key_format function
-    :type key: str, int, bytes, bytearray
+     :type key: str, int, bytes, bytearray
     :param network: Optional network. Method raises KeyError if keys belongs to another network
-    :type network: str
+     :type network: str
     :param network: Optional list of networks which is returned by get_key_format. If left empty this function will
     be called.
-    :type kf_networks: list
+     :type kf_networks: list
     :return str: Network name 
     """
     if not kf_networks:
@@ -87,9 +87,9 @@ def get_key_format(key, isprivate=None):
     This method does not validate if a key is valid.
 
     :param key: Any private or public key
-    :type key: str, int, bytes, bytearray
+     :type key: str, int, bytes, bytearray
     :param isprivate: Is key private or not?
-    :type isprivate: bool
+     :type isprivate: bool
     :return dict: Dictionary with format, network and isprivate
     """
     if not key:
@@ -209,13 +209,13 @@ class Key:
 
         :param import_key: If specified import given private or public key.
         If not specified a new private key is generated.
-        :type import_key: str, int, bytes, bytearray
+         :type import_key: str, int, bytes, bytearray
         :param network: Bitcoin, testnet, litecoin or other network
-        :type network: str
+         :type network: str
         :param compressed: Is key compressed or not, default is True
-        :type compressed: bool
+         :type compressed: bool
         :param passphrase: Optional passphrase if imported key is password protected
-        :type passphrase: str
+         :type passphrase: str
         :return: Key object
         """
         self.public_hex = None
@@ -360,9 +360,9 @@ class Key:
         This method is called by Key class init function when importing BIP0038 key.
 
         :param encrypted_privkey: Encrypted private key using WIF protected key format
-        :type encrypted_privkey: str
+         :type encrypted_privkey: str
         :param passphrase: Required passphrase for decryption
-        :type passphrase: str
+         :type passphrase: str
         :return str: Private Key WIF
         """
         # TODO: Also check first 2 bytes
@@ -408,7 +408,7 @@ class Key:
         Based on code from https://github.com/nomorecoin/python-bip38-testing
 
         :param passphrase: Required passphrase for encryption
-        :type passphrase: str
+         :type passphrase: str
         :return str: BIP38 passphrase encrypted private key
         """
         if self.compressed:
@@ -456,7 +456,7 @@ class Key:
         Get public key
         
         :param return_compressed: If True always return a compressed version and if False always return uncompressed
-        :type return_compressed: bool
+         :type return_compressed: bool
         :return str: Public key hexstring 
         """
         if (self.compressed and return_compressed is None) or return_compressed:
@@ -498,7 +498,7 @@ class Key:
         Get address derived from public key
         
         :param compressed: Always return compressed address
-        :type compressed: bool
+         :type compressed: bool
         :return str: Base58 encoded address 
         """
         if (self.compressed and compressed is None) or compressed:
@@ -560,9 +560,9 @@ class HDKey:
         Used by class init function, import key from seed
 
         :param import_seed: Private key seed as bytes or hexstring
-        :type import_seed: str, bytes
+         :type import_seed: str, bytes
         :param network: Network to use
-        :type network: str
+         :type network: str
         :return: HDKey class object
         """
         seed = to_bytes(import_seed)
@@ -580,23 +580,23 @@ class HDKey:
         If a normal key with no chain part is provided, an chain with only 32 0-bytes will be used.
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
-        :type import_key: str, bytes
+         :type import_key: str, bytes
         :param key: Private or public key (lenght 32)
-        :type key: bytes
+         :type key: bytes
         :param chain: A chain code (lenght 32)
-        :type chain: bytes
+         :type chain: bytes
         :param depth: Level of depth in path (BIP0043/BIP0044)
-        :type depth: int
+         :type depth: int
         :param parent_fingerprint: 4-byte fingerprint of parent
-        :type parent_fingerprint: bytes
+         :type parent_fingerprint: bytes
         :param child_index: Index number of child as integer
-        :type child_index: int
+         :type child_index: int
         :param isprivate: True for private, False for public key. Default is True
-        :type isprivate: bool
+         :type isprivate: bool
         :param network: Network name. Derived from import_key if possible
-        :type network: str
+         :type network: str
         :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
-        :type key_type: str
+         :type key_type: str
         :return: HDKey class object
         """
 
@@ -705,7 +705,7 @@ class HDKey:
         Derive extended private key with key and chain part from seed
         
         :param seed:
-        :type seed: bytes
+         :type seed: bytes
         :return tuple: key and chain bytes
         """
         chain = hasattr(self, 'chain') and self.chain or b"Bitcoin seed"
@@ -726,9 +726,9 @@ class HDKey:
         Get Extended WIF of current key
         
         :param public: Return public key?
-        :type public: bool
+         :type public: bool
         :param child_index: Change child index of output WIF key
-        :type child_index: int
+         :type child_index: int
         :return str: Base58 encoded WIF key 
         """
         rkey = self.private_byte or self.public_byte
@@ -766,7 +766,7 @@ class HDKey:
         See BIP0044 bitcoin proposal for more explanation.
 
         :param path: BIP0044 key path
-        :type path: str
+         :type path: str
         :return: HD Key class object of subkey
         """
         key = self
@@ -802,9 +802,9 @@ class HDKey:
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
 
         :param index: Key index number
-        :type index: int
+         :type index: int
         :param hardened: Specify if key must be hardened (True) or normal (False)
-        :type hardened: bool
+         :type hardened: bool
         :return: HD Key class object
         """
         if not self.isprivate:
@@ -832,7 +832,7 @@ class HDKey:
         Use Child Key Derivation to derive child public key of current HD Key object.
 
         :param index: Key index number
-        :type index: int
+         :type index: int
         :return: HD Key class object
         """
         if index > 0x80000000:

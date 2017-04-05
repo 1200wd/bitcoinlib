@@ -44,8 +44,8 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
     """
     List Wallets from database
     
-    :param databasefile: Location of Sqlite database (optional)
-    :type databasefile: str
+    :param databasefile: Location of Sqlite database. Leave empty to use default
+     :type databasefile: str
     :return dict: Dictionary of wallets defined in database
     """
     session = DbInit(databasefile=databasefile).session
@@ -68,8 +68,10 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
     """
     Check if Wallets is defined in database
     :param wallet: Wallet ID as integer or Wallet Name as string
-    :param databasefile: Location of Sqlite database (optional)
-    :return: True or False
+     :type wallet: int, str
+    :param databasefile: Location of Sqlite database. Leave empty to use default
+     :type databasefile: str
+    :return bool: True if wallet exists otherwise False
     """
     if wallet in [x['name'] for x in list_wallets(databasefile)]:
         return True
@@ -83,9 +85,12 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
     unless 'force=True' is specified
     :param wallet: Wallet ID as integer or Wallet Name as string
-    :param databasefile: Location of Sqlite database (optional)
+     :type wallet: int, str
+    :param databasefile: Location of Sqlite database. Leave empty to use default
+     :type databasefile: str
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
-    :return: Number of rows deleted, so integer 1 if succesfull
+     :type force: bool
+    :return int: Number of rows deleted, so 1 if succesfull
     """
     session = DbInit(databasefile=databasefile).session
     if isinstance(wallet, int) or wallet.isdigit():
@@ -114,7 +119,7 @@ def normalize_path(path):
     """ Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys 
 
     :param path: BIP0044 key path 
-    :type path: str
+     :type path: str
     :return str: Normalized BIP004 key path with single quotes
     """
     levels = path.split("/")
@@ -139,7 +144,8 @@ def parse_bip44_path(path):
     :param path: BIP0044 path as string, with backslash (/) seperator. 
     Specify path in this format: m / purpose' / cointype' / account' / change / address_index
     Path lenght must be between 1 and 6 (Depth between 0 and 5)
-    :return: Dictionary with path items: isprivate, purpose, cointype, account, change and address_index
+     :type path: str
+    :return dict: Dictionary with path items: isprivate, purpose, cointype, account, change and address_index
     """
 
     pathl = normalize_path(path).split('/')
@@ -159,6 +165,8 @@ class HDWalletKey:
     """
     Normally only used as attribute of HDWallet class. Contains HDKey object and extra information such as path and
     balance.
+    
+    All HDWalletKey are stored in a database
     """
 
     @staticmethod
@@ -166,18 +174,29 @@ class HDWalletKey:
                  purpose=44, parent_id=0, path='m'):
         """
         Create HDWalletKey from a HDKey object or key
-        :param name: 
-        :param wallet_id: 
-        :param session: Sqlalchemy Session object
-        :param key: 
-        :param hdkey_object: 
-        :param account_id: 
-        :param network: 
-        :param change: 
-        :param purpose: 
-        :param parent_id: 
-        :param path: 
-        :return: HDWalletKey object
+        
+        :param name: New key name
+         :type name: str
+        :param wallet_id: ID of wallet where to store key
+         :type wallet_id: int
+        :param session: Required Sqlalchemy Session object
+         :type session: sqlalchemy.orm.session.Session
+        :param key: Optional key in any format accepted by the HDKey class
+         :type key: str, int, byte, bytearray
+        :param hdkey_object: Optional HDKey object to import, use this if available to save key derivation time
+         :type hdkey_object: HDKey
+        :param account_id: Account ID for specified key, default is 0
+         :type account_id: int
+        :param network: Network of specified key
+         :type network: str
+        :param change: Use 0 for normal key, and 1 for change key (for returned payments)
+         :type change: int
+        :param purpose: BIP0044 purpose field, default is 44
+         :type purpose: int
+        :param parent_id: Key ID of parent, default is 0 (no parent)
+         :type parent_id: int
+        :param path: BIP0044 path of given key, default is 'm' (masterkey)
+        :return HDWalletKey: HDWalletKey object
         """
         if not hdkey_object:
             if network is None:
@@ -214,16 +233,17 @@ class HDWalletKey:
         session.commit()
         return HDWalletKey(nk.id, session, k)
 
-    @classmethod
-    def from_key_object(cls, hdkey_object, name, wallet_id, session, account_id=0, network='bitcoin', change=0,
-                        purpose=44, parent_id=0, path='m'):
-        if not isinstance(hdkey_object, HDKey):
-            raise WalletError("The hdkey_object variable must be a HDKey type")
-        return cls.from_key(name=name, wallet_id=wallet_id, session=session,
-                            hdkey_object=hdkey_object, account_id=account_id, network=network,
-                            change=change, purpose=purpose, parent_id=parent_id, path=path)
-
     def __init__(self, key_id, session, hdkey_object=None):
+        """
+        Initialize HDWalletKey with specified ID, get information from database.
+        
+        :param key_id: ID of key as mentioned in database
+         :type key_id: int
+        :param session: Required Sqlalchemy Session object
+         :type session: sqlalchemy.orm.session.Session
+        :param hdkey_object: Optional HDKey object 
+         :type hdkey_object: HDKey
+        """
         wk = session.query(DbKey).filter_by(id=key_id).first()
         if wk:
             self._dbkey = wk
@@ -251,18 +271,41 @@ class HDWalletKey:
             raise WalletError("Key with id %s cdnot found" % key_id)
 
     def key(self):
+        """
+        Get HDKey object for current HDWalletKey
+        
+        :return HDKey: 
+        """
         if self._hdkey_object is None:
             self._hdkey_object = HDKey(import_key=self.key_wif, network=self.network.network_name)
         return self._hdkey_object
 
     def balance(self, fmt=''):
+        """
+        Get total of unspent outputs
+        
+        :param fmt: Specify 'string' to return a string in currency format
+         :type fmt: str
+        :return float, str: Key balance 
+        """
         if fmt == 'string':
             return self.network.print_value(self._balance)
         else:
             return self._balance
 
     def fullpath(self, change=None, address_index=None, max_depth=5):
-        # BIP43 + BIP44: m / purpose' / coin_type' / account' / change / address_index
+        """
+        Full BIP004 key path:
+        - m / purpose' / coin_type' / account' / change / address_index
+        
+        :param change: Normal = 0, change =1
+         :type change: int
+        :param address_index: Index number of address (path depth 5)
+         :type address_index: int
+        :param max_depth: Maximum depth of output path. I.e. type 3 for account path
+         :type max_depth: int
+        :return list: Current key path 
+        """
         if change is None:
             change = self.change
         if address_index is None:
@@ -278,19 +321,33 @@ class HDWalletKey:
         p.append(str(address_index))
         return p[:max_depth]
 
-    def parent(self, session):
-        return HDWalletKey(self.parent_id, session=session, hdkey_object=self.key())
+    # def parent(self, session):
+    #     return HDWalletKey(self.parent_id, session=session, hdkey_object=self.key())
 
     def updatebalance(self):
+        """
+        Get balance using the default Service getbalance method and update database
+        
+        :return: 
+        """
         self._balance = Service(network=self.network.network_name).getbalance([self.address])
         self._dbkey.balance = self._balance
 
     def updateutxo(self):
+        """
+        Update list of unspent transaction outputs (UTXO's)
+        
+        :return: 
+        """
         utxos = Service(network=self.network.network_name).getutxos([self.address])
-        from pprint import pprint
-        pprint(utxos)
+        # TODO: store this information in database!
 
     def info(self):
+        """
+        Output current key information to standard output
+        
+        :return: 
+        """
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
         print(" Key Type                       %s" % self.key_type)
@@ -310,10 +367,43 @@ class HDWalletKey:
 
 
 class HDWallet:
+    """
+    Class to create and manage keys Using the BIP0044 Hierarchical Deterministic wallet definitions, so you can 
+    use one Masterkey to generate as much child keys as you want in a structured manner.
+    
+    You can import keys in many format such as WIF or extended WIF, bytes, hexstring, seeds or private key integer.
+    For the Bitcoin network, Litecoin or any other network you define in the settings.
+    
+    Easily send and receive transactions. Compose transactions automatically or select unspent outputs.
+    
+    Each wallet name must be unique and can contain only one cointype and purpose, but practically unlimited
+    accounts and addresses. 
+    """
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44,
                databasefile=DEFAULT_DATABASE):
+        """
+        Create HDWallet and insert in database. Generate masterkey or import key when specified. 
+        
+        Please mention account_id if you are using multiple accounts.
+        
+        :param name: Unique name of this Wallet
+         :type name: str
+        :param key: Masterkey to use for this wallet. Will be automatically created if not specified
+         :type key: str, bytes, int, bytearray
+        :param owner: Wallet owner for your own reference
+         :type owner: str
+        :param network: Network name, use default if not specified
+         :type network: str
+        :param account_id: Account ID, default is 0
+         :type account_id: int
+        :param purpose: BIP0044 purpose field, default is 44
+         :type purpose: int
+        :param databasefile: Location of database file. Leave empty to use default
+         :type databasefile: str
+        :return HDWallet: 
+        """
         session = DbInit(databasefile=databasefile).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
@@ -348,6 +438,31 @@ class HDWallet:
 
     def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
                                name='', basepath='', change=0, purpose=44):
+        """
+        Create all keys for a given path.
+        
+        :param parent: Main parent key. Can be a BIP0044 master key, level 3 account key, or any other.
+         :type parent: HDWalletKey
+        :param path: Path of keys to generate, relative to given parent key
+         :type path: list
+        :param wallet_id: Wallet ID
+         :type wallet_id: int
+        :param account_id: Account ID
+         :type account_id: int
+        :param network: Network
+         :type network: str
+        :param session: Sqlalchemy session
+         :type session: sqlalchemy.orm.session.Session
+        :param name: Name for generated keys. Leave empty for default
+         :type name: str
+        :param basepath: Basepath of main parent key
+         :type basepath: str
+        :param change: Change = 1, or payment = 0. Default is 0.
+         :type change: int
+        :param purpose: BIP0044 purpose, default is 44.
+         :type purpose: int
+        :return HDWalletKey: 
+        """
         # Initial checks and settings
         parent_id = 0
         nk = parent
@@ -374,9 +489,9 @@ class HDWallet:
             pp = "/".join(path[:l+1])
             fullpath = basepath + pp
             ck = ck.subkey_for_path(path[l])
-            nk = HDWalletKey.from_key_object(ck, name=name, wallet_id=wallet_id, network=network,
-                                             account_id=account_id, change=change, purpose=purpose, path=fullpath,
-                                             parent_id=parent_id, session=session)
+            nk = HDWalletKey.from_key(hdkey_object=ck, name=name, wallet_id=wallet_id, network=network,
+                                      account_id=account_id, change=change, purpose=purpose, path=fullpath,
+                                      parent_id=parent_id, session=session)
             self._key_objects.update({nk.key_id: nk})
             parent_id = nk.key_id
         _logger.info("New key(s) created for parent_id %d" % parent_id)
@@ -386,6 +501,16 @@ class HDWallet:
         return self
 
     def __init__(self, wallet, databasefile=DEFAULT_DATABASE, main_key_object=None):
+        """
+        Open a wallet with given ID or name
+        
+        :param wallet: Wallet name or ID
+         :type wallet: int, str
+        :param databasefile: Location of database file. Leave empty to use default
+         :type databasefile: str
+        :param main_key_object: Pass main key object to save time
+         :type main_key_object: HDWalletKey
+        """
         self._session = DbInit(databasefile=databasefile).session
         if isinstance(wallet, int) or wallet.isdigit():
             w = self._session.query(DbWallet).filter_by(id=wallet).scalar()
@@ -415,9 +540,6 @@ class HDWallet:
     def __exit__(self, exception_type, exception_value, traceback):
         self._session.close()
 
-    # def _hdwalletkey_from_key(self, name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=None, change=0,
-    #              purpose=44, parent_id=0, path='m'):
-
     # def __del__(self):
     #     if self._session is not None:
     #         pprint(self._session)
@@ -427,6 +549,13 @@ class HDWallet:
     #             import pdb; pdb.set_trace()
 
     def balance(self, fmt=''):
+        """
+        Get total of unspent outputs
+
+        :param fmt: Specify 'string' to return a string in currency format
+         :type fmt: str
+        :return float, str: Key balance 
+        """
         if fmt == 'string':
             return self.network.print_value(self._balance)
         else:
@@ -434,34 +563,65 @@ class HDWallet:
 
     @property
     def owner(self):
+        """
+        Get wallet Owner
+        :return str: 
+        """
         return self._owner
 
     @owner.setter
     def owner(self, value):
+        """
+        Set wallet Owner in database
+        :param value: Owner
+         :type value: str
+        :return: 
+        """
         self._owner = value
         self._dbwallet.owner = value
         self._session.commit()
 
     @property
     def name(self):
+        """
+        Get wallet name
+        
+        :return str: 
+        """
         return self._name
 
     @name.setter
     def name(self, value):
+        """
+        Set wallet name, update in database
+        
+        :param value: Name for this wallet
+         :type value: str
+        :return: 
+        """
         if wallet_exists(value):
             raise WalletError("Wallet with name '%s' already exists" % value)
         self._name = value
         self._dbwallet.name = value
         self._session.commit()
 
-    def import_key(self, key, account_id=None):
+    def import_key(self, key, account_id=None, path=''):
+        """
+        Add new key
+        :param key: 
+        :param account_id: 
+        :return: 
+        """
+        # Create path for unrelated import keys
+        if account_id is None:
+            account_id = self.default_account_id
         return HDWalletKey.from_key(
             key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
             account_id=account_id, purpose=self.purpose, session=self._session)
 
     def import_hdkey_object(self, hdkey_object, account_id=None):
-        return HDWalletKey.from_key_object(
-            hdkey_object, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
+        return HDWalletKey.from_key(
+            hdkey_object=hdkey_object, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
             account_id=account_id, purpose=self.purpose, session=self._session)
 
     def new_key(self, name='', account_id=None, change=0, max_depth=5):
@@ -837,57 +997,57 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
-    print("\n=== Most simple way to create Bitcoin Wallet ===")
-    w = HDWallet.create('MyWallet', databasefile=test_database)
-    w.info()
-
-    print("\n=== Create new Testnet Wallet and generate a some new keys ===")
-    with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
-        wallet.info(detail=3)
-        wallet.new_account()
-        new_key1 = wallet.new_key()
-        new_key2 = wallet.new_key()
-        new_key3 = wallet.new_key()
-        new_key4 = wallet.new_key(change=1)
-        new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
-        new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
-        new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
-        wallet.info(detail=3)
-        donations_account = wallet.new_account()
-        new_key8 = wallet.new_key(account_id=donations_account.account_id)
-        wallet.info(detail=3)
-
-    print("\n=== Create new Wallet with Testnet master key and account ID 99 ===")
-    testnet_wallet = HDWallet.create(
-        name='TestNetWallet',
-        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-            '7irEvBoe4aAn52',
-        network='testnet',
-        account_id=99,
-        databasefile=test_database)
-    nk = testnet_wallet.new_key(account_id=99, name="Address #1")
-    nk2 = testnet_wallet.new_key(account_id=99, name="Address #2")
-    nkc = testnet_wallet.new_key_change(account_id=99, name="Change #1")
-    nkc2 = testnet_wallet.new_key_change(account_id=99, name="Change #2")
-    testnet_wallet.updateutxos()
-    testnet_wallet.info(detail=3)
-
-    # Three ways of getting the a HDWalletKey, with ID, address and name:
-    print(testnet_wallet.key(1).address)
-    print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
-    print(testnet_wallet.key('TestNetWallet').address)
-
-    print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
-    accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
-                 '8Y7KbKUnaMzxnnnsSvh'
-    wallet_import2 = HDWallet.create(
-        databasefile=test_database,
-        name='Account Import',
-        key=accountkey,
-        network='testnet',
-        account_id=99)
-    wallet_import2.info(detail=3)
-    del wallet_import2
+    # print("\n=== Most simple way to create Bitcoin Wallet ===")
+    # w = HDWallet.create('MyWallet', databasefile=test_database)
+    # w.info()
+    #
+    # print("\n=== Create new Testnet Wallet and generate a some new keys ===")
+    # with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
+    #     wallet.info(detail=3)
+    #     wallet.new_account()
+    #     new_key1 = wallet.new_key()
+    #     new_key2 = wallet.new_key()
+    #     new_key3 = wallet.new_key()
+    #     new_key4 = wallet.new_key(change=1)
+    #     new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
+    #     new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+    #     new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+    #     wallet.info(detail=3)
+    #     donations_account = wallet.new_account()
+    #     new_key8 = wallet.new_key(account_id=donations_account.account_id)
+    #     wallet.info(detail=3)
+    #
+    # print("\n=== Create new Wallet with Testnet master key and account ID 99 ===")
+    # testnet_wallet = HDWallet.create(
+    #     name='TestNetWallet',
+    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+    #         '7irEvBoe4aAn52',
+    #     network='testnet',
+    #     account_id=99,
+    #     databasefile=test_database)
+    # nk = testnet_wallet.new_key(account_id=99, name="Address #1")
+    # nk2 = testnet_wallet.new_key(account_id=99, name="Address #2")
+    # nkc = testnet_wallet.new_key_change(account_id=99, name="Change #1")
+    # nkc2 = testnet_wallet.new_key_change(account_id=99, name="Change #2")
+    # testnet_wallet.updateutxos()
+    # testnet_wallet.info(detail=3)
+    #
+    # # Three ways of getting the a HDWalletKey, with ID, address and name:
+    # print(testnet_wallet.key(1).address)
+    # print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
+    # print(testnet_wallet.key('TestNetWallet').address)
+    #
+    # print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
+    # accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+    #              '8Y7KbKUnaMzxnnnsSvh'
+    # wallet_import2 = HDWallet.create(
+    #     databasefile=test_database,
+    #     name='Account Import',
+    #     key=accountkey,
+    #     network='testnet',
+    #     account_id=99)
+    # wallet_import2.info(detail=3)
+    # del wallet_import2
 
     print("\n=== Create simple wallet and import some unrelated private keys ===")
     simple_wallet = HDWallet.create(
