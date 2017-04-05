@@ -296,21 +296,23 @@ class HDWallet:
         # Initial checks and settings
         parent_id = 0
         nk = parent
-        ck = parent.key()
+        ck = nk.key()
         if not isinstance(path, list):
             raise WalletError("Path must be of type 'list'")
         if len(basepath) and basepath[-1] != "/":
             basepath += "/"
 
         # Check for closest ancestor in wallet
-        # spath = basepath + '/'.join(path)
-        # rkey = None
-        # while spath and not rkey:
-        #     rkey = self._session.query(DbKey).filter_by(path=spath).first()
-        #     spath = '/'.join(spath.split("/")[:-1])
-        # if rkey is not None and rkey.path not in [basepath, basepath[:-1]]:
-        #     path = (basepath + '/'.join(path)).replace(rkey.path + '/', '').split('/')
-        #     basepath = rkey.path + '/'
+        spath = basepath + '/'.join(path)
+        rkey = None
+        while spath and not rkey:
+            rkey = self._session.query(DbKey).filter_by(wallet_id=wallet_id, path=spath).first()
+            spath = '/'.join(spath.split("/")[:-1])
+        if rkey is not None and rkey.path not in [basepath, basepath[:-1]]:
+            path = (basepath + '/'.join(path)).replace(rkey.path + '/', '').split('/')
+            basepath = rkey.path + '/'
+            nk = self.key(rkey.id)
+            ck = nk.key()
 
         # Create new keys from path
         for l in range(len(path)):
@@ -357,6 +359,9 @@ class HDWallet:
 
     def __exit__(self, exception_type, exception_value, traceback):
         self._session.close()
+
+    # def _hdwalletkey_from_key(self, name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=None, change=0,
+    #              purpose=44, parent_id=0, path='m'):
 
     # def __del__(self):
     #     if self._session is not None:
@@ -503,12 +508,12 @@ class HDWallet:
         spath = normalize_path(path)
         rkey = None
         while spath and not rkey:
-            rkey = self._session.query(DbKey).filter_by(path=spath).first()
+            rkey = self._session.query(DbKey).filter_by(path=spath, wallet_id=self.wallet_id).first()
             spath = '/'.join(spath.split("/")[:-1])
 
         # Key already found in db, return key
         if rkey.path == path:
-            return HDWalletKey(rkey.id, self._session)
+            return self.key(rkey.id)
 
         parent_key = self.main_key
         subpath = path
@@ -517,7 +522,7 @@ class HDWallet:
             subpath = normalize_path(path).replace(rkey.path + '/', '')
             basepath = rkey.path
             if self.main_key.key_wif != rkey.key_wif:
-                parent_key = HDWalletKey(rkey.id, self._session)
+                parent_key = self.key(rkey.id)
         newkey = self._create_keys_from_path(
             parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
             account_id=account_id, change=change,
@@ -557,7 +562,10 @@ class HDWallet:
         if not dbkey:
             dbkey = self._session.query(DbKey).filter_by(name=term).first()
         if dbkey:
-            return HDWalletKey(key_id=dbkey.id, session=self._session)
+            if dbkey.id in self._key_objects.keys():
+                return self._key_objects[dbkey.id]
+            else:
+                return HDWalletKey(key_id=dbkey.id, session=self._session)
         else:
             raise KeyError("Key '%s' not found" % term)
 
@@ -736,7 +744,7 @@ class HDWallet:
 
         return t
 
-    def info(self, detail=0):
+    def info(self, detail=1):
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
         print(" Name                           %s" % self.name)
@@ -774,8 +782,12 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
+    # -- Create wallet
+    w = HDWallet.create('MyWallet', databasefile=test_database)
+    w.info()
+
     # -- Create New Wallet and Generate a some new Keys --
-    if False:
+    if True:
         with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
             wallet.info(detail=3)
             wallet.new_account()
@@ -792,7 +804,7 @@ if __name__ == '__main__':
             wallet.info(detail=3)
 
     # -- Create New Wallet with Testnet master key and account ID 99 --
-    if False:
+    if True:
         wallet_import = HDWallet.create(
             name='TestNetWallet',
             key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
@@ -814,6 +826,7 @@ if __name__ == '__main__':
         # print(wallet_import.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
         # print(wallet_import.key('TestNetWallet').address)
 
+    import sys; sys.exit()
     if False:
         # Send testbitcoins to an address
         wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
