@@ -752,12 +752,12 @@ if __name__ == '__main__':
     K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
     K.info()
 
-    print("\n==== Import Private key as decimal ===")
+    print("\n=== Import Private key as decimal ===")
     pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
     k = Key(import_key=pk, network='testnet')
     k.info()
 
-    print("\n==== Import Private key as byte ===")
+    print("\n=== Import Private key as byte ===")
     pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
     k = Key(pk)
     k.info()
@@ -772,50 +772,46 @@ if __name__ == '__main__':
     k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
     k.info()
 
-    print("\n==== Import Private Litecoin key ===")
+    print("\n=== Import Private Litecoin key ===")
     pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
     k = Key(import_key=pk)
     k.info()
 
-    print("\n==== Import uncompressed Private Key and Encrypt with BIP38 ===")
+    print("\n=== Import uncompressed Private Key and Encrypt with BIP38 ===")
     k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
     print("Private key     %s" % k.wif())
     print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
     print("Is Compressed   %s\n" % k.compressed)
 
-    print("\n==== Import and Decrypt BIP38 Key ===")
+    print("\n=== Import and Decrypt BIP38 Key ===")
     k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
     print("Private key     %s" % k.wif())
     print("Is Compressed   %s\n" % k.compressed)
 
-    print("\n==== Generate random HD Key on testnet ===")
+    print("\n=== Generate random HD Key on testnet ===")
     hdk = HDKey(network='testnet')
     print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
 
-    print("\n==== Import HD Key from seed ===")
+    print("\n=== Import HD Key from seed ===")
     k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
     print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
     print("Key type is : %s" % k.key_type)
 
-    print("\n==== Generate random Litecoin key ===")
+    print("\n=== Generate random Litecoin key ===")
     lk = HDKey(network='litecoin')
     lk.info()
 
-    print("\n==== Import simple private key as HDKey ===")
+    print("\n=== Import simple private key as HDKey ===")
     k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
     print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
     print("Key type is : %s" % k.key_type)
 
-    print("\n==== Normalize BIP48 key path ===")
-    key_path = "m/44h/1'/0p/2000/1"
-    print("Raw: %s, Normalized: %s" % (key_path, normalize_path(key_path)))
-
-    print("\n==== Derive path with Child Key derivation ===")
+    print("\n=== Derive path with Child Key derivation ===")
     print("Derive path path 'm/0H/1':")
     print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').extended_wif())
     print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').extended_wif_public())
 
-    print("\n==== Test Child Key Derivation ===")
+    print("\n=== Test Child Key Derivation ===")
     print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
           "and one thought private parent. They should be the same.")
     K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
