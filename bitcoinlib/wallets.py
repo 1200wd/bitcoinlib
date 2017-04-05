@@ -123,7 +123,6 @@ class HDWalletKey:
     @staticmethod
     def from_key(name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=None, change=0,
                  purpose=44, parent_id=0, path='m'):
-        # TODO: Test key and check for invalid account id
         if not hdkey_object:
             if network is None:
                 network = DEFAULT_NETWORK
@@ -727,7 +726,7 @@ class HDWallet:
             key = self._session.query(DbKey).filter_by(id=inp[2]).scalar()
             k = HDKey(key.key_wif)
             id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
-            sign_arr.append((k.private_byte(), id))
+            sign_arr.append((k.private_byte, id))
 
         # Add change output
         if amount_change:
