@@ -23,7 +23,6 @@
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import Key
-# from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 
 

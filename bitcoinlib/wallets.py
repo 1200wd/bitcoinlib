@@ -41,6 +41,13 @@ class WalletError(Exception):
 
 
 def list_wallets(databasefile=DEFAULT_DATABASE):
+    """
+    List Wallets from database
+    
+    :param databasefile: Location of Sqlite database (optional)
+    :type databasefile: str
+    :return dict: Dictionary of wallets defined in database
+    """
     session = DbInit(databasefile=databasefile).session
     wallets = session.query(DbWallet).all()
     wlst = []
@@ -58,6 +65,12 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
 
 
 def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
+    """
+    Check if Wallets is defined in database
+    :param wallet: Wallet ID as integer or Wallet Name as string
+    :param databasefile: Location of Sqlite database (optional)
+    :return: True or False
+    """
     if wallet in [x['name'] for x in list_wallets(databasefile)]:
         return True
     if isinstance(wallet, int) and wallet in [x['id'] for x in list_wallets(databasefile)]:
@@ -66,6 +79,14 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 
 def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
+    """
+    Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
+    unless 'force=True' is specified
+    :param wallet: Wallet ID as integer or Wallet Name as string
+    :param databasefile: Location of Sqlite database (optional)
+    :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
+    :return: Number of rows deleted, so integer 1 if succesfull
+    """
     session = DbInit(databasefile=databasefile).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
@@ -73,13 +94,15 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
         w = session.query(DbWallet).filter_by(name=wallet)
     if not w or not w.first():
         raise WalletError("Wallet '%s' not found" % wallet)
-    # Also delete all keys and transactions in this wallet
+    # Delete keys from this wallet
     ks = session.query(DbKey).filter_by(wallet_id=w.first().id)
     for k in ks:
         if not force and k.balance:
             raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
                               (k.id, k.address))
     ks.delete()
+
+    # TODO: Mark transactions from this wallet as watch_only
     res = w.delete()
     session.commit()
     session.close()
@@ -90,8 +113,9 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
 def normalize_path(path):
     """ Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys 
 
-    :param path: BIP0044 key path as string 
-    :return Normalized BIP004 key path with single quotes
+    :param path: BIP0044 key path 
+    :type path: str
+    :return str: Normalized BIP004 key path with single quotes
     """
     levels = path.split("/")
     npath = ""
@@ -108,12 +132,23 @@ def normalize_path(path):
 
 
 def parse_bip44_path(path):
-    # BIP43 + BIP44: m / purpose' / cointype' / account' / change / address_index
+    """
+    Assumes a correct BIP0044 path and returns a dictionary with path items. See Bitcoin improvement proposals
+    BIP0043 and BIP0044.
+    
+    :param path: BIP0044 path as string, with backslash (/) seperator. 
+    Specify path in this format: m / purpose' / cointype' / account' / change / address_index
+    Path lenght must be between 1 and 6 (Depth between 0 and 5)
+    :return: Dictionary with path items: isprivate, purpose, cointype, account, change and address_index
+    """
+
     pathl = normalize_path(path).split('/')
+    if not 0 < len(pathl) <= 6:
+        raise WalletError("Not a valid BIP0044 path. Path length (depth) must be between 1 and 6 not %d" % len(pathl))
     return {
         'isprivate': True if pathl[0] == 'm' else False,
         'purpose': '' if len(pathl) < 2 else pathl[1],
-        'cointype':'' if len(pathl) < 3 else pathl[2],
+        'cointype': '' if len(pathl) < 3 else pathl[2],
         'account': '' if len(pathl) < 4 else pathl[3],
         'change': '' if len(pathl) < 5 else pathl[4],
         'address_index': '' if len(pathl) < 6 else pathl[5],
@@ -121,10 +156,29 @@ def parse_bip44_path(path):
 
 
 class HDWalletKey:
+    """
+    Normally only used as attribute of HDWallet class. Contains HDKey object and extra information such as path and
+    balance.
+    """
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=None, change=0,
                  purpose=44, parent_id=0, path='m'):
+        """
+        Create HDWalletKey from a HDKey object or key
+        :param name: 
+        :param wallet_id: 
+        :param session: Sqlalchemy Session object
+        :param key: 
+        :param hdkey_object: 
+        :param account_id: 
+        :param network: 
+        :param change: 
+        :param purpose: 
+        :param parent_id: 
+        :param path: 
+        :return: HDWalletKey object
+        """
         if not hdkey_object:
             if network is None:
                 network = DEFAULT_NETWORK
@@ -909,5 +963,5 @@ if __name__ == '__main__':
 
     print("\n=== List wallets & delete a wallet ===")
     print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
-    delete_wallet(1, databasefile=test_database, force=True)
+    hoihoi = delete_wallet(1, databasefile=test_database, force=True)
     print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))

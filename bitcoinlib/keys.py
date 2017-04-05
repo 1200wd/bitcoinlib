@@ -48,15 +48,33 @@ class BKeyError(Exception):
         return self.msg
 
 
-def check_network_and_key(key, network):
-    kf = get_key_format(key)
-    if kf['networks']:
-        if network is not None and network not in kf['networks']:
-            raise KeyError("Specified key %s is from different network then specified: %s" % (kf['networks'], network))
-        elif network is None and len(kf['networks']) == 1:
-            return kf['networks'][0]
-        elif network is None and len(kf['networks']) > 1:
-            raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf['networks'])
+def check_network_and_key(key, network=None, kf_networks=None):
+    """
+    Check if given key corresponds with given network and return network if it does. If no network is specified
+    this method tries to extract the network from the key. If no network can be extracted from the key the
+    default network will be returned.
+    
+    A KeyError will be raised if key does not corresponds with network or if multiple network are found. 
+    :param key: Key in any format recognized by get_key_format function
+    :type key: str, int, bytes, bytearray
+    :param network: Optional network. Method raises KeyError if keys belongs to another network
+    :type network: str
+    :param network: Optional list of networks which is returned by get_key_format. If left empty this function will
+    be called.
+    :type kf_networks: list
+    :return str: Network name 
+    """
+    if not kf_networks:
+        kf = get_key_format(key)
+        if kf['networks']:
+            kf_networks = kf['networks']
+    if kf_networks:
+        if network is not None and network not in kf_networks:
+            raise KeyError("Specified key %s is from different network then specified: %s" % (kf_networks, network))
+        elif network is None and len(kf_networks) == 1:
+            return kf_networks[0]
+        elif network is None and len(kf_networks) > 1:
+            raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf_networks)
     if network is None:
         return DEFAULT_NETWORK
     else:
@@ -65,12 +83,14 @@ def check_network_and_key(key, network):
 
 def get_key_format(key, isprivate=None):
     """
-    Determins the type and format of a public or private key by length and prefix.
+    Determins the type (private or public), format and network key.
     This method does not validate if a key is valid.
 
     :param key: Any private or public key
-    :param keytype: 'private' or 'public', is most cases not required as methods takes best guess
-    :return: key_format of key as string
+    :type key: str, int, bytes, bytearray
+    :param isprivate: Is key private or not?
+    :type isprivate: bool
+    :return dict: Dictionary with format, network and isprivate
     """
     if not key:
         raise BKeyError("Key empty, please specify a valid key")
@@ -180,12 +200,22 @@ class Key:
 
     def __init__(self, import_key=None, network=None, compressed=True, passphrase=''):
         """
-        Initialize a Key object
+        Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc.
+        If a private key is imported a public key will be derived. If a public is imported the private key data will
+        be empty.
+        
+        Both compressed and uncompressed key version is available, the Key.compressed boolean attribute tells if the
+        original imported key was compressed or not.
 
         :param import_key: If specified import given private or public key.
         If not specified a new private key is generated.
+        :type import_key: str, int, bytes, bytearray
         :param network: Bitcoin, testnet, litecoin or other network
+        :type network: str
+        :param compressed: Is key compressed or not, default is True
+        :type compressed: bool
         :param passphrase: Optional passphrase if imported key is password protected
+        :type passphrase: str
         :return: Key object
         """
         self.public_hex = None
@@ -202,7 +232,7 @@ class Key:
             import_key = random.SystemRandom().randint(0, secp256k1_n)
         kf = get_key_format(import_key)
         self.key_format = kf["format"]
-        network = check_network_and_key(import_key, network)
+        network = check_network_and_key(import_key, network, kf["networks"])
         self.network = Network(network)
         if kf['isprivate']:
             self.isprivate = True
@@ -325,13 +355,15 @@ class Key:
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
         """
-        BIP0038 non-ec-multiply decryption. Returns WIF privkey.
+        BIP0038 non-ec-multiply decryption. Returns WIF private key.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
         This method is called by Key class init function when importing BIP0038 key.
 
-        :param encrypted_privkey: Encrypted Private Key using WIF protected key format
+        :param encrypted_privkey: Encrypted private key using WIF protected key format
+        :type encrypted_privkey: str
         :param passphrase: Required passphrase for decryption
-        :return: Private Key WIF
+        :type passphrase: str
+        :return str: Private Key WIF
         """
         # TODO: Also check first 2 bytes
         d = change_base(encrypted_privkey, 58, 256)[2:]
@@ -376,7 +408,8 @@ class Key:
         Based on code from https://github.com/nomorecoin/python-bip38-testing
 
         :param passphrase: Required passphrase for encryption
-        :return: BIP38 passphrase encrypted private key
+        :type passphrase: str
+        :return str: BIP38 passphrase encrypted private key
         """
         if self.compressed:
             flagbyte = b'\xe0'
@@ -407,7 +440,7 @@ class Key:
         (1) Convert to Binary and add 0x80 hex
         (2) Calculate Double SHA256 and add as checksum to end of key
 
-        :return: Base58Check encoded Private Key WIF
+        :return str: Base58Check encoded Private Key WIF
         """
         if not self.secret:
             raise KeyError("WIF format not supported for public key")
@@ -419,20 +452,41 @@ class Key:
         return change_base(key, 256, 58)
 
     def public(self, return_compressed=None):
+        """
+        Get public key
+        
+        :param return_compressed: If True always return a compressed version and if False always return uncompressed
+        :type return_compressed: bool
+        :return str: Public key hexstring 
+        """
         if (self.compressed and return_compressed is None) or return_compressed:
             return self.public_hex
         else:
             return self.public_uncompressed_hex
 
     def public_uncompressed(self):
+        """
+        Get public key, uncompressed version
+        :return str: Uncompressed public key hexstring 
+        """
         return self.public_uncompressed_hex
 
     def public_point(self):
+        """
+        Get public key point on Eliptic curve
+        
+        :return tuple: (x, y) point
+        """
         x = self._x and int(self._x, 16)
         y = self._y and int(self._y, 16)
         return (x, y)
 
     def hash160(self):
+        """
+        Get public key in Hash160 format
+        
+        :return str: Hash160 public key hexstring 
+        """
         if self.compressed:
             pb = self.public_byte
         else:
@@ -440,6 +494,13 @@ class Key:
         return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).hexdigest()
 
     def address(self, compressed=None):
+        """
+        Get address derived from public key
+        
+        :param compressed: Always return compressed address
+        :type compressed: bool
+        :return str: Base58 encoded address 
+        """
         if (self.compressed and compressed is None) or compressed:
             key = self.public_byte
         else:
@@ -450,9 +511,18 @@ class Key:
         return change_base(key + checksum, 256, 58)
 
     def address_uncompressed(self):
+        """
+        Get uncompressed address from public key
+        :return str: Base58 encoded address 
+        """
         return self.address(compressed=False)
 
     def info(self):
+        """
+        Prints key information to standard output
+        
+        :return: 
+        """
         if self.secret:
             print("SECRET EXPONENT")
             print(" Private Key (hex)              %s" % self.private_hex)
@@ -490,7 +560,9 @@ class HDKey:
         Used by class init function, import key from seed
 
         :param import_seed: Private key seed as bytes or hexstring
+        :type import_seed: str, bytes
         :param network: Network to use
+        :type network: str
         :return: HDKey class object
         """
         seed = to_bytes(import_seed)
@@ -503,18 +575,29 @@ class HDKey:
                  child_index=0, isprivate=True, network=None, key_type='bip32', passphrase=''):
         """
         Hierarchical Deterministic Key class init function.
-        If no import_key is specified a key will be generated with system cryptographically random function.
+        If no import_key is specified a key will be generated with systems cryptographically random function.
+        Import key can be any format normal or HD key (extended key) accepted by get_key_format. 
+        If a normal key with no chain part is provided, an chain with only 32 0-bytes will be used.
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
-        :param key: Private or public key (32 bytes)
-        :param chain: A chain code (32 bytes)
-        :param depth: Integer of level of depth in path (BIP0043/BIP0044)
+        :type import_key: str, bytes
+        :param key: Private or public key (lenght 32)
+        :type key: bytes
+        :param chain: A chain code (lenght 32)
+        :type chain: bytes
+        :param depth: Level of depth in path (BIP0043/BIP0044)
+        :type depth: int
         :param parent_fingerprint: 4-byte fingerprint of parent
+        :type parent_fingerprint: bytes
         :param child_index: Index number of child as integer
-        :param isprivate: True for private, False for public key
-        :param network: Network name. Derived from import_key if possible.
-        :param key_type: HD BIP32 or normal Private Key
-        :return:
+        :type child_index: int
+        :param isprivate: True for private, False for public key. Default is True
+        :type isprivate: bool
+        :param network: Network name. Derived from import_key if possible
+        :type network: str
+        :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
+        :type key_type: str
+        :return: HDKey class object
         """
 
         if (key and not chain) or (not key and chain):
@@ -583,9 +666,15 @@ class HDKey:
         self.key_type = key_type
 
     def __repr__(self):
+        """ As default return """
         return self.extended_wif()
 
     def info(self):
+        """
+        Prints key information to standard output
+
+        :return: 
+        """
         if self.isprivate:
             print("SECRET EXPONENT")
             print(" Private Key (hex)           %s" % self.private_hex)
@@ -612,6 +701,13 @@ class HDKey:
         print("\n")
 
     def _key_derivation(self, seed):
+        """
+        Derive extended private key with key and chain part from seed
+        
+        :param seed:
+        :type seed: bytes
+        :return tuple: key and chain bytes
+        """
         chain = hasattr(self, 'chain') and self.chain or b"Bitcoin seed"
         I = hmac.new(chain, seed, hashlib.sha512).digest()
         key = I[:32]
@@ -619,9 +715,22 @@ class HDKey:
         return key, chain
 
     def fingerprint(self):
+        """
+        Get fingerprint of keys public part
+        :return: 
+        """
         return hashlib.new('ripemd160', hashlib.sha256(self.public_byte).digest()).digest()[:4]
 
     def extended_wif(self, public=None, child_index=None):
+        """
+        Get Extended WIF of current key
+        
+        :param public: Return public key?
+        :type public: bool
+        :param child_index: Change child index of output WIF key
+        :type child_index: int
+        :return str: Base58 encoded WIF key 
+        """
         rkey = self.private_byte or self.public_byte
         if not self.isprivate and public is False:
             return ''
@@ -642,6 +751,11 @@ class HDKey:
         return change_base(ret, 256, 58, 111)
 
     def extended_wif_public(self):
+        """
+        Get Extended WIF public key
+        
+        :return str: Base58 encoded WIF key
+        """
         return self.extended_wif(public=True)
 
     def subkey_for_path(self, path):
@@ -652,6 +766,7 @@ class HDKey:
         See BIP0044 bitcoin proposal for more explanation.
 
         :param path: BIP0044 key path
+        :type path: str
         :return: HD Key class object of subkey
         """
         key = self
@@ -687,7 +802,9 @@ class HDKey:
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
 
         :param index: Key index number
+        :type index: int
         :param hardened: Specify if key must be hardened (True) or normal (False)
+        :type hardened: bool
         :return: HD Key class object
         """
         if not self.isprivate:
@@ -715,6 +832,7 @@ class HDKey:
         Use Child Key Derivation to derive child public key of current HD Key object.
 
         :param index: Key index number
+        :type index: int
         :return: HD Key class object
         """
         if index > 0x80000000:

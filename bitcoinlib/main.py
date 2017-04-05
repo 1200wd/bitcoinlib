@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MAIN - Load configs, initialize logging and database
-#    © 2016 December - 1200 Web Development <http://1200wd.com/>
+#    © 2017 April - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -23,6 +23,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
+# Default file locations
 DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
 DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database/')
 DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log/')
@@ -41,6 +42,7 @@ if not os.path.exists(DEFAULT_SETTINGSDIR):
     os.makedirs(DEFAULT_SETTINGSDIR)
 
 
+# Copy data and settings to default settings directory if install.log is not found
 def initialize_lib():
     instlogfile = os.path.join(DEFAULT_LOGDIR, 'install.log')
     if os.path.isfile(instlogfile):
@@ -49,7 +51,7 @@ def initialize_lib():
     with open(instlogfile, 'w') as f:
         f.write('Bitcoinlibrary installed, check further logs in bitcoinlib.log\n')
 
-    # Copy data and settings file to DOCDIR
+    # Copy data and settings file
     from shutil import copyfile
     src_files = os.listdir(CURRENT_INSTALLDIR_DATA)
     for file_name in src_files:
@@ -57,9 +59,10 @@ def initialize_lib():
         if os.path.isfile(full_file_name):
             copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
 
-
 initialize_lib()
 
+
+# Initialize logging to bitcoinlib.log
 logfile = os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log')
 handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
 logger = logging.getLogger()
