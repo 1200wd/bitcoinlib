@@ -552,7 +552,7 @@ class HDWallet:
         """
         Get total of unspent outputs
 
-        :param fmt: Specify 'string' to return a string in currency format
+        :param fmt: Specify 'string' to return a string in currency format. Default returns float.
          :type fmt: str
         :return float, str: Key balance 
         """
@@ -607,10 +607,13 @@ class HDWallet:
 
     def import_key(self, key, account_id=None):
         """
-        Add new key
-        :param key: 
-        :param account_id: 
-        :return: 
+        Add new non HD key to wallet. This key will have no path but are referred by a import_key sequence
+        
+        :param key: Key to import
+         :type key: str, bytes, int, bytearray
+        :param account_id: Account ID. Default is last used or created account ID.
+         :type account_id: int
+        :return HDWalletKey: 
         """
         # Create path for unrelated import keys
         last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
@@ -626,12 +629,23 @@ class HDWallet:
             key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
             account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path)
 
-    def import_hdkey_object(self, hdkey_object, account_id=None):
-        return HDWalletKey.from_key(
-            hdkey_object=hdkey_object, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
-            account_id=account_id, purpose=self.purpose, session=self._session)
-
     def new_key(self, name='', account_id=None, change=0, max_depth=5):
+        """
+        Create a new HD Key to this wallet, derive from Masterkey. An account will be created for this wallet
+        with index 0 if there is no account defined yet.
+        
+        :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce 
+        this. If not specified 'Key #' with an unique sequence number will be used
+         :type name: str
+        :param account_id: Account ID. Default is last used or created account ID.
+         :type account_id: int
+        :param change: Change (1) or payments (0). Default is 0
+         :type change: int
+        :param max_depth: Maximum path depth. Default for BIP0044 is 5, any other value is non-standard and might
+        cause unexpected behavior
+         :type max_depth: int
+        :return HDWalletKey: 
+        """
         if account_id is None:
             account_id = self.default_account_id
 
@@ -671,9 +685,27 @@ class HDWallet:
         return newkey
 
     def new_key_change(self, name='', account_id=0):
+        """
+        Create new key to receive change for a transaction. Calls new_key method with change=1
+        
+        :param name: Key name
+         :type name: str
+        :param account_id: Account ID
+         :type account_id: int
+        :return HDWalletKey: 
+        """
         return self.new_key(name=name, account_id=account_id, change=1)
 
     def new_account(self, name='', account_id=None):
+        """
+        Create a new account with a childkey for payments and 1 for change.
+        
+        :param name: Account Name. If not specified 'Account #" with be used
+         :type name: str
+        :param account_id: Account ID. Default is last accounts ID + 1
+         :type account_id: int
+        :return: 
+        """
         # Determine account_id and name
         if account_id is None:
             last_id = self._session.query(DbKey). \
@@ -1004,9 +1036,13 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
-    # print("\n=== Most simple way to create Bitcoin Wallet ===")
-    # w = HDWallet.create('MyWallet', databasefile=test_database)
-    # w.info()
+    print("\n=== Most simple way to create Bitcoin Wallet ===")
+    w = HDWallet.create('MyWallet', databasefile=test_database)
+    w.new_key_change()
+    w.new_key()
+    w.info()
+
+    import sys; sys.exit()
     #
     # print("\n=== Create new Testnet Wallet and generate a some new keys ===")
     # with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
