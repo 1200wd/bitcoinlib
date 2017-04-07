@@ -528,9 +528,9 @@ if __name__ == '__main__':
     t = Transaction()
     prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
     ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-    t.add_input(prev_hash=prev_tx, output_index=1, public_key=ki.public_hex())
+    t.add_input(prev_hash=prev_tx, output_index=1, public_key=ki.public_hex)
     t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
-    t.sign(ki.private_byte())
+    t.sign(ki.private_byte)
     pprint(t.get())
     print(binascii.hexlify(t.raw()))
     print("Verified %s " % t.verify())
@@ -539,25 +539,25 @@ if __name__ == '__main__':
           "http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html ===")
     ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
     txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-    utxo_input = Input(prev_hash=txid, output_index=0, public_key=ki.public_byte())
+    utxo_input = Input(prev_hash=txid, output_index=0, public_key=ki.public_byte)
     pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
     transaction_output = Output(amount=91234, public_key_hash=pkh)
     t = Transaction([utxo_input], [transaction_output])
-    t.sign(ki.private_byte())
+    t.sign(ki.private_byte)
     print(binascii.hexlify(t.raw()))
     pprint(t.get())
     print("Verified %s " % t.verify())
 
     print("\n=== Create and sign Testnet Transaction using keys from Wallet class 'TestNetWallet' example "
           "See txid 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7 ===")
-    ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz')  # Private key for import
+    ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import
     input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
                   public_key=ki.public(), network='testnet')
     # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
     ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
     output = Output(880000, public_key_hash=ko.hash160(), network='testnet')
     t = Transaction([input], [output], network='testnet')
-    t.sign(ki.private_byte(), 0)
+    t.sign(ki.private_byte, 0)
     pprint(t.get())
     print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
     print("Verified %s\n\n\n" % t.verify())
@@ -565,7 +565,7 @@ if __name__ == '__main__':
     print("\n=== Create and sign Testnet Transaction with Multiple OUTPUTS using keys from Wallet class "
           "'TestNetWallet' example"
           "\nSee txid f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618 ===")
-    ki = Key('cRMjy1LLMPsVU4uaAt3br8Ft5vdJLx6prY4Sx7WjPARrpYAnVEkV')  # Private key for import
+    ki = Key('cRMjy1LLMPsVU4uaAt3br8Ft5vdJLx6prY4Sx7WjPARrpYAnVEkV', network='testnet')  # Private key for import
     ti = Input(prev_hash='adee8bdd011f60e52949b65b069ff9f19fc220815fdc1a6034613ed1f6b775f1', output_index=1,
                public_key=ki.public(), network='testnet')
     amount_per_address = 27172943
@@ -576,7 +576,7 @@ if __name__ == '__main__':
     for oa in output_addresses:
         outputs.append(Output(amount_per_address, address=oa, network='testnet'))
     t = Transaction([ti], outputs, network='testnet')
-    t.sign(ki.private_byte(), 0)
+    t.sign(ki.private_byte, 0)
     pprint(t.get())
     print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
     print("Verified %s\n\n\n" % t.verify())
@@ -601,13 +601,12 @@ if __name__ == '__main__':
     ]
     inputs = []
     for ti in tis:
-        ki = Key(ti[2])
-        t.add_input(prev_hash=ti[0], output_index=ti[1], public_key=ki.public(), network='testnet',
-                    sequence=b'\xff\xff\xff\xff')
+        ki = Key(ti[2], network='testnet')
+        t.add_input(prev_hash=ti[0], output_index=ti[1], public_key=ki.public(), sequence=b'\xff\xff\xff\xff')
     icount = 0
     for ti in tis:
-        ki = Key(ti[2])
-        t.sign(ki.private_byte(), icount)
+        ki = Key(ti[2], network='testnet')
+        t.sign(ki.private_byte, icount)
         icount += 1
     pprint(t.get())
     print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
@@ -620,11 +619,11 @@ if __name__ == '__main__':
     amount = 95000
     send_to_address = '1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF'
 
-    key_input = Key(private_key)
-    utxo_input = Input(prev_hash=utxo, output_index=1, public_key=key_input.public())
+    ki = Key(private_key)
+    utxo_input = Input(prev_hash=utxo, output_index=1, public_key=ki.public())
     output_to = Output(amount, address=send_to_address)
     t = Transaction([utxo_input], [output_to])
-    t.sign(key_input.private_byte(), 0)
+    t.sign(ki.private_byte, 0)
     pprint(t.get())
     print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
     print("Verified %s\n\n\n" % t.verify())
