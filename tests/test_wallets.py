@@ -173,9 +173,9 @@ class TestWalletElectrum(unittest.TestCase):
         with open('%s/%s' % (workdir, 'electrum_keys.json'), 'r') as f:
             self.el_keys = json.load(f)
         for i in range(20):
-            self.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i, disable_check=True)
+            self.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i, enable_checks=False)
         for i in range(6):
-            self.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i, disable_check=True)
+            self.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i, enable_checks=False)
 
     def test_electrum_keys(self):
         for key in self.wallet.keys():
