@@ -748,7 +748,7 @@ class HDWallet:
         """
         Create key with specified path. Can be used to create non-default (non-BIP0044) paths.
         
-        Can cause problems if you already used account_id's or address_indexes are provided.
+        Can cause problems if already used account ID's or address indexes are provided.
         
         :param path: Path string in m/#/#/# format. With quote (') or (p/P/h/H) character for hardened child key 
         derivation
@@ -1206,55 +1206,53 @@ if __name__ == '__main__':
     w.new_key()
     w.info()
 
-    import sys; sys.exit()
-    #
-    # print("\n=== Create new Testnet Wallet and generate a some new keys ===")
-    # with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
-    #     wallet.info(detail=3)
-    #     wallet.new_account()
-    #     new_key1 = wallet.new_key()
-    #     new_key2 = wallet.new_key()
-    #     new_key3 = wallet.new_key()
-    #     new_key4 = wallet.new_key(change=1)
-    #     new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
-    #     new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
-    #     new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
-    #     wallet.info(detail=3)
-    #     donations_account = wallet.new_account()
-    #     new_key8 = wallet.new_key(account_id=donations_account.account_id)
-    #     wallet.info(detail=3)
-    #
-    # print("\n=== Create new Wallet with Testnet master key and account ID 99 ===")
-    # testnet_wallet = HDWallet.create(
-    #     name='TestNetWallet',
-    #     key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-    #         '7irEvBoe4aAn52',
-    #     network='testnet',
-    #     account_id=99,
-    #     databasefile=test_database)
-    # nk = testnet_wallet.new_key(account_id=99, name="Address #1")
-    # nk2 = testnet_wallet.new_key(account_id=99, name="Address #2")
-    # nkc = testnet_wallet.new_key_change(account_id=99, name="Change #1")
-    # nkc2 = testnet_wallet.new_key_change(account_id=99, name="Change #2")
-    # testnet_wallet.updateutxos()
-    # testnet_wallet.info(detail=3)
-    #
-    # # Three ways of getting the a HDWalletKey, with ID, address and name:
-    # print(testnet_wallet.key(1).address)
-    # print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
-    # print(testnet_wallet.key('TestNetWallet').address)
-    #
-    # print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
-    # accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
-    #              '8Y7KbKUnaMzxnnnsSvh'
-    # wallet_import2 = HDWallet.create(
-    #     databasefile=test_database,
-    #     name='Account Import',
-    #     key=accountkey,
-    #     network='testnet',
-    #     account_id=99)
-    # wallet_import2.info(detail=3)
-    # del wallet_import2
+    print("\n=== Create new Testnet Wallet and generate a some new keys ===")
+    with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
+        wallet.info(detail=3)
+        wallet.new_account()
+        new_key1 = wallet.new_key()
+        new_key2 = wallet.new_key()
+        new_key3 = wallet.new_key()
+        new_key4 = wallet.new_key(change=1)
+        new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
+        new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+        new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+        wallet.info(detail=3)
+        donations_account = wallet.new_account()
+        new_key8 = wallet.new_key(account_id=donations_account.account_id)
+        wallet.info(detail=3)
+
+    print("\n=== Create new Wallet with Testnet master key and account ID 99 ===")
+    testnet_wallet = HDWallet.create(
+        name='TestNetWallet',
+        key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+            '7irEvBoe4aAn52',
+        network='testnet',
+        account_id=99,
+        databasefile=test_database)
+    nk = testnet_wallet.new_key(account_id=99, name="Address #1")
+    nk2 = testnet_wallet.new_key(account_id=99, name="Address #2")
+    nkc = testnet_wallet.new_key_change(account_id=99, name="Change #1")
+    nkc2 = testnet_wallet.new_key_change(account_id=99, name="Change #2")
+    testnet_wallet.updateutxos()
+    testnet_wallet.info(detail=3)
+
+    # Three ways of getting the a HDWalletKey, with ID, address and name:
+    print(testnet_wallet.key(1).address)
+    print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
+    print(testnet_wallet.key('TestNetWallet').address)
+
+    print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
+    accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+                 '8Y7KbKUnaMzxnnnsSvh'
+    wallet_import2 = HDWallet.create(
+        databasefile=test_database,
+        name='Account Import',
+        key=accountkey,
+        network='testnet',
+        account_id=99)
+    wallet_import2.info(detail=3)
+    del wallet_import2
 
     print("\n=== Create simple wallet and import some unrelated private keys ===")
     simple_wallet = HDWallet.create(

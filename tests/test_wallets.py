@@ -28,7 +28,7 @@ from bitcoinlib.wallets import HDWallet, list_wallets, delete_wallet, WalletErro
 DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
 
 
-class TestWallet(unittest.TestCase):
+class TestWalletCreate(unittest.TestCase):
 
     def setUp(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -57,6 +57,36 @@ class TestWallet(unittest.TestCase):
         self.assertEqual(new_key.depth, 5)
         self.assertEqual(new_key.key_wif[:4], 'xprv')
         self.assertEqual(new_key.path, "m/44'/0'/100'/0/0")
+
+    def test_list_wallets(self):
+        wallets = list_wallets(databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wallets[0]['name'], 'test_wallet_create')
+
+    def test_delete_wallet(self):
+        HDWallet.create(
+            name='wallet_to_remove',
+            databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(delete_wallet('wallet_to_remove', databasefile=DATABASEFILE_UNITTESTS), 1)
+
+    def test_delete_wallet_exception(self):
+        self.assertRaisesRegexp(WalletError, '', delete_wallet, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
+
+    def test_wallet_duplicate_key_for_path(self):
+        nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
+        nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
+        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
+
+    def test_wallet_key_for_path_normalized(self):
+        nkfp = self.wallet.key_for_path("m/44h/0p/100H/1200/1201")
+        nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1201")
+        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
+
+
+class TestWalletImport(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_import(self):
         keystr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
@@ -113,7 +143,7 @@ class TestWallet(unittest.TestCase):
         newkey = pubwal.new_key()
         self.assertEqual(newkey.address, u'mweZrbny4fmpCmQw9hJH7EVfkuWX8te9jc')
 
-    def test_wallet_litecoin(self):
+    def test_wallet_import_litecoin(self):
         accountkey = 'Ltpv71G8qDifUiNet6mn25D7GPAVLZeaFRWzDABxx5xNeigVpFEviHK1ZggPS1kbtegB3U2i8w6ToNfM5sdvEQPW' \
                      'tov4KWyQ5NxWUd3oDWXQb4C'
         wallet_import = HDWallet.create(
@@ -126,19 +156,6 @@ class TestWallet(unittest.TestCase):
         self.assertEqual(newkey.address, u'LPkJcpV1cmT8qLFmUApySBtxt7UWavoQmh')
         self.assertEqual(newkey.path, "m/44'/2'/0'/0/0")
 
-    def test_list_wallets(self):
-        wallets = list_wallets(databasefile=DATABASEFILE_UNITTESTS)
-        self.assertEqual(wallets[0]['name'], 'test_wallet_create')
-
-    def test_delete_wallet(self):
-        HDWallet.create(
-            name='wallet_to_remove',
-            databasefile=DATABASEFILE_UNITTESTS)
-        self.assertEqual(delete_wallet('wallet_to_remove', databasefile=DATABASEFILE_UNITTESTS), 1)
-
-    def test_delete_wallet_exception(self):
-        self.assertRaisesRegexp(WalletError, '', delete_wallet, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
-
     def test_wallet_import_key_network_error(self):
         w = HDWallet.create(
             name='Wallet Error',
@@ -147,15 +164,24 @@ class TestWallet(unittest.TestCase):
                                 ".*is from different network then specified: bitcoin",
                                 w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
 
-    def test_wallet_duplicate_key_for_path(self):
-        nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
-        nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
-        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
 
-    def test_wallet_key_for_path_normalized(self):
-        nkfp = self.wallet.key_for_path("m/44h/0p/100H/1200/1201")
-        nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1201")
-        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
+class TestWalletKeys(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        self.wallet = HDWallet.create(
+            key='c1e5a6d529ea127418ac0af9c1135d1af20f3d1c5cc9911f430d30f461a191e1',
+            name='test_wallet_create',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+    def test_wallet_addresslist(self):
+        expected_addresslist = ['1CqVpA9V7Ho43YvPttPnjtyaNWpQNk9zgr', '1GPY4ocuZDKtLhEmQzJY6r4DY5gFqXhvt4',
+                                '1G7kDZeG9c2pfXyLLMuAssnL9XKRLEdDuM', '1xFaxeEtNyQvFJeNU6vJYw8XFKcK4oN3q',
+                                '1CbYQEsJBLFYKdfb5xwWtsjNXjc8ALDcmQ', '1GkAq1LSJ5LwUaLEPrKdKQHNgLwwyb8uzC',
+                                '14frNyKi4pPfALjE8Wy9c5zB6YQEZX6Eza', '12Wd1ojUzFWsTdsBa55Pzxwsuy2Tg6ioED']
+        self.assertEqual(self.wallet.addresslist(), expected_addresslist)
+
 
 
 class TestWalletElectrum(unittest.TestCase):
