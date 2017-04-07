@@ -676,7 +676,10 @@ class HDWallet:
         bpath = main_acc_key.path + '/'
         # pathdepth = max_depth - self.main_key.depth
         if not name:
-            name = "Key %d" % address_index
+            if change:
+                name = "Change %d" % address_index
+            else:
+                name = "Key %d" % address_index
         newkey = self._create_keys_from_path(
             main_acc_key, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
             change=change, network=self.network.network_name, purpose=self.purpose, basepath=bpath,
