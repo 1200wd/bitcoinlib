@@ -341,7 +341,7 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
         self.k2 = HDKey('xprv9s21ZrQH143K31AgNK5pyVvW23gHnkBq2wh5aEk6g1s496M8ZMjxncCKZKgb5j'
                         'ZoY5eSJMJ2Vbyvi2hbmQnCuHBujZ2WXGTux1X2k9Krdtq')
         self.assertEqual('xprv9wTErTSu5AWGkDeUPmqBcbZWX1xq85ZNX9iQRQW9DXwygFp7iRGJo79dsVctcsCHsnZ3XU3DhsuaGZbDh8iDkB'
-                         'N45k67UKsJUXM1JfRCdn1', str(self.k2.subkey_for_path('3/2H')))
+                         'N45k67UKsJUXM1JfRCdn1', str(self.k2.subkey_for_path('3/2H').extended_wif()))
 
 
 class TestHDKeysTestnet(unittest.TestCase):

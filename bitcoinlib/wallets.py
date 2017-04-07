@@ -268,7 +268,10 @@ class HDWalletKey:
             self.depth = wk.depth
             self.key_type = wk.key_type
         else:
-            raise WalletError("Key with id %s cdnot found" % key_id)
+            raise WalletError("Key with id %s not found" % key_id)
+
+    def __repr__(self):
+        return "<HDWalletKey (name=%s, wif=%s, path=%s)>" % (self.name, self.key_wif, self.path)
 
     def key(self):
         """
@@ -539,6 +542,9 @@ class HDWallet:
 
     def __exit__(self, exception_type, exception_value, traceback):
         self._session.close()
+
+    def __repr__(self):
+        return "<HDWallet (id=%d, name=%s, network=%s)>" % (self.wallet_id, self.name, self.network.network_name)
 
     # def __del__(self):
     #     if self._session is not None:
@@ -896,18 +902,20 @@ class HDWallet:
         """
         return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
 
-    def addresslist(self, account_id=None, key_id=None):
+    def addresslist(self, account_id=None, depth=None, key_id=None):
         """
         Get list of addresses defined in current wallet
 
         :param account_id: Account ID
          :type account_id: int
+        :param depth: Filter by key depth
+         :type depth: int
         :param key_id: Key ID to get address of just 1 key
          :type key_id: int
         :return list: List of address strings
         """
         addresslist = []
-        for key in self.keys(account_id=account_id, key_id=key_id):
+        for key in self.keys(account_id=account_id, depth=depth, key_id=key_id):
             addresslist.append(key.address)
         return addresslist
 

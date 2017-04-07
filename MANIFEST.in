@@ -1,7 +1,7 @@
 include README.md
 include LICENSE
 recursive-include bitcoinlib/config *.py
-recursive-include bitcoinlib/data *.ini *.json *.csv
+recursive-include bitcoinlib/data *.ini *.json
 recursive-include bitcoinlib/services *.py
 recursive-include bitcoinlib/wordlist *.txt
 recursive-include tests *.json *.py
