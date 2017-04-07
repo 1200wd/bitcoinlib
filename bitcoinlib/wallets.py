@@ -689,11 +689,11 @@ class HDWallet:
 
     def new_key_change(self, name='', account_id=0):
         """
-        Create new key to receive change for a transaction. Calls new_key method with change=1
+        Create new key to receive change for a transaction. Calls new_key method with change=1.
         
-        :param name: Key name
+        :param name: Key name. Default name is 'Change #' with an address index
          :type name: str
-        :param account_id: Account ID
+        :param account_id: Account ID. Default is last used or created account ID.
          :type account_id: int
         :return HDWalletKey: 
         """
@@ -703,11 +703,13 @@ class HDWallet:
         """
         Create a new account with a childkey for payments and 1 for change.
         
-        :param name: Account Name. If not specified 'Account #" with be used
+        An account key can only be created if wallet contains a masterkey.
+        
+        :param name: Account Name. If not specified 'Account #" with the account_id will be used
          :type name: str
         :param account_id: Account ID. Default is last accounts ID + 1
          :type account_id: int
-        :return: 
+        :return HDWalletKey: 
         """
         # Determine account_id and name
         if account_id is None:
@@ -742,9 +744,27 @@ class HDWallet:
             network=self.network.network_name, purpose=self.purpose, basepath=acckey.path, session=self._session)
         return acckey
 
-    def key_for_path(self, path, name='', account_id=0, change=0, disable_check=False):
+    def key_for_path(self, path, name='', account_id=0, change=0, enable_checks=True):
+        """
+        Create key with specified path. Can be used to create non-default (non-BIP0044) paths.
+        
+        Can cause problems if you already used account_id's or address_indexes are provided.
+        
+        :param path: Path string in m/#/#/# format. With quote (') or (p/P/h/H) character for hardened child key 
+        derivation
+         :type path: str
+        :param name: Key name to use
+         :type name: str
+        :param account_id: Account ID
+         :type account_id int
+        :param change: Change 0 or 1
+         :type change: int
+        :param enable_checks: Use checks for valid BIP0044 path, default is True
+         :type enable_checks: bool
+        :return HDWalletKey: 
+        """
         # Validate key path
-        if not disable_check:
+        if enable_checks:
             pathdict = parse_bip44_path(path)
             purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
             if purpose != self.purpose:
@@ -787,6 +807,24 @@ class HDWallet:
         return newkey
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, as_dict=False):
+        """
+        Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
+        
+        Returns a list of DbKey object or dictionary object if as_dict is True
+        
+        :param account_id: Search for account ID 
+         :type account_id: int
+        :param name: Search for Name
+         :type name: str
+        :param key_id: Search for Key ID
+         :type key_id: int
+        :param change: Search for Change
+         :type change: int
+        :param depth: Only include keys with this depth
+         :type depth: int
+        :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
+        :return list: List of Keys
+        """
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
@@ -802,12 +840,84 @@ class HDWallet:
             qr = qr.filter(DbKey.id == key_id)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
+    def accounts(self, account_id, as_dict=False):
+        """
+        Get key(s) with specified account_id for current wallet.
+        
+        Wrapper for the keys() methods.
+        
+        :param account_id: Account ID
+         :type account_id: int
+        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+         :type as_dict: bool
+        :return list: DbKey or dictionaries
+        """
+        return self.keys(account_id, depth=3, as_dict=as_dict)
+
+    def keys_addresses(self, account_id, as_dict=False):
+        """
+        Get addresses of specified account_id for current wallet.
+
+        Wrapper for the keys() methods.
+
+        :param account_id: Account ID
+         :type account_id: int
+        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+         :type as_dict: bool
+        :return list: DbKey or dictionaries
+        """
+        return self.keys(account_id, depth=5, as_dict=as_dict)
+
+    def keys_address_payment(self, account_id, as_dict=False):
+        """
+        Get payment addresses (change=0) of specified account_id for current wallet.
+
+        Wrapper for the keys() methods.
+
+        :param account_id: Account ID
+         :type account_id: int
+        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+         :type as_dict: bool
+        :return list: DbKey or dictionaries
+        """
+        return self.keys(account_id, depth=5, change=0, as_dict=as_dict)
+
+    def keys_address_change(self, account_id, as_dict=False):
+        """
+        Get payment addresses (change=1) of specified account_id for current wallet.
+
+        Wrapper for the keys() methods.
+
+        :param account_id: Account ID
+         :type account_id: int
+        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+         :type as_dict: bool
+        :return list: DbKey or dictionaries
+        """
+        return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
+
+    def addresslist(self, account_id=None, key_id=None):
+        """
+        Get list of addresses defined in current wallet
+
+        :param account_id: Account ID
+         :type account_id: int
+        :param key_id: Key ID to get address of just 1 key
+         :type key_id: int
+        :return list: List of address strings
+        """
+        addresslist = []
+        for key in self.keys(account_id=account_id, key_id=key_id):
+            addresslist.append(key.address)
+        return addresslist
+
     def key(self, term):
         """
-        Search for wallet key in this wallet.
-        
+        Return single key with give ID or name as HDWalletKey object
+
         :param term: Search term can be key ID, key address, key WIF or key name
-        :return: Key as HDWalletKey object
+         :type term: int, str
+        :return HDWalletKey: Single key as object
         """
         dbkey = None
         if isinstance(term, numbers.Number):
@@ -826,30 +936,31 @@ class HDWallet:
         else:
             raise KeyError("Key '%s' not found" % term)
 
-    def accounts(self, account_id, as_dict=False):
-        return self.keys(account_id, depth=3, as_dict=as_dict)
-
-    def keys_addresses(self, account_id, as_dict=False):
-        return self.keys(account_id, depth=5, as_dict=as_dict)
-
-    def keys_address_payment(self, account_id, as_dict=False):
-        return self.keys(account_id, depth=5, change=0, as_dict=as_dict)
-
-    def keys_address_change(self, account_id, as_dict=False):
-        return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
-
-    def addresslist(self, account_id=None, key_id=None):
-        addresslist = []
-        for key in self.keys(account_id=account_id, key_id=key_id):
-            addresslist.append(key.address)
-        return addresslist
-
     def updatebalance(self, account_id=None):
+        """
+        Update balance of currents account addresses using default Service objects getbalance method. Update total 
+        wallet balance in database. 
+        
+        Please Note: Does not update UTXO's or the balance per key!
+        
+        :param account_id: Account ID
+         :type account_id: int
+        :return: 
+        """
         self._balance = Service(network=self.network.network_name).getbalance(self.addresslist(account_id=account_id))
         self._dbwallet.balance = self._balance
         self._session.commit()
 
     def updateutxos(self, account_id=None, key_id=None):
+        """
+        Update UTXO's (Unspent Outputs) in database of given account using the default Service object
+        
+        :param account_id: Account ID
+         :type account_id: int
+        :param key_id: Key ID to just update 1 key
+         :type key_id: int
+        :return: 
+        """
         # Delete all utxo's for this account
         # TODO: This could be done more efficiently probably:
         qr = self._session.query(DbTransaction).join(DbTransaction.key).\
@@ -893,6 +1004,14 @@ class HDWallet:
         self._session.commit()
 
     def getutxos(self, account_id, min_confirms=0):
+        """
+        Get UTXO's (Unspent Outputs) from database. Use updateutxos method first for updated values
+        
+        :param account_id: Account ID
+         :type account_id: int
+        :param min_confirms: Minimal confirmation needed to include in output list
+        :return list: List of transactions 
+        """
         utxos = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
             filter(DbTransaction.spend.op("IS")(False), DbKey.account_id == account_id,
                    DbTransaction.confirmations >= min_confirms).order_by(DbTransaction.confirmations.desc()).all()
@@ -906,6 +1025,19 @@ class HDWallet:
         return res
 
     def send(self, to_address, amount, account_id=None, fee=None):
+        """
+        Create transaction and send it with default Service objects sendrawtransaction method
+        
+        :param to_address: Single output address
+         :type to_address: str
+        :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin)
+         :type amount: int
+        :param account_id: Account ID, default is last used
+         :type account_id: int
+        :param fee: Fee to add
+         :type fee: int
+        :return str: Transaction id (txid) if transaction is pushed succesfully 
+        """
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
         srv = Service(network='testnet')
@@ -918,6 +1050,16 @@ class HDWallet:
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
+        """
+        Internal method used by create transaction to select best inputs (UTXO's) for a transaction. To get the
+        lease number of inputs
+        
+        :param amount: Amount to transfer
+         :type amount: int
+        :param utxo_query: List of outputs
+         :type utxo_query: self._session.query
+        :return list: List of selected UTXO 
+        """
         if not utxo_query:
             return []
 
@@ -941,6 +1083,17 @@ class HDWallet:
         return selected_utxos
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
+        """
+        Create new transaction with specified outputs. Inputs can be specified as well or will be automatically 
+        determined
+        
+        :param output_arr: 
+        :param input_arr: 
+        :param account_id: 
+        :param fee: 
+        :param min_confirms: 
+        :return bytes: Raw transaction  
+        """
         amount_total_output = 0
         t = Transaction(network=self.network.network_name)
         for o in output_arr:
@@ -1002,6 +1155,14 @@ class HDWallet:
         return t
 
     def info(self, detail=3):
+        """
+        Prints wallet information to standard output
+        
+        :param detail: Level of detail to show, can be 0, 1, 2 or 3
+         :type detail: int
+
+        :return: 
+        """
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
         print(" Name                           %s" % self.name)
