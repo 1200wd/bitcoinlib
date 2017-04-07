@@ -170,18 +170,44 @@ class TestWalletKeys(unittest.TestCase):
     def setUp(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
+            self.private_wif = 'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF9ySUHZw5qJkk5LCALAhXS' \
+                               'XoCmCSnStRvgwLBtcbGsg1PeKT2en'
         self.wallet = HDWallet.create(
-            key='c1e5a6d529ea127418ac0af9c1135d1af20f3d1c5cc9911f430d30f461a191e1',
-            name='test_wallet_create',
+            key=self.private_wif,
+            name='test_wallet_keys',
             databasefile=DATABASEFILE_UNITTESTS)
+        self.wallet.new_key()
+        self.wallet.new_key_change()
 
     def test_wallet_addresslist(self):
-        expected_addresslist = ['1CqVpA9V7Ho43YvPttPnjtyaNWpQNk9zgr', '1GPY4ocuZDKtLhEmQzJY6r4DY5gFqXhvt4',
-                                '1G7kDZeG9c2pfXyLLMuAssnL9XKRLEdDuM', '1xFaxeEtNyQvFJeNU6vJYw8XFKcK4oN3q',
-                                '1CbYQEsJBLFYKdfb5xwWtsjNXjc8ALDcmQ', '1GkAq1LSJ5LwUaLEPrKdKQHNgLwwyb8uzC',
-                                '14frNyKi4pPfALjE8Wy9c5zB6YQEZX6Eza', '12Wd1ojUzFWsTdsBa55Pzxwsuy2Tg6ioED']
-        self.assertEqual(self.wallet.addresslist(), expected_addresslist)
+        expected_addresslist = ['1B8gTuj778tkrQV1e8qjcesoZt9Cif3VEp', '1LS8zYrkgGpvJdtMmUdU1iU4TUMQh6jjF1',
+                                '1K7S5am1hLfugEFWR9ENfEBpUrMbFhqtoh', '1EByrVS1sc6TDihJRRRtMAnKTaAVSZAgtQ',
+                                '1KyLsZS2JwWdfvDZ5g8vhbanqjbNwKUseK', '1A7wRpnstUiA33rxW1i33b5qqaTsS4YSNQ',
+                                '1J6jppU5mWf4ausGfHMumrKrztpDKq2MrD', '13uQKuiWwWp15BsEijnpKZSuTuHVTpZMvP']
+        self.assertListEqual(self.wallet.addresslist(), expected_addresslist)
 
+    def test_wallet_keys_method_masterkey(self):
+        self.assertEqual(self.wallet.keys(name='test_wallet_keys', depth=0)[0].key_wif, self.private_wif)
+
+    def test_wallet_keys_method_account(self):
+        account_wif = 'xprv9z87HKmxfjVRRyEt7zBWCctmJvqcowfWwKUeJnLjNyykvq5sDGm1yo5qTWWAj1gXsRd2b8GayjujPz1arbKsS3tnwQ' \
+                      'Fz8nMip3pFBYjPT1b'
+        self.assertEqual(self.wallet.keys_accounts()[0].key_wif, account_wif)
+
+    def test_wallet_keys_method_keys_addresses(self):
+        address_wifs = [
+            'xprvA3xQPpbB95TCpX9eL2kVLrJKt4KZmzePogQFmefPABpm7gLghfMW5sK2dbogzaLV3EgaaHeUZTBEJ7irBEJAj5E9vpQ5byYCkzcn'
+            'RAwpG7X',
+            'xprvA3ALLPsyMi2DUrZbSRegEhrdNNg1kwM6n6zh3cv9Qx9ZYoHwgk44TwympUPV3UuQ5YNjubBsF2QbBfJqujoiFDKLHnphCpLmBzeER'
+            'yZeFRE'
+        ]
+        self.assertListEqual([k.key_wif for k in self.wallet.keys_addresses()], address_wifs)
+
+    def test_wallet_keys_method_keys_payment(self):
+        self.assertEqual(self.wallet.keys_address_payment()[0].address, '1J6jppU5mWf4ausGfHMumrKrztpDKq2MrD')
+
+    def test_wallet_keys_method_keys_change(self):
+        self.assertEqual(self.wallet.keys_address_change()[0].address, '13uQKuiWwWp15BsEijnpKZSuTuHVTpZMvP')
 
 
 class TestWalletElectrum(unittest.TestCase):

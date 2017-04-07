@@ -580,7 +580,7 @@ class HDKey:
         If a normal key with no chain part is provided, an chain with only 32 0-bytes will be used.
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
-         :type import_key: str, bytes
+         :type import_key: str, bytes, int, bytearray
         :param key: Private or public key (lenght 32)
          :type key: bytes
         :param chain: A chain code (lenght 32)
@@ -600,6 +600,7 @@ class HDKey:
         :return: HDKey class object
         """
 
+        self.key_format = None
         if (key and not chain) or (not key and chain):
             raise KeyError("Please specify both key and chain, use import_key attribute "
                            "or use simple Key class instead")
@@ -614,11 +615,12 @@ class HDKey:
                 key = import_key[:32]
                 chain = import_key[32:]
             else:
-                bkey = change_base(import_key, 58, 256)
-                hdkey_code = bkey[:4]
-                if hdkey_code in network_values_for('prefix_hdkey_private') + network_values_for('prefix_hdkey_public'):
-                    network = check_network_and_key(import_key, network)
-
+                kf = get_key_format(import_key)
+                self.key_format = kf["format"]
+                network = check_network_and_key(import_key, network, kf["networks"])
+                self.network = Network(network)
+                if self.key_format in ['hdkey_private', 'hdkey_public']:
+                    bkey = change_base(import_key, 58, 256)
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                     if ord(bkey[45:46]):
                         isprivate = False

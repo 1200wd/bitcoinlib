@@ -840,13 +840,13 @@ class HDWallet:
             qr = qr.filter(DbKey.id == key_id)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
-    def accounts(self, account_id, as_dict=False):
+    def keys_accounts(self, account_id=None, as_dict=False):
         """
-        Get key(s) with specified account_id for current wallet.
+        Get Database records of account key(s) with for current wallet.
         
         Wrapper for the keys() methods.
         
-        :param account_id: Account ID
+        :param account_id: Search for Account ID
          :type account_id: int
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
          :type as_dict: bool
@@ -854,9 +854,9 @@ class HDWallet:
         """
         return self.keys(account_id, depth=3, as_dict=as_dict)
 
-    def keys_addresses(self, account_id, as_dict=False):
+    def keys_addresses(self, account_id=None, as_dict=False):
         """
-        Get addresses of specified account_id for current wallet.
+        Get address-keys of specified account_id for current wallet.
 
         Wrapper for the keys() methods.
 
@@ -868,7 +868,7 @@ class HDWallet:
         """
         return self.keys(account_id, depth=5, as_dict=as_dict)
 
-    def keys_address_payment(self, account_id, as_dict=False):
+    def keys_address_payment(self, account_id=None, as_dict=False):
         """
         Get payment addresses (change=0) of specified account_id for current wallet.
 
@@ -882,7 +882,7 @@ class HDWallet:
         """
         return self.keys(account_id, depth=5, change=0, as_dict=as_dict)
 
-    def keys_address_change(self, account_id, as_dict=False):
+    def keys_address_change(self, account_id=None, as_dict=False):
         """
         Get payment addresses (change=1) of specified account_id for current wallet.
 
