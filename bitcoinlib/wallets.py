@@ -605,7 +605,7 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
-    def import_key(self, key, account_id=None, path=''):
+    def import_key(self, key, account_id=None):
         """
         Add new key
         :param key: 
@@ -613,11 +613,18 @@ class HDWallet:
         :return: 
         """
         # Create path for unrelated import keys
+        last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
+            order_by(DbKey.path.desc()).first()
+        if last_import_key:
+            ik_path = "import_key_" + str(int(last_import_key.path[-5:]) + 1).zfill(5)
+        else:
+            ik_path = "import_key_00001"
+
         if account_id is None:
             account_id = self.default_account_id
         return HDWalletKey.from_key(
             key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
-            account_id=account_id, purpose=self.purpose, session=self._session)
+            account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path)
 
     def import_hdkey_object(self, hdkey_object, account_id=None):
         return HDWalletKey.from_key(
