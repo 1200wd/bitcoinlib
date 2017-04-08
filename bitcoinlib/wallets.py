@@ -45,7 +45,8 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
     List Wallets from database
     
     :param databasefile: Location of Sqlite database. Leave empty to use default
-     :type databasefile: str
+    :type databasefile: str
+    
     :return dict: Dictionary of wallets defined in database
     """
     session = DbInit(databasefile=databasefile).session
@@ -67,10 +68,12 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
 def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
     """
     Check if Wallets is defined in database
+    
     :param wallet: Wallet ID as integer or Wallet Name as string
-     :type wallet: int, str
+    :type wallet: int, str
     :param databasefile: Location of Sqlite database. Leave empty to use default
-     :type databasefile: str
+    :type databasefile: str
+    
     :return bool: True if wallet exists otherwise False
     """
     if wallet in [x['name'] for x in list_wallets(databasefile)]:
@@ -84,12 +87,14 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     """
     Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
     unless 'force=True' is specified
+    
     :param wallet: Wallet ID as integer or Wallet Name as string
-     :type wallet: int, str
+    :type wallet: int, str
     :param databasefile: Location of Sqlite database. Leave empty to use default
-     :type databasefile: str
+    :type databasefile: str
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
-     :type force: bool
+    :type force: bool
+    
     :return int: Number of rows deleted, so 1 if succesfull
     """
     session = DbInit(databasefile=databasefile).session
@@ -119,7 +124,7 @@ def normalize_path(path):
     """ Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys 
 
     :param path: BIP0044 key path 
-     :type path: str
+    :type path: str
     :return str: Normalized BIP004 key path with single quotes
     """
     levels = path.split("/")
@@ -141,10 +146,12 @@ def parse_bip44_path(path):
     Assumes a correct BIP0044 path and returns a dictionary with path items. See Bitcoin improvement proposals
     BIP0043 and BIP0044.
     
-    :param path: BIP0044 path as string, with backslash (/) seperator. 
-    Specify path in this format: m / purpose' / cointype' / account' / change / address_index
+    Specify path in this format: m / purpose' / cointype' / account' / change / address_index.
     Path lenght must be between 1 and 6 (Depth between 0 and 5)
-     :type path: str
+    
+    :param path: BIP0044 path as string, with backslash (/) seperator. 
+    :type path: str
+    
     :return dict: Dictionary with path items: isprivate, purpose, cointype, account, change and address_index
     """
 
@@ -176,26 +183,27 @@ class HDWalletKey:
         Create HDWalletKey from a HDKey object or key
         
         :param name: New key name
-         :type name: str
+        :type name: str
         :param wallet_id: ID of wallet where to store key
-         :type wallet_id: int
+        :type wallet_id: int
         :param session: Required Sqlalchemy Session object
-         :type session: sqlalchemy.orm.session.Session
+        :type session: sqlalchemy.orm.session.Session
         :param key: Optional key in any format accepted by the HDKey class
-         :type key: str, int, byte, bytearray
+        :type key: str, int, byte, bytearray
         :param hdkey_object: Optional HDKey object to import, use this if available to save key derivation time
-         :type hdkey_object: HDKey
+        :type hdkey_object: HDKey
         :param account_id: Account ID for specified key, default is 0
-         :type account_id: int
+        :type account_id: int
         :param network: Network of specified key
-         :type network: str
+        :type network: str
         :param change: Use 0 for normal key, and 1 for change key (for returned payments)
-         :type change: int
+        :type change: int
         :param purpose: BIP0044 purpose field, default is 44
-         :type purpose: int
+        :type purpose: int
         :param parent_id: Key ID of parent, default is 0 (no parent)
-         :type parent_id: int
+        :type parent_id: int
         :param path: BIP0044 path of given key, default is 'm' (masterkey)
+        
         :return HDWalletKey: HDWalletKey object
         """
         if not hdkey_object:
@@ -238,11 +246,11 @@ class HDWalletKey:
         Initialize HDWalletKey with specified ID, get information from database.
         
         :param key_id: ID of key as mentioned in database
-         :type key_id: int
+        :type key_id: int
         :param session: Required Sqlalchemy Session object
-         :type session: sqlalchemy.orm.session.Session
+        :type session: sqlalchemy.orm.session.Session
         :param hdkey_object: Optional HDKey object 
-         :type hdkey_object: HDKey
+        :type hdkey_object: HDKey
         """
         wk = session.query(DbKey).filter_by(id=key_id).first()
         if wk:
@@ -288,7 +296,8 @@ class HDWalletKey:
         Get total of unspent outputs
         
         :param fmt: Specify 'string' to return a string in currency format
-         :type fmt: str
+        :type fmt: str
+        
         :return float, str: Key balance 
         """
         if fmt == 'string':
@@ -302,11 +311,12 @@ class HDWalletKey:
         - m / purpose' / coin_type' / account' / change / address_index
         
         :param change: Normal = 0, change =1
-         :type change: int
+        :type change: int
         :param address_index: Index number of address (path depth 5)
-         :type address_index: int
+        :type address_index: int
         :param max_depth: Maximum depth of output path. I.e. type 3 for account path
-         :type max_depth: int
+        :type max_depth: int
+        
         :return list: Current key path 
         """
         if change is None:
@@ -329,9 +339,8 @@ class HDWalletKey:
 
     def updatebalance(self):
         """
-        Get balance using the default Service getbalance method and update database
+        Update balance in database using the default Service getbalance method
         
-        :return: 
         """
         self._balance = Service(network=self.network.network_name).getbalance([self.address])
         self._dbkey.balance = self._balance
@@ -349,7 +358,6 @@ class HDWalletKey:
         """
         Output current key information to standard output
         
-        :return: 
         """
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
@@ -392,19 +400,20 @@ class HDWallet:
         Please mention account_id if you are using multiple accounts.
         
         :param name: Unique name of this Wallet
-         :type name: str
+        :type name: str
         :param key: Masterkey to use for this wallet. Will be automatically created if not specified
-         :type key: str, bytes, int, bytearray
+        :type key: str, bytes, int, bytearray
         :param owner: Wallet owner for your own reference
-         :type owner: str
+        :type owner: str
         :param network: Network name, use default if not specified
-         :type network: str
+        :type network: str
         :param account_id: Account ID, default is 0
-         :type account_id: int
+        :type account_id: int
         :param purpose: BIP0044 purpose field, default is 44
-         :type purpose: int
+        :type purpose: int
         :param databasefile: Location of database file. Leave empty to use default
-         :type databasefile: str
+        :type databasefile: str
+        
         :return HDWallet: 
         """
         session = DbInit(databasefile=databasefile).session
@@ -445,25 +454,26 @@ class HDWallet:
         Create all keys for a given path.
         
         :param parent: Main parent key. Can be a BIP0044 master key, level 3 account key, or any other.
-         :type parent: HDWalletKey
+        :type parent: HDWalletKey
         :param path: Path of keys to generate, relative to given parent key
-         :type path: list
+        :type path: list
         :param wallet_id: Wallet ID
-         :type wallet_id: int
+        :type wallet_id: int
         :param account_id: Account ID
-         :type account_id: int
+        :type account_id: int
         :param network: Network
-         :type network: str
+        :type network: str
         :param session: Sqlalchemy session
-         :type session: sqlalchemy.orm.session.Session
+        :type session: sqlalchemy.orm.session.Session
         :param name: Name for generated keys. Leave empty for default
-         :type name: str
+        :type name: str
         :param basepath: Basepath of main parent key
-         :type basepath: str
+        :type basepath: str
         :param change: Change = 1, or payment = 0. Default is 0.
-         :type change: int
+        :type change: int
         :param purpose: BIP0044 purpose, default is 44.
-         :type purpose: int
+        :type purpose: int
+        
         :return HDWalletKey: 
         """
         # Initial checks and settings
@@ -508,11 +518,11 @@ class HDWallet:
         Open a wallet with given ID or name
         
         :param wallet: Wallet name or ID
-         :type wallet: int, str
+        :type wallet: int, str
         :param databasefile: Location of database file. Leave empty to use default
-         :type databasefile: str
+        :type databasefile: str
         :param main_key_object: Pass main key object to save time
-         :type main_key_object: HDWalletKey
+        :type main_key_object: HDWalletKey
         """
         self._session = DbInit(databasefile=databasefile).session
         if isinstance(wallet, int) or wallet.isdigit():
@@ -559,7 +569,8 @@ class HDWallet:
         Get total of unspent outputs
 
         :param fmt: Specify 'string' to return a string in currency format. Default returns float.
-         :type fmt: str
+        :type fmt: str
+        
         :return float, str: Key balance 
         """
         if fmt == 'string':
@@ -571,6 +582,7 @@ class HDWallet:
     def owner(self):
         """
         Get wallet Owner
+        
         :return str: 
         """
         return self._owner
@@ -579,8 +591,10 @@ class HDWallet:
     def owner(self, value):
         """
         Set wallet Owner in database
+        
         :param value: Owner
-         :type value: str
+        :type value: str
+        
         :return: 
         """
         self._owner = value
@@ -602,7 +616,8 @@ class HDWallet:
         Set wallet name, update in database
         
         :param value: Name for this wallet
-         :type value: str
+        :type value: str
+        
         :return: 
         """
         if wallet_exists(value):
@@ -616,9 +631,10 @@ class HDWallet:
         Add new non HD key to wallet. This key will have no path but are referred by a import_key sequence
         
         :param key: Key to import
-         :type key: str, bytes, int, bytearray
+        :type key: str, bytes, int, bytearray
         :param account_id: Account ID. Default is last used or created account ID.
-         :type account_id: int
+        :type account_id: int
+        
         :return HDWalletKey: 
         """
         # Create path for unrelated import keys
@@ -640,16 +656,15 @@ class HDWallet:
         Create a new HD Key to this wallet, derive from Masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
         
-        :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce 
-        this. If not specified 'Key #' with an unique sequence number will be used
-         :type name: str
+        :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce this. If not specified 'Key #' with an unique sequence number will be used
+        :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
-         :type account_id: int
+        :type account_id: int
         :param change: Change (1) or payments (0). Default is 0
-         :type change: int
-        :param max_depth: Maximum path depth. Default for BIP0044 is 5, any other value is non-standard and might
-        cause unexpected behavior
-         :type max_depth: int
+        :type change: int
+        :param max_depth: Maximum path depth. Default for BIP0044 is 5, any other value is non-standard and might cause unexpected behavior
+        :type max_depth: int
+        
         :return HDWalletKey: 
         """
         if account_id is None:
@@ -698,9 +713,10 @@ class HDWallet:
         Create new key to receive change for a transaction. Calls new_key method with change=1.
         
         :param name: Key name. Default name is 'Change #' with an address index
-         :type name: str
+        :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
-         :type account_id: int
+        :type account_id: int
+        
         :return HDWalletKey: 
         """
         return self.new_key(name=name, account_id=account_id, change=1)
@@ -712,9 +728,10 @@ class HDWallet:
         An account key can only be created if wallet contains a masterkey.
         
         :param name: Account Name. If not specified 'Account #" with the account_id will be used
-         :type name: str
+        :type name: str
         :param account_id: Account ID. Default is last accounts ID + 1
-         :type account_id: int
+        :type account_id: int
+        
         :return HDWalletKey: 
         """
         # Determine account_id and name
@@ -756,17 +773,17 @@ class HDWallet:
         
         Can cause problems if already used account ID's or address indexes are provided.
         
-        :param path: Path string in m/#/#/# format. With quote (') or (p/P/h/H) character for hardened child key 
-        derivation
-         :type path: str
+        :param path: Path string in m/#/#/# format. With quote (') or (p/P/h/H) character for hardened child key derivation
+        :type path: str
         :param name: Key name to use
-         :type name: str
+        :type name: str
         :param account_id: Account ID
-         :type account_id int
+        :type account_id: int
         :param change: Change 0 or 1
-         :type change: int
+        :type change: int
         :param enable_checks: Use checks for valid BIP0044 path, default is True
-         :type enable_checks: bool
+        :type enable_checks: bool
+        
         :return HDWalletKey: 
         """
         # Validate key path
@@ -819,16 +836,17 @@ class HDWallet:
         Returns a list of DbKey object or dictionary object if as_dict is True
         
         :param account_id: Search for account ID 
-         :type account_id: int
+        :type account_id: int
         :param name: Search for Name
-         :type name: str
+        :type name: str
         :param key_id: Search for Key ID
-         :type key_id: int
+        :type key_id: int
         :param change: Search for Change
-         :type change: int
+        :type change: int
         :param depth: Only include keys with this depth
-         :type depth: int
+        :type depth: int
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
+        
         :return list: List of Keys
         """
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
@@ -853,9 +871,10 @@ class HDWallet:
         Wrapper for the keys() methods.
         
         :param account_id: Search for Account ID
-         :type account_id: int
+        :type account_id: int
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
-         :type as_dict: bool
+        :type as_dict: bool
+        
         :return list: DbKey or dictionaries
         """
         return self.keys(account_id, depth=3, as_dict=as_dict)
@@ -867,9 +886,10 @@ class HDWallet:
         Wrapper for the keys() methods.
 
         :param account_id: Account ID
-         :type account_id: int
+        :type account_id: int
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
-         :type as_dict: bool
+        :type as_dict: bool
+        
         :return list: DbKey or dictionaries
         """
         return self.keys(account_id, depth=5, as_dict=as_dict)
@@ -881,9 +901,10 @@ class HDWallet:
         Wrapper for the keys() methods.
 
         :param account_id: Account ID
-         :type account_id: int
+        :type account_id: int
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
-         :type as_dict: bool
+        :type as_dict: bool
+        
         :return list: DbKey or dictionaries
         """
         return self.keys(account_id, depth=5, change=0, as_dict=as_dict)
@@ -895,9 +916,10 @@ class HDWallet:
         Wrapper for the keys() methods.
 
         :param account_id: Account ID
-         :type account_id: int
+        :type account_id: int
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
-         :type as_dict: bool
+        :type as_dict: bool
+        
         :return list: DbKey or dictionaries
         """
         return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
@@ -907,11 +929,12 @@ class HDWallet:
         Get list of addresses defined in current wallet
 
         :param account_id: Account ID
-         :type account_id: int
+        :type account_id: int
         :param depth: Filter by key depth
-         :type depth: int
+        :type depth: int
         :param key_id: Key ID to get address of just 1 key
-         :type key_id: int
+        :type key_id: int
+        
         :return list: List of address strings
         """
         addresslist = []
@@ -924,7 +947,8 @@ class HDWallet:
         Return single key with give ID or name as HDWalletKey object
 
         :param term: Search term can be key ID, key address, key WIF or key name
-         :type term: int, str
+        :type term: int, str
+        
         :return HDWalletKey: Single key as object
         """
         dbkey = None
@@ -952,7 +976,8 @@ class HDWallet:
         Please Note: Does not update UTXO's or the balance per key!
         
         :param account_id: Account ID
-         :type account_id: int
+        :type account_id: int
+        
         :return: 
         """
         self._balance = Service(network=self.network.network_name).getbalance(self.addresslist(account_id=account_id))
@@ -964,9 +989,10 @@ class HDWallet:
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object
         
         :param account_id: Account ID
-         :type account_id: int
+        :type account_id: int
         :param key_id: Key ID to just update 1 key
-         :type key_id: int
+        :type key_id: int
+        
         :return: 
         """
         # Delete all utxo's for this account
@@ -1016,8 +1042,9 @@ class HDWallet:
         Get UTXO's (Unspent Outputs) from database. Use updateutxos method first for updated values
         
         :param account_id: Account ID
-         :type account_id: int
+        :type account_id: int
         :param min_confirms: Minimal confirmation needed to include in output list
+        
         :return list: List of transactions 
         """
         utxos = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
@@ -1037,13 +1064,14 @@ class HDWallet:
         Create transaction and send it with default Service objects sendrawtransaction method
         
         :param to_address: Single output address
-         :type to_address: str
+        :type to_address: str
         :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin)
-         :type amount: int
+        :type amount: int
         :param account_id: Account ID, default is last used
-         :type account_id: int
+        :type account_id: int
         :param fee: Fee to add
-         :type fee: int
+        :type fee: int
+        
         :return str: Transaction id (txid) if transaction is pushed succesfully 
         """
         outputs = [(to_address, amount)]
@@ -1063,9 +1091,10 @@ class HDWallet:
         lease number of inputs
         
         :param amount: Amount to transfer
-         :type amount: int
+        :type amount: int
         :param utxo_query: List of outputs
-         :type utxo_query: self._session.query
+        :type utxo_query: self._session.query
+        
         :return list: List of selected UTXO 
         """
         if not utxo_query:
@@ -1100,6 +1129,7 @@ class HDWallet:
         :param account_id: 
         :param fee: 
         :param min_confirms: 
+        
         :return bytes: Raw transaction  
         """
         amount_total_output = 0
@@ -1167,9 +1197,8 @@ class HDWallet:
         Prints wallet information to standard output
         
         :param detail: Level of detail to show, can be 0, 1, 2 or 3
-         :type detail: int
+        :type detail: int
 
-        :return: 
         """
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
