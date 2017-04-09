@@ -18,8 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# import binascii
-# import hashlib
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import Key
@@ -105,7 +103,7 @@ def script_deserialize(script, script_types=None):
         total_lenght = 0
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
             l, sl = varbyteint_to_int(scr[0:9])
-            # TODO: Rething and rewrite this:
+            # TODO: Rethink and rewrite this:
             if l not in [20, 33, 65, 71, 72, 73]:
                 break
             if len(scr) < l:
@@ -236,6 +234,7 @@ class Input:
         self.sequence = to_bytes(sequence)
         self.tid = tid
         self.public_key = to_bytes(public_key)
+        self.network = Network(network)
 
         self.signature = b''
         self.compressed = True
@@ -281,7 +280,7 @@ class Input:
         }
 
     def __repr__(self):
-        return "<Input (tid=%s, index=%d, address=%s)>" % (self.tid, self.output_index, self.address)
+        return "<Input (tid=%s, index=%s, address=%s)>" % (self.tid, to_hexstring(self.output_index), self.address)
 
 
 class Output:
@@ -356,13 +355,13 @@ class Transaction:
         self.version = version
         self.locktime = locktime
         self.rawtx = rawtx
-        self.network = network
+        self.network = Network(network)
         if not self.rawtx:
             self.rawtx = self.raw()
 
     def __repr__(self):
-        # TODO Add more info
-        return "<Transaction ()>"
+        return "<Transaction (inputcount=%d, outputcount=%d, network=%s)>" % \
+               (len(self.inputs), len(self.outputs), self.network.network_name)
 
     def get(self):
         inputs = []
@@ -439,11 +438,13 @@ class Transaction:
 
     def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', sequence=b'\xff\xff\xff\xff'):
         new_id = len(self.inputs)
-        self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, self.network, sequence, new_id))
+        self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, self.network.network_name,
+                                 sequence, new_id))
         return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
-        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script, self.network))
+        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
+                                   self.network.network_name))
 
 
 if __name__ == '__main__':
@@ -490,6 +491,8 @@ if __name__ == '__main__':
     print("\nOutput Script Type: %s " % script_type(output_script))
     print("Output Script String: %s" % script_to_string(output_script))
     print("\nt.verified() ==> %s" % t.verify())
+
+    import sys; sys.exit()
 
     print("\n=== Determine Script Types ===")
     scripts = [

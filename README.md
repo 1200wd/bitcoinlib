@@ -8,8 +8,6 @@ Implements the following Bitcoin Improvement Proposals
 - Purpose Field for Deterministic Wallets (BIP0043)
 - Multi-Account Hierarchy for Deterministic Wallets (BIP0044)
 
-For details see https://github.com/bitcoin/bips
-
 [![Build Status](https://travis-ci.org/1200wd/bitcoinlib.svg?branch=master)](https://travis-ci.org/1200wd/bitcoinlib)
 [![PyPI](https://img.shields.io/pypi/v/bitcoinlib.svg)](https://pypi.python.org/pypi/bitcoinlib/)
 [![Documentation Status](https://readthedocs.org/projects/bitcoinlib/badge/?version=latest)](http://bitcoinlib.readthedocs.io/en/latest/?badge=latest)
