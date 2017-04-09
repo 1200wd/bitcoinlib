@@ -168,3 +168,5 @@ def run_apidoc(_):
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)
+
+autoclass_content = 'both'

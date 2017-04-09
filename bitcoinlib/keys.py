@@ -36,6 +36,7 @@ from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp25
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError
 
+
 _logger = logging.getLogger(__name__)
 
 

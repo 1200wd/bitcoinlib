@@ -65,5 +65,7 @@ target/
 *.sqlite
 .pypirc
 
+# Documentation
 *.odt#
 .~*
+docs/source/*
