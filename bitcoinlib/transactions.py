@@ -49,10 +49,14 @@ class TransactionError(Exception):
 def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     """
     Deserialize a raw transaction
-
+    
+    Returns a dictionary with list of input and output objects.
+    
     :param rawtx: Raw transaction as String, Byte or Bytearray
+    :type rawtx: str, bytes, bytearray
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc
-    :return: json list with inputs, outputs, locktime and version
+    :type network: str
+    :return dict: json list with inputs, outputs, locktime and version
     """
     rawtx = to_bytes(rawtx)
     version = rawtx[0:4][::-1]
@@ -96,6 +100,15 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
 
 
 def script_deserialize(script, script_types=None):
+    """
+    Deserialize a script: determine type, number of signatures and script data and return this in a list.
+    
+    :param script: Raw script
+    :type script: str, bytes, bytearray
+    :param script_types: Limit script type determination to this list. Leave to default None to search in all script types.
+    :type script_types: list
+    :return list: With this items: [script_type, data, number_of_sigs_n, number_of_sigs_m] 
+    """
 
     def _parse_signatures(scr, max_signatures=None):
         scr = to_bytes(scr)
