@@ -252,9 +252,36 @@ def script_to_string(script):
 
 
 class Input:
+    """
+    Transaction Input class, normally part of Transaction class
+    
+    An Input contains a reference to an UTXO or Unspent Transaction Output (prev_hash + output_index).
+    To spent the UTXO an unlocking script can be included to prove ownership.
+    
+    Inputs are verified by the Transaction class.
+    
+    """
 
     def __init__(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', network=DEFAULT_NETWORK,
                  sequence=b'\xff\xff\xff\xff', tid=0):
+        """
+        Create a new transaction input
+        
+        :param prev_hash: Transaction hash of the UTXO (previous output) which will be spent.
+        :type prev_hash: bytes, hexstring
+        :param output_index: Output number in previous transaction.
+        :type output_index: bytes, int
+        :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
+        :type unlocking_script: bytes, hexstring
+        :param public_key: A public can be provided to construct an Unlocking script. Optional
+        :type public_key: bytes, str
+        :param network: Network, leave empty for default
+        :type network: str
+        :param sequence: Sequence part of input, you normally do not have to touch this
+        :type sequence: bytes
+        :param tid: Index of input in transaction. Used by Transaction class.
+        :type tid: int
+        """
         self.prev_hash = to_bytes(prev_hash)
         self.output_index = output_index
         if isinstance(output_index, numbers.Number):
@@ -296,14 +323,20 @@ class Input:
             self.compressed = self.k.compressed
 
     def json(self):
+        """
+        Get transaction input information in json format
+        
+        :return dict: Json with tid, prev_hash, output_index, type, address, public_key, public_key_hash, unlocking_script and sequence
+        
+        """
         return {
             'tid': self.tid,
             'prev_hash': to_hexstring(self.prev_hash),
+            'output_index': to_hexstring(self.output_index),
             'type': self.type,
             'address': self.address,
             'public_key': self.public_key_hex,
             'public_key_hash': to_hexstring(self.public_key_hash),
-            'output_index': to_hexstring(self.output_index),
             'unlocking_script': to_hexstring(self.unlocking_script),
             'sequence': to_hexstring(self.sequence),
         }
@@ -313,8 +346,37 @@ class Input:
 
 
 class Output:
+    """
+    Transaction Output class, normally part of Transaction class.
+    
+    Contains the amount and destination of a transaction. 
+    
+    """
     def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
                  network=DEFAULT_NETWORK):
+        """
+        Create a new transaction output
+        
+        An transaction outputs locks the specified amount to a public key. Anyone with the private key can unlock
+        this output.
+        
+        The transaction output class contains an amount and the destination which can be provided either as address, 
+        public key, public key hash or a locking script. Only one needs to be provided as the they all can be derived 
+        from each other, but you can provide as much attributes as you know to improve speed.
+        
+        :param amount: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
+        :type amount: int
+        :param address: Destination address of output. Leave empty to derive from other attributes you provide.
+        :type address: str
+        :param public_key_hash: Hash of public key
+        :type public_key_hash: bytes, str
+        :param public_key: Destination public key
+        :type public_key: bytes, str
+        :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
+        :type lock_script: bytes, str
+        :param network: Network, leave empty for default
+        :type network: str
+        """
         if not (address or public_key_hash or public_key or lock_script):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
@@ -334,7 +396,7 @@ class Output:
             self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
             self.address = self.k.address()
             self.compressed = self.k.compressed
-        if self.public_key_hash:
+        if self.public_key_hash and not self.address:
             self.address = pubkeyhash_to_addr(public_key_hash, versionbyte=self.versionbyte)
         if self.address and not self.public_key_hash:
             self.public_key_hash = addr_to_pubkeyhash(self.address)
@@ -351,6 +413,12 @@ class Output:
             self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
 
     def json(self):
+        """
+        Get transaction output information in json format
+
+        :return dict: Json with amount, locking script, public key, public key hash and address
+
+        """
         return {
             'amount': self.amount,
             'lock_script': to_hexstring(self.lock_script),
@@ -364,15 +432,63 @@ class Output:
 
 
 class Transaction:
+    """
+    Transaction Class
+    
+    Contains 1 or more Input class object with UTXO's to spent and 1 or more Output class objects with destinations.
+    Besides the transaction class contains a locktime and version.
+    
+    Inputs and outputs can be included when creating the transaction, or can be add later with add_input and
+    add_output respectively.
+    
+    A verify method is available to check if the transaction Inputs have valid unlocking scripts. 
+    
+    Each input in the transaction can be signed with the sign method provided a valid private key.
+    
+    """
 
     @staticmethod
     def import_raw(rawtx, network=DEFAULT_NETWORK):
+        """
+        Import a raw transaction and create a Transaction object
+        
+        Uses the transaction_deserialize method to parse the raw transaction and then calls the init method of
+        this transaction class to create the transaction object
+        
+        :param rawtx: Raw transaction string
+        :type rawtx: bytes, str
+        :param network: Network, leave empty for default
+        :type network: str
+        :return Transaction:
+         
+        """
         rawtx = to_bytes(rawtx)
         inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
         return Transaction(inputs, outputs, locktime, version, rawtx, network)
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'',
                  network=DEFAULT_NETWORK):
+        """
+        Create a new transaction class with provided inputs and outputs. 
+        
+        You can also create a empty transaction and add input and outputs later.
+        
+        To verify and sign transactions all inputs and outputs need to be included in transaction. Any modification 
+        after signing makes the transaction invalid.
+        
+        :param inputs: Array of Input objects. Leave empty to add later
+        :type inputs: Input
+        :param outputs: Array of Output object. Leave empty to add later
+        :type outputs: Output
+        :param locktime: Unix timestamp or blocknumber. Default is 0
+        :type locktime: int
+        :param version: Version rules. Defaults to 1 in bytes 
+        :type version: bytes
+        :param rawtx: Import a raw transaction. Used by import_raw
+        :type rawtx: bytes
+        :param network: Network, leave empty for default network
+        :type network: str
+        """
         if inputs is None:
             self.inputs = []
         else:
@@ -393,6 +509,11 @@ class Transaction:
                (len(self.inputs), len(self.outputs), self.network.network_name)
 
     def get(self):
+        """
+        Return Json dictionary with transaction information: Inputs, outputs, version and locktime
+        
+        :return dict: 
+        """
         inputs = []
         outputs = []
         for i in self.inputs:
@@ -402,10 +523,21 @@ class Transaction:
         return {
             'inputs': inputs,
             'outputs': outputs,
+            'version': self.version,
             'locktime': self.locktime,
         }
 
     def raw(self, sign_id=None):
+        """
+        Get raw transaction 
+        
+        Return transaction with signed inputs if signatures are available
+        
+        :param sign_id: Create raw transaction which can be signed by transaction with this input ID
+        :type sign_id: int
+        :return bytes:
+        
+        """
         r = self.version[::-1]
         r += int_to_varbyteint(len(self.inputs))
         for i in self.inputs:
@@ -429,6 +561,11 @@ class Transaction:
         return r
 
     def verify(self):
+        """
+        Verify all inputs of a transaction, check if signatures match public key
+        
+        :return bool: True if signatures are valid 
+        """
         for i in self.inputs:
             if i.type == 'coinbase':
                 return True
@@ -452,26 +589,69 @@ class Transaction:
                 return False
         return True
 
-    def sign(self, priv_key, id=0):
-        if self.inputs[id].type == 'coinbase':
+    def sign(self, priv_key, tid=0):
+        """
+        Sign the transaction input with provided private key
+        
+        :param priv_key: A private key
+        :type priv_key: bytes
+        :param tid: Index of transaction input
+        :type tid: int
+        :return: 
+        """
+        if self.inputs[tid].type == 'coinbase':
             raise TransactionError("Can not sign coinbase transactions")
-        sig = hashlib.sha256(hashlib.sha256(self.raw(id)).digest()).digest()
+        sig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
         sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
         sig_der = sk.sign_digest(sig, sigencode=ecdsa.util.sigencode_der) + b'\01'  # 01 is hashtype
         k = Key(priv_key)
         # pub_key = binascii.unhexlify(k.public_uncompressed())
         pub_key = binascii.unhexlify(k.public())
-        self.inputs[id].unlocking_script = varstr(sig_der) + varstr(pub_key)
-        self.inputs[id].signature = binascii.hexlify(sig)
-        # self.inputs[id].public_key = pub_key
+        self.inputs[tid].unlocking_script = varstr(sig_der) + varstr(pub_key)
+        self.inputs[tid].signature = binascii.hexlify(sig)
+        # self.inputs[tid].public_key = pub_key
 
     def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', sequence=b'\xff\xff\xff\xff'):
+        """
+        Add input to this transaction
+        
+        Wrapper for append method of Input class.
+
+        :param prev_hash: Transaction hash of the UTXO (previous output) which will be spent.
+        :type prev_hash: bytes, hexstring
+        :param output_index: Output number in previous transaction.
+        :type output_index: bytes, int
+        :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
+        :type unlocking_script: bytes, hexstring
+        :param public_key: A public can be provided to construct an Unlocking script. Optional
+        :type public_key: bytes, str
+        :param sequence: Sequence part of input, you normally do not have to touch this
+        :type sequence: bytes
+        :return int: Transaction index 
+        """
         new_id = len(self.inputs)
         self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, self.network.network_name,
                                  sequence, new_id))
         return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
+        """
+        Add an output to this transaction
+        
+        Wrapper for the append method of the Output class.
+        
+        :param amount: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
+        :type amount: int
+        :param address: Destination address of output. Leave empty to derive from other attributes you provide.
+        :type address: str
+        :param public_key_hash: Hash of public key
+        :type public_key_hash: bytes, str
+        :param public_key: Destination public key
+        :type public_key: bytes, str
+        :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
+        :type lock_script: bytes, str
+        
+        """
         self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
                                    self.network.network_name))
 
@@ -658,6 +838,7 @@ if __name__ == '__main__':
     print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
     print("Verified %s\n\n\n" % t.verify())
 
+    sys.exit()
     from bitcoinlib.services.bitcoind import BitcoindClient
     bdc = BitcoindClient.from_config()
     try:
