@@ -86,15 +86,15 @@ class DbWallet(Base):
 
 class DbKey(Base):
     __tablename__ = 'keys'
-    id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
+    id = Column(Integer, Sequence('key_id_seq'), primary_key=True, index=True)
     parent_id = Column(Integer, Sequence('parent_id_seq'))
-    name = Column(String(50))
-    account_id = Column(Integer)
+    name = Column(String(50), index=True)
+    account_id = Column(Integer, index=True)
     depth = Column(Integer)
-    change = Column(Integer)  # TODO: 0 or 1 (0=external receiving address, 1=internal change addresses)
-    address_index = Column(Integer)  # TODO: constraint gap no longer than 20
+    change = Column(Integer)
+    address_index = Column(Integer, index=True)
     key = Column(String(255), unique=True)
-    key_wif = Column(String(255), unique=True)
+    key_wif = Column(String(255), unique=True, index=True)
     key_type = Column(String(10))
     address = Column(String(255), unique=True)
     purpose = Column(Integer, default=44)
@@ -141,7 +141,7 @@ class DbTransaction(Base):
     id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transactions")
-    tx_hash = Column(String(64), unique=True)
+    tx_hash = Column(String(64), unique=True, index=True)
     date = Column(DateTime)
     confirmations = Column(Integer)
     output_n = Column(Integer)
