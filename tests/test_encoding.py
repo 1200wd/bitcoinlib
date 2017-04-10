@@ -84,6 +84,10 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
     def test_change_base_leading_zeros4(self):
         self.assertEqual(b'\x04G\x81', change_base('044781', 16, 256))
 
+    def test_change_base_leading_zeros_binascii(self):
+        y = 251863285056225027460663457133976813779860093019161001622713253221998044380
+        self.assertEqual(64, len(change_base(y, 10, 16, 64)))
+
     def test_change_base_zero_int(self):
         self.assertEqual(0, change_base(b'\0', 256, 10))
 

@@ -274,7 +274,7 @@ class Key:
                 y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
                 if y & 1 != sign:
                     y = secp256k1_p - y
-                self._y = change_base(y, 10, 16, 32)
+                self._y = change_base(y, 10, 16, 64)
                 self.public_uncompressed_hex = '04' + self._x + self._y
             self.public_byte = binascii.unhexlify(self.public_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)

@@ -256,7 +256,7 @@ class Input:
         self.public_key_hash = ''
         self.address = ''
         self.type = ''
-        self._public_key = None
+        self.public_key_hex = None
 
         if prev_hash == b'\0' * 32:
             self.type = 'coinbase'
@@ -272,8 +272,8 @@ class Input:
             self.public_key = pk2
 
         if self.public_key:
-            self._public_key = to_hexstring(self.public_key)
-            self.k = Key(self._public_key, network=network)
+            self.public_key_hex = to_hexstring(self.public_key)
+            self.k = Key(self.public_key_hex, network=network)
             self.public_key_uncompressed = self.k.public_uncompressed()
             self.public_key_hash = self.k.hash160()
             self.address = self.k.address()
@@ -285,7 +285,7 @@ class Input:
             'prev_hash': to_hexstring(self.prev_hash),
             'type': self.type,
             'address': self.address,
-            'public_key': self._public_key,
+            'public_key': self.public_key_hex,
             'public_key_hash': to_hexstring(self.public_key_hash),
             'output_index': to_hexstring(self.output_index),
             'unlocking_script': to_hexstring(self.unlocking_script),
@@ -504,8 +504,6 @@ if __name__ == '__main__':
     print("\nOutput Script Type: %s " % script_type(output_script))
     print("Output Script String: %s" % script_to_string(output_script))
     print("\nt.verified() ==> %s" % t.verify())
-
-    import sys; sys.exit()
 
     print("\n=== Determine Script Types ===")
     scripts = [
