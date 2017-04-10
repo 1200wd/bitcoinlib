@@ -50,11 +50,13 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     """
     Deserialize a raw transaction
     
-    Returns a dictionary with list of input and output objects.
+    Returns a dictionary with list of input and output objects, locktime and version.
+    
+    Will raise an error if wrong number of inputs are found or if there are no output found.
     
     :param rawtx: Raw transaction as String, Byte or Bytearray
     :type rawtx: str, bytes, bytearray
-    :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc
+    :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
     :type network: str
     :return dict: json list with inputs, outputs, locktime and version
     """
@@ -101,7 +103,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
 
 def script_deserialize(script, script_types=None):
     """
-    Deserialize a script: determine type, number of signatures and script data and return this in a list.
+    Deserialize a script: determine type, number of signatures and script data.
     
     :param script: Raw script
     :type script: str, bytes, bytearray
@@ -211,16 +213,30 @@ def script_deserialize(script, script_types=None):
 
 
 def script_deserialize_sigpk(script):
+    """
+    Deserialize a unlocking script (scriptSig) with a signature and public key. The DER encoded signature is
+    decoded to a normal signature with point x and y in 64 bytes total.
+    
+    Returns signature and public key.
+    
+    :param script: A unlocking script
+    :type script: bytes
+    :return tuple: Tuple with a signature and public key in bytes
+    """
     _, data, _, _ = script_deserialize(script, 'sig_pubkey')
-    # TODO convert_der_sig should return bytes not hexstr
-    return convert_der_sig(data[0][:-1]), data[1]
-
-
-def script_type(script):
-    return script_deserialize(script)[0]
+    return binascii.unhexlify(convert_der_sig(data[0][:-1])), data[1]
 
 
 def script_to_string(script):
+    """
+    Convert script to human readable string format with OP-codes, signatures, keys, etc
+    
+    Example: "OP_DUP OP_HASH160 af8e14a2cecd715c363b3a72b55b59a31e2acac9 OP_EQUALVERIFY OP_CHECKSIG"
+    
+    :param script: A locking or unlocking script
+    :type script: bytes, str
+    :return str: 
+    """
     script = to_bytes(script)
     tp, data, number_of_sigs_m, number_of_sigs_n = script_deserialize(script)
     if tp == "unknown":
@@ -420,19 +436,19 @@ class Transaction:
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             pk = binascii.unhexlify(i.public_key_uncompressed[2:])
             try:
-                sighex, pk2 = script_deserialize_sigpk(i.unlocking_script)
+                signature, pk2 = script_deserialize_sigpk(i.unlocking_script)
             except Exception as e:
                 # TODO: Add support for other script_types
-                _logger.warning("Error %s. No support for script type %s" % (e, script_type(i.unlocking_script)))
+                _logger.warning("Error %s. No support for script type %s" %
+                                (e, script_deserialize(i.unlocking_script)[0]))
                 return False
 
-            # sighex, pk2 = script_deserialize(i.unlocking_script)
-            sig = binascii.unhexlify(sighex)
             vk = ecdsa.VerifyingKey.from_string(pk, curve=ecdsa.SECP256k1)
             try:
-                vk.verify_digest(sig, hashtosign)
+                vk.verify_digest(signature, hashtosign)
             except ecdsa.keys.BadDigestError as e:
-                _logger.info("Bad Signature %s (error %s)" % (sig, e))
+                _logger.info("Bad Signature %s (error %s)" %
+                             (binascii.hexlify(signature), e))
                 return False
         return True
 
@@ -501,7 +517,7 @@ if __name__ == '__main__':
     print("Raw: %s" % to_hexstring(t.raw()))
     pprint(t.get())
     output_script = t.outputs[0].lock_script
-    print("\nOutput Script Type: %s " % script_type(output_script))
+    print("\nOutput Script Type: %s " % script_deserialize(output_script)[0])
     print("Output Script String: %s" % script_to_string(output_script))
     print("\nt.verified() ==> %s" % t.verify())
 
