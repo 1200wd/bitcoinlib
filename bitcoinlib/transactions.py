@@ -607,11 +607,12 @@ class Transaction:
 
         while True:
             sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
+            # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
+            # TODO: Recalc 's' instead, see:
+            #       https://github.com/richardkiss/pycoin/pull/24/files#diff-12d8832e97767321d1f3c40909be8b23
             signature = convert_der_sig(sig_der)
             s = int(signature[64:], 16)
-            if s > ecdsa.SECP256k1.order / 2:
-                print("high s1 errors expected!!!")
-            else:
+            if s < ecdsa.SECP256k1.order / 2:
                 break
 
         self.inputs[tid].unlocking_script = varstr(sig_der + b'\01') + varstr(self.inputs[tid].public_key)

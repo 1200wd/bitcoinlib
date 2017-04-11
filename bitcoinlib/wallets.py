@@ -998,7 +998,7 @@ class HDWallet:
         # Delete all utxo's for this account
         # TODO: This could be done more efficiently probably:
         qr = self._session.query(DbTransaction).join(DbTransaction.key).\
-            filter(DbTransaction.spend is False, DbKey.account_id == account_id)
+            filter(DbTransaction.spend is not True, DbKey.account_id == account_id)
         if key_id is not None:
             qr.filter(DbTransaction.key_id == key_id)
         [self._session.delete(o) for o in qr.all()]
@@ -1053,7 +1053,7 @@ class HDWallet:
         res = []
         for utxo in utxos:
             u = utxo[0].__dict__
-            del u['_sa_instance_state'], u['key_id']
+            del u['_sa_instance_state']
             u['address'] = utxo[1]
             u['value'] = int(u['value'])
             res.append(u)
@@ -1125,7 +1125,7 @@ class HDWallet:
         determined
         
         :param output_arr: 
-        :param input_arr: 
+        :param input_arr: Array of inputs in format: utxo.tx_hash, utxo.output_n, utxo.key_id, utxo.value
         :param account_id: 
         :param fee: 
         :param min_confirms: 
@@ -1153,20 +1153,20 @@ class HDWallet:
         if fee is None:
             fee = int(0.0003 * pow(10, 8))
 
+        amount_total_input = 0
         if input_arr is None:
             input_arr = []
-            amount_total_input = 0
+
             selected_utxos = self._select_inputs(amount_total_output + fee, qr)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
                 input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
-
-            amount_change = int(amount_total_input - (amount_total_output + fee))
         else:
-            # TODO:
-            raise WalletError("This is not implemented yet")
+            for i in input_arr:
+                amount_total_input += i[3]
+        amount_change = int(amount_total_input - (amount_total_output + fee))
 
         # Add inputs
         sign_arr = []
