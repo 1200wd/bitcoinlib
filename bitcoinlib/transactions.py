@@ -119,7 +119,7 @@ def script_deserialize(script, script_types=None):
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
             l, sl = varbyteint_to_int(scr[0:9])
             # TODO: Rethink and rewrite this:
-            if max_signatures is None and l not in [20, 33, 65, 70, 71, 72, 73]:
+            if l not in [20, 33, 65, 70, 71, 72, 73]:
                 break
             if len(scr) < l:
                 break
