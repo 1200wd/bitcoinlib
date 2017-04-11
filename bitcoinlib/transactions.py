@@ -602,11 +602,20 @@ class Transaction:
         """
         if self.inputs[tid].type == 'coinbase':
             raise TransactionError("Can not sign coinbase transactions")
-        sig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
+        tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
         sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
-        sig_der = sk.sign_digest(sig, sigencode=ecdsa.util.sigencode_der) + b'\01'  # 01 is hashtype
-        self.inputs[tid].unlocking_script = varstr(sig_der) + varstr(self.inputs[tid].public_key)
-        self.inputs[tid].signature = sig
+
+        while True:
+            sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
+            signature = convert_der_sig(sig_der)
+            s = int(signature[64:], 16)
+            if s > ecdsa.SECP256k1.order / 2:
+                print("high s1 errors expected!!!")
+            else:
+                break
+
+        self.inputs[tid].unlocking_script = varstr(sig_der + b'\01') + varstr(self.inputs[tid].public_key)
+        self.inputs[tid].signature = tsig
 
     def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', sequence=b'\xff\xff\xff\xff'):
         """
@@ -835,7 +844,6 @@ if __name__ == '__main__':
     print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
     print("Verified %s\n\n\n" % t.verify())
 
-    sys.exit()
     from bitcoinlib.services.bitcoind import BitcoindClient
     bdc = BitcoindClient.from_config()
     try:
