@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2017 March - 1200 Web Development <http://1200wd.com/>
+#    © 2017 April - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -488,13 +488,13 @@ class Key:
         """
         Get public key in Hash160 format
         
-        :return str: Hash160 public key hexstring 
+        :return bytes: Hash160 of public key 
         """
         if self.compressed:
             pb = self.public_byte
         else:
             pb = self.public_uncompressed_byte
-        return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).hexdigest()
+        return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
 
     def address(self, compressed=None):
         """

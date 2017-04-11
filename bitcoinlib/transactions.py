@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 February - 1200 Web Development <http://1200wd.com/>
+#    © 2017 April - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -296,7 +296,7 @@ class Input:
         self.compressed = True
         self.public_key_uncompressed = ''
         self.k = None
-        self.public_key_hash = ''
+        self.public_key_hash = b''
         self.address = ''
         self.type = ''
         self.public_key_hex = None
@@ -308,16 +308,15 @@ class Input:
         if unlocking_script and self.type != 'coinbase':
             try:
                 self.signature, pk2 = script_deserialize_sigpk(unlocking_script)
-            except:
-                _logger.warning("Could not parse input script signature")
-                pass
+            except IndexError as err:
+                raise TransactionError("Could not parse input script signature: %s" % err)
         if not public_key and pk2:
             self.public_key = pk2
 
         if self.public_key:
             self.public_key_hex = to_hexstring(self.public_key)
             self.k = Key(self.public_key_hex, network=network)
-            self.public_key_uncompressed = self.k.public_uncompressed()
+            self.public_key_uncompressed = self.k.public_uncompressed_byte
             self.public_key_hash = self.k.hash160()
             self.address = self.k.address()
             self.compressed = self.k.compressed
@@ -406,7 +405,7 @@ class Output:
         if self.lock_script and not self.public_key_hash:
             ps = script_deserialize(self.lock_script)
             if ps[0] == 'p2pkh':
-                self.public_key_hash = binascii.hexlify(ps[1][0])
+                self.public_key_hash = ps[1][0]
                 self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=self.versionbyte)
 
         if self.lock_script == b'':
@@ -562,7 +561,9 @@ class Transaction:
 
     def verify(self):
         """
-        Verify all inputs of a transaction, check if signatures match public key
+        Verify all inputs of a transaction, check if signatures match public key.
+        
+        Does not check if UTXO is valid or has already been spent
         
         :return bool: True if signatures are valid 
         """
@@ -571,7 +572,7 @@ class Transaction:
                 return True
             t_to_sign = self.raw(i.tid)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
-            pk = binascii.unhexlify(i.public_key_uncompressed[2:])
+            pk = i.public_key_uncompressed[1:]
             try:
                 signature, pk2 = script_deserialize_sigpk(i.unlocking_script)
             except Exception as e:
@@ -604,12 +605,8 @@ class Transaction:
         sig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
         sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
         sig_der = sk.sign_digest(sig, sigencode=ecdsa.util.sigencode_der) + b'\01'  # 01 is hashtype
-        k = Key(priv_key)
-        # pub_key = binascii.unhexlify(k.public_uncompressed())
-        pub_key = binascii.unhexlify(k.public())
-        self.inputs[tid].unlocking_script = varstr(sig_der) + varstr(pub_key)
-        self.inputs[tid].signature = binascii.hexlify(sig)
-        # self.inputs[tid].public_key = pub_key
+        self.inputs[tid].unlocking_script = varstr(sig_der) + varstr(self.inputs[tid].public_key)
+        self.inputs[tid].signature = sig
 
     def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', sequence=b'\xff\xff\xff\xff'):
         """
