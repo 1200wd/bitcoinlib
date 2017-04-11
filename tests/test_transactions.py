@@ -21,6 +21,7 @@
 import unittest
 import json
 from bitcoinlib.transactions import *
+from bitcoinlib.keys import HDKey
 
 
 class TestTransactionInputs(unittest.TestCase):
@@ -176,7 +177,31 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(3, len(t.outputs))
 
     def test_transactions_sign_multiple_inputs(self):
-        pass
+        # Two private keys with 1 UTXO on the blockchain each
+        wif1 = 'xprvA3PZhxgsb5cogy52pm8eJf21gW2epoetxdCZxpmBWddViHmB7wgR4apQVxRHmyngapZ14pBzWSCP6sztWn8EaMmnwZaj' \
+               'fs7oS6rZDYdnrwh'
+        wif2 = 'xprvA3PZhxgsb5cojKHWdGGFBNut51QbAe5arWb7s7cJ9cT6zThQJFvYKKZDcmFirWJVVHgRYzqLc9XnuDMrP3Qwy8sK8Zu5' \
+               'MisgvXVtGdwDhrH'
+
+        # Create inputs with a UTXO with 2 unspent outputs which corresponds to this private keys
+        utxo_hash = '0177ac29fa8b2960051321c730c6f15017503aa5b9c1dd2d61e7286e366fbaba'
+        pk1 = HDKey(wif1)
+        pk2 = HDKey(wif2)
+        input1 = Input(prev_hash=utxo_hash, output_index=0, public_key=pk1.public_byte, tid=0)
+        input2 = Input(prev_hash=utxo_hash, output_index=1, public_key=pk2.public_byte, tid=1)
+
+        # Create a transaction with 2 inputs, and add 2 outputs below
+        osm_address = '1J3pt9koWJZTo2jarg98RL89iJqff9Kobp'
+        change_address = '1Ht9iDJ3FjwweQNuj451QVL6RAP5qxadFb'
+        output1 = Output(amount=900000, address=osm_address)
+        output2 = Output(amount=150000, address=change_address)
+        t = Transaction(inputs=[input1, input2], outputs=[output1, output2])
+
+        # Sign the inputs and verify
+        # See txid 1ec28c925df0079ead9976d38165909ccb3580a428ce069ee13e63879df0c2fc
+        t.sign(pk1.private_byte, 0)
+        t.sign(pk2.private_byte, 1)
+        self.assertTrue(t.verify())
 
 
 class TestTransactionsScriptType(unittest.TestCase):
