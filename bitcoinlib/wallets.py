@@ -1121,17 +1121,22 @@ class HDWallet:
 
     def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
         """
-        Create new transaction with specified outputs. Inputs can be specified as well or will be automatically 
-        determined
+        Create new transaction with specified outputs. Inputs can be specified but if not provided they will
+        be selected from wallets utxo's.
         
-        :param output_arr: 
-        :param input_arr: Array of inputs in format: utxo.tx_hash, utxo.output_n, utxo.key_id, utxo.value
-        :param account_id: 
-        :param fee: 
-        :param min_confirms: 
-        
+        :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
+        :type output_arr: list 
+        :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_id, value)]
+        :type input_arr: list
+        :param account_id: Account ID
+        :type account_id: int
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
+        :type fee: int
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
+        :type min_confirms: int
         :return bytes: Raw transaction  
         """
+        # TODO
         amount_total_output = 0
         t = Transaction(network=self.network.network_name)
         for o in output_arr:
