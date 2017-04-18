@@ -995,19 +995,25 @@ class HDWallet:
         
         :return: 
         """
-        # Delete all utxo's for this account
-        # TODO: This could be done more efficiently probably:
-        qr = self._session.query(DbTransaction).join(DbTransaction.key).\
-            filter(DbTransaction.spend is not True, DbKey.account_id == account_id)
-        if key_id is not None:
-            qr.filter(DbTransaction.key_id == key_id)
-        [self._session.delete(o) for o in qr.all()]
-        self._session.commit()
-
+        # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=self.network.network_name).\
             getutxos(self.addresslist(account_id=account_id, key_id=key_id))
         key_balances = {}
         count_utxos = 0
+
+        # Get current UTXO's from database to compare with Service objects UTXO's
+        current_utxos = self.getutxos(account_id=account_id) # TODO add key_id
+
+        # Delete not found UTXO's from database
+        utxos_tx_hashes = [x['tx_hash'] for x in utxos]
+        for current_utxo in current_utxos:
+            if current_utxo['tx_hash'] not in utxos_tx_hashes:
+                qr = self._session.query(DbTransaction).join(DbTransaction.key).\
+                     filter(DbTransaction.tx_hash == current_utxo['tx_hash'])
+                self._session.delete(qr.scalar())
+            self._session.commit()
+
+        # If UTXO is new, add to database otherwise update depth, status
         for utxo in utxos:
             key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
             if key.id in key_balances:
@@ -1025,14 +1031,15 @@ class HDWallet:
             self._session.add(new_utxo)
             count_utxos += 1
 
+        # Update balances for keys and wallet
         total_balance = 0
         for kb in key_balances:
             getkey = self._session.query(DbKey).filter_by(id=kb).scalar()
             getkey.balance = key_balances[kb]
             total_balance += key_balances[kb]
-
         self._dbwallet.balance = total_balance
         self._balance = total_balance
+
         _logger.info("Got %d new UTXOs for account %s. Total balance %s" % (count_utxos, account_id, total_balance))
 
         self._session.commit()
@@ -1048,7 +1055,9 @@ class HDWallet:
         :return list: List of transactions 
         """
         utxos = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
-            filter(DbTransaction.spend.op("IS")(False), DbKey.account_id == account_id,
+            filter(DbTransaction.spend.op("IS")(False),
+                   DbKey.account_id == account_id,
+                   DbKey.wallet_id == self.wallet_id,
                    DbTransaction.confirmations >= min_confirms).order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
