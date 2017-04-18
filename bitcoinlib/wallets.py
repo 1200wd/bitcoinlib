@@ -1013,10 +1013,10 @@ class HDWallet:
                 })
 
         self._session.bulk_update_mappings(DbKey, utxo_keys)
-
-        # self._dbwallet.balance = total_balance
-        # self._balance = total_balance
-        # _logger.info("Got %d new UTXOs for account %s. Total balance %s" % (count_utxos, account_id, total_balance))
+        self._dbwallet.balance = total_balance
+        self._balance = total_balance
+        self._session.commit()
+        _logger.info("Got balance for %d key. Total balance is %s" % (len(utxo_keys), total_balance))
 
     def updateutxos(self, account_id=None, key_id=None):
         """
