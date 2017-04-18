@@ -969,7 +969,7 @@ class HDWallet:
         else:
             raise KeyError("Key '%s' not found" % term)
 
-    def updatebalance(self, account_id=None):
+    def updatebalance_from_serviceprovider(self, account_id=None):
         """
         Update balance of currents account addresses using default Service objects getbalance method. Update total 
         wallet balance in database. 
@@ -982,15 +982,20 @@ class HDWallet:
         :return: 
         """
         self._balance = Service(network=self.network.network_name).getbalance(self.addresslist(account_id=account_id))
-        # FIXME: This does not update database:
         self._dbwallet.balance = self._balance
         self._session.commit()
 
-    def updatebalance_fromutxos(self, account_id=None, key_id=None):
+    def updatebalance(self, account_id=None, key_id=None):
         """
         Update balance from UTXO's in database. To get most recent balance use updateutxos first.
+        
+        :param account_id: Account ID filter
+        :type account_id: int
+        :param key_id: Key ID Filter
+        :type key_id: int
         :return: 
         """
+
         # Get UTXO's and convert to dict with key_id and balance
         utxos = self.getutxos(account_id=account_id, key_id=key_id)
         utxos.sort(key=lambda x: x['key_id'])
@@ -1012,6 +1017,7 @@ class HDWallet:
                     'balance': 0
                 })
 
+        # Bulk update database
         self._session.bulk_update_mappings(DbKey, utxo_keys)
         self._dbwallet.balance = total_balance
         self._balance = total_balance
@@ -1032,7 +1038,6 @@ class HDWallet:
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=self.network.network_name).\
             getutxos(self.addresslist(account_id=account_id, key_id=key_id))
-
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
@@ -1064,7 +1069,7 @@ class HDWallet:
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
-        self.updatebalance_fromutxos(account_id=account_id, key_id=key_id)
+        self.updatebalance(account_id=account_id, key_id=key_id)
         return count_utxos
 
     def getutxos(self, account_id, min_confirms=0, key_id=None):
