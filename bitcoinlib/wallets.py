@@ -19,6 +19,7 @@
 #
 
 import numbers
+from itertools import groupby
 from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey, check_network_and_key
@@ -981,8 +982,41 @@ class HDWallet:
         :return: 
         """
         self._balance = Service(network=self.network.network_name).getbalance(self.addresslist(account_id=account_id))
+        # FIXME: This does not update database:
         self._dbwallet.balance = self._balance
         self._session.commit()
+
+    def updatebalance_fromutxos(self, account_id=None, key_id=None):
+        """
+        Update balance from UTXO's in database. To get most recent balance use updateutxos first.
+        :return: 
+        """
+        # Get UTXO's and convert to dict with key_id and balance
+        utxos = self.getutxos(account_id=account_id, key_id=key_id)
+        utxos.sort(key=lambda x: x['key_id'])
+        utxo_keys = []
+        total_balance = 0
+        for key, group in groupby(utxos, lambda x: x['key_id']):
+            balance = sum(r['value'] for r in group)
+            utxo_keys.append({
+                    'id': key,
+                    'balance': balance
+            })
+            total_balance += balance
+
+        # Add keys with no UTXO's with 0 balance
+        for key in self.keys(account_id=account_id, key_id=key_id):
+            if key.id not in [x['key_id'] for x in utxos]:
+                utxo_keys.append({
+                    'id': key.id,
+                    'balance': 0
+                })
+
+        self._session.bulk_update_mappings(DbKey, utxo_keys)
+
+        # self._dbwallet.balance = total_balance
+        # self._balance = total_balance
+        # _logger.info("Got %d new UTXOs for account %s. Total balance %s" % (count_utxos, account_id, total_balance))
 
     def updateutxos(self, account_id=None, key_id=None):
         """
@@ -998,7 +1032,7 @@ class HDWallet:
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=self.network.network_name).\
             getutxos(self.addresslist(account_id=account_id, key_id=key_id))
-        key_balances = {}
+
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
@@ -1016,13 +1050,10 @@ class HDWallet:
         # If UTXO is new, add to database otherwise update depth, status
         for utxo in utxos:
             key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
-            if key.id in key_balances:
-                key_balances[key.id] += int(utxo['value'])
-            else:
-                key_balances[key.id] = int(utxo['value'])
 
             # Skip if utxo was already imported
             if self._session.query(DbTransaction).filter_by(tx_hash=utxo['tx_hash']).count():
+                # TODO: Update db
                 continue
 
             new_utxo = DbTransaction(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
@@ -1031,18 +1062,10 @@ class HDWallet:
             self._session.add(new_utxo)
             count_utxos += 1
 
-        # Update balances for keys and wallet
-        total_balance = 0
-        for kb in key_balances:
-            getkey = self._session.query(DbKey).filter_by(id=kb).scalar()
-            getkey.balance = key_balances[kb]
-            total_balance += key_balances[kb]
-        self._dbwallet.balance = total_balance
-        self._balance = total_balance
-
-        _logger.info("Got %d new UTXOs for account %s. Total balance %s" % (count_utxos, account_id, total_balance))
-
+        _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
+        self.updatebalance_fromutxos(account_id=account_id, key_id=key_id)
+        return count_utxos
 
     def getutxos(self, account_id, min_confirms=0, key_id=None):
         """
@@ -1051,7 +1074,9 @@ class HDWallet:
         :param account_id: Account ID
         :type account_id: int
         :param min_confirms: Minimal confirmation needed to include in output list
-        
+        :type min_confirms: int
+        :param key_id: Key ID to just get 1 key
+        :type key_id: int  
         :return list: List of transactions 
         """
         qr = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
