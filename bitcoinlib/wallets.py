@@ -1002,7 +1002,7 @@ class HDWallet:
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
-        current_utxos = self.getutxos(account_id=account_id) # TODO add key_id
+        current_utxos = self.getutxos(account_id=account_id, key_id=key_id)
 
         # Delete not found UTXO's from database
         utxos_tx_hashes = [x['tx_hash'] for x in utxos]
@@ -1044,7 +1044,7 @@ class HDWallet:
 
         self._session.commit()
 
-    def getutxos(self, account_id, min_confirms=0):
+    def getutxos(self, account_id, min_confirms=0, key_id=None):
         """
         Get UTXO's (Unspent Outputs) from database. Use updateutxos method first for updated values
         
@@ -1054,11 +1054,14 @@ class HDWallet:
         
         :return list: List of transactions 
         """
-        utxos = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
+        qr = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
             filter(DbTransaction.spend.op("IS")(False),
                    DbKey.account_id == account_id,
                    DbKey.wallet_id == self.wallet_id,
-                   DbTransaction.confirmations >= min_confirms).order_by(DbTransaction.confirmations.desc()).all()
+                   DbTransaction.confirmations >= min_confirms)
+        if key_id is not None:
+            qr = qr.filter(DbKey.id == key_id)
+        utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
             u = utxo[0].__dict__
