@@ -335,26 +335,6 @@ class HDWalletKey:
         p.append(str(address_index))
         return p[:max_depth]
 
-    # def parent(self, session):
-    #     return HDWalletKey(self.parent_id, session=session, hdkey_object=self.key())
-
-    def updatebalance(self):
-        """
-        Update balance in database using the default Service getbalance method
-        
-        """
-        self._balance = Service(network=self.network.network_name).getbalance([self.address])
-        self._dbkey.balance = self._balance
-
-    def updateutxo(self):
-        """
-        Update list of unspent transaction outputs (UTXO's)
-        
-        :return: 
-        """
-        utxos = Service(network=self.network.network_name).getutxos([self.address])
-        # TODO: store this information in database!
-
     def info(self):
         """
         Output current key information to standard output
@@ -1033,7 +1013,7 @@ class HDWallet:
         :param key_id: Key ID to just update 1 key
         :type key_id: int
         
-        :return: 
+        :return int: Number of new UTXO's added 
         """
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=self.network.network_name).\
@@ -1179,7 +1159,6 @@ class HDWallet:
         :type min_confirms: int
         :return bytes: Raw transaction  
         """
-        # TODO
         amount_total_output = 0
         t = Transaction(network=self.network.network_name)
         for o in output_arr:
