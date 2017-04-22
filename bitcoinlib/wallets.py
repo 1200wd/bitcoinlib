@@ -702,13 +702,28 @@ class HDWallet:
         """
         return self.new_key(name=name, account_id=account_id, change=1)
 
-    def get_unused_key(self, account_id=None):
+    def get_unused_key(self, account_id=None, change=0, depth_of_keys=5):
         """
         Get a unused key. Returns a key from this wallet which has no transactions linked to it.
-        :param account_id: 
-        :return: 
+        
+        :param account_id: Account ID. Default is last used or created account ID.
+        :type account_id: int
+        :param change: Payment (0) or change key (1). Default is 0
+        :type change: int
+        :param depth_of_keys: Depth of account keys. Default is 5 according to BIP0032 standards
+        :type depth_of_keys: int
+        
+        :return HDWalletKey: 
         """
-
+        if account_id is None:
+            account_id = self.default_account_id
+        dbkey = self._session.query(DbKey).\
+            filter_by(wallet_id=self.wallet_id, account_id=account_id, used=False, change=change, depth=depth_of_keys).\
+            order_by(DbKey.id).first()
+        if dbkey:
+            return HDWalletKey(dbkey.id, session=self._session)
+        else:
+            return self.new_key(account_id=account_id, change=change)
 
     def new_account(self, name='', account_id=None):
         """
@@ -1038,7 +1053,7 @@ class HDWallet:
                 qr = self._session.query(DbTransaction).join(DbTransaction.key).\
                      filter(DbTransaction.tx_hash == current_utxo['tx_hash'])
                 self._session.delete(qr.scalar())
-                qr = self._session.query(DbKey).update(DbKey.used is True).where(DbKey.id == current_utxo['key_id'])
+                self._session.query(DbKey).update(DbKey.used is True).where(DbKey.id == current_utxo['key_id'])
             self._session.commit()
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
