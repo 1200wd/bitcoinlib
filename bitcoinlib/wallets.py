@@ -1052,20 +1052,21 @@ class HDWallet:
                 self._session.delete(qr.scalar())
             self._session.commit()
 
-        # If UTXO is new, add to database otherwise update depth, status
+        # If UTXO is new, add to database otherwise update depth (confirmation count)
         for utxo in utxos:
             key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
 
-            # Skip if utxo was already imported
-            if self._session.query(DbTransaction).filter_by(tx_hash=utxo['tx_hash']).count():
-                # TODO: Update db
-                continue
-
-            new_utxo = DbTransaction(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
-                                     output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
-                                     script=utxo['script'], spend=False)
-            self._session.add(new_utxo)
-            count_utxos += 1
+            # Update confirmations in db if utxo was already imported
+            utxo_in_db = self._session.query(DbTransaction).filter_by(tx_hash=utxo['tx_hash'])
+            if utxo_in_db.count():
+                utxo_record = utxo_in_db.scalar()
+                utxo_record.confirmations = utxo['confirmations']
+            else:
+                new_utxo = DbTransaction(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
+                                         output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
+                                         script=utxo['script'], spend=False)
+                self._session.add(new_utxo)
+                count_utxos += 1
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
