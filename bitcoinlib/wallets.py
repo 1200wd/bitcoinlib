@@ -634,7 +634,7 @@ class HDWallet:
 
     def new_key(self, name='', account_id=None, change=0, max_depth=5):
         """
-        Create a new HD Key to this wallet, derive from Masterkey. An account will be created for this wallet
+        Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
         
         :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce this. If not specified 'Key #' with an unique sequence number will be used
@@ -701,6 +701,14 @@ class HDWallet:
         :return HDWalletKey: 
         """
         return self.new_key(name=name, account_id=account_id, change=1)
+
+    def get_unused_key(self, account_id=None):
+        """
+        Get a unused key. Returns a key from this wallet which has no transactions linked to it.
+        :param account_id: 
+        :return: 
+        """
+
 
     def new_account(self, name='', account_id=None):
         """
@@ -1030,11 +1038,13 @@ class HDWallet:
                 qr = self._session.query(DbTransaction).join(DbTransaction.key).\
                      filter(DbTransaction.tx_hash == current_utxo['tx_hash'])
                 self._session.delete(qr.scalar())
+                qr = self._session.query(DbKey).update(DbKey.used is True).where(DbKey.id == current_utxo['key_id'])
             self._session.commit()
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
         for utxo in utxos:
             key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
+            key.used = True
 
             # Update confirmations in db if utxo was already imported
             utxo_in_db = self._session.query(DbTransaction).filter_by(tx_hash=utxo['tx_hash'])
@@ -1105,6 +1115,7 @@ class HDWallet:
         if not txid:
             raise WalletError("Could not send transaction: %s" % srv.errors)
         _logger.info("Succesfully pushed transaction, returned txid: %s" % txid)
+        # TODO: Update db, add new tx to db + update spend UTXO's
         return txid
 
     @staticmethod

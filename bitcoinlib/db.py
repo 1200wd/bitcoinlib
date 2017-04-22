@@ -104,6 +104,7 @@ class DbKey(Base):
     wallet = relationship("DbWallet", back_populates="keys")
     transactions = relationship("DbTransaction", cascade="all,delete", back_populates="key")
     balance = Column(Integer, default=0)
+    used = Column(Boolean, default=False)
 
     def __repr__(self):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.key_wif)
