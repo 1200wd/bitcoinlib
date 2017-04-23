@@ -1125,8 +1125,9 @@ class HDWallet:
         outputs = [(to_address, amount)]
         t = self.create_transaction(outputs, account_id=account_id, fee=fee)
         srv = Service(network='testnet')
-        _logger.debug("Push send transaction to network: %s" % to_hexstring(t.raw()))
-        txid = srv.sendrawtransaction(to_hexstring(t.raw()))
+        raw_tx = t.raw_hex()
+        _logger.debug("Push send transaction to network: %s" % raw_tx)
+        txid = srv.sendrawtransaction(raw_tx)
         if not txid:
             raise WalletError("Could not send transaction: %s" % srv.errors)
         _logger.info("Succesfully pushed transaction, returned txid: %s" % txid)

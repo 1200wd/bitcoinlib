@@ -498,11 +498,7 @@ class Transaction:
             self.outputs = outputs
         self.version = version
         self.locktime = locktime
-        # self.rawtx = rawtx
         self.network = Network(network)
-        # if not self.rawtx:
-        #     self.rawtx = self.raw()
-        # self.rawtx_hex = to_hexstring(self.rawtx)
 
     def __repr__(self):
         return "<Transaction (inputcount=%d, outputcount=%d, network=%s)>" % \
@@ -558,10 +554,15 @@ class Transaction:
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += b'\1\0\0\0'
-        # else:
-        #     self.rawtx = r
-        #     self.rawtx_hex = to_hexstring(r)
         return r
+
+    def raw_hex(self):
+        """
+        Wrapper for raw method. Return current raw transaction hex
+        
+        :return hexstring: 
+        """
+        return to_hexstring(self.raw())
 
     def verify(self):
         """
