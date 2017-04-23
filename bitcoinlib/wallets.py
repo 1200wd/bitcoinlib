@@ -1053,7 +1053,7 @@ class HDWallet:
                 qr = self._session.query(DbTransaction).join(DbTransaction.key).\
                      filter(DbTransaction.tx_hash == current_utxo['tx_hash'])
                 self._session.delete(qr.scalar())
-                self._session.query(DbKey).update(DbKey.used is True).where(DbKey.id == current_utxo['key_id'])
+                self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
             self._session.commit()
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
@@ -1242,8 +1242,13 @@ class HDWallet:
         if not txid:
             raise WalletError("Could not send transaction: %s" % srv.errors)
         _logger.info("Succesfully pushed transaction, returned txid: %s" % txid)
-        # TODO: Update db, add new tx to db + update spend UTXO's
 
+        # Update db: Update spend UTXO's, add transaction to database
+        for inp in input_arr:
+            self._session.query(DbTransaction).filter(DbTransaction.tx_hash == inp[0]).\
+                update({DbTransaction.spend: True})
+
+        self._session.commit()
         return txid
 
     def info(self, detail=3):
