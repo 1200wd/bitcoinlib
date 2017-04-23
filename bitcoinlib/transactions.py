@@ -463,9 +463,9 @@ class Transaction:
         """
         rawtx = to_bytes(rawtx)
         inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
-        return Transaction(inputs, outputs, locktime, version, rawtx, network)
+        return Transaction(inputs, outputs, locktime, version, network)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', rawtx=b'',
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01',
                  network=DEFAULT_NETWORK):
         """
         Create a new transaction class with provided inputs and outputs. 
@@ -498,10 +498,11 @@ class Transaction:
             self.outputs = outputs
         self.version = version
         self.locktime = locktime
-        self.rawtx = rawtx
+        # self.rawtx = rawtx
         self.network = Network(network)
-        if not self.rawtx:
-            self.rawtx = self.raw()
+        # if not self.rawtx:
+        #     self.rawtx = self.raw()
+        # self.rawtx_hex = to_hexstring(self.rawtx)
 
     def __repr__(self):
         return "<Transaction (inputcount=%d, outputcount=%d, network=%s)>" % \
@@ -557,6 +558,9 @@ class Transaction:
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += b'\1\0\0\0'
+        # else:
+        #     self.rawtx = r
+        #     self.rawtx_hex = to_hexstring(r)
         return r
 
     def verify(self):
