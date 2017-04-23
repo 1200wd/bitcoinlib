@@ -1107,7 +1107,7 @@ class HDWallet:
             res.append(u)
         return res
 
-    def send(self, to_address, amount, account_id=None, fee=None):
+    def send_to(self, to_address, amount, account_id=None, fee=None):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
         
@@ -1123,16 +1123,7 @@ class HDWallet:
         :return str: Transaction id (txid) if transaction is pushed succesfully 
         """
         outputs = [(to_address, amount)]
-        t = self.create_transaction(outputs, account_id=account_id, fee=fee)
-        srv = Service(network='testnet')
-        raw_tx = t.raw_hex()
-        _logger.debug("Push send transaction to network: %s" % raw_tx)
-        txid = srv.sendrawtransaction(raw_tx)
-        if not txid:
-            raise WalletError("Could not send transaction: %s" % srv.errors)
-        _logger.info("Succesfully pushed transaction, returned txid: %s" % txid)
-        # TODO: Update db, add new tx to db + update spend UTXO's
-        return txid
+        return self.send(outputs, account_id=account_id, fee=fee)
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
@@ -1169,10 +1160,11 @@ class HDWallet:
             return []
         return selected_utxos
 
-    def create_transaction(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
+    def send(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
         """
-        Create new transaction with specified outputs. Inputs can be specified but if not provided they will
-        be selected from wallets utxo's.
+        Create new transaction with specified outputs and push it to the network. 
+        Inputs can be specified but if not provided they will be selected from wallets utxo's.
+        Output array is a list of 1 or more addresses and amounts.
         
         :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
         :type output_arr: list 
@@ -1244,7 +1236,15 @@ class HDWallet:
         if not t.verify():
             raise WalletError("Cannot verify transaction. Create transaction failed")
 
-        return t
+        # Push it to the network
+        srv = Service(network=self.network.network_name)
+        txid = srv.sendrawtransaction(t.raw_hex())
+        if not txid:
+            raise WalletError("Could not send transaction: %s" % srv.errors)
+        _logger.info("Succesfully pushed transaction, returned txid: %s" % txid)
+        # TODO: Update db, add new tx to db + update spend UTXO's
+
+        return txid
 
     def info(self, detail=3):
         """
