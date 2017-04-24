@@ -702,9 +702,10 @@ class HDWallet:
         """
         return self.new_key(name=name, account_id=account_id, change=1)
 
-    def get_unused_key(self, account_id=None, change=0, depth_of_keys=5):
+    def get_key(self, account_id=None, change=0, depth_of_keys=5):
         """
-        Get a unused key. Returns a key from this wallet which has no transactions linked to it.
+        Get a unused key or create a new one if there are no unused keys. 
+        Returns a key from this wallet which has no transactions linked to it.
         
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
@@ -725,6 +726,22 @@ class HDWallet:
         else:
             return self.new_key(account_id=account_id, change=change)
 
+    def get_key_change(self, account_id=None, depth_of_keys=5):
+        """
+        Get a unused change key or create a new one if there are no unused keys. 
+        Wrapper for the get_key method
+        
+        :param account_id: Account ID. Default is last used or created account ID.
+        :type account_id: int
+        :param change: Payment (0) or change key (1). Default is 0
+        :type change: int
+        :param depth_of_keys: Depth of account keys. Default is 5 according to BIP0032 standards
+        :type depth_of_keys: int
+        
+        :return HDWalletKey:  
+        """
+        return self.get_key(account_id=account_id, depth_of_keys=depth_of_keys)
+        
     def new_account(self, name='', account_id=None):
         """
         Create a new account with a childkey for payments and 1 for change.
