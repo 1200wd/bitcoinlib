@@ -1032,7 +1032,7 @@ class HDWallet:
         self._session.commit()
         _logger.info("Got balance for %d key. Total balance is %s" % (len(utxo_keys), total_balance))
 
-    def updateutxos(self, account_id=None, key_id=None):
+    def updateutxos(self, account_id=None, key_id=None, depth=5):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1042,13 +1042,15 @@ class HDWallet:
         :type account_id: int
         :param key_id: Key ID to just update 1 key
         :type key_id: int
+        :param depth: Only update keys with this depth, default is depth 5 according to BIP0048 standard. Set depth to None to update all keys of this wallet.
+        :type depth: int
         
         :return int: Number of new UTXO's added 
         """
 
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=self.network.network_name).\
-            getutxos(self.addresslist(account_id=account_id, key_id=key_id))
+            getutxos(self.addresslist(account_id=account_id, key_id=key_id, depth=depth))
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
