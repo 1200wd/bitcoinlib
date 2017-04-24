@@ -1235,7 +1235,7 @@ class HDWallet:
 
         # Add change output
         if amount_change:
-            ck = self.new_key_change('Change', account_id)
+            ck = self.get_unused_key(account_id=account_id, change=1)
             t.add_output(amount_change, ck.address)
 
         # Sign inputs
