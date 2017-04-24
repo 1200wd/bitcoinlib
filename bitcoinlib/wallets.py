@@ -977,7 +977,8 @@ class HDWallet:
         Update balance of currents account addresses using default Service objects getbalance method. Update total 
         wallet balance in database. 
         
-        Please Note: Does not update UTXO's or the balance per key!
+        Please Note: Does not update UTXO's or the balance per key! For this use the 'updatebalance' method
+        instead
         
         :param account_id: Account ID
         :type account_id: int
@@ -990,12 +991,16 @@ class HDWallet:
 
     def updatebalance(self, account_id=None, key_id=None):
         """
-        Update balance from UTXO's in database. To get most recent balance use updateutxos first.
+        Update balance from UTXO's in database. To get most recent balance use 'updateutxos' method first.
+        
+        Also updates balance of wallet and keys in this wallet for the specified account or all accounts if
+        no account is specified.
         
         :param account_id: Account ID filter
         :type account_id: int
         :param key_id: Key ID Filter
         :type key_id: int
+        
         :return: 
         """
 
@@ -1029,7 +1034,9 @@ class HDWallet:
 
     def updateutxos(self, account_id=None, key_id=None):
         """
-        Update UTXO's (Unspent Outputs) in database of given account using the default Service object
+        Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
+        
+        Delete old UTXO's which are spend and append new UTXO's to database.
         
         :param account_id: Account ID
         :type account_id: int
@@ -1038,6 +1045,7 @@ class HDWallet:
         
         :return int: Number of new UTXO's added 
         """
+
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=self.network.network_name).\
             getutxos(self.addresslist(account_id=account_id, key_id=key_id))
