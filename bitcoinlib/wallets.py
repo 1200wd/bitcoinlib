@@ -523,7 +523,7 @@ class HDWallet:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             else:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session)
-            self.default_account_id = 0
+            self.default_account_id = self.main_key.account_id
             _logger.info("Opening wallet '%s'" % self.name)
             self._key_objects = {
                 self.main_key_id: self.main_key
@@ -741,7 +741,7 @@ class HDWallet:
         :return HDWalletKey:  
         """
         return self.get_key(account_id=account_id, depth_of_keys=depth_of_keys)
-        
+
     def new_account(self, name='', account_id=None):
         """
         Create a new account with a childkey for payments and 1 for change.
@@ -1252,7 +1252,7 @@ class HDWallet:
 
         # Add change output
         if amount_change:
-            ck = self.get_unused_key(account_id=account_id, change=1)
+            ck = self.get_key(account_id=account_id, change=1)
             t.add_output(amount_change, ck.address)
 
         # Sign inputs
