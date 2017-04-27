@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BlockCypher client
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 April - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -71,3 +71,11 @@ class BlockCypher(BaseClient):
 
     def decoderawtransaction(self, rawtx):
         return self.compose_request('txs', 'decode', variables={'tx': rawtx}, method='post')
+
+    def estimatefee(self, blocks):
+        res = self.compose_request('', '')
+        if blocks < 3:
+            return res['high_fee_per_kb']
+        elif blocks <= 6:
+            return res['medium_fee_per_kb']
+        return res['low_fee_per_kb']

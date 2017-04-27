@@ -130,9 +130,17 @@ class Service(object):
     def decoderawtransaction(self, rawtx):
         return self._provider_execute('decoderawtransaction', rawtx)
 
+    def estimatefee(self, blocks=3):
+        return self._provider_execute('estimatefee', blocks)
+
 
 if __name__ == '__main__':
     from pprint import pprint
+    srv = Service(network='testnet', providers=['blockexplorer', 'blockcypher'])
+    srv.estimatefee(10)
+    print(srv.results)
+    sys.exit()
+
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
     srv = Service(network='testnet', min_providers=5)

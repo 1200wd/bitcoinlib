@@ -62,3 +62,7 @@ class BlockExplorerClient(BaseClient):
     def sendrawtransaction(self, rawtx):
         return self.compose_request('tx', 'send', variables={'rawtx': rawtx}, method='post')
 
+    def estimatefee(self, blocks):
+        res = self.compose_request('utils', 'estimatefee', variables={'nbBlocks': blocks})
+        return int(res[str(blocks)] * self.units)
+        # /api/utils/estimatefee[?nbBlocks=2]
