@@ -1276,8 +1276,8 @@ class HDWallet:
 
         # Push it to the network
         srv = Service(network=self.network.network_name)
-        txid = srv.sendrawtransaction(t.raw_hex())
-        if not txid:
+        res = srv.sendrawtransaction(t.raw_hex())
+        if not res:
             raise WalletError("Could not send transaction: %s" % srv.errors)
         _logger.info("Succesfully pushed transaction, returned txid: %s" % txid)
 
@@ -1287,7 +1287,10 @@ class HDWallet:
                 update({DbTransaction.spend: True})
 
         self._session.commit()
-        return txid
+        if 'txid' in res:
+            return res['txid']
+        else:
+            return res
 
     def info(self, detail=3):
         """
