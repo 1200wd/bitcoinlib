@@ -1279,7 +1279,7 @@ class HDWallet:
         res = srv.sendrawtransaction(t.raw_hex())
         if not res:
             raise WalletError("Could not send transaction: %s" % srv.errors)
-        _logger.info("Succesfully pushed transaction, returned txid: %s" % txid)
+        _logger.info("Succesfully pushed transaction, result: %s" % res)
 
         # Update db: Update spend UTXO's, add transaction to database
         for inp in input_arr:
