@@ -24,7 +24,6 @@ from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
-from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.mnemonic import Mnemonic
@@ -106,17 +105,14 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     if not w or not w.first():
         raise WalletError("Wallet '%s' not found" % wallet)
 
-    # Delete keys from this wallet
+    # Delete keys from this wallet and update transactions (remove key_id)
     ks = session.query(DbKey).filter_by(wallet_id=w.first().id)
     for k in ks:
         if not force and k.balance:
             raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
                               (k.id, k.address))
-        # Update transactions, remove key_id
         kt = session.query(DbTransaction).filter_by(key_id=k.id)
-        # TODO: Update instead of delete
-        # kt.update({DbTransaction.key_id: None})
-        kt.delete()
+        kt.update({DbTransaction.key_id: None})
     ks.delete()
 
     res = w.delete()
@@ -1078,13 +1074,13 @@ class HDWallet:
         # Get current UTXO's from database to compare with Service objects UTXO's
         current_utxos = self.getutxos(account_id=account_id, key_id=key_id)
 
-        # Delete not found UTXO's from database
+        # Update spend UTXO's (not found in list) and mark key as used
         utxos_tx_hashes = [x['tx_hash'] for x in utxos]
         for current_utxo in current_utxos:
             if current_utxo['tx_hash'] not in utxos_tx_hashes:
-                qr = self._session.query(DbTransaction).join(DbTransaction.key).\
-                     filter(DbTransaction.tx_hash == current_utxo['tx_hash'])
-                self._session.delete(qr.scalar())
+                self._session.query(DbTransaction).join(DbTransaction.key).\
+                    filter(DbTransaction.tx_hash == current_utxo['tx_hash']).\
+                    update({DbTransaction.spend: True})
                 self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
             self._session.commit()
 
@@ -1161,7 +1157,7 @@ class HDWallet:
     def _select_inputs(amount, utxo_query=None):
         """
         Internal method used by create transaction to select best inputs (UTXO's) for a transaction. To get the
-        lease number of inputs
+        least number of inputs
         
         :param amount: Amount to transfer
         :type amount: int
@@ -1220,7 +1216,9 @@ class HDWallet:
             account_id = self.default_account_id
 
         qr = self._session.query(DbTransaction)
-        qr.join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False), DbKey.account_id == account_id)
+        qr.join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False),
+                                          DbKey.account_id == account_id, DbKey.wallet_id == self.wallet_id)
+        # TODO: join 2 filters and test
         qr.filter(DbTransaction.confirmations >= min_confirms)
         utxos = qr.all()
         if not utxos:
