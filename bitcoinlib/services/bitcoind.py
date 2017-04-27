@@ -67,6 +67,9 @@ class BitcoindClient:
 
     def sendrawtransaction(self, rawtx):
         return self.proxy.sendrawtransaction(rawtx)
+    
+    def estimatefee(self, blocks):
+        return self.proxy.estimatefees(blocks)
 
 
 if __name__ == '__main__':

@@ -136,10 +136,6 @@ class Service(object):
 
 if __name__ == '__main__':
     from pprint import pprint
-    srv = Service(network='testnet', providers=['blockexplorer', 'blockcypher'])
-    srv.estimatefee(10)
-    print(srv.results)
-    sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
@@ -179,3 +175,8 @@ if __name__ == '__main__':
         print("Transaction could not be send, errors:")
         pprint(srv.errors)
 
+    # Get current estimated networks fees
+    print("\nCurrent estimated networks fees:")
+    srv = Service(network='testnet', min_providers=100)
+    srv.estimatefee(5)
+    pprint(srv.results)
