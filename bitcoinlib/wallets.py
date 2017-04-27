@@ -1157,14 +1157,26 @@ class HDWallet:
         outputs = [(to_address, amount)]
         return self.send(outputs, account_id=account_id, fee=fee)
 
-    def _select_inputs(self, amount, utxo_query=None, account_id=None):
+    @staticmethod
+    def _select_inputs(amount, utxo_query=None):
         """
         Internal method used by create transaction to select best inputs (UTXO's) for a transaction. To get the
         least number of inputs
         
+        Example of UTXO query:
+            SELECT transactions.id AS transactions_id, transactions.key_id AS transactions_key_id, 
+            transactions.tx_hash AS transactions_tx_hash, transactions.date AS transactions_date, 
+            transactions.confirmations AS transactions_confirmations, transactions.output_n AS transactions_output_n, 
+            transactions."index" AS transactions_index, transactions.value AS transactions_value, 
+            transactions.script AS transactions_script, transactions.description AS transactions_description, 
+            transactions.spend AS transactions_spend 
+            FROM transactions JOIN keys ON keys.id = transactions.key_id 
+            WHERE (transactions.spend IS ?) AND transactions.confirmations >= ? AND 
+            keys.account_id = ? AND keys.wallet_id = ?
+        
         :param amount: Amount to transfer
         :type amount: int
-        :param utxo_query: List of outputs
+        :param utxo_query: List of outputs in SQLalchemy query format. Wallet and Account ID filter must be included already. 
         :type utxo_query: self._session.query
         
         :return list: List of selected UTXO 
@@ -1173,17 +1185,15 @@ class HDWallet:
             return []
 
         # Try to find one utxo with exact amount or higher
-        one_utxo = utxo_query.join(DbKey.transactions).\
-            filter(DbTransaction.spend.op("IS")(False), DbTransaction.value >= amount,
-                   DbKey.account_id == account_id, DbKey.wallet_id == self.wallet_id).\
+        one_utxo = utxo_query.\
+            filter(DbTransaction.spend.op("IS")(False), DbTransaction.value >= amount).\
             order_by(DbTransaction.value).first()
         if one_utxo:
             return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
-        lessers = utxo_query.join(DbKey.transactions).\
-            filter(DbTransaction.spend.op("IS")(False), DbTransaction.value < amount,
-                   DbKey.account_id == account_id, DbKey.wallet_id == self.wallet_id).\
+        lessers = utxo_query.\
+            filter(DbTransaction.spend.op("IS")(False), DbTransaction.value < amount).\
             order_by(DbTransaction.value.desc()).all()
         total_amount = 0
         selected_utxos = []
@@ -1222,12 +1232,13 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
 
-        qr = self._session.query(DbTransaction)
-        qr.join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False),
-                                          DbKey.account_id == account_id, DbKey.wallet_id == self.wallet_id)
-        # TODO: join 2 filters and test
-        qr.filter(DbTransaction.confirmations >= min_confirms)
-        utxos = qr.all()
+        utxo_query = self._session.query(DbTransaction).\
+            join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False),
+                                           DbTransaction.confirmations >= min_confirms,
+                                           DbKey.account_id == account_id,
+                                           DbKey.wallet_id == self.wallet_id)
+        utxos = utxo_query.all()
+
         if not utxos:
             _logger.warning("Create transaction: No unspent transaction outputs found")
             return None
@@ -1240,7 +1251,7 @@ class HDWallet:
         if input_arr is None:
             input_arr = []
 
-            selected_utxos = self._select_inputs(amount_total_output + fee, qr, account_id)
+            selected_utxos = self._select_inputs(amount_total_output + fee, utxo_query)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
