@@ -69,7 +69,7 @@ class BitcoindClient:
         return self.proxy.sendrawtransaction(rawtx)
     
     def estimatefee(self, blocks):
-        return self.proxy.estimatefees(blocks)
+        return self.proxy.estimatefee(blocks)
 
 
 if __name__ == '__main__':
@@ -98,4 +98,8 @@ if __name__ == '__main__':
 
     print("\n=== Raw Transaction by txid ===")
     t = bdc.getrawtransaction('7eb5332699644b753cd3f5afba9562e67612ea71ef119af1ac46559adb69ea0d')
+    pprint(t)
+
+    print("\n=== Current network fees ===")
+    t = bdc.estimatefee(5)
     pprint(t)
