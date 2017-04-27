@@ -111,8 +111,7 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
         if not force and k.balance:
             raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
                               (k.id, k.address))
-        kt = session.query(DbTransaction).filter_by(key_id=k.id)
-        kt.update({DbTransaction.key_id: None})
+        session.query(DbTransaction).filter_by(key_id=k.id).update({DbTransaction.key_id: None})
     ks.delete()
 
     res = w.delete()
@@ -1094,6 +1093,11 @@ class HDWallet:
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
                 utxo_record.confirmations = utxo['confirmations']
+                # Recover key_id after deletion
+                if not utxo_record.key_id:
+                    key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
+                    if key:
+                        utxo_record.key_id = key.id
             else:
                 new_utxo = DbTransaction(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
                                          output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
@@ -1170,6 +1174,11 @@ class HDWallet:
             return []
 
         # Try to find one utxo with exact amount or higher
+
+        # TODO add account and wallet_id filter:
+        # qr.join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False),
+        #                                   DbKey.account_id == account_id, DbKey.wallet_id == self.wallet_id)
+
         one_utxo = utxo_query.filter(DbTransaction.spend.op("IS")(False), DbTransaction.value >= amount).\
             order_by(DbTransaction.value).first()
         if one_utxo:
@@ -1247,8 +1256,9 @@ class HDWallet:
         # Add inputs
         sign_arr = []
         for inp in input_arr:
-            # TODO: Make this more efficient...
             key = self._session.query(DbKey).filter_by(id=inp[2]).scalar()
+            if not key:
+                raise WalletError("Key of UTXO %s not found in this wallet" % inp[0])
             k = HDKey(key.key_wif)
             id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
             sign_arr.append((k.private_byte, id))
