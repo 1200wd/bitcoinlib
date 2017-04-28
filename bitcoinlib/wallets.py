@@ -1205,7 +1205,7 @@ class HDWallet:
             return []
         return selected_utxos
 
-    def send(self, output_arr, input_arr=None, account_id=None, fee=None, min_confirms=4):
+    def send(self, output_arr, input_arr=None, account_id=None, transaction_fee=None, min_confirms=4):
         """
         Create new transaction with specified outputs and push it to the network. 
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -1217,8 +1217,8 @@ class HDWallet:
         :type input_arr: list
         :param account_id: Account ID
         :type account_id: int
-        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-        :type fee: int
+        :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
+        :type transaction_fee: int
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :return bytes: Raw transaction  
@@ -1243,9 +1243,13 @@ class HDWallet:
             _logger.warning("Create transaction: No unspent transaction outputs found")
             return None
 
-        # TODO: Estimate fees
-        if fee is None:
-            fee = int(0.0003 * pow(10, 8))
+        srv = Service(network=self.network.network_name)
+        fee = transaction_fee
+        if transaction_fee is None:
+            fee_per_kb = srv.estimatefee()
+            # TODO: Estimate transaction size correctly
+            tr_size = 250 + len(output_arr) * 50
+            fee = int((tr_size / 1024) * fee_per_kb)
 
         amount_total_input = 0
         if input_arr is None:
@@ -1273,6 +1277,11 @@ class HDWallet:
             sign_arr.append((k.private_byte, id))
 
         # Add change output
+        if transaction_fee is None and len(input_arr):
+            tr_size = 100 + len(output_arr) * 50 + len(input_arr) * 80
+            fee = int((0.06 + (tr_size / 1024)) * fee_per_kb)
+            amount_change = int(amount_total_input - (amount_total_output + fee))
+
         if amount_change:
             ck = self.get_key(account_id=account_id, change=1)
             t.add_output(amount_change, ck.address)
@@ -1286,7 +1295,6 @@ class HDWallet:
             raise WalletError("Cannot verify transaction. Create transaction failed")
 
         # Push it to the network
-        srv = Service(network=self.network.network_name)
         res = srv.sendrawtransaction(t.raw_hex())
         if not res:
             raise WalletError("Could not send transaction: %s" % srv.errors)
