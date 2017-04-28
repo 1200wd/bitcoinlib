@@ -122,19 +122,19 @@ class DbKey(Base):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.key_wif)
 
 
-# class DbNetwork(Base):
-#     """
-#     Database definitions for networks in Sqlalchemy format
-#
-#     """
-#     __tablename__ = 'networks'
-#     name = Column(String(20), unique=True, primary_key=True)
-#     description = Column(String(50))
-#
-#     def __repr__(self):
-#         return "<DbNetwork(name='%s', description='%s'>" % (self.name, self.description)
-#
-#
+class DbNetwork(Base):
+    """
+    Database definitions for networks in Sqlalchemy format
+
+    """
+    __tablename__ = 'networks'
+    name = Column(String(20), unique=True, primary_key=True)
+    description = Column(String(50))
+
+    def __repr__(self):
+        return "<DbNetwork(name='%s', description='%s'>" % (self.name, self.description)
+
+
 # class DbProvider(Base):
 #     """
 #     Database definitions for providers in Sqlalchemy format
