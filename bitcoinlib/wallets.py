@@ -1277,7 +1277,7 @@ class HDWallet:
             sign_arr.append((k.private_byte, id))
 
         # Add change output
-        if transaction_fee is None and len(input_arr):
+        if transaction_fee is None and len(input_arr) > 1:
             tr_size = 100 + len(output_arr) * 50 + len(input_arr) * 80
             fee = int((0.06 + (tr_size / 1024)) * fee_per_kb)
             amount_change = int(amount_total_input - (amount_total_output + fee))
