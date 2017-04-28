@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    NETWORK class reads network definitions and with helper methods
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 April - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -62,6 +62,16 @@ def _format_value(field, value):
 
 
 def network_values_for(field, output_as='default'):
+    """
+    Return all prefixes mentioned field, i.e.: prefix_wif, prefix_address_p2sh, prefix_hdkey_public, etc
+    
+    :param field: Prefix name from networks definitions (networks.json)
+    :type field: str
+    :param output_as: Output as string or hexstring. Default is string or hexstring depending on field type.
+    :type output_as: str
+    
+    :return str: 
+    """
     r = [_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]
     if output_as == 'str':
         return [normalize_var(i) for i in r]
@@ -72,11 +82,37 @@ def network_values_for(field, output_as='default'):
 
 
 def network_by_value(field, value):
+    """
+    Return all networks for field and (prefix) value.
+    
+    For Example:
+        network_by_value('prefix_wif', 'B0')
+        
+    Returns:
+        ['litecoin']
+    
+    :param field: Prefix name from networks definitions (networks.json)
+    :type field: str
+    :param value: Value of network prefix
+    :type value: str, bytes
+    
+    :return list: Of network name strings 
+    """
     value = to_hexstring(value).upper()
     return [nv for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field].upper() == value]
 
 
 def network_defined(network):
+    """
+    Is network defined?
+    
+    Networks of this library are defined in networks.json in the operating systems user path.
+    
+    :param network: Network name
+    :type network: str
+    
+    :return bool: 
+    """
     if network not in list(NETWORK_DEFINITIONS.keys()):
         return False
     return True
@@ -92,6 +128,13 @@ class NetworkError(Exception):
 
 
 class Network:
+    """
+    Network class with all network definitions. 
+    
+    Prefixes for WIF, P2SH keys, HD public and private keys, addresses. A currency symbol and type, the 
+    denominator (such as satoshi) and a BIP0044 cointype.
+    
+    """
 
     def __init__(self, network_name=DEFAULT_NETWORK):
         self.network_name = network_name
@@ -114,6 +157,14 @@ class Network:
         return "<Network: %s>" % self.network_name
 
     def print_value(self, value):
+        """
+        Return the value as string with currency symbol
+        
+        :param value: Value in smallest denominitor such as Satoshi
+        :type value: int, float
+        
+        :return str: 
+        """
         symb = self.currency_code
         denominator = self.denominator
         denominator_size = -int(math.log10(denominator))

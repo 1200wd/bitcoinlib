@@ -1245,6 +1245,7 @@ class HDWallet:
 
         srv = Service(network=self.network.network_name)
         fee = transaction_fee
+        fee_per_kb = None
         if transaction_fee is None:
             fee_per_kb = srv.estimatefee()
             # TODO: Estimate transaction size correctly
