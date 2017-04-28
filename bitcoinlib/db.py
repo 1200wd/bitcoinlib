@@ -69,6 +69,12 @@ class DbInit:
 
 
 class DbWallet(Base):
+    """
+    Database definitions for wallets in Sqlalchemy format
+    
+    Contains one or more keys.
+     
+    """
     __tablename__ = 'wallets'
     id = Column(Integer, Sequence('wallet_id_seq'), primary_key=True)
     name = Column(String(50), unique=True)
@@ -85,6 +91,12 @@ class DbWallet(Base):
 
 
 class DbKey(Base):
+    """
+    Database definitions for keys in Sqlalchemy format
+    
+    Part of a wallet, and used by transactions
+
+    """
     __tablename__ = 'keys'
     id = Column(Integer, Sequence('key_id_seq'), primary_key=True, index=True)
     parent_id = Column(Integer, Sequence('parent_id_seq'))
@@ -110,26 +122,34 @@ class DbKey(Base):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.key_wif)
 
 
-class DbNetwork(Base):
-    __tablename__ = 'networks'
-    name = Column(String(20), unique=True, primary_key=True)
-    description = Column(String(50))
-
-    def __repr__(self):
-        return "<DbNetwork(name='%s', description='%s'>" % (self.name, self.description)
-
-
-class DbProvider(Base):
-    __tablename__ = 'providers'
-    name = Column(String(50), primary_key=True, unique=True)
-    provider = Column(String(50))
-    network_name = Column(String, ForeignKey('networks.name'))
-    network = relationship("DbNetwork")
-    base_url = Column(String(100))
-    api_key = Column(String(100))
-
-    def __repr__(self):
-        return "<DbProvider(name='%s', network='%s'>" % (self.name, self.network_name)
+# class DbNetwork(Base):
+#     """
+#     Database definitions for networks in Sqlalchemy format
+#
+#     """
+#     __tablename__ = 'networks'
+#     name = Column(String(20), unique=True, primary_key=True)
+#     description = Column(String(50))
+#
+#     def __repr__(self):
+#         return "<DbNetwork(name='%s', description='%s'>" % (self.name, self.description)
+#
+#
+# class DbProvider(Base):
+#     """
+#     Database definitions for providers in Sqlalchemy format
+#
+#     """
+#     __tablename__ = 'providers'
+#     name = Column(String(50), primary_key=True, unique=True)
+#     provider = Column(String(50))
+#     network_name = Column(String, ForeignKey('networks.name'))
+#     network = relationship("DbNetwork")
+#     base_url = Column(String(100))
+#     api_key = Column(String(100))
+#
+#     def __repr__(self):
+#         return "<DbProvider(name='%s', network='%s'>" % (self.name, self.network_name)
 
 
 class TransactionType(enum.Enum):
@@ -138,6 +158,12 @@ class TransactionType(enum.Enum):
 
 
 class DbTransaction(Base):
+    """
+    Database definitions for transactions in Sqlalchemy format
+    
+    Refers to 1 or more keys which can be part of a wallet
+    
+    """
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
