@@ -37,9 +37,11 @@ class BlockrClient(BaseClient):
         addresses = ','.join(addresslist)
         res = self.compose_request('address', 'balance', addresses)
         balance = 0
+        if not isinstance(res, list):
+            res = [res]
         for rec in res:
             balance += float(rec['balance'])
-        return int(balance * self.units)
+        return int(round(balance * self.units, 0))
 
     def getutxos(self, addresslist):
         addresses = ','.join(addresslist)
@@ -54,7 +56,7 @@ class BlockrClient(BaseClient):
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['n'],
                     'index': 0,
-                    'value': int(float(utxo['amount']) * self.units),
+                    'value': int(round(float(utxo['amount']) * self.units, 0)),
                     'script': utxo['script'],
                 })
         return utxos

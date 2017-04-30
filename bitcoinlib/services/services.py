@@ -138,11 +138,14 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
-    addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
-    srv = Service(network='testnet', min_providers=5)
-    print("Getbalance, first result only: %s" % srv.getbalance(addresslst))
+    # addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
+    # srv = Service(network='testnet', min_providers=5)
+    srv = Service(min_providers=5)
+    srv.getbalance('15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd')
+    # print("Getbalance, first result only: %s" % srv.getbalance(addresslst))
     print("\nAll results as dict:")
     pprint(srv.results)
+    sys.exit()
     print("\nUTXOs list:")
     pprint(srv.getutxos(addresslst))
 

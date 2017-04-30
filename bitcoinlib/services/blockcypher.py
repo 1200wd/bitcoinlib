@@ -42,6 +42,8 @@ class BlockCypher(BaseClient):
         addresses = ';'.join(addresslist)
         res = self.compose_request('addrs', addresses, 'balance')
         balance = 0.0
+        if not isinstance(res, list):
+            res = [res]
         for rec in res:
             balance += float(rec['final_balance'])
         return int(balance * self.units)
@@ -61,7 +63,7 @@ class BlockCypher(BaseClient):
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['tx_output_n'],
                     'index': 0,
-                    'value': int(utxo['value'] * self.units),
+                    'value': int(round(utxo['value'] * self.units, 0)),
                     'script': '',
                 })
         return utxos

@@ -43,7 +43,7 @@ class BlockExplorerClient(BaseClient):
                 'confirmations': utxo['confirmations'],
                 'output_n': utxo['vout'],
                 'index': 0,
-                'value': int(utxo['amount'] * self.units),
+                'value': int(round(utxo['amount'] * self.units, 0)),
                 'script': utxo['scriptPubKey'],
             })
         return utxos
