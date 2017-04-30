@@ -115,7 +115,7 @@ class Service(object):
 
     def getutxos(self, addresslist):
         if not addresslist:
-            return
+            return []
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
             addresslist = [addresslist]
 
