@@ -43,3 +43,14 @@ class BlockchainInfoClient(BaseClient):
             balance += address['final_balance']
 
         return balance
+
+    # TODO: Implement this methods
+    # def getrawtransaction(self, txid):
+    #     res = self.compose_request('tx', 'raw', txid)
+    #     return res['tx']['hex']
+    #
+    # def decoderawtransaction(self, rawtx):
+    #     return self.compose_request('tx', 'decode', variables={'hex': rawtx}, method='post')
+    #
+    # def sendrawtransaction(self, rawtx):
+    #     return self.compose_request('tx', 'push', variables={'hex': rawtx}, method='post')
