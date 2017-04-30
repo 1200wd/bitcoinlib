@@ -48,7 +48,7 @@ class BlockCypher(BaseClient):
 
     def getutxos(self, addresslist):
         addresses = ';'.join(addresslist)
-        res = self.compose_request('addrs', addresses, variables=[('unspentOnly', 1)])
+        res = self.compose_request('addrs', addresses, variables={'unspentOnly': 1})
         utxos = []
         for a in res:
             address = a['address']

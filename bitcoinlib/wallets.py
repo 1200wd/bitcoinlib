@@ -1139,7 +1139,7 @@ class HDWallet:
             res.append(u)
         return res
 
-    def send_to(self, to_address, amount, account_id=None, fee=None):
+    def send_to(self, to_address, amount, account_id=None, transaction_fee=None):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
         
@@ -1149,13 +1149,13 @@ class HDWallet:
         :type amount: int
         :param account_id: Account ID, default is last used
         :type account_id: int
-        :param fee: Fee to add
-        :type fee: int
+        :param transaction_fee: Fee to use for this transaction. Leave empty to automatically estimate.
+        :type transaction_fee: int
         
         :return str: Transaction id (txid) if transaction is pushed succesfully 
         """
         outputs = [(to_address, amount)]
-        return self.send(outputs, account_id=account_id, fee=fee)
+        return self.send(outputs, account_id=account_id, transaction_fee=transaction_fee)
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
@@ -1225,6 +1225,9 @@ class HDWallet:
         """
         amount_total_output = 0
         t = Transaction(network=self.network.network_name)
+        if not isinstance(output_arr, list):
+            raise WalletError("Output array must be a list of tuples with address and amount. "
+                              "Use 'send_to' method to send to one address")
         for o in output_arr:
             amount_total_output += o[1]
             t.add_output(o[1], o[0])
@@ -1478,8 +1481,7 @@ if __name__ == '__main__':
     for utxo in wallet_import.getutxos(99):
         print("%s %s (%d confirms)" % (
         utxo['address'], wallet_import.network.print_value(utxo['value']), utxo['confirmations']))
-    res = wallet_import.send('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
-    # res = wallet_import.send('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 5000000, 99)
+    res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
     print("Send transaction result:")
     pprint(res)
 

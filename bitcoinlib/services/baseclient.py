@@ -56,7 +56,7 @@ class BaseClient(object):
         url = self.base_url + url_path
         if method == 'get':
             if variables is None:
-                variables = []
+                variables = {}
             if variables:
                 url_vars = '?' + urlencode(variables)
             url += url_vars
