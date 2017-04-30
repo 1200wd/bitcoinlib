@@ -33,7 +33,28 @@ class TestService(unittest.TestCase):
                  '76a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
         self.assertEqual(raw_tx, Service(network='testnet').getrawtransaction(tx_id))
 
-    def test_transaction_bitcoin_get_transaction(self):
+    def test_transaction_bitcoin_get_raw(self):
         tx_id = 'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
-        raw_tx = Service().getrawtransaction(tx_id)
+        raw_tx = '01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff5d0342fe06244d69' \
+                 '6e656420627920416e74506f6f6c20626a31312f4542312f4144362f432058d192b6fabe6d6defcf958e3cf9814240e00f' \
+                 'a5e36e8cc319cd8141e20890607ccb1954e64843d804000000000000003914000057190200ffffffff013b33b158000000' \
+                 '001976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac00000000'
+        self.assertEqual(raw_tx, Service().getrawtransaction(tx_id))
+
+    def test_transaction_bitcoin_decode_raw(self):
+        raw_tx = '101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff5d0342fe06244d69' \
+                 '6e656420627920416e74506f6f6c20626a31312f4542312f4144362f432058d192b6fabe6d6defcf958e3cf9814240e00f' \
+                 'a5e36e8cc319cd8141e20890607ccb1954e64843d804000000000000003914000057190200ffffffff013b33b158000000' \
+                 '001976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac00000000'
         self.assertTrue(Service().decoderawtransaction(raw_tx))
+
+    def test_get_balance(self):
+        srv = Service(min_providers=5)
+        srv.getbalance('15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd')
+        prev = None
+        for sb in srv.results:
+            balance = list(sb.values())[0]
+            if prev is not None and balance != prev:
+                self.fail('Different address balance from service providers: %d != %d' % (balance, prev))
+            else:
+                prev = balance
