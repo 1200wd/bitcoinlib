@@ -22,6 +22,11 @@ import unittest
 from bitcoinlib.services.services import *
 
 
+MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 0.50  # Maximum difference from average estimated fee before test_estimatefee fails
+                                         # Use value above >0, and 1 for 100%
+
+
+
 class TestService(unittest.TestCase):
 
     def test_transaction_bitcoin_testnet_get_raw(self):
@@ -70,11 +75,11 @@ class TestService(unittest.TestCase):
         srv.getbalance('15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd')
         prev = None
         if len(srv.results) < 2:
-            self.fail('Only 1 or less service providers found, nothing to compare')
+            self.fail("Only 1 or less service providers found, nothing to compare")
         for sb in srv.results:
             balance = list(sb.values())[0]
             if prev is not None and balance != prev:
-                self.fail('Different address balance from service providers: %d != %d' % (balance, prev))
+                self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
             else:
                 prev = balance
 
@@ -85,5 +90,17 @@ class TestService(unittest.TestCase):
         self.assertEqual(tx_hash, utxos[0]['tx_hash'])
 
     def test_estimatefee(self):
-        # TODO
-        pass
+        srv = Service(min_providers=5)
+        srv.estimatefee()
+        if len(srv.results) < 2:
+            self.fail("Only 1 or less service providers found, no fee estimates to compare")
+        feelist = [list(x.values())[0] for x in srv.results]
+        average_fee = sum(feelist) / float(len(feelist))
+        for feeest in srv.results:
+            key, value = feeest.popitem()
+            if not value:
+                self.fail("Provider '%s' returns fee estimate of zero" % key)
+            fee_difference_from_average = (abs(value - average_fee) / average_fee)
+            if fee_difference_from_average > MAXIMUM_ESTIMATED_FEE_DIFFERENCE:
+                self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
+                          (key, fee_difference_from_average * 100))
