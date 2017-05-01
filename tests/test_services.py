@@ -61,4 +61,9 @@ class TestService(unittest.TestCase):
             else:
                 prev = balance
 
-    # def test_get_utxos(self):
+    def test_get_utxos(self):
+        srv = Service()
+        utxos = srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
+        tx_hash = '7543d66fa8b300c3da9625023692bae18c86c7a45f1c8e5f2a6daa8c2540affd'
+        self.assertEqual(tx_hash, utxos[0]['tx_hash'])
+
