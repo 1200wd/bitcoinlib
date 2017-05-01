@@ -48,6 +48,23 @@ class TestService(unittest.TestCase):
                  '001976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac00000000'
         self.assertTrue(Service().decoderawtransaction(raw_tx))
 
+    def test_sendrawtransaction(self):
+        raw_tx = \
+         '010000000108004b4c0394a211d4ec0d344b70bf1e3b1ce1731d11d1d30279ab0c0f6d9fd7000000006c493046022100ab18a72f7' \
+         '87e4c8ea5d2f983b99df28d27e13482b91fd6d48701c055af92f525022100d1c26b8a779896a53a026248388896501e724e46407f' \
+         '14a4a1b6478d3293da24012103e428723c145e61c35c070da86faadaf0fab21939223a5e6ce3e1cfd76bad133dffffffff0240420' \
+         'f00000000001976a914bbaeed8a02f64c9d40462d323d379b8f27ad9f1a88ac905d1818000000001976a914046858970a72d33817' \
+         '474c0e24e530d78716fc9c88ac00000000'
+        srv = Service(network='testnet')
+        srv.sendrawtransaction(raw_tx)
+        for srv_err in srv.errors:
+            if 'blockcypher.testnet' in srv_err:
+                self.assertIn('has already been spent', srv_err['blockcypher.testnet'])
+            if 'blockexplorer.testnet' in srv_err:
+                self.assertIn('Missing inputs', srv_err['blockexplorer.testnet'])
+            if 'blockr.testnet' in srv_err:
+                self.assertIn('Did you sign your transaction', srv_err['blockr.testnet'])
+
     def test_get_balance(self):
         srv = Service(min_providers=5)
         srv.getbalance('15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd')
@@ -67,3 +84,6 @@ class TestService(unittest.TestCase):
         tx_hash = '7543d66fa8b300c3da9625023692bae18c86c7a45f1c8e5f2a6daa8c2540affd'
         self.assertEqual(tx_hash, utxos[0]['tx_hash'])
 
+    def test_estimatefee(self):
+        # TODO
+        pass
