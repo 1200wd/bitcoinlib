@@ -121,7 +121,8 @@ class Mnemonic:
         
         :return str: Mnemonic passphrase consisting of a space seperated list of words
         """
-        # TODO: Check strengtsize
+        if strength % 32 > 0:
+            raise ValueError("Strenght should be divisible by 32")
         data = os.urandom(strength // 8)
         return self.to_mnemonic(data, add_checksum=add_checksum)
 
@@ -227,7 +228,7 @@ if __name__ == '__main__':
     print("Mnemonic           %s" % words)
     print(Mnemonic().to_seed(words, 'test'))
     print("Seed for HD Key    %s" % change_base(Mnemonic().to_seed(words, 'test'), 256, 16))
-    print("Back to Entropy    %s" % Mnemonic().to_entropy(words))
+    print("Back to Entropy    %s" % change_base(Mnemonic().to_entropy(words), 256, 16))
 
     # Generate a random Mnemonic HD Key
     print("\nGenerate a random Mnemonic HD Key")
