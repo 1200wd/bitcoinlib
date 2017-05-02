@@ -66,9 +66,8 @@ class Mnemonic:
         if len(data) % 4 > 0:
             raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
                              (len(data), len(data) * 8))
-        # data = change_base(hexdata, 16, 256)
         hash = hashlib.sha256(data).digest()
-        return change_base(hash, 256, 2, 128)[:len(data) * 8 // 32]
+        return change_base(hash, 256, 2, 256)[:len(data) * 8 // 32]
 
     def to_seed(self, words, passphrase=''):
         """
@@ -123,22 +122,22 @@ class Mnemonic:
         :return str: Mnemonic passphrase consisting of a list of words
         """
         # TODO: Check strengtsize
-        # TODO: Avoid use of change_base
-        data = change_base(os.urandom(strength // 8), 256, 16)
+        data = os.urandom(strength // 8)
         return self.to_mnemonic(data, add_checksum=add_checksum)
 
-    def to_mnemonic(self, hexdata, add_checksum=True):
+    def to_mnemonic(self, data, add_checksum=True):
         """
         
-        :param hexdata: 
+        :param data: 
         :param add_checksum: 
         :return: 
         """
+        data = to_bytes(data)
         if add_checksum:
-            binresult = change_base(hexdata, 16, 2, len(hexdata) * 4) + self.checksum(hexdata)
+            binresult = change_base(data, 256, 2, len(data) * 8) + self.checksum(data)
             wi = change_base(binresult, 2, 2048)
         else:
-            wi = change_base(hexdata, 16, 2048)
+            wi = change_base(data, 256, 2048)
         return normalize_string(' '.join([self._wordlist[i] for i in wi]))
 
     def to_entropy(self, words, includes_checksum=True):
