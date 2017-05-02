@@ -110,15 +110,29 @@ class Mnemonic:
     def generate(self, strength=128, add_checksum=True):
         """
         Generate a random Mnemonic key
+        
+        Uses cryptographically secure os.urandom() function to generate data. Then creates a Mnemonic sentence with
+        the 'to_mnemonic' method.
 
-        :param strength: Key strenght in number of bits
-        :param add_checksum: Boolean to specify if checksum needs to be included
-        :return: Mnemonic passphrase
+        :param strength: Key strenght in number of bits, default is 128 bits. It adviced to specify 128 bits or more, i.e.: 128, 256, 512 or 1024
+        :type strength: int
+        :param add_checksum: Included a checksum? Default is True
+        :type add_checksum: bool
+        
+        :return str: Mnemonic passphrase consisting of a list of words
         """
+        # TODO: Check strengtsize
+        # TODO: Avoid use of change_base
         data = change_base(os.urandom(strength // 8), 256, 16)
         return self.to_mnemonic(data, add_checksum=add_checksum)
 
     def to_mnemonic(self, hexdata, add_checksum=True):
+        """
+        
+        :param hexdata: 
+        :param add_checksum: 
+        :return: 
+        """
         if add_checksum:
             binresult = change_base(hexdata, 16, 2, len(hexdata) * 4) + self.checksum(hexdata)
             wi = change_base(binresult, 2, 2048)
