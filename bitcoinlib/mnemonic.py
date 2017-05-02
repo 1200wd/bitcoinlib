@@ -60,7 +60,7 @@ class Mnemonic:
         :param data: key string
         :type data: bytes, hexstring
         
-        :return str: Checksum of key as hex
+        :return str: Checksum of key in bits
         """
         data = to_bytes(data)
         if len(data) % 4 > 0:
@@ -119,7 +119,7 @@ class Mnemonic:
         :param add_checksum: Included a checksum? Default is True
         :type add_checksum: bool
         
-        :return str: Mnemonic passphrase consisting of a list of words
+        :return str: Mnemonic passphrase consisting of a space seperated list of words
         """
         # TODO: Check strengtsize
         data = os.urandom(strength // 8)
@@ -127,10 +127,14 @@ class Mnemonic:
 
     def to_mnemonic(self, data, add_checksum=True):
         """
+        Convert key data entropy to Mnemonic sentence
         
-        :param data: 
-        :param add_checksum: 
-        :return: 
+        :param data: Key data entropy
+        :type data: bytes, hexstring
+        :param add_checksum: Included a checksum? Default is True
+        :type add_checksum: bool
+        
+        :return str: Mnemonic passphrase consisting of a space seperated list of words
         """
         data = to_bytes(data)
         if add_checksum:
@@ -142,11 +146,14 @@ class Mnemonic:
 
     def to_entropy(self, words, includes_checksum=True):
         """
-        Convert Mnemonic words back to entrophy
+        Convert Mnemonic words back to key data entrophy
 
         :param words: Mnemonic words as string of list of words
-        :param includes_checksum: Boolean to specify if checksum is used
-        :return: Hex entrophy string
+        :type words: str
+        :param includes_checksum: Boolean to specify if checksum is used. Default is True
+        :type includes_checksum: bool
+        
+        :return bytes: Entrophy seed
         """
         words = self.sanitize_mnemonic(words)
         if isinstance(words, (str, unicode if sys.version < '3' else str)):
@@ -154,10 +161,10 @@ class Mnemonic:
         wi = []
         for word in words:
             wi.append(self._wordlist.index(word))
-        ent = change_base(wi, 2048, 16, output_even=0)
+        ent = change_base(wi, 2048, 256, output_even=0)
         if includes_checksum:
-            binresult = change_base(ent, 16, 2, len(ent) * 4)
-            ent = change_base(binresult[:-len(binresult) // 33], 2, 16)
+            binresult = change_base(ent, 256, 2, len(ent) * 4)
+            ent = change_base(binresult[:-len(binresult) // 33], 2, 256)
 
             # Check checksum
             checksum = binresult[-len(binresult) // 33:]
@@ -220,7 +227,7 @@ if __name__ == '__main__':
     print("Mnemonic           %s" % words)
     print(Mnemonic().to_seed(words, 'test'))
     print("Seed for HD Key    %s" % change_base(Mnemonic().to_seed(words, 'test'), 256, 16))
-    print("Back to Hex        %s" % Mnemonic().to_entropy(words))
+    print("Back to Entropy    %s" % Mnemonic().to_entropy(words))
 
     # Generate a random Mnemonic HD Key
     print("\nGenerate a random Mnemonic HD Key")
