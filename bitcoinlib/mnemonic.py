@@ -231,7 +231,7 @@ if __name__ == '__main__':
     seed = change_base(Mnemonic().to_seed(words), 256, 16)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % change_base(seed, 256, 16))
-    print("HD Key WIF is      %s" % hdk)
+    print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # Generate a key from a Mnemonic sentence
     print("\nGenerate a key from a Mnemonic sentence")
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     seed = change_base(Mnemonic().to_seed(words), 256, 16)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % change_base(seed, 256, 16))
-    print("HD Key WIF is      %s" % hdk)
+    print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # Let's talk Spanish
     print("\nGenerate a key from a Spanish Mnemonic sentence")
@@ -249,7 +249,7 @@ if __name__ == '__main__':
     seed = change_base(Mnemonic().to_seed(words), 256, 16)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % change_base(seed, 256, 16))
-    print("HD Key WIF is      %s" % hdk)
+    print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # Want some Chinese?
     print("\nGenerate a key from a Chinese Mnemonic sentence")
@@ -258,7 +258,7 @@ if __name__ == '__main__':
     seed = change_base(Mnemonic().to_seed(words), 256, 16)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % change_base(seed, 256, 16))
-    print("HD Key WIF is      %s" % hdk)
+    print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # Spanish Unicode mnemonic sentence
     print("\nGenerate a key from a Spanish UNICODE Mnemonic sentence")
@@ -267,7 +267,7 @@ if __name__ == '__main__':
     seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % change_base(seed, 256, 16))
-    print("HD Key WIF is      %s" % hdk)
+    print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # And Japanese
     print("\nGenerate a key from a Japanese UNICODE Mnemonic sentence")
@@ -276,7 +276,7 @@ if __name__ == '__main__':
     seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % change_base(seed, 256, 16))
-    print("HD Key WIF is      %s" % hdk)
+    print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # And Japanese
     # --- not supported at the moment ---

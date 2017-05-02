@@ -51,6 +51,7 @@ class TestMnemonics(unittest.TestCase):
         for lang in vectors.keys():
             self._check_list(lang, vectors[lang])
 
+    # TODO tests for sanitize_mnemonic, detect language etc
 
 if __name__ == '__main__':
     unittest.main()
