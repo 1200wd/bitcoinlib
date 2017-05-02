@@ -24,7 +24,7 @@ import hashlib
 import hmac
 from pbkdf2 import PBKDF2
 
-from bitcoinlib.encoding import change_base, normalize_string
+from bitcoinlib.encoding import change_base, normalize_string, to_bytes
 
 PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
@@ -53,21 +53,22 @@ class Mnemonic:
             self._wordlist = [w.strip() for w in f.readlines()]
 
     @staticmethod
-    def checksum(hexdata):
+    def checksum(data):
         """
-        Calculates checksum for given hexdata key
+        Calculates checksum for given data key
 
-        :param hexdata: key string as hexadecimal
-        :type hexdata: hexstring
+        :param data: key string
+        :type data: bytes, hexstring
         
         :return str: Checksum of key as hex
         """
-        if len(hexdata) % 8 > 0:
+        data = to_bytes(data)
+        if len(data) % 4 > 0:
             raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
-                             (len(hexdata), len(hexdata) * 8))
-        data = change_base(hexdata, 16, 256)
-        hashhex = hashlib.sha256(data).hexdigest()
-        return change_base(hashhex, 16, 2, 256)[:len(data) * 8 // 32]
+                             (len(data), len(data) * 8))
+        # data = change_base(hexdata, 16, 256)
+        hash = hashlib.sha256(data).digest()
+        return change_base(hash, 256, 2, 128)[:len(data) * 8 // 32]
 
     def to_seed(self, words, passphrase=''):
         """
