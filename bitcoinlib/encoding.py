@@ -25,6 +25,7 @@ import ecdsa
 import struct
 import hashlib
 import binascii
+import unicodedata
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -354,6 +355,17 @@ def to_hexstring(var):
         return str(s, 'ISO-8859-1')
     else:
         return s
+
+
+def normalize_string(txt):
+    if isinstance(txt, str if sys.version < '3' else bytes):
+        utxt = txt.decode('utf8')
+    elif isinstance(txt, unicode if sys.version < '3' else str):
+        utxt = txt
+    else:
+        raise TypeError("String value expected")
+
+    return unicodedata.normalize('NFKD', utxt)
 
 
 if __name__ == '__main__':

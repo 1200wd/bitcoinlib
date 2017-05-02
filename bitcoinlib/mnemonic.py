@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MNEMONIC class for BIP0039 Mnemonic Key management
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -23,9 +23,8 @@ import sys
 import hashlib
 import hmac
 from pbkdf2 import PBKDF2
-import unicodedata
 
-from bitcoinlib.encoding import change_base
+from bitcoinlib.encoding import change_base, normalize_string
 
 PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
@@ -34,31 +33,24 @@ WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
 
 class Mnemonic:
     """
-    Implementation of BIP0039 for Mnemonic keys.
+    Class to convert, generate and parse Mnemonic sentences
+    
+    Implementation of BIP0039 for Mnemonics passphrases 
 
-    Took parts of Pavol Rusnak Trezors implementation, see https://github.com/trezor/python-mnemonic
+    Took some parts from Pavol Rusnak Trezors implementation, see https://github.com/trezor/python-mnemonic
     """
 
     def __init__(self, language=DEFAULT_LANGUAGE):
         """
         Init Mnemonic class and read wordlist of specified language
-        :param language: use specific wordlist
-        :return:
+        
+        :param language: use specific wordlist, i.e. chinese, dutch (in development), english, french, italian, japanese or spanish. Leave empty for default 'english'
+        :type language: str
+        
         """
         self._wordlist = []
         with open('%s/%s.txt' % (WORDLIST_DIR, language), 'r') as f:
             self._wordlist = [w.strip() for w in f.readlines()]
-
-    @classmethod
-    def normalize_string(cls, txt):
-        if isinstance(txt, str if sys.version < '3' else bytes):
-            utxt = txt.decode('utf8')
-        elif isinstance(txt, unicode if sys.version < '3' else str):
-            utxt = txt
-        else:
-            raise TypeError("String value expected")
-
-        return unicodedata.normalize('NFKD', utxt)
 
     @staticmethod
     def checksum(hexdata):
@@ -66,26 +58,30 @@ class Mnemonic:
         Calculates checksum for given hexdata key
 
         :param hexdata: key string as hexadecimal
-        :return: Checksum of key as hex
+        :type hexdata: hexstring
+        
+        :return str: Checksum of key as hex
         """
         if len(hexdata) % 8 > 0:
             raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
                              (len(hexdata), len(hexdata) * 8))
-        # data = self.normalize_string(change_base(hexdata, 16, 256))
         data = change_base(hexdata, 16, 256)
         hashhex = hashlib.sha256(data).hexdigest()
         return change_base(hashhex, 16, 2, 256)[:len(data) * 8 // 32]
 
     def to_seed(self, words, passphrase=''):
         """
-        Use Mnemonic words and passphrase to create a seed
+        Use Mnemonic words and passphrase to create a PBKDF2 seed (Password-Based Key Derivation Function 2)
 
-        :param words: Mnemonic passphrase as string
-        :param passphrase: A password to
-        :return: Hex Key
+        :param words: Mnemonic passphrase as string with space seperated words
+        :type words: str
+        :param passphrase: A password to protect key, leave empty to disable
+        :type passphrase: str
+        
+        :return bytes: PBKDF2 seed
         """
         words = self.sanitize_mnemonic(words)
-        mnemonic = self.normalize_string(words)
+        mnemonic = normalize_string(words)
         passphrase = passphrase.encode()
         return PBKDF2(mnemonic, b'mnemonic' + passphrase,
                       iterations=PBKDF2_ROUNDS,
@@ -93,14 +89,27 @@ class Mnemonic:
                       digestmodule=hashlib.sha512).read(64)
 
     def word(self, index):
+        """
+        Get word from wordlist
+        
+        :param index: word index ID
+        :type index: int
+        
+        :return str: A word from the dictionary 
+        """
         return self._wordlist[index]
 
     def wordlist(self):
+        """
+        Get full selected wordlist. A wordlist is selected when initializing Mnemonic class
+        
+        :return list: Full list with 2048 words 
+        """
         return self._wordlist
 
     def generate(self, strength=128, add_checksum=True):
         """
-        Generate a Mnemonic key
+        Generate a random Mnemonic key
 
         :param strength: Key strenght in number of bits
         :param add_checksum: Boolean to specify if checksum needs to be included
@@ -115,7 +124,7 @@ class Mnemonic:
             wi = change_base(binresult, 2, 2048)
         else:
             wi = change_base(hexdata, 16, 2048)
-        return self.normalize_string(' '.join([self._wordlist[i] for i in wi]))
+        return normalize_string(' '.join([self._wordlist[i] for i in wi]))
 
     def to_entropy(self, words, includes_checksum=True):
         """
@@ -144,7 +153,7 @@ class Mnemonic:
         return ent
 
     def detect_language(self, words):
-        words = self.normalize_string(words)
+        words = normalize_string(words)
         if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
             words = words.split(' ')
 
@@ -167,7 +176,7 @@ class Mnemonic:
             raise Warning("Could not detect language of Mnemonic sentence %s" % words)
 
     def sanitize_mnemonic(self, words):
-        words = self.normalize_string(words)
+        words = normalize_string(words)
         language = self.detect_language(words)
         if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
             words = words.split(' ')
