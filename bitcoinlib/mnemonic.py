@@ -72,6 +72,8 @@ class Mnemonic:
     def to_seed(self, words, passphrase=''):
         """
         Use Mnemonic words and passphrase to create a PBKDF2 seed (Password-Based Key Derivation Function 2)
+        
+        First use 'sanitize_mnemonic' to determine language and validate and check words
 
         :param words: Mnemonic passphrase as string with space seperated words
         :type words: str
@@ -218,6 +220,7 @@ if __name__ == '__main__':
     #
 
     from bitcoinlib.keys import HDKey
+    from bitcoinlib.encoding import to_hexstring
 
     # Convert hexadecimal to mnemonic and back again to hex
     print("\nConvert hexadecimal to mnemonic and back again to hex")
@@ -226,9 +229,8 @@ if __name__ == '__main__':
     print("Hex                %s" % pk)
     print("Checksum bin       %s" % Mnemonic().checksum(pk))
     print("Mnemonic           %s" % words)
-    print(Mnemonic().to_seed(words, 'test'))
-    print("Seed for HD Key    %s" % change_base(Mnemonic().to_seed(words, 'test'), 256, 16))
-    print("Back to Entropy    %s" % change_base(Mnemonic().to_entropy(words), 256, 16))
+    print("Seed for HD Key    %s" % to_hexstring(Mnemonic().to_seed(words, 'test')))
+    print("Back to Entropy    %s" % to_hexstring(Mnemonic().to_entropy(words)))
 
     # Generate a random Mnemonic HD Key
     print("\nGenerate a random Mnemonic HD Key")
@@ -236,54 +238,54 @@ if __name__ == '__main__':
     words = Mnemonic('english').generate(entsize)
     print("Your Mnemonic is   %s" % words)
     print("  (An avarage of %d tries is needed to brute-force this password)" % ((2 ** entsize) // 2))
-    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    seed = Mnemonic().to_seed(words)
     hdk = HDKey().from_seed(seed)
-    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("Seed for HD Key    %s" % to_hexstring(seed))
     print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # Generate a key from a Mnemonic sentence
     print("\nGenerate a key from a Mnemonic sentence")
     words = "type fossil omit food supply enlist move perfect direct grape clean diamond"
     print("Your Mnemonic is   %s" % words)
-    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    seed = Mnemonic().to_seed(words)
     hdk = HDKey().from_seed(seed)
-    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("Seed for HD Key    %s" % to_hexstring(seed))
     print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # Let's talk Spanish
     print("\nGenerate a key from a Spanish Mnemonic sentence")
     words = "laguna afirmar talón resto peldaño deuda guerra dorado catorce avance oasis barniz"
     print("Your Mnemonic is   %s" % words)
-    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    seed = Mnemonic().to_seed(words)
     hdk = HDKey().from_seed(seed)
-    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("Seed for HD Key    %s" % to_hexstring(seed))
     print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # Want some Chinese?
     print("\nGenerate a key from a Chinese Mnemonic sentence")
     words = "信 收 曉 捐 炭 祖 瘋 原 強 則 岩 蓄"
     print("Your Mnemonic is   %s" % words)
-    seed = change_base(Mnemonic().to_seed(words), 256, 16)
+    seed = Mnemonic().to_seed(words)
     hdk = HDKey().from_seed(seed)
-    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("Seed for HD Key    %s" % to_hexstring(seed))
     print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # Spanish Unicode mnemonic sentence
     print("\nGenerate a key from a Spanish UNICODE Mnemonic sentence")
     words = u"guion cruz envío papel otoño percha hazaña salir joya gorra íntimo actriz"
     print("Your Mnemonic is   %s" % words)
-    seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)
+    seed = Mnemonic().to_seed(words, '1200 web development')
     hdk = HDKey().from_seed(seed)
-    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("Seed for HD Key    %s" % to_hexstring(seed))
     print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # And Japanese
     print("\nGenerate a key from a Japanese UNICODE Mnemonic sentence")
     words = "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　ねもと"
     print("Your Mnemonic is   %s" % words)
-    seed = change_base(Mnemonic().to_seed(words, '1200 web development'), 256, 16)
+    seed = Mnemonic().to_seed(words, '1200 web development')
     hdk = HDKey().from_seed(seed)
-    print("Seed for HD Key    %s" % change_base(seed, 256, 16))
+    print("Seed for HD Key    %s" % to_hexstring(seed))
     print("HD Key WIF is      %s" % hdk.extended_wif())
 
     # And Japanese
