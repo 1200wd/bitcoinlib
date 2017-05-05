@@ -1122,6 +1122,8 @@ class HDWallet:
         :type key_id: int  
         :return list: List of transactions 
         """
+        if account_id is None:
+            account_id = self.default_account_id
         qr = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
             filter(DbTransaction.spend.op("IS")(False),
                    DbKey.account_id == account_id,
