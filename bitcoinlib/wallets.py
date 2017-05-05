@@ -1143,7 +1143,7 @@ class HDWallet:
             res.append(u)
         return res
 
-    def send_to(self, to_address, amount, account_id=None, transaction_fee=None):
+    def send_to(self, to_address, amount, account_id=None, transaction_fee=None, min_confirms=4):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
         
@@ -1155,11 +1155,13 @@ class HDWallet:
         :type account_id: int
         :param transaction_fee: Fee to use for this transaction. Leave empty to automatically estimate.
         :type transaction_fee: int
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
+        :type min_confirms: int
         
         :return str: Transaction id (txid) if transaction is pushed succesfully 
         """
         outputs = [(to_address, amount)]
-        return self.send(outputs, account_id=account_id, transaction_fee=transaction_fee)
+        return self.send(outputs, account_id=account_id, transaction_fee=transaction_fee, min_confirms=min_confirms)
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
@@ -1225,6 +1227,7 @@ class HDWallet:
         :type transaction_fee: int
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
         :type min_confirms: int
+        
         :return bytes: Raw transaction  
         """
         amount_total_output = 0
