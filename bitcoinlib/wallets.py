@@ -1079,8 +1079,7 @@ class HDWallet:
         utxos_tx_hashes = [x['tx_hash'] for x in utxos]
         for current_utxo in current_utxos:
             if current_utxo['tx_hash'] not in utxos_tx_hashes:
-                self._session.query(DbTransaction).join(DbTransaction.key).\
-                    filter(DbTransaction.tx_hash == current_utxo['tx_hash']).\
+                self._session.query(DbTransaction).filter(DbTransaction.tx_hash == current_utxo['tx_hash']).\
                     update({DbTransaction.spend: True})
                 self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
             self._session.commit()
