@@ -56,8 +56,8 @@
   "bitgo": {
     "provider": "bitgo",
     "network": "bitcoin",
-    "client_class": "BlockCypher",
-    "url": "https://api.blockcypher.com/v1/btc/main/",
+    "client_class": "BitGo",
+    "url": "https://www.bitgo.com/api/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 1

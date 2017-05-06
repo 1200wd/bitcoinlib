@@ -56,6 +56,11 @@ class Service(object):
             raise ServiceError(errstr)
         f.close()
 
+        provider_list = list(self.providers_defined.keys())
+        for p in providers:
+            if p not in provider_list:
+                raise ServiceError("Provider '%s' not found in provider definitions" % p)
+
         self.providers = {}
         for p in self.providers_defined:
             if self.providers_defined[p]['network'] == network and \
@@ -137,6 +142,13 @@ class Service(object):
 if __name__ == '__main__':
     from pprint import pprint
 
+    # Get Balance for specific address and use specific provider
+    srv = Service(providers=['bitgo'])
+    print("Getbalance, first result only: %s" % srv.getbalance('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN'))
+    print("\nAll results as dict:")
+    pprint(srv.results)
+
+    sys.exit()
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
     srv = Service(network='testnet', min_providers=5)
@@ -177,6 +189,6 @@ if __name__ == '__main__':
 
     # Get current estimated networks fees
     print("\nCurrent estimated networks fees:")
-    srv = Service(network='testnet', min_providers=100)
+    srv = Service(min_providers=10)
     srv.estimatefee(5)
     pprint(srv.results)
