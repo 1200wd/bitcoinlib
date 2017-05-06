@@ -56,7 +56,7 @@
   "bitgo": {
     "provider": "bitgo",
     "network": "bitcoin",
-    "client_class": "BitGo",
+    "client_class": "BitGoClient",
     "url": "https://www.bitgo.com/api/v1/",
     "api_key": "",
     "priority": 10,

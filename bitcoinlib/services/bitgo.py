@@ -36,11 +36,10 @@ class BitGoClient(BaseClient):
         return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
-        variables = [('active', '|'.join(addresslist))]
-        res = self.compose_request('multiaddr', '', variables)
+        res = self.compose_request('address', '/' + addresslist[0])
         balance = 0
         for address in res['addresses']:
-            balance += address['final_balance']
+            balance += address['balance']
 
         return balance
 
