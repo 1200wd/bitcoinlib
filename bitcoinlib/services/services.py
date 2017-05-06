@@ -144,13 +144,12 @@ class Service(object):
 if __name__ == '__main__':
     from pprint import pprint
 
-    # Get Balance for specific address and use specific provider
+    # Tests for specific provider
     srv = Service(providers=['bitgo'])
-    print("Getbalance, first result only: %s" % srv.getbalance('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN'))
-    print("\nAll results as dict:")
-    pprint(srv.results)
+    # print("Getbalance, first result only: %s" % srv.getbalance())
+    # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
+    pprint(srv.estimatefee(5))
 
-    sys.exit()
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
     srv = Service(network='testnet', min_providers=5)

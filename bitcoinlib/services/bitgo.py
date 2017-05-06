@@ -29,10 +29,12 @@ class BitGoClient(BaseClient):
     def __init__(self, network, base_url, denominator, api_key=''):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
-    def compose_request(self, cmd, parameter, variables=None, method='get'):
-        if parameter:
-            parameter = '/' + parameter
-        url_path = cmd + parameter
+    def compose_request(self, category, data, cmd='', variables=None, method='get'):
+        if data:
+            data = '/' + data
+        url_path = category + data
+        if cmd:
+            url_path += '/' + cmd
         return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
@@ -42,13 +44,28 @@ class BitGoClient(BaseClient):
             balance += res['balance']
         return balance
 
-    # TODO: Implement this methods
-    # def getrawtransaction(self, txid):
-    #     res = self.compose_request('tx', 'raw', txid)
-    #     return res['tx']['hex']
-    #
-    # def decoderawtransaction(self, rawtx):
-    #     return self.compose_request('tx', 'decode', variables={'hex': rawtx}, method='post')
-    #
-    # def sendrawtransaction(self, rawtx):
-    #     return self.compose_request('tx', 'push', variables={'hex': rawtx}, method='post')
+    def getutxos(self, addresslist):
+        utxos = []
+        for address in addresslist:
+            res = self.compose_request('address', address, 'unspents')
+            for unspent in res['unspents']:
+                utxos.append(
+                    {
+                        'address': unspent['address'],
+                        'tx_hash': unspent['tx_hash'],
+                        'confirmations': unspent['confirmations'],
+                        'output_n': unspent['tx_output_n'],
+                        'index': 0,
+                        'value': int(round(unspent['value'] * self.units, 0)),
+                        'script': unspent['script'],
+                     }
+                )
+        return utxos
+
+    def getrawtransaction(self, txid):
+        res = self.compose_request('tx', txid)
+        return res['tx']['hex']
+
+    def estimatefee(self, blocks):
+        res = self.compose_request('tx', 'fee', variables={'numBlocks': blocks})
+        return res['feePerKb']

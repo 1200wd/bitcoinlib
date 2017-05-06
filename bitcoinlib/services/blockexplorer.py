@@ -69,4 +69,3 @@ class BlockExplorerClient(BaseClient):
     def estimatefee(self, blocks):
         res = self.compose_request('utils', 'estimatefee', variables={'nbBlocks': blocks})
         return int(res[str(blocks)] * self.units)
-        # /api/utils/estimatefee[?nbBlocks=2]
