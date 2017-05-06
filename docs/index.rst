@@ -9,6 +9,8 @@ Welcome to Bitcoinlib's documentation!
 .. toctree::
    :maxdepth: 2
 
+   source/manuals.add-provider
+
    source/bitcoinlib.keys
    source/bitcoinlib.wallets
    source/bitcoinlib.networks

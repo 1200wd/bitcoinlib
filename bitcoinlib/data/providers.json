@@ -53,6 +53,15 @@
     "priority": 10,
     "denominator": 1
   },
+  "bitgo": {
+    "provider": "bitgo",
+    "network": "bitcoin",
+    "client_class": "BlockCypher",
+    "url": "https://api.blockcypher.com/v1/btc/main/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
   "blockr.testnet": {
     "provider": "blockr",
     "network": "testnet",
