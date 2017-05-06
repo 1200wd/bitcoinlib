@@ -191,5 +191,5 @@ if __name__ == '__main__':
     # Get current estimated networks fees
     print("\nCurrent estimated networks fees:")
     srv = Service(min_providers=10)
-    srv.estimatefee(1)
+    srv.estimatefee(0)
     pprint(srv.results)

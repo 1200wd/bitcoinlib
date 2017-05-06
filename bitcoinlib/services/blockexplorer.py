@@ -68,4 +68,6 @@ class BlockExplorerClient(BaseClient):
 
     def estimatefee(self, blocks):
         res = self.compose_request('utils', 'estimatefee', variables={'nbBlocks': blocks})
+        if res[str(blocks)] < 1:
+            raise ValueError("Fee cannot be estimated, blockexplorer returns value < 1")
         return int(res[str(blocks)] * self.units)
