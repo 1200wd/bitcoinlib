@@ -66,7 +66,7 @@ class Service(object):
         self.providers = {}
         for p in self.providers_defined:
             if self.providers_defined[p]['network'] == network and \
-                    (providers is None or self.providers_defined[p]['provider'] in providers):
+                    (not providers or self.providers_defined[p]['provider'] in providers):
                 self.providers.update({p: self.providers_defined[p]})
 
         self.min_providers = min_providers
@@ -150,7 +150,6 @@ if __name__ == '__main__':
     print("\nAll results as dict:")
     pprint(srv.results)
 
-    sys.exit()
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
     srv = Service(network='testnet', min_providers=5)
