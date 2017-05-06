@@ -57,6 +57,8 @@ class Service(object):
         f.close()
 
         provider_list = list(self.providers_defined.keys())
+        if providers is None:
+            providers = []
         for p in providers:
             if p not in provider_list:
                 raise ServiceError("Provider '%s' not found in provider definitions" % p)
