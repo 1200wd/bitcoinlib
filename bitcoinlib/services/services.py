@@ -150,6 +150,7 @@ if __name__ == '__main__':
     print("\nAll results as dict:")
     pprint(srv.results)
 
+    sys.exit()
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
     srv = Service(network='testnet', min_providers=5)
