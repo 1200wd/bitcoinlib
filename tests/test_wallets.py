@@ -49,13 +49,13 @@ class TestWalletCreate(unittest.TestCase):
     def test_wallet_create_account(self):
         new_account = self.wallet.new_account(account_id=100)
         self.assertEqual(new_account.depth, 3)
-        self.assertEqual(new_account.key_wif[:4], 'xprv')
+        self.assertEqual(new_account.wif[:4], 'xprv')
         self.assertEqual(new_account.path, "m/44'/0'/100'")
 
     def test_wallet_create_key(self):
         new_key = self.wallet.new_key(account_id=100)
         self.assertEqual(new_key.depth, 5)
-        self.assertEqual(new_key.key_wif[:4], 'xprv')
+        self.assertEqual(new_key.wif[:4], 'xprv')
         self.assertEqual(new_key.path, "m/44'/0'/100'/0/0")
 
     def test_list_wallets(self):
@@ -74,12 +74,12 @@ class TestWalletCreate(unittest.TestCase):
     def test_wallet_duplicate_key_for_path(self):
         nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
         nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
-        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
+        self.assertEqual(nkfp.key().wif(), nkfp2.key().wif())
 
     def test_wallet_key_for_path_normalized(self):
         nkfp = self.wallet.key_for_path("m/44h/0p/100H/1200/1201")
         nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1201")
-        self.assertEqual(nkfp.key().extended_wif(), nkfp2.key().extended_wif())
+        self.assertEqual(nkfp.key().wif(), nkfp2.key().wif())
 
 
 class TestWalletImport(unittest.TestCase):
@@ -97,7 +97,7 @@ class TestWalletImport(unittest.TestCase):
             network='testnet',
             key=keystr)
         wallet_import.new_account(account_id=99)
-        self.assertEqual(wallet_import.main_key.key_wif, keystr)
+        self.assertEqual(wallet_import.main_key.wif, keystr)
         self.assertEqual(wallet_import.main_key.address, u'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
         self.assertEqual(wallet_import.main_key.path, 'm')
 
@@ -110,7 +110,7 @@ class TestWalletImport(unittest.TestCase):
             key=accountkey,
             network='testnet',
             account_id=99)
-        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
+        self.assertEqual(wallet_import.main_key.wif, accountkey)
         self.assertEqual(wallet_import.main_key.address, u'mowRx2TNXTgRSUmepjqhx5C1TTigmHLGRh')
         self.assertEqual(wallet_import.main_key.path, "m/44'/1'/99'")
 
@@ -125,7 +125,7 @@ class TestWalletImport(unittest.TestCase):
             account_id=99)
         newkey = wallet_import.new_key(account_id=99)
         newkey_change = wallet_import.new_key_change(account_id=99, name='change')
-        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
+        self.assertEqual(wallet_import.main_key.wif, accountkey)
         self.assertEqual(newkey.address, u'mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ')
         self.assertEqual(newkey.path, "m/44'/1'/99'/0/0")
         self.assertEqual(newkey_change.address, u'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
@@ -152,7 +152,7 @@ class TestWalletImport(unittest.TestCase):
             key=accountkey,
             network='litecoin')
         newkey = wallet_import.new_key()
-        self.assertEqual(wallet_import.main_key.key_wif, accountkey)
+        self.assertEqual(wallet_import.main_key.wif, accountkey)
         self.assertEqual(newkey.address, u'LPkJcpV1cmT8qLFmUApySBtxt7UWavoQmh')
         self.assertEqual(newkey.path, "m/44'/2'/0'/0/0")
 

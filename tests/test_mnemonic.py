@@ -42,7 +42,7 @@ class TestMnemonics(unittest.TestCase):
             self.assertEqual(v[1], phrase)
             self.assertEqual(v[2], seed)
             k = HDKey.from_seed(seed)
-            self.assertEqual(k.extended_wif(), v[3])
+            self.assertEqual(k.wif(), v[3])
 
     def test_vectors(self):
         workdir = os.path.dirname(__file__)

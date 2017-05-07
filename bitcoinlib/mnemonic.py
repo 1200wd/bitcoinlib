@@ -241,7 +241,7 @@ if __name__ == '__main__':
     seed = Mnemonic().to_seed(words)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % to_hexstring(seed))
-    print("HD Key WIF is      %s" % hdk.extended_wif())
+    print("HD Key WIF is      %s" % hdk.wif())
 
     # Generate a key from a Mnemonic sentence
     print("\nGenerate a key from a Mnemonic sentence")
@@ -250,7 +250,7 @@ if __name__ == '__main__':
     seed = Mnemonic().to_seed(words)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % to_hexstring(seed))
-    print("HD Key WIF is      %s" % hdk.extended_wif())
+    print("HD Key WIF is      %s" % hdk.wif())
 
     # Let's talk Spanish
     print("\nGenerate a key from a Spanish Mnemonic sentence")
@@ -259,7 +259,7 @@ if __name__ == '__main__':
     seed = Mnemonic().to_seed(words)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % to_hexstring(seed))
-    print("HD Key WIF is      %s" % hdk.extended_wif())
+    print("HD Key WIF is      %s" % hdk.wif())
 
     # Want some Chinese?
     print("\nGenerate a key from a Chinese Mnemonic sentence")
@@ -268,7 +268,7 @@ if __name__ == '__main__':
     seed = Mnemonic().to_seed(words)
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % to_hexstring(seed))
-    print("HD Key WIF is      %s" % hdk.extended_wif())
+    print("HD Key WIF is      %s" % hdk.wif())
 
     # Spanish Unicode mnemonic sentence
     print("\nGenerate a key from a Spanish UNICODE Mnemonic sentence")
@@ -277,7 +277,7 @@ if __name__ == '__main__':
     seed = Mnemonic().to_seed(words, '1200 web development')
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % to_hexstring(seed))
-    print("HD Key WIF is      %s" % hdk.extended_wif())
+    print("HD Key WIF is      %s" % hdk.wif())
 
     # And Japanese
     print("\nGenerate a key from a Japanese UNICODE Mnemonic sentence")
@@ -286,7 +286,7 @@ if __name__ == '__main__':
     seed = Mnemonic().to_seed(words, '1200 web development')
     hdk = HDKey().from_seed(seed)
     print("Seed for HD Key    %s" % to_hexstring(seed))
-    print("HD Key WIF is      %s" % hdk.extended_wif())
+    print("HD Key WIF is      %s" % hdk.wif())
 
     # And Japanese
     # --- not supported at the moment ---

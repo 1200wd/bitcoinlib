@@ -214,9 +214,9 @@ class HDWalletKey:
         else:
             k = hdkey_object
 
-        keyexists = session.query(DbKey).filter(DbKey.key_wif == k.extended_wif()).first()
+        keyexists = session.query(DbKey).filter(DbKey.key_wif == k.wif()).first()
         if keyexists:
-            _logger.warning("Key %s already exists" % (key or k.extended_wif()))
+            _logger.warning("Key %s already exists" % (key or k.wif()))
             return HDWalletKey(keyexists.id, session, k)
 
         if k.depth != len(path.split('/'))-1:
@@ -230,13 +230,13 @@ class HDWalletKey:
                                   (k.depth, len(path.split('/')) - 1, path))
 
         wk = session.query(DbKey).filter(or_(DbKey.key == k.key_hex,
-                                             DbKey.key_wif == k.extended_wif())).first()
+                                             DbKey.key_wif == k.wif())).first()
         if wk:
             return HDWalletKey(wk.id, session, k)
 
         nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
-                   key_wif=k.extended_wif(), address=k.key.address(), parent_id=parent_id,
+                   key_wif=k.wif(), address=k.key.address(), parent_id=parent_id,
                    is_private=True, path=path, key_type=k.key_type)
         session.add(nk)
         session.commit()
@@ -264,7 +264,7 @@ class HDWalletKey:
             self.account_id = wk.account_id
             self.change = wk.change
             self.address_index = wk.address_index
-            self.key_wif = wk.key_wif
+            self.wif = wk.key_wif
             self.address = wk.address
             self._balance = wk.balance
             self.purpose = wk.purpose
@@ -280,7 +280,7 @@ class HDWalletKey:
             raise WalletError("Key with id %s not found" % key_id)
 
     def __repr__(self):
-        return "<HDWalletKey (name=%s, wif=%s, path=%s)>" % (self.name, self.key_wif, self.path)
+        return "<HDWalletKey (name=%s, wif=%s, path=%s)>" % (self.name, self.wif, self.path)
 
     def key(self):
         """
@@ -289,7 +289,7 @@ class HDWalletKey:
         :return HDKey: 
         """
         if self._hdkey_object is None:
-            self._hdkey_object = HDKey(import_key=self.key_wif, network=self.network.network_name)
+            self._hdkey_object = HDKey(import_key=self.wif, network=self.network.network_name)
         return self._hdkey_object
 
     def balance(self, fmt=''):
@@ -346,7 +346,7 @@ class HDWalletKey:
         print(" Is Private                     %s" % self.is_private)
         print(" Name                           %s" % self.name)
         print(" Key Hex                        %s" % self.key_hex)
-        print(" Key WIF                        %s" % self.key_wif)
+        print(" Key WIF                        %s" % self.wif)
         print(" Account ID                     %s" % self.account_id)
         print(" Parent ID                      %s" % self.parent_id)
         print(" Depth                          %s" % self.depth)
@@ -842,7 +842,7 @@ class HDWallet:
         if rkey is not None:
             subpath = normalize_path(path).replace(rkey.path + '/', '')
             basepath = rkey.path
-            if self.main_key.key_wif != rkey.key_wif:
+            if self.main_key.wif != rkey.key_wif:
                 parent_key = self.key(rkey.id)
         newkey = self._create_keys_from_path(
             parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
@@ -1460,7 +1460,7 @@ if __name__ == '__main__':
     seed = Mnemonic().to_seed(words)
     hdkey = HDKey().from_seed(seed, network='litecoin_testnet')
     wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
-                             key=hdkey.extended_wif(), databasefile=test_database)
+                             key=hdkey.wif(), databasefile=test_database)
     wallet.new_key("Input", 0)
     # wallet.updateutxos()  # TODO: fix for litecoin testnet
     wallet.info(detail=3)

@@ -674,7 +674,7 @@ class HDKey:
         self.key_type = key_type
 
     def __repr__(self):
-        return "<HDKey (%s)>" % self.extended_wif()
+        return "<HDKey (%s)>" % self.wif()
 
     def info(self):
         """
@@ -702,8 +702,8 @@ class HDKey:
         print(" Child Index                 %s" % self.child_index)
         print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint, 256, 16))
         print(" Depth                       %s" % self.depth)
-        print(" Extended Public Key (wif)   %s" % self.extended_wif_public())
-        print(" Extended Private Key (wif)  %s" % self.extended_wif(public=False))
+        print(" Extended Public Key (wif)   %s" % self.wif_public())
+        print(" Extended Private Key (wif)  %s" % self.wif(public=False))
         print("\n")
 
     def _key_derivation(self, seed):
@@ -729,7 +729,7 @@ class HDKey:
         """
         return hashlib.new('ripemd160', hashlib.sha256(self.public_byte).digest()).digest()[:4]
 
-    def extended_wif(self, public=None, child_index=None):
+    def wif(self, public=None, child_index=None):
         """
         Get Extended WIF of current key
         
@@ -759,13 +759,13 @@ class HDKey:
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
 
-    def extended_wif_public(self):
+    def wif_public(self):
         """
         Get Extended WIF public key
         
         :return str: Base58 encoded WIF key
         """
-        return self.extended_wif(public=True)
+        return self.wif(public=True)
 
     def subkey_for_path(self, path):
         """
@@ -920,11 +920,11 @@ if __name__ == '__main__':
 
     print("\n=== Generate random HD Key on testnet ===")
     hdk = HDKey(network='testnet')
-    print("Random BIP32 HD Key on testnet %s" % hdk.extended_wif())
+    print("Random BIP32 HD Key on testnet %s" % hdk.wif())
 
     print("\n=== Import HD Key from seed ===")
     k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-    print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.extended_wif())
+    print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.wif())
     print("Key type is : %s" % k.key_type)
 
     print("\n=== Generate random Litecoin key ===")
@@ -933,13 +933,13 @@ if __name__ == '__main__':
 
     print("\n=== Import simple private key as HDKey ===")
     k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
-    print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.extended_wif())
+    print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.wif())
     print("Key type is : %s" % k.key_type)
 
     print("\n=== Derive path with Child Key derivation ===")
     print("Derive path path 'm/0H/1':")
-    print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').extended_wif())
-    print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').extended_wif_public())
+    print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').wif())
+    print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').wif_public())
 
     print("\n=== Test Child Key Derivation ===")
     print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
