@@ -145,7 +145,7 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(providers=['coinfees'])
+    srv = Service(providers=['blockexplorer'])
     # print("Getbalance, first result only: %s" % srv.getbalance())
     # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
     pprint(srv.estimatefee(5))
@@ -191,5 +191,5 @@ if __name__ == '__main__':
     # Get current estimated networks fees
     print("\nCurrent estimated networks fees:")
     srv = Service(min_providers=10)
-    srv.estimatefee(0)
+    srv.estimatefee(5)
     pprint(srv.results)
