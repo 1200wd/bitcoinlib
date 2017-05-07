@@ -214,7 +214,7 @@ class HDWalletKey:
         else:
             k = hdkey_object
 
-        keyexists = session.query(DbKey).filter(DbKey.key_wif == k.wif()).first()
+        keyexists = session.query(DbKey).filter(DbKey.wif == k.wif()).first()
         if keyexists:
             _logger.warning("Key %s already exists" % (key or k.wif()))
             return HDWalletKey(keyexists.id, session, k)
@@ -230,14 +230,14 @@ class HDWalletKey:
                                   (k.depth, len(path.split('/')) - 1, path))
 
         wk = session.query(DbKey).filter(or_(DbKey.key == k.key_hex,
-                                             DbKey.key_wif == k.wif())).first()
+                                             DbKey.wif == k.wif())).first()
         if wk:
             return HDWalletKey(wk.id, session, k)
 
         nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
-                   key_wif=k.wif(), address=k.key.address(), parent_id=parent_id,
-                   is_private=True, path=path, key_type=k.key_type)
+                   wif=k.wif(), address=k.key.address(), parent_id=parent_id,
+                   is_private=True, path=path, type=k.type)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -264,7 +264,7 @@ class HDWalletKey:
             self.account_id = wk.account_id
             self.change = wk.change
             self.address_index = wk.address_index
-            self.wif = wk.key_wif
+            self.wif = wk.wif
             self.address = wk.address
             self._balance = wk.balance
             self.purpose = wk.purpose
@@ -275,7 +275,7 @@ class HDWalletKey:
             self.network = Network(wk.wallet.network_name)
 
             self.depth = wk.depth
-            self.key_type = wk.key_type
+            self.type = wk.type
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -342,7 +342,7 @@ class HDWalletKey:
         """
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
-        print(" Key Type                       %s" % self.key_type)
+        print(" Key Type                       %s" % self.type)
         print(" Is Private                     %s" % self.is_private)
         print(" Name                           %s" % self.name)
         print(" Key Hex                        %s" % self.key_hex)
@@ -842,7 +842,7 @@ class HDWallet:
         if rkey is not None:
             subpath = normalize_path(path).replace(rkey.path + '/', '')
             basepath = rkey.path
-            if self.main_key.wif != rkey.key_wif:
+            if self.main_key.wif != rkey.wif:
                 parent_key = self.key(rkey.id)
         newkey = self._create_keys_from_path(
             parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
@@ -978,7 +978,7 @@ class HDWallet:
         if not dbkey:
             dbkey = self._session.query(DbKey).filter_by(address=term).first()
         if not dbkey:
-            dbkey = self._session.query(DbKey).filter_by(key_wif=term).first()
+            dbkey = self._session.query(DbKey).filter_by(wif=term).first()
         if not dbkey:
             dbkey = self._session.query(DbKey).filter_by(name=term).first()
         if dbkey:
@@ -1282,7 +1282,7 @@ class HDWallet:
             key = self._session.query(DbKey).filter_by(id=inp[2]).scalar()
             if not key:
                 raise WalletError("Key of UTXO %s not found in this wallet" % inp[0])
-            k = HDKey(key.key_wif)
+            k = HDKey(key.wif)
             id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
             sign_arr.append((k.private_byte, id))
 

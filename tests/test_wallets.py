@@ -187,12 +187,12 @@ class TestWalletKeys(unittest.TestCase):
         self.assertListEqual(self.wallet.addresslist(), expected_addresslist)
 
     def test_wallet_keys_method_masterkey(self):
-        self.assertEqual(self.wallet.keys(name='test_wallet_keys', depth=0)[0].key_wif, self.private_wif)
+        self.assertEqual(self.wallet.keys(name='test_wallet_keys', depth=0)[0].wif, self.private_wif)
 
     def test_wallet_keys_method_account(self):
         account_wif = 'xprv9z87HKmxfjVRRyEt7zBWCctmJvqcowfWwKUeJnLjNyykvq5sDGm1yo5qTWWAj1gXsRd2b8GayjujPz1arbKsS3tnwQ' \
                       'Fz8nMip3pFBYjPT1b'
-        self.assertEqual(self.wallet.keys_accounts()[0].key_wif, account_wif)
+        self.assertEqual(self.wallet.keys_accounts()[0].wif, account_wif)
 
     def test_wallet_keys_method_keys_addresses(self):
         address_wifs = [
@@ -201,7 +201,7 @@ class TestWalletKeys(unittest.TestCase):
             'xprvA3ALLPsyMi2DUrZbSRegEhrdNNg1kwM6n6zh3cv9Qx9ZYoHwgk44TwympUPV3UuQ5YNjubBsF2QbBfJqujoiFDKLHnphCpLmBzeER'
             'yZeFRE'
         ]
-        self.assertListEqual([k.key_wif for k in self.wallet.keys_addresses()], address_wifs)
+        self.assertListEqual([k.wif for k in self.wallet.keys_addresses()], address_wifs)
 
     def test_wallet_keys_method_keys_payment(self):
         self.assertEqual(self.wallet.keys_address_payment()[0].address, '1J6jppU5mWf4ausGfHMumrKrztpDKq2MrD')
