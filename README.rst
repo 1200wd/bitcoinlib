@@ -8,7 +8,7 @@ Bitcoin and other Cryptocurrencies Library for Python
 
 ## Documentation
 
-Can be found at http://bitcoinlib.readthedocs.io/
+Read the full documentation at: http://bitcoinlib.readthedocs.io/
 
 
 ## Features
