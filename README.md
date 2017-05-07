@@ -13,11 +13,6 @@ Can be found at http://bitcoinlib.readthedocs.io/
 
 ## Features
 
-#### Mnemonic Keys
-Allows you to use easy to remember passphrases consisting of a number of words to store private keys (BIP0039).
-You can password protect this passphrase (BIP0038), and use the HD Wallet structure to generate a almost infinite 
-number of new private keys and bitcoin addresses (BIP0043 and BIP0044).
-
 #### Wallet
 The bitcoinlibrary contains a wallet implementation using sqlalchemy and sqllite3 to import, create and manage 
 keys in a Hierarchical Deterministic Way.
@@ -44,10 +39,33 @@ If succesfull a transaction ID is returned
 'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
 ```
 
+#### Mnemonic Keys
+Allows you to use easy to remember passphrases consisting of a number of words to store private keys (BIP0039).
+You can password protect this passphrase (BIP0038), and use the HD Wallet structure to generate a almost infinite 
+number of new private keys and bitcoin addresses (BIP0043 and BIP0044).
+
+Example: Generate a list of words passphrase and derive a private key seed
+
+```
+>>> from bitcoinlib.mnemonic import Mnemonic
+>>> words = Mnemonic().generate()
+>>> words
+protect dumb smart toddler journey spawn same dry season ecology scissors more
+>>> Mnemonic().to_seed(words)
+..very long and ugly byte string which can be used as private key
+```
+
 #### Service providers
 Communicates with pools of bitcoin service providers to retreive transaction, address, blockchain information. 
 To push a transaction to the network. To determine optimal service fee for a transaction. Or to update your
 wallet's balance.
+
+Example: Get estimated transactionfee in sathosis per Kb for confirmation within 5 blocks
+```
+>>> from bitcoinlib.services.services import Service
+>>> Service().estimatefee(5)
+138964
+```
 
 #### Implements the following Bitcoin Improvement Proposals
 - Hierarchical Deterministic Wallets (BIP0032)
