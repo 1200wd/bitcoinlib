@@ -22,7 +22,6 @@ Reference
    :maxdepth: 1
 
    source/modules
-   
    source/bitcoinlib.config
    source/bitcoinlib.db
    source/bitcoinlib.encoding
