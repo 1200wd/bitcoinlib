@@ -6,19 +6,37 @@
 Welcome to Bitcoinlib's documentation!
 ======================================
 
+Manuals
+-------
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    source/manuals.add-provider
 
-   source/bitcoinlib.keys
-   source/bitcoinlib.wallets
-   source/bitcoinlib.networks
-   source/bitcoinlib.mnemonic
-   source/bitcoinlib.transactions
-   source/bitcoinlib.services
 
-   BitcoinLib modules <source/modules>
+Reference
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   source/modules
+   
+   source/bitcoinlib.config
+   source/bitcoinlib.db
+   source/bitcoinlib.encoding
+   source/bitcoinlib.keys
+   source/bitcoinlib.mnemonic
+   source/bitcoinlib.networks
+   source/bitcoinlib.services
+   source/bitcoinlib.transactions
+   source/bitcoinlib.wallets
+
+
+
+Schematic overview
+------------------
 
 .. image:: _static/classes-overview.jpg
 .. image:: _static/classes-overview-detailed.jpg

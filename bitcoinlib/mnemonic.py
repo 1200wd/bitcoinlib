@@ -176,7 +176,16 @@ class Mnemonic:
 
         return ent
 
-    def detect_language(self, words):
+    @staticmethod
+    def detect_language(words):
+        """
+        Detect language of given phrase
+        
+        :param words: List of space seperated words
+        :type words: str
+        
+        :return str: Language 
+        """
         words = normalize_string(words)
         if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
             words = words.split(' ')
@@ -194,12 +203,21 @@ class Mnemonic:
                         if word in wordlist:
                             wlcount[language] += 1
         detlang = max(wlcount.keys(), key=(lambda key: wlcount[key]))
-        if wlcount[detlang] > 0:
-            return detlang
-        else:
+        if not wlcount[detlang]:
             raise Warning("Could not detect language of Mnemonic sentence %s" % words)
+        return detlang
 
     def sanitize_mnemonic(self, words):
+        """
+        Check and convert list of words to utf-8 encoding.
+        
+        Raises an error if unrecognised word is found
+        
+        :param words: List of space seperated words
+        :type words: str
+        
+        :return str: Sanitized list of words
+        """
         words = normalize_string(words)
         language = self.detect_language(words)
         if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
