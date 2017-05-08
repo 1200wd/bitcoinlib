@@ -80,8 +80,8 @@ Manuals
 .. toctree::
    :maxdepth: 1
 
-   source/manuals.install
-   source/manuals.add-provider
+   _static/manuals.install
+   _static/manuals.add-provider
 
 
 Reference
