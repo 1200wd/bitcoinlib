@@ -1,4 +1,4 @@
-include README.md
+include README.rst
 include LICENSE
 recursive-include bitcoinlib/config *.py
 recursive-include bitcoinlib/data *.ini *.json

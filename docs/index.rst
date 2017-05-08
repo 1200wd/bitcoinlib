@@ -74,20 +74,18 @@ Example: Get estimated transactionfee in sathosis per Kb for confirmation within
    138964
 
 
-Manuals
--------
 
 .. toctree::
+   :caption: Manuals
    :maxdepth: 1
 
    _static/manuals.install
    _static/manuals.add-provider
 
 
-Reference
----------
 
 .. toctree::
+   :caption: Reference
    :maxdepth: 1
 
    source/modules

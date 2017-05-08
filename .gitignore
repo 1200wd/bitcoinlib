@@ -54,6 +54,9 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+*.odt#
+.~*
+docs/source/*
 
 # PyBuilder
 target/
@@ -64,8 +67,3 @@ target/
 .idea
 *.sqlite
 .pypirc
-
-# Documentation
-*.odt#
-.~*
-docs/source/*
