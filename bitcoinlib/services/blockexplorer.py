@@ -67,6 +67,10 @@ class BlockExplorerClient(BaseClient):
     #     return self.compose_request('txs', 'decode', variables={'tx': rawtx}, method='post')
 
     def estimatefee(self, blocks):
+        # Testnet hack: Blockexplorer gives bogus results for testnet for blocks > 1
+        if self.network == 'testnet':
+            blocks = 1
+
         res = self.compose_request('utils', 'estimatefee', variables={'nbBlocks': blocks})
         fee = int(res[str(blocks)] * self.units)
         if fee < 1:

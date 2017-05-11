@@ -145,7 +145,7 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(providers=['blockexplorer'])
+    srv = Service(network='testnet', providers=['blockexplorer'])
     # print("Getbalance, first result only: %s" % srv.getbalance())
     # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
     pprint(srv.estimatefee(5))
