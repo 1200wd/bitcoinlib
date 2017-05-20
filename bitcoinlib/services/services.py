@@ -139,6 +139,12 @@ class Service(object):
 
     def estimatefee(self, blocks=3):
         return self._provider_execute('estimatefee', blocks)
+    
+    def estimate_fee_for_transaction(self, no_inputs=1, no_outputs=1, blocks=3):
+        fee_per_kb = self.estimatefee(blocks=blocks)
+        # TODO: Estimate transaction size correctly
+        tr_size = 100 + (no_inputs * 150) + (no_outputs * 50)
+        return int((tr_size / 1024) * fee_per_kb)
 
 
 if __name__ == '__main__':

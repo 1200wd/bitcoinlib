@@ -1256,10 +1256,7 @@ class HDWallet:
         fee = transaction_fee
         fee_per_kb = None
         if transaction_fee is None:
-            fee_per_kb = srv.estimatefee()
-            # TODO: Estimate transaction size correctly
-            tr_size = 250 + len(output_arr) * 50
-            fee = int((tr_size / 1024) * fee_per_kb)
+            fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
 
         amount_total_input = 0
         if input_arr is None:
@@ -1328,11 +1325,14 @@ class HDWallet:
         utxos = utxos[0:max_utxos]
         output_arr = []
         total_amount = 0
+        if not utxos:
+            return False
         for utxo in utxos:
             output_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
-            # TODO: Estimate fees
-        self.send(output_arr, (to_address, total_amount))
+        srv = Service(network=self.network.network_name)
+        estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
+        self.send(output_arr, (to_address, total_amount), transaction_fee=estimated_fee)
 
     def info(self, detail=3):
         """
