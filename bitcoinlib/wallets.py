@@ -1323,16 +1323,16 @@ class HDWallet:
             account_id = self.default_account_id
         utxos = self.getutxos(account_id=account_id, min_confirms=1)
         utxos = utxos[0:max_utxos]
-        output_arr = []
+        input_arr = []
         total_amount = 0
         if not utxos:
             return False
         for utxo in utxos:
-            output_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
+            input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
         srv = Service(network=self.network.network_name)
         estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
-        self.send(output_arr, (to_address, total_amount), transaction_fee=estimated_fee)
+        return self.send([(to_address, total_amount)], input_arr, estimated_fee)
 
     def info(self, detail=3):
         """
