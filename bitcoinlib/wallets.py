@@ -1321,6 +1321,19 @@ class HDWallet:
         else:
             return res
 
+    def sweep(self, to_address, account_id=None, max_utxos=999):
+        if account_id is None:
+            account_id = self.default_account_id
+        utxos = self.getutxos(account_id=account_id, min_confirms=1)
+        utxos = utxos[0:max_utxos]
+        output_arr = []
+        total_amount = 0
+        for utxo in utxos:
+            output_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
+            total_amount += utxo['value']
+            # TODO: Estimate fees
+        self.send(output_arr, (to_address, total_amount))
+
     def info(self, detail=3):
         """
         Prints wallet information to standard output
