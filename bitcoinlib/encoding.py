@@ -283,7 +283,10 @@ def convert_der_sig(s):
 
 
 def addr_to_pubkeyhash(address, as_hex=False):
-    address = change_base(address, 58, 256, 25)
+    try:
+        address = change_base(address, 58, 256, 25)
+    except EncodingError as err:
+        raise EncodingError("Invalid address %s: %s" % (address, err))
     check = address[-4:]
     pkh = address[:-4]
     checksum = hashlib.sha256(hashlib.sha256(pkh).digest()).digest()[0:4]
