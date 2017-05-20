@@ -549,6 +549,8 @@ class Transaction:
 
         r += int_to_varbyteint(len(self.outputs))
         for o in self.outputs:
+            if o.amount < 0:
+                raise TransactionError("Output amount <0 not allowed")
             r += struct.pack('<Q', o.amount)
             r += struct.pack('B', len(o.lock_script)) + o.lock_script
         r += struct.pack('<L', self.locktime)

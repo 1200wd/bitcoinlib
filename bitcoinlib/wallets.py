@@ -1332,7 +1332,7 @@ class HDWallet:
             total_amount += utxo['value']
         srv = Service(network=self.network.network_name)
         estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
-        return self.send([(to_address, total_amount)], input_arr, estimated_fee)
+        return self.send([(to_address, total_amount)], input_arr, transaction_fee=estimated_fee)
 
     def info(self, detail=3):
         """
