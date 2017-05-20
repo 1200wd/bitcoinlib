@@ -808,7 +808,7 @@ class HDWallet:
         :return HDWalletKey: 
         """
         # Validate key path
-        if enable_checks:
+        if path not in ['m', 'M'] and enable_checks:
             pathdict = parse_bip44_path(path)
             purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
             if purpose != self.purpose:
