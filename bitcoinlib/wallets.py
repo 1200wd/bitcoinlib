@@ -1002,6 +1002,8 @@ class HDWallet:
         
         :return: 
         """
+        if account_id is None:
+            account_id = self.default_account_id
         self._balance = Service(network=self.network.network_name).getbalance(self.addresslist(account_id=account_id))
         self._dbwallet.balance = self._balance
         self._session.commit()
@@ -1021,6 +1023,8 @@ class HDWallet:
         :return: 
         """
 
+        if account_id is None:
+            account_id = self.default_account_id
         # Get UTXO's and convert to dict with key_id and balance
         utxos = self.getutxos(account_id=account_id, key_id=key_id)
         utxos.sort(key=lambda x: x['key_id'])
@@ -1065,6 +1069,8 @@ class HDWallet:
         :return int: Number of new UTXO's added 
         """
 
+        if account_id is None:
+            account_id = self.default_account_id
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=self.network.network_name).\
             getutxos(self.addresslist(account_id=account_id, key_id=key_id, depth=depth))
@@ -1111,7 +1117,7 @@ class HDWallet:
         self.updatebalance(account_id=account_id, key_id=key_id)
         return count_utxos
 
-    def getutxos(self, account_id, min_confirms=0, key_id=None):
+    def getutxos(self, account_id=None, min_confirms=0, key_id=None):
         """
         Get UTXO's (Unspent Outputs) from database. Use updateutxos method first for updated values
         
@@ -1159,6 +1165,9 @@ class HDWallet:
         
         :return str: Transaction id (txid) if transaction is pushed succesfully 
         """
+
+        if account_id is None:
+            account_id = self.default_account_id
         outputs = [(to_address, amount)]
         return self.send(outputs, account_id=account_id, transaction_fee=transaction_fee, min_confirms=min_confirms)
 
