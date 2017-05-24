@@ -1142,7 +1142,8 @@ class HDWallet:
         res = []
         for utxo in utxos:
             u = utxo[0].__dict__
-            del u['_sa_instance_state']
+            if '_sa_instance_state' in u:
+                del u['_sa_instance_state']
             u['address'] = utxo[1]
             u['value'] = int(u['value'])
             res.append(u)
@@ -1380,6 +1381,12 @@ if __name__ == '__main__':
     # WALLETS EXAMPLES
     #
 
+    wl = HDWallet('Bulk Paper Wallet')
+    wl.updateutxos()
+    wl.getutxos()
+    wl.info()
+    import sys
+    sys.exit()
     # First recreate database to avoid already exist errors
     import os
     from pprint import pprint
