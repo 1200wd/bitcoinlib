@@ -37,11 +37,11 @@ kwargs['install_requires'] = install_requires
 
 setup(
       name='bitcoinlib',
-      version='0.3.0.20',
+      version='0.3.0.21',
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[
-            'Development Status :: 3 - Alpha',
+            'Development Status :: 4 - Beta',
             'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
             'Intended Audience :: Developers',
             'Intended Audience :: Financial and Insurance Industry',

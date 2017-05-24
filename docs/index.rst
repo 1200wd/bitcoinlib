@@ -100,6 +100,13 @@ Example: Get estimated transactionfee in sathosis per Kb for confirmation within
    source/bitcoinlib.wallets
 
 
+Disclaimer
+----------
+
+This library is still in development, please use at your own risk and test sufficiently before using it in a
+production environment. Support for Litecoin and Dash is just for read only wallet, not for creating or
+sending transactions.
+
 
 Schematic overview
 ------------------

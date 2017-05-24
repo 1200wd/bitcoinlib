@@ -17,6 +17,14 @@ Documentation
 Read the full documentation at: http://bitcoinlib.readthedocs.io/
 
 
+Disclaimer
+----------
+
+This library is still in development, please use at your own risk and test sufficiently before using it in a
+production environment. Support for Litecoin and Dash is just for read only wallet, not for creating or
+sending transactions.
+
+
 Features
 ========
 
