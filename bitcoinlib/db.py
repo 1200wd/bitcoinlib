@@ -57,9 +57,7 @@ class DbInit:
                     tablename = fn.split('.')[0]
                     reader = csv.DictReader(csvfile)
                     for row in reader:
-                        if tablename == 'providers':
-                            session.add(DbProvider(**row))
-                        elif tablename == 'networks':
+                        if tablename == 'networks':
                             session.add(DbNetwork(**row))
                         else:
                             raise ImportError(
@@ -119,7 +117,7 @@ class DbKey(Base):
     used = Column(Boolean, default=False)
 
     def __repr__(self):
-        return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.key_wif)
+        return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)
 
 
 class DbNetwork(Base):
@@ -133,23 +131,6 @@ class DbNetwork(Base):
 
     def __repr__(self):
         return "<DbNetwork(name='%s', description='%s'>" % (self.name, self.description)
-
-
-# class DbProvider(Base):
-#     """
-#     Database definitions for providers in Sqlalchemy format
-#
-#     """
-#     __tablename__ = 'providers'
-#     name = Column(String(50), primary_key=True, unique=True)
-#     provider = Column(String(50))
-#     network_name = Column(String, ForeignKey('networks.name'))
-#     network = relationship("DbNetwork")
-#     base_url = Column(String(100))
-#     api_key = Column(String(100))
-#
-#     def __repr__(self):
-#         return "<DbProvider(name='%s', network='%s'>" % (self.name, self.network_name)
 
 
 class TransactionType(enum.Enum):
