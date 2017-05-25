@@ -873,7 +873,7 @@ class HDWallet:
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
-            qr = qr.filter(DbKey.depth > 3)
+            qr = qr.filter(DbKey.depth >= 3)
         if change is not None:
             qr = qr.filter(DbKey.change == change)
             qr = qr.filter(DbKey.depth > 4)
@@ -1115,6 +1115,7 @@ class HDWallet:
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
         self.updatebalance(account_id=account_id, key_id=key_id)
+        self.getutxos(account_id=account_id)
         return count_utxos
 
     def getutxos(self, account_id=None, min_confirms=0, key_id=None):
