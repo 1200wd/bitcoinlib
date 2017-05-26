@@ -147,21 +147,46 @@ class DbTransaction(Base):
     """
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)
-    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
-    key = relationship("DbKey", back_populates="transactions")
+    # key_id = Column(Integer, ForeignKey('keys.id'), index=True)
+    # key = relationship("DbKey", back_populates="transactions")
     tx_hash = Column(String(64), unique=True, index=True)
     date = Column(DateTime)
     confirmations = Column(Integer)
-    output_n = Column(Integer)
-    index = Column(Integer)
+    # output_n = Column(Integer)
+    # index = Column(Integer)
     value = Column(Integer)
-    script = Column(String)
+    # script = Column(String)
     description = Column(String(256))
-    spend = Column(Boolean())
+    # spend = Column(Boolean())
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
 
     def __repr__(self):
         return "<DbTransaction(id='%s', tx_hash='%s', output_n='%s'>" % (self.id, self.tx_hash, self.output_n)
+
+
+class DbTransactionInput(Base):
+    __tablename__ = 'transaction_inputs'
+    id = Column(Integer, Sequence('transaction_input_id_seq'), primary_key=True)
+    transaction_id = Column(Integer, ForeignKey('transactions.id'), index=True)
+    prev_hash = Column(String(64), index=True)
+    output_n = Column(Integer)
+    key_id = Column(Integer, ForeignKey('key.id'), index=True)
+    key = relationship("DbKey", back_populates="transaction_inputs")
+    script = Column(String)
+    value = Column(Integer)
+    spend = Column(Boolean())
+
+
+class DbTransactionOutput(Base):
+    __tablename__ = 'transaction_outputs'
+    id = Column(Integer, Sequence('transaction_output_id_seq'), primary_key=True)
+    transaction_id = Column(Integer, ForeignKey('transactions.id'), index=True)
+    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
+    key = relationship("DbKey", back_populates="transactions_outputs")
+    script = Column(String)
+    value = Column(Integer)
+    index = Column(Integer)
+    spend = Column(Boolean())
 
 
 if __name__ == '__main__':
