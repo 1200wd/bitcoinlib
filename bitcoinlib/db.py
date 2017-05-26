@@ -96,7 +96,7 @@ class DbKey(Base):
 
     """
     __tablename__ = 'keys'
-    id = Column(Integer, Sequence('key_id_seq'), primary_key=True, index=True)
+    id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
     parent_id = Column(Integer, Sequence('parent_id_seq'))
     name = Column(String(50), index=True)
     account_id = Column(Integer, index=True)
@@ -112,7 +112,8 @@ class DbKey(Base):
     path = Column(String(100))
     wallet_id = Column(Integer, ForeignKey('wallets.id'))
     wallet = relationship("DbWallet", back_populates="keys")
-    transactions = relationship("DbTransactionItem", cascade="all,delete", back_populates="key")
+    transaction_inputs = relationship("DbTransactionInput", cascade="all,delete", back_populates="key")
+    transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key")
     balance = Column(Integer, default=0)
     used = Column(Boolean, default=False)
 
@@ -146,43 +147,62 @@ class DbTransaction(Base):
     
     """
     __tablename__ = 'transactions'
-    tx_hash = Column(String(64), primary_key=True)
+    id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
+    hash = Column(String(64), unique=True)
+    version = Column(Integer)
+    lock_time = Column(Integer)
     date = Column(DateTime)
+    coinbase = Column(Boolean, default=False)
     confirmations = Column(Integer)
-    value = Column(Integer)
-    description = Column(String(256))
-    # inputs = relationship("DbTransactionItem", cascade="all,delete", back_populates="prev_hash_tx")
-    # outputs = relationship("DbTransactionItem", cascade="all,delete", back_populates="tx_hash")
+    size = Column(Integer)
+    inputs = relationship("DbTransactionInput", cascade="all,delete")
+    outputs = relationship("DbTransactionOutput", cascade="all,delete")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
 
     def __repr__(self):
-        return "<DbTransaction(tx_hash='%s', confirmations='%s'>" % (self.tx_hash, self.confirmations)
+        return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.hash, self.confirmations)
 
 
-class DbTransactionItem(Base):
-    __tablename__ = 'transaction_items'
-    tx_hash = Column(String(64), ForeignKey('transactions.tx_hash'), primary_key=True)
-    tx = relationship("DbTransaction", foreign_keys=[tx_hash])
-    output_n = Column(Integer, primary_key=True)
-    prev_hash = Column(String(64), ForeignKey('transactions.tx_hash'))
-    prev_hash_tx = relationship("DbTransaction", foreign_keys=[prev_hash])
+class DbTransactionInput(Base):
+    __tablename__ = 'transaction_inputs'
+    transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
+    transaction = relationship("DbTransaction", back_populates='inputs')
+    index = Column(Integer, primary_key=True)
+    prev_hash = Column(String(64))
+    output_n = Column(Integer)
+    script = Column(String)
+    sequence = Column(Integer)
+    value = Column(Integer)
+    spend = Column(Boolean())
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
-    key = relationship("DbKey", back_populates="transactions")
-    output_script = Column(String)
-    input_script = Column(String)
+    key = relationship("DbKey", back_populates="transaction_inputs")
+
+
+class DbTransactionOutput(Base):
+    __tablename__ = 'transaction_outputs'
+    transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
+    transaction = relationship("DbTransaction", back_populates='outputs')
+    index = Column(Integer, primary_key=True)
+    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
+    key = relationship("DbKey", back_populates="transaction_outputs")
+    script = Column(String)
     value = Column(Integer)
     spend = Column(Boolean())
 
 
-# class DbTransactionOutput(Base):
-#     __tablename__ = 'transaction_outputs'
-#     id = Column(Integer, Sequence('transaction_output_id_seq'), primary_key=True)
-#     transaction_id = Column(Integer, ForeignKey('transactions.id'), index=True)
+# class DbTransactionItem(Base):
+#     __tablename__ = 'transaction_items'
+#     tx_hash = Column(String(64), ForeignKey('transactions.tx_hash'), primary_key=True)
+#     tx = relationship("DbTransaction", foreign_keys=[tx_hash])
+#     output_n = Column(Integer, primary_key=True)
+#     type = Column(String(8), primary_key=True)
+#     prev_hash = Column(String(64), ForeignKey('transactions.tx_hash'))
+#     prev_hash_tx = relationship("DbTransaction", foreign_keys=[prev_hash])
 #     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
-#     key = relationship("DbKey", back_populates="transactions_outputs")
-#     script = Column(String)
+#     key = relationship("DbKey", back_populates="transactions")
+#     output_script = Column(String)
+#     input_script = Column(String)
 #     value = Column(Integer)
-#     index = Column(Integer)
 #     spend = Column(Boolean())
 
 
