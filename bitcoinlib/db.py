@@ -151,7 +151,7 @@ class DbTransaction(Base):
     confirmations = Column(Integer)
     value = Column(Integer)
     description = Column(String(256))
-    # inputs = relationship("DbTransactionItem", cascade="all,delete", back_populates="prev_hash")
+    # inputs = relationship("DbTransactionItem", cascade="all,delete", back_populates="prev_hash_tx")
     # outputs = relationship("DbTransactionItem", cascade="all,delete", back_populates="tx_hash")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
 
@@ -161,11 +161,11 @@ class DbTransaction(Base):
 
 class DbTransactionItem(Base):
     __tablename__ = 'transaction_items'
-    tx_hash_id = Column(String(64), ForeignKey('transactions.tx_hash'), primary_key=True)
-    tx_hash = relationship("DbTransaction", foreign_keys=[tx_hash_id])
+    tx_hash = Column(String(64), ForeignKey('transactions.tx_hash'), primary_key=True)
+    tx = relationship("DbTransaction", foreign_keys=[tx_hash])
     output_n = Column(Integer, primary_key=True)
-    prev_hash_id = Column(String(64), ForeignKey('transactions.tx_hash'))
-    prev_hash = relationship("DbTransaction", foreign_keys=[prev_hash_id])
+    prev_hash = Column(String(64), ForeignKey('transactions.tx_hash'))
+    prev_hash_tx = relationship("DbTransaction", foreign_keys=[prev_hash])
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transactions")
     output_script = Column(String)
