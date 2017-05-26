@@ -146,34 +146,28 @@ class DbTransaction(Base):
     
     """
     __tablename__ = 'transactions'
-    id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)
-    # key_id = Column(Integer, ForeignKey('keys.id'), index=True)
-    # key = relationship("DbKey", back_populates="transactions")
-    tx_hash = Column(String(64), unique=True, index=True)
+    tx_hash = Column(String(64), primary_key=True)
     date = Column(DateTime)
     confirmations = Column(Integer)
-    # output_n = Column(Integer)
-    # index = Column(Integer)
     value = Column(Integer)
-    # script = Column(String)
     description = Column(String(256))
-    # spend = Column(Boolean())
+    # inputs = relationship("DbTransactionItem", cascade="all,delete", back_populates="prev_hash")
+    # outputs = relationship("DbTransactionItem", cascade="all,delete", back_populates="tx_hash")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
-    # inputs =
-    # outputs =
 
     def __repr__(self):
-        return "<DbTransaction(id='%s', tx_hash='%s', output_n='%s'>" % (self.id, self.tx_hash, self.output_n)
+        return "<DbTransaction(tx_hash='%s', confirmations='%s'>" % (self.tx_hash, self.confirmations)
 
 
 class DbTransactionItem(Base):
-    __tablename__ = 'transaction_item'
-    id = Column(Integer, Sequence('transaction_item_id_seq'), primary_key=True)
-    tx_hash = Column(String(64), ForeignKey('transactions.tx_hash'), index=True)
-    prev_hash = Column(String(64), ForeignKey('transactions.tx_hash'), index=True)
-    output_n = Column(Integer)
-    key_id = Column(Integer, ForeignKey('key.id'), index=True)
-    key = relationship("DbKey", back_populates="transaction_item")
+    __tablename__ = 'transaction_items'
+    tx_hash_id = Column(String(64), ForeignKey('transactions.tx_hash'), primary_key=True)
+    tx_hash = relationship("DbTransaction", foreign_keys=[tx_hash_id])
+    output_n = Column(Integer, primary_key=True)
+    prev_hash_id = Column(String(64), ForeignKey('transactions.tx_hash'))
+    prev_hash = relationship("DbTransaction", foreign_keys=[prev_hash_id])
+    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
+    key = relationship("DbKey", back_populates="transactions")
     output_script = Column(String)
     input_script = Column(String)
     value = Column(Integer)
