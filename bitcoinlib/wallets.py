@@ -1382,12 +1382,6 @@ if __name__ == '__main__':
     # WALLETS EXAMPLES
     #
 
-    wl = HDWallet('Bulk Paper Wallet')
-    wl.updateutxos()
-    wl.getutxos()
-    wl.info()
-    import sys
-    sys.exit()
     # First recreate database to avoid already exist errors
     import os
     from pprint import pprint

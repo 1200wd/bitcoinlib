@@ -20,6 +20,7 @@
 
 import csv
 import enum
+import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, Float, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
@@ -149,11 +150,11 @@ class DbTransaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
     hash = Column(String(64), unique=True)
-    version = Column(Integer)
-    lock_time = Column(Integer)
-    date = Column(DateTime)
+    version = Column(Integer, default=1)
+    lock_time = Column(Integer, default=0)
+    date = Column(DateTime, default=datetime.datetime.utcnow)
     coinbase = Column(Boolean, default=False)
-    confirmations = Column(Integer)
+    confirmations = Column(Integer, default=0)
     size = Column(Integer)
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
@@ -169,11 +170,11 @@ class DbTransactionInput(Base):
     transaction = relationship("DbTransaction", back_populates='inputs')
     index = Column(Integer, primary_key=True)
     prev_hash = Column(String(64))
-    output_n = Column(Integer)
+    output_n = Column(Integer, default=0)
     script = Column(String)
     sequence = Column(Integer)
-    value = Column(Integer)
-    spend = Column(Boolean())
+    value = Column(Integer, default=0)
+    spend = Column(Boolean(), default=False)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_inputs")
 
@@ -186,24 +187,8 @@ class DbTransactionOutput(Base):
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_outputs")
     script = Column(String)
-    value = Column(Integer)
-    spend = Column(Boolean())
-
-
-# class DbTransactionItem(Base):
-#     __tablename__ = 'transaction_items'
-#     tx_hash = Column(String(64), ForeignKey('transactions.tx_hash'), primary_key=True)
-#     tx = relationship("DbTransaction", foreign_keys=[tx_hash])
-#     output_n = Column(Integer, primary_key=True)
-#     type = Column(String(8), primary_key=True)
-#     prev_hash = Column(String(64), ForeignKey('transactions.tx_hash'))
-#     prev_hash_tx = relationship("DbTransaction", foreign_keys=[prev_hash])
-#     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
-#     key = relationship("DbKey", back_populates="transactions")
-#     output_script = Column(String)
-#     input_script = Column(String)
-#     value = Column(Integer)
-#     spend = Column(Boolean())
+    value = Column(Integer, default=0)
+    spend = Column(Boolean(), default=False)
 
 
 if __name__ == '__main__':
