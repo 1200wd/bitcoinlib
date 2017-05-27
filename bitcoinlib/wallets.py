@@ -1132,11 +1132,16 @@ class HDWallet:
         """
         if account_id is None:
             account_id = self.default_account_id
-        qr = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
-            filter(DbTransaction.spend.op("IS")(False),
+        qr = self._session.query(DbTransaction, DbKey.address).join(DbTransactionOutput.key). \
+            filter(DbTransactionOutput.spend.op("IS")(False),
                    DbKey.account_id == account_id,
                    DbKey.wallet_id == self.wallet_id,
                    DbTransaction.confirmations >= min_confirms)
+        # qr = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
+        #     filter(DbTransaction.spend.op("IS")(False),
+        #            DbKey.account_id == account_id,
+        #            DbKey.wallet_id == self.wallet_id,
+        #            DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
@@ -1252,11 +1257,16 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
 
-        utxo_query = self._session.query(DbTransaction).\
-            join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False),
-                                           DbTransaction.confirmations >= min_confirms,
-                                           DbKey.account_id == account_id,
-                                           DbKey.wallet_id == self.wallet_id)
+        utxo_query = self._session.query(DbTransaction, DbKey.address).join(DbTransactionOutput.key). \
+            filter(DbKey.wallet_id == self.wallet_id,
+                   DbKey.account_id == 0,
+                   DbTransactionOutput.spend.op("IS")(False),
+                   DbTransaction.confirmations >= min_confirms)
+        # utxo_query = self._session.query(DbTransaction).\
+        #     join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False),
+        #                                    DbTransaction.confirmations >= min_confirms,
+        #                                    DbKey.account_id == account_id,
+        #                                    DbKey.wallet_id == self.wallet_id)
         utxos = utxo_query.all()
 
         if not utxos:
