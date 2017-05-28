@@ -111,7 +111,8 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
         if not force and k.balance:
             raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
                               (k.id, k.address))
-        session.query(DbTransaction).filter_by(key_id=k.id).update({DbTransaction.key_id: None})
+        session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
+        session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
     ks.delete()
 
     res = w.delete()
