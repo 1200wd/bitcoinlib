@@ -1082,9 +1082,9 @@ class HDWallet:
         current_utxos = self.getutxos(account_id=account_id, key_id=key_id)
 
         # Update spend UTXO's (not found in list) and mark key as used
-        utxos_tx_hashes = [x['tx_hash'] for x in utxos]
+        utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
         for current_utxo in current_utxos:
-            if current_utxo['tx_hash'] not in utxos_tx_hashes:
+            if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
                 self._session.query(DbTransaction).filter(DbTransaction.tx_hash == current_utxo['tx_hash']).\
                     update({DbTransaction.spend: True})
                 self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
@@ -1096,19 +1096,22 @@ class HDWallet:
             key.used = True
 
             # Update confirmations in db if utxo was already imported
-            utxo_in_db = self._session.query(DbTransaction).filter_by(tx_hash=utxo['tx_hash'])
+            utxo_in_db = self._session.query(DbTransaction).filter_by(hash=utxo['tx_hash'])
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
                 utxo_record.confirmations = utxo['confirmations']
                 # Recover key_id after deletion
-                if not utxo_record.key_id:
-                    key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
-                    if key:
-                        utxo_record.key_id = key.id
+                # TODO Fix
+                # if not utxo_record.key_id:
+                #     key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
+                #     if key:
+                #         utxo_record.key_id = key.id
             else:
-                new_utxo = DbTransaction(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
-                                         output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
+                # Add transaction if not exist and then add output
+                new_utxo = DbTransaction(hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
+                                         index=utxo['index'], value=utxo['value'],
                                          script=utxo['script'], spend=False)
+                # key_id=key.id, output_n=utxo['output_n'],
                 self._session.add(new_utxo)
                 count_utxos += 1
 
