@@ -1092,33 +1092,43 @@ class HDWallet:
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
         for utxo in utxos:
-            key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
+            key = self._session.query(DbKey).filter_by(address=utxo['address'], used=False).scalar()
             key.used = True
 
             # Update confirmations in db if utxo was already imported
-            utxo_in_db = self._session.query(DbTransaction).filter_by(hash=utxo['tx_hash'])
+            transaction_in_db = self._session.query(DbTransaction).filter_by(hash=utxo['tx_hash'])
+            utxo_in_db = transaction_in_db.join(DbTransactionOutput).filter_by(index=utxo['output_n'])
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
                 utxo_record.confirmations = utxo['confirmations']
                 # Recover key_id after deletion
-                # TODO Fix
+                # TODO: Fix
                 # if not utxo_record.key_id:
                 #     key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
                 #     if key:
                 #         utxo_record.key_id = key.id
             else:
                 # Add transaction if not exist and then add output
-                new_utxo = DbTransaction(hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
-                                         index=utxo['index'], value=utxo['value'],
-                                         script=utxo['script'], spend=False)
-                # key_id=key.id, output_n=utxo['output_n'],
+                if not transaction_in_db.count():
+                    new_tx = DbTransaction(hash=utxo['tx_hash'], confirmations=utxo['confirmations'])
+                    self._session.add(new_tx)
+                    self._session.commit()
+                    tid = new_tx.id
+                else:
+                    tid = transaction_in_db.scalar().id
+
+                new_utxo = DbTransactionOutput(transaction_id=tid,
+                                               index=utxo['output_n'], value=utxo['value'],
+                                               key_id=key.id,
+                                               script=utxo['script'], spend=False)
                 self._session.add(new_utxo)
                 count_utxos += 1
+            # TODO: Removing this gives errors??
+            self._session.commit()
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
         self.updatebalance(account_id=account_id, key_id=key_id)
-        self.getutxos(account_id=account_id)
         return count_utxos
 
     def getutxos(self, account_id=None, min_confirms=0, key_id=None):
@@ -1135,7 +1145,8 @@ class HDWallet:
         """
         if account_id is None:
             account_id = self.default_account_id
-        qr = self._session.query(DbTransaction, DbKey.address).join(DbTransactionOutput.key). \
+        qr = self._session.query(DbTransaction, DbKey.address, DbTransactionOutput.value, DbTransactionOutput.key_id).\
+            join(DbTransactionOutput).join(DbKey). \
             filter(DbTransactionOutput.spend.op("IS")(False),
                    DbKey.account_id == account_id,
                    DbKey.wallet_id == self.wallet_id,
@@ -1154,7 +1165,8 @@ class HDWallet:
             if '_sa_instance_state' in u:
                 del u['_sa_instance_state']
             u['address'] = utxo[1]
-            u['value'] = int(u['value'])
+            u['value'] = int(utxo[2])
+            u['key_id'] = utxo[3]
             res.append(u)
         return res
 
@@ -1403,27 +1415,27 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
-    print("\n=== Most simple way to create Bitcoin Wallet ===")
-    w = HDWallet.create('MyWallet', databasefile=test_database)
-    w.new_key_change()
-    w.new_key()
-    w.info()
-
-    print("\n=== Create new Testnet Wallet and generate a some new keys ===")
-    with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
-        wallet.info(detail=3)
-        wallet.new_account()
-        new_key1 = wallet.new_key()
-        new_key2 = wallet.new_key()
-        new_key3 = wallet.new_key()
-        new_key4 = wallet.new_key(change=1)
-        new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
-        new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
-        new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
-        wallet.info(detail=3)
-        donations_account = wallet.new_account()
-        new_key8 = wallet.new_key(account_id=donations_account.account_id)
-        wallet.info(detail=3)
+    # print("\n=== Most simple way to create Bitcoin Wallet ===")
+    # w = HDWallet.create('MyWallet', databasefile=test_database)
+    # w.new_key_change()
+    # w.new_key()
+    # w.info()
+    #
+    # print("\n=== Create new Testnet Wallet and generate a some new keys ===")
+    # with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
+    #     wallet.info(detail=3)
+    #     wallet.new_account()
+    #     new_key1 = wallet.new_key()
+    #     new_key2 = wallet.new_key()
+    #     new_key3 = wallet.new_key()
+    #     new_key4 = wallet.new_key(change=1)
+    #     new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
+    #     new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+    #     new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+    #     wallet.info(detail=3)
+    #     donations_account = wallet.new_account()
+    #     new_key8 = wallet.new_key(account_id=donations_account.account_id)
+    #     wallet.info(detail=3)
 
     print("\n=== Create new Wallet with Testnet master key and account ID 99 ===")
     testnet_wallet = HDWallet.create(
@@ -1439,6 +1451,9 @@ if __name__ == '__main__':
     nkc2 = testnet_wallet.new_key_change(account_id=99, name="Change #2")
     testnet_wallet.updateutxos()
     testnet_wallet.info(detail=3)
+
+    import sys
+    sys.exit()
 
     # Three ways of getting the a HDWalletKey, with ID, address and name:
     print(testnet_wallet.key(1).address)
