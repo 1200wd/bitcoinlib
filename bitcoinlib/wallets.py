@@ -1268,8 +1268,9 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
 
-        utxo_query = self._session.query(DbTransaction, DbKey.address).\
-            join(DbTransactionOutput).join(DbKey). \
+        # , DbKey.address, DbTransaction.hash
+        utxo_query = self._session.query(DbTransactionOutput).\
+            join(DbTransaction).join(DbKey). \
             filter(DbKey.wallet_id == self.wallet_id,
                    DbKey.account_id == account_id,
                    DbTransactionOutput.spend.op("IS")(False),
@@ -1300,7 +1301,7 @@ class HDWallet:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
+                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id))
         else:
             for i in input_arr:
                 amount_total_input += i[3]

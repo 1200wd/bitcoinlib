@@ -183,7 +183,7 @@ class DbTransactionOutput(Base):
     __tablename__ = 'transaction_outputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='outputs')
-    index = Column(Integer, primary_key=True)
+    output_n = Column(Integer, primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_outputs")
     script = Column(String)
