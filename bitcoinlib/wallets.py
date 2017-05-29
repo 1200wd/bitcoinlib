@@ -1093,12 +1093,13 @@ class HDWallet:
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
         for utxo in utxos:
-            key = self._session.query(DbKey).filter_by(address=utxo['address'], used=False).scalar()
-            key.used = True
+            key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
+            if key and not key.used:
+                key.used = True
 
             # Update confirmations in db if utxo was already imported
             transaction_in_db = self._session.query(DbTransaction).filter_by(hash=utxo['tx_hash'])
-            utxo_in_db = transaction_in_db.join(DbTransactionOutput).filter_by(index=utxo['output_n'])
+            utxo_in_db = transaction_in_db.join(DbTransactionOutput).filter_by(output_n=utxo['output_n'])
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
                 utxo_record.confirmations = utxo['confirmations']
@@ -1119,7 +1120,7 @@ class HDWallet:
                     tid = transaction_in_db.scalar().id
 
                 new_utxo = DbTransactionOutput(transaction_id=tid,
-                                               index=utxo['output_n'], value=utxo['value'],
+                                               output_n=utxo['output_n'], value=utxo['value'],
                                                key_id=key.id,
                                                script=utxo['script'], spend=False)
                 self._session.add(new_utxo)
@@ -1343,8 +1344,9 @@ class HDWallet:
 
         # Update db: Update spend UTXO's, add transaction to database
         for inp in input_arr:
-            self._session.query(DbTransaction).filter(DbTransaction.tx_hash == inp[0]).\
-                update({DbTransaction.spend: True})
+            self._session.query(DbTransactionOutput).join(DbTransaction).\
+                filter(DbTransaction.hash == inp[0], DbTransactionOutput.output_n == inp[1]).\
+                update({DbTransactionOutput.spend: True})
 
         self._session.commit()
         if 'txid' in res:
