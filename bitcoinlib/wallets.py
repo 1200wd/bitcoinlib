@@ -1146,17 +1146,12 @@ class HDWallet:
         """
         if account_id is None:
             account_id = self.default_account_id
-        qr = self._session.query(DbTransaction, DbKey.address, DbTransactionOutput.value, DbTransactionOutput.key_id).\
-            join(DbTransactionOutput).join(DbKey). \
+        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash).\
+            join(DbTransaction).join(DbKey). \
             filter(DbTransactionOutput.spend.op("IS")(False),
                    DbKey.account_id == account_id,
                    DbKey.wallet_id == self.wallet_id,
                    DbTransaction.confirmations >= min_confirms)
-        # qr = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
-        #     filter(DbTransaction.spend.op("IS")(False),
-        #            DbKey.account_id == account_id,
-        #            DbKey.wallet_id == self.wallet_id,
-        #            DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
@@ -1166,8 +1161,8 @@ class HDWallet:
             if '_sa_instance_state' in u:
                 del u['_sa_instance_state']
             u['address'] = utxo[1]
-            u['value'] = int(utxo[2])
-            u['key_id'] = utxo[3]
+            u['confirmations'] = int(utxo[2])
+            u['tx_hash'] = utxo[3]
             res.append(u)
         return res
 
@@ -1223,15 +1218,15 @@ class HDWallet:
 
         # Try to find one utxo with exact amount or higher
         one_utxo = utxo_query.\
-            filter(DbTransaction.spend.op("IS")(False), DbTransaction.value >= amount).\
-            order_by(DbTransaction.value).first()
+            filter(DbTransactionOutput.spend.op("IS")(False), DbTransactionOutput.value >= amount).\
+            order_by(DbTransactionOutput.value).first()
         if one_utxo:
             return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
         lessers = utxo_query.\
-            filter(DbTransaction.spend.op("IS")(False), DbTransaction.value < amount).\
-            order_by(DbTransaction.value.desc()).all()
+            filter(DbTransactionOutput.spend.op("IS")(False), DbTransactionOutput.value < amount).\
+            order_by(DbTransactionOutput.value.desc()).all()
         total_amount = 0
         selected_utxos = []
         for utxo in lessers:
@@ -1276,7 +1271,7 @@ class HDWallet:
         utxo_query = self._session.query(DbTransaction, DbKey.address).\
             join(DbTransactionOutput).join(DbKey). \
             filter(DbKey.wallet_id == self.wallet_id,
-                   DbKey.account_id == 0,
+                   DbKey.account_id == account_id,
                    DbTransactionOutput.spend.op("IS")(False),
                    DbTransaction.confirmations >= min_confirms)
         # utxo_query = self._session.query(DbTransaction).\
@@ -1533,7 +1528,7 @@ if __name__ == '__main__':
     wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
     wallet_import.info(detail=3)
     wallet_import.updateutxos(99)
-    wallet_import.getutxos(99, 4)
+    # wallet_import.getutxos(99, 4)
     print("\n= UTXOs =")
     for utxo in wallet_import.getutxos(99):
         print("%s %s (%d confirms)" % (
