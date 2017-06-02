@@ -1182,7 +1182,7 @@ class HDWallet:
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
         :type min_confirms: int
         
-        :return str: Transaction id (txid) if transaction is pushed succesfully 
+        :return str, list: Transaction ID or result array 
         """
 
         if account_id is None:
@@ -1255,8 +1255,9 @@ class HDWallet:
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
         :type min_confirms: int
         
-        :return bytes: Raw transaction  
+        :return str, list: Transaction ID or result array
         """
+        # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
         t = Transaction(network=self.network.network_name)
         if not isinstance(output_arr, list):
@@ -1355,6 +1356,19 @@ class HDWallet:
             return res
 
     def sweep(self, to_address, account_id=None, max_utxos=999):
+        """
+        Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
+        Wrapper for the send method.
+        
+        :param to_address: Single output address
+        :type to_address: str
+        :param account_id: Wallet's account ID
+        :type account_id: int
+        :param max_utxos: Limit maximum number of outputs to use. Default is 999
+        :type max_utxos: int
+        
+        :return str, list: Transaction ID or result array
+        """
         if account_id is None:
             account_id = self.default_account_id
         utxos = self.getutxos(account_id=account_id, min_confirms=1)
