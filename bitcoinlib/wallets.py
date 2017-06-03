@@ -1291,7 +1291,7 @@ class HDWallet:
 
         srv = Service(network=self.network.network_name)
         fee = transaction_fee
-        fee_per_kb = None
+        # fee_per_kb = None
         if transaction_fee is None:
             fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
 
@@ -1322,9 +1322,13 @@ class HDWallet:
 
         # Add change output
         if transaction_fee is None and len(input_arr) > 1:
-            tr_size = 100 + len(output_arr) * 50 + len(input_arr) * 80
-            fee = int((0.06 + (tr_size / 1024)) * fee_per_kb)
+            # tr_size = 100 + len(output_arr) * 50 + len(input_arr) * 80
+            # fee = int((0.06 + (tr_size / 1024)) * fee_per_kb)
+            fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr), no_inputs=len(input_arr))
             amount_change = int(amount_total_input - (amount_total_output + fee))
+
+            if amount_change < 0:
+                self.send(output_arr, input_arr, account_id=account_id, transaction_fee=fee, min_confirms=min_confirms)
 
         if amount_change:
             ck = self.get_key(account_id=account_id, change=1)
