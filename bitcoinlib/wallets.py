@@ -1155,7 +1155,7 @@ class HDWallet:
                    DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
-        print("qr:", qr)
+        print("qr:", qr, min_confirms, account_id, key_id, self._session)
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
@@ -1346,8 +1346,10 @@ class HDWallet:
 
         # Update db: Update spend UTXO's, add transaction to database
         for inp in input_arr:
-            qr = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.hash == inp[0], DbTransactionOutput.output_n == inp[1])
+            utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
+                filter(DbTransaction.hash == inp[0], DbTransactionOutput.output_n == inp[1]).all()
+            for u in utxos:
+                u.spend = True
             # update({DbTransactionOutput.spend: True}
 
         self._session.commit()
