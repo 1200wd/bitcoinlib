@@ -1285,6 +1285,7 @@ class HDWallet:
 
         srv = Service(network=self.network.network_name)
         fee = transaction_fee
+        fee_per_kb = None
         if transaction_fee is None:
             fee_per_kb = srv.estimatefee()
             tr_size = 100 + (1 * 150) + (len(output_arr) * 50)
@@ -1294,7 +1295,6 @@ class HDWallet:
         amount_total_input = 0
         if input_arr is None:
             input_arr = []
-
             selected_utxos = self._select_inputs(amount_total_output + fee, utxo_query)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
@@ -1305,6 +1305,7 @@ class HDWallet:
             for i in input_arr:
                 amount_total_input += i[3]
         amount_change = int(amount_total_input - (amount_total_output + fee))
+        ck = None
         if amount_change:
             ck = self.get_key(account_id=account_id, change=1)
             t.add_output(amount_change, ck.address)
@@ -1331,8 +1332,18 @@ class HDWallet:
             t.sign(ti[0], ti[1])
 
         # Calculate exact estimeted fees and update change output
-        # TODO: Check if amount_change is smaller then transaction fee for 1 output
-        print(len(t.raw_hex()))
+        if transaction_fee is None and fee_per_kb and amount_change and ck is not None:
+            tr_size = len(t.raw())
+            fee_exact = int((tr_size / 1024) * fee_per_kb)
+            if fee != fee_exact:
+                amount_change_new = int(amount_total_input - (amount_total_output + fee))
+                if amount_change_new < 0:
+                    raise WalletError("Fix this!")
+                # TODO: Check if amount_change is smaller then transaction fee for 1 output
+                # TODO: Move Transaction fee stuff to transaction class?
+                for op in t.outputs:
+                    if op.address == ck.address and op.amount == amount_change:
+                        op.amount = amount_change_new
 
         # Verify transaction
         if not t.verify():

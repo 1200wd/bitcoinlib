@@ -483,8 +483,6 @@ class Transaction:
         :type locktime: int
         :param version: Version rules. Defaults to 1 in bytes 
         :type version: bytes
-        :param rawtx: Import a raw transaction. Used by import_raw
-        :type rawtx: bytes
         :param network: Network, leave empty for default network
         :type network: str
         """
@@ -666,7 +664,8 @@ class Transaction:
         :type lock_script: bytes, str
         
         """
-        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script, self.network.network_name))
+        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
+                                   self.network.network_name))
 
 
 if __name__ == '__main__':
