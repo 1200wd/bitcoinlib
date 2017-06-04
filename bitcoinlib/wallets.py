@@ -1271,18 +1271,12 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
 
-        # , DbKey.address, DbTransaction.hash
         utxo_query = self._session.query(DbTransactionOutput).\
             join(DbTransaction).join(DbKey). \
             filter(DbKey.wallet_id == self.wallet_id,
                    DbKey.account_id == account_id,
                    DbTransactionOutput.spend.op("IS")(False),
                    DbTransaction.confirmations >= min_confirms)
-        # utxo_query = self._session.query(DbTransaction).\
-        #     join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False),
-        #                                    DbTransaction.confirmations >= min_confirms,
-        #                                    DbKey.account_id == account_id,
-        #                                    DbKey.wallet_id == self.wallet_id)
         utxos = utxo_query.all()
 
         if not utxos:
@@ -1291,9 +1285,11 @@ class HDWallet:
 
         srv = Service(network=self.network.network_name)
         fee = transaction_fee
-        # fee_per_kb = None
         if transaction_fee is None:
-            fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
+            fee_per_kb = srv.estimatefee()
+            tr_size = 100 + (1 * 150) + (len(output_arr) * 50)
+            fee = int((tr_size / 1024) * fee_per_kb)
+            # fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
 
         amount_total_input = 0
         if input_arr is None:
@@ -1309,6 +1305,9 @@ class HDWallet:
             for i in input_arr:
                 amount_total_input += i[3]
         amount_change = int(amount_total_input - (amount_total_output + fee))
+        if amount_change:
+            ck = self.get_key(account_id=account_id, change=1)
+            t.add_output(amount_change, ck.address)
 
         # Add inputs
         sign_arr = []
@@ -1321,22 +1320,19 @@ class HDWallet:
             sign_arr.append((k.private_byte, id))
 
         # Add change output
-        if transaction_fee is None and len(input_arr) > 1:
-            # tr_size = 100 + len(output_arr) * 50 + len(input_arr) * 80
-            # fee = int((0.06 + (tr_size / 1024)) * fee_per_kb)
-            fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr), no_inputs=len(input_arr))
-            amount_change = int(amount_total_input - (amount_total_output + fee))
-
-            if amount_change < 0:
-                self.send(output_arr, input_arr, account_id=account_id, transaction_fee=fee, min_confirms=min_confirms)
-
-        if amount_change:
-            ck = self.get_key(account_id=account_id, change=1)
-            t.add_output(amount_change, ck.address)
+        # if transaction_fee is None and len(input_arr) > 1:
+        #     fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr), no_inputs=len(input_arr))
+        #     amount_change = int(amount_total_input - (amount_total_output + fee))
+        #     if amount_change < 0:
+        #         self.send(output_arr, input_arr, account_id=account_id, transaction_fee=fee, min_confirms=min_confirms)
 
         # Sign inputs
         for ti in sign_arr:
             t.sign(ti[0], ti[1])
+
+        # Calculate exact estimeted fees and update change output
+        # TODO: Check if amount_change is smaller then transaction fee for 1 output
+        print(len(t.raw_hex()))
 
         # Verify transaction
         if not t.verify():
@@ -1552,9 +1548,9 @@ if __name__ == '__main__':
     wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
     wallet_import.info(detail=3)
     wallet_import.updateutxos(99)
-    # wallet_import.getutxos(99, 4)
     print("\n= UTXOs =")
-    for utxo in wallet_import.getutxos(99):
+    utxos = wallet_import.getutxos(99)
+    for utxo in utxos:
         print("%s %s (%d confirms)" % (
         utxo['address'], wallet_import.network.print_value(utxo['value']), utxo['confirmations']))
     res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 100000, 99)

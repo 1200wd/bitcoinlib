@@ -666,8 +666,7 @@ class Transaction:
         :type lock_script: bytes, str
         
         """
-        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
-                                   self.network.network_name))
+        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script, self.network.network_name))
 
 
 if __name__ == '__main__':
