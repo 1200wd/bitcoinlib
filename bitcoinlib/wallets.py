@@ -1302,13 +1302,13 @@ class HDWallet:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id))
+                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
         else:
             for i in input_arr:
                 amount_total_input += i[3]
         amount_change = int(amount_total_input - (amount_total_output + fee))
         # If change amount is smaller then estimated fee it will cost to send it then skip change
-        if amount_change < fee_per_output:
+        if fee_per_output and amount_change < fee_per_output:
             amount_change = 0
         ck = None
         if amount_change:
