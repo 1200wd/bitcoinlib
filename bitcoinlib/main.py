@@ -74,3 +74,5 @@ logger.setLevel(logging.DEBUG)
 
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
+
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
