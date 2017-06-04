@@ -1331,19 +1331,15 @@ class HDWallet:
         for ti in sign_arr:
             t.sign(ti[0], ti[1])
 
-        # Calculate exact estimeted fees and update change output
+        # Calculate exact estimated fees and update change output if necessary
         if transaction_fee is None and fee_per_kb and amount_change and ck is not None:
             tr_size = len(t.raw())
-            fee_exact = int((tr_size / 1024) * fee_per_kb)
-            if fee != fee_exact:
-                amount_change_new = int(amount_total_input - (amount_total_output + fee))
-                if amount_change_new < 0:
-                    raise WalletError("Fix this!")
-                # TODO: Check if amount_change is smaller then transaction fee for 1 output
-                # TODO: Move Transaction fee stuff to transaction class?
-                for op in t.outputs:
-                    if op.address == ck.address and op.amount == amount_change:
-                        op.amount = amount_change_new
+            fee_exact = int((tr_size / 1024) * fee_per_kb) * 2
+            if abs((fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
+                _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
+                             "Recreate transaction with correct fee" % (fee, fee_exact))
+                return self.send(output_arr, input_arr, account_id=account_id,
+                                 transaction_fee=fee_exact, min_confirms=min_confirms)
 
         # Verify transaction
         if not t.verify():
