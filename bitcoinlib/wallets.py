@@ -1155,7 +1155,7 @@ class HDWallet:
                    DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
-        print("qr:", qr, min_confirms, account_id, key_id, self._session)
+        # print("qr:", qr, min_confirms, account_id, key_id, self._session)
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
@@ -1325,13 +1325,6 @@ class HDWallet:
             id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
             sign_arr.append((k.private_byte, id))
 
-        # Add change output
-        # if transaction_fee is None and len(input_arr) > 1:
-        #     fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr), no_inputs=len(input_arr))
-        #     amount_change = int(amount_total_input - (amount_total_output + fee))
-        #     if amount_change < 0:
-        #         self.send(output_arr, input_arr, account_id=account_id, transaction_fee=fee, min_confirms=min_confirms)
-
         # Sign inputs
         for ti in sign_arr:
             t.sign(ti[0], ti[1])
@@ -1362,7 +1355,6 @@ class HDWallet:
                 filter(DbTransaction.hash == inp[0], DbTransactionOutput.output_n == inp[1]).all()
             for u in utxos:
                 u.spend = True
-            # update({DbTransactionOutput.spend: True}
 
         self._session.commit()
         if 'txid' in res:
