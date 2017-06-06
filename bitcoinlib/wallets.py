@@ -1362,7 +1362,7 @@ class HDWallet:
         else:
             return res
 
-    def sweep(self, to_address, account_id=None, max_utxos=999):
+    def sweep(self, to_address, account_id=None, max_utxos=999, min_confirms=1):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -1373,12 +1373,13 @@ class HDWallet:
         :type account_id: int
         :param max_utxos: Limit maximum number of outputs to use. Default is 999
         :type max_utxos: int
-        
+        :param min_confirms: Minimal confirmations needed to include utxo
+        :type min_confirms: int
         :return str, list: Transaction ID or result array
         """
         if account_id is None:
             account_id = self.default_account_id
-        utxos = self.getutxos(account_id=account_id, min_confirms=1)
+        utxos = self.getutxos(account_id=account_id, min_confirms=min_confirms)
         utxos = utxos[0:max_utxos]
         input_arr = []
         total_amount = 0
@@ -1389,7 +1390,8 @@ class HDWallet:
             total_amount += utxo['value']
         srv = Service(network=self.network.network_name)
         estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
-        return self.send([(to_address, total_amount-estimated_fee)], input_arr, transaction_fee=estimated_fee)
+        return self.send([(to_address, total_amount-estimated_fee)], input_arr,
+                         transaction_fee=estimated_fee, min_confirms=min_confirms)
 
     def info(self, detail=3):
         """
