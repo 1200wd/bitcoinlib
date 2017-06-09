@@ -483,8 +483,6 @@ class Transaction:
         :type locktime: int
         :param version: Version rules. Defaults to 1 in bytes 
         :type version: bytes
-        :param rawtx: Import a raw transaction. Used by import_raw
-        :type rawtx: bytes
         :param network: Network, leave empty for default network
         :type network: str
         """

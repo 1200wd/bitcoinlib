@@ -111,7 +111,8 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
         if not force and k.balance:
             raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
                               (k.id, k.address))
-        session.query(DbTransaction).filter_by(key_id=k.id).update({DbTransaction.key_id: None})
+        session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
+        session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
     ks.delete()
 
     res = w.delete()
@@ -374,7 +375,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44,
-               databasefile=DEFAULT_DATABASE):
+               databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
@@ -397,6 +398,8 @@ class HDWallet:
         
         :return HDWallet: 
         """
+        if databasefile is None:
+            databasefile = DEFAULT_DATABASE
         session = DbInit(databasefile=databasefile).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
@@ -419,7 +422,7 @@ class HDWallet:
         session.commit()
         session.close()
 
-        w = HDWallet(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
+        w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
         if mk.depth == 0:
             nw = Network(network)
             networkcode = nw.bip44_cointype
@@ -1082,9 +1085,9 @@ class HDWallet:
         current_utxos = self.getutxos(account_id=account_id, key_id=key_id)
 
         # Update spend UTXO's (not found in list) and mark key as used
-        utxos_tx_hashes = [x['tx_hash'] for x in utxos]
+        utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
         for current_utxo in current_utxos:
-            if current_utxo['tx_hash'] not in utxos_tx_hashes:
+            if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
                 self._session.query(DbTransaction).filter(DbTransaction.tx_hash == current_utxo['tx_hash']).\
                     update({DbTransaction.spend: True})
                 self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
@@ -1093,29 +1096,43 @@ class HDWallet:
         # If UTXO is new, add to database otherwise update depth (confirmation count)
         for utxo in utxos:
             key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
-            key.used = True
+            if key and not key.used:
+                key.used = True
 
             # Update confirmations in db if utxo was already imported
-            utxo_in_db = self._session.query(DbTransaction).filter_by(tx_hash=utxo['tx_hash'])
+            transaction_in_db = self._session.query(DbTransaction).filter_by(hash=utxo['tx_hash'])
+            utxo_in_db = transaction_in_db.join(DbTransactionOutput).filter_by(output_n=utxo['output_n'])
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
                 utxo_record.confirmations = utxo['confirmations']
                 # Recover key_id after deletion
-                if not utxo_record.key_id:
-                    key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
-                    if key:
-                        utxo_record.key_id = key.id
+                # TODO: Fix
+                # if not utxo_record.key_id:
+                #     key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
+                #     if key:
+                #         utxo_record.key_id = key.id
             else:
-                new_utxo = DbTransaction(key_id=key.id, tx_hash=utxo['tx_hash'], confirmations=utxo['confirmations'],
-                                         output_n=utxo['output_n'], index=utxo['index'], value=utxo['value'],
-                                         script=utxo['script'], spend=False)
+                # Add transaction if not exist and then add output
+                if not transaction_in_db.count():
+                    new_tx = DbTransaction(hash=utxo['tx_hash'], confirmations=utxo['confirmations'])
+                    self._session.add(new_tx)
+                    self._session.commit()
+                    tid = new_tx.id
+                else:
+                    tid = transaction_in_db.scalar().id
+
+                new_utxo = DbTransactionOutput(transaction_id=tid,
+                                               output_n=utxo['output_n'], value=utxo['value'],
+                                               key_id=key.id,
+                                               script=utxo['script'], spend=False)
                 self._session.add(new_utxo)
                 count_utxos += 1
+            # TODO: Removing this gives errors??
+            self._session.commit()
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
         self.updatebalance(account_id=account_id, key_id=key_id)
-        self.getutxos(account_id=account_id)
         return count_utxos
 
     def getutxos(self, account_id=None, min_confirms=0, key_id=None):
@@ -1132,13 +1149,15 @@ class HDWallet:
         """
         if account_id is None:
             account_id = self.default_account_id
-        qr = self._session.query(DbTransaction, DbKey.address).join(DbTransaction.key).\
-            filter(DbTransaction.spend.op("IS")(False),
+        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash).\
+            join(DbTransaction).join(DbKey). \
+            filter(DbTransactionOutput.spend.op("IS")(False),
                    DbKey.account_id == account_id,
                    DbKey.wallet_id == self.wallet_id,
                    DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
+        # print("qr:", qr, min_confirms, account_id, key_id, self._session)
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
@@ -1146,7 +1165,8 @@ class HDWallet:
             if '_sa_instance_state' in u:
                 del u['_sa_instance_state']
             u['address'] = utxo[1]
-            u['value'] = int(u['value'])
+            u['confirmations'] = int(utxo[2])
+            u['tx_hash'] = utxo[3]
             res.append(u)
         return res
 
@@ -1165,7 +1185,7 @@ class HDWallet:
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
         :type min_confirms: int
         
-        :return str: Transaction id (txid) if transaction is pushed succesfully 
+        :return str, list: Transaction ID or result array 
         """
 
         if account_id is None:
@@ -1202,15 +1222,15 @@ class HDWallet:
 
         # Try to find one utxo with exact amount or higher
         one_utxo = utxo_query.\
-            filter(DbTransaction.spend.op("IS")(False), DbTransaction.value >= amount).\
-            order_by(DbTransaction.value).first()
+            filter(DbTransactionOutput.spend.op("IS")(False), DbTransactionOutput.value >= amount).\
+            order_by(DbTransactionOutput.value).first()
         if one_utxo:
             return [one_utxo]
 
         # Otherwise compose of 2 or more lesser outputs
         lessers = utxo_query.\
-            filter(DbTransaction.spend.op("IS")(False), DbTransaction.value < amount).\
-            order_by(DbTransaction.value.desc()).all()
+            filter(DbTransactionOutput.spend.op("IS")(False), DbTransactionOutput.value < amount).\
+            order_by(DbTransactionOutput.value.desc()).all()
         total_amount = 0
         selected_utxos = []
         for utxo in lessers:
@@ -1238,8 +1258,9 @@ class HDWallet:
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
         :type min_confirms: int
         
-        :return bytes: Raw transaction  
+        :return str, list: Transaction ID or result array
         """
+        # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
         t = Transaction(network=self.network.network_name)
         if not isinstance(output_arr, list):
@@ -1252,11 +1273,12 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
 
-        utxo_query = self._session.query(DbTransaction).\
-            join(DbTransaction.key).filter(DbTransaction.spend.op("IS")(False),
-                                           DbTransaction.confirmations >= min_confirms,
-                                           DbKey.account_id == account_id,
-                                           DbKey.wallet_id == self.wallet_id)
+        utxo_query = self._session.query(DbTransactionOutput).\
+            join(DbTransaction).join(DbKey). \
+            filter(DbKey.wallet_id == self.wallet_id,
+                   DbKey.account_id == account_id,
+                   DbTransactionOutput.spend.op("IS")(False),
+                   DbTransaction.confirmations >= min_confirms)
         utxos = utxo_query.all()
 
         if not utxos:
@@ -1266,23 +1288,34 @@ class HDWallet:
         srv = Service(network=self.network.network_name)
         fee = transaction_fee
         fee_per_kb = None
+        fee_per_output = None
         if transaction_fee is None:
-            fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
+            fee_per_kb = srv.estimatefee()
+            tr_size = 100 + (1 * 150) + (len(output_arr) * 50)
+            fee = int((tr_size / 1024) * fee_per_kb)
+            fee_per_output = int((50 / 1024) * fee_per_kb)
+            # fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
 
         amount_total_input = 0
         if input_arr is None:
             input_arr = []
-
             selected_utxos = self._select_inputs(amount_total_output + fee, utxo_query)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                input_arr.append((utxo.tx_hash, utxo.output_n, utxo.key_id))
+                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
         else:
             for i in input_arr:
                 amount_total_input += i[3]
         amount_change = int(amount_total_input - (amount_total_output + fee))
+        # If change amount is smaller then estimated fee it will cost to send it then skip change
+        if fee_per_output and amount_change < fee_per_output:
+            amount_change = 0
+        ck = None
+        if amount_change:
+            ck = self.get_key(account_id=account_id, change=1)
+            t.add_output(amount_change, ck.address)
 
         # Add inputs
         sign_arr = []
@@ -1294,19 +1327,19 @@ class HDWallet:
             id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
             sign_arr.append((k.private_byte, id))
 
-        # Add change output
-        if transaction_fee is None and len(input_arr) > 1:
-            tr_size = 100 + len(output_arr) * 50 + len(input_arr) * 80
-            fee = int((0.06 + (tr_size / 1024)) * fee_per_kb)
-            amount_change = int(amount_total_input - (amount_total_output + fee))
-
-        if amount_change:
-            ck = self.get_key(account_id=account_id, change=1)
-            t.add_output(amount_change, ck.address)
-
         # Sign inputs
         for ti in sign_arr:
             t.sign(ti[0], ti[1])
+
+        # Calculate exact estimated fees and update change output if necessary
+        if transaction_fee is None and fee_per_kb and amount_change and ck is not None:
+            tr_size = len(t.raw())
+            fee_exact = int((tr_size / 1024) * fee_per_kb) * 2
+            if abs((fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
+                _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
+                             "Recreate transaction with correct fee" % (fee, fee_exact))
+                return self.send(output_arr, input_arr, account_id=account_id,
+                                 transaction_fee=fee_exact, min_confirms=min_confirms)
 
         # Verify transaction
         if not t.verify():
@@ -1320,8 +1353,10 @@ class HDWallet:
 
         # Update db: Update spend UTXO's, add transaction to database
         for inp in input_arr:
-            self._session.query(DbTransaction).filter(DbTransaction.tx_hash == inp[0]).\
-                update({DbTransaction.spend: True})
+            utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
+                filter(DbTransaction.hash == inp[0], DbTransactionOutput.output_n == inp[1]).all()
+            for u in utxos:
+                u.spend = True
 
         self._session.commit()
         if 'txid' in res:
@@ -1329,10 +1364,24 @@ class HDWallet:
         else:
             return res
 
-    def sweep(self, to_address, account_id=None, max_utxos=999):
+    def sweep(self, to_address, account_id=None, max_utxos=999, min_confirms=1):
+        """
+        Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
+        Wrapper for the send method.
+        
+        :param to_address: Single output address
+        :type to_address: str
+        :param account_id: Wallet's account ID
+        :type account_id: int
+        :param max_utxos: Limit maximum number of outputs to use. Default is 999
+        :type max_utxos: int
+        :param min_confirms: Minimal confirmations needed to include utxo
+        :type min_confirms: int
+        :return str, list: Transaction ID or result array
+        """
         if account_id is None:
             account_id = self.default_account_id
-        utxos = self.getutxos(account_id=account_id, min_confirms=1)
+        utxos = self.getutxos(account_id=account_id, min_confirms=min_confirms)
         utxos = utxos[0:max_utxos]
         input_arr = []
         total_amount = 0
@@ -1343,7 +1392,8 @@ class HDWallet:
             total_amount += utxo['value']
         srv = Service(network=self.network.network_name)
         estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
-        return self.send([(to_address, total_amount-estimated_fee)], input_arr, transaction_fee=estimated_fee)
+        return self.send([(to_address, total_amount-estimated_fee)], input_arr,
+                         transaction_fee=estimated_fee, min_confirms=min_confirms)
 
     def info(self, detail=3):
         """
@@ -1382,12 +1432,6 @@ if __name__ == '__main__':
     # WALLETS EXAMPLES
     #
 
-    wl = HDWallet('Bulk Paper Wallet')
-    wl.updateutxos()
-    wl.getutxos()
-    wl.info()
-    import sys
-    sys.exit()
     # First recreate database to avoid already exist errors
     import os
     from pprint import pprint
@@ -1396,28 +1440,28 @@ if __name__ == '__main__':
     if os.path.isfile(test_database):
         os.remove(test_database)
 
-    print("\n=== Most simple way to create Bitcoin Wallet ===")
-    w = HDWallet.create('MyWallet', databasefile=test_database)
-    w.new_key_change()
-    w.new_key()
-    w.info()
-
-    print("\n=== Create new Testnet Wallet and generate a some new keys ===")
-    with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
-        wallet.info(detail=3)
-        wallet.new_account()
-        new_key1 = wallet.new_key()
-        new_key2 = wallet.new_key()
-        new_key3 = wallet.new_key()
-        new_key4 = wallet.new_key(change=1)
-        new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
-        new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
-        new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
-        wallet.info(detail=3)
-        donations_account = wallet.new_account()
-        new_key8 = wallet.new_key(account_id=donations_account.account_id)
-        wallet.info(detail=3)
-
+    # print("\n=== Most simple way to create Bitcoin Wallet ===")
+    # w = HDWallet.create('MyWallet', databasefile=test_database)
+    # w.new_key_change()
+    # w.new_key()
+    # w.info()
+    #
+    # print("\n=== Create new Testnet Wallet and generate a some new keys ===")
+    # with HDWallet.create(name='Personal', network='testnet', databasefile=test_database) as wallet:
+    #     wallet.info(detail=3)
+    #     wallet.new_account()
+    #     new_key1 = wallet.new_key()
+    #     new_key2 = wallet.new_key()
+    #     new_key3 = wallet.new_key()
+    #     new_key4 = wallet.new_key(change=1)
+    #     new_key5 = wallet.key_for_path("m/44'/1'/100'/1200/1200")
+    #     new_key6a = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+    #     new_key6b = wallet.key_for_path("m/44'/1'/100'/1200/1201")
+    #     wallet.info(detail=3)
+    #     donations_account = wallet.new_account()
+    #     new_key8 = wallet.new_key(account_id=donations_account.account_id)
+    #     wallet.info(detail=3)
+    #
     print("\n=== Create new Wallet with Testnet master key and account ID 99 ===")
     testnet_wallet = HDWallet.create(
         name='TestNetWallet',
@@ -1430,94 +1474,94 @@ if __name__ == '__main__':
     nk2 = testnet_wallet.new_key(account_id=99, name="Address #2")
     nkc = testnet_wallet.new_key_change(account_id=99, name="Change #1")
     nkc2 = testnet_wallet.new_key_change(account_id=99, name="Change #2")
-    testnet_wallet.updateutxos()
-    testnet_wallet.info(detail=3)
-
-    # Three ways of getting the a HDWalletKey, with ID, address and name:
-    print(testnet_wallet.key(1).address)
-    print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
-    print(testnet_wallet.key('TestNetWallet').address)
-
-    print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
-    accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
-                 '8Y7KbKUnaMzxnnnsSvh'
-    wallet_import2 = HDWallet.create(
-        databasefile=test_database,
-        name='Account Import',
-        key=accountkey,
-        network='testnet',
-        account_id=99)
-    wallet_import2.info(detail=3)
-    del wallet_import2
-
-    print("\n=== Create simple wallet and import some unrelated private keys ===")
-    simple_wallet = HDWallet.create(
-        name='Simple Wallet',
-        key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
-        databasefile=test_database)
-    simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
-    simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
-    simple_wallet.updateutxos()
-    simple_wallet.info(detail=3)
-    del simple_wallet
-
-    print("\n=== Create wallet with public key to generate addresses without private key ===")
-    pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
-             'wt9SrsVeBeqfBbR3'
-    pubwal = HDWallet.create(
-        databasefile=test_database,
-        name='Import Public Key Wallet',
-        key=pubkey,
-        network='testnet',
-        account_id=0)
-    newkey = pubwal.new_key()
-    pubwal.info(detail=3)
-    del pubwal
-
-    print("\n=== Create Litecoin wallet ===")
-    litecoin_wallet = HDWallet.create(
-        databasefile=test_database,
-        name='Litecoin Wallet',
-        network='litecoin')
-    newkey = litecoin_wallet.new_key()
-    litecoin_wallet.info(detail=3)
-    del litecoin_wallet
-
-    print("\n=== Create Litecoin testnet Wallet from Mnemonic Passphrase ===")
-    # words = Mnemonic('english').generate()
-    words = 'blind frequent camera goddess pottery repair skull year mistake wrist lonely mix'
-    print("Generated Passphrase: %s" % words)
-    seed = Mnemonic().to_seed(words)
-    hdkey = HDKey().from_seed(seed, network='litecoin_testnet')
-    wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
-                             key=hdkey.wif(), databasefile=test_database)
-    wallet.new_key("Input", 0)
-    # wallet.updateutxos()  # TODO: fix for litecoin testnet
-    wallet.info(detail=3)
-
-    print("\n=== Test import Litecoin key in Bitcoin wallet (should give error) ===")
-    w = HDWallet.create(
-        name='Wallet Error',
-        databasefile=test_database)
-    try:
-        w.import_key(key='T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
-    except KeyError as e:
-        print("Import litecoin key in bitcoin wallet gives an error: %s" % e)
-
-    print("\n=== Normalize BIP48 key path ===")
-    key_path = "m/44h/1'/0p/2000/1"
-    print("Raw: %s, Normalized: %s" % (key_path, normalize_path(key_path)))
+    # testnet_wallet.updateutxos()
+    # testnet_wallet.info(detail=3)
+    #
+    # # Three ways of getting the a HDWalletKey, with ID, address and name:
+    # print(testnet_wallet.key(1).address)
+    # print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
+    # print(testnet_wallet.key('TestNetWallet').address)
+    #
+    # print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
+    # accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
+    #              '8Y7KbKUnaMzxnnnsSvh'
+    # wallet_import2 = HDWallet.create(
+    #     databasefile=test_database,
+    #     name='Account Import',
+    #     key=accountkey,
+    #     network='testnet',
+    #     account_id=99)
+    # wallet_import2.info(detail=3)
+    # del wallet_import2
+    #
+    # print("\n=== Create simple wallet and import some unrelated private keys ===")
+    # simple_wallet = HDWallet.create(
+    #     name='Simple Wallet',
+    #     key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
+    #     databasefile=test_database)
+    # simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
+    # simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
+    # simple_wallet.updateutxos()
+    # simple_wallet.info(detail=3)
+    # del simple_wallet
+    #
+    # print("\n=== Create wallet with public key to generate addresses without private key ===")
+    # pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
+    #          'wt9SrsVeBeqfBbR3'
+    # pubwal = HDWallet.create(
+    #     databasefile=test_database,
+    #     name='Import Public Key Wallet',
+    #     key=pubkey,
+    #     network='testnet',
+    #     account_id=0)
+    # newkey = pubwal.new_key()
+    # pubwal.info(detail=3)
+    # del pubwal
+    #
+    # print("\n=== Create Litecoin wallet ===")
+    # litecoin_wallet = HDWallet.create(
+    #     databasefile=test_database,
+    #     name='Litecoin Wallet',
+    #     network='litecoin')
+    # newkey = litecoin_wallet.new_key()
+    # litecoin_wallet.info(detail=3)
+    # del litecoin_wallet
+    #
+    # print("\n=== Create Litecoin testnet Wallet from Mnemonic Passphrase ===")
+    # # words = Mnemonic('english').generate()
+    # words = 'blind frequent camera goddess pottery repair skull year mistake wrist lonely mix'
+    # print("Generated Passphrase: %s" % words)
+    # seed = Mnemonic().to_seed(words)
+    # hdkey = HDKey().from_seed(seed, network='litecoin_testnet')
+    # wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
+    #                          key=hdkey.wif(), databasefile=test_database)
+    # wallet.new_key("Input", 0)
+    # # wallet.updateutxos()  # TODO: fix for litecoin testnet
+    # wallet.info(detail=3)
+    #
+    # print("\n=== Test import Litecoin key in Bitcoin wallet (should give error) ===")
+    # w = HDWallet.create(
+    #     name='Wallet Error',
+    #     databasefile=test_database)
+    # try:
+    #     w.import_key(key='T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
+    # except KeyError as e:
+    #     print("Import litecoin key in bitcoin wallet gives an error: %s" % e)
+    #
+    # print("\n=== Normalize BIP48 key path ===")
+    # key_path = "m/44h/1'/0p/2000/1"
+    # print("Raw: %s, Normalized: %s" % (key_path, normalize_path(key_path)))
 
     print("\n=== Send testbitcoins to an address ===")
     wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
     wallet_import.info(detail=3)
     wallet_import.updateutxos(99)
-    wallet_import.getutxos(99, 4)
     print("\n= UTXOs =")
-    for utxo in wallet_import.getutxos(99):
+    utxos = wallet_import.getutxos(99)
+    for utxo in utxos:
         print("%s %s (%d confirms)" % (
         utxo['address'], wallet_import.network.print_value(utxo['value']), utxo['confirmations']))
-    res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000, 99)
+    res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 100000, 99)
     print("Send transaction result:")
     pprint(res)
 

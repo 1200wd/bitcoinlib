@@ -20,6 +20,7 @@
 
 import csv
 import enum
+import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, Float, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
@@ -96,7 +97,7 @@ class DbKey(Base):
 
     """
     __tablename__ = 'keys'
-    id = Column(Integer, Sequence('key_id_seq'), primary_key=True, index=True)
+    id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
     parent_id = Column(Integer, Sequence('parent_id_seq'))
     name = Column(String(50), index=True)
     account_id = Column(Integer, index=True)
@@ -112,7 +113,8 @@ class DbKey(Base):
     path = Column(String(100))
     wallet_id = Column(Integer, ForeignKey('wallets.id'))
     wallet = relationship("DbWallet", back_populates="keys")
-    transactions = relationship("DbTransaction", cascade="all,delete", back_populates="key")
+    transaction_inputs = relationship("DbTransactionInput", cascade="all,delete", back_populates="key")
+    transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key")
     balance = Column(Integer, default=0)
     used = Column(Boolean, default=False)
 
@@ -146,22 +148,47 @@ class DbTransaction(Base):
     
     """
     __tablename__ = 'transactions'
-    id = Column(Integer, Sequence('utxo_id_seq'), primary_key=True)
-    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
-    key = relationship("DbKey", back_populates="transactions")
-    tx_hash = Column(String(64), unique=True, index=True)
-    date = Column(DateTime)
-    confirmations = Column(Integer)
-    output_n = Column(Integer)
-    index = Column(Integer)
-    value = Column(Integer)
-    script = Column(String)
-    description = Column(String(256))
-    spend = Column(Boolean())
+    id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
+    hash = Column(String(64), unique=True)
+    version = Column(Integer, default=1)
+    lock_time = Column(Integer, default=0)
+    date = Column(DateTime, default=datetime.datetime.utcnow)
+    coinbase = Column(Boolean, default=False)
+    confirmations = Column(Integer, default=0)
+    size = Column(Integer)
+    inputs = relationship("DbTransactionInput", cascade="all,delete")
+    outputs = relationship("DbTransactionOutput", cascade="all,delete")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
 
     def __repr__(self):
-        return "<DbTransaction(id='%s', tx_hash='%s', output_n='%s'>" % (self.id, self.tx_hash, self.output_n)
+        return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.hash, self.confirmations)
+
+
+class DbTransactionInput(Base):
+    __tablename__ = 'transaction_inputs'
+    transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
+    transaction = relationship("DbTransaction", back_populates='inputs')
+    index = Column(Integer, primary_key=True)
+    prev_hash = Column(String(64))
+    output_n = Column(Integer, default=0)
+    script = Column(String)
+    sequence = Column(Integer)
+    value = Column(Integer, default=0)
+    spend = Column(Boolean(), default=False)
+    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
+    key = relationship("DbKey", back_populates="transaction_inputs")
+
+
+class DbTransactionOutput(Base):
+    __tablename__ = 'transaction_outputs'
+    transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
+    transaction = relationship("DbTransaction", back_populates='outputs')
+    output_n = Column(Integer, primary_key=True)
+    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
+    key = relationship("DbKey", back_populates="transaction_outputs")
+    script = Column(String)
+    value = Column(Integer, default=0)
+    spend = Column(Boolean(), default=False)
 
 
 if __name__ == '__main__':
