@@ -375,7 +375,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44,
-               databasefile=DEFAULT_DATABASE):
+               databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
@@ -398,6 +398,8 @@ class HDWallet:
         
         :return HDWallet: 
         """
+        if databasefile is None:
+            databasefile = DEFAULT_DATABASE
         session = DbInit(databasefile=databasefile).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
