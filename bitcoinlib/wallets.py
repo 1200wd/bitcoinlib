@@ -422,7 +422,7 @@ class HDWallet:
         session.commit()
         session.close()
 
-        w = HDWallet(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
+        w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
         if mk.depth == 0:
             nw = Network(network)
             networkcode = nw.bip44_cointype
