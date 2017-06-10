@@ -48,11 +48,11 @@ class BitcoindClient:
             raise ConfigError("Config file %s not found" % cfn)
         config.read(cfn)
         cls.version_byte = config.get('rpc', 'version_byte')
-        return BitcoindClient(config.get('rpc', 'rpcuser'),
-                              config.get('rpc', 'rpcpassword'),
-                              config.getboolean('rpc', 'use_https'),
-                              config.get('rpc', 'server'),
-                              config.get('rpc', 'port'))
+        return cls(config.get('rpc', 'rpcuser'),
+                   config.get('rpc', 'rpcpassword'),
+                   config.getboolean('rpc', 'use_https'),
+                   config.get('rpc', 'server'),
+                   config.get('rpc', 'port'))
 
     def __init__(self, user, password, use_https=False, server='127.0.0.1', port=8332):
         self.type = 'bitcoind'
