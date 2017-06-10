@@ -407,6 +407,9 @@ class HDWallet:
             _logger.info("Create new wallet '%s'" % name)
         if key:
             network = check_network_and_key(key, network)
+            searchkey = session.query(DbKey).filter_by(wif=key).scalar()
+            if searchkey:
+                raise WalletError("Key already found in wallet %s" % searchkey.wallet.name)
         elif network is None:
             network = DEFAULT_NETWORK
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose)
