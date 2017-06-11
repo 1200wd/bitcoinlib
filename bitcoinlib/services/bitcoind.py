@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    bitcoind deamon
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -20,6 +20,10 @@
 
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
+from bitcoinlib.services.baseclient import BaseClient
+
+
+PROVIDERNAME = 'bitcoind'
 
 _logger = logging.getLogger(__name__)
 
@@ -38,7 +42,7 @@ except ImportError:
     import ConfigParser as configparser
 
 
-class BitcoindClient:
+class BitcoindClient(BaseClient):
 
     @classmethod
     def from_config(cls, configfile='bitcoind.ini'):
@@ -55,6 +59,9 @@ class BitcoindClient:
                    config.getboolean('rpc', 'use_https'),
                    config.get('rpc', 'server'),
                    config.get('rpc', 'port'))
+
+    def __init__(self, network, base_url, denominator, api_key=''):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
     def __init__(self, user, password, use_https=False, server='127.0.0.1', port=8332):
         self.type = 'bitcoind'

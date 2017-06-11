@@ -140,21 +140,22 @@ class Service(object):
     def estimatefee(self, blocks=3):
         return self._provider_execute('estimatefee', blocks)
     
-    def estimate_fee_for_transaction(self, no_inputs=1, no_outputs=1, blocks=3):
-        fee_per_kb = self.estimatefee(blocks=blocks)
-        # TODO: Estimate transaction size correctly
-        tr_size = 100 + (no_inputs * 150) + (no_outputs * 50)
-        return int((tr_size / 1024) * fee_per_kb)
+    # def estimate_fee_for_transaction(self, no_inputs=1, no_outputs=1, blocks=3):
+    #     fee_per_kb = self.estimatefee(blocks=blocks)
+    #     TODO: Estimate transaction size correctly
+        # tr_size = 100 + (no_inputs * 150) + (no_outputs * 50)
+        # return int((tr_size / 1024) * fee_per_kb)
 
 
 if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='bitcoin', providers=['blockcypher'])
+    srv = Service(network='bitcoin', providers=['bitcoind'])
     # print("Getbalance, first result only: %s" % srv.getbalance())
     # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
     pprint(srv.estimatefee(3))
+    sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
