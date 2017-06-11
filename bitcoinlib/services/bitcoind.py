@@ -47,6 +47,8 @@ class BitcoindClient:
         if not os.path.isfile(cfn):
             raise ConfigError("Config file %s not found" % cfn)
         config.read(cfn)
+        if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
+            raise ConfigError("Please update config settings in %s" % cfn)
         cls.version_byte = config.get('rpc', 'version_byte')
         return cls(config.get('rpc', 'rpcuser'),
                    config.get('rpc', 'rpcpassword'),
