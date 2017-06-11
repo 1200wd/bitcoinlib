@@ -739,8 +739,6 @@ class HDWallet:
         
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
-        :param change: Payment (0) or change key (1). Default is 0
-        :type change: int
         :param depth_of_keys: Depth of account keys. Default is 5 according to BIP0032 standards
         :type depth_of_keys: int
         
