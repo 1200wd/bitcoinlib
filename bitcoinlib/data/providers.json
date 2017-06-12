@@ -8,6 +8,15 @@
     "priority": 11,
     "denominator": 100000000
   },
+  "bitcoind.testnet": {
+    "provider": "bitcoind",
+    "network": "testnet",
+    "client_class": "BitcoindClient",
+    "url": "http://bitcoinrpc:password@127.0.0.1:18332",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000
+  },
   "blockexplorer": {
     "provider": "blockexplorer",
     "network": "bitcoin",
