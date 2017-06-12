@@ -153,7 +153,7 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='bitcoin', providers=['bitcoind'])
+    srv = Service(network='bitcoin', min_providers=5)
     # print("Getbalance, first result only: %s" % srv.getbalance())
     # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
     srv.estimatefee(3)
