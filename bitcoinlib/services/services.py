@@ -39,7 +39,7 @@ class ServiceError(Exception):
 
 class Service(object):
 
-    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=5, providers=None):
+    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None):
         self.network = network
         try:
             fn = DEFAULT_SETTINGSDIR + "/providers.json"
