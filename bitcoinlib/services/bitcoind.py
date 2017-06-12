@@ -79,7 +79,8 @@ class BitcoindClient(BaseClient):
         return self.proxy.sendrawtransaction(rawtx)
     
     def estimatefee(self, blocks):
-        return self.proxy.estimatefee(blocks)
+        res = self.proxy.estimatefee(blocks)
+        return int(res * self.units)
 
 
 if __name__ == '__main__':

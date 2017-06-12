@@ -154,7 +154,8 @@ if __name__ == '__main__':
     srv = Service(network='testnet')
     # print("Getbalance, first result only: %s" % srv.getbalance())
     # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
-    pprint(srv.estimatefee(3))
+    srv.estimatefee(3)
+    pprint(srv.results)
     sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
