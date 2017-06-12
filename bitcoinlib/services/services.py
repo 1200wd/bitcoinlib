@@ -41,6 +41,8 @@ class Service(object):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None):
         self.network = network
+        if min_providers > max_providers:
+            max_providers = min_providers
         try:
             fn = DEFAULT_SETTINGSDIR + "/providers.json"
             f = open(fn, "r")
@@ -151,7 +153,7 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='testnet')
+    srv = Service(network='testnet', min_providers=5)
     # print("Getbalance, first result only: %s" % srv.getbalance())
     # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
     srv.estimatefee(3)

@@ -44,21 +44,21 @@ except ImportError:
 
 class BitcoindClient(BaseClient):
 
-    @classmethod
-    def from_config(cls, configfile='bitcoind.ini'):
-        config = configparser.ConfigParser()
-        cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
-        if not os.path.isfile(cfn):
-            raise ConfigError("Config file %s not found" % cfn)
-        config.read(cfn)
-        if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
-            raise ConfigError("Please update config settings in %s" % cfn)
-        cls.version_byte = config.get('rpc', 'version_byte')
-        return cls(config.get('rpc', 'rpcuser'),
-                   config.get('rpc', 'rpcpassword'),
-                   config.getboolean('rpc', 'use_https'),
-                   config.get('rpc', 'server'),
-                   config.get('rpc', 'port'))
+    # @classmethod
+    # def from_config(cls, configfile='bitcoind.ini'):
+    #     config = configparser.ConfigParser()
+    #     cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
+    #     if not os.path.isfile(cfn):
+    #         raise ConfigError("Config file %s not found" % cfn)
+    #     config.read(cfn)
+    #     if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
+    #         raise ConfigError("Please update config settings in %s" % cfn)
+    #     cls.version_byte = config.get('rpc', 'version_byte')
+    #     return cls(config.get('rpc', 'rpcuser'),
+    #                config.get('rpc', 'rpcpassword'),
+    #                config.getboolean('rpc', 'use_https'),
+    #                config.get('rpc', 'server'),
+    #                config.get('rpc', 'port'))
 
     def __init__(self, network, base_url, denominator, api_key=''):
         if len(base_url.split(':')) != 4:
@@ -89,8 +89,8 @@ if __name__ == '__main__':
     #
 
     from pprint import pprint
-    bdc = BitcoindClient.from_config()
-    # bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
+    bitcoind_url = 'http://bitcoinrpc:password@127.0.0.1:8332'
+    bdc = BitcoindClient('testnet', bitcoind_url, denominator=100000000)
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getinfo())
