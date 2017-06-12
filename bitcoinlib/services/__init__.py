@@ -26,3 +26,4 @@ import bitcoinlib.services.coinfees
 import bitcoinlib.services.blockr
 import bitcoinlib.services.blockchaininfo
 import bitcoinlib.services.blockcypher
+import bitcoinlib.services.blocktrail

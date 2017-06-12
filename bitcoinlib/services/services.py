@@ -44,10 +44,10 @@ class Service(object):
         if min_providers > max_providers:
             max_providers = min_providers
         try:
-            fn = DEFAULT_SETTINGSDIR + "/providers.json"
+            fn = DEFAULT_SETTINGSDIR + "providers.json"
             f = open(fn, "r")
         except FileNotFoundError:
-            fn = CURRENT_INSTALLDIR_DATA + "/providers.json"
+            fn = CURRENT_INSTALLDIR_DATA + "providers.json"
             f = open(fn, "r")
 
         try:
@@ -58,7 +58,8 @@ class Service(object):
             raise ServiceError(errstr)
         f.close()
 
-        provider_list = list(self.providers_defined.keys())
+        # provider_list = list(self.providers_defined.keys())
+        provider_list = list([self.providers_defined[x]['provider'] for x in self.providers_defined])
         if providers is None:
             providers = []
         for p in providers:
@@ -153,12 +154,11 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='bitcoin', min_providers=5)
+    srv = Service(network='testnet', providers=['blocktrail'])
     # print("Getbalance, first result only: %s" % srv.getbalance())
-    # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
-    srv.estimatefee(3)
+    srv.getbalance('2N4mt4VujduMwhrYy1r7QW3PioiQG6nLwwK')
+    # srv.estimatefee(5)
     pprint(srv.results)
-    sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
