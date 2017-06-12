@@ -61,14 +61,16 @@ class BitcoindClient(BaseClient):
                    config.get('rpc', 'port'))
 
     def __init__(self, network, base_url, denominator, api_key=''):
+        _logger.debug("Connect to bitcoind on %s" % base_url)
+        self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
-    def __init__(self, user, password, use_https=False, server='127.0.0.1', port=8332):
-        self.type = 'bitcoind'
-        protocol = 'https' if use_https else 'http'
-        uri = '%s://%s:%s@%s:%s' % (protocol, user, password, server, port)
-        _logger.debug("Connect to bitcoind on %s" % uri)
-        self.proxy = AuthServiceProxy(uri)
+    # def __init__(self, user, password, use_https=False, server='127.0.0.1', port=8332):
+    #     self.type = 'bitcoind'
+    #     protocol = 'https' if use_https else 'http'
+    #     uri = '%s://%s:%s@%s:%s' % (protocol, user, password, server, port)
+    #     _logger.debug("Connect to bitcoind on %s" % uri)
+    #     self.proxy = AuthServiceProxy(uri)
 
     def getrawtransaction(self, txid):
         res = self.proxy.getrawtransaction(txid)
