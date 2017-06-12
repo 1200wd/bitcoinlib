@@ -3,7 +3,7 @@
     "provider": "bitcoind",
     "network": "bitcoin",
     "client_class": "BitcoindClient",
-    "url": "http://bitcoinrpc:password@127.0.0.1:8332",
+    "url": "",
     "api_key": "",
     "priority": 11,
     "denominator": 100000000
@@ -12,7 +12,7 @@
     "provider": "bitcoind",
     "network": "testnet",
     "client_class": "BitcoindClient",
-    "url": "http://bitcoinrpc:password@127.0.0.1:18332",
+    "url": "",
     "api_key": "",
     "priority": 11,
     "denominator": 100000000
