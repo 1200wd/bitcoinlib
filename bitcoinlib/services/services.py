@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    SERVICES - Main Service connector
-#    © 2017 March - 1200 Web Development <http://1200wd.com/>
+#    © 2017 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -145,20 +145,15 @@ class Service(object):
     def estimatefee(self, blocks=3):
         return self._provider_execute('estimatefee', blocks)
     
-    # def estimate_fee_for_transaction(self, no_inputs=1, no_outputs=1, blocks=3):
-    #     fee_per_kb = self.estimatefee(blocks=blocks)
-    #     TODO: Estimate transaction size correctly
-        # tr_size = 100 + (no_inputs * 150) + (no_outputs * 50)
-        # return int((tr_size / 1024) * fee_per_kb)
-
 
 if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='bitcoin')
-    srv.estimatefee(1000)
+    srv = Service(network='bitcoin', providers=['blockchaininfo'])
+    utxos = srv.getrawtransaction('b6f6991d03df0e2e04dafffcd6bc418aac66049e2cd74b80f14ac86db1e3f0da')
     pprint(srv.results)
+    sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']

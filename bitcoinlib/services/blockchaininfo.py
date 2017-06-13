@@ -30,9 +30,9 @@ class BlockchainInfoClient(BaseClient):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
     def compose_request(self, cmd, parameter, variables=None, method='get'):
+        url_path = cmd
         if parameter:
-            parameter += '/'
-        url_path = cmd + parameter
+            url_path += '/' + parameter
         return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
@@ -44,11 +44,11 @@ class BlockchainInfoClient(BaseClient):
 
         return balance
 
-    # TODO: Implement this methods
-    # def getrawtransaction(self, txid):
-    #     res = self.compose_request('tx', 'raw', txid)
-    #     return res['tx']['hex']
-    #
+    def getrawtransaction(self, txid):
+        # https://blockchain.info/rawtx/$tx_hash
+        res = self.compose_request('rawtx', txid, {'format': 'hex'})
+        return res
+
     # def decoderawtransaction(self, rawtx):
     #     return self.compose_request('tx', 'decode', variables={'hex': rawtx}, method='post')
     #

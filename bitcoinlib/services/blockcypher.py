@@ -52,9 +52,11 @@ class BlockCypher(BaseClient):
         addresses = ';'.join(addresslist)
         res = self.compose_request('addrs', addresses, variables={'unspentOnly': 1})
         utxos = []
+        if not isinstance(res, list):
+            res = [res]
         for a in res:
             address = a['address']
-            if a['n_tx'] == 0:
+            if 'txrefs' not in a:
                 continue
             for utxo in a['txrefs']:
                 utxos.append({

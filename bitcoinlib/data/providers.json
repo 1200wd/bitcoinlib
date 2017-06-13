@@ -150,7 +150,16 @@
     "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,
-    "denominator": 1
+    "denominator": 100000000
+  },
+  "chainso": {
+    "provider": "chainso",
+    "network": "bitcoin",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
   },
     "chainso.testnet": {
     "provider": "chainso",
@@ -159,7 +168,7 @@
     "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,
-    "denominator": 1
+    "denominator": 100000000
   },
     "chainso.litecoin": {
     "provider": "chainso",
@@ -168,7 +177,7 @@
     "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,
-    "denominator": 1
+    "denominator": 100000000
   },
     "chainso.dash": {
     "provider": "chainso",
@@ -177,7 +186,7 @@
     "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,
-    "denominator": 1
+    "denominator": 100000000
   },
     "chainso.dash.testnet": {
     "provider": "chainso",
@@ -186,7 +195,7 @@
     "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,
-    "denominator": 1
+    "denominator": 100000000
   },
   "estimatefee": {
     "provider": "estimatefee",
