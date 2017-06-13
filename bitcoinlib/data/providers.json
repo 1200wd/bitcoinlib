@@ -86,7 +86,7 @@
     "client_class": "CoinfeesClient",
     "url": "https://bitcoinfees.21.co/api/v1/",
     "api_key": "",
-    "priority": 20,
+    "priority": 10,
     "denominator": 1
   },
   "blockr.testnet": {
@@ -143,11 +143,47 @@
     "priority": 10,
     "denominator": 1
   },
-  "chainso": {
+  "chainso.litecoin.testnet": {
     "provider": "chainso",
     "network": "litecoin_testnet",
     "client_class": "ChainSo",
-    "url": "https://chain.so/api/v2/LTCTEST/",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
+    "chainso.testnet": {
+    "provider": "chainso",
+    "network": "testnet",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
+    "chainso.litecoin": {
+    "provider": "chainso",
+    "network": "litecoin",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
+    "chainso.dash": {
+    "provider": "chainso",
+    "network": "dash",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
+    "chainso.dash.testnet": {
+    "provider": "chainso",
+    "network": "dash_testnet",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,
     "denominator": 1

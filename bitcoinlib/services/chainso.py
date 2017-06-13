@@ -21,6 +21,14 @@
 from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'chainso'
+NETWORKCODES = {
+    'bitcoin': 'BTC',
+    'testnet': 'BTCTEST',
+    'dash': 'DASH',
+    'dash_testnet': 'DASHTEST',
+    'litecoin': 'LTC',
+    'litecoin_testnet': 'LTCTEST'
+}
 
 
 class ChainSo(BaseClient):
@@ -28,8 +36,9 @@ class ChainSo(BaseClient):
     def __init__(self, network, base_url, denominator, api_key=''):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
-    def compose_request(self, function, data, parameter='', variables=None, method='get'):
+    def compose_request(self, function, data='', parameter='', variables=None, method='get'):
         url_path = function
+        url_path += '/' + NETWORKCODES[self.network]
         if data:
             url_path += '/' + data
         if parameter:
@@ -41,41 +50,32 @@ class ChainSo(BaseClient):
         return self.request(url_path, variables, method)
 
     def getrawtransaction(self, txid):
-        # GET /api/v2/get_tx/{NETWORK}/{TXID}
         res = self.compose_request('get_tx', txid)
-        return res['rawtx']
+        return res['data']['tx_hex']
 
-    # def getbalance(self, addresslist):
-    #     balance = 0.0
-    #     for address in addresslist:
-    #         res = self.compose_request('address', address)
-    #         balance += int(res['balance'])
-    #     return int(balance * self.units)
-    #
-    # def getutxos(self, addresslist):
-    #     utxos = []
-    #     for address in addresslist:
-    #         res = self.compose_request('address', address, 'unspent-outputs')
-    #         current_page = 1
-    #         while current_page <= int(res['total']):
-    #             for utxo in res['data']:
-    #                 utxos.append({
-    #                     'address': address,
-    #                     'tx_hash': utxo['hash'],
-    #                     'confirmations': utxo['confirmations'],
-    #                     'output_n': utxo['index'],
-    #                     'index': 0,
-    #                     'value': int(round(utxo['value'] * self.units, 0)),
-    #                     'script': '',
-    #                 })
-    #             current_page += 1
-    #             if current_page < int(res['total']):
-    #                 res = self.compose_request('address', address, 'unspent-outputs', page=current_page)
-    #     return utxos
+    def sendrawtransaction(self, rawtx):
+        return self.compose_request('send_tx', variables={'tx_hex': rawtx}, method='post')
 
-    # def estimatefee(self, blocks):
-    #     res = self.compose_request('fee-per-kb', '')
-    #     if blocks <= 10:
-    #         return res['optimal']
-    #     else:
-    #         return res['low_priority']
+    def getbalance(self, addresslist):
+        balance = 0.0
+        for address in addresslist:
+            res = self.compose_request('get_address_balance', address)
+            balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
+        return int(balance * self.units)
+
+    def getutxos(self, addresslist):
+        # GET /api/v2/get_tx_unspent/{NETWORK}/{ADDRESS}[/{AFTER TXID}]
+        utxos = []
+        for address in addresslist:
+            res = self.compose_request('get_tx_unspent', address)
+            for utxo in res['data']['txs']:
+                utxos.append({
+                    'address': address,
+                    'tx_hash': utxo['txid'],
+                    'confirmations': utxo['confirmations'],
+                    'output_n': utxo['output_no'],
+                    'index': 0,
+                    'value': int(round(float(utxo['value']) * self.units, 0)),
+                    'script': utxo['script_hex'],
+                })
+        return utxos

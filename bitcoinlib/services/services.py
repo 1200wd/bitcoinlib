@@ -156,14 +156,9 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='litecoin_testnet')
-    # print("Getbalance, first result only: %s" % srv.getbalance())
-    # srv.getbalance('2N4mt4VujduMwhrYy1r7QW3PioiQG6nLwwK')
-    ltctest_txid = '279a350bb6030141aa18ec0bee0287e9bccccaab53d44d907e3830ec266141a7'
-    srv.getrawtransaction(ltctest_txid)
+    srv = Service(network='litecoin_testnet', providers=['chainso'])
+    srv.getutxos('mmqUAWiK2B8YfN3mGXk9gCYV4CwuBUdnVc')
     pprint(srv.results)
-
-    sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
