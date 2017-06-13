@@ -18,7 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 from bitcoinlib.services.baseclient import BaseClient
+
+_logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'chainso'
 NETWORKCODES = {
@@ -64,18 +67,24 @@ class ChainSo(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
-        # GET /api/v2/get_tx_unspent/{NETWORK}/{ADDRESS}[/{AFTER TXID}]
         utxos = []
+        lastutxo = ''
         for address in addresslist:
-            res = self.compose_request('get_tx_unspent', address)
-            for utxo in res['data']['txs']:
-                utxos.append({
-                    'address': address,
-                    'tx_hash': utxo['txid'],
-                    'confirmations': utxo['confirmations'],
-                    'output_n': utxo['output_no'],
-                    'index': 0,
-                    'value': int(round(float(utxo['value']) * self.units, 0)),
-                    'script': utxo['script_hex'],
-                })
+            while len(utxos) < 1000:
+                res = self.compose_request('get_tx_unspent', address, lastutxo)
+                for utxo in res['data']['txs']:
+                    utxos.append({
+                        'address': address,
+                        'tx_hash': utxo['txid'],
+                        'confirmations': utxo['confirmations'],
+                        'output_n': utxo['output_no'],
+                        'index': 0,
+                        'value': int(round(float(utxo['value']) * self.units, 0)),
+                        'script': utxo['script_hex'],
+                    })
+                    lastutxo = utxo['txid']
+                if len(res['data']['txs']) < 100:
+                    break
+        if len(utxos) >= 1000:
+            _logger.warning("ChainSo: UTXO's list has been truncated, UTXO list is incomplete")
         return utxos

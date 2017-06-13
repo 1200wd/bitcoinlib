@@ -18,7 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 from bitcoinlib.services.baseclient import BaseClient
+
+_logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'blocktrail'
 
@@ -40,8 +43,6 @@ class BlockTrail(BaseClient):
             variables = {}
         if self.api_key:
             variables.update({'api_key': self.api_key})
-        variables.update({'limit': 100})
-        variables.update({'page': 1})
         return self.request(url_path, variables, method)
 
     def getbalance(self, addresslist):
@@ -54,9 +55,11 @@ class BlockTrail(BaseClient):
     def getutxos(self, addresslist):
         utxos = []
         for address in addresslist:
-            res = self.compose_request('address', address, 'unspent-outputs')
+            # res = self.compose_request('address', address, 'unspent-outputs')
             current_page = 1
-            while current_page <= int(res['total']):
+            while len(utxos) < 2000:
+                variables = {'page': current_page, 'limit': 200}
+                res = self.compose_request('address', address, 'unspent-outputs', variables)
                 for utxo in res['data']:
                     utxos.append({
                         'address': address,
@@ -67,9 +70,12 @@ class BlockTrail(BaseClient):
                         'value': int(round(utxo['value'] * self.units, 0)),
                         'script': '',
                     })
+                if current_page*200 > int(res['total']):
+                    break
                 current_page += 1
-                if current_page < int(res['total']):
-                    res = self.compose_request('address', address, 'unspent-outputs', page=current_page)
+
+        if len(utxos) >= 2000:
+            _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
         return utxos
 
     def estimatefee(self, blocks):

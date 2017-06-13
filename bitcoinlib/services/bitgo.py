@@ -18,8 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-
+import logging
 from bitcoinlib.services.baseclient import BaseClient
+
+_logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'bitgo'
 
@@ -66,7 +68,9 @@ class BitGoClient(BaseClient):
                     )
                 total = res['total']
                 skip = res['start'] + res['count']
-
+                if skip > 2000:
+                    _logger.warning("BitGoClient: UTXO's list has been truncated, UTXO list is incomplete")
+                    break
         return utxos
 
     def getrawtransaction(self, txid):

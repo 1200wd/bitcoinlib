@@ -150,15 +150,14 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
-    # addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
+    # addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
+    addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
     # srv = Service(network='bitcoin', min_providers=10)
-    srv = Service(network='bitcoin', providers=['blockcypher'])
+    srv = Service(network='bitcoin', min_providers=10)
     utxos = srv.getutxos(addresslst)
     results = srv.results
     for res in results:
         print(res, len(results[res]))
-    pprint(utxos)
     sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
