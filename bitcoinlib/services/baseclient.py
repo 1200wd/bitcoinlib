@@ -66,8 +66,8 @@ class BaseClient(object):
             self.resp = requests.post(url, json=dict(variables))
 
         resp_text = self.resp.text
-        if len(resp_text) > 100:
-            resp_text = self.resp.text[:70] + '... truncated, length %d' % len(resp_text)
+        if len(resp_text) > 1000:
+            resp_text = self.resp.text[:970] + '... truncated, length %d' % len(resp_text)
         _logger.debug("Response [%d] %s" % (self.resp.status_code, resp_text))
         if self.resp.status_code == 429:
             raise ClientError("Maximum number of requests reached for %s with url %s, response [%d] %s" %

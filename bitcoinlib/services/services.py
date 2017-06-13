@@ -75,12 +75,12 @@ class Service(object):
         self.min_providers = min_providers
         self.max_providers = max_providers
         self.results = {}
-        self.errors = []
+        self.errors = {}
         self.resultcount = 0
 
     def _provider_execute(self, method, argument):
         self.results = {}
-        self.errors = []
+        self.errors = {}
         self.resultcount = 0
 
         for sp in self.providers:
@@ -105,7 +105,7 @@ class Service(object):
                         err = e.msg
                     except AttributeError:
                         err = e
-                    self.errors.append(
+                    self.errors.update(
                         {sp: err}
                     )
                 _logger.warning("%s.%s(%s) Error %s" % (sp, method, argument, e))
@@ -115,8 +115,7 @@ class Service(object):
 
         if not self.resultcount:
             return False
-        # return list(self.results[0].values())[0]
-        return self.results
+        return list(self.results.values())[0]
 
     def getbalance(self, addresslist):
         if not addresslist:
@@ -151,15 +150,15 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    # addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
-    addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
+    addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
+    # addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
     # srv = Service(network='bitcoin', min_providers=10)
     srv = Service(network='bitcoin', providers=['blockcypher'])
     utxos = srv.getutxos(addresslst)
     results = srv.results
     for res in results:
         print(res, len(results[res]))
-    # pprint(srv.results)
+    pprint(utxos)
     sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
