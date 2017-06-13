@@ -151,9 +151,10 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
-    # srv = Service(network='bitcoin', min_providers=10)
-    srv = Service(network='bitcoin', providers=['bitgo'])
+    # addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
+    addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
+    srv = Service(network='bitcoin', min_providers=10)
+    # srv = Service(network='bitcoin', providers=['blockchaininfo'])
     utxos = srv.getutxos(addresslst)
     results = srv.results
     for res in results:

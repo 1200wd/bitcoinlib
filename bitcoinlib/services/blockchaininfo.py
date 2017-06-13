@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    blockchain_info client
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -18,10 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-
+import logging
 from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'blockchaininfo'
+
+_logger = logging.getLogger(__name__)
 
 
 class BlockchainInfoClient(BaseClient):
@@ -46,7 +48,11 @@ class BlockchainInfoClient(BaseClient):
     def getutxos(self, addresslist):
         utxos = []
         for address in addresslist:
-            res = self.compose_request('unspent', variables={'active': address})
+            variables = {'active': address, 'limit': 1000}
+            res = self.compose_request('unspent', variables=variables)
+            if len(res['unspent_outputs']) > 299:
+                _logger.warning("BlockchainInfoClient: Large number of outputs for address %s, "
+                                "UTXO list may be incomplete" % address)
             for utxo in res['unspent_outputs']:
                 utxos.append({
                     'address': address,
