@@ -187,5 +187,14 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1
+  },
+  "estimatefee": {
+    "provider": "estimatefee",
+    "network": "bitcoin",
+    "client_class": "EstimateFeeClient",
+    "url": "https://estimatefee.com/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
   }
 }

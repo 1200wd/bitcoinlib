@@ -156,8 +156,8 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='litecoin_testnet', providers=['chainso'])
-    srv.getutxos('mmqUAWiK2B8YfN3mGXk9gCYV4CwuBUdnVc')
+    srv = Service(network='bitcoin')
+    srv.estimatefee(1000)
     pprint(srv.results)
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
