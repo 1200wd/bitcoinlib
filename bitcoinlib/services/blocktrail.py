@@ -27,7 +27,7 @@ class BlockTrail(BaseClient):
 
     def __init__(self, network, base_url, denominator, api_key=''):
         if not api_key:
-            raise
+            raise ValueError("API key is needed to connect to BlockTrail")
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
     def compose_request(self, function, data, parameter='', variables=None, method='get', page=1):

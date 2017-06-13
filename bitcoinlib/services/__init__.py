@@ -27,3 +27,4 @@ import bitcoinlib.services.blockr
 import bitcoinlib.services.blockchaininfo
 import bitcoinlib.services.blockcypher
 import bitcoinlib.services.blocktrail
+import bitcoinlib.services.chainso

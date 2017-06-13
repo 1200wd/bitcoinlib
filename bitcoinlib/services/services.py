@@ -89,9 +89,11 @@ class Service(object):
             try:
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
-                providermethod = getattr(
-                    providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
-                                   self.providers[sp]['api_key']), method)
+                pc_instance = providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
+                                             self.providers[sp]['api_key'])
+                if not hasattr(pc_instance, method):
+                    continue
+                providermethod = getattr(pc_instance, method)
                 res = providermethod(argument)
                 self.results.append(
                     {sp: res}
@@ -154,11 +156,14 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='testnet', providers=['blocktrail'])
+    srv = Service(network='litecoin_testnet')
     # print("Getbalance, first result only: %s" % srv.getbalance())
-    srv.getbalance('2N4mt4VujduMwhrYy1r7QW3PioiQG6nLwwK')
-    # srv.estimatefee(5)
+    # srv.getbalance('2N4mt4VujduMwhrYy1r7QW3PioiQG6nLwwK')
+    ltctest_txid = '279a350bb6030141aa18ec0bee0287e9bccccaab53d44d907e3830ec266141a7'
+    srv.getrawtransaction(ltctest_txid)
     pprint(srv.results)
+
+    sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']

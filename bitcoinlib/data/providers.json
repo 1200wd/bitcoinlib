@@ -124,5 +124,32 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1
+  },
+  "blocktrail": {
+    "provider": "blocktrail",
+    "network": "bitcoin",
+    "client_class": "BlockTrail",
+    "url": "https://api.blocktrail.com/v1/BTC/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
+  "blocktrail.testnet": {
+    "provider": "blocktrail",
+    "network": "testnet",
+    "client_class": "BlockTrail",
+    "url": "https://api.blocktrail.com/v1/tBTC/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
+  "chainso": {
+    "provider": "chainso",
+    "network": "litecoin_testnet",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/LTCTEST/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
   }
 }
