@@ -153,8 +153,8 @@ if __name__ == '__main__':
     # Tests for specific provider
     # addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
     addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
-    srv = Service(network='bitcoin', min_providers=10)
-    # srv = Service(network='bitcoin', providers=['blockchaininfo'])
+    # srv = Service(network='bitcoin', min_providers=10)
+    srv = Service(network='bitcoin', providers=['blockcypher'])
     utxos = srv.getutxos(addresslst)
     results = srv.results
     for res in results:

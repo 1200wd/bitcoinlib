@@ -18,9 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'blockcypher'
+
+_logger = logging.getLogger(__name__)
 
 
 class BlockCypher(BaseClient):
@@ -50,7 +53,7 @@ class BlockCypher(BaseClient):
 
     def getutxos(self, addresslist):
         addresses = ';'.join(addresslist)
-        res = self.compose_request('addrs', addresses, variables={'unspentOnly': 1})
+        res = self.compose_request('addrs', addresses, variables={'unspentOnly': 1, 'limit': 2000})
         utxos = []
         if not isinstance(res, list):
             res = [res]
@@ -58,6 +61,9 @@ class BlockCypher(BaseClient):
             address = a['address']
             if 'txrefs' not in a:
                 continue
+            if len(a['txrefs']) > 500:
+                _logger.warning("BlockCypher: Large number of outputs for address %s, "
+                                "UTXO list may be incomplete" % address)
             for utxo in a['txrefs']:
                 utxos.append({
                     'address': address,
