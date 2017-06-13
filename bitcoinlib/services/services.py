@@ -133,8 +133,8 @@ class Service(object):
 
         utxos = []
         while addresslist:
-            utxos += self._provider_execute('getutxos', addresslist[:5])
-            addresslist = addresslist[5:]
+            utxos += self._provider_execute('getutxos', addresslist[:20])
+            addresslist = addresslist[20:]
         return utxos
 
     def getrawtransaction(self, txid):

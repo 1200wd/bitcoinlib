@@ -1102,10 +1102,14 @@ class HDWallet:
 
             # Update confirmations in db if utxo was already imported
             transaction_in_db = self._session.query(DbTransaction).filter_by(hash=utxo['tx_hash'])
-            utxo_in_db = transaction_in_db.join(DbTransactionOutput).filter_by(output_n=utxo['output_n'])
+            utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
+                filter(DbTransaction.hash == utxo['tx_hash']).filter(DbTransactionOutput.output_n == utxo['output_n'])
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
-                utxo_record.confirmations = utxo['confirmations']
+                utxo_record.key_id = key.id
+                transaction_record = transaction_in_db.scalar()
+                transaction_record.confirmations = utxo['confirmations']
+
                 # Recover key_id after deletion
                 # TODO: Fix
                 # if not utxo_record.key_id:
