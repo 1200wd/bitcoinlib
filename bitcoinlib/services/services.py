@@ -131,7 +131,11 @@ class Service(object):
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
             addresslist = [addresslist]
 
-        return self._provider_execute('getutxos', addresslist)
+        utxos = []
+        while addresslist:
+            utxos += self._provider_execute('getutxos', addresslist[:5])
+            addresslist = addresslist[5:]
+        return utxos
 
     def getrawtransaction(self, txid):
         return self._provider_execute('getrawtransaction', txid)
@@ -150,15 +154,8 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    # addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
-    addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
-    # srv = Service(network='bitcoin', min_providers=10)
-    srv = Service(network='bitcoin', min_providers=10)
-    utxos = srv.getutxos(addresslst)
-    results = srv.results
-    for res in results:
-        print(res, len(results[res]))
-    sys.exit()
+    srv = Service(network='bitcoin', providers=['estimatefee'])
+    print(srv.estimatefee(1000))
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
@@ -203,3 +200,12 @@ if __name__ == '__main__':
     srv = Service(min_providers=10)
     srv.estimatefee(5)
     pprint(srv.results)
+
+    # Test address with huge number of UTXO's
+    # addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
+    # addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
+    # srv = Service(network='bitcoin', min_providers=10)
+    # utxos = srv.getutxos(addresslst)
+    # results = srv.results
+    # for res in results:
+    #     print(res, len(results[res]))
