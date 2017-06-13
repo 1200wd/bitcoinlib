@@ -29,28 +29,37 @@ class BlockchainInfoClient(BaseClient):
     def __init__(self, network, base_url, denominator, api_key=''):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
-    def compose_request(self, cmd, parameter, variables=None, method='get'):
+    def compose_request(self, cmd, parameter='', variables=None, method='get'):
         url_path = cmd
         if parameter:
             url_path += '/' + parameter
         return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
-        variables = [('active', '|'.join(addresslist))]
-        res = self.compose_request('multiaddr', '', variables)
+        addresses = {'active': '|'.join(addresslist)}
+        res = self.compose_request('balance', variables=addresses)
         balance = 0
-        for address in res['addresses']:
-            balance += address['final_balance']
-
+        for address in res:
+            balance += res[address]['final_balance']
         return balance
 
+    def getutxos(self, addresslist):
+        utxos = []
+        for address in addresslist:
+            res = self.compose_request('unspent', variables={'active': address})
+            for utxo in res['unspent_outputs']:
+                utxos.append({
+                    'address': address,
+                    'tx_hash': utxo['tx_hash'],
+                    'confirmations': utxo['confirmations'],
+                    'output_n': utxo['tx_output_n'],
+                    'index':  utxo['tx_index'],
+                    'value': int(round(utxo['value'] * self.units, 0)),
+                    'script': utxo['script'],
+                })
+        return utxos
+
     def getrawtransaction(self, txid):
-        # https://blockchain.info/rawtx/$tx_hash
         res = self.compose_request('rawtx', txid, {'format': 'hex'})
         return res
 
-    # def decoderawtransaction(self, rawtx):
-    #     return self.compose_request('tx', 'decode', variables={'hex': rawtx}, method='post')
-    #
-    # def sendrawtransaction(self, rawtx):
-    #     return self.compose_request('tx', 'push', variables={'hex': rawtx}, method='post')

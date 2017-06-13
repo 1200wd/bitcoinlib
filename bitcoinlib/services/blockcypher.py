@@ -70,11 +70,6 @@ class BlockCypher(BaseClient):
                 })
         return utxos
 
-    # TODO: Implement this method, if possible
-    # def getrawtransaction(self, txid):
-    #     res = self.compose_request('tx', 'raw', txid)
-    #     return res['tx']['hex']
-
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
 

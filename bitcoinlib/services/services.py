@@ -74,12 +74,12 @@ class Service(object):
 
         self.min_providers = min_providers
         self.max_providers = max_providers
-        self.results = []
+        self.results = {}
         self.errors = []
         self.resultcount = 0
 
     def _provider_execute(self, method, argument):
-        self.results = []
+        self.results = {}
         self.errors = []
         self.resultcount = 0
 
@@ -95,7 +95,7 @@ class Service(object):
                     continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(argument)
-                self.results.append(
+                self.results.update(
                     {sp: res}
                 )
                 self.resultcount += 1
@@ -115,7 +115,8 @@ class Service(object):
 
         if not self.resultcount:
             return False
-        return list(self.results[0].values())[0]
+        # return list(self.results[0].values())[0]
+        return self.results
 
     def getbalance(self, addresslist):
         if not addresslist:
@@ -150,9 +151,14 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='bitcoin', providers=['blockchaininfo'])
-    utxos = srv.getrawtransaction('b6f6991d03df0e2e04dafffcd6bc418aac66049e2cd74b80f14ac86db1e3f0da')
-    pprint(srv.results)
+    addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
+    # srv = Service(network='bitcoin', min_providers=10)
+    srv = Service(network='bitcoin', providers=['bitgo'])
+    utxos = srv.getutxos(addresslst)
+    results = srv.results
+    for res in results:
+        print(res, len(results[res]))
+    # pprint(srv.results)
     sys.exit()
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
