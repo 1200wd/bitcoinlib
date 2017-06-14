@@ -47,6 +47,8 @@ class BlockrClient(BaseClient):
         addresses = ','.join(addresslist)
         res = self.compose_request('address', 'unspent', addresses)
         utxos = []
+        if not isinstance(res, list):
+            res = [res]
         for a in res:
             address = a['address']
             for utxo in a['unspent']:

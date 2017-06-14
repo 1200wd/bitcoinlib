@@ -18,8 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-
+import logging
 from bitcoinlib.services.baseclient import BaseClient
+
+_logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'bitgo'
 
@@ -47,19 +49,28 @@ class BitGoClient(BaseClient):
     def getutxos(self, addresslist):
         utxos = []
         for address in addresslist:
-            res = self.compose_request('address', address, 'unspents')
-            for unspent in res['unspents']:
-                utxos.append(
-                    {
-                        'address': unspent['address'],
-                        'tx_hash': unspent['tx_hash'],
-                        'confirmations': unspent['confirmations'],
-                        'output_n': unspent['tx_output_n'],
-                        'index': 0,
-                        'value': int(round(unspent['value'] * self.units, 0)),
-                        'script': unspent['script'],
-                     }
-                )
+            skip = 0
+            total = 1
+            while total > skip:
+                variables = {'limit': 100, 'skip': skip}
+                res = self.compose_request('address', address, 'unspents', variables)
+                for unspent in res['unspents']:
+                    utxos.append(
+                        {
+                            'address': unspent['address'],
+                            'tx_hash': unspent['tx_hash'],
+                            'confirmations': unspent['confirmations'],
+                            'output_n': unspent['tx_output_n'],
+                            'index': 0,
+                            'value': int(round(unspent['value'] * self.units, 0)),
+                            'script': unspent['script'],
+                         }
+                    )
+                total = res['total']
+                skip = res['start'] + res['count']
+                if skip > 2000:
+                    _logger.warning("BitGoClient: UTXO's list has been truncated, UTXO list is incomplete")
+                    break
         return utxos
 
     def getrawtransaction(self, txid):

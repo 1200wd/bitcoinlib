@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    bitcoind deamon
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -20,6 +20,10 @@
 
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
+from bitcoinlib.services.baseclient import BaseClient
+
+
+PROVIDERNAME = 'bitcoind'
 
 _logger = logging.getLogger(__name__)
 
@@ -38,28 +42,43 @@ except ImportError:
     import ConfigParser as configparser
 
 
-class BitcoindClient:
+class BitcoindClient(BaseClient):
 
-    @classmethod
-    def from_config(cls, configfile='bitcoind.ini'):
+    @staticmethod
+    def from_config(configfile=None, network='bitcoin'):
         config = configparser.ConfigParser()
-        cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
-        if not os.path.isfile(cfn):
-            raise ConfigError("Config file %s not found" % cfn)
-        config.read(cfn)
-        cls.version_byte = config.get('rpc', 'version_byte')
-        return cls(config.get('rpc', 'rpcuser'),
-                   config.get('rpc', 'rpcpassword'),
-                   config.getboolean('rpc', 'use_https'),
-                   config.get('rpc', 'server'),
-                   config.get('rpc', 'port'))
+        if not configfile:
+            cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/bitcoin.conf')
+        else:
+            cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
+            if not os.path.isfile(cfn):
+                raise ConfigError("Config file %s not found" % cfn)
+        with open(cfn, 'r') as f:
+            config_string = '[rpc]\n' + f.read()
+        config.read_string(config_string)
+        if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
+            raise ConfigError("Please update config settings in %s" % cfn)
+        if network == 'bitcoin':
+            port = 8332
+        elif network == 'testnet':
+            port = 18332
+        else:
+            raise ConfigError("Network %s not supported by BitcoindClient" % network)
+        url = "http://%s:%s@127.0.0.1:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), port)
+        return url
 
-    def __init__(self, user, password, use_https=False, server='127.0.0.1', port=8332):
-        self.type = 'bitcoind'
-        protocol = 'https' if use_https else 'http'
-        uri = '%s://%s:%s@%s:%s' % (protocol, user, password, server, port)
-        _logger.debug("Connect to bitcoind on %s" % uri)
-        self.proxy = AuthServiceProxy(uri)
+    def __init__(self, network='bitcoin', base_url='', denominator=100000000, api_key=''):
+        if not base_url:
+            base_url = self.from_config('', network)
+        if len(base_url.split(':')) != 4:
+            raise ConfigError("Bitcoind connection URL must be of format 'http(s)://user:password@host:port,"
+                              "current format is %s. Please set url in providers.json file" % base_url)
+        if 'password' in base_url:
+            raise ConfigError("Invalid password 'password' in bitcoind provider settings. "
+                              "Please set password and url in providers.json file")
+        _logger.info("Connect to bitcoind on %s" % base_url)
+        self.proxy = AuthServiceProxy(base_url)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
     def getrawtransaction(self, txid):
         res = self.proxy.getrawtransaction(txid)
@@ -69,7 +88,8 @@ class BitcoindClient:
         return self.proxy.sendrawtransaction(rawtx)
     
     def estimatefee(self, blocks):
-        return self.proxy.estimatefee(blocks)
+        res = self.proxy.estimatefee(blocks)
+        return int(res * self.units)
 
 
 if __name__ == '__main__':
@@ -78,8 +98,8 @@ if __name__ == '__main__':
     #
 
     from pprint import pprint
-    bdc = BitcoindClient.from_config()
-    # bdc = BitcoindClient.from_config('bitcoind-testnet.ini')
+
+    bdc = BitcoindClient()
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getinfo())

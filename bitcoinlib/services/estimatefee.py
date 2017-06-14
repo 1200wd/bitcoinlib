@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
+#    Coinfees client
 #    © 2017 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -17,15 +18,21 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import bitcoinlib.services.baseclient
-import bitcoinlib.services.authproxy
-import bitcoinlib.services.bitcoind
-import bitcoinlib.services.blockexplorer
-import bitcoinlib.services.bitgo
-import bitcoinlib.services.coinfees
-import bitcoinlib.services.blockr
-import bitcoinlib.services.blockchaininfo
-import bitcoinlib.services.blockcypher
-import bitcoinlib.services.blocktrail
-import bitcoinlib.services.chainso
-import bitcoinlib.services.estimatefee
+
+from bitcoinlib.services.baseclient import BaseClient
+
+PROVIDERNAME = 'estimatefee'
+
+
+class EstimateFeeClient(BaseClient):
+
+    def __init__(self, network, base_url, denominator, api_key=''):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+
+    def compose_request(self, cmd, parameter, method='get'):
+        url_path = cmd + '/' + parameter
+        res = self.request(url_path, method=method)
+        return float(res) * self.units
+
+    def estimatefee(self, blocks):
+        return self.compose_request('n', str(blocks))

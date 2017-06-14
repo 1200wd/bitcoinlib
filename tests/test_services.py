@@ -22,7 +22,7 @@ import unittest
 from bitcoinlib.services.services import *
 
 
-MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 0.50  # Maximum difference from average estimated fee before test_estimatefee fails.
+MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 1.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
 
@@ -61,13 +61,13 @@ class TestService(unittest.TestCase):
          '474c0e24e530d78716fc9c88ac00000000'
         srv = Service(network='testnet')
         srv.sendrawtransaction(raw_tx)
-        for srv_err in srv.errors:
-            if 'blockcypher.testnet' in srv_err:
-                self.assertIn('has already been spent', srv_err['blockcypher.testnet'])
-            if 'blockexplorer.testnet' in srv_err:
-                self.assertIn('Missing inputs', srv_err['blockexplorer.testnet'])
-            if 'blockr.testnet' in srv_err:
-                self.assertIn('Did you sign your transaction', srv_err['blockr.testnet'])
+        for provider in srv.errors:
+            if provider == 'blockcypher.testnet':
+                self.assertIn('has already been spent', srv.errors['blockcypher.testnet'])
+            elif provider == 'blockexplorer.testnet' or provider == 'bitcoind.testnet':
+                self.assertIn('Missing inputs', srv.errors['blockexplorer.testnet'])
+            elif provider == 'blockr.testnet':
+                self.assertIn('Did you sign your transaction', srv.errors['blockr.testnet'])
 
     def test_get_balance(self):
         srv = Service(min_providers=5)
@@ -75,8 +75,8 @@ class TestService(unittest.TestCase):
         prev = None
         if len(srv.results) < 2:
             self.fail("Only 1 or less service providers found, nothing to compare")
-        for sb in srv.results:
-            balance = list(sb.values())[0]
+        for provider in srv.results:
+            balance = srv.results[provider]
             if prev is not None and balance != prev:
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
             else:
@@ -93,13 +93,13 @@ class TestService(unittest.TestCase):
         srv.estimatefee()
         if len(srv.results) < 2:
             self.fail("Only 1 or less service providers found, no fee estimates to compare")
-        feelist = [list(x.values())[0] for x in srv.results]
+        feelist = list(srv.results.values())
         average_fee = sum(feelist) / float(len(feelist))
-        for feeest in srv.results:
-            key, value = feeest.popitem()
+        for provider in srv.results:
+            value = srv.results[provider]
             if not value:
-                self.fail("Provider '%s' returns fee estimate of zero" % key)
+                self.fail("Provider '%s' returns fee estimate of zero" % provider)
             fee_difference_from_average = (abs(value - average_fee) / average_fee)
             if fee_difference_from_average > MAXIMUM_ESTIMATED_FEE_DIFFERENCE:
                 self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
-                          (key, fee_difference_from_average * 100))
+                          (provider, fee_difference_from_average * 100))

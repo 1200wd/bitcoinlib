@@ -6,7 +6,9 @@
 Welcome to Bitcoinlib's documentation!
 ======================================
 
-Bitcoin and other Cryptocurrencies Library for Python
+Bitcoin and other Cryptocurrencies Library for Python. Includes a fully functional
+wallet, Mnemonic key generation and management and connection
+with various service providers to receive and send blockchain and transaction information.
 
 
 Wallet

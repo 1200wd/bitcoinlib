@@ -18,9 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'blockcypher'
+
+_logger = logging.getLogger(__name__)
 
 
 class BlockCypher(BaseClient):
@@ -50,12 +53,17 @@ class BlockCypher(BaseClient):
 
     def getutxos(self, addresslist):
         addresses = ';'.join(addresslist)
-        res = self.compose_request('addrs', addresses, variables={'unspentOnly': 1})
+        res = self.compose_request('addrs', addresses, variables={'unspentOnly': 1, 'limit': 2000})
         utxos = []
+        if not isinstance(res, list):
+            res = [res]
         for a in res:
             address = a['address']
-            if a['n_tx'] == 0:
+            if 'txrefs' not in a:
                 continue
+            if len(a['txrefs']) > 500:
+                _logger.warning("BlockCypher: Large number of outputs for address %s, "
+                                "UTXO list may be incomplete" % address)
             for utxo in a['txrefs']:
                 utxos.append({
                     'address': address,
@@ -67,11 +75,6 @@ class BlockCypher(BaseClient):
                     'script': '',
                 })
         return utxos
-
-    # TODO: Implement this method, if possible
-    # def getrawtransaction(self, txid):
-    #     res = self.compose_request('tx', 'raw', txid)
-    #     return res['tx']['hex']
 
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')

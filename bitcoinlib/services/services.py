@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    SERVICES - Main Service connector
-#    © 2017 March - 1200 Web Development <http://1200wd.com/>
+#    © 2017 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -39,13 +39,15 @@ class ServiceError(Exception):
 
 class Service(object):
 
-    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=5, providers=None):
+    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None):
         self.network = network
+        if min_providers > max_providers:
+            max_providers = min_providers
         try:
-            fn = DEFAULT_SETTINGSDIR + "/providers.json"
+            fn = DEFAULT_SETTINGSDIR + "providers.json"
             f = open(fn, "r")
         except FileNotFoundError:
-            fn = CURRENT_INSTALLDIR_DATA + "/providers.json"
+            fn = CURRENT_INSTALLDIR_DATA + "providers.json"
             f = open(fn, "r")
 
         try:
@@ -56,7 +58,8 @@ class Service(object):
             raise ServiceError(errstr)
         f.close()
 
-        provider_list = list(self.providers_defined.keys())
+        # provider_list = list(self.providers_defined.keys())
+        provider_list = list([self.providers_defined[x]['provider'] for x in self.providers_defined])
         if providers is None:
             providers = []
         for p in providers:
@@ -71,13 +74,13 @@ class Service(object):
 
         self.min_providers = min_providers
         self.max_providers = max_providers
-        self.results = []
-        self.errors = []
+        self.results = {}
+        self.errors = {}
         self.resultcount = 0
 
     def _provider_execute(self, method, argument):
-        self.results = []
-        self.errors = []
+        self.results = {}
+        self.errors = {}
         self.resultcount = 0
 
         for sp in self.providers:
@@ -86,11 +89,13 @@ class Service(object):
             try:
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
-                providermethod = getattr(
-                    providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
-                                   self.providers[sp]['api_key']), method)
+                pc_instance = providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
+                                             self.providers[sp]['api_key'])
+                if not hasattr(pc_instance, method):
+                    continue
+                providermethod = getattr(pc_instance, method)
                 res = providermethod(argument)
-                self.results.append(
+                self.results.update(
                     {sp: res}
                 )
                 self.resultcount += 1
@@ -100,7 +105,7 @@ class Service(object):
                         err = e.msg
                     except AttributeError:
                         err = e
-                    self.errors.append(
+                    self.errors.update(
                         {sp: err}
                     )
                 _logger.warning("%s.%s(%s) Error %s" % (sp, method, argument, e))
@@ -110,7 +115,7 @@ class Service(object):
 
         if not self.resultcount:
             return False
-        return list(self.results[0].values())[0]
+        return list(self.results.values())[0]
 
     def getbalance(self, addresslist):
         if not addresslist:
@@ -126,7 +131,11 @@ class Service(object):
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
             addresslist = [addresslist]
 
-        return self._provider_execute('getutxos', addresslist)
+        utxos = []
+        while addresslist:
+            utxos += self._provider_execute('getutxos', addresslist[:20])
+            addresslist = addresslist[20:]
+        return utxos
 
     def getrawtransaction(self, txid):
         return self._provider_execute('getrawtransaction', txid)
@@ -140,21 +149,13 @@ class Service(object):
     def estimatefee(self, blocks=3):
         return self._provider_execute('estimatefee', blocks)
     
-    def estimate_fee_for_transaction(self, no_inputs=1, no_outputs=1, blocks=3):
-        fee_per_kb = self.estimatefee(blocks=blocks)
-        # TODO: Estimate transaction size correctly
-        tr_size = 100 + (no_inputs * 150) + (no_outputs * 50)
-        return int((tr_size / 1024) * fee_per_kb)
-
 
 if __name__ == '__main__':
     from pprint import pprint
 
     # Tests for specific provider
-    srv = Service(network='bitcoin', providers=['blockcypher'])
-    # print("Getbalance, first result only: %s" % srv.getbalance())
-    # srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
-    pprint(srv.estimatefee(3))
+    srv = Service(network='bitcoin', providers=['estimatefee'])
+    print(srv.estimatefee(1000))
 
     # Get Balance and UTXO's for given bitcoin testnet3 addresses
     addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
@@ -199,3 +200,12 @@ if __name__ == '__main__':
     srv = Service(min_providers=10)
     srv.estimatefee(5)
     pprint(srv.results)
+
+    # Test address with huge number of UTXO's
+    # addresslst = '16ZbpCEyVVdqu8VycWR8thUL2Rd9JnjzHt'
+    # addresslst = '1KwA4fS4uVuCNjCtMivE7m5ATbv93UZg8V'
+    # srv = Service(network='bitcoin', min_providers=10)
+    # utxos = srv.getutxos(addresslst)
+    # results = srv.results
+    # for res in results:
+    #     print(res, len(results[res]))

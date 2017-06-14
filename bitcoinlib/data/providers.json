@@ -1,4 +1,22 @@
 {
+  "bitcoind": {
+    "provider": "bitcoind",
+    "network": "bitcoin",
+    "client_class": "BitcoindClient",
+    "url": "",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000
+  },
+  "bitcoind.testnet": {
+    "provider": "bitcoind",
+    "network": "testnet",
+    "client_class": "BitcoindClient",
+    "url": "",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000
+  },
   "blockexplorer": {
     "provider": "blockexplorer",
     "network": "bitcoin",
@@ -33,7 +51,7 @@
     "url": "https://blockchain.info/",
     "api_key": "",
     "priority": 10,
-    "denominator": 100000000
+    "denominator": 1
   },
   "blockr": {
     "provider": "blockr",
@@ -68,7 +86,7 @@
     "client_class": "CoinfeesClient",
     "url": "https://bitcoinfees.21.co/api/v1/",
     "api_key": "",
-    "priority": 20,
+    "priority": 10,
     "denominator": 1
   },
   "blockr.testnet": {
@@ -106,5 +124,86 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1
+  },
+  "blocktrail": {
+    "provider": "blocktrail",
+    "network": "bitcoin",
+    "client_class": "BlockTrail",
+    "url": "https://api.blocktrail.com/v1/BTC/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
+  "blocktrail.testnet": {
+    "provider": "blocktrail",
+    "network": "testnet",
+    "client_class": "BlockTrail",
+    "url": "https://api.blocktrail.com/v1/tBTC/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
+  "chainso.litecoin.testnet": {
+    "provider": "chainso",
+    "network": "litecoin_testnet",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "chainso": {
+    "provider": "chainso",
+    "network": "bitcoin",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
+  },
+    "chainso.testnet": {
+    "provider": "chainso",
+    "network": "testnet",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
+  },
+    "chainso.litecoin": {
+    "provider": "chainso",
+    "network": "litecoin",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
+  },
+    "chainso.dash": {
+    "provider": "chainso",
+    "network": "dash",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
+  },
+    "chainso.dash.testnet": {
+    "provider": "chainso",
+    "network": "dash_testnet",
+    "client_class": "ChainSo",
+    "url": "https://chain.so/api/v2/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "estimatefee": {
+    "provider": "estimatefee",
+    "network": "bitcoin",
+    "client_class": "EstimateFeeClient",
+    "url": "https://estimatefee.com/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
   }
 }
