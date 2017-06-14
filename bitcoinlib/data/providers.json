@@ -51,7 +51,7 @@
     "url": "https://blockchain.info/",
     "api_key": "",
     "priority": 10,
-    "denominator": 100000000
+    "denominator": 1
   },
   "blockr": {
     "provider": "blockr",

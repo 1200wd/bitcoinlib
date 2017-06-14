@@ -56,7 +56,7 @@ class BlockchainInfoClient(BaseClient):
             for utxo in res['unspent_outputs']:
                 utxos.append({
                     'address': address,
-                    'tx_hash': utxo['tx_hash'],
+                    'tx_hash': utxo['tx_hash_big_endian'],
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['tx_output_n'],
                     'index':  utxo['tx_index'],
