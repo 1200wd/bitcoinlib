@@ -643,7 +643,7 @@ class HDKey:
                         self.key = Key(import_key, passphrase=passphrase, network=network)
                         chain = b'\0'*32
                         key = self.key.private_byte
-                        key_type = 'private'
+                        type = 'private'
                     except BKeyError as e:
                         raise BKeyError("[BKeyError] %s" % e)
 

@@ -977,14 +977,15 @@ class HDWallet:
         :return HDWalletKey: Single key as object
         """
         dbkey = None
+        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if isinstance(term, numbers.Number):
-            dbkey = self._session.query(DbKey).filter_by(id=term).scalar()
+            dbkey = qr.filter_by(id=term).scalar()
         if not dbkey:
-            dbkey = self._session.query(DbKey).filter_by(address=term).first()
+            dbkey = qr.filter_by(address=term).first()
         if not dbkey:
-            dbkey = self._session.query(DbKey).filter_by(wif=term).first()
+            dbkey = qr.filter_by(wif=term).first()
         if not dbkey:
-            dbkey = self._session.query(DbKey).filter_by(name=term).first()
+            dbkey = qr.filter_by(name=term).first()
         if dbkey:
             if dbkey.id in self._key_objects.keys():
                 return self._key_objects[dbkey.id]
