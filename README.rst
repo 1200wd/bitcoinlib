@@ -1,7 +1,9 @@
 Python Bitcoin Library
 ======================
 
-Bitcoin and other Cryptocurrencies Library for Python
+Bitcoin and other Cryptocurrencies Library for Python. Includes a fully functional
+wallet, Mnemonic key generation and management and connection
+with various service providers to receive and send blockchain and transaction information.
 
 .. image:: https://travis-ci.org/1200wd/bitcoinlib.svg?branch=master
     :target: https://travis-ci.org/1200wd/bitcoinlib
