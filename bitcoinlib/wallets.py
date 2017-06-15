@@ -1110,13 +1110,6 @@ class HDWallet:
                 utxo_record.key_id = key.id
                 transaction_record = transaction_in_db.scalar()
                 transaction_record.confirmations = utxo['confirmations']
-
-                # Recover key_id after deletion
-                # TODO: Fix
-                # if not utxo_record.key_id:
-                #     key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
-                #     if key:
-                #         utxo_record.key_id = key.id
             else:
                 # Add transaction if not exist and then add output
                 if not transaction_in_db.count():
@@ -1397,6 +1390,7 @@ class HDWallet:
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
         srv = Service(network=self.network.network_name)
+        fee_per_kb = srv.estimatefee()
         estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
         return self.send([(to_address, total_amount-estimated_fee)], input_arr,
                          transaction_fee=estimated_fee, min_confirms=min_confirms)

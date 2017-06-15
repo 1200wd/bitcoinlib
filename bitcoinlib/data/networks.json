@@ -69,7 +69,7 @@
     "description": "Dash Testnet Network",
     "currency_symbol": "tDASH",
     "currency_code": "tDASH",
-    "prefix_address": "8B",
+    "prefix_address": "8C",
     "prefix_address_p2sh": "13",
     "prefix_wif": "EF",
     "prefix_hdkey_private": "3A8061A0",
