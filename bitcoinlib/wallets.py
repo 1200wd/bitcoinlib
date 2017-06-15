@@ -1261,6 +1261,10 @@ class HDWallet:
         """
         # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
+        if account_id is None:
+            account_id = self.default_account_id
+
+        # Create transaction and add outputs
         t = Transaction(network=self.network.network_name)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
@@ -1269,21 +1273,30 @@ class HDWallet:
             amount_total_output += o[1]
             t.add_output(o[1], o[0])
 
-        if account_id is None:
-            account_id = self.default_account_id
+        # Add inputs
+        amount_total_input = 0
+        if input_arr is None:
+            utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey).\
+                filter(DbKey.wallet_id == self.wallet_id,
+                       DbKey. account_id == account_id,
+                       DbTransactionOutput.spend.op("IS")(False),
+                       DbTransaction.confirmations >= min_confirms)
+            utxos = utxo_query.all()
+            if not utxos:
+                _logger.warning("Create transaction: No unspent transaction outputs found")
+                return None
+            input_arr = []
+            selected_utxos = self._select_inputs(amount_total_output + fee, utxo_query)
+            if not selected_utxos:
+                raise WalletError("Not enough unspent transaction outputs found")
+            for utxo in selected_utxos:
+                amount_total_input += utxo.value
+                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
+        else:
+            for i in input_arr:
+                amount_total_input += i[3]
 
-        utxo_query = self._session.query(DbTransactionOutput).\
-            join(DbTransaction).join(DbKey). \
-            filter(DbKey.wallet_id == self.wallet_id,
-                   DbKey.account_id == account_id,
-                   DbTransactionOutput.spend.op("IS")(False),
-                   DbTransaction.confirmations >= min_confirms)
-        utxos = utxo_query.all()
-
-        if not utxos:
-            _logger.warning("Create transaction: No unspent transaction outputs found")
-            return None
-
+        # Calculate fees
         srv = Service(network=self.network.network_name)
         fee = transaction_fee
         fee_per_kb = None
@@ -1295,18 +1308,6 @@ class HDWallet:
             fee_per_output = int((50 / 1024) * fee_per_kb)
             # fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
 
-        amount_total_input = 0
-        if input_arr is None:
-            input_arr = []
-            selected_utxos = self._select_inputs(amount_total_output + fee, utxo_query)
-            if not selected_utxos:
-                raise WalletError("Not enough unspent transaction outputs found")
-            for utxo in selected_utxos:
-                amount_total_input += utxo.value
-                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
-        else:
-            for i in input_arr:
-                amount_total_input += i[3]
         amount_change = int(amount_total_input - (amount_total_output + fee))
         # If change amount is smaller then estimated fee it will cost to send it then skip change
         if fee_per_output and amount_change < fee_per_output:
