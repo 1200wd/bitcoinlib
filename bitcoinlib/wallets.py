@@ -977,14 +977,15 @@ class HDWallet:
         :return HDWalletKey: Single key as object
         """
         dbkey = None
+        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if isinstance(term, numbers.Number):
-            dbkey = self._session.query(DbKey).filter_by(id=term).scalar()
+            dbkey = qr.filter_by(id=term).scalar()
         if not dbkey:
-            dbkey = self._session.query(DbKey).filter_by(address=term).first()
+            dbkey = qr.filter_by(address=term).first()
         if not dbkey:
-            dbkey = self._session.query(DbKey).filter_by(wif=term).first()
+            dbkey = qr.filter_by(wif=term).first()
         if not dbkey:
-            dbkey = self._session.query(DbKey).filter_by(name=term).first()
+            dbkey = qr.filter_by(name=term).first()
         if dbkey:
             if dbkey.id in self._key_objects.keys():
                 return self._key_objects[dbkey.id]
@@ -1109,13 +1110,6 @@ class HDWallet:
                 utxo_record.key_id = key.id
                 transaction_record = transaction_in_db.scalar()
                 transaction_record.confirmations = utxo['confirmations']
-
-                # Recover key_id after deletion
-                # TODO: Fix
-                # if not utxo_record.key_id:
-                #     key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
-                #     if key:
-                #         utxo_record.key_id = key.id
             else:
                 # Add transaction if not exist and then add output
                 if not transaction_in_db.count():
@@ -1267,6 +1261,10 @@ class HDWallet:
         """
         # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
+        if account_id is None:
+            account_id = self.default_account_id
+
+        # Create transaction and add outputs
         t = Transaction(network=self.network.network_name)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
@@ -1275,21 +1273,30 @@ class HDWallet:
             amount_total_output += o[1]
             t.add_output(o[1], o[0])
 
-        if account_id is None:
-            account_id = self.default_account_id
+        # Add inputs
+        amount_total_input = 0
+        if input_arr is None:
+            utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey).\
+                filter(DbKey.wallet_id == self.wallet_id,
+                       DbKey. account_id == account_id,
+                       DbTransactionOutput.spend.op("IS")(False),
+                       DbTransaction.confirmations >= min_confirms)
+            utxos = utxo_query.all()
+            if not utxos:
+                _logger.warning("Create transaction: No unspent transaction outputs found")
+                return None
+            input_arr = []
+            selected_utxos = self._select_inputs(amount_total_output + fee, utxo_query)
+            if not selected_utxos:
+                raise WalletError("Not enough unspent transaction outputs found")
+            for utxo in selected_utxos:
+                amount_total_input += utxo.value
+                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
+        else:
+            for i in input_arr:
+                amount_total_input += i[3]
 
-        utxo_query = self._session.query(DbTransactionOutput).\
-            join(DbTransaction).join(DbKey). \
-            filter(DbKey.wallet_id == self.wallet_id,
-                   DbKey.account_id == account_id,
-                   DbTransactionOutput.spend.op("IS")(False),
-                   DbTransaction.confirmations >= min_confirms)
-        utxos = utxo_query.all()
-
-        if not utxos:
-            _logger.warning("Create transaction: No unspent transaction outputs found")
-            return None
-
+        # Calculate fees
         srv = Service(network=self.network.network_name)
         fee = transaction_fee
         fee_per_kb = None
@@ -1301,18 +1308,6 @@ class HDWallet:
             fee_per_output = int((50 / 1024) * fee_per_kb)
             # fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
 
-        amount_total_input = 0
-        if input_arr is None:
-            input_arr = []
-            selected_utxos = self._select_inputs(amount_total_output + fee, utxo_query)
-            if not selected_utxos:
-                raise WalletError("Not enough unspent transaction outputs found")
-            for utxo in selected_utxos:
-                amount_total_input += utxo.value
-                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
-        else:
-            for i in input_arr:
-                amount_total_input += i[3]
         amount_change = int(amount_total_input - (amount_total_output + fee))
         # If change amount is smaller then estimated fee it will cost to send it then skip change
         if fee_per_output and amount_change < fee_per_output:
@@ -1338,8 +1333,8 @@ class HDWallet:
 
         # Calculate exact estimated fees and update change output if necessary
         if transaction_fee is None and fee_per_kb and amount_change and ck is not None:
-            tr_size = len(t.raw())
-            fee_exact = int((tr_size / 1024) * fee_per_kb) * 2
+            # tr_size = len(t.raw())
+            fee_exact = t.estimate_fee(fee_per_kb)
             if abs((fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (fee, fee_exact))
@@ -1396,6 +1391,10 @@ class HDWallet:
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
         srv = Service(network=self.network.network_name)
+        fee_per_kb = srv.estimatefee()
+        tr_size = len(t.raw())
+        estimated_fee = int((tr_size / 1024) * fee_per_kb) * 2
+
         estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
         return self.send([(to_address, total_amount-estimated_fee)], input_arr,
                          transaction_fee=estimated_fee, min_confirms=min_confirms)
