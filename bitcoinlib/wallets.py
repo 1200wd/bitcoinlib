@@ -1332,8 +1332,8 @@ class HDWallet:
 
         # Calculate exact estimated fees and update change output if necessary
         if transaction_fee is None and fee_per_kb and amount_change and ck is not None:
-            tr_size = len(t.raw())
-            fee_exact = int((tr_size / 1024) * fee_per_kb) * 2
+            # tr_size = len(t.raw())
+            fee_exact = t.estimate_fee(fee_per_kb)
             if abs((fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (fee, fee_exact))
@@ -1391,6 +1391,9 @@ class HDWallet:
             total_amount += utxo['value']
         srv = Service(network=self.network.network_name)
         fee_per_kb = srv.estimatefee()
+        tr_size = len(t.raw())
+        estimated_fee = int((tr_size / 1024) * fee_per_kb) * 2
+
         estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
         return self.send([(to_address, total_amount-estimated_fee)], input_arr,
                          transaction_fee=estimated_fee, min_confirms=min_confirms)
