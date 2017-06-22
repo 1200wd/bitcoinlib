@@ -1392,10 +1392,8 @@ class HDWallet:
             total_amount += utxo['value']
         srv = Service(network=self.network.network_name)
         fee_per_kb = srv.estimatefee()
-        tr_size = len(t.raw())
-        estimated_fee = int((tr_size / 1024) * fee_per_kb) * 2
-
-        estimated_fee = srv.estimate_fee_for_transaction(no_outputs=len(utxos))
+        tr_size = 125 + (len(input_arr) * 125)
+        estimated_fee = int((tr_size / 1024) * fee_per_kb)
         return self.send([(to_address, total_amount-estimated_fee)], input_arr,
                          transaction_fee=estimated_fee, min_confirms=min_confirms)
 
