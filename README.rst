@@ -1,7 +1,7 @@
 Python Bitcoin Library
 ======================
 
-Bitcoin and other Cryptocurrencies Library for Python. Includes a fully functional
+Bitcoin and other Crypto currencies Library for Python. Includes a fully functional
 wallet, Mnemonic key generation and management and connection
 with various service providers to receive and send blockchain and transaction information.
 
@@ -33,7 +33,7 @@ Features
 Wallet
 ------
 
-The bitcoinlibrary contains a wallet implementation using sqlalchemy and sqllite3 to import, create and manage 
+The bitcoin library contains a wallet implementation using sqlalchemy and sqllite3 to import, create and manage
 keys in a Hierarchical Deterministic Way.
 
 Example: Create wallet and generate new key to receive bitcoins
@@ -51,7 +51,7 @@ Example: Create wallet and generate new key to receive bitcoins
    '1Fo7STj6LdRhUuD1AiEsHpH65pXzraGJ9j'
 
 When your wallet received a payment and has unspent transaction outputs, you can send bitcoins easily.
-If succesfull a transaction ID is returned
+If successful a transaction ID is returned
 
 .. code-block:: python
 
@@ -84,7 +84,7 @@ Communicates with pools of bitcoin service providers to retreive transaction, ad
 To push a transaction to the network. To determine optimal service fee for a transaction. Or to update your
 wallet's balance.
 
-Example: Get estimated transactionfee in sathosis per Kb for confirmation within 5 blocks
+Example: Get estimated transaction fee in sathosis per Kb for confirmation within 5 blocks
 
 .. code-block:: python
 
