@@ -668,7 +668,7 @@ class Transaction:
                                    self.network.network_name))
 
     def estimate_fee(self, fee_per_kb):
-        return int(len(self.raw())/1024) * fee_per_kb
+        return int(len(self.raw())/1024 * fee_per_kb)
 
 
 if __name__ == '__main__':

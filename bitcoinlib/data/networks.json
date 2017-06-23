@@ -63,7 +63,7 @@
   {
     "description": "Dash Network",
     "currency_name": "dash",
-    "currency_name_plural": "dash",
+    "currency_name_plural": "dash coins",
     "currency_symbol": "DASH",
     "currency_code": "DASH",
     "prefix_address": "4C",
@@ -77,7 +77,7 @@
   "dash_testnet":
   {
     "description": "Dash Testnet Network",
-    "currency_name": "test-dash",
+    "currency_name": "test-dash coins",
     "currency_name_plural": "test-dash",
     "currency_symbol": "tDASH",
     "currency_code": "tDASH",

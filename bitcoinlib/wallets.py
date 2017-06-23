@@ -1090,9 +1090,15 @@ class HDWallet:
         utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
         for current_utxo in current_utxos:
             if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
-                self._session.query(DbTransaction).filter(DbTransaction.tx_hash == current_utxo['tx_hash']).\
-                    update({DbTransaction.spend: True})
-                self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
+                utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction). \
+                    filter(DbTransaction.hash == current_utxo['tx_hash']).filter(
+                    DbTransactionOutput.output_n == current_utxo['output_n'])
+                if utxo_in_db.count():
+                    utxo_record = utxo_in_db.scalar()
+                    utxo_record.spend = True
+                # self._session.query(DbTransaction).filter(DbTransaction.hash == current_utxo['tx_hash']).\
+                #     update({DbTransaction.spend: True})
+                # self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
             self._session.commit()
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
@@ -1348,7 +1354,7 @@ class HDWallet:
         res = srv.sendrawtransaction(t.raw_hex())
         if not res:
             raise WalletError("Could not send transaction: %s" % srv.errors)
-        _logger.info("Succesfully pushed transaction, result: %s" % res)
+        _logger.info("Successfully pushed transaction, result: %s" % res)
 
         # Update db: Update spend UTXO's, add transaction to database
         for inp in input_arr:
