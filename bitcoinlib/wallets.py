@@ -1273,6 +1273,17 @@ class HDWallet:
             amount_total_output += o[1]
             t.add_output(o[1], o[0])
 
+        # Calculate fees
+        srv = Service(network=self.network.network_name)
+        fee = transaction_fee
+        fee_per_kb = None
+        fee_per_output = None
+        if transaction_fee is None:
+            fee_per_kb = srv.estimatefee()
+            tr_size = 100 + (1 * 150) + (len(output_arr)+1 * 50)
+            fee = int((tr_size / 1024) * fee_per_kb)
+            fee_per_output = int((50 / 1024) * fee_per_kb)
+
         # Add inputs
         amount_total_input = 0
         if input_arr is None:
@@ -1295,18 +1306,6 @@ class HDWallet:
         else:
             for i in input_arr:
                 amount_total_input += i[3]
-
-        # Calculate fees
-        srv = Service(network=self.network.network_name)
-        fee = transaction_fee
-        fee_per_kb = None
-        fee_per_output = None
-        if transaction_fee is None:
-            fee_per_kb = srv.estimatefee()
-            tr_size = 100 + (1 * 150) + (len(output_arr) * 50)
-            fee = int((tr_size / 1024) * fee_per_kb)
-            fee_per_output = int((50 / 1024) * fee_per_kb)
-            # fee = srv.estimate_fee_for_transaction(no_outputs=len(output_arr))
 
         amount_change = int(amount_total_input - (amount_total_output + fee))
         # If change amount is smaller then estimated fee it will cost to send it then skip change
@@ -1433,6 +1432,11 @@ if __name__ == '__main__':
     #
     # WALLETS EXAMPLES
     #
+
+    wl = HDWallet('ari-test-2')
+    # wl.updateutxos(account_id=1)
+    # wl.info()
+    wl.sweep('1P3hjtNpkSDLHJ27NkZjiUoMkS8rPum2Pw', account_id=1)
 
     # First recreate database to avoid already exist errors
     import os
