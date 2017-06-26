@@ -1415,7 +1415,7 @@ class HDWallet:
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self._owner)
         print(" Network                        %s" % self.network.description)
-        print(" Balance                        %s" % self.balance(fmt='string'))
+        print(" Balance                        %s" % self.balance(as_string=True))
         print("")
 
         if detail:
