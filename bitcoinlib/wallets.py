@@ -1114,6 +1114,7 @@ class HDWallet:
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
                 utxo_record.key_id = key.id
+                utxo_record.spend = False
                 transaction_record = transaction_in_db.scalar()
                 transaction_record.confirmations = utxo['confirmations']
             else:
