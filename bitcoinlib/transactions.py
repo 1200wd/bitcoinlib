@@ -20,7 +20,7 @@
 
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
-from bitcoinlib.keys import Key
+from bitcoinlib.keys import Key, get_key_format
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 
 
@@ -251,22 +251,39 @@ def script_to_string(script):
     return ' '.join(scriptstr)
 
 
-def serialize_multisig(public_key_list, no_required=None):
-    if not isinstance(public_key_list, list):
-        raise TransactionError("Argument public_key_list must be of type list")
+def _serialize_multisig(public_key_list, no_required=None):
     for key in public_key_list:
         if not isinstance(key, (str, bytes)):
             raise TransactionError("Item %s in public_key_list is not of type string or bytes")
     if no_required is None:
         no_required = len(public_key_list)
 
-    multisig = int_to_varbyteint(opcodes['OP_1'] + no_required - 1)
+    script = int_to_varbyteint(opcodes['OP_1'] + no_required - 1)
     for key in public_key_list:
-        multisig += int_to_varbyteint(len(key)) + key
-    multisig += int_to_varbyteint(opcodes['OP_1'] + len(public_key_list) - 1)
-    multisig += b'\xae'  # 'OP_CHECKMULTISIG'
+        script += int_to_varbyteint(len(key)) + key
+    script += int_to_varbyteint(opcodes['OP_1'] + len(public_key_list) - 1)
+    script += b'\xae'  # 'OP_CHECKMULTISIG'
 
-    return multisig
+    return script
+
+
+def serialize_multisig(key_list, no_required=None):
+    if not isinstance(key_list, list):
+        raise TransactionError("Argument public_key_list must be of type list")
+    public_key_list = []
+    for k in key_list:
+        if isinstance(k, Key):
+            public_key_list.append(k.public_uncompressed_byte)
+        elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
+            public_key_list.append(k)
+        else:
+            try:
+                kobj = Key(k)
+                public_key_list.append(kobj.public_uncompressed_byte)
+            except:
+                raise TransactionError("Unknown key %s, please specify Key object, public or private key string")
+
+    return _serialize_multisig(public_key_list, no_required)
 
 
 class Input:
