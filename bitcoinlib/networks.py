@@ -139,6 +139,8 @@ class Network:
     def __init__(self, network_name=DEFAULT_NETWORK):
         self.network_name = network_name
         self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
+        self.currency_name = NETWORK_DEFINITIONS[network_name]['currency_name']
+        self.currency_name_plural = NETWORK_DEFINITIONS[network_name]['currency_name_plural']
         self.currency_code = NETWORK_DEFINITIONS[network_name]['currency_code']
         self.currency_symbol = NETWORK_DEFINITIONS[network_name]['currency_symbol']
         self.prefix_address_p2sh = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address_p2sh'])

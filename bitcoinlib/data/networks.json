@@ -2,6 +2,8 @@
   "bitcoin":
   {
     "description": "Bitcoin",
+    "currency_name": "bitcoin",
+    "currency_name_plural": "bitcoins",
     "currency_symbol": "฿",
     "currency_code": "BTC",
     "prefix_address": "00",
@@ -15,6 +17,8 @@
   "testnet":
   {
     "description": "Bitcoin Test Network 3",
+    "currency_name": "test-bitcoin",
+    "currency_name_plural": "test-bitcoins",
     "currency_symbol": "TBTC",
     "currency_code": "TBTC",
     "prefix_address": "6F",
@@ -27,7 +31,9 @@
   },
   "litecoin":
   {
-    "description": "Litcoin Network",
+    "description": "Litecoin Network",
+    "currency_name": "litecoin",
+    "currency_name_plural": "litecoins",
     "currency_symbol": "LTC",
     "currency_code": "LTC",
     "prefix_address": "30",
@@ -40,7 +46,9 @@
   },
   "litecoin_testnet":
   {
-    "description": "Litcoin Test Network",
+    "description": "Litecoin Test Network",
+    "currency_name": "test-litecoin",
+    "currency_name_plural": "test-litecoins",
     "currency_symbol": "XLT",
     "currency_code": "XLT",
     "prefix_address": "6F",
@@ -54,6 +62,8 @@
   "dash":
   {
     "description": "Dash Network",
+    "currency_name": "dash",
+    "currency_name_plural": "dash coins",
     "currency_symbol": "DASH",
     "currency_code": "DASH",
     "prefix_address": "4C",
@@ -67,6 +77,8 @@
   "dash_testnet":
   {
     "description": "Dash Testnet Network",
+    "currency_name": "test-dash coins",
+    "currency_name_plural": "test-dash",
     "currency_symbol": "tDASH",
     "currency_code": "tDASH",
     "prefix_address": "8C",

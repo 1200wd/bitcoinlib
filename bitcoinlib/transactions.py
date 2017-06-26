@@ -699,11 +699,21 @@ class Transaction:
         :type lock_script: bytes, str
         
         """
+        if address:
+            to = address
+        elif public_key:
+            to = public_key
+        else:
+            to = public_key_hash
+        if not float(amount).is_integer():
+            raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
+        if amount <= 0:
+            raise TransactionError("Output to %s must be more then zero" % to)
         self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
                                    self.network.network_name))
 
     def estimate_fee(self, fee_per_kb):
-        return int(len(self.raw())/1024) * fee_per_kb
+        return int(len(self.raw())/1024 * fee_per_kb)
 
 
 if __name__ == '__main__':
