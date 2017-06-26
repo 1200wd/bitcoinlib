@@ -1439,11 +1439,6 @@ if __name__ == '__main__':
     # WALLETS EXAMPLES
     #
 
-    wl = HDWallet('ari-test-2')
-    # wl.updateutxos(account_id=1)
-    # wl.info()
-    wl.sweep('1P3hjtNpkSDLHJ27NkZjiUoMkS8rPum2Pw', account_id=1)
-
     # First recreate database to avoid already exist errors
     import os
     from pprint import pprint

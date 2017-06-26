@@ -117,6 +117,7 @@ class DbKey(Base):
     transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key")
     balance = Column(Integer, default=0)
     used = Column(Boolean, default=False)
+    # TODO - Add redeemscript field?
 
     def __repr__(self):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)

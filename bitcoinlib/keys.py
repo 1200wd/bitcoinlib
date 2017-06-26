@@ -476,7 +476,7 @@ class Key:
 
     def public_point(self):
         """
-        Get public key point on Eliptic curve
+        Get public key point on Elliptic curve
         
         :return tuple: (x, y) point
         """
