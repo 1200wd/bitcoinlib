@@ -251,6 +251,24 @@ def script_to_string(script):
     return ' '.join(scriptstr)
 
 
+def serialize_multisig(public_key_list, no_required=None):
+    if not isinstance(public_key_list, list):
+        raise TransactionError("Argument public_key_list must be of type list")
+    for key in public_key_list:
+        if not isinstance(key, (str, bytes)):
+            raise TransactionError("Item %s in public_key_list is not of type string or bytes")
+    if no_required is None:
+        no_required = len(public_key_list)
+
+    multisig = int_to_varbyteint(opcodes['OP_1'] + no_required - 1)
+    for key in public_key_list:
+        multisig += int_to_varbyteint(len(key)) + key
+    multisig += int_to_varbyteint(opcodes['OP_1'] + len(public_key_list) - 1)
+    multisig += b'\xae'  # 'OP_CHECKMULTISIG'
+
+    return multisig
+
+
 class Input:
     """
     Transaction Input class, normally part of Transaction class
