@@ -492,7 +492,7 @@ class HDWallet:
         for l in range(len(path)):
             pp = "/".join(path[:l+1])
             fullpath = basepath + pp
-            ck = ck.subkey_for_path(path[l])
+            ck = ck.subkey_for_path(path[l], network=network)
             nk = HDWalletKey.from_key(hdkey_object=ck, name=name, wallet_id=wallet_id, network=network,
                                       account_id=account_id, change=change, purpose=purpose, path=fullpath,
                                       parent_id=parent_id, session=session)

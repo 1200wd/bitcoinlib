@@ -767,7 +767,7 @@ class HDKey:
         """
         return self.wif(public=True)
 
-    def subkey_for_path(self, path):
+    def subkey_for_path(self, path, network=None):
         """
         Determine subkey for HD Key for given path.
         Path format: m / purpose' / coin_type' / account' / change / address_index
@@ -801,13 +801,13 @@ class HDKey:
                 if index < 0:
                     raise BKeyError("Could not parse path. Index must be a positive integer.")
                 if first_public or not key.isprivate:
-                    key = key.child_public(index=index)  # TODO hardened=hardened key?
+                    key = key.child_public(index=index, network=network)  # TODO hardened=hardened key?
                     first_public = False
                 else:
-                    key = key.child_private(index=index, hardened=hardened)
+                    key = key.child_private(index=index, hardened=hardened, network=network)
         return key
 
-    def child_private(self, index=0, hardened=False):
+    def child_private(self, index=0, hardened=False, network=None):
         """
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
 
@@ -818,6 +818,8 @@ class HDKey:
         
         :return HDKey: HD Key class object
         """
+        if network is None:
+            network = self.network.network_name
         if not self.isprivate:
             raise BKeyError("Need a private key to create child private key")
         if hardened:
@@ -836,9 +838,9 @@ class HDKey:
         newkey = change_base(newkey, 10, 256, 32)
 
         return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, network=self.network.network_name)
+                     child_index=index, network=network)
 
-    def child_public(self, index=0):
+    def child_public(self, index=0, network=None):
         """
         Use Child Key Derivation to derive child public key of current HD Key object.
 
@@ -847,6 +849,8 @@ class HDKey:
         
         :return HDKey: HD Key class object
         """
+        if network is None:
+            network = self.network.network_name
         if index > 0x80000000:
             raise BKeyError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
         data = self.public_byte + struct.pack('>L', index)
@@ -866,7 +870,7 @@ class HDKey:
         xhex = change_base(Ki.x(), 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, isprivate=False, network=self.network.network_name)
+                     child_index=index, isprivate=False, network=network)
 
 
 if __name__ == '__main__':
