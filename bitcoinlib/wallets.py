@@ -273,8 +273,10 @@ class HDWalletKey:
             self.is_private = wk.is_private
             self.path = wk.path
             self.wallet = wk.wallet
-            # self.network = Network(wk.wallet.network_name)
-            self.network = wk.network
+            self.network_name = wk.network
+            if not self.network_name:
+                self.network_name = wk.wallet.network_name
+            self.network = Network(self.network_name)
             self.depth = wk.depth
             self.type = wk.type
         else:
@@ -464,13 +466,15 @@ class HDWallet:
         :return HDWalletKey: 
         """
         # Initial checks and settings
-        parent_id = 0
-        nk = parent
-        ck = nk.key()
+        if not isinstance(parent, HDWalletKey):
+            raise WalletError("Parent must be of type 'HDWalletKey'")
         if not isinstance(path, list):
             raise WalletError("Path must be of type 'list'")
         if len(basepath) and basepath[-1] != "/":
             basepath += "/"
+        parent_id = 0
+        nk = parent
+        ck = nk.key()
 
         # Check for closest ancestor in wallet
         spath = basepath + '/'.join(path)
@@ -616,6 +620,7 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
+        # TODO: If key has related key-path add to wallet (i.e. for restoring backup
         # Create path for unrelated import keys
         last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
             order_by(DbKey.path.desc()).first()
@@ -738,7 +743,7 @@ class HDWallet:
         """
         return self.get_key(account_id=account_id, depth_of_keys=depth_of_keys)
 
-    def new_account(self, name='', account_id=None):
+    def new_account(self, name='', account_id=None, network=None):
         """
         Create a new account with a childkey for payments and 1 for change.
         
@@ -751,37 +756,50 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
+        if network is None:
+            network = self.network.network_name
+
         # Determine account_id and name
         if account_id is None:
-            last_id = self._session.query(DbKey). \
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose). \
-                order_by(DbKey.account_id.desc()).first().account_id
-            account_id = last_id + 1
+            account_id = 0
+            qr = self._session.query(DbKey). \
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network). \
+                order_by(DbKey.account_id.desc()).first()
+            if qr:
+                account_id = qr.account_id + 1
         if not name:
             name = 'Account #%d' % account_id
-        if self.keys(account_id=account_id, depth=3):
+        if self.keys(account_id=account_id, depth=3, network=network):
             raise WalletError("Account with ID %d already exists for this wallet")
 
         # Get root key of new account
-        accrootkey = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
-                                                          depth=2).scalar()
-        if not accrootkey:
-            raise WalletError("No key found for this wallet_id, network and purpose. Can not create new"
-                              "account for Public wallets, is there a BIP32 Master key imported?")
-        accrootkey_obj = self.key(accrootkey.id)
+        res = self.keys(depth=2, network=network)
+        if not res:
+            try:
+                # TODO: make this better...
+                purposekey = self.key(self.keys(depth=1)[0].id)
+                accrootkey_obj = self._create_keys_from_path(
+                    purposekey, ['99'], name=network, wallet_id=self.wallet_id, account_id=account_id,
+                    network=network, purpose=self.purpose, basepath=purposekey.path, session=self._session)
+            except IndexError:
+                raise WalletError("No key found for this wallet_id and purpose. Can not create new"
+                                  "account for this wallet, is there a BIP32 Master key imported?")
+        else:
+            accrootkey = res[0]
+            accrootkey_obj = self.key(accrootkey.id)
 
         # Create new account addresses and return main account key
         newpath = [str(account_id) + "'"]
         acckey = self._create_keys_from_path(
             accrootkey_obj, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-            network=self.network.network_name, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session
+            network=network, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session
         )
         self._create_keys_from_path(
             acckey, ['0'], name=acckey.name + ' Payments', wallet_id=self.wallet_id, account_id=account_id,
-            network=self.network.network_name, purpose=self.purpose, basepath=acckey.path, session=self._session)
+            network=network, purpose=self.purpose, basepath=acckey.path, session=self._session)
         self._create_keys_from_path(
             acckey, ['1'], name=acckey.name + ' Change', wallet_id=self.wallet_id, account_id=account_id,
-            network=self.network.network_name, purpose=self.purpose, basepath=acckey.path, session=self._session)
+            network=network, purpose=self.purpose, basepath=acckey.path, session=self._session)
         return acckey
 
     def key_for_path(self, path, name='', account_id=0, change=0, enable_checks=True):
@@ -869,7 +887,6 @@ class HDWallet:
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if network is not None:
             qr = qr.filter(DbKey.network_name == network)
-            # qr = qr.filter(DbKey.depth >= 3)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
             qr = qr.filter(DbKey.depth >= 3)
@@ -885,7 +902,7 @@ class HDWallet:
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
 
     def keys_networks(self, as_dict=False):
-        return self.keys()
+        return self.keys(depth=2, as_dict=as_dict)
 
     def keys_accounts(self, account_id=None, as_dict=False):
         """
@@ -993,10 +1010,18 @@ class HDWallet:
             raise KeyError("Key '%s' not found" % term)
 
     def accounts(self):
-        accs = self.keys_accounts(as_dict=True)[0]
-        if '_sa_instance_state':
-            del accs['_sa_instance_state']
-        return accs
+        wks = self.keys_accounts(as_dict=True)
+        for wk in wks:
+            if '_sa_instance_state' in wk:
+                del wk['_sa_instance_state']
+        return wks
+
+    def networks(self):
+        wks = self.keys_networks(as_dict=True)
+        for wk in wks:
+            if '_sa_instance_state' in wk:
+                del wk['_sa_instance_state']
+        return wks
 
     def updatebalance_from_serviceprovider(self, account_id=None):
         """
@@ -1434,8 +1459,10 @@ class HDWallet:
                 ds = range(6)
             for d in ds:
                 for key in self.keys(depth=d):
-                    print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
-                                                          self.network.print_value(key.balance)))
+                    # if not key.network:
+                    #     print("huh")
+                    print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name, key.balance))
+                                                          # key.network.print_value(key.balance)))
         print("\n")
 
 

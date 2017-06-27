@@ -71,7 +71,7 @@
     "prefix_wif": "CC",
     "prefix_hdkey_private": "02F252F8",
     "prefix_hdkey_public": "02FE52CC",
-    "bip44_cointype": 1,
+    "bip44_cointype": 5,
     "denominator": 0.00000001
   },
   "dash_testnet":
