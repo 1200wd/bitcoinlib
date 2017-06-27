@@ -238,7 +238,7 @@ class HDWalletKey:
         nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    wif=k.wif(), address=k.key.address(), parent_id=parent_id,
-                   is_private=True, path=path, type=k.type)
+                   is_private=True, path=path, type=k.type, network_name=network)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -273,8 +273,8 @@ class HDWalletKey:
             self.is_private = wk.is_private
             self.path = wk.path
             self.wallet = wk.wallet
-            self.network = Network(wk.wallet.network_name)
-
+            # self.network = Network(wk.wallet.network_name)
+            self.network = wk.network
             self.depth = wk.depth
             self.type = wk.type
         else:
@@ -309,7 +309,7 @@ class HDWalletKey:
 
     def fullpath(self, change=None, address_index=None, max_depth=5):
         """
-        Full BIP004 key path:
+        Full BIP0044 key path:
         - m / purpose' / coin_type' / account' / change / address_index
         
         :param change: Normal = 0, change =1
@@ -542,14 +542,6 @@ class HDWallet:
 
     def __repr__(self):
         return "<HDWallet (id=%d, name=%s, network=%s)>" % (self.wallet_id, self.name, self.network.network_name)
-
-    # def __del__(self):
-    #     if self._session is not None:
-    #         pprint(self._session)
-    #         try:
-    #             self._session.close()
-    #         except:
-    #             import pdb; pdb.set_trace()
 
     def balance(self, fmt=''):
         """
@@ -854,7 +846,7 @@ class HDWallet:
             network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
         return newkey
 
-    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, as_dict=False):
+    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, network=None, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -875,6 +867,9 @@ class HDWallet:
         :return list: List of Keys
         """
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
+        if network is not None:
+            qr = qr.filter(DbKey.network_name == network)
+            # qr = qr.filter(DbKey.depth >= 3)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
             qr = qr.filter(DbKey.depth >= 3)
@@ -888,6 +883,9 @@ class HDWallet:
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
+
+    def keys_networks(self, as_dict=False):
+        return self.keys()
 
     def keys_accounts(self, account_id=None, as_dict=False):
         """
@@ -993,6 +991,12 @@ class HDWallet:
                 return HDWalletKey(key_id=dbkey.id, session=self._session)
         else:
             raise KeyError("Key '%s' not found" % term)
+
+    def accounts(self):
+        accs = self.keys_accounts(as_dict=True)[0]
+        if '_sa_instance_state':
+            del accs['_sa_instance_state']
+        return accs
 
     def updatebalance_from_serviceprovider(self, account_id=None):
         """
