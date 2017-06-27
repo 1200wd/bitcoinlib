@@ -899,7 +899,9 @@ class HDWallet:
             qr = qr.filter(DbKey.name == name)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
-        return as_dict and [x.__dict__ for x in qr.all()] or qr.all()
+        ret = as_dict and [x.__dict__ for x in qr.all()] or qr.all()
+        qr.session.close()
+        return ret
 
     def keys_networks(self, as_dict=False):
         return self.keys(depth=2, as_dict=as_dict)
