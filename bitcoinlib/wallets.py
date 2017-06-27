@@ -1453,16 +1453,19 @@ class HDWallet:
             self.main_key.info()
         if detail > 1:
             print("= Keys Overview = ")
-            if detail < 3:
-                ds = [0, 3, 5]
-            else:
-                ds = range(6)
-            for d in ds:
-                for key in self.keys(depth=d):
-                    # if not key.network:
-                    #     print("huh")
-                    print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name, key.balance))
-                                                          # key.network.print_value(key.balance)))
+            for nw in self.networks():
+                print("- Network: %s -" % nw['network_name'])
+                if detail < 3:
+                    ds = [0, 3, 5]
+                else:
+                    ds = range(6)
+                for d in ds:
+                    for key in self.keys(depth=d, network=nw['network_name']):
+                        # TODO:
+                        # if not key.network:
+                        #     print("huh")
+                        print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name, key.balance))
+                                                              # key.network.print_value(key.balance)))
         print("\n")
 
 
