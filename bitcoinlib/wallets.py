@@ -778,8 +778,9 @@ class HDWallet:
             try:
                 # TODO: make this better...
                 purposekey = self.key(self.keys(depth=1)[0].id)
+                bip44_cointype = Network(network).bip44_cointype
                 accrootkey_obj = self._create_keys_from_path(
-                    purposekey, ['99'], name=network, wallet_id=self.wallet_id, account_id=account_id,
+                    purposekey, [str(bip44_cointype)], name=network, wallet_id=self.wallet_id, account_id=account_id,
                     network=network, purpose=self.purpose, basepath=purposekey.path, session=self._session)
             except IndexError:
                 raise WalletError("No key found for this wallet_id and purpose. Can not create new"
