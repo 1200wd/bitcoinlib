@@ -974,7 +974,7 @@ class HDWallet:
         """
         return self.keys(account_id, depth=5, change=1, network=network, as_dict=as_dict)
 
-    def addresslist(self, account_id=None, network=None, depth=None, key_id=None):
+    def addresslist(self, account_id=None, network=None, depth=5, key_id=None):
         """
         Get list of addresses defined in current wallet
 

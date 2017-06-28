@@ -238,3 +238,32 @@ class TestWalletElectrum(unittest.TestCase):
                                   (key.name, key.path, key.address))
 
 
+class TestWalletMultiCurrency(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        self.pk = 'dHHM83S1ptYryy3ZeV6Q8zQBT9NvqiSjUMJPwf6xg2CdaFLiHbyzsCSeP9FG1wzbsPVY9VtC85VsWoFvU9z1S4GzqwDBh' \
+                  'CawMAogXrUh2KgVahL'
+        self.wallet = HDWallet.create(
+            key=self.pk,
+            name='test_wallet_multicurrency',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+        self.wallet.new_account(network='litecoin')
+        self.wallet.new_account(network='bitcoin')
+        self.wallet.new_account(network='testnet')
+        self.wallet.new_account(network='dash')
+        self.wallet.new_key()
+        self.wallet.new_key()
+        self.wallet.new_key(network='bitcoin')
+
+    def test_wallet_multiple_networks_defined(self):
+        networks_expected = sorted(['litecoin', 'bitcoin', 'dash', 'testnet'])
+        networks_wlt = sorted([x['network_name'] for x in self.wallet.networks()])
+        self.assertListEqual(networks_wlt, networks_expected,
+                             msg="Not all network are defined correctly for this wallet")
+
+    def test_wallet_multiple_networks_default_addresses(self):
+        addresses_expected = ['XkbANFpY7uBMCg19SZ7bdWPTJYU8667wpm', 'Xqq8i1hCm8eVTJ8N3Zw5fZv3d2sF81v74J']
+        self.assertListEqual(self.wallet.addresslist(network='dash'), addresses_expected)
