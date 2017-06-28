@@ -635,7 +635,7 @@ class HDWallet:
             key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
             account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path)
 
-    def new_key(self, name='', account_id=None, change=0, max_depth=5):
+    def new_key(self, name='', account_id=None, network=None, change=0, max_depth=5):
         """
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
@@ -653,12 +653,15 @@ class HDWallet:
         """
         if account_id is None:
             account_id = self.default_account_id
+        if network is None:
+            network = self.network.network_name
 
         # Get account key, create one if it doesn't exist
         acckey = self._session.query(DbKey). \
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id, depth=3).scalar()
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
+                      depth=3, network_name=network).scalar()
         if not acckey:
-            hk = self.new_account(account_id=account_id)
+            hk = self.new_account(account_id=account_id, network=network)
             if hk:
                 acckey = hk._dbkey
         if not acckey:
@@ -669,7 +672,7 @@ class HDWallet:
 
         # Determine new key ID
         prevkey = self._session.query(DbKey). \
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network,
                       account_id=account_id, change=change, depth=max_depth). \
             order_by(DbKey.address_index.desc()).first()
         address_index = 0
@@ -687,12 +690,12 @@ class HDWallet:
                 name = "Key %d" % address_index
         newkey = self._create_keys_from_path(
             main_acc_key, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-            change=change, network=self.network.network_name, purpose=self.purpose, basepath=bpath,
+            change=change, network=network, purpose=self.purpose, basepath=bpath,
             session=self._session
         )
         return newkey
 
-    def new_key_change(self, name='', account_id=0):
+    def new_key_change(self, name='', account_id=0, network=None):
         """
         Create new key to receive change for a transaction. Calls new_key method with change=1.
         
@@ -703,9 +706,9 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
-        return self.new_key(name=name, account_id=account_id, change=1)
+        return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
-    def get_key(self, account_id=None, change=0, depth_of_keys=5):
+    def get_key(self, account_id=None, network=None, change=0, depth_of_keys=5):
         """
         Get a unused key or create a new one if there are no unused keys. 
         Returns a key from this wallet which has no transactions linked to it.
@@ -721,15 +724,19 @@ class HDWallet:
         """
         if account_id is None:
             account_id = self.default_account_id
+        if network is None:
+            network = self.network.network_name
+
         dbkey = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, account_id=account_id, used=False, change=change, depth=depth_of_keys).\
+            filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
+                      used=False, change=change, depth=depth_of_keys).\
             order_by(DbKey.id).first()
         if dbkey:
             return HDWalletKey(dbkey.id, session=self._session)
         else:
-            return self.new_key(account_id=account_id, change=change)
+            return self.new_key(account_id=account_id, network=network, change=change)
 
-    def get_key_change(self, account_id=None, depth_of_keys=5):
+    def get_key_change(self, account_id=None, network=None, depth_of_keys=5):
         """
         Get a unused change key or create a new one if there are no unused keys. 
         Wrapper for the get_key method
@@ -741,7 +748,7 @@ class HDWallet:
         
         :return HDWalletKey:  
         """
-        return self.get_key(account_id=account_id, depth_of_keys=depth_of_keys)
+        return self.get_key(account_id=account_id, network=network, depth_of_keys=depth_of_keys)
 
     def new_account(self, name='', account_id=None, network=None):
         """
@@ -907,7 +914,7 @@ class HDWallet:
     def keys_networks(self, as_dict=False):
         return self.keys(depth=2, as_dict=as_dict)
 
-    def keys_accounts(self, account_id=None, as_dict=False):
+    def keys_accounts(self, account_id=None, network=None, as_dict=False):
         """
         Get Database records of account key(s) with for current wallet.
         
@@ -920,9 +927,9 @@ class HDWallet:
         
         :return list: DbKey or dictionaries
         """
-        return self.keys(account_id, depth=3, as_dict=as_dict)
+        return self.keys(account_id, depth=3, network=network, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, as_dict=False):
+    def keys_addresses(self, account_id=None, network=None, as_dict=False):
         """
         Get address-keys of specified account_id for current wallet.
 
@@ -935,9 +942,9 @@ class HDWallet:
         
         :return list: DbKey or dictionaries
         """
-        return self.keys(account_id, depth=5, as_dict=as_dict)
+        return self.keys(account_id, depth=5, network=network, as_dict=as_dict)
 
-    def keys_address_payment(self, account_id=None, as_dict=False):
+    def keys_address_payment(self, account_id=None, network=None, as_dict=False):
         """
         Get payment addresses (change=0) of specified account_id for current wallet.
 
@@ -950,9 +957,9 @@ class HDWallet:
         
         :return list: DbKey or dictionaries
         """
-        return self.keys(account_id, depth=5, change=0, as_dict=as_dict)
+        return self.keys(account_id, depth=5, change=0, network=network, as_dict=as_dict)
 
-    def keys_address_change(self, account_id=None, as_dict=False):
+    def keys_address_change(self, account_id=None, network=None, as_dict=False):
         """
         Get payment addresses (change=1) of specified account_id for current wallet.
 
@@ -965,9 +972,9 @@ class HDWallet:
         
         :return list: DbKey or dictionaries
         """
-        return self.keys(account_id, depth=5, change=1, as_dict=as_dict)
+        return self.keys(account_id, depth=5, change=1, network=network, as_dict=as_dict)
 
-    def addresslist(self, account_id=None, depth=None, key_id=None):
+    def addresslist(self, account_id=None, network=None, depth=None, key_id=None):
         """
         Get list of addresses defined in current wallet
 
@@ -981,7 +988,7 @@ class HDWallet:
         :return list: List of address strings
         """
         addresslist = []
-        for key in self.keys(account_id=account_id, depth=depth, key_id=key_id):
+        for key in self.keys(account_id=account_id, depth=depth, network=network, key_id=key_id):
             addresslist.append(key.address)
         return addresslist
 
@@ -1012,8 +1019,8 @@ class HDWallet:
         else:
             raise KeyError("Key '%s' not found" % term)
 
-    def accounts(self):
-        wks = self.keys_accounts(as_dict=True)
+    def accounts(self, network=None):
+        wks = self.keys_accounts(network=network, as_dict=True)
         for wk in wks:
             if '_sa_instance_state' in wk:
                 del wk['_sa_instance_state']
@@ -1026,7 +1033,7 @@ class HDWallet:
                 del wk['_sa_instance_state']
         return wks
 
-    def updatebalance_from_serviceprovider(self, account_id=None):
+    def updatebalance_from_serviceprovider(self, account_id=None, network=None):
         """
         Update balance of currents account addresses using default Service objects getbalance method. Update total 
         wallet balance in database. 
@@ -1039,13 +1046,16 @@ class HDWallet:
         
         :return: 
         """
+
         if account_id is None:
             account_id = self.default_account_id
-        self._balance = Service(network=self.network.network_name).getbalance(self.addresslist(account_id=account_id))
+        if network is None:
+            network = self.network.network_name
+        self._balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
         self._dbwallet.balance = self._balance
         self._session.commit()
 
-    def updatebalance(self, account_id=None, key_id=None):
+    def updatebalance(self, account_id=None, network=None, key_id=None):
         """
         Update balance from UTXO's in database. To get most recent balance use 'updateutxos' method first.
         
@@ -1062,8 +1072,10 @@ class HDWallet:
 
         if account_id is None:
             account_id = self.default_account_id
+        if network is None:
+            network = self.network.network_name
         # Get UTXO's and convert to dict with key_id and balance
-        utxos = self.getutxos(account_id=account_id, key_id=key_id)
+        utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
         utxos.sort(key=lambda x: x['key_id'])
         utxo_keys = []
         total_balance = 0
@@ -1076,7 +1088,7 @@ class HDWallet:
             total_balance += balance
 
         # Add keys with no UTXO's with 0 balance
-        for key in self.keys(account_id=account_id, key_id=key_id):
+        for key in self.keys(account_id=account_id, network=network, key_id=key_id):
             if key.id not in [x['key_id'] for x in utxos]:
                 utxo_keys.append({
                     'id': key.id,
@@ -1090,7 +1102,7 @@ class HDWallet:
         self._session.commit()
         _logger.info("Got balance for %d key. Total balance is %s" % (len(utxo_keys), total_balance))
 
-    def updateutxos(self, account_id=None, key_id=None, depth=5):
+    def updateutxos(self, account_id=None, network=None, key_id=None, depth=5):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1108,15 +1120,17 @@ class HDWallet:
 
         if account_id is None:
             account_id = self.default_account_id
+        if network is None:
+            network = self.network.network_name
         # Get all UTXO's for this wallet from default Service object
-        utxos = Service(network=self.network.network_name).\
-            getutxos(self.addresslist(account_id=account_id, key_id=key_id, depth=depth))
+        utxos = Service(network=network).\
+            getutxos(self.addresslist(account_id=account_id, network=network, key_id=key_id, depth=depth))
         if utxos is False:
             raise WalletError("No response from any service provider, could not update UTXO's")
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
-        current_utxos = self.getutxos(account_id=account_id, key_id=key_id)
+        current_utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
 
         # Update spend UTXO's (not found in list) and mark key as used
         utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
@@ -1140,6 +1154,7 @@ class HDWallet:
                 key.used = True
 
             # Update confirmations in db if utxo was already imported
+            # TODO: Add network filter (?)
             transaction_in_db = self._session.query(DbTransaction).filter_by(hash=utxo['tx_hash'])
             utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == utxo['tx_hash']).filter(DbTransactionOutput.output_n == utxo['output_n'])
@@ -1173,7 +1188,7 @@ class HDWallet:
         self.updatebalance(account_id=account_id, key_id=key_id)
         return count_utxos
 
-    def getutxos(self, account_id=None, min_confirms=0, key_id=None):
+    def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
         Get UTXO's (Unspent Outputs) from database. Use updateutxos method first for updated values
         
@@ -1187,11 +1202,14 @@ class HDWallet:
         """
         if account_id is None:
             account_id = self.default_account_id
+        if network is None:
+            network = self.network.network_name
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash).\
             join(DbTransaction).join(DbKey). \
             filter(DbTransactionOutput.spend.op("IS")(False),
                    DbKey.account_id == account_id,
                    DbKey.wallet_id == self.wallet_id,
+                   DbKey.network_name == network,
                    DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
@@ -1208,7 +1226,7 @@ class HDWallet:
             res.append(u)
         return res
 
-    def send_to(self, to_address, amount, account_id=None, transaction_fee=None, min_confirms=4):
+    def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
         
@@ -1229,7 +1247,7 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
         outputs = [(to_address, amount)]
-        return self.send(outputs, account_id=account_id, transaction_fee=transaction_fee, min_confirms=min_confirms)
+        return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee, min_confirms=min_confirms)
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
@@ -1279,7 +1297,7 @@ class HDWallet:
             return []
         return selected_utxos
 
-    def send(self, output_arr, input_arr=None, account_id=None, transaction_fee=None, min_confirms=4):
+    def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4):
         """
         Create new transaction with specified outputs and push it to the network. 
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -1302,9 +1320,11 @@ class HDWallet:
         amount_total_output = 0
         if account_id is None:
             account_id = self.default_account_id
+        if network is None:
+            network = self.network.network_name
 
         # Create transaction and add outputs
-        t = Transaction(network=self.network.network_name)
+        t = Transaction(network=network)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
@@ -1313,7 +1333,7 @@ class HDWallet:
             t.add_output(o[1], o[0])
 
         # Calculate fees
-        srv = Service(network=self.network.network_name)
+        srv = Service(network=network)
         fee = transaction_fee
         fee_per_kb = None
         fee_per_output = None
@@ -1352,7 +1372,7 @@ class HDWallet:
             amount_change = 0
         ck = None
         if amount_change:
-            ck = self.get_key(account_id=account_id, change=1)
+            ck = self.get_key(account_id=account_id, network=network, change=1)
             t.add_output(amount_change, ck.address)
 
         # Add inputs
@@ -1376,7 +1396,7 @@ class HDWallet:
             if abs((fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (fee, fee_exact))
-                return self.send(output_arr, input_arr, account_id=account_id,
+                return self.send(output_arr, input_arr, account_id=account_id, network=network,
                                  transaction_fee=fee_exact, min_confirms=min_confirms)
 
         # Verify transaction
@@ -1402,7 +1422,7 @@ class HDWallet:
         else:
             return res
 
-    def sweep(self, to_address, account_id=None, max_utxos=999, min_confirms=1):
+    def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -1419,7 +1439,7 @@ class HDWallet:
         """
         if account_id is None:
             account_id = self.default_account_id
-        utxos = self.getutxos(account_id=account_id, min_confirms=min_confirms)
+        utxos = self.getutxos(account_id=account_id, network=network, min_confirms=min_confirms)
         utxos = utxos[0:max_utxos]
         input_arr = []
         total_amount = 0
@@ -1428,11 +1448,11 @@ class HDWallet:
         for utxo in utxos:
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
-        srv = Service(network=self.network.network_name)
+        srv = Service(network=network)
         fee_per_kb = srv.estimatefee()
         tr_size = 125 + (len(input_arr) * 125)
         estimated_fee = int((tr_size / 1024) * fee_per_kb)
-        return self.send([(to_address, total_amount-estimated_fee)], input_arr,
+        return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
                          transaction_fee=estimated_fee, min_confirms=min_confirms)
 
     def info(self, detail=3):
@@ -1464,7 +1484,7 @@ class HDWallet:
                     ds = range(6)
                 for d in ds:
                     for key in self.keys(depth=d, network=nw['network_name']):
-                        # TODO:
+                        # TODO: Print balance in currency format
                         # if not key.network:
                         #     print("huh")
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name, key.balance))

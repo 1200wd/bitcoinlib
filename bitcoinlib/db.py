@@ -161,6 +161,7 @@ class DbTransaction(Base):
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
+    # TODO: Add network field (?)
 
     def __repr__(self):
         return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.hash, self.confirmations)
