@@ -662,10 +662,10 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
-        if account_id is None:
-            account_id = self.default_account_id
         if network is None:
             network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
 
         # Get account key, create one if it doesn't exist
         acckey = self._session.query(DbKey). \
@@ -1630,8 +1630,8 @@ if __name__ == '__main__':
         databasefile=test_database)
     try:
         w.import_key(key='T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
-    except KeyError as e:
-        print("Import litecoin key in bitcoin wallet gives an error: %s" % e)
+    except WalletError as e:
+        print("Import litecoin key in bitcoin wallet gives an EXPECTED error: %s" % e)
 
     print("\n=== Normalize BIP48 key path ===")
     key_path = "m/44h/1'/0p/2000/1"
