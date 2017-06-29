@@ -268,9 +268,22 @@ class TestWalletMultiCurrency(unittest.TestCase):
         addresses_expected = ['XkbANFpY7uBMCg19SZ7bdWPTJYU8667wpm', 'Xqq8i1hCm8eVTJ8N3Zw5fZv3d2sF81v74J']
         self.assertListEqual(self.wallet.addresslist(network='dash'), addresses_expected)
 
-    def test_wallet_multiple_networks_import_keys(self):
-        # Import keys from different networks
+    def test_wallet_multiple_networks_import_key(self):
         pk_bitcoin = 'xprv9s21ZrQH143K3RBvuNbSwpAHxXuPNWMMPfpjuX6ciwo91HpYq6gDLjZuyrQCPpo4qBDXyvftN7MdX7SBVXeGgHs' \
                      'TijeHZLLgnukZP8dDkjC'
         res = self.wallet.import_key(pk_bitcoin)
+        self.assertEqual(res.address, '1Hhyezo3XUC1BYpwLmp2AueWWw26xgXq7B')
 
+    def test_wallet_multiple_networks_import_key_network(self):
+        pk_hex = '770abe6f3854620edfb836ce88ce74c26da1a4b00502c98c368a9373d0c0fcd8'
+        address_ltc = 'Lg2uMYnqu48REt4KaSYLPZiaxy5PKUkkdZ'
+        self.wallet.import_key(pk_hex, network='litecoin')
+        addresses_ltc_in_wallet = self.wallet.addresslist(network='litecoin', depth=0)
+        self.assertIn(address_ltc, addresses_ltc_in_wallet)
+
+    def test_wallet_multiple_networks_import_error(self):
+        pk_dashtest = 'DRKVrRjogj3bNiLD8V9398hVVqqxi5NzhNJBLX3bfc9UdX77NxaNeMksf3ybsXSUJLh44TC9FCDkQfxAEyX924VJgK' \
+                      'J5xeeM2agqru6DGAXRyMSW'
+        error_str = "Network dash_testnet not available in this wallet, please create an account for this network " \
+                    "first."
+        self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
