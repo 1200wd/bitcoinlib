@@ -548,6 +548,13 @@ class HDWallet:
         return "<HDWallet (id=%d, name=%s, default_network=%s)>" % \
                (self.wallet_id, self.name, self.network.network_name)
 
+    def _check_defaults(self, network=None, account_id=None):
+        if network is None:
+            network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
+        return network, account_id
+
     def balance(self, fmt=''):
         """
         Get total of unspent outputs
@@ -666,10 +673,12 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
-        if network is None:
-            network = self.network.network_name
-            if account_id is None:
-                account_id = self.default_account_id
+
+        network, account_id = self._check_defaults(network, account_id)
+        # if network is None:
+        #     network = self.network.network_name
+        #     if account_id is None:
+        #         account_id = self.default_account_id
         # TODO: Make account_id required if network is specified?  Otherwise return random account...
         #elif account_id is None:
         # Raise WalletError("doehetnouniet!")
