@@ -160,8 +160,9 @@ class TestWalletImport(unittest.TestCase):
         w = HDWallet.create(
             name='Wallet Error',
             databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(KeyError,
-                                ".*is from different network then specified: bitcoin",
+        self.assertRaisesRegexp(WalletError,
+                                "Network litecoin not available in this wallet, please create an account "
+                                "for this network first.",
                                 w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
 
 
@@ -178,13 +179,14 @@ class TestWalletKeys(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.new_key()
         self.wallet.new_key_change()
+        self.wallet.info()
 
     def test_wallet_addresslist(self):
         expected_addresslist = ['1B8gTuj778tkrQV1e8qjcesoZt9Cif3VEp', '1LS8zYrkgGpvJdtMmUdU1iU4TUMQh6jjF1',
                                 '1K7S5am1hLfugEFWR9ENfEBpUrMbFhqtoh', '1EByrVS1sc6TDihJRRRtMAnKTaAVSZAgtQ',
                                 '1KyLsZS2JwWdfvDZ5g8vhbanqjbNwKUseK', '1A7wRpnstUiA33rxW1i33b5qqaTsS4YSNQ',
                                 '1J6jppU5mWf4ausGfHMumrKrztpDKq2MrD', '13uQKuiWwWp15BsEijnpKZSuTuHVTpZMvP']
-        self.assertListEqual(self.wallet.addresslist(), expected_addresslist)
+        self.assertListEqual(self.wallet.addresslist(depth=None), expected_addresslist)
 
     def test_wallet_keys_method_masterkey(self):
         self.assertEqual(self.wallet.keys(name='test_wallet_keys', depth=0)[0].wif, self.private_wif)

@@ -557,6 +557,7 @@ class HDWallet:
         
         :return float, str: Key balance 
         """
+        # TODO: Fix for multicurrency
         if fmt == 'string':
             return self.network.print_value(self._balance)
         else:
@@ -621,11 +622,9 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
-        if account_id is None:
-            account_id = self.default_account_id
         if network is None:
             network = check_network_and_key(key, default_network=self.network.network_name)
-            if not network in self.network_list():
+            if network not in self.network_list():
                 raise WalletError("Network %s not available in this wallet, please create an account for this "
                                   "network first." % network)
 
@@ -666,6 +665,9 @@ class HDWallet:
             network = self.network.network_name
             if account_id is None:
                 account_id = self.default_account_id
+        # TODO: Make account_id required if network is specified?  Otherwise return random account...
+        #elif account_id is None:
+        # Raise WalletError("doehetnouniet!")
 
         # Get account key, create one if it doesn't exist
         acckey = self._session.query(DbKey). \
@@ -733,10 +735,10 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
-        if account_id is None:
-            account_id = self.default_account_id
         if network is None:
             network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
 
         dbkey = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
@@ -1068,10 +1070,10 @@ class HDWallet:
         :return: 
         """
 
-        if account_id is None:
-            account_id = self.default_account_id
         if network is None:
             network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
         self._balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
         self._dbwallet.balance = self._balance
         self._session.commit()
@@ -1091,10 +1093,11 @@ class HDWallet:
         :return: 
         """
 
-        if account_id is None:
-            account_id = self.default_account_id
         if network is None:
             network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
+
         # Get UTXO's and convert to dict with key_id and balance
         utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
         utxos.sort(key=lambda x: x['key_id'])
@@ -1139,10 +1142,10 @@ class HDWallet:
         :return int: Number of new UTXO's added 
         """
 
-        if account_id is None:
-            account_id = self.default_account_id
         if network is None:
             network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=network).\
             getutxos(self.addresslist(account_id=account_id, network=network, key_id=key_id, depth=depth))
@@ -1221,10 +1224,12 @@ class HDWallet:
         :type key_id: int  
         :return list: List of transactions 
         """
-        if account_id is None:
-            account_id = self.default_account_id
+
         if network is None:
             network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
+
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash).\
             join(DbTransaction).join(DbKey). \
             filter(DbTransactionOutput.spend.op("IS")(False),
@@ -1265,8 +1270,6 @@ class HDWallet:
         :return str, list: Transaction ID or result array 
         """
 
-        if account_id is None:
-            account_id = self.default_account_id
         outputs = [(to_address, amount)]
         return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee, min_confirms=min_confirms)
 
@@ -1339,10 +1342,10 @@ class HDWallet:
         """
         # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
-        if account_id is None:
-            account_id = self.default_account_id
         if network is None:
             network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
 
         # Create transaction and add outputs
         t = Transaction(network=network)
@@ -1458,8 +1461,11 @@ class HDWallet:
         :type min_confirms: int
         :return str, list: Transaction ID or result array
         """
-        if account_id is None:
-            account_id = self.default_account_id
+        if network is None:
+            network = self.network.network_name
+            if account_id is None:
+                account_id = self.default_account_id
+
         utxos = self.getutxos(account_id=account_id, network=network, min_confirms=min_confirms)
         utxos = utxos[0:max_utxos]
         input_arr = []
