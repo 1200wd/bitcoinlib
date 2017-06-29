@@ -1040,6 +1040,16 @@ class HDWallet:
                 del wk['_sa_instance_state']
         return wks
 
+    def network_list(self):
+        """
+        Wrapper for networks methods, returns a flat list with currently used
+        networks for this wallet.
+        
+        :return: list 
+        """
+        
+        return [x['network_name'] for x in self.networks()]
+
     def updatebalance_from_serviceprovider(self, account_id=None, network=None):
         """
         Update balance of currents account addresses using default Service objects getbalance method. Update total 
