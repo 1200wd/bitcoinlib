@@ -610,7 +610,7 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
-    def import_key(self, key, account_id=None, network=None):
+    def import_key(self, key, account_id=None, name='', network=None):
         """
         Add new non HD key to wallet. This key will have no path but are referred by a import_key sequence
         
@@ -625,7 +625,9 @@ class HDWallet:
             account_id = self.default_account_id
         if network is None:
             network = check_network_and_key(key, default_network=self.network.network_name)
-            # TODO: check if network is available for this wallet
+            if not network in self.network_list():
+                raise WalletError("Network %s not available in this wallet, please create an account for this "
+                                  "network first." % network)
 
         # TODO: If key has related key-path add to wallet (i.e. for restoring backup
         # Create path for unrelated import keys
@@ -635,11 +637,13 @@ class HDWallet:
             ik_path = "import_key_" + str(int(last_import_key.path[-5:]) + 1).zfill(5)
         else:
             ik_path = "import_key_00001"
+        if not name:
+            name = ik_path
 
         if account_id is None:
             account_id = self.default_account_id
         return HDWalletKey.from_key(
-            key=key, name=self.name, wallet_id=self.wallet_id, network=network,
+            key=key, name=name, wallet_id=self.wallet_id, network=network,
             account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path)
 
     def new_key(self, name='', account_id=None, network=None, change=0, max_depth=5):
