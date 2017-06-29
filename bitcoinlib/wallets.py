@@ -619,7 +619,10 @@ class HDWallet:
         :type key: str, bytes, int, bytearray
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
-        
+        :param name: Specify name for key, leave empty for default
+        :type name: str
+        :param network: Network name, method will try to extract from key if not specified. Raises warning if network could not be detected
+        :type network: str
         :return HDWalletKey: 
         """
         if network is None:
@@ -654,6 +657,8 @@ class HDWallet:
         :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param change: Change (1) or payments (0). Default is 0
         :type change: int
         :param max_depth: Maximum path depth. Default for BIP0044 is 5, any other value is non-standard and might cause unexpected behavior
@@ -716,7 +721,9 @@ class HDWallet:
         :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
-        
+        :param network: Network name. Leave empty for default network
+        :type network: str
+                
         :return HDWalletKey: 
         """
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
@@ -728,6 +735,8 @@ class HDWallet:
         
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param change: Payment (0) or change key (1). Default is 0
         :type change: int
         :param depth_of_keys: Depth of account keys. Default is 5 according to BIP0032 standards
@@ -756,6 +765,8 @@ class HDWallet:
         
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param depth_of_keys: Depth of account keys. Default is 5 according to BIP0032 standards
         :type depth_of_keys: int
         
@@ -773,6 +784,8 @@ class HDWallet:
         :type name: str
         :param account_id: Account ID. Default is last accounts ID + 1
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         
         :return HDWalletKey: 
         """
@@ -901,6 +914,8 @@ class HDWallet:
         :type change: int
         :param depth: Only include keys with this depth
         :type depth: int
+        :param network: Network name filter
+        :type network: str
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
         
         :return list: List of Keys
@@ -935,6 +950,8 @@ class HDWallet:
         
         :param account_id: Search for Account ID
         :type account_id: int
+        :param network: Network name filter
+        :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
         
@@ -950,6 +967,8 @@ class HDWallet:
 
         :param account_id: Account ID
         :type account_id: int
+        :param network: Network name filter
+        :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
         
@@ -965,6 +984,8 @@ class HDWallet:
 
         :param account_id: Account ID
         :type account_id: int
+        :param network: Network name filter
+        :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
         
@@ -980,6 +1001,8 @@ class HDWallet:
 
         :param account_id: Account ID
         :type account_id: int
+        :param network: Network name filter
+        :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
         
@@ -993,6 +1016,8 @@ class HDWallet:
 
         :param account_id: Account ID
         :type account_id: int
+        :param network: Network name filter
+        :type network: str
         :param depth: Filter by key depth
         :type depth: int
         :param key_id: Key ID to get address of just 1 key
@@ -1033,6 +1058,14 @@ class HDWallet:
             raise KeyError("Key '%s' not found" % term)
 
     def accounts(self, network=None):
+        """
+        Get list of accounts for this wallet
+        
+        :param network: Network name filter
+        :type network: str
+                
+        :return: List of keys as dictionary
+        """
         wks = self.keys_accounts(network=network, as_dict=True)
         for wk in wks:
             if '_sa_instance_state' in wk:
@@ -1040,6 +1073,11 @@ class HDWallet:
         return wks
 
     def networks(self):
+        """
+        Get list of networks used by this wallet
+        
+        :return: List of keys as dictionary
+        """
         wks = self.keys_networks(as_dict=True)
         for wk in wks:
             if '_sa_instance_state' in wk:
