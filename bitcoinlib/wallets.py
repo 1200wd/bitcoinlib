@@ -273,7 +273,7 @@ class HDWalletKey:
             self.is_private = wk.is_private
             self.path = wk.path
             self.wallet = wk.wallet
-            self.network_name = wk.network
+            self.network_name = wk.network_name
             if not self.network_name:
                 self.network_name = wk.wallet.network_name
             self.network = Network(self.network_name)
@@ -1047,7 +1047,7 @@ class HDWallet:
         
         :return: list 
         """
-        
+
         return [x['network_name'] for x in self.networks()]
 
     def updatebalance_from_serviceprovider(self, account_id=None, network=None):
