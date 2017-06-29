@@ -267,3 +267,10 @@ class TestWalletMultiCurrency(unittest.TestCase):
     def test_wallet_multiple_networks_default_addresses(self):
         addresses_expected = ['XkbANFpY7uBMCg19SZ7bdWPTJYU8667wpm', 'Xqq8i1hCm8eVTJ8N3Zw5fZv3d2sF81v74J']
         self.assertListEqual(self.wallet.addresslist(network='dash'), addresses_expected)
+
+    def test_wallet_multiple_networks_import_keys(self):
+        # Import keys from different networks
+        pk_bitcoin = 'xprv9s21ZrQH143K3RBvuNbSwpAHxXuPNWMMPfpjuX6ciwo91HpYq6gDLjZuyrQCPpo4qBDXyvftN7MdX7SBVXeGgHs' \
+                     'TijeHZLLgnukZP8dDkjC'
+        res = self.wallet.import_key(pk_bitcoin)
+

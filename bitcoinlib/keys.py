@@ -49,7 +49,7 @@ class BKeyError(Exception):
         return self.msg
 
 
-def check_network_and_key(key, network=None, kf_networks=None):
+def check_network_and_key(key, network=None, kf_networks=None, default_network=DEFAULT_NETWORK):
     """
     Check if given key corresponds with given network and return network if it does. If no network is specified
     this method tries to extract the network from the key. If no network can be extracted from the key the
@@ -63,6 +63,8 @@ def check_network_and_key(key, network=None, kf_networks=None):
     :type network: str
     :param kf_networks: Optional list of networks which is returned by get_key_format. If left empty the get_key_format function will be called.
     :type kf_networks: list
+    :param default_network: Specify different default network, leave empty for default (bitcoin)
+    :type default_network: str
     
     :return str: Network name
     """
@@ -78,7 +80,7 @@ def check_network_and_key(key, network=None, kf_networks=None):
         elif network is None and len(kf_networks) > 1:
             raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf_networks)
     if network is None:
-        return DEFAULT_NETWORK
+        return default_network
     else:
         return network
 

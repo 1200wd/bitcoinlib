@@ -292,7 +292,7 @@ class HDWalletKey:
         :return HDKey: 
         """
         if self._hdkey_object is None:
-            self._hdkey_object = HDKey(import_key=self.wif, network=self.network.network_name)
+            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
         return self._hdkey_object
 
     def balance(self, fmt=''):
@@ -545,7 +545,8 @@ class HDWallet:
         self._session.close()
 
     def __repr__(self):
-        return "<HDWallet (id=%d, name=%s, network=%s)>" % (self.wallet_id, self.name, self.network.network_name)
+        return "<HDWallet (id=%d, name=%s, default_network=%s)>" % \
+               (self.wallet_id, self.name, self.network.network_name)
 
     def balance(self, fmt=''):
         """
@@ -609,7 +610,7 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
-    def import_key(self, key, account_id=None):
+    def import_key(self, key, account_id=None, network=None):
         """
         Add new non HD key to wallet. This key will have no path but are referred by a import_key sequence
         
@@ -620,6 +621,12 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
+        if account_id is None:
+            account_id = self.default_account_id
+        if network is None:
+            network = check_network_and_key(key, default_network=self.network.network_name)
+            # TODO: check if network is available for this wallet
+
         # TODO: If key has related key-path add to wallet (i.e. for restoring backup
         # Create path for unrelated import keys
         last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
@@ -632,7 +639,7 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
         return HDWalletKey.from_key(
-            key=key, name=self.name, wallet_id=self.wallet_id, network=self.network.network_name,
+            key=key, name=self.name, wallet_id=self.wallet_id, network=network,
             account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path)
 
     def new_key(self, name='', account_id=None, network=None, change=0, max_depth=5):
