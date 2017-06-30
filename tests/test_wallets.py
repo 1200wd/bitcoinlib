@@ -268,7 +268,7 @@ class TestWalletMultiCurrency(unittest.TestCase):
                              msg="Not all network are defined correctly for this wallet")
 
     def test_wallet_multiple_networks_default_addresses(self):
-        addresses_expected = ['XkbANFpY7uBMCg19SZ7bdWPTJYU8667wpm', 'Xqq8i1hCm8eVTJ8N3Zw5fZv3d2sF81v74J']
+        addresses_expected = ['XqTpf6NYrrckvsauJKfHFBzZaD9wRHjQtv', 'Xj6tV9Jc3qJ2AszpNxvEq7KVQKUMcfmBqH']
         self.assertListEqual(self.wallet.addresslist(network='dash'), addresses_expected)
 
     def test_wallet_multiple_networks_import_key(self):
