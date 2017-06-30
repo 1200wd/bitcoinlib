@@ -259,6 +259,7 @@ class TestWalletMultiCurrency(unittest.TestCase):
         self.wallet.new_key()
         self.wallet.new_key()
         self.wallet.new_key(network='bitcoin')
+        self.wallet.info()
 
     def test_wallet_multiple_networks_defined(self):
         networks_expected = sorted(['litecoin', 'bitcoin', 'dash', 'testnet'])
