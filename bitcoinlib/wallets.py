@@ -556,12 +556,12 @@ class HDWallet:
         qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=3, network_name=network)
         if account_id is not None:
-            qr.filter_by(account_id=account_id)
+            qr = qr.filter_by(account_id=account_id)
         acckey = qr.first()
         if len(qr.all()) > 1:
             _logger.warning("No account_id specified and more than one account found for this network %s. "
                             "Using a random account" % network)
-        if not account_id:
+        if not account_id and acckey:
             account_id = acckey.account_id
         return network, account_id, acckey
 
