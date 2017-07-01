@@ -1555,11 +1555,8 @@ class HDWallet:
                     ds = range(6)
                 for d in ds:
                     for key in self.keys(depth=d, network=nw['network_name']):
-                        # TODO: Print balance in currency format
-                        # if not key.network:
-                        #     print("huh")
-                        print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name, key.balance))
-                                                              # key.network.print_value(key.balance)))
+                        print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
+                                                              Network(key.network_name).print_value(key.balance)))
         print("\n")
 
 
