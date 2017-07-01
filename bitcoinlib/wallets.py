@@ -548,7 +548,18 @@ class HDWallet:
         return "<HDWallet (id=%d, name=%s, default_network=%s)>" % \
                (self.wallet_id, self.name, self.network.network_name)
 
-    def _check_defaults(self, network=None, account_id=None):
+    def _get_account_defaults(self, network=None, account_id=None):
+        """
+        Check parameter values for network and account ID, return defaults if no network or account ID is specified.
+        If a network is specified but no account ID this method returns the first account ID it finds. 
+        
+        :param network: Network code, leave empty for default
+        :type network: str
+        :param account_id: Account ID, leave emtpy for default
+        :type account_id: int
+        
+        :return: network code, account ID and DbKey instance of account ID key
+        """
         if network is None:
             network = self.network.network_name
             if account_id is None:
@@ -684,14 +695,7 @@ class HDWallet:
         :return HDWalletKey: 
         """
 
-        network, account_id, acckey = self._check_defaults(network, account_id)
-        # if network is None:
-        #     network = self.network.network_name
-        #     if account_id is None:
-        #         account_id = self.default_account_id
-        # TODO: Make account_id required if network is specified?  Otherwise return random account...
-        #elif account_id is None:
-        # Raise WalletError("doehetnouniet!")
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         # Get account key, create one if it doesn't exist
         if not acckey:
