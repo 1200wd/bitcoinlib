@@ -768,11 +768,7 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
-        if network is None:
-            network = self.network.network_name
-            if account_id is None:
-                account_id = self.default_account_id
-
+        network, account_id, _ = self._get_account_defaults(network, account_id)
         dbkey = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
                       used=False, change=change, depth=depth_of_keys).\
@@ -1063,6 +1059,7 @@ class HDWallet:
         
         :return HDWalletKey: Single key as object
         """
+
         dbkey = None
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if isinstance(term, numbers.Number):
@@ -1090,6 +1087,7 @@ class HDWallet:
                 
         :return: List of keys as dictionary
         """
+
         wks = self.keys_accounts(network=network, as_dict=True)
         for wk in wks:
             if '_sa_instance_state' in wk:
@@ -1102,6 +1100,7 @@ class HDWallet:
         
         :return: List of keys as dictionary
         """
+
         wks = self.keys_networks(as_dict=True)
         for wk in wks:
             if '_sa_instance_state' in wk:
@@ -1132,10 +1131,7 @@ class HDWallet:
         :return: 
         """
 
-        if network is None:
-            network = self.network.network_name
-            if account_id is None:
-                account_id = self.default_account_id
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
         self._balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
         self._dbwallet.balance = self._balance
         self._session.commit()
@@ -1155,10 +1151,7 @@ class HDWallet:
         :return: 
         """
 
-        if network is None:
-            network = self.network.network_name
-            if account_id is None:
-                account_id = self.default_account_id
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         # Get UTXO's and convert to dict with key_id and balance
         utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
@@ -1204,10 +1197,8 @@ class HDWallet:
         :return int: Number of new UTXO's added 
         """
 
-        if network is None:
-            network = self.network.network_name
-            if account_id is None:
-                account_id = self.default_account_id
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
+
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=network).\
             getutxos(self.addresslist(account_id=account_id, network=network, key_id=key_id, depth=depth))
@@ -1287,10 +1278,7 @@ class HDWallet:
         :return list: List of transactions 
         """
 
-        if network is None:
-            network = self.network.network_name
-            if account_id is None:
-                account_id = self.default_account_id
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash).\
             join(DbTransaction).join(DbKey). \
@@ -1404,10 +1392,7 @@ class HDWallet:
         """
         # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
-        if network is None:
-            network = self.network.network_name
-            if account_id is None:
-                account_id = self.default_account_id
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         # Create transaction and add outputs
         t = Transaction(network=network)
@@ -1523,10 +1508,7 @@ class HDWallet:
         :type min_confirms: int
         :return str, list: Transaction ID or result array
         """
-        if network is None:
-            network = self.network.network_name
-            if account_id is None:
-                account_id = self.default_account_id
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         utxos = self.getutxos(account_id=account_id, network=network, min_confirms=min_confirms)
         utxos = utxos[0:max_utxos]
