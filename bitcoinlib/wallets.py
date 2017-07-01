@@ -553,7 +553,17 @@ class HDWallet:
             network = self.network.network_name
             if account_id is None:
                 account_id = self.default_account_id
-        return network, account_id
+        qr = self._session.query(DbKey).\
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=3, network_name=network)
+        if account_id is not None:
+            qr.filter_by(account_id=account_id)
+        acckey = qr.first()
+        if len(qr.all()) > 1:
+            _logger.warning("No account_id specified and more than one account found for this network %s. "
+                            "Using a random account" % network)
+        if not account_id:
+            account_id = acckey.account_id
+        return network, account_id, acckey
 
     def balance(self, fmt=''):
         """
@@ -674,7 +684,7 @@ class HDWallet:
         :return HDWalletKey: 
         """
 
-        network, account_id = self._check_defaults(network, account_id)
+        network, account_id, acckey = self._check_defaults(network, account_id)
         # if network is None:
         #     network = self.network.network_name
         #     if account_id is None:
@@ -684,9 +694,10 @@ class HDWallet:
         # Raise WalletError("doehetnouniet!")
 
         # Get account key, create one if it doesn't exist
-        acckey = self._session.query(DbKey). \
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
-                      depth=3, network_name=network).scalar()
+        if not acckey:
+            acckey = self._session.query(DbKey). \
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
+                          depth=3, network_name=network).scalar()
         if not acckey:
             hk = self.new_account(account_id=account_id, network=network)
             if hk:
