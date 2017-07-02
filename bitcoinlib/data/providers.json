@@ -2,7 +2,7 @@
   "bitcoinlib_test": {
     "provider": "bitcoinlib",
     "network": "bitcoinlib_test",
-    "client_class": "BitcoinLibTest",
+    "client_class": "BitcoinLibTestClient",
     "url": "",
     "api_key": "",
     "priority": 10,

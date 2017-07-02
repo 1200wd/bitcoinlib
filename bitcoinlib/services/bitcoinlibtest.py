@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    © 2017 May - 1200 Web Development <http://1200wd.com/>
+#    BitcoinLib Test Network for Unit Tests
+#    © 2017 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -17,16 +18,27 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import bitcoinlib.services.baseclient
-import bitcoinlib.services.authproxy
-import bitcoinlib.services.bitcoinlibtest
-import bitcoinlib.services.bitcoind
-import bitcoinlib.services.blockexplorer
-import bitcoinlib.services.bitgo
-import bitcoinlib.services.coinfees
-import bitcoinlib.services.blockr
-import bitcoinlib.services.blockchaininfo
-import bitcoinlib.services.blockcypher
-import bitcoinlib.services.blocktrail
-import bitcoinlib.services.chainso
-import bitcoinlib.services.estimatefee
+import logging
+from bitcoinlib.services.baseclient import BaseClient
+
+_logger = logging.getLogger(__name__)
+
+PROVIDERNAME = 'bitgo'
+
+
+class BitcoinLibTestClient(BaseClient):
+
+    def __init__(self, network, base_url, denominator, api_key=''):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+
+    def getbalance(self, addresslist):
+        return 1
+
+    def getutxos(self, addresslist):
+        return [2]
+
+    def getrawtransaction(self, txid):
+        return 3
+
+    def estimatefee(self, blocks):
+        return 4

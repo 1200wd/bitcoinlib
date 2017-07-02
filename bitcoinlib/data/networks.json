@@ -1,5 +1,5 @@
 {
-  "bitcoinlib-test":
+  "bitcoinlib_test":
   {
     "description": "Bitcoinlib Test",
     "currency_name": "bitcoinlib_test",
