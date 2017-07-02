@@ -40,7 +40,7 @@ class BitcoinLibTestClient(BaseClient):
             utxos.append(
                 {
                     'address': address,
-                    'tx_hash': '',
+                    'tx_hash': 'txhash-%s' % address,
                     'confirmations': 10,
                     'output_n': 0,
                     'index': 0,

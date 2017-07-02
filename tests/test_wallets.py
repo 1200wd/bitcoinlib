@@ -290,3 +290,34 @@ class TestWalletMultiCurrency(unittest.TestCase):
         error_str = "Network dash_testnet not available in this wallet, please create an account for this network " \
                     "first."
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
+
+
+class TestWalletBitcoinlibTestnet(unittest.TestCase):
+
+    def test_wallet_bitcoinlib_testnet_sendto(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        w = HDWallet.create(
+            network='bitcoinlib_test',
+            name='test_wallet_bitcoinlib_testnet',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+        w.new_key()
+        w.updateutxos()
+        self.assertEqual(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 50000000),
+                         'succesfull_test_sendrawtransaction')
+
+    def test_wallet_bitcoinlib_testnet_sweep(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        w = HDWallet.create(
+            network='bitcoinlib_test',
+            name='test_wallet_bitcoinlib_testnet',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+        w.new_key()
+        w.new_key()
+        w.new_key()
+        w.updateutxos()
+        self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
+                         'succesfull_test_sendrawtransaction')
