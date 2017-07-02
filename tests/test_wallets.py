@@ -305,6 +305,20 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         self.assertEqual(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 50000000),
                          'succesfull_test_sendrawtransaction')
 
+    def test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        w = HDWallet.create(
+            network='bitcoinlib_test',
+            name='test_wallet_bitcoinlib_testnet',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+        w.new_key()
+        w.updateutxos()
+        balance = w.balance()
+        self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found', w.send_to,
+                                '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
+
     def test_wallet_bitcoinlib_testnet_sweep(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
