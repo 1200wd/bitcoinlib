@@ -179,7 +179,6 @@ class TestWalletKeys(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.new_key()
         self.wallet.new_key_change()
-        self.wallet.info()
 
     def test_wallet_addresslist(self):
         expected_addresslist = ['1B8gTuj778tkrQV1e8qjcesoZt9Cif3VEp', '1LS8zYrkgGpvJdtMmUdU1iU4TUMQh6jjF1',
@@ -259,7 +258,6 @@ class TestWalletMultiCurrency(unittest.TestCase):
         self.wallet.new_key()
         self.wallet.new_key()
         self.wallet.new_key(network='bitcoin')
-        self.wallet.info()
 
     def test_wallet_multiple_networks_defined(self):
         networks_expected = sorted(['litecoin', 'bitcoin', 'dash', 'testnet'])

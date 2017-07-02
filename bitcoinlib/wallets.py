@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -49,6 +49,7 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
     
     :return dict: Dictionary of wallets defined in database
     """
+
     session = DbInit(databasefile=databasefile).session
     wallets = session.query(DbWallet).all()
     wlst = []
@@ -76,6 +77,7 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
     
     :return bool: True if wallet exists otherwise False
     """
+
     if wallet in [x['name'] for x in list_wallets(databasefile)]:
         return True
     if isinstance(wallet, int) and wallet in [x['id'] for x in list_wallets(databasefile)]:
@@ -97,6 +99,7 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     
     :return int: Number of rows deleted, so 1 if succesfull
     """
+
     session = DbInit(databasefile=databasefile).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
@@ -129,6 +132,7 @@ def normalize_path(path):
     :type path: str
     :return str: Normalized BIP004 key path with single quotes
     """
+
     levels = path.split("/")
     npath = ""
     for level in levels:
@@ -208,6 +212,7 @@ class HDWalletKey:
         
         :return HDWalletKey: HDWalletKey object
         """
+
         if not hdkey_object:
             if network is None:
                 network = DEFAULT_NETWORK
@@ -254,6 +259,7 @@ class HDWalletKey:
         :param hdkey_object: Optional HDKey object 
         :type hdkey_object: HDKey
         """
+
         wk = session.query(DbKey).filter_by(id=key_id).first()
         if wk:
             self._dbkey = wk
@@ -291,6 +297,7 @@ class HDWalletKey:
         
         :return HDKey: 
         """
+
         if self._hdkey_object is None:
             self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
         return self._hdkey_object
@@ -304,6 +311,7 @@ class HDWalletKey:
         
         :return float, str: Key balance 
         """
+
         if fmt == 'string':
             return self.network.print_value(self._balance)
         else:
@@ -323,6 +331,7 @@ class HDWalletKey:
         
         :return list: Current key path 
         """
+
         if change is None:
             change = self.change
         if address_index is None:
@@ -343,6 +352,7 @@ class HDWalletKey:
         Output current key information to standard output
         
         """
+
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
         print(" Key Type                       %s" % self.type)
@@ -400,6 +410,7 @@ class HDWallet:
         
         :return HDWallet: 
         """
+
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
         session = DbInit(databasefile=databasefile).session
@@ -465,6 +476,7 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
+
         # Initial checks and settings
         if not isinstance(parent, HDWalletKey):
             raise WalletError("Parent must be of type 'HDWalletKey'")
@@ -515,6 +527,7 @@ class HDWallet:
         :param main_key_object: Pass main key object to save time
         :type main_key_object: HDWalletKey
         """
+
         self._session = DbInit(databasefile=databasefile).session
         if isinstance(wallet, int) or wallet.isdigit():
             w = self._session.query(DbWallet).filter_by(id=wallet).scalar()
@@ -560,6 +573,7 @@ class HDWallet:
         
         :return: network code, account ID and DbKey instance of account ID key
         """
+
         if network is None:
             network = self.network.network_name
             if account_id is None:
@@ -585,6 +599,7 @@ class HDWallet:
         
         :return float, str: Key balance 
         """
+
         # TODO: Fix for multicurrency
         if fmt == 'string':
             return self.network.print_value(self._balance)
@@ -598,6 +613,7 @@ class HDWallet:
         
         :return str: 
         """
+
         return self._owner
 
     @owner.setter
@@ -608,8 +624,9 @@ class HDWallet:
         :param value: Owner
         :type value: str
         
-        :return: 
+        :return str: 
         """
+
         self._owner = value
         self._dbwallet.owner = value
         self._session.commit()
@@ -621,6 +638,7 @@ class HDWallet:
         
         :return str: 
         """
+
         return self._name
 
     @name.setter
@@ -631,8 +649,9 @@ class HDWallet:
         :param value: Name for this wallet
         :type value: str
         
-        :return: 
+        :return str: 
         """
+
         if wallet_exists(value):
             raise WalletError("Wallet with name '%s' already exists" % value)
         self._name = value
@@ -651,8 +670,10 @@ class HDWallet:
         :type name: str
         :param network: Network name, method will try to extract from key if not specified. Raises warning if network could not be detected
         :type network: str
+        
         :return HDWalletKey: 
         """
+
         if network is None:
             network = check_network_and_key(key, default_network=self.network.network_name)
             if network not in self.network_list():
@@ -750,6 +771,7 @@ class HDWallet:
                 
         :return HDWalletKey: 
         """
+
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
     def get_key(self, account_id=None, network=None, change=0, depth_of_keys=5):
@@ -768,6 +790,7 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
+
         network, account_id, _ = self._get_account_defaults(network, account_id)
         dbkey = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
@@ -792,6 +815,7 @@ class HDWallet:
         
         :return HDWalletKey:  
         """
+
         return self.get_key(account_id=account_id, network=network, depth_of_keys=depth_of_keys)
 
     def new_account(self, name='', account_id=None, network=None):
@@ -809,6 +833,7 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
+
         if network is None:
             network = self.network.network_name
 
@@ -875,6 +900,7 @@ class HDWallet:
         
         :return HDWalletKey: 
         """
+
         # Validate key path
         if path not in ['m', 'M'] and enable_checks:
             pathdict = parse_bip44_path(path)
@@ -940,6 +966,7 @@ class HDWallet:
         
         :return list: List of Keys
         """
+
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if network is not None:
             qr = qr.filter(DbKey.network_name == network)
@@ -960,13 +987,21 @@ class HDWallet:
         return ret
 
     def keys_networks(self, as_dict=False):
+        """
+        Get keys of defined networks for this wallet. Wrapper for the keys() method
+        
+        :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
+        :type as_dict: bool
+        
+        :return list: DbKey or dictionaries
+        
+        """
+
         return self.keys(depth=2, as_dict=as_dict)
 
     def keys_accounts(self, account_id=None, network=None, as_dict=False):
         """
-        Get Database records of account key(s) with for current wallet.
-        
-        Wrapper for the keys() methods.
+        Get Database records of account key(s) with for current wallet. Wrapper for the keys() method.
         
         :param account_id: Search for Account ID
         :type account_id: int
@@ -977,13 +1012,12 @@ class HDWallet:
         
         :return list: DbKey or dictionaries
         """
+
         return self.keys(account_id, depth=3, network=network, as_dict=as_dict)
 
     def keys_addresses(self, account_id=None, network=None, as_dict=False):
         """
-        Get address-keys of specified account_id for current wallet.
-
-        Wrapper for the keys() methods.
+        Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
 
         :param account_id: Account ID
         :type account_id: int
@@ -994,13 +1028,12 @@ class HDWallet:
         
         :return list: DbKey or dictionaries
         """
+
         return self.keys(account_id, depth=5, network=network, as_dict=as_dict)
 
     def keys_address_payment(self, account_id=None, network=None, as_dict=False):
         """
-        Get payment addresses (change=0) of specified account_id for current wallet.
-
-        Wrapper for the keys() methods.
+        Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the keys() methods.
 
         :param account_id: Account ID
         :type account_id: int
@@ -1011,13 +1044,12 @@ class HDWallet:
         
         :return list: DbKey or dictionaries
         """
+
         return self.keys(account_id, depth=5, change=0, network=network, as_dict=as_dict)
 
     def keys_address_change(self, account_id=None, network=None, as_dict=False):
         """
-        Get payment addresses (change=1) of specified account_id for current wallet.
-
-        Wrapper for the keys() methods.
+        Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the keys() methods.
 
         :param account_id: Account ID
         :type account_id: int
@@ -1028,6 +1060,7 @@ class HDWallet:
         
         :return list: DbKey or dictionaries
         """
+
         return self.keys(account_id, depth=5, change=1, network=network, as_dict=as_dict)
 
     def addresslist(self, account_id=None, network=None, depth=5, key_id=None):
@@ -1045,6 +1078,7 @@ class HDWallet:
         
         :return list: List of address strings
         """
+
         addresslist = []
         for key in self.keys(account_id=account_id, depth=depth, network=network, key_id=key_id):
             addresslist.append(key.address)
@@ -1127,6 +1161,8 @@ class HDWallet:
         
         :param account_id: Account ID
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         
         :return: 
         """
@@ -1145,6 +1181,8 @@ class HDWallet:
         
         :param account_id: Account ID filter
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param key_id: Key ID Filter
         :type key_id: int
         
@@ -1189,6 +1227,8 @@ class HDWallet:
         
         :param account_id: Account ID
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param key_id: Key ID to just update 1 key
         :type key_id: int
         :param depth: Only update keys with this depth, default is depth 5 according to BIP0048 standard. Set depth to None to update all keys of this wallet.
@@ -1271,6 +1311,8 @@ class HDWallet:
         
         :param account_id: Account ID
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param min_confirms: Minimal confirmation needed to include in output list
         :type min_confirms: int
         :param key_id: Key ID to just get 1 key
@@ -1312,6 +1354,8 @@ class HDWallet:
         :type amount: int
         :param account_id: Account ID, default is last used
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param transaction_fee: Fee to use for this transaction. Leave empty to automatically estimate.
         :type transaction_fee: int
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
@@ -1347,6 +1391,7 @@ class HDWallet:
         
         :return list: List of selected UTXO 
         """
+
         if not utxo_query:
             return []
 
@@ -1383,6 +1428,8 @@ class HDWallet:
         :type input_arr: list
         :param account_id: Account ID
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
         :type transaction_fee: int
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
@@ -1390,6 +1437,7 @@ class HDWallet:
         
         :return str, list: Transaction ID or result array
         """
+
         # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
         network, account_id, acckey = self._get_account_defaults(network, account_id)
@@ -1502,12 +1550,16 @@ class HDWallet:
         :type to_address: str
         :param account_id: Wallet's account ID
         :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param max_utxos: Limit maximum number of outputs to use. Default is 999
         :type max_utxos: int
         :param min_confirms: Minimal confirmations needed to include utxo
         :type min_confirms: int
+        
         :return str, list: Transaction ID or result array
         """
+
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         utxos = self.getutxos(account_id=account_id, network=network, min_confirms=min_confirms)
