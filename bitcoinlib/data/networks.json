@@ -1,4 +1,19 @@
 {
+  "bitcoinlib-test":
+  {
+    "description": "Bitcoinlib Test",
+    "currency_name": "bitcoinlib_test",
+    "currency_name_plural": "bitcoinlib_test",
+    "currency_symbol": "T",
+    "currency_code": "TST",
+    "prefix_address": "00",
+    "prefix_address_p2sh": "05",
+    "prefix_wif": "80",
+    "prefix_hdkey_private": "0488ADE4",
+    "prefix_hdkey_public": "0488B21E",
+    "bip44_cointype": 0,
+    "denominator": 0.00000001
+  },
   "bitcoin":
   {
     "description": "Bitcoin",

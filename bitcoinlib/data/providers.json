@@ -1,4 +1,13 @@
 {
+  "bitcoinlib_test": {
+    "provider": "bitcoinlib",
+    "network": "bitcoinlib_test",
+    "client_class": "BitcoinLibTest",
+    "url": "",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
+  },
   "bitcoind": {
     "provider": "bitcoind",
     "network": "bitcoin",
