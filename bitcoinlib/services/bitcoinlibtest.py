@@ -23,7 +23,7 @@ from bitcoinlib.services.baseclient import BaseClient
 
 _logger = logging.getLogger(__name__)
 
-PROVIDERNAME = 'bitgo'
+PROVIDERNAME = 'bitcoinlib'
 
 
 class BitcoinLibTestClient(BaseClient):
@@ -32,13 +32,26 @@ class BitcoinLibTestClient(BaseClient):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
 
     def getbalance(self, addresslist):
-        return 1
+        return self.units * len(addresslist)
 
     def getutxos(self, addresslist):
-        return [2]
-
-    def getrawtransaction(self, txid):
-        return 3
+        utxos = []
+        for address in addresslist:
+            utxos.append(
+                {
+                    'address': address,
+                    'tx_hash': '',
+                    'confirmations': 10,
+                    'output_n': 0,
+                    'index': 0,
+                    'value': 1 * self.units,
+                    'script': '',
+                }
+            )
+        return utxos
 
     def estimatefee(self, blocks):
-        return 4
+        return int(1000 / blocks)
+
+    def sendrawtransaction(self, rawtx):
+        return {'txid': 'succesfull_test_sendrawtransaction'}

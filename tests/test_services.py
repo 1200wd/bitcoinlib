@@ -60,7 +60,10 @@ class TestService(unittest.TestCase):
          'f00000000001976a914bbaeed8a02f64c9d40462d323d379b8f27ad9f1a88ac905d1818000000001976a914046858970a72d33817' \
          '474c0e24e530d78716fc9c88ac00000000'
         srv = Service(network='testnet')
-        srv.sendrawtransaction(raw_tx)
+        try:
+            srv.sendrawtransaction(raw_tx)
+        except:
+            pass
         for provider in srv.errors:
             if provider == 'blockcypher.testnet':
                 self.assertIn('has already been spent', srv.errors['blockcypher.testnet'])

@@ -1,6 +1,6 @@
 {
   "bitcoinlib_test": {
-    "provider": "bitcoinlib",
+    "provider": "bitcoinlibtest",
     "network": "bitcoinlib_test",
     "client_class": "BitcoinLibTestClient",
     "url": "",

@@ -1456,7 +1456,7 @@ class HDWallet:
             id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
             sign_arr.append((k.private_byte, id))
 
-        # Sign inputs
+        # Sign inputs,
         for ti in sign_arr:
             t.sign(ti[0], ti[1])
 

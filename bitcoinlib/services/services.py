@@ -116,7 +116,7 @@ class Service(object):
                 break
 
         if not self.resultcount:
-            raise ServiceError("No successfull response from any serviceprovider (%s)" % self.providers)
+            raise ServiceError("No successfull response from any serviceprovider: %s" % list(self.providers.keys()))
         return list(self.results.values())[0]
 
     def getbalance(self, addresslist):
