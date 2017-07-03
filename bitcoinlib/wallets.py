@@ -431,7 +431,7 @@ class HDWallet:
         new_wallet_id = new_wallet.id
 
         mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
-                                  account_id=account_id, purpose=purpose)
+                                  account_id=account_id, purpose=purpose, key_type='bip44')
         if mk.depth > 4:
             raise WalletError("Cannot create new wallet with main key of depth 5 or more")
         new_wallet.main_key_id = mk.key_id
@@ -658,7 +658,7 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
-    def import_key(self, key, account_id=None, name='', network=None, key_type='single'):
+    def import_key(self, key, account_id=0, name='', network=None, key_type='single'):
         """
         Add new non HD key to wallet. This key will have no path but are referred by a import_key sequence
         
@@ -683,21 +683,26 @@ class HDWallet:
                                   "network first." % network)
 
         # TODO: If key has related key-path add to wallet (i.e. for restoring backup
-        # Create path for unrelated import keys
-        last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
-            order_by(DbKey.path.desc()).first()
-        if last_import_key:
-            ik_path = "import_key_" + str(int(last_import_key.path[-5:]) + 1).zfill(5)
-        else:
-            ik_path = "import_key_00001"
-        if not name:
-            name = ik_path
+        ik_path = 'm'
+        if key_type == 'single':
+            # Create path for unrelated import keys
+            last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
+                order_by(DbKey.path.desc()).first()
+            if last_import_key:
+                ik_path = "import_key_" + str(int(last_import_key.path[-5:]) + 1).zfill(5)
+            else:
+                ik_path = "import_key_00001"
+            if not name:
+                name = ik_path
 
-        if account_id is None:
-            account_id = self.default_account_id
+        # if account_id is None:
+        #     account_id = self.default_account_id
         return HDWalletKey.from_key(
             key=key, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
             account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path)
+
+        # return HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
+        #                       account_id=account_id, purpose=purpose, key_type='bip44')
 
     def new_key(self, name='', account_id=None, network=None, change=0, max_depth=5):
         """
