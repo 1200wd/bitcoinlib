@@ -225,7 +225,7 @@ class HDWalletKey:
             _logger.warning("Key %s already exists" % (key or k.wif()))
             return HDWalletKey(keyexists.id, session, k)
 
-        if k.depth != len(path.split('/'))-1:
+        if key_type != 'single' and k.depth != len(path.split('/'))-1:
             if path == 'm' and k.depth == 3:
                 # Create path when importing new account-key
                 nw = Network(network)
