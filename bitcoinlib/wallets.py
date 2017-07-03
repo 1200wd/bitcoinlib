@@ -1090,8 +1090,7 @@ class HDWallet:
         res = self._session.query(DbKey.tree_index).filter_by(wallet_id=self.wallet_id, parent_id=0).all()
         return list(set([x[0] for x in res]))
 
-
-    def addresslist(self, account_id=None, network=None, depth=5, key_id=None):
+    def addresslist(self, account_id=None, network=None, depth=5, key_id=None, tree_index=0):
         """
         Get list of addresses defined in current wallet
 
@@ -1108,7 +1107,7 @@ class HDWallet:
         """
 
         addresslist = []
-        for key in self.keys(account_id=account_id, depth=depth, network=network, key_id=key_id):
+        for key in self.keys(account_id=account_id, depth=depth, network=network, key_id=key_id, tree_index=tree_index):
             addresslist.append(key.address)
         return addresslist
 

@@ -278,8 +278,8 @@ class TestWalletMultiCurrency(unittest.TestCase):
     def test_wallet_multiple_networks_import_key_network(self):
         pk_hex = '770abe6f3854620edfb836ce88ce74c26da1a4b00502c98c368a9373d0c0fcd8'
         address_ltc = 'Lg2uMYnqu48REt4KaSYLPZiaxy5PKUkkdZ'
-        self.wallet.import_key(pk_hex, network='litecoin')
-        addresses_ltc_in_wallet = self.wallet.addresslist(network='litecoin', depth=0)
+        res = self.wallet.import_key(pk_hex, network='litecoin')
+        addresses_ltc_in_wallet = self.wallet.addresslist(network='litecoin', depth=0, tree_index=res.tree_index)
         self.assertIn(address_ltc, addresses_ltc_in_wallet)
 
     def test_wallet_multiple_networks_import_error(self):
