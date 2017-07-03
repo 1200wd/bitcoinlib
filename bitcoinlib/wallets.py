@@ -681,7 +681,8 @@ class HDWallet:
                                   "network first." % network)
 
         # TODO: If key has related key-path add to wallet (i.e. for restoring backup
-        last_tree_index = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network).\
+        last_tree_index = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
+                                                               network_name=network).\
             order_by(DbKey.tree_index.desc()).first().tree_index
         tree_index = last_tree_index + 1
         ik_path = 'm'
@@ -699,6 +700,19 @@ class HDWallet:
         return HDWalletKey.from_key(
             key=key, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
             account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path, tree_index=tree_index)
+
+    def create_multisig(self, key_list, n_required=None):
+        if not isinstance(key_list, list):
+            raise WalletError("Need list of keys to create multi-signature key structure")
+        if len(key_list) < 2:
+            raise WalletError("Key list must contain at least 2 keys")
+        if n_required is None:
+            n_required = len(key_list)
+        for k in key_list:
+            if isinstance(k, (str, bytes, bytearray)):
+                dbkey = self.import_key(k, key_type='bip44')
+                self.new_account(tree_index=dbkey.tree_index)
+
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
         """
@@ -821,7 +835,7 @@ class HDWallet:
 
         return self.get_key(account_id=account_id, network=network, depth_of_keys=depth_of_keys)
 
-    def new_account(self, name='', account_id=None, network=None):
+    def new_account(self, name='', account_id=None, network=None, tree_index=0):
         """
         Create a new account with a childkey for payments and 1 for change.
         
@@ -844,17 +858,18 @@ class HDWallet:
         if account_id is None:
             account_id = 0
             qr = self._session.query(DbKey). \
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network). \
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network,
+                          tree_index=tree_index). \
                 order_by(DbKey.account_id.desc()).first()
             if qr:
                 account_id = qr.account_id + 1
         if not name:
             name = 'Account #%d' % account_id
-        if self.keys(account_id=account_id, depth=3, network=network):
+        if self.keys(account_id=account_id, depth=3, network=network, tree_index=tree_index):
             raise WalletError("Account with ID %d already exists for this wallet")
 
         # Get root key of new account
-        res = self.keys(depth=2, network=network)
+        res = self.keys(depth=2, network=network, tree_index=tree_index)
         if not res:
             try:
                 # TODO: make this better...
@@ -862,7 +877,8 @@ class HDWallet:
                 bip44_cointype = Network(network).bip44_cointype
                 accrootkey_obj = self._create_keys_from_path(
                     purposekey, [str(bip44_cointype)], name=network, wallet_id=self.wallet_id, account_id=account_id,
-                    network=network, purpose=self.purpose, basepath=purposekey.path, session=self._session)
+                    network=network, purpose=self.purpose, tree_index=tree_index, basepath=purposekey.path,
+                    session=self._session)
             except IndexError:
                 raise WalletError("No key found for this wallet_id and purpose. Can not create new"
                                   "account for this wallet, is there a BIP32 Master key imported?")
@@ -874,14 +890,17 @@ class HDWallet:
         newpath = [str(account_id) + "'"]
         acckey = self._create_keys_from_path(
             accrootkey_obj, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-            network=network, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session
+            network=network, purpose=self.purpose, basepath=accrootkey_obj.path, tree_index=tree_index,
+            session=self._session
         )
         self._create_keys_from_path(
             acckey, ['0'], name=acckey.name + ' Payments', wallet_id=self.wallet_id, account_id=account_id,
-            network=network, purpose=self.purpose, basepath=acckey.path, session=self._session)
+            network=network, purpose=self.purpose, basepath=acckey.path, tree_index=tree_index,
+            session=self._session)
         self._create_keys_from_path(
             acckey, ['1'], name=acckey.name + ' Change', wallet_id=self.wallet_id, account_id=account_id,
-            network=network, purpose=self.purpose, basepath=acckey.path, session=self._session)
+            network=network, purpose=self.purpose, basepath=acckey.path, tree_index=tree_index,
+            session=self._session)
         return acckey
 
     def key_for_path(self, path, name='', account_id=0, change=0, enable_checks=True):
@@ -1066,6 +1085,11 @@ class HDWallet:
         """
 
         return self.keys(account_id, depth=5, change=1, network=network, as_dict=as_dict)
+
+    def tree_ids(self):
+        res = self._session.query(DbKey.tree_index).filter_by(wallet_id=self.wallet_id, parent_id=0).all()
+        return list(set([x[0] for x in res]))
+
 
     def addresslist(self, account_id=None, network=None, depth=5, key_id=None):
         """
@@ -1602,17 +1626,18 @@ class HDWallet:
             print("= Main key =")
             self.main_key.info()
         if detail > 1:
-            print("= Keys Overview = ")
-            for nw in self.networks():
-                print("- Network: %s -" % nw['network_name'])
-                if detail < 3:
-                    ds = [0, 3, 5]
-                else:
-                    ds = range(6)
-                for d in ds:
-                    for key in self.keys(depth=d, network=nw['network_name']):
-                        print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
-                                                              Network(key.network_name).print_value(key.balance)))
+            for tree_id in self.tree_ids():
+                print("= Keys Overview - tree %d= " % tree_id)
+                for nw in self.networks():
+                    print("- Network: %s -" % nw['network_name'])
+                    if detail < 3:
+                        ds = [0, 3, 5]
+                    else:
+                        ds = range(6)
+                    for d in ds:
+                        for key in self.keys(depth=d, network=nw['network_name'], tree_index=tree_id):
+                            print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
+                                                                  Network(key.network_name).print_value(key.balance)))
         print("\n")
 
 
