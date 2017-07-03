@@ -22,7 +22,7 @@ import csv
 import enum
 import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, Float, String, Boolean, Sequence, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, Float, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -107,6 +107,7 @@ class DbKey(Base):
     key = Column(String(255), unique=True)
     wif = Column(String(255), unique=True, index=True)
     type = Column(String(10))
+    key_type = Column(String(10), default='bip32')
     address = Column(String(255), unique=True)
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
@@ -119,6 +120,8 @@ class DbKey(Base):
     used = Column(Boolean, default=False)
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
+
+    __table_args__ = (CheckConstraint(key_type.in_(['single', 'master', 'bip32', 'bip44'])),)
 
     def __repr__(self):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)

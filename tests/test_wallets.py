@@ -312,7 +312,6 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
             network='bitcoinlib_test',
             name='test_wallet_bitcoinlib_testnet',
             databasefile=DATABASEFILE_UNITTESTS)
-
         w.new_key()
         w.updateutxos()
         balance = w.balance()
@@ -326,7 +325,6 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
             network='bitcoinlib_test',
             name='test_wallet_bitcoinlib_testnet',
             databasefile=DATABASEFILE_UNITTESTS)
-
         w.new_key()
         w.new_key()
         w.new_key()

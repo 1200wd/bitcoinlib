@@ -184,7 +184,7 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m'):
+                 purpose=44, parent_id=0, path='m', key_type=None):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -243,7 +243,7 @@ class HDWalletKey:
         nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    wif=k.wif(), address=k.key.address(), parent_id=parent_id,
-                   is_private=True, path=path, type=k.type, network_name=network)
+                   is_private=True, path=path, key_type=key_type, network_name=network)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -658,7 +658,7 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
-    def import_key(self, key, account_id=None, name='', network=None):
+    def import_key(self, key, account_id=None, name='', network=None, key_type='single'):
         """
         Add new non HD key to wallet. This key will have no path but are referred by a import_key sequence
         
@@ -670,6 +670,8 @@ class HDWallet:
         :type name: str
         :param network: Network name, method will try to extract from key if not specified. Raises warning if network could not be detected
         :type network: str
+        :param key_type: Key type of imported key, can be single (unrelated to wallet, bip32, bip44 or master for new or extra master key import.
+        :type key_type: str
         
         :return HDWalletKey: 
         """
@@ -694,7 +696,7 @@ class HDWallet:
         if account_id is None:
             account_id = self.default_account_id
         return HDWalletKey.from_key(
-            key=key, name=name, wallet_id=self.wallet_id, network=network,
+            key=key, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
             account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path)
 
     def new_key(self, name='', account_id=None, network=None, change=0, max_depth=5):
