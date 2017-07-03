@@ -160,8 +160,9 @@ class TestWalletImport(unittest.TestCase):
         w = HDWallet.create(
             name='Wallet Error',
             databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(KeyError,
-                                ".*is from different network then specified: bitcoin",
+        self.assertRaisesRegexp(WalletError,
+                                "Network litecoin not available in this wallet, please create an account "
+                                "for this network first.",
                                 w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
 
 
@@ -184,7 +185,7 @@ class TestWalletKeys(unittest.TestCase):
                                 '1K7S5am1hLfugEFWR9ENfEBpUrMbFhqtoh', '1EByrVS1sc6TDihJRRRtMAnKTaAVSZAgtQ',
                                 '1KyLsZS2JwWdfvDZ5g8vhbanqjbNwKUseK', '1A7wRpnstUiA33rxW1i33b5qqaTsS4YSNQ',
                                 '1J6jppU5mWf4ausGfHMumrKrztpDKq2MrD', '13uQKuiWwWp15BsEijnpKZSuTuHVTpZMvP']
-        self.assertListEqual(self.wallet.addresslist(), expected_addresslist)
+        self.assertListEqual(self.wallet.addresslist(depth=None), expected_addresslist)
 
     def test_wallet_keys_method_masterkey(self):
         self.assertEqual(self.wallet.keys(name='test_wallet_keys', depth=0)[0].wif, self.private_wif)
@@ -238,3 +239,95 @@ class TestWalletElectrum(unittest.TestCase):
                                   (key.name, key.path, key.address))
 
 
+class TestWalletMultiCurrency(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        self.pk = 'dHHM83S1ptYryy3ZeV6Q8zQBT9NvqiSjUMJPwf6xg2CdaFLiHbyzsCSeP9FG1wzbsPVY9VtC85VsWoFvU9z1S4GzqwDBh' \
+                  'CawMAogXrUh2KgVahL'
+        self.wallet = HDWallet.create(
+            key=self.pk,
+            name='test_wallet_multicurrency',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+        self.wallet.new_account(network='litecoin')
+        self.wallet.new_account(network='bitcoin')
+        self.wallet.new_account(network='testnet')
+        self.wallet.new_account(network='dash')
+        self.wallet.new_key()
+        self.wallet.new_key()
+        self.wallet.new_key(network='bitcoin')
+
+    def test_wallet_multiple_networks_defined(self):
+        networks_expected = sorted(['litecoin', 'bitcoin', 'dash', 'testnet'])
+        networks_wlt = sorted([x['network_name'] for x in self.wallet.networks()])
+        self.assertListEqual(networks_wlt, networks_expected,
+                             msg="Not all network are defined correctly for this wallet")
+
+    def test_wallet_multiple_networks_default_addresses(self):
+        addresses_expected = ['XqTpf6NYrrckvsauJKfHFBzZaD9wRHjQtv', 'Xj6tV9Jc3qJ2AszpNxvEq7KVQKUMcfmBqH']
+        self.assertListEqual(self.wallet.addresslist(network='dash'), addresses_expected)
+
+    def test_wallet_multiple_networks_import_key(self):
+        pk_bitcoin = 'xprv9s21ZrQH143K3RBvuNbSwpAHxXuPNWMMPfpjuX6ciwo91HpYq6gDLjZuyrQCPpo4qBDXyvftN7MdX7SBVXeGgHs' \
+                     'TijeHZLLgnukZP8dDkjC'
+        res = self.wallet.import_key(pk_bitcoin)
+        self.assertEqual(res.address, '1Hhyezo3XUC1BYpwLmp2AueWWw26xgXq7B')
+
+    def test_wallet_multiple_networks_import_key_network(self):
+        pk_hex = '770abe6f3854620edfb836ce88ce74c26da1a4b00502c98c368a9373d0c0fcd8'
+        address_ltc = 'Lg2uMYnqu48REt4KaSYLPZiaxy5PKUkkdZ'
+        self.wallet.import_key(pk_hex, network='litecoin')
+        addresses_ltc_in_wallet = self.wallet.addresslist(network='litecoin', depth=0)
+        self.assertIn(address_ltc, addresses_ltc_in_wallet)
+
+    def test_wallet_multiple_networks_import_error(self):
+        pk_dashtest = 'DRKVrRjogj3bNiLD8V9398hVVqqxi5NzhNJBLX3bfc9UdX77NxaNeMksf3ybsXSUJLh44TC9FCDkQfxAEyX924VJgK' \
+                      'J5xeeM2agqru6DGAXRyMSW'
+        error_str = "Network dash_testnet not available in this wallet, please create an account for this network " \
+                    "first."
+        self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
+
+
+class TestWalletBitcoinlibTestnet(unittest.TestCase):
+
+    def test_wallet_bitcoinlib_testnet_sendto(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        w = HDWallet.create(
+            network='bitcoinlib_test',
+            name='test_wallet_bitcoinlib_testnet',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+        w.new_key()
+        w.updateutxos()
+        self.assertEqual(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 50000000),
+                         'succesfull_test_sendrawtransaction')
+
+    def test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        w = HDWallet.create(
+            network='bitcoinlib_test',
+            name='test_wallet_bitcoinlib_testnet',
+            databasefile=DATABASEFILE_UNITTESTS)
+        w.new_key()
+        w.updateutxos()
+        balance = w.balance()
+        self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found', w.send_to,
+                                '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
+
+    def test_wallet_bitcoinlib_testnet_sweep(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        w = HDWallet.create(
+            network='bitcoinlib_test',
+            name='test_wallet_bitcoinlib_testnet',
+            databasefile=DATABASEFILE_UNITTESTS)
+        w.new_key()
+        w.new_key()
+        w.new_key()
+        w.updateutxos()
+        self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
+                         'succesfull_test_sendrawtransaction')
