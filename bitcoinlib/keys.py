@@ -49,7 +49,7 @@ class BKeyError(Exception):
         return self.msg
 
 
-def check_network_and_key(key, network=None, kf_networks=None):
+def check_network_and_key(key, network=None, kf_networks=None, default_network=DEFAULT_NETWORK):
     """
     Check if given key corresponds with given network and return network if it does. If no network is specified
     this method tries to extract the network from the key. If no network can be extracted from the key the
@@ -63,6 +63,8 @@ def check_network_and_key(key, network=None, kf_networks=None):
     :type network: str
     :param kf_networks: Optional list of networks which is returned by get_key_format. If left empty the get_key_format function will be called.
     :type kf_networks: list
+    :param default_network: Specify different default network, leave empty for default (bitcoin)
+    :type default_network: str
     
     :return str: Network name
     """
@@ -78,7 +80,7 @@ def check_network_and_key(key, network=None, kf_networks=None):
         elif network is None and len(kf_networks) > 1:
             raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf_networks)
     if network is None:
-        return DEFAULT_NETWORK
+        return default_network
     else:
         return network
 
@@ -577,7 +579,7 @@ class HDKey:
         return HDKey(key=key, chain=chain, network=network)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, isprivate=True, network=None, type='bip32', passphrase=''):
+                 child_index=0, isprivate=True, network=None, key_type='bip32', passphrase=''):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with systems cryptographically random function.
@@ -600,8 +602,8 @@ class HDKey:
         :type isprivate: bool
         :param network: Network name. Derived from import_key if possible
         :type network: str
-        :param type: HD BIP32 or normal Private Key. Default is 'bip32'
-        :type type: str
+        :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
+        :type key_type: str
         
         :return HDKey: 
         """
@@ -643,7 +645,7 @@ class HDKey:
                         self.key = Key(import_key, passphrase=passphrase, network=network)
                         chain = b'\0'*32
                         key = self.key.private_byte
-                        type = 'private'
+                        key_type = 'private'
                     except BKeyError as e:
                         raise BKeyError("[BKeyError] %s" % e)
 
@@ -671,7 +673,7 @@ class HDKey:
             self.key_hex = self.private_hex
         else:
             self.key_hex = self.public_hex
-        self.type = type
+        self.key_type = key_type
 
     def __repr__(self):
         return "<HDKey (%s)>" % self.wif()
@@ -697,7 +699,7 @@ class HDKey:
         print(" Point y                     %s" % point_y)
         print("")
         print("EXTENDED KEY INFO")
-        print(" Key Type                    %s" % self.type)
+        print(" Key Type                    %s" % self.key_type)
         print(" Chain code (hex)            %s" % change_base(self.chain, 256, 16))
         print(" Child Index                 %s" % self.child_index)
         print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint, 256, 16))
@@ -767,7 +769,7 @@ class HDKey:
         """
         return self.wif(public=True)
 
-    def subkey_for_path(self, path):
+    def subkey_for_path(self, path, network=None):
         """
         Determine subkey for HD Key for given path.
         Path format: m / purpose' / coin_type' / account' / change / address_index
@@ -801,13 +803,13 @@ class HDKey:
                 if index < 0:
                     raise BKeyError("Could not parse path. Index must be a positive integer.")
                 if first_public or not key.isprivate:
-                    key = key.child_public(index=index)  # TODO hardened=hardened key?
+                    key = key.child_public(index=index, network=network)  # TODO hardened=hardened key?
                     first_public = False
                 else:
-                    key = key.child_private(index=index, hardened=hardened)
+                    key = key.child_private(index=index, hardened=hardened, network=network)
         return key
 
-    def child_private(self, index=0, hardened=False):
+    def child_private(self, index=0, hardened=False, network=None):
         """
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
 
@@ -818,6 +820,8 @@ class HDKey:
         
         :return HDKey: HD Key class object
         """
+        if network is None:
+            network = self.network.network_name
         if not self.isprivate:
             raise BKeyError("Need a private key to create child private key")
         if hardened:
@@ -836,9 +840,9 @@ class HDKey:
         newkey = change_base(newkey, 10, 256, 32)
 
         return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, network=self.network.network_name)
+                     child_index=index, network=network)
 
-    def child_public(self, index=0):
+    def child_public(self, index=0, network=None):
         """
         Use Child Key Derivation to derive child public key of current HD Key object.
 
@@ -847,6 +851,8 @@ class HDKey:
         
         :return HDKey: HD Key class object
         """
+        if network is None:
+            network = self.network.network_name
         if index > 0x80000000:
             raise BKeyError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
         data = self.public_byte + struct.pack('>L', index)
@@ -866,7 +872,7 @@ class HDKey:
         xhex = change_base(Ki.x(), 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, isprivate=False, network=self.network.network_name)
+                     child_index=index, isprivate=False, network=network)
 
 
 if __name__ == '__main__':
@@ -925,7 +931,7 @@ if __name__ == '__main__':
     print("\n=== Import HD Key from seed ===")
     k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
     print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.wif())
-    print("Key type is : %s" % k.type)
+    print("Key type is : %s" % k.key_type)
 
     print("\n=== Generate random Litecoin key ===")
     lk = HDKey(network='litecoin')
@@ -934,7 +940,7 @@ if __name__ == '__main__':
     print("\n=== Import simple private key as HDKey ===")
     k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
     print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.wif())
-    print("Key type is : %s" % k.type)
+    print("Key type is : %s" % k.key_type)
 
     print("\n=== Derive path with Child Key derivation ===")
     print("Derive path path 'm/0H/1':")

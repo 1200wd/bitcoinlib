@@ -22,7 +22,7 @@ import csv
 import enum
 import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, Float, String, Boolean, Sequence, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, Float, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -107,6 +107,7 @@ class DbKey(Base):
     key = Column(String(255), unique=True)
     wif = Column(String(255), unique=True, index=True)
     type = Column(String(10))
+    key_type = Column(String(10), default='bip32')
     address = Column(String(255), unique=True)
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
@@ -117,6 +118,10 @@ class DbKey(Base):
     transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key")
     balance = Column(Integer, default=0)
     used = Column(Boolean, default=False)
+    network_name = Column(String, ForeignKey('networks.name'))
+    network = relationship("DbNetwork")
+
+    __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'bip44'])),)
 
     def __repr__(self):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)
@@ -159,6 +164,7 @@ class DbTransaction(Base):
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
+    # TODO: Add network field (?)
 
     def __repr__(self):
         return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.hash, self.confirmations)

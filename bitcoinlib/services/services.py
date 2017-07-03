@@ -72,6 +72,8 @@ class Service(object):
                     (not providers or self.providers_defined[p]['provider'] in providers):
                 self.providers.update({p: self.providers_defined[p]})
 
+        if not self.providers:
+            raise ServiceError("No providers found for network %s" % network)
         self.min_providers = min_providers
         self.max_providers = max_providers
         self.results = {}
@@ -114,7 +116,7 @@ class Service(object):
                 break
 
         if not self.resultcount:
-            return False
+            raise ServiceError("No successfull response from any serviceprovider: %s" % list(self.providers.keys()))
         return list(self.results.values())[0]
 
     def getbalance(self, addresslist):

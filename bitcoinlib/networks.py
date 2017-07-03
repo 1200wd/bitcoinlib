@@ -137,6 +137,8 @@ class Network:
     """
 
     def __init__(self, network_name=DEFAULT_NETWORK):
+        if network_name not in NETWORK_DEFINITIONS:
+            raise NetworkError("Network %s not found in network definitions" % network_name)
         self.network_name = network_name
         self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
         self.currency_name = NETWORK_DEFINITIONS[network_name]['currency_name']
