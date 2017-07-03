@@ -386,8 +386,7 @@ class HDWallet:
     """
 
     @classmethod
-    def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44,
-               databasefile=None):
+    def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         

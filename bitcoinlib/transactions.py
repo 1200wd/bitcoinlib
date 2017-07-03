@@ -251,14 +251,14 @@ def script_to_string(script):
     return ' '.join(scriptstr)
 
 
-def _serialize_multisig(public_key_list, no_required=None):
+def _serialize_multisig(public_key_list, n_required=None):
     for key in public_key_list:
         if not isinstance(key, (str, bytes)):
             raise TransactionError("Item %s in public_key_list is not of type string or bytes")
-    if no_required is None:
-        no_required = len(public_key_list)
+    if n_required is None:
+        n_required = len(public_key_list)
 
-    script = int_to_varbyteint(opcodes['OP_1'] + no_required - 1)
+    script = int_to_varbyteint(opcodes['OP_1'] + n_required - 1)
     for key in public_key_list:
         script += int_to_varbyteint(len(key)) + key
     script += int_to_varbyteint(opcodes['OP_1'] + len(public_key_list) - 1)
@@ -267,7 +267,7 @@ def _serialize_multisig(public_key_list, no_required=None):
     return script
 
 
-def serialize_multisig(key_list, no_required=None):
+def serialize_multisig(key_list, n_required=None):
     if not isinstance(key_list, list):
         raise TransactionError("Argument public_key_list must be of type list")
     public_key_list = []
@@ -283,7 +283,7 @@ def serialize_multisig(key_list, no_required=None):
             except:
                 raise TransactionError("Unknown key %s, please specify Key object, public or private key string")
 
-    return _serialize_multisig(public_key_list, no_required)
+    return _serialize_multisig(public_key_list, n_required)
 
 
 class Input:

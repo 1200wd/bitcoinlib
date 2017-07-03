@@ -118,11 +118,14 @@ class DbKey(Base):
     transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key")
     balance = Column(Integer, default=0)
     used = Column(Boolean, default=False)
-    # TODO - Add redeemscript field?
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
+    tree_index = Column(Integer, default=0, comment="Index of key structure. Can be used to disdinguish multiple key "
+                                                    "structures, i.e. for multisig or importing external unrelated "
+                                                    "keys")
+    redeemscript = Column(String, comment="Raw redeemscript for P2SH transactions used for multisig")
 
-    __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'bip44'])),)
+    __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'bip44', 'multisig'])),)
 
     def __repr__(self):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)
