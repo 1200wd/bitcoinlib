@@ -22,10 +22,11 @@ import numbers
 from itertools import groupby
 from sqlalchemy import or_
 from bitcoinlib.db import *
+from bitcoinlib.encoding import pubkeyhash_to_addr
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
-from bitcoinlib.transactions import Transaction
+from bitcoinlib.transactions import Transaction, serialize_multisig
 from bitcoinlib.mnemonic import Mnemonic
 
 _logger = logging.getLogger(__name__)
@@ -708,10 +709,19 @@ class HDWallet:
             raise WalletError("Key list must contain at least 2 keys")
         if n_required is None:
             n_required = len(key_list)
+        if n_required > len(key_list):
+            raise WalletError("Number of key required to sign is greater then number of keys provided")
+
         for k in key_list:
             if isinstance(k, (str, bytes, bytearray)):
                 dbkey = self.import_key(k, key_type='bip44')
                 self.new_account(tree_index=dbkey.tree_index)
+
+        # TODO: Store multisig definition
+
+    def new_multisig_key(self, treeindex=None):
+        multisig = serialize_multisig(publickeylist, n_required)
+        pubkeyhash_to_addr(multisig)
 
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
