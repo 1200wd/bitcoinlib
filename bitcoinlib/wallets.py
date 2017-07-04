@@ -285,7 +285,7 @@ class HDWalletKey:
                 self.network_name = wk.wallet.network_name
             self.network = Network(self.network_name)
             self.depth = wk.depth
-            self.type = wk.type
+            self.key_type = wk.key_type
             self.tree_index = wk.tree_index
         else:
             raise WalletError("Key with id %s not found" % key_id)
@@ -357,7 +357,7 @@ class HDWalletKey:
 
         print("--- Key ---")
         print(" ID                             %s" % self.key_id)
-        print(" Key Type                       %s" % self.type)
+        print(" Key Type                       %s" % self.key_type)
         print(" Is Private                     %s" % self.is_private)
         print(" Name                           %s" % self.name)
         print(" Key Hex                        %s" % self.key_hex)
@@ -1030,7 +1030,10 @@ class HDWallet:
         
         """
 
-        return self.keys(depth=2, as_dict=as_dict)
+        res = self.keys(depth=2, as_dict=as_dict)
+        if not res:
+            res = self.keys(depth=3, as_dict=as_dict)
+        return res
 
     def keys_accounts(self, account_id=None, network=None, as_dict=False):
         """
