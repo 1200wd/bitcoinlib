@@ -1581,7 +1581,7 @@ class HDWallet:
         else:
             return res
 
-    def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1):
+    def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -1612,7 +1612,8 @@ class HDWallet:
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
         srv = Service(network=network)
-        fee_per_kb = srv.estimatefee()
+        if fee_per_kb is None:
+            fee_per_kb = srv.estimatefee()
         tr_size = 125 + (len(input_arr) * 125)
         estimated_fee = int((tr_size / 1024) * fee_per_kb)
         return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
