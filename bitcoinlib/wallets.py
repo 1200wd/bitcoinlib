@@ -716,6 +716,11 @@ class HDWallet:
             if isinstance(k, (str, bytes, bytearray)):
                 dbkey = self.import_key(k, key_type='bip44')
                 self.new_account(tree_index=dbkey.tree_index)
+            elif isinstance(k, HDWalletKey):
+                dbkey = k
+            else:
+                # TODO: Handle HDKey, DbKey instances
+                pass
 
         # TODO: Store multisig definition
 
