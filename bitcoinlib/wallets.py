@@ -702,7 +702,7 @@ class HDWallet:
             key=key, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
             account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path, tree_index=tree_index)
 
-    def create_multisig(self, key_list, n_required=None):
+    def create_multisig(self, key_list, n_required=None, name=''):
         if not isinstance(key_list, list):
             raise WalletError("Need list of keys to create multi-signature key structure")
         if len(key_list) < 2:
@@ -712,6 +712,11 @@ class HDWallet:
         if n_required > len(key_list):
             raise WalletError("Number of key required to sign is greater then number of keys provided")
 
+        multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose,
+                             key='multisig', wif='multisig', address='multisig',
+                             key_type='multisig', network_name=self.network)
+        multisig_key_id = multisig_key.id
+        key_list_ids = []
         for k in key_list:
             if isinstance(k, (str, bytes, bytearray)):
                 dbkey = self.import_key(k, key_type='bip44')
@@ -721,8 +726,10 @@ class HDWallet:
             else:
                 # TODO: Handle HDKey, DbKey instances
                 pass
+            key_list_ids.append(dbkey.key_id)
 
         # TODO: Store multisig definition
+
 
     def new_multisig_key(self, treeindex=None):
         multisig = serialize_multisig(publickeylist, n_required)

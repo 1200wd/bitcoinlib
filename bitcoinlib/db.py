@@ -121,9 +121,9 @@ class DbKey(Base):
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
     tree_index = Column(Integer, default=0, doc="Index of key structure. Can be used to disdinguish multiple key "
-                                                    "structures, i.e. for multisig or importing external unrelated "
-                                                    "keys")
+                                                "structures, i.e. for multisig or importing external unrelated keys")
     redeemscript = Column(String, doc="Raw redeemscript for P2SH transactions used for multisig")
+    multisig_key_id = Column(Integer)
 
     __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'bip44', 'multisig'])),)
 
