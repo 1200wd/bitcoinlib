@@ -714,7 +714,9 @@ class HDWallet:
 
         multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose,
                              key='multisig', wif='multisig', address='multisig',
-                             key_type='multisig', network_name=self.network)
+                             key_type='multisig', network_name=self.network.network_name)
+        self._session.add(multisig_key)
+        self._session.commit()
         multisig_key_id = multisig_key.id
         key_list_ids = []
         for k in key_list:
