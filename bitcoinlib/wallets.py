@@ -715,7 +715,6 @@ class HDWallet:
         if n_required > len(key_list):
             raise WalletError("Number of key required to sign is greater then number of keys provided")
 
-        depth = 0
         last_tree_index = self._get_latest_tree_index(self.network.network_name)
         multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=0, depth=0,
                              change=0, address_index=0, parent_id=0, is_private=True, path='m',
@@ -733,7 +732,7 @@ class HDWallet:
             elif isinstance(k, HDWalletKey):
                 wkey = k
             elif isinstance(k, HDKey):
-                wkey = self.import_key(k.wif, key_type='bip44')
+                wkey = self.import_key(k.wif(), key_type='bip44')
                 self.new_account(tree_index=wkey.tree_index)
             elif isinstance(k, int):
                 wkey = self.key(k)
