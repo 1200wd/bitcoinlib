@@ -287,6 +287,7 @@ class HDWalletKey:
             self.depth = wk.depth
             self.key_type = wk.key_type
             self.tree_index = wk.tree_index
+            self.multisig_key_id = wk.multisig_key_id
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -727,18 +728,22 @@ class HDWallet:
         for k in key_list:
             # TODO: Check if key has same network, not already in wallet, used for other multisig etc
             if isinstance(k, (str, bytes, bytearray)):
-                wkey = self.import_key(k, key_type='bip44')
+                wkey = self.import_key(k, key_type='bip44', network=self.network.network_name)
                 self.new_account(tree_index=wkey.tree_index)
             elif isinstance(k, HDWalletKey):
                 wkey = k
             elif isinstance(k, HDKey):
-                wkey = self.import_key(k.wif(), key_type='bip44')
+                wkey = self.import_key(k.wif(), key_type='bip44', network=self.network.network_name)
                 self.new_account(tree_index=wkey.tree_index)
             elif isinstance(k, int):
                 wkey = self.key(k)
             else:
                 raise WalletError("Please use already existing HDWalletKey object / ID, HDKey object or "
                                   "private key in key list")
+            if wkey.multisig_key_id:
+                raise WalletError("Key %s already part of another multisig key" % k)
+            if wkey.network_name != multisig_key.network_name:
+                raise WalletError("Key %s has different network then multisig key network" % k)
             # TODO: Add support for account keys (depth=3)
             if wkey.depth != 0:
                 raise WalletError("Only use Masterkey with depth 0 as base for multisig key")
@@ -747,9 +752,9 @@ class HDWallet:
             update({DbKey.multisig_key_id: multisig_key_id}, synchronize_session='fetch')
         self._session.commit()
 
-    def new_multisig_key(self, treeindex=None):
-        multisig = serialize_multisig(publickeylist, n_required)
-        pubkeyhash_to_addr(multisig)
+    # def new_multisig_key(self, treeindex=None):
+    #     multisig = serialize_multisig(publickeylist, n_required)
+    #     pubkeyhash_to_addr(multisig)
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
         """
