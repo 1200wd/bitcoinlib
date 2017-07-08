@@ -657,6 +657,11 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
+    def _get_latest_tree_index(self, network):
+        return self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
+                                                    network_name=network). \
+            order_by(DbKey.tree_index.desc()).first().tree_index
+
     def import_key(self, key, account_id=0, name='', network=None, key_type='single'):
         """
         Add new non HD key to wallet. This key will have no path but are referred by a import_key sequence
@@ -682,9 +687,7 @@ class HDWallet:
                                   "network first." % network)
 
         # TODO: If key has related key-path add to wallet (i.e. for restoring backup
-        last_tree_index = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
-                                                               network_name=network).\
-            order_by(DbKey.tree_index.desc()).first().tree_index
+        last_tree_index = self._get_latest_tree_index(network)
         tree_index = last_tree_index + 1
         ik_path = 'm'
         if key_type == 'single':
@@ -712,8 +715,9 @@ class HDWallet:
         if n_required > len(key_list):
             raise WalletError("Number of key required to sign is greater then number of keys provided")
 
+        last_tree_index = self._get_latest_tree_index(self.network.network_name)
         multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose,
-                             key='multisig', wif='multisig', address='multisig',
+                             key='multisig', wif='multisig', address='multisig', tree_index=last_tree_index,
                              key_type='multisig', network_name=self.network.network_name)
         self._session.add(multisig_key)
         self._session.commit()
