@@ -732,24 +732,25 @@ class HDWallet:
                 self.new_account(tree_index=wkey.tree_index)
             elif isinstance(k, HDWalletKey):
                 wkey = k
+            elif isinstance(k, HDKey):
+                wkey = self.import_key(k.wif, key_type='bip44')
+                self.new_account(tree_index=wkey.tree_index)
+            elif isinstance(k, int):
+                wkey = self.key(k)
             else:
-                # TODO: Handle HDKey, DbKey instances
-                pass
+                raise WalletError("Please use already existing HDWalletKey object / ID, HDKey object or "
+                                  "private key in key list")
             # TODO: Add support for account keys (depth=3)
             if wkey.depth != 0:
-                raise WalletError("Please use Masterkey with depth 0 as base for multisig key")
+                raise WalletError("Only use Masterkey with depth 0 as base for multisig key")
             tree_ids.append(wkey.tree_index)
         self._session.query(DbKey).filter(DbKey.tree_index.in_(tree_ids)).\
             update({DbKey.multisig_key_id: multisig_key_id}, synchronize_session='fetch')
-        # {DbTransactionInput.key_id: None}
         self._session.commit()
-        # TODO: Store multisig definition
-
 
     def new_multisig_key(self, treeindex=None):
         multisig = serialize_multisig(publickeylist, n_required)
         pubkeyhash_to_addr(multisig)
-
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
         """
