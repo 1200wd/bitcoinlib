@@ -715,25 +715,34 @@ class HDWallet:
         if n_required > len(key_list):
             raise WalletError("Number of key required to sign is greater then number of keys provided")
 
+        depth = 0
         last_tree_index = self._get_latest_tree_index(self.network.network_name)
-        multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose,
+        multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=0, depth=0,
+                             change=0, address_index=0, parent_id=0, is_private=True, path='m',
                              key='multisig', wif='multisig', address='multisig', tree_index=last_tree_index,
                              key_type='multisig', network_name=self.network.network_name)
         self._session.add(multisig_key)
         self._session.commit()
         multisig_key_id = multisig_key.id
-        key_list_ids = []
+        tree_ids = []
         for k in key_list:
+            # TODO: Check if key has same network, not already in wallet, used for other multisig etc
             if isinstance(k, (str, bytes, bytearray)):
-                dbkey = self.import_key(k, key_type='bip44')
-                self.new_account(tree_index=dbkey.tree_index)
+                wkey = self.import_key(k, key_type='bip44')
+                self.new_account(tree_index=wkey.tree_index)
             elif isinstance(k, HDWalletKey):
-                dbkey = k
+                wkey = k
             else:
                 # TODO: Handle HDKey, DbKey instances
                 pass
-            key_list_ids.append(dbkey.key_id)
-
+            # TODO: Add support for account keys (depth=3)
+            if wkey.depth != 0:
+                raise WalletError("Please use Masterkey with depth 0 as base for multisig key")
+            tree_ids.append(wkey.tree_index)
+        self._session.query(DbKey).filter(DbKey.tree_index.in_(tree_ids)).\
+            update({DbKey.multisig_key_id: multisig_key_id}, synchronize_session='fetch')
+        # {DbTransactionInput.key_id: None}
+        self._session.commit()
         # TODO: Store multisig definition
 
 
