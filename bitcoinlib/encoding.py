@@ -304,6 +304,10 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     return change_base(addr256, 256, 58)
 
 
+def script_to_pubkeyhash(script):
+    return hashlib.new('ripemd160', hashlib.sha256(script).digest()).digest()
+
+
 def to_bytearray(s):
     """
     Convert String, Unicode or Bytes to Python 2 and 3 compatible ByteArray

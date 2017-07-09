@@ -22,7 +22,7 @@ import numbers
 from itertools import groupby
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.encoding import pubkeyhash_to_addr
+from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
@@ -714,7 +714,7 @@ class HDWallet:
         if n_required is None:
             n_required = len(key_list)
         if n_required > len(key_list):
-            raise WalletError("Number of key required to sign is greater then number of keys provided")
+            raise WalletError("Number of keys required to sign is greater then number of keys provided")
 
         last_tree_index = self._get_latest_tree_index(self.network.network_name)
         multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=0, depth=0,
@@ -754,14 +754,18 @@ class HDWallet:
         # Link keys to multisig key
         self._session.query(DbKey).filter(DbKey.tree_index.in_(tree_ids)).\
             update({DbKey.multisig_key_id: multisig_key_id}, synchronize_session='fetch')
-        # Calculate redeemscript and address
+
+        # Calculate redeemscript, public key hash and address for main multisig key
         multisig_key = self._session.query(DbKey).filter_by(id=multisig_key_id).scalar()
         redeemscript = serialize_multisig(public_key_list, n_required)
-        multisig_key.key = redeemscript
-        multisig_key.address = pubkeyhash_to_addr(redeemscript, versionbyte=self.network.prefix_address_p2sh)
+        pkh = script_to_pubkeyhash(redeemscript)
+        multisig_key.key = to_hexstring(redeemscript)
+        multisig_key.address = pubkeyhash_to_addr(pkh, versionbyte=self.network.prefix_address_p2sh)
         multisig_key.wif = 'multisig-%d' % multisig_key_id
-
+        if not name:
+            multisig_key.name = 'multisig-%d' % multisig_key_id
         self._session.commit()
+
         return multisig_key_id
 
     # def new_multisig_key(self, treeindex=None):
