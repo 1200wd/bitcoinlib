@@ -719,22 +719,22 @@ class HDWallet:
         last_tree_index = self._get_latest_tree_index(self.network.network_name)
         multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=0, depth=0,
                              change=0, address_index=0, parent_id=0, is_private=True, path='m',
-                             key='multisig', wif='multisig', address='multisig', tree_index=last_tree_index,
+                             key='multisig', wif='multisig', address='multisig', tree_index=last_tree_index+1,
                              key_type='multisig', network_name=self.network.network_name)
         self._session.add(multisig_key)
         self._session.commit()
         multisig_key_id = multisig_key.id
         tree_ids = []
         for k in key_list:
-            # TODO: Check if key has same network, not already in wallet, used for other multisig etc
+            # TODO: Check if key is not already in wallet, used for other multisig etc
             if isinstance(k, (str, bytes, bytearray)):
                 wkey = self.import_key(k, key_type='bip44', network=self.network.network_name)
-                self.new_account(tree_index=wkey.tree_index)
+                # self.new_account(tree_index=wkey.tree_index)
             elif isinstance(k, HDWalletKey):
                 wkey = k
             elif isinstance(k, HDKey):
                 wkey = self.import_key(k.wif(), key_type='bip44', network=self.network.network_name)
-                self.new_account(tree_index=wkey.tree_index)
+                # self.new_account(tree_index=wkey.tree_index)
             elif isinstance(k, int):
                 wkey = self.key(k)
             else:
@@ -742,7 +742,7 @@ class HDWallet:
                                   "private key in key list")
             if wkey.multisig_key_id:
                 raise WalletError("Key %s already part of another multisig key" % k)
-            if wkey.network_name != multisig_key.network_name:
+            if wkey.network_name != self.network.network_name:
                 raise WalletError("Key %s has different network then multisig key network" % k)
             # TODO: Add support for account keys (depth=3)
             if wkey.depth != 0:
