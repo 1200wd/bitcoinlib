@@ -721,6 +721,7 @@ class HDWallet:
                              change=0, address_index=0, parent_id=0, is_private=True, path='m',
                              key='multisig', wif='multisig', address='multisig', tree_index=last_tree_index+1,
                              key_type='multisig', network_name=self.network.network_name)
+        public_key_list = []
         self._session.add(multisig_key)
         self._session.commit()
         multisig_key_id = multisig_key.id
@@ -748,9 +749,20 @@ class HDWallet:
             if wkey.depth != 0:
                 raise WalletError("Only use Masterkey with depth 0 as base for multisig key")
             tree_ids.append(wkey.tree_index)
+            public_key_list.append(wkey.key().public_hex)
+
+        # Link keys to multisig key
         self._session.query(DbKey).filter(DbKey.tree_index.in_(tree_ids)).\
             update({DbKey.multisig_key_id: multisig_key_id}, synchronize_session='fetch')
+        # Calculate redeemscript and address
+        multisig_key = self._session.query(DbKey).filter_by(id=multisig_key_id).scalar()
+        redeemscript = serialize_multisig(public_key_list, n_required)
+        multisig_key.key = redeemscript
+        multisig_key.address = pubkeyhash_to_addr(redeemscript, versionbyte=self.network.prefix_address_p2sh)
+        multisig_key.wif = 'multisig-%d' % multisig_key_id
+
         self._session.commit()
+        return multisig_key_id
 
     # def new_multisig_key(self, treeindex=None):
     #     multisig = serialize_multisig(publickeylist, n_required)
