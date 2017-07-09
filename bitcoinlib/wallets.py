@@ -720,8 +720,8 @@ class HDWallet:
         multisig_key = DbKey(name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=0, depth=0,
                              change=0, address_index=0, parent_id=0, is_private=True, path='m',
                              key='multisig', wif='multisig', address='multisig', tree_index=last_tree_index+1,
-                             key_type='multisig', network_name=self.network.network_name)
-
+                             key_type='multisig', network_name=self.network.network_name,
+                             multisig_n_required=n_required)
         self._session.add(multisig_key)
         self._session.commit()
         multisig_key_id = multisig_key.id
@@ -769,9 +769,15 @@ class HDWallet:
 
         return multisig_key_id
 
-    # def new_multisig_key(self, treeindex=None):
-    #     multisig = serialize_multisig(publickeylist, n_required)
-    #     pubkeyhash_to_addr(multisig)
+    def new_multisig_key(self, multisig_key_id):
+        multisig_key = self._session.query(DbKey).filter_by(id=multisig_key_id).scalar()
+        multisig_key_db_list = self._session.query(DbKey).filter_by(multisig_key_id=multisig_key_id, path='m').all()
+        public_key_list = []
+        for key_db in multisig_key_db_list:
+            k = HDKey(key_db.wif)
+            public_key_list.append(k.public_byte)
+        redeemscript = serialize_multisig(public_key_list, multisig_key.multisig_n_required)
+        return pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript), versionbyte=self.network.prefix_address_p2sh)
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
         """
