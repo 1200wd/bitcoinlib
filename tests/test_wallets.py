@@ -331,3 +331,27 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.updateutxos()
         self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
                          'succesfull_test_sendrawtransaction')
+
+
+class TestWalletMultisig(unittest.TestCase):
+
+    def setUp(self):
+        # Source: Example from
+        #   http://www.soroushjp.com/2014/12/20/bitcoin-multisig-the-hard-way-understanding-raw-multisignature-bitcoin-transactions/
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        key1 = 'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6TJG6MaYHtXdxCePfeN1JQAHic2UFxujpMrK62f3' \
+               'Qn4HAeGN8nm'
+        key2 = 'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6Sr15fZW12RHSQBKKrND4VHeRvtX8BhdJ2QPcTbv' \
+               'eYZrsBum5cv'
+        key3 = 'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6S9yUPYqYra2xVE9Yq6wRbGXDdNHpUoz2EQY6ECN' \
+               'Kg98YTZZiGz'
+        self.keylist = [key1, key2, key3]
+        self.multisig_wallet = HDWallet.create('mcw', key=key1, databasefile=DATABASEFILE_UNITTESTS)
+        self.multisig_key_id = self.multisig_wallet.create_multisig(self.keylist, 2)
+
+    def test_wallet_create_multisig(self):
+        self.assertEqual(self.multisig_key_id, 7)
+
+    def test_wallet_multisig_address(self):
+        self.assertEqual(self.multisig_wallet.key(self.multisig_key_id).address, '347N1Thc213QqfYCz3PZkjoJpNv5b14kBd')
