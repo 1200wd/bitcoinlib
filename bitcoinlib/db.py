@@ -106,7 +106,6 @@ class DbKey(Base):
     address_index = Column(Integer, index=True)
     key = Column(String(255), unique=True)
     wif = Column(String(255), unique=True, index=True)
-    type = Column(String(10))
     key_type = Column(String(10), default='bip32')
     address = Column(String(255), unique=True)
     purpose = Column(Integer, default=44)

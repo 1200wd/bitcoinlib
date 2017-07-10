@@ -563,7 +563,7 @@ class HDWallet:
         return "<HDWallet (id=%d, name=%s, default_network=%s)>" % \
                (self.wallet_id, self.name, self.network.network_name)
 
-    def _get_account_defaults(self, network=None, account_id=None):
+    def _get_account_defaults(self, network=None, account_id=None, tree_index=0):
         """
         Check parameter values for network and account ID, return defaults if no network or account ID is specified.
         If a network is specified but no account ID this method returns the first account ID it finds. 
@@ -581,7 +581,8 @@ class HDWallet:
             if account_id is None:
                 account_id = self.default_account_id
         qr = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=3, network_name=network)
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=3, network_name=network,
+                      tree_index=tree_index)
         if account_id is not None:
             qr = qr.filter_by(account_id=account_id)
         acckey = qr.first()
@@ -740,7 +741,7 @@ class HDWallet:
         tree_ids = []
         key_order = 0
         for k in key_list:
-            # TODO: Check if key is not already in wallet, used for other multisig etc
+            # TODO: Check if key is already in wallet, used for other multisig etc
             if isinstance(k, (str, bytes, bytearray)):
                 wkey = self.import_key(k, key_type='bip44', network=self.network.network_name, purpose=self.purpose)
             elif isinstance(k, HDWalletKey):
@@ -766,8 +767,6 @@ class HDWallet:
                 {DbKey.multisig_master_key_id: multisig_master_key_id,
                  DbKey.multisig_key_order: key_order})
             key_order += 1
-            # if not self.accounts(wkey.network_name, tree_index=wkey.tree_index):
-            #     self.new_account(tree_index=wkey.tree_index)
 
         # Link all keys to multisig key
         self._session.query(DbKey).filter(DbKey.tree_index.in_(tree_ids)).\
@@ -786,17 +785,36 @@ class HDWallet:
 
         return multisig_master_key_id
 
-    def new_multisig_key(self, multisig_master_key_id, name='', account_id=None, network=None, change=0, max_depth=5):
+    def new_multisig_key(self, multisig_master_key_id, name='', account_id=0, change=0, max_depth=5):
+        # Get master multisig key
         multisig_key = self._session.query(DbKey).filter_by(id=multisig_master_key_id).scalar()
         multisig_key_db_list = self._session.query(DbKey).\
             filter_by(multisig_master_key_id=multisig_master_key_id, path='m').order_by().all()
+        network = Network(multisig_key.network_name)
+
+        # Get new key list for multisig
         public_key_list = []
+        new_key = None
         for key_db in multisig_key_db_list:
             wk = HDWalletKey(key_db.id, session=self._session)
-            new_key = self.new_key(name, account_id, network, wk.tree_index, change, max_depth)
+            new_key = self.new_key(name, account_id, network.network_name, wk.tree_index, change, max_depth)
             public_key_list.append(new_key.key().public_hex)
+
+        # Calculate redeemscript and address and add multisig key to database
         redeemscript = serialize_multisig(public_key_list, multisig_key.multisig_n_required)
-        return pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript), versionbyte=self.network.prefix_address_p2sh)
+        address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
+                                     versionbyte=network.prefix_address_p2sh)
+        if not new_key:
+            raise WalletError("Could not create new multisig key, error when creating sub-keys")
+        multisig_key = DbKey(
+            name=name, wallet_id=self.wallet_id, purpose=multisig_key.purpose, account_id=account_id,
+            depth=new_key.depth, change=change, address_index=0, parent_id=0, is_private=True, path=new_key.path,
+            key=redeemscript, wif='multisig-%s' % address, address=address, tree_index=multisig_key.tree_index,
+            key_type='multisig', network_name=network.network_name,
+            multisig_n_required=multisig_key.multisig_n_required)
+        self._session.add(multisig_key)
+        self._session.commit()
+        return multisig_key
 
     def get_multisig_key(self, multisig_master_key_id, name='', account_id=None, network=None, change=0, max_depth=5):
         # TODO: Implement this
