@@ -826,13 +826,19 @@ class HDWallet:
             depth=main_key.depth, change=change, address_index=0, parent_id=0, is_private=True, path=main_key.path,
             key=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address,
             tree_index=multisig_key.tree_index, key_type='multisig', network_name=network.network_name,
-            multisig_n_required=multisig_key.multisig_n_required)
+            multisig_master_key_id=multisig_master_key_id, multisig_n_required=multisig_key.multisig_n_required)
         self._session.add(multisig_key)
         self._session.commit()
         return multisig_key
 
-    def get_multisig_key(self, multisig_master_key_id, name='', account_id=None, network=None, change=0, max_depth=5):
-        # TODO: Implement this
+    def get_multisig_key(self, multisig_master_key_id, name='', account_id=0, change=0, depth_of_keys=5):
+        dbkey = self._session.query(DbKey).\
+            filter_by(wallet_id=self.wallet_id, account_id=account_id, used=False, change=change,
+                      depth=depth_of_keys, multisig_master_key_id=multisig_master_key_id).first()
+        if dbkey:
+            return HDWalletKey(dbkey.id, session=self._session)
+        else:
+            return self.new_multisig_key(multisig_master_key_id, name=name, account_id=account_id, change=change)
         pass
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
