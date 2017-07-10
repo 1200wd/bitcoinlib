@@ -708,7 +708,7 @@ class HDWallet:
         mk = HDWalletKey.from_key(
             key=key, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
             account_id=account_id, purpose=purpose, session=self._session, path=ik_path, tree_index=tree_index)
-        if mk.depth == 0:
+        if key_type == 'bip44' and mk.depth == 0:
             nw = Network(network)
             networkcode = nw.bip44_cointype
             path = ["%d'" % purpose, "%s'" % networkcode]
@@ -745,12 +745,11 @@ class HDWallet:
         for k in key_list:
             # TODO: Check if key is already in wallet, used for other multisig etc
             if isinstance(k, (str, bytes, bytearray)):
-                wkey = self.import_key(k, key_type='bip44', network=self.network.network_name, purpose=self.purpose)
+                wkey = self.import_key(k, network=self.network.network_name, purpose=self.purpose)
             elif isinstance(k, HDWalletKey):
                 wkey = k
             elif isinstance(k, HDKey):
-                wkey = self.import_key(k.wif(), key_type='bip44', network=self.network.network_name,
-                                       purpose=self.purpose)
+                wkey = self.import_key(k.wif(), network=self.network.network_name, purpose=self.purpose)
             elif isinstance(k, int):
                 wkey = self.key(k)
             else:
@@ -791,26 +790,40 @@ class HDWallet:
         # Get master multisig key
         multisig_key = self._session.query(DbKey).filter_by(id=multisig_master_key_id).scalar()
         multisig_key_db_list = self._session.query(DbKey).\
-            filter_by(multisig_master_key_id=multisig_master_key_id, path='m').order_by().all()
+            filter(DbKey.multisig_master_key_id == multisig_master_key_id).\
+            filter(DbKey.multisig_key_order.isnot(None)).\
+            order_by(DbKey.multisig_key_order).all()
         network = Network(multisig_key.network_name)
 
         # Get new key list for multisig
         public_key_list = []
-        new_key = None
+        main_key = None
+        is_first = True
         for key_db in multisig_key_db_list:
             wk = HDWalletKey(key_db.id, session=self._session)
-            new_key = self.new_key(name, account_id, network.network_name, wk.tree_index, change, max_depth)
+            if wk.key_type == 'single':
+                new_key = wk
+            else:
+                new_key = self.new_key(name, account_id, network.network_name, wk.tree_index, change, max_depth)
             public_key_list.append(new_key.key().public_hex)
+            if is_first:
+                if key_db.key_type != 'bip44':
+                    raise WalletError("Cannot create new multisig key, first key in multisig key list "
+                                      "must be of type bip44")
+                main_key = new_key
+                is_first = False
 
         # Calculate redeemscript and address and add multisig key to database
         redeemscript = serialize_multisig(public_key_list, multisig_key.multisig_n_required)
         address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
                                      versionbyte=network.prefix_address_p2sh)
-        if not new_key:
-            raise WalletError("Could not create new multisig key, error when creating sub-keys")
+        if not main_key:
+            raise WalletError("Could not create new multisig key, main key not found")
+        if not name:
+            name = "Multisig Key #%d" % main_key.address_index
         multisig_key = DbKey(
             name=name, wallet_id=self.wallet_id, purpose=multisig_key.purpose, account_id=account_id,
-            depth=new_key.depth, change=change, address_index=0, parent_id=0, is_private=True, path=new_key.path,
+            depth=main_key.depth, change=change, address_index=0, parent_id=0, is_private=True, path=main_key.path,
             key=redeemscript, wif='multisig-%s' % address, address=address, tree_index=multisig_key.tree_index,
             key_type='multisig', network_name=network.network_name,
             multisig_n_required=multisig_key.multisig_n_required)
@@ -1036,8 +1049,8 @@ class HDWallet:
             pathdict = parse_bip44_path(path)
             purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
             if purpose != self.purpose:
-                raise WalletError("Cannot create key with different purpose field (%d) as existing wallet (%d)" % (
-                purpose, self.purpose))
+                raise WalletError("Cannot create key with different purpose field (%d) as existing wallet (%d)" %
+                                  (purpose, self.purpose))
             cointype = int(pathdict['cointype'].replace("'", ""))
             wallet_cointypes = [Network(nw).bip44_cointype for nw in self.network_list()]
             if cointype not in wallet_cointypes:
