@@ -350,8 +350,24 @@ class TestWalletMultisig(unittest.TestCase):
         self.keylist = [self.multisig_wallet.main_key, key2, key3]
         self.multisig_key_id = self.multisig_wallet.create_multisig(self.keylist, 2)
 
-    def test_wallet_create_multisig(self):
+    def test_wallet_multisig_create(self):
         self.assertEqual(self.multisig_key_id, 7)
 
     def test_wallet_multisig_address(self):
         self.assertEqual(self.multisig_wallet.key(self.multisig_key_id).address, '347N1Thc213QqfYCz3PZkjoJpNv5b14kBd')
+
+
+class TestWalletTreeIndex(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        key1 = 'tprv8ZgxMBicQKsPdRb1teK6S4jkKegz9bCyS5n4Vh6r8ZQMBY8AXvFDsuFUr8ExCF46vr1umhUotAMW5JAi7KnCzdSyxaPUq7kAn' \
+               'CNnXZf5z8Y'
+        key2 = 'tprv8ZgxMBicQKsPedjEZPwEjxXeNKwkHomTr3MJ1HAxenPVBwZAkjG2hiqiS36ZLLxuZtsNp3eQMRNoGymWit6FfkHHoptvpnii7' \
+               '2QgyoZ6Xaa'
+        self.wallet = HDWallet.create('tree-index-test', key=key1, databasefile=DATABASEFILE_UNITTESTS)
+        self.wallet.import_key(key2)
+
+    def test_wallet_tree_index_last_tree_index(self):
+        self.assertEqual(self.wallet._get_latest_tree_index(), 1)

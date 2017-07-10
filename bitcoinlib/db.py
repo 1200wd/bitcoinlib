@@ -121,7 +121,7 @@ class DbKey(Base):
     network = relationship("DbNetwork")
     tree_index = Column(Integer, default=0, doc="Index of key structure. Can be used to disdinguish multiple key "
                                                 "structures, i.e. for multisig or importing external unrelated keys")
-    # TODO: Put in seperate table with n-m relation, so key can be used for multiple multisig structures
+    # TODO: Put in seperate table with n-m relation, so key can be used for multiple multisig structures (?)
     redeemscript = Column(String, doc="Raw redeemscript for P2SH transactions used for multisig")
     multisig_master_key_id = Column(Integer, doc="This key is part of a multisig key and related to this master key ID")
     multisig_n_required = Column(Integer, doc="Number of required signature for multisig, only used for "

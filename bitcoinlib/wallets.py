@@ -24,7 +24,7 @@ from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
 from bitcoinlib.keys import HDKey, check_network_and_key
-from bitcoinlib.networks import Network, DEFAULT_NETWORK
+from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction, serialize_multisig
 from bitcoinlib.mnemonic import Mnemonic
@@ -659,7 +659,9 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
-    def _get_latest_tree_index(self, network):
+    def _get_latest_tree_index(self, network=None):
+        if network is None:
+            network = self.network.network_name
         return self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
                                                     network_name=network). \
             order_by(DbKey.tree_index.desc()).first().tree_index
@@ -1036,13 +1038,12 @@ class HDWallet:
             if purpose != self.purpose:
                 raise WalletError("Cannot create key with different purpose field (%d) as existing wallet (%d)" % (
                 purpose, self.purpose))
-            cointype = 0 if not pathdict['cointype'] else int(pathdict['cointype'].replace("'", ""))
-            if cointype != self.network.bip44_cointype:
-                raise WalletError("Multiple cointypes per wallet are not supported at the moment. "
-                                  "Cannot create key with different cointype field (%d) as existing wallet (%d)" % (
-                                  cointype, self.network.bip44_cointype))
-            if (pathdict['cointype'][-1] != "'" or pathdict['purpose'][-1] != "'"
-                              or pathdict['account'][-1] != "'"):
+            cointype = int(pathdict['cointype'].replace("'", ""))
+            wallet_cointypes = [Network(nw).bip44_cointype for nw in self.network_list()]
+            if cointype not in wallet_cointypes:
+                raise WalletError("Network / cointype %s not available in this wallet, please create an account for "
+                                  "this network first. Or disable BIP checks." % cointype)
+            if pathdict['cointype'][-1] != "'" or pathdict['purpose'][-1] != "'" or pathdict['account'][-1] != "'":
                 raise WalletError("Cointype, purpose and account must be hardened, see BIP43 and BIP44 definitions")
         if not name:
             name = self.name
@@ -1277,7 +1278,7 @@ class HDWallet:
                 del wk['_sa_instance_state']
         return wks
 
-    def network_list(self):
+    def network_list(self, field='network_name'):
         """
         Wrapper for networks methods, returns a flat list with currently used
         networks for this wallet.
@@ -1285,7 +1286,7 @@ class HDWallet:
         :return: list 
         """
 
-        return [x['network_name'] for x in self.networks()]
+        return [x[field] for x in self.networks()]
 
     def updatebalance_from_serviceprovider(self, account_id=None, network=None):
         """

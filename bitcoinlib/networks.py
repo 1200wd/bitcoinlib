@@ -98,8 +98,11 @@ def network_by_value(field, value):
     
     :return list: Of network name strings 
     """
-    value = to_hexstring(value).upper()
-    return [nv for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field].upper() == value]
+    try:
+        value = to_hexstring(value).upper()
+    except:
+        pass
+    return [nv for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field] == value]
 
 
 def network_defined(network):
