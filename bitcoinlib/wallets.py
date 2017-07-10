@@ -287,7 +287,7 @@ class HDWalletKey:
             self.depth = wk.depth
             self.key_type = wk.key_type
             self.tree_index = wk.tree_index
-            self.multisig_key_id = wk.multisig_key_id
+            self.multisig_master_key_id = wk.multisig_master_key_id
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -724,11 +724,12 @@ class HDWallet:
                              multisig_n_required=n_required)
         self._session.add(multisig_key)
         self._session.commit()
-        multisig_key_id = multisig_key.id
+        multisig_master_key_id = multisig_key.id
 
         # Check and normalize key list and import in wallet with seperate tree ids
         public_key_list = []
         tree_ids = []
+        key_order = 0
         for k in key_list:
             # TODO: Check if key is not already in wallet, used for other multisig etc
             if isinstance(k, (str, bytes, bytearray)):
@@ -742,7 +743,7 @@ class HDWallet:
             else:
                 raise WalletError("Please use already existing HDWalletKey object / ID, HDKey object or "
                                   "private key in key list")
-            if wkey.multisig_key_id:
+            if wkey.multisig_master_key_id:
                 raise WalletError("Key %s already part of another multisig key" % k)
             if wkey.network_name != self.network.network_name:
                 raise WalletError("Key %s has different network then multisig key network" % k)
@@ -751,31 +752,36 @@ class HDWallet:
                 raise WalletError("Only use Masterkey with depth 0 as base for multisig key")
             tree_ids.append(wkey.tree_index)
             public_key_list.append(wkey.key().public_hex)
+            self._session.query(DbKey).filter(DbKey.id == wkey.key_id).update(
+                {DbKey.multisig_master_key_id: multisig_master_key_id,
+                 DbKey.multisig_key_order: key_order})
+            key_order += 1
 
-        # Link keys to multisig key
+        # Link all keys to multisig key
         self._session.query(DbKey).filter(DbKey.tree_index.in_(tree_ids)).\
-            update({DbKey.multisig_key_id: multisig_key_id}, synchronize_session='fetch')
+            update({DbKey.multisig_master_key_id: multisig_master_key_id}, synchronize_session='fetch')
 
         # Calculate redeemscript, public key hash and address for main multisig key
-        multisig_key = self._session.query(DbKey).filter_by(id=multisig_key_id).scalar()
+        multisig_key = self._session.query(DbKey).filter_by(id=multisig_master_key_id).scalar()
         redeemscript = serialize_multisig(public_key_list, n_required)
         pkh = script_to_pubkeyhash(redeemscript)
         multisig_key.key = to_hexstring(redeemscript)
         multisig_key.address = pubkeyhash_to_addr(pkh, versionbyte=self.network.prefix_address_p2sh)
-        multisig_key.wif = 'multisig-%d' % multisig_key_id
+        multisig_key.wif = 'multisig-%d' % multisig_master_key_id
         if not name:
-            multisig_key.name = 'multisig-%d' % multisig_key_id
+            multisig_key.name = 'multisig-%d' % multisig_master_key_id
         self._session.commit()
 
-        return multisig_key_id
+        return multisig_master_key_id
 
-    def new_multisig_key(self, multisig_key_id):
-        multisig_key = self._session.query(DbKey).filter_by(id=multisig_key_id).scalar()
-        multisig_key_db_list = self._session.query(DbKey).filter_by(multisig_key_id=multisig_key_id, path='m').all()
+    def new_multisig_key(self, multisig_master_key_id):
+        multisig_key = self._session.query(DbKey).filter_by(id=multisig_master_key_id).scalar()
+        multisig_key_db_list = self._session.query(DbKey).\
+            filter_by(multisig_master_key_id=multisig_master_key_id, path='m').all()
         public_key_list = []
         for key_db in multisig_key_db_list:
             k = HDKey(key_db.wif)
-            public_key_list.append(k.public_byte)
+            public_key_list.append(k.public_hex)
         redeemscript = serialize_multisig(public_key_list, multisig_key.multisig_n_required)
         return pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript), versionbyte=self.network.prefix_address_p2sh)
 
