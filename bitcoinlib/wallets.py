@@ -756,6 +756,9 @@ class HDWallet:
                 {DbKey.multisig_master_key_id: multisig_master_key_id,
                  DbKey.multisig_key_order: key_order})
             key_order += 1
+            if not self.accounts(wkey.network_name, tree_index=wkey.tree_index):
+                self.new_account(tree_index=wkey.tree_index)
+
 
         # Link all keys to multisig key
         self._session.query(DbKey).filter(DbKey.tree_index.in_(tree_ids)).\
@@ -774,16 +777,21 @@ class HDWallet:
 
         return multisig_master_key_id
 
-    def new_multisig_key(self, multisig_master_key_id):
+    def new_multisig_key(self, multisig_master_key_id, name='', account_id=None, network=None, change=0, max_depth=5):
         multisig_key = self._session.query(DbKey).filter_by(id=multisig_master_key_id).scalar()
         multisig_key_db_list = self._session.query(DbKey).\
-            filter_by(multisig_master_key_id=multisig_master_key_id, path='m').all()
+            filter_by(multisig_master_key_id=multisig_master_key_id, path='m').order_by().all()
         public_key_list = []
         for key_db in multisig_key_db_list:
-            k = HDKey(key_db.wif)
-            public_key_list.append(k.public_hex)
+            wk = HDWalletKey(key_db.id, session=self._session)
+            new_key = self.new_key(name, account_id, network, wk.tree_index, change, max_depth)
+            public_key_list.append(new_key.key().public_hex)
         redeemscript = serialize_multisig(public_key_list, multisig_key.multisig_n_required)
         return pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript), versionbyte=self.network.prefix_address_p2sh)
+
+    def get_multisig_key(self, multisig_master_key_id, name='', account_id=None, network=None, change=0, max_depth=5):
+        # TODO: Implement this
+        pass
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
         """
@@ -1096,7 +1104,7 @@ class HDWallet:
             res = self.keys(depth=3, as_dict=as_dict)
         return res
 
-    def keys_accounts(self, account_id=None, network=None, as_dict=False):
+    def keys_accounts(self, account_id=None, network=None, tree_index=None, as_dict=False):
         """
         Get Database records of account key(s) with for current wallet. Wrapper for the keys() method.
         
@@ -1110,9 +1118,9 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=3, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=3, network=network, tree_index=tree_index, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, network=None, as_dict=False):
+    def keys_addresses(self, account_id=None, network=None, tree_index=None, as_dict=False):
         """
         Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1126,9 +1134,9 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=5, network=network, tree_index=tree_index, as_dict=as_dict)
 
-    def keys_address_payment(self, account_id=None, network=None, as_dict=False):
+    def keys_address_payment(self, account_id=None, network=None, tree_index=None, as_dict=False):
         """
         Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1142,9 +1150,9 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, change=0, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=5, change=0, network=network, tree_index=tree_index, as_dict=as_dict)
 
-    def keys_address_change(self, account_id=None, network=None, as_dict=False):
+    def keys_address_change(self, account_id=None, network=None, tree_index=None, as_dict=False):
         """
         Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1158,7 +1166,7 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, change=1, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=5, change=1, network=network, tree_index=tree_index, as_dict=as_dict)
 
     def tree_ids(self):
         res = self._session.query(DbKey.tree_index).filter_by(wallet_id=self.wallet_id, parent_id=0).all()
@@ -1213,7 +1221,7 @@ class HDWallet:
         else:
             raise KeyError("Key '%s' not found" % term)
 
-    def accounts(self, network=None):
+    def accounts(self, network=None, tree_index=None):
         """
         Get list of accounts for this wallet
         
@@ -1223,7 +1231,7 @@ class HDWallet:
         :return: List of keys as dictionary
         """
 
-        wks = self.keys_accounts(network=network, as_dict=True)
+        wks = self.keys_accounts(network=network, tree_index=tree_index, as_dict=True)
         for wk in wks:
             if '_sa_instance_state' in wk:
                 del wk['_sa_instance_state']
