@@ -663,9 +663,9 @@ class HDWallet:
                                                     network_name=network). \
             order_by(DbKey.tree_index.desc()).first().tree_index
 
-    def import_key(self, key, account_id=0, name='', network=None, key_type='single'):
+    def import_key(self, key, account_id=0, name='', network=None, purpose=44, key_type='single'):
         """
-        Add new non HD key to wallet. This key will have no path but are referred by a import_key sequence
+        Add new master key to wallet. A seperate BIP44 path will be created with another tree index
         
         :param key: Key to import
         :type key: str, bytes, int, bytearray
@@ -702,9 +702,18 @@ class HDWallet:
             if not name:
                 name = ik_path
 
-        return HDWalletKey.from_key(
+        mk = HDWalletKey.from_key(
             key=key, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
-            account_id=account_id, purpose=self.purpose, session=self._session, path=ik_path, tree_index=tree_index)
+            account_id=account_id, purpose=purpose, session=self._session, path=ik_path, tree_index=tree_index)
+        if mk.depth == 0:
+            nw = Network(network)
+            networkcode = nw.bip44_cointype
+            path = ["%d'" % purpose, "%s'" % networkcode]
+            self._create_keys_from_path(
+                mk, path, name=name, wallet_id=self.wallet_id, network=network, session=self._session,
+                account_id=account_id, purpose=purpose, basepath="m", tree_index=tree_index)
+            self.new_account(account_id=account_id, tree_index=tree_index)
+        return mk
 
     def create_multisig(self, key_list, n_required=None, name=''):
         if not isinstance(key_list, list):
@@ -733,11 +742,12 @@ class HDWallet:
         for k in key_list:
             # TODO: Check if key is not already in wallet, used for other multisig etc
             if isinstance(k, (str, bytes, bytearray)):
-                wkey = self.import_key(k, key_type='bip44', network=self.network.network_name)
+                wkey = self.import_key(k, key_type='bip44', network=self.network.network_name, purpose=self.purpose)
             elif isinstance(k, HDWalletKey):
                 wkey = k
             elif isinstance(k, HDKey):
-                wkey = self.import_key(k.wif(), key_type='bip44', network=self.network.network_name)
+                wkey = self.import_key(k.wif(), key_type='bip44', network=self.network.network_name,
+                                       purpose=self.purpose)
             elif isinstance(k, int):
                 wkey = self.key(k)
             else:
@@ -756,9 +766,8 @@ class HDWallet:
                 {DbKey.multisig_master_key_id: multisig_master_key_id,
                  DbKey.multisig_key_order: key_order})
             key_order += 1
-            if not self.accounts(wkey.network_name, tree_index=wkey.tree_index):
-                self.new_account(tree_index=wkey.tree_index)
-
+            # if not self.accounts(wkey.network_name, tree_index=wkey.tree_index):
+            #     self.new_account(tree_index=wkey.tree_index)
 
         # Link all keys to multisig key
         self._session.query(DbKey).filter(DbKey.tree_index.in_(tree_ids)).\
@@ -952,7 +961,7 @@ class HDWallet:
         if not res:
             try:
                 # TODO: make this better...
-                purposekey = self.key(self.keys(depth=1)[0].id)
+                purposekey = self.key(self.keys(depth=1, tree_index=tree_index)[0].id)
                 bip44_cointype = Network(network).bip44_cointype
                 accrootkey_obj = self._create_keys_from_path(
                     purposekey, [str(bip44_cointype)], name=network, wallet_id=self.wallet_id, account_id=account_id,
