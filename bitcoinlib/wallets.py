@@ -1131,7 +1131,7 @@ class HDWallet:
             res = self.keys(depth=3, as_dict=as_dict)
         return res
 
-    def keys_accounts(self, account_id=None, network=None, tree_index=None, as_dict=False):
+    def keys_accounts(self, account_id=None, network=None, tree_index=0, as_dict=False):
         """
         Get Database records of account key(s) with for current wallet. Wrapper for the keys() method.
         
@@ -1147,7 +1147,7 @@ class HDWallet:
 
         return self.keys(account_id, depth=3, network=network, tree_index=tree_index, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, network=None, tree_index=None, as_dict=False):
+    def keys_addresses(self, account_id=None, network=None, tree_index=0, as_dict=False):
         """
         Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1163,7 +1163,7 @@ class HDWallet:
 
         return self.keys(account_id, depth=5, network=network, tree_index=tree_index, as_dict=as_dict)
 
-    def keys_address_payment(self, account_id=None, network=None, tree_index=None, as_dict=False):
+    def keys_address_payment(self, account_id=None, network=None, tree_index=0, as_dict=False):
         """
         Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1179,7 +1179,7 @@ class HDWallet:
 
         return self.keys(account_id, depth=5, change=0, network=network, tree_index=tree_index, as_dict=as_dict)
 
-    def keys_address_change(self, account_id=None, network=None, tree_index=None, as_dict=False):
+    def keys_address_change(self, account_id=None, network=None, tree_index=0, as_dict=False):
         """
         Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1248,7 +1248,7 @@ class HDWallet:
         else:
             raise KeyError("Key '%s' not found" % term)
 
-    def accounts(self, network=None, tree_index=None):
+    def accounts(self, network=None, tree_index=0):
         """
         Get list of accounts for this wallet
         

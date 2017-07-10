@@ -346,8 +346,8 @@ class TestWalletMultisig(unittest.TestCase):
                'eYZrsBum5cv'
         key3 = 'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6S9yUPYqYra2xVE9Yq6wRbGXDdNHpUoz2EQY6ECN' \
                'Kg98YTZZiGz'
-        self.keylist = [key1, key2, key3]
         self.multisig_wallet = HDWallet.create('mcw', key=key1, databasefile=DATABASEFILE_UNITTESTS)
+        self.keylist = [self.multisig_wallet.main_key, key2, key3]
         self.multisig_key_id = self.multisig_wallet.create_multisig(self.keylist, 2)
 
     def test_wallet_create_multisig(self):
