@@ -847,18 +847,13 @@ class HDWallet:
             return self.new_multisig_key(multisig_tree_index, name=name, account_id=account_id, change=change)
 
     def _default_multisig_tree(self):
-        tree_ids = self.multisig_trees()
+        tree_ids = self.tree_ids_multisig()
         if not tree_ids:
             raise WalletError("No multisig defined")
         elif len(tree_ids) == 1:
             return tree_ids[0]
         else:
             raise WalletError("Please specify multisig tree index, multiple found: %s" % tree_ids)
-
-    def multisig_trees(self):
-        res = self._session.query(DbKey.tree_index).\
-            filter_by(wallet_id=self.wallet_id, key_type='multisig', path='m').all()
-        return [k.tree_index for k in res]
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
         """
@@ -1236,7 +1231,12 @@ class HDWallet:
 
     def tree_ids(self):
         res = self._session.query(DbKey.tree_index).filter_by(wallet_id=self.wallet_id, parent_id=0).all()
-        return list(set([x[0] for x in res]))
+        return list([k.tree_index for k in res])
+
+    def tree_ids_multisig(self):
+        res = self._session.query(DbKey.tree_index).\
+            filter_by(wallet_id=self.wallet_id, key_type='multisig', path='m').all()
+        return [k.tree_index for k in res]
 
     def addresslist(self, account_id=None, network=None, depth=5, key_id=None, tree_index=0):
         """
