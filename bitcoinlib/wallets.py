@@ -787,6 +787,9 @@ class HDWallet:
         return last_tree_index+1
 
     def new_multisig_key(self, multisig_tree_index=None, name='', account_id=0, change=0, max_depth=5):
+        if multisig_tree_index is None:
+            multisig_tree_index = self._default_multisig_tree()
+
         # Get master multisig key
         multisig_master_key = self._session.query(DbKey).filter_by(tree_index=multisig_tree_index, path='m').scalar()
         multisig_key_db_list = self._session.query(DbKey).\
@@ -833,21 +836,24 @@ class HDWallet:
 
     def get_multisig_key(self, multisig_tree_index=None, name='', account_id=0, change=0, depth_of_keys=5):
         if multisig_tree_index is None:
-            tree_ids = self.multisig_trees()
-            if not tree_ids:
-                raise WalletError("No multisig defined")
-            elif len(tree_ids) == 1:
-                multisig_tree_index = tree_ids[0]
-            else:
-                raise WalletError("Please specify multisig tree index, multiple found: %s" % tree_ids)
+            multisig_tree_index = self._default_multisig_tree()
 
         dbkey = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, used=False, change=change,
-                      depth=depth_of_keys, tree_index=multisig_tree_index, path='m').first()
+                      depth=depth_of_keys, tree_index=multisig_tree_index).first()
         if dbkey:
             return HDWalletKey(dbkey.id, session=self._session)
         else:
             return self.new_multisig_key(multisig_tree_index, name=name, account_id=account_id, change=change)
+
+    def _default_multisig_tree(self):
+        tree_ids = self.multisig_trees()
+        if not tree_ids:
+            raise WalletError("No multisig defined")
+        elif len(tree_ids) == 1:
+            return tree_ids[0]
+        else:
+            raise WalletError("Please specify multisig tree index, multiple found: %s" % tree_ids)
 
     def multisig_trees(self):
         res = self._session.query(DbKey.tree_index).\
@@ -1341,7 +1347,7 @@ class HDWallet:
         self._dbwallet.balance = self._balance
         self._session.commit()
 
-    def updatebalance(self, account_id=None, network=None, key_id=None):
+    def updatebalance(self, account_id=None, network=None, key_id=None, tree_index=0):
         """
         Update balance from UTXO's in database. To get most recent balance use 'updateutxos' method first.
         
@@ -1361,7 +1367,7 @@ class HDWallet:
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         # Get UTXO's and convert to dict with key_id and balance
-        utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
+        utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id, tree_index=tree_index)
         utxos.sort(key=lambda x: x['key_id'])
         utxo_keys = []
         total_balance = 0
@@ -1374,7 +1380,7 @@ class HDWallet:
             total_balance += balance
 
         # Add keys with no UTXO's with 0 balance
-        for key in self.keys(account_id=account_id, network=network, key_id=key_id):
+        for key in self.keys(account_id=account_id, network=network, key_id=key_id, tree_index=tree_index):
             if key.id not in [x['key_id'] for x in utxos]:
                 utxo_keys.append({
                     'id': key.id,
@@ -1472,7 +1478,7 @@ class HDWallet:
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
-        self.updatebalance(account_id=account_id, key_id=key_id)
+        self.updatebalance(account_id=account_id, key_id=key_id, tree_index=tree_index)
         return count_utxos
 
     def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None, tree_index=0):
