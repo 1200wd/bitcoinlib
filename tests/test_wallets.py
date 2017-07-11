@@ -349,13 +349,13 @@ class TestWalletMultisig(unittest.TestCase):
         self.multisig_wallet = HDWallet.create('mcw', key=key1, databasefile=DATABASEFILE_UNITTESTS)
         self.keylist = [self.multisig_wallet.main_key, key2, key3]
         self.tree_index = self.multisig_wallet.create_multisig(self.keylist, 2)
-        self.multisig_wallet.info()
 
     def test_wallet_multisig_create_tree_index(self):
-        self.assertEqual(self.tree_index, 7)
+        self.assertEqual(self.tree_index, self.multisig_wallet.tree_ids_multisig()[0])
 
     def test_wallet_multisig_create_address(self):
-        self.assertEqual(self.multisig_wallet.key(self.tree_index).address, '347N1Thc213QqfYCz3PZkjoJpNv5b14kBd')
+        self.assertEqual(self.multisig_wallet.get_multisig_key().address, '35JxFtKNXGJb7HyBDascNxndtkJ4QXs2bH')
+        self.multisig_wallet.info()
 
 
 class TestWalletTreeIndex(unittest.TestCase):
