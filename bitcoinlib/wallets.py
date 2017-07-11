@@ -1677,9 +1677,13 @@ class HDWallet:
             key = self._session.query(DbKey).filter_by(id=inp[2]).scalar()
             if not key:
                 raise WalletError("Key of UTXO %s not found in this wallet" % inp[0])
-            k = HDKey(key.wif)
-            id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
-            sign_arr.append((k.private_byte, id))
+            if key.key_type == 'multisig':
+                id = t.add_input(inp[0], inp[1], unlocking_script='')
+                sign_arr.append((key.redeemscript, id))
+            else:
+                k = HDKey(key.wif)
+                id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
+                sign_arr.append((k.private_byte, id))
 
         # Sign inputs,
         for ti in sign_arr:
