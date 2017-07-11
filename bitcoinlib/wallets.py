@@ -784,16 +784,16 @@ class HDWallet:
             multisig_key.name = 'multisig-%d' % multisig_master_key_id
         self._session.commit()
 
-        return multisig_master_key_id
+        return last_tree_index+1
 
-    def new_multisig_key(self, multisig_master_key_id, name='', account_id=0, change=0, max_depth=5):
+    def new_multisig_key(self, multisig_tree_index=None, name='', account_id=0, change=0, max_depth=5):
         # Get master multisig key
-        multisig_key = self._session.query(DbKey).filter_by(id=multisig_master_key_id).scalar()
+        multisig_master_key = self._session.query(DbKey).filter_by(tree_index=multisig_tree_index, path='m').scalar()
         multisig_key_db_list = self._session.query(DbKey).\
-            filter(DbKey.multisig_master_key_id == multisig_master_key_id).\
+            filter(DbKey.multisig_master_key_id == multisig_master_key.id).\
             filter(DbKey.multisig_key_order.isnot(None)).\
             order_by(DbKey.multisig_key_order).all()
-        network = Network(multisig_key.network_name)
+        network = Network(multisig_master_key.network_name)
 
         # Get new key list for multisig
         public_key_list = []
@@ -814,7 +814,7 @@ class HDWallet:
                 is_first = False
 
         # Calculate redeemscript and address and add multisig key to database
-        redeemscript = serialize_multisig(public_key_list, multisig_key.multisig_n_required)
+        redeemscript = serialize_multisig(public_key_list, multisig_master_key.multisig_n_required)
         address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
                                      versionbyte=network.prefix_address_p2sh)
         if not main_key:
@@ -822,24 +822,37 @@ class HDWallet:
         if not name:
             name = "Multisig Key #%d" % main_key.address_index
         multisig_key = DbKey(
-            name=name, wallet_id=self.wallet_id, purpose=multisig_key.purpose, account_id=account_id,
+            name=name, wallet_id=self.wallet_id, purpose=multisig_master_key.purpose, account_id=account_id,
             depth=main_key.depth, change=change, address_index=0, parent_id=0, is_private=True, path=main_key.path,
             key=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address,
-            tree_index=multisig_key.tree_index, key_type='multisig', network_name=network.network_name,
-            multisig_master_key_id=multisig_master_key_id, multisig_n_required=multisig_key.multisig_n_required)
+            tree_index=multisig_tree_index, key_type='multisig', network_name=network.network_name,
+            multisig_master_key_id=multisig_master_key.id, multisig_n_required=multisig_master_key.multisig_n_required)
         self._session.add(multisig_key)
         self._session.commit()
         return multisig_key
 
-    def get_multisig_key(self, multisig_master_key_id, name='', account_id=0, change=0, depth_of_keys=5):
+    def get_multisig_key(self, multisig_tree_index=None, name='', account_id=0, change=0, depth_of_keys=5):
+        if multisig_tree_index is None:
+            tree_ids = self.multisig_trees()
+            if not tree_ids:
+                raise WalletError("No multisig defined")
+            elif len(tree_ids) == 1:
+                multisig_tree_index = tree_ids[0]
+            else:
+                raise WalletError("Please specify multisig tree index, multiple found: %s" % tree_ids)
+
         dbkey = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, used=False, change=change,
-                      depth=depth_of_keys, multisig_master_key_id=multisig_master_key_id).first()
+                      depth=depth_of_keys, tree_index=multisig_tree_index, path='m').first()
         if dbkey:
             return HDWalletKey(dbkey.id, session=self._session)
         else:
-            return self.new_multisig_key(multisig_master_key_id, name=name, account_id=account_id, change=change)
-        pass
+            return self.new_multisig_key(multisig_tree_index, name=name, account_id=account_id, change=change)
+
+    def multisig_trees(self):
+        res = self._session.query(DbKey.tree_index).\
+            filter_by(wallet_id=self.wallet_id, key_type='multisig', path='m').all()
+        return [k.tree_index for k in res]
 
     def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
         """
@@ -1373,9 +1386,9 @@ class HDWallet:
         self._dbwallet.balance = total_balance
         self._balance = total_balance
         self._session.commit()
-        _logger.info("Got balance for %d key. Total balance is %s" % (len(utxo_keys), total_balance))
+        _logger.info("Got balance for %d key(s). Total balance is %s" % (len(utxo_keys), total_balance))
 
-    def updateutxos(self, account_id=None, network=None, key_id=None, depth=5):
+    def updateutxos(self, account_id=None, network=None, key_id=None, depth=5, tree_index=0):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1397,13 +1410,14 @@ class HDWallet:
 
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=network).\
-            getutxos(self.addresslist(account_id=account_id, network=network, key_id=key_id, depth=depth))
+            getutxos(self.addresslist(account_id=account_id, network=network, key_id=key_id, depth=depth,
+                                      tree_index=tree_index))
         if utxos is False:
             raise WalletError("No response from any service provider, could not update UTXO's")
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
-        current_utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
+        current_utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id, tree_index=tree_index)
 
         # Update spend UTXO's (not found in list) and mark key as used
         utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
@@ -1461,7 +1475,7 @@ class HDWallet:
         self.updatebalance(account_id=account_id, key_id=key_id)
         return count_utxos
 
-    def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
+    def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None, tree_index=0):
         """
         Get UTXO's (Unspent Outputs) from database. Use updateutxos method first for updated values
         
@@ -1484,6 +1498,7 @@ class HDWallet:
                    DbKey.account_id == account_id,
                    DbKey.wallet_id == self.wallet_id,
                    DbKey.network_name == network,
+                   DbKey.tree_index == tree_index,
                    DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
