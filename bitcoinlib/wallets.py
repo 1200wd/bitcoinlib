@@ -185,7 +185,7 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m', key_type=None, tree_index=0):
+                 purpose=44, parent_id=0, path='m', key_type=None):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -244,7 +244,7 @@ class HDWalletKey:
         nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    wif=k.wif(), address=k.key.address(), parent_id=parent_id,
-                   is_private=True, path=path, key_type=key_type, network_name=network, tree_index=tree_index)
+                   is_private=True, path=path, key_type=key_type, network_name=network)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -286,7 +286,6 @@ class HDWalletKey:
             self.network = Network(self.network_name)
             self.depth = wk.depth
             self.key_type = wk.key_type
-            self.tree_index = wk.tree_index
             self.multisig_master_key_id = wk.multisig_master_key_id
         else:
             raise WalletError("Key with id %s not found" % key_id)
@@ -488,7 +487,7 @@ class HDWallet:
         return hdpm
 
     def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
-                               name='', basepath='', change=0, purpose=44, tree_index=0):
+                               name='', basepath='', change=0, purpose=44):
         """
         Create all keys for a given path.
         
@@ -531,7 +530,7 @@ class HDWallet:
         spath = basepath + '/'.join(path)
         rkey = None
         while spath and not rkey:
-            rkey = self._session.query(DbKey).filter_by(wallet_id=wallet_id, path=spath, tree_index=tree_index).first()
+            rkey = self._session.query(DbKey).filter_by(wallet_id=wallet_id, path=spath).first()
             spath = '/'.join(spath.split("/")[:-1])
         if rkey is not None and rkey.path not in [basepath, basepath[:-1]]:
             path = (basepath + '/'.join(path)).replace(rkey.path + '/', '').split('/')
@@ -546,7 +545,7 @@ class HDWallet:
             ck = ck.subkey_for_path(path[l], network=network)
             nk = HDWalletKey.from_key(hdkey_object=ck, name=name, wallet_id=wallet_id, network=network,
                                       account_id=account_id, change=change, purpose=purpose, path=fullpath,
-                                      parent_id=parent_id, session=session, tree_index=tree_index)
+                                      parent_id=parent_id, session=session)
             self._key_objects.update({nk.key_id: nk})
             parent_id = nk.key_id
         _logger.info("New key(s) created for parent_id %d" % parent_id)
@@ -607,7 +606,7 @@ class HDWallet:
         return "<HDWallet (id=%d, name=%s, default_network=%s)>" % \
                (self.wallet_id, self.name, self.network.network_name)
 
-    def _get_account_defaults(self, network=None, account_id=None, tree_index=0):
+    def _get_account_defaults(self, network=None, account_id=None):
         """
         Check parameter values for network and account ID, return defaults if no network or account ID is specified.
         If a network is specified but no account ID this method returns the first account ID it finds. 
@@ -625,8 +624,7 @@ class HDWallet:
             if account_id is None:
                 account_id = self.default_account_id
         qr = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=3, network_name=network,
-                      tree_index=tree_index)
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=3, network_name=network)
         if account_id is not None:
             qr = qr.filter_by(account_id=account_id)
         acckey = qr.first()
@@ -703,16 +701,9 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
-    def _get_latest_tree_index(self, network=None):
-        if network is None:
-            network = self.network.network_name
-        return self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose,
-                                                    network_name=network). \
-            order_by(DbKey.tree_index.desc()).first().tree_index
-
     def import_key(self, key, account_id=0, name='', network=None, purpose=44, key_type='single'):
         """
-        Add new master key to wallet. A seperate BIP44 path will be created with another tree index
+        Add new single key to wallet.
         
         :param key: Key to import
         :type key: str, bytes, int, bytearray
@@ -734,9 +725,6 @@ class HDWallet:
                 raise WalletError("Network %s not available in this wallet, please create an account for this "
                                   "network first." % network)
 
-        # TODO: If key has related key-path add to wallet (i.e. for restoring backup
-        last_tree_index = self._get_latest_tree_index(network)
-        tree_index = last_tree_index + 1
         ik_path = 'm'
         if key_type == 'single':
             # Create path for unrelated import keys
@@ -751,87 +739,10 @@ class HDWallet:
 
         mk = HDWalletKey.from_key(
             key=key, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
-            account_id=account_id, purpose=purpose, session=self._session, path=ik_path, tree_index=tree_index)
-        if key_type == 'bip44' and mk.depth == 0:
-            nw = Network(network)
-            networkcode = nw.bip44_cointype
-            path = ["%d'" % purpose, "%s'" % networkcode]
-            self._create_keys_from_path(
-                mk, path, name=name, wallet_id=self.wallet_id, network=network, session=self._session,
-                account_id=account_id, purpose=purpose, basepath="m", tree_index=tree_index)
-            self.new_account(account_id=account_id, tree_index=tree_index)
+            account_id=account_id, purpose=purpose, session=self._session, path=ik_path)
         return mk
 
-    def new_multisig_key(self, multisig_tree_index=None, name='', account_id=0, change=0, max_depth=5):
-        if multisig_tree_index is None:
-            multisig_tree_index = self._default_multisig_tree()
-
-        # Get master multisig key
-        multisig_master_key = self._session.query(DbKey).filter_by(tree_index=multisig_tree_index, path='m').scalar()
-        multisig_key_db_list = self._session.query(DbKey).\
-            filter(DbKey.multisig_master_key_id == multisig_master_key.id).\
-            filter(DbKey.multisig_key_order.isnot(None)).\
-            order_by(DbKey.multisig_key_order).all()
-        network = Network(multisig_master_key.network_name)
-
-        # Get new key list for multisig
-        public_key_list = []
-        main_key = None
-        is_first = True
-        for key_db in multisig_key_db_list:
-            wk = HDWalletKey(key_db.id, session=self._session)
-            if wk.key_type == 'single':
-                new_key = wk
-            else:
-                new_key = self.new_key(name, account_id, network.network_name, wk.tree_index, change, max_depth)
-            public_key_list.append(new_key.key().public_hex)
-            if is_first:
-                if key_db.key_type != 'bip44':
-                    raise WalletError("Cannot create new multisig key, first key in multisig key list "
-                                      "must be of type bip44")
-                main_key = new_key
-                is_first = False
-
-        # Calculate redeemscript and address and add multisig key to database
-        redeemscript = serialize_multisig(public_key_list, multisig_master_key.multisig_n_required)
-        address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
-                                     versionbyte=network.prefix_address_p2sh)
-        if not main_key:
-            raise WalletError("Could not create new multisig key, main key not found")
-        if not name:
-            name = "Multisig Key #%d" % main_key.address_index
-        multisig_key = DbKey(
-            name=name, wallet_id=self.wallet_id, purpose=multisig_master_key.purpose, account_id=account_id,
-            depth=main_key.depth, change=change, address_index=0, parent_id=0, is_private=True, path=main_key.path,
-            key=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address,
-            tree_index=multisig_tree_index, key_type='multisig', network_name=network.network_name,
-            multisig_master_key_id=multisig_master_key.id, multisig_n_required=multisig_master_key.multisig_n_required)
-        self._session.add(multisig_key)
-        self._session.commit()
-        return multisig_key
-
-    def get_multisig_key(self, multisig_tree_index=None, name='', account_id=0, change=0, depth_of_keys=5):
-        if multisig_tree_index is None:
-            multisig_tree_index = self._default_multisig_tree()
-
-        dbkey = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, account_id=account_id, used=False, change=change,
-                      depth=depth_of_keys, tree_index=multisig_tree_index).first()
-        if dbkey:
-            return HDWalletKey(dbkey.id, session=self._session)
-        else:
-            return self.new_multisig_key(multisig_tree_index, name=name, account_id=account_id, change=change)
-
-    def _default_multisig_tree(self):
-        tree_ids = self.tree_ids_multisig()
-        if not tree_ids:
-            raise WalletError("No multisig defined")
-        elif len(tree_ids) == 1:
-            return tree_ids[0]
-        else:
-            raise WalletError("Please specify multisig tree index, multiple found: %s" % tree_ids)
-
-    def new_key(self, name='', account_id=None, network=None, tree_index=0, change=0, max_depth=5):
+    def new_key(self, name='', account_id=None, network=None, change=0, max_depth=5):
         """
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
@@ -859,7 +770,7 @@ class HDWallet:
             if not acckey:
                 acckey = self._session.query(DbKey). \
                     filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
-                              depth=3, network_name=network, tree_index=tree_index).scalar()
+                              depth=3, network_name=network).scalar()
             if not acckey:
                 hk = self.new_account(account_id=account_id, network=network)
                 if hk:
@@ -873,7 +784,7 @@ class HDWallet:
             # Determine new key ID
             prevkey = self._session.query(DbKey). \
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network,
-                          account_id=account_id, change=change, depth=max_depth, tree_index=tree_index). \
+                          account_id=account_id, change=change, depth=max_depth). \
                 order_by(DbKey.address_index.desc()).first()
             address_index = 0
             if prevkey:
@@ -890,8 +801,7 @@ class HDWallet:
                     name = "Key %d" % address_index
             newkey = self._create_keys_from_path(
                 main_acc_key, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-                change=change, network=network, purpose=self.purpose, basepath=bpath,
-                session=self._session, tree_index=tree_index
+                change=change, network=network, purpose=self.purpose, basepath=bpath, session=self._session
             )
             return newkey
         elif self.scheme == 'multisig':
@@ -982,7 +892,7 @@ class HDWallet:
 
         return self.get_key(account_id=account_id, network=network, depth_of_keys=depth_of_keys)
 
-    def new_account(self, name='', account_id=None, network=None, tree_index=0):
+    def new_account(self, name='', account_id=None, network=None):
         """
         Create a new account with a childkey for payments and 1 for change.
         
@@ -1005,26 +915,25 @@ class HDWallet:
         if account_id is None:
             account_id = 0
             qr = self._session.query(DbKey). \
-                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network,
-                          tree_index=tree_index). \
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network). \
                 order_by(DbKey.account_id.desc()).first()
             if qr:
                 account_id = qr.account_id + 1
         if not name:
             name = 'Account #%d' % account_id
-        if self.keys(account_id=account_id, depth=3, network=network, tree_index=tree_index):
+        if self.keys(account_id=account_id, depth=3, network=network):
             raise WalletError("Account with ID %d already exists for this wallet")
 
         # Get root key of new account
-        res = self.keys(depth=2, network=network, tree_index=tree_index)
+        res = self.keys(depth=2, network=network)
         if not res:
             try:
                 # TODO: make this better...
-                purposekey = self.key(self.keys(depth=1, tree_index=tree_index)[0].id)
+                purposekey = self.key(self.keys(depth=1)[0].id)
                 bip44_cointype = Network(network).bip44_cointype
                 accrootkey_obj = self._create_keys_from_path(
                     purposekey, [str(bip44_cointype)], name=network, wallet_id=self.wallet_id, account_id=account_id,
-                    network=network, purpose=self.purpose, tree_index=tree_index, basepath=purposekey.path,
+                    network=network, purpose=self.purpose, basepath=purposekey.path,
                     session=self._session)
             except IndexError:
                 raise WalletError("No key found for this wallet_id and purpose. Can not create new"
@@ -1037,17 +946,14 @@ class HDWallet:
         newpath = [str(account_id) + "'"]
         acckey = self._create_keys_from_path(
             accrootkey_obj, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-            network=network, purpose=self.purpose, basepath=accrootkey_obj.path, tree_index=tree_index,
-            session=self._session
+            network=network, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session
         )
         self._create_keys_from_path(
             acckey, ['0'], name=acckey.name + ' Payments', wallet_id=self.wallet_id, account_id=account_id,
-            network=network, purpose=self.purpose, basepath=acckey.path, tree_index=tree_index,
-            session=self._session)
+            network=network, purpose=self.purpose, basepath=acckey.path,  session=self._session)
         self._create_keys_from_path(
             acckey, ['1'], name=acckey.name + ' Change', wallet_id=self.wallet_id, account_id=account_id,
-            network=network, purpose=self.purpose, basepath=acckey.path, tree_index=tree_index,
-            session=self._session)
+            network=network, purpose=self.purpose, basepath=acckey.path, session=self._session)
         return acckey
 
     def key_for_path(self, path, name='', account_id=0, change=0, enable_checks=True):
@@ -1112,8 +1018,7 @@ class HDWallet:
             network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
         return newkey
 
-    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, network=None, tree_index=0,
-             as_dict=False):
+    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, network=None, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -1136,7 +1041,7 @@ class HDWallet:
         :return list: List of Keys
         """
 
-        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose, tree_index=tree_index)
+        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
         if network is not None:
             qr = qr.filter(DbKey.network_name == network)
         if account_id is not None:
@@ -1171,7 +1076,7 @@ class HDWallet:
             res = self.keys(depth=3, as_dict=as_dict)
         return res
 
-    def keys_accounts(self, account_id=None, network=None, tree_index=0, as_dict=False):
+    def keys_accounts(self, account_id=None, network=None, as_dict=False):
         """
         Get Database records of account key(s) with for current wallet. Wrapper for the keys() method.
         
@@ -1185,9 +1090,9 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=3, network=network, tree_index=tree_index, as_dict=as_dict)
+        return self.keys(account_id, depth=3, network=network, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, network=None, tree_index=0, as_dict=False):
+    def keys_addresses(self, account_id=None, network=None, as_dict=False):
         """
         Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1201,9 +1106,9 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, network=network, tree_index=tree_index, as_dict=as_dict)
+        return self.keys(account_id, depth=5, network=network, as_dict=as_dict)
 
-    def keys_address_payment(self, account_id=None, network=None, tree_index=0, as_dict=False):
+    def keys_address_payment(self, account_id=None, network=None, as_dict=False):
         """
         Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1217,9 +1122,9 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, change=0, network=network, tree_index=tree_index, as_dict=as_dict)
+        return self.keys(account_id, depth=5, change=0, network=network, as_dict=as_dict)
 
-    def keys_address_change(self, account_id=None, network=None, tree_index=0, as_dict=False):
+    def keys_address_change(self, account_id=None, network=None, as_dict=False):
         """
         Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1233,18 +1138,9 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, change=1, network=network, tree_index=tree_index, as_dict=as_dict)
+        return self.keys(account_id, depth=5, change=1, network=network, as_dict=as_dict)
 
-    def tree_ids(self):
-        res = self._session.query(DbKey.tree_index).filter_by(wallet_id=self.wallet_id, parent_id=0).all()
-        return list([k.tree_index for k in res])
-
-    def tree_ids_multisig(self):
-        res = self._session.query(DbKey.tree_index).\
-            filter_by(wallet_id=self.wallet_id, key_type='multisig', path='m').all()
-        return [k.tree_index for k in res]
-
-    def addresslist(self, account_id=None, network=None, depth=5, key_id=None, tree_index=0):
+    def addresslist(self, account_id=None, network=None, depth=5, key_id=None):
         """
         Get list of addresses defined in current wallet
 
@@ -1261,7 +1157,7 @@ class HDWallet:
         """
 
         addresslist = []
-        for key in self.keys(account_id=account_id, depth=depth, network=network, key_id=key_id, tree_index=tree_index):
+        for key in self.keys(account_id=account_id, depth=depth, network=network, key_id=key_id):
             addresslist.append(key.address)
         return addresslist
 
@@ -1293,7 +1189,7 @@ class HDWallet:
         else:
             raise KeyError("Key '%s' not found" % term)
 
-    def accounts(self, network=None, tree_index=0):
+    def accounts(self, network=None):
         """
         Get list of accounts for this wallet
         
@@ -1303,7 +1199,7 @@ class HDWallet:
         :return: List of keys as dictionary
         """
 
-        wks = self.keys_accounts(network=network, tree_index=tree_index, as_dict=True)
+        wks = self.keys_accounts(network=network, as_dict=True)
         for wk in wks:
             if '_sa_instance_state' in wk:
                 del wk['_sa_instance_state']
@@ -1353,7 +1249,7 @@ class HDWallet:
         self._dbwallet.balance = self._balance
         self._session.commit()
 
-    def updatebalance(self, account_id=None, network=None, key_id=None, tree_index=0):
+    def updatebalance(self, account_id=None, network=None, key_id=None):
         """
         Update balance from UTXO's in database. To get most recent balance use 'updateutxos' method first.
         
@@ -1373,7 +1269,7 @@ class HDWallet:
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         # Get UTXO's and convert to dict with key_id and balance
-        utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id, tree_index=tree_index)
+        utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
         utxos.sort(key=lambda x: x['key_id'])
         utxo_keys = []
         total_balance = 0
@@ -1386,7 +1282,7 @@ class HDWallet:
             total_balance += balance
 
         # Add keys with no UTXO's with 0 balance
-        for key in self.keys(account_id=account_id, network=network, key_id=key_id, tree_index=tree_index):
+        for key in self.keys(account_id=account_id, network=network, key_id=key_id):
             if key.id not in [x['key_id'] for x in utxos]:
                 utxo_keys.append({
                     'id': key.id,
@@ -1400,7 +1296,7 @@ class HDWallet:
         self._session.commit()
         _logger.info("Got balance for %d key(s). Total balance is %s" % (len(utxo_keys), total_balance))
 
-    def updateutxos(self, account_id=None, network=None, key_id=None, depth=5, tree_index=0):
+    def updateutxos(self, account_id=None, network=None, key_id=None, depth=5):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1422,14 +1318,13 @@ class HDWallet:
 
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=network).\
-            getutxos(self.addresslist(account_id=account_id, network=network, key_id=key_id, depth=depth,
-                                      tree_index=tree_index))
+            getutxos(self.addresslist(account_id=account_id, network=network, key_id=key_id, depth=depth))
         if utxos is False:
             raise WalletError("No response from any service provider, could not update UTXO's")
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
-        current_utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id, tree_index=tree_index)
+        current_utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
 
         # Update spend UTXO's (not found in list) and mark key as used
         utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
@@ -1484,10 +1379,10 @@ class HDWallet:
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
-        self.updatebalance(account_id=account_id, key_id=key_id, tree_index=tree_index)
+        self.updatebalance(account_id=account_id, key_id=key_id)
         return count_utxos
 
-    def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None, tree_index=0):
+    def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
         Get UTXO's (Unspent Outputs) from database. Use updateutxos method first for updated values
         
@@ -1510,7 +1405,6 @@ class HDWallet:
                    DbKey.account_id == account_id,
                    DbKey.wallet_id == self.wallet_id,
                    DbKey.network_name == network,
-                   DbKey.tree_index == tree_index,
                    DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
