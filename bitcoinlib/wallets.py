@@ -286,7 +286,6 @@ class HDWalletKey:
             self.network = Network(self.network_name)
             self.depth = wk.depth
             self.key_type = wk.key_type
-            self.multisig_master_key_id = wk.multisig_master_key_id
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -440,7 +439,6 @@ class HDWallet:
                 raise WalletError("Cannot create new wallet with main key of depth 5 or more")
             new_wallet.main_key_id = mk.key_id
             session.commit()
-            session.close()
 
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
             if mk.depth == 0:
@@ -452,8 +450,13 @@ class HDWallet:
                 w.new_account(account_id=account_id)
         elif scheme == 'multisig':
             w = cls(new_wallet_id, databasefile=databasefile)
+        elif scheme == 'single':
+            # TODO: Allow single key wallets
+            raise WalletError("Wallet with scheme %s not supported at the moment" % scheme)
         else:
             raise WalletError("Wallet with scheme %s not supported at the moment" % scheme)
+
+        session.close()
         return w
 
     @classmethod
@@ -484,6 +487,10 @@ class HDWallet:
                        purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
             co_id += 1
 
+        session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id).update({DbWallet.multisig_n_required: n_required})
+        # self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
+        session.commit()
+        session.close()
         return hdpm
 
     def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
@@ -585,7 +592,8 @@ class HDWallet:
             self._balance = w.balance
             self.main_key_id = w.main_key_id
             self.main_key = None
-            self.default_account_id = None
+            self.default_account_id = 0
+            self.multisig_n_required = w.multisig_n_required
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             elif w.main_key_id:
@@ -817,7 +825,7 @@ class HDWallet:
                 public_key_ids.append(str(wk.key_id))
 
             # Calculate redeemscript and address and add multisig key to database
-            redeemscript = serialize_multisig(public_key_list, n_required=2)
+            redeemscript = serialize_multisig(public_key_list, n_required=self.multisig_n_required)
             address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
                                          versionbyte=Network(network).prefix_address_p2sh)
             path = "multisig-" + '/'.join(public_key_ids)
@@ -1046,10 +1054,12 @@ class HDWallet:
             qr = qr.filter(DbKey.network_name == network)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
-            qr = qr.filter(DbKey.depth >= 3)
+            if self.scheme == 'bip32':
+                qr = qr.filter(DbKey.depth >= 3)
         if change is not None:
             qr = qr.filter(DbKey.change == change)
-            qr = qr.filter(DbKey.depth > 4)
+            if self.scheme == 'bip32':
+                qr = qr.filter(DbKey.depth > 4)
         if depth is not None:
             qr = qr.filter(DbKey.depth == depth)
         if name is not None:
@@ -1212,11 +1222,14 @@ class HDWallet:
         :return: List of keys as dictionary
         """
 
-        wks = self.keys_networks(as_dict=True)
-        for wk in wks:
-            if '_sa_instance_state' in wk:
-                del wk['_sa_instance_state']
-        return wks
+        if self.scheme == 'bip32':
+            wks = self.keys_networks(as_dict=True)
+            for wk in wks:
+                if '_sa_instance_state' in wk:
+                    del wk['_sa_instance_state']
+            return wks
+        else:
+            return [self.network.__dict__]
 
     def network_list(self, field='network_name'):
         """
@@ -1296,7 +1309,7 @@ class HDWallet:
         self._session.commit()
         _logger.info("Got balance for %d key(s). Total balance is %s" % (len(utxo_keys), total_balance))
 
-    def updateutxos(self, account_id=None, network=None, key_id=None, depth=5):
+    def updateutxos(self, account_id=None, network=None, key_id=None, depth=None):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1315,6 +1328,11 @@ class HDWallet:
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
+        if depth is None:
+            if self.scheme == 'bip32':
+                depth = 5
+            else:
+                depth = 0
 
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=network).\

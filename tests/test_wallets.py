@@ -279,7 +279,7 @@ class TestWalletMultiCurrency(unittest.TestCase):
         pk_hex = '770abe6f3854620edfb836ce88ce74c26da1a4b00502c98c368a9373d0c0fcd8'
         address_ltc = 'Lg2uMYnqu48REt4KaSYLPZiaxy5PKUkkdZ'
         res = self.wallet.import_key(pk_hex, network='litecoin')
-        addresses_ltc_in_wallet = self.wallet.addresslist(network='litecoin', depth=0, tree_index=res.tree_index)
+        addresses_ltc_in_wallet = self.wallet.addresslist(network='litecoin', depth=0)
         self.assertIn(address_ltc, addresses_ltc_in_wallet)
 
     def test_wallet_multiple_networks_import_error(self):
@@ -346,29 +346,11 @@ class TestWalletMultisig(unittest.TestCase):
                'eYZrsBum5cv'
         key3 = 'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6S9yUPYqYra2xVE9Yq6wRbGXDdNHpUoz2EQY6ECN' \
                'Kg98YTZZiGz'
-        self.multisig_wallet = HDWallet.create('mcw', key=key1, databasefile=DATABASEFILE_UNITTESTS)
-        self.keylist = [self.multisig_wallet.main_key, key2, key3]
-        self.tree_index = self.multisig_wallet.create_multisig(self.keylist, 2)
+        self.keylist = [key1, key2, key3]
+        self.multisig_wallet = HDWallet.create_multisig('mcw', self.keylist, databasefile=DATABASEFILE_UNITTESTS)
 
-    def test_wallet_multisig_create_tree_index(self):
-        self.assertEqual(self.tree_index, self.multisig_wallet.tree_ids_multisig()[0])
+    def test_wallet_multisig_create_wallet_id(self):
+        self.assertEqual(self.multisig_wallet.wallet_id, 1)
 
     def test_wallet_multisig_create_address(self):
-        self.assertEqual(self.multisig_wallet.get_multisig_key().address, '35JxFtKNXGJb7HyBDascNxndtkJ4QXs2bH')
-        self.multisig_wallet.info()
-
-
-class TestWalletTreeIndex(unittest.TestCase):
-
-    def setUp(self):
-        if os.path.isfile(DATABASEFILE_UNITTESTS):
-            os.remove(DATABASEFILE_UNITTESTS)
-        key1 = 'tprv8ZgxMBicQKsPdRb1teK6S4jkKegz9bCyS5n4Vh6r8ZQMBY8AXvFDsuFUr8ExCF46vr1umhUotAMW5JAi7KnCzdSyxaPUq7kAn' \
-               'CNnXZf5z8Y'
-        key2 = 'tprv8ZgxMBicQKsPedjEZPwEjxXeNKwkHomTr3MJ1HAxenPVBwZAkjG2hiqiS36ZLLxuZtsNp3eQMRNoGymWit6FfkHHoptvpnii7' \
-               '2QgyoZ6Xaa'
-        self.wallet = HDWallet.create('tree-index-test', key=key1, databasefile=DATABASEFILE_UNITTESTS)
-        self.wallet.import_key(key2)
-
-    def test_wallet_tree_index_last_tree_index(self):
-        self.assertEqual(self.wallet._get_latest_tree_index(), 1)
+        self.assertEqual(self.multisig_wallet.new_key().address, '3N4PFaWbsNE1SctZVsb5N9tVp15UG5mPg9')

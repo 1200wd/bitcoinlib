@@ -85,6 +85,8 @@ class DbWallet(Base):
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
     balance = Column(Integer, default=0)
+    multisig_n_required = Column(Integer, doc="Number of required signature for multisig, only used for "
+                                              "multisignature master key")
     parent_id = Column(Integer, ForeignKey('wallets.id'))
     children = relationship("DbWallet", lazy="joined", join_depth=2)
 
@@ -124,14 +126,6 @@ class DbKey(Base):
     used = Column(Boolean, default=False)
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
-    tree_index = Column(Integer, default=0, doc="Index of key structure. Can be used to disdinguish multiple key "
-                                                "structures, i.e. for multisig or importing external unrelated keys")
-    # TODO: Put in seperate table with n-m relation, so key can be used for multiple multisig structures (?)
-    redeemscript = Column(String, doc="Raw redeemscript for P2SH transactions used for multisig")
-    multisig_master_key_id = Column(Integer, doc="This key is part of a multisig key and related to this master key ID")
-    multisig_n_required = Column(Integer, doc="Number of required signature for multisig, only used for "
-                                              "multisignature master key")
-    multisig_key_order = Column(Integer, doc="Key order for multisignature")
 
     __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),)
 
