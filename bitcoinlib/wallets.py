@@ -487,8 +487,8 @@ class HDWallet:
                        purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
             co_id += 1
 
+        hdpm.multisig_n_required = n_required
         session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id).update({DbWallet.multisig_n_required: n_required})
-        # self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
         session.commit()
         session.close()
         return hdpm
@@ -813,6 +813,8 @@ class HDWallet:
             )
             return newkey
         elif self.scheme == 'multisig':
+            if not self.multisig_n_required:
+                raise WalletError("Multisig_n_required not set, cannot create new key")
             co_sign_wallets = self._session.query(DbWallet).\
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
 
@@ -828,7 +830,7 @@ class HDWallet:
             redeemscript = serialize_multisig(public_key_list, n_required=self.multisig_n_required)
             address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
                                          versionbyte=Network(network).prefix_address_p2sh)
-            path = "multisig-" + '/'.join(public_key_ids)
+            path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)
             if not name:
                 name = "Multisig Key " + '/'.join(public_key_ids)
             multisig_key = DbKey(
