@@ -81,9 +81,14 @@ class DbWallet(Base):
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
     purpose = Column(Integer, default=44)
+    scheme = Column(String(25))
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
     balance = Column(Integer, default=0)
+    parent_id = Column(Integer, ForeignKey('wallets.id'))
+    children = relationship("DbWallet", lazy="joined", join_depth=2)
+
+    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip32', 'multisig'])),)
 
     def __repr__(self):
         return "<DbWallet(name='%s', network='%s'>" % (self.name, self.network_name)
@@ -128,7 +133,7 @@ class DbKey(Base):
                                               "multisignature master key")
     multisig_key_order = Column(Integer, doc="Key order for multisignature")
 
-    __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'bip44', 'multisig'])),)
+    __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),)
 
     def __repr__(self):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)
