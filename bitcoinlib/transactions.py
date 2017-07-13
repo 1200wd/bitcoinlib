@@ -532,6 +532,10 @@ class Transaction:
         self.version = version
         self.locktime = locktime
         self.network = Network(network)
+        self.fee = None
+        self.fee_per_kb = None
+        self.size = None
+        self.change = None
 
     def __repr__(self):
         return "<Transaction (inputcount=%d, outputcount=%d, network=%s)>" % \

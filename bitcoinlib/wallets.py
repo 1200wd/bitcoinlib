@@ -1513,26 +1513,26 @@ class HDWallet:
             return []
         return selected_utxos
 
-    def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4):
+    def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4):
         """
-        Create new transaction with specified outputs and push it to the network. 
-        Inputs can be specified but if not provided they will be selected from wallets utxo's.
-        Output array is a list of 1 or more addresses and amounts.
-        
-        :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
-        :type output_arr: list 
-        :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_id, value)]
-        :type input_arr: list
-        :param account_id: Account ID
-        :type account_id: int
-        :param network: Network name. Leave empty for default network
-        :type network: str
-        :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-        :type transaction_fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
-        :type min_confirms: int
-        
-        :return str, list: Transaction ID or result array
+            Create new transaction with specified outputs. 
+            Inputs can be specified but if not provided they will be selected from wallets utxo's.
+            Output array is a list of 1 or more addresses and amounts.
+
+            :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
+            :type output_arr: list 
+            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_id, value)]
+            :type input_arr: list
+            :param account_id: Account ID
+            :type account_id: int
+            :param network: Network name. Leave empty for default network
+            :type network: str
+            :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
+            :type transaction_fee: int
+            :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
+            :type min_confirms: int
+
+            :return Transaction: object
         """
 
         # TODO: Add transaction_id as possible input in input_arr
@@ -1605,26 +1605,12 @@ class HDWallet:
                 id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
                 sign_arr.append((k.private_byte, id))
 
-        # Sign inputs,
-        for ti in sign_arr:
-            t.sign(ti[0], ti[1])
+        return t, sign_arr
 
-        # Calculate exact estimated fees and update change output if necessary
-        if transaction_fee is None and fee_per_kb and amount_change and ck is not None:
-            # tr_size = len(t.raw())
-            fee_exact = t.estimate_fee(fee_per_kb)
-            if abs((fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
-                _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
-                             "Recreate transaction with correct fee" % (fee, fee_exact))
-                return self.send(output_arr, input_arr, account_id=account_id, network=network,
-                                 transaction_fee=fee_exact, min_confirms=min_confirms)
-
-        # Verify transaction
-        if not t.verify():
-            raise WalletError("Cannot verify transaction. Create transaction failed")
-
+    def transaction_send(self, transaction):
         # Push it to the network
-        res = srv.sendrawtransaction(t.raw_hex())
+        srv = Service(network=transaction.network)
+        res = srv.sendrawtransaction(transaction.raw_hex())
         if not res:
             raise WalletError("Could not send transaction: %s" % srv.errors)
         _logger.info("Successfully pushed transaction, result: %s" % res)
@@ -1641,6 +1627,50 @@ class HDWallet:
             return res['txid']
         else:
             return res
+
+    def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4):
+        """
+        Create new transaction with specified outputs and push it to the network. 
+        Inputs can be specified but if not provided they will be selected from wallets utxo's.
+        Output array is a list of 1 or more addresses and amounts.
+        
+        :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
+        :type output_arr: list 
+        :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_id, value)]
+        :type input_arr: list
+        :param account_id: Account ID
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
+        :type transaction_fee: int
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
+        :type min_confirms: int
+        
+        :return str, list: Transaction ID or result array
+        """
+
+        t, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee, min_confirms)
+
+        # Sign inputs,
+        for ti in sign_arr:
+            t.sign(ti[0], ti[1])
+
+        # Calculate exact estimated fees and update change output if necessary
+        if transaction_fee is None and t.fee_per_kb and t.change:  # and ck is not None
+            # tr_size = len(t.raw())
+            fee_exact = t.estimate_fee()  #(t.fee_per_kb)
+            if abs((t.fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
+                _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
+                             "Recreate transaction with correct fee" % (t.fee, fee_exact))
+                return self.send(output_arr, input_arr, account_id=account_id, network=network,
+                                 transaction_fee=fee_exact, min_confirms=min_confirms)
+
+        # Verify transaction
+        if not t.verify():
+            raise WalletError("Cannot verify transaction. Create transaction failed")
+
+        self.transaction_send(t)
 
     def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
         """
