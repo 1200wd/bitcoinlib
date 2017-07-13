@@ -184,11 +184,14 @@ class DbTransactionInput(Base):
     prev_hash = Column(String(64))
     output_n = Column(Integer, default=0)
     script = Column(String)
+    script_type = Column(String)
     sequence = Column(Integer)
     value = Column(Integer, default=0)
     spend = Column(Boolean(), default=False)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_inputs")
+
+    __table_args__ = (CheckConstraint(script_type.in_(['p2pkh', 'p2sh'])),)
 
 
 class DbTransactionOutput(Base):
@@ -199,8 +202,12 @@ class DbTransactionOutput(Base):
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_outputs")
     script = Column(String)
+    script_type = Column(String)
     value = Column(Integer, default=0)
     spend = Column(Boolean(), default=False)
+
+    # TODO: sig_pubkey ?
+    __table_args__ = (CheckConstraint(script_type.in_(['pubkey', 'nulldata', 'multisig', 'multisig2'])),)
 
 
 if __name__ == '__main__':
