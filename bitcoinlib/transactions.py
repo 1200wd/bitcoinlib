@@ -320,6 +320,7 @@ class Input:
         self.prev_hash = to_bytes(prev_hash)
         self.output_index = output_index
         if isinstance(output_index, numbers.Number):
+            self.output_index_int = output_index
             self.output_index = struct.pack('>I', output_index)
         self.unlocking_script = to_bytes(unlocking_script)
         self.sequence = to_bytes(sequence)

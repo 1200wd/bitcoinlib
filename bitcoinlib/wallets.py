@@ -1513,7 +1513,8 @@ class HDWallet:
             return []
         return selected_utxos
 
-    def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4):
+    def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None,
+                           min_confirms=4):
         """
             Create new transaction with specified outputs. 
             Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -1550,14 +1551,14 @@ class HDWallet:
 
         # Calculate fees
         srv = Service(network=network)
-        fee = transaction_fee
-        fee_per_kb = None
+        t.fee = transaction_fee
+        t.fee_per_kb = None
         fee_per_output = None
         if transaction_fee is None:
-            fee_per_kb = srv.estimatefee()
+            t.fee_per_kb = srv.estimatefee()
             tr_size = 100 + (1 * 150) + (len(output_arr)+1 * 50)
-            fee = int((tr_size / 1024) * fee_per_kb)
-            fee_per_output = int((50 / 1024) * fee_per_kb)
+            t.fee = int((tr_size / 1024) * t.fee_per_kb)
+            fee_per_output = int((50 / 1024) * t.fee_per_kb)
 
         # Add inputs
         amount_total_input = 0
@@ -1572,7 +1573,7 @@ class HDWallet:
                 _logger.warning("Create transaction: No unspent transaction outputs found")
                 return None
             input_arr = []
-            selected_utxos = self._select_inputs(amount_total_output + fee, utxo_query)
+            selected_utxos = self._select_inputs(amount_total_output + t.fee, utxo_query)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -1582,14 +1583,14 @@ class HDWallet:
             for i in input_arr:
                 amount_total_input += i[3]
 
-        amount_change = int(amount_total_input - (amount_total_output + fee))
+        t.change = int(amount_total_input - (amount_total_output + t.fee))
         # If change amount is smaller then estimated fee it will cost to send it then skip change
-        if fee_per_output and amount_change < fee_per_output:
-            amount_change = 0
+        if fee_per_output and t.change < fee_per_output:
+            t.change = 0
         ck = None
-        if amount_change:
+        if t.change:
             ck = self.get_key(account_id=account_id, network=network, change=1)
-            t.add_output(amount_change, ck.address)
+            t.add_output(t.change, ck.address)
 
         # Add inputs
         sign_arr = []
@@ -1607,37 +1608,39 @@ class HDWallet:
 
         return t, sign_arr
 
-    def transaction_sign(self, transaction):
+    def transaction_sign(self, transaction, sign_arr):
         # Sign inputs,
         for ti in sign_arr:
-            t.sign(ti[0], ti[1])
+            transaction.sign(ti[0], ti[1])
 
         # Calculate exact estimated fees and update change output if necessary
-        if transaction_fee is None and t.fee_per_kb and t.change:  # and ck is not None
+        if transaction.fee is None and transaction.fee_per_kb and transaction.change:  # and ck is not None
             # tr_size = len(t.raw())
-            fee_exact = t.estimate_fee()  #(t.fee_per_kb)
-            if abs((t.fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
+            fee_exact = transaction.estimate_fee()  #(t.fee_per_kb)
+            if abs((transaction.fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (t.fee, fee_exact))
-                return self.send(output_arr, input_arr, account_id=account_id, network=network,
-                                 transaction_fee=fee_exact, min_confirms=min_confirms)
+                # FIXME:
+                # return self.send(output_arr, input_arr, account_id=account_id, network=network,
+                #                  transaction_fee=fee_exact, min_confirms=min_confirms)
 
         # Verify transaction
-        if not t.verify():
+        if not transaction.verify():
             raise WalletError("Cannot verify transaction. Create transaction failed")
+        return transaction
 
     def transaction_send(self, transaction):
         # Push it to the network
-        srv = Service(network=transaction.network)
+        srv = Service(network=transaction.network.network_name)
         res = srv.sendrawtransaction(transaction.raw_hex())
         if not res:
             raise WalletError("Could not send transaction: %s" % srv.errors)
         _logger.info("Successfully pushed transaction, result: %s" % res)
 
         # Update db: Update spend UTXO's, add transaction to database
-        for inp in input_arr:
+        for inp in transaction.inputs:
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.hash == inp[0], DbTransactionOutput.output_n == inp[1]).all()
+                filter(DbTransaction.hash == inp.prev_hash, DbTransactionOutput.output_n == inp.output_index_int).all()
             for u in utxos:
                 u.spend = True
 
@@ -1670,7 +1673,7 @@ class HDWallet:
         """
 
         t, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee, min_confirms)
-        t = self.transaction_sign(t)
+        t = self.transaction_sign(t, sign_arr)
         return self.transaction_send(t)
 
     def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
@@ -1853,7 +1856,7 @@ if __name__ == '__main__':
     wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
                              key=hdkey.wif(), databasefile=test_database)
     wallet.new_key("Input", 0)
-    wallet.updateutxos()
+    # wallet.updateutxos()
     wallet.info(detail=3)
 
     print("\n=== Test import Litecoin key in Bitcoin wallet (should give error) ===")
