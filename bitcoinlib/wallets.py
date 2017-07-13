@@ -22,9 +22,9 @@ import numbers
 from itertools import groupby
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
+from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash, normalize_string
 from bitcoinlib.keys import HDKey, check_network_and_key
-from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
+from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction, serialize_multisig
 from bitcoinlib.mnemonic import Mnemonic
@@ -1541,24 +1541,24 @@ class HDWallet:
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         # Create transaction and add outputs
-        t = Transaction(network=network)
+        transaction = Transaction(network=network)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
         for o in output_arr:
             amount_total_output += o[1]
-            t.add_output(o[1], o[0])
+            transaction.add_output(o[1], o[0])
 
         # Calculate fees
         srv = Service(network=network)
-        t.fee = transaction_fee
-        t.fee_per_kb = None
+        transaction.fee = transaction_fee
+        transaction.fee_per_kb = None
         fee_per_output = None
         if transaction_fee is None:
-            t.fee_per_kb = srv.estimatefee()
+            transaction.fee_per_kb = srv.estimatefee()
             tr_size = 100 + (1 * 150) + (len(output_arr)+1 * 50)
-            t.fee = int((tr_size / 1024) * t.fee_per_kb)
-            fee_per_output = int((50 / 1024) * t.fee_per_kb)
+            transaction.fee = int((tr_size / 1024) * transaction.fee_per_kb)
+            fee_per_output = int((50 / 1024) * transaction.fee_per_kb)
 
         # Add inputs
         amount_total_input = 0
@@ -1573,7 +1573,7 @@ class HDWallet:
                 _logger.warning("Create transaction: No unspent transaction outputs found")
                 return None
             input_arr = []
-            selected_utxos = self._select_inputs(amount_total_output + t.fee, utxo_query)
+            selected_utxos = self._select_inputs(amount_total_output + transaction.fee, utxo_query)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -1583,14 +1583,14 @@ class HDWallet:
             for i in input_arr:
                 amount_total_input += i[3]
 
-        t.change = int(amount_total_input - (amount_total_output + t.fee))
+        transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
         # If change amount is smaller then estimated fee it will cost to send it then skip change
-        if fee_per_output and t.change < fee_per_output:
-            t.change = 0
+        if fee_per_output and transaction.change < fee_per_output:
+            transaction.change = 0
         ck = None
-        if t.change:
+        if transaction.change:
             ck = self.get_key(account_id=account_id, network=network, change=1)
-            t.add_output(t.change, ck.address)
+            transaction.add_output(transaction.change, ck.address)
 
         # Add inputs
         sign_arr = []
@@ -1599,14 +1599,14 @@ class HDWallet:
             if not key:
                 raise WalletError("Key of UTXO %s not found in this wallet" % inp[0])
             if key.key_type == 'multisig':
-                id = t.add_input(inp[0], inp[1], unlocking_script='')
+                id = transaction.add_input(inp[0], inp[1], unlocking_script='')
                 sign_arr.append((key.redeemscript, id))
             else:
                 k = HDKey(key.wif)
-                id = t.add_input(inp[0], inp[1], public_key=k.public_byte)
+                id = transaction.add_input(inp[0], inp[1], public_key=k.public_byte)
                 sign_arr.append((k.private_byte, id))
 
-        return t, sign_arr
+        return transaction, sign_arr
 
     def transaction_sign(self, transaction, sign_arr):
         # Sign inputs,
@@ -1640,7 +1640,8 @@ class HDWallet:
         # Update db: Update spend UTXO's, add transaction to database
         for inp in transaction.inputs:
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.hash == inp.prev_hash, DbTransactionOutput.output_n == inp.output_index_int).all()
+                filter(DbTransaction.hash == to_hexstring(inp.prev_hash),
+                       DbTransactionOutput.output_n == inp.output_index_int).all()
             for u in utxos:
                 u.spend = True
 
@@ -1672,9 +1673,10 @@ class HDWallet:
         :return str, list: Transaction ID or result array
         """
 
-        t, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee, min_confirms)
-        t = self.transaction_sign(t, sign_arr)
-        return self.transaction_send(t)
+        transaction, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee,
+                                                        min_confirms)
+        transaction = self.transaction_sign(transaction, sign_arr)
+        return self.transaction_send(transaction)
 
     def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
         """
@@ -1757,8 +1759,8 @@ if __name__ == '__main__':
     from pprint import pprint
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    if os.path.isfile(test_database):
-        os.remove(test_database)
+    # if os.path.isfile(test_database):
+    #     os.remove(test_database)
 
     print("\n=== Most simple way to create Bitcoin Wallet ===")
     w = HDWallet.create('MyWallet', databasefile=test_database)
@@ -1874,6 +1876,8 @@ if __name__ == '__main__':
 
     print("\n=== Send test bitcoins to an address ===")
     wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
+    for _ in range(10):
+        wallet_import.new_key()
     wallet_import.info(detail=3)
     wallet_import.updateutxos(99)
     print("\n= UTXOs =")
