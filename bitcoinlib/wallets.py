@@ -842,7 +842,7 @@ class HDWallet:
             self._session.commit()
             return multisig_key
 
-    def new_key_change(self, name='', account_id=0, network=None):
+    def new_key_change(self, name='', account_id=None, network=None):
         """
         Create new key to receive change for a transaction. Calls new_key method with change=1.
         
@@ -1331,6 +1331,7 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         if depth is None:
+            # TODO: implement bip45/67/electrum/?
             if self.scheme == 'bip32':
                 depth = 5
             else:
@@ -1608,22 +1609,11 @@ class HDWallet:
 
         return transaction, sign_arr
 
-    def transaction_sign(self, transaction, sign_arr):
+    @staticmethod
+    def transaction_sign(transaction, sign_arr):
         # Sign inputs,
         for ti in sign_arr:
             transaction.sign(ti[0], ti[1])
-
-        # Calculate exact estimated fees and update change output if necessary
-        if transaction.fee is None and transaction.fee_per_kb and transaction.change:  # and ck is not None
-            # tr_size = len(t.raw())
-            fee_exact = transaction.estimate_fee()  #(t.fee_per_kb)
-            if abs((transaction.fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
-                _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
-                             "Recreate transaction with correct fee" % (t.fee, fee_exact))
-                # FIXME:
-                # return self.send(output_arr, input_arr, account_id=account_id, network=network,
-                #                  transaction_fee=fee_exact, min_confirms=min_confirms)
-
         # Verify transaction
         if not transaction.verify():
             raise WalletError("Cannot verify transaction. Create transaction failed")
@@ -1676,6 +1666,16 @@ class HDWallet:
         transaction, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee,
                                                         min_confirms)
         transaction = self.transaction_sign(transaction, sign_arr)
+        # Calculate exact estimated fees and update change output if necessary
+        if transaction_fee is None and transaction.fee_per_kb and transaction.change:
+            fee_exact = transaction.estimate_fee()
+            if abs((transaction.fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
+                _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
+                             "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
+                transaction, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network,
+                                                                fee_exact, min_confirms)
+                transaction = self.transaction_sign(transaction, sign_arr)
+
         return self.transaction_send(transaction)
 
     def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):

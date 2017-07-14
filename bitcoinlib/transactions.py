@@ -717,8 +717,8 @@ class Transaction:
         self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
                                    self.network.network_name))
 
-    def estimate_fee(self, fee_per_kb):
-        return int(len(self.raw())/1024 * fee_per_kb)
+    def estimate_fee(self):
+        return int(len(self.raw())/1024 * self.fee_per_kb)
 
 
 if __name__ == '__main__':
