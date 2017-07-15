@@ -1601,11 +1601,14 @@ class HDWallet:
                 raise WalletError("Key of UTXO %s not found in this wallet" % inp[0])
             if key.key_type == 'multisig':
                 id = transaction.add_input(inp[0], inp[1], unlocking_script='')
-                sign_arr.append((key.redeemscript, id))
-            else:
+                sig = key.redeemscript
+            elif key.key_type in ['bip32', 'single']:
                 k = HDKey(key.wif)
                 id = transaction.add_input(inp[0], inp[1], public_key=k.public_byte)
-                sign_arr.append((k.private_byte, id))
+                sig = k.private_byte
+            else:
+                raise WalletError("Input key type %s not supported" % key.key_type)
+            sign_arr.append((sig, id, key.key_type))
 
         return transaction, sign_arr
 

@@ -297,8 +297,8 @@ class Input:
     
     """
 
-    def __init__(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', network=DEFAULT_NETWORK,
-                 sequence=b'\xff\xff\xff\xff', tid=0):
+    def __init__(self, prev_hash, output_index, unlocking_script=b'', public_keys=b'', script_type='p2pkh',
+                 network=DEFAULT_NETWORK, sequence=b'\xff\xff\xff\xff', tid=0):
         """
         Create a new transaction input
         
@@ -308,8 +308,8 @@ class Input:
         :type output_index: bytes, int
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param public_key: A public can be provided to construct an Unlocking script. Optional
-        :type public_key: bytes, str
+        :param public_keys: A public can be provided to construct an Unlocking script. Optional
+        :type public_keys: bytes, str
         :param network: Network, leave empty for default
         :type network: str
         :param sequence: Sequence part of input, you normally do not have to touch this
@@ -325,9 +325,6 @@ class Input:
         self.unlocking_script = to_bytes(unlocking_script)
         self.sequence = to_bytes(sequence)
         self.tid = tid
-        self.public_key = to_bytes(public_key)
-        self.network = Network(network)
-
         self.signature = b''
         self.compressed = True
         self.public_key_uncompressed = ''
@@ -340,22 +337,30 @@ class Input:
         if prev_hash == b'\0' * 32:
             self.type = 'coinbase'
 
-        pk2 = b''
-        if unlocking_script and self.type != 'coinbase':
-            try:
-                self.signature, pk2 = script_deserialize_sigpk(unlocking_script)
-            except IndexError as err:
-                raise TransactionError("Could not parse input script signature: %s" % err)
-        if not public_key and pk2:
-            self.public_key = pk2
+        if script_type == 'p2pkh':
+            if isinstance(public_keys, list) and len(public_keys) == 1:
+                pk = public_keys[0]
+            else:
+                pk = public_keys
+            self.public_keys = [to_bytes(pk)]
+            self.network = Network(network)
 
-        if self.public_key:
-            self.public_key_hex = to_hexstring(self.public_key)
-            self.k = Key(self.public_key_hex, network=network)
-            self.public_key_uncompressed = self.k.public_uncompressed_byte
-            self.public_key_hash = self.k.hash160()
-            self.address = self.k.address()
-            self.compressed = self.k.compressed
+            pk2 = b''
+            if unlocking_script and self.type != 'coinbase':
+                try:
+                    self.signature, pk2 = script_deserialize_sigpk(unlocking_script)
+                except IndexError as err:
+                    raise TransactionError("Could not parse input script signature: %s" % err)
+            if not public_keys and pk2:
+                self.public_keys = [pk2]
+
+            if self.public_keys:
+                self.public_key_hex = to_hexstring(self.public_keys[0])
+                self.k = Key(self.public_key_hex, network=network)
+                self.public_key_uncompressed = self.k.public_uncompressed_byte
+                self.public_key_hash = self.k.hash160()
+                self.address = self.k.address()
+                self.compressed = self.k.compressed
 
     def json(self):
         """
