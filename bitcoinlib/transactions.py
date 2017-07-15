@@ -333,6 +333,8 @@ class Input:
         self.address = ''
         self.type = ''
         self.public_key_hex = None
+        self.public_keys = []
+        self.network = Network(network)
 
         if prev_hash == b'\0' * 32:
             self.type = 'coinbase'
@@ -343,8 +345,6 @@ class Input:
             else:
                 pk = public_keys
             self.public_keys = [to_bytes(pk)]
-            self.network = Network(network)
-
             pk2 = b''
             if unlocking_script and self.type != 'coinbase':
                 try:
@@ -361,6 +361,9 @@ class Input:
                 self.public_key_hash = self.k.hash160()
                 self.address = self.k.address()
                 self.compressed = self.k.compressed
+        elif script_type == 'multisig':
+            for pk in public_keys:
+                self.public_keys.append(to_bytes(pk))
 
     def json(self):
         """
@@ -665,10 +668,10 @@ class Transaction:
             if s < ecdsa.SECP256k1.order / 2:
                 break
 
-        self.inputs[tid].unlocking_script = varstr(sig_der + b'\01') + varstr(self.inputs[tid].public_key)
+        self.inputs[tid].unlocking_script = varstr(sig_der + b'\01') + varstr(self.inputs[tid].public_keys[0])
         self.inputs[tid].signature = tsig
 
-    def add_input(self, prev_hash, output_index, unlocking_script=b'', public_key=b'', sequence=b'\xff\xff\xff\xff'):
+    def add_input(self, prev_hash, output_index, unlocking_script=b'', public_keys=b'', sequence=b'\xff\xff\xff\xff'):
         """
         Add input to this transaction
         
@@ -680,15 +683,15 @@ class Transaction:
         :type output_index: bytes, int
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param public_key: A public can be provided to construct an Unlocking script. Optional
-        :type public_key: bytes, str
+        :param public_keys: A public can be provided to construct an Unlocking script. Optional
+        :type public_keys: bytes, str
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes
         :return int: Transaction index 
         """
         new_id = len(self.inputs)
-        self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_key, self.network.network_name,
-                                 sequence, new_id))
+        self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_keys,
+                                 network=self.network.network_name, sequence=sequence, tid=new_id))
         return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
@@ -808,7 +811,7 @@ if __name__ == '__main__':
     t = Transaction()
     prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
     ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-    t.add_input(prev_hash=prev_tx, output_index=1, public_key=ki.public_hex)
+    t.add_input(prev_hash=prev_tx, output_index=1, public_keys=ki.public_hex)
     t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
     t.sign(ki.private_byte)
     pprint(t.get())
@@ -819,7 +822,7 @@ if __name__ == '__main__':
           "http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html ===")
     ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
     txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-    utxo_input = Input(prev_hash=txid, output_index=0, public_key=ki.public_byte)
+    utxo_input = Input(prev_hash=txid, output_index=0, public_keys=ki.public_byte)
     pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
     transaction_output = Output(amount=91234, public_key_hash=pkh)
     t = Transaction([utxo_input], [transaction_output])
@@ -832,7 +835,7 @@ if __name__ == '__main__':
           "See txid 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7 ===")
     ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import
     input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
-                  public_key=ki.public(), network='testnet')
+                  public_keys=ki.public(), network='testnet')
     # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
     ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
     output = Output(880000, public_key_hash=ko.hash160(), network='testnet')
@@ -847,7 +850,7 @@ if __name__ == '__main__':
           "\nSee txid f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618 ===")
     ki = Key('cRMjy1LLMPsVU4uaAt3br8Ft5vdJLx6prY4Sx7WjPARrpYAnVEkV', network='testnet')  # Private key for import
     ti = Input(prev_hash='adee8bdd011f60e52949b65b069ff9f19fc220815fdc1a6034613ed1f6b775f1', output_index=1,
-               public_key=ki.public(), network='testnet')
+               public_keys=ki.public(), network='testnet')
     amount_per_address = 27172943
     output_addresses = ['mn6xJw1Cp2gLcSSQAYPnX4G2M6GARGyX5j', 'n3pdL33MgTA316odzeydhNrcKXdu6jy8ry',
                         'n1Bq89KaJrcaXEMUEsDSyhKHfTGi8mkfRJ', 'mrqYnxFPcf6u5xkEfmA3dxQzjB7ZcPgtTq',
@@ -882,7 +885,7 @@ if __name__ == '__main__':
     inputs = []
     for ti in tis:
         ki = Key(ti[2], network='testnet')
-        t.add_input(prev_hash=ti[0], output_index=ti[1], public_key=ki.public(), sequence=b'\xff\xff\xff\xff')
+        t.add_input(prev_hash=ti[0], output_index=ti[1], public_keys=ki.public(), sequence=b'\xff\xff\xff\xff')
     icount = 0
     for ti in tis:
         ki = Key(ti[2], network='testnet')
@@ -900,7 +903,7 @@ if __name__ == '__main__':
     send_to_address = '1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF'
 
     ki = Key(private_key)
-    utxo_input = Input(prev_hash=utxo, output_index=1, public_key=ki.public())
+    utxo_input = Input(prev_hash=utxo, output_index=1, public_keys=ki.public())
     output_to = Output(amount, address=send_to_address)
     t = Transaction([utxo_input], [output_to])
     t.sign(ki.private_byte, 0)

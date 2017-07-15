@@ -1463,7 +1463,8 @@ class HDWallet:
         """
 
         outputs = [(to_address, amount)]
-        return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee, min_confirms=min_confirms)
+        return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
+                         min_confirms=min_confirms)
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
@@ -1604,7 +1605,7 @@ class HDWallet:
                 sig = key.redeemscript
             elif key.key_type in ['bip32', 'single']:
                 k = HDKey(key.wif)
-                id = transaction.add_input(inp[0], inp[1], public_key=k.public_byte)
+                id = transaction.add_input(inp[0], inp[1], public_keys=k.public_byte)
                 sig = k.private_byte
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
@@ -1633,7 +1634,7 @@ class HDWallet:
         # Update db: Update spend UTXO's, add transaction to database
         for inp in transaction.inputs:
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.hash == to_hexstring(inp.prev_hash),
+                filter(DbTransaction.hash == normalize_string(inp.prev_hash),
                        DbTransactionOutput.output_n == inp.output_index_int).all()
             for u in utxos:
                 u.spend = True
