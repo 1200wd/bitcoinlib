@@ -340,20 +340,12 @@ class Input:
             self.keys.append(kobj)
 
         self.signatures = []
-        # self.compressed = True
-        # self.public_key_uncompressed = ''
-        # self.k = None
-        # self.public_key_hash = b''
-        # self.address = ''
-        # self.type = ''
-        # self.public_key_hex = None
-        # self.public_keys = []
+        self.redeemscript = b''
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
 
         if script_type == 'p2pkh':
-            # self.public_keys = [to_bytes(pk)]
             pk2 = b''
             if unlocking_script:
                 try:
@@ -363,18 +355,8 @@ class Input:
                     raise TransactionError("Could not parse input script signature: %s" % err)
             if not self.keys and pk2:
                 self.keys.append(Key(pk2))
-
-            # if self.public_keys:
-            #     self.public_key_hex = to_hexstring(self.public_keys[0])
-            #     self.k = Key(self.public_key_hex, network=network)
-            #     self.public_key_uncompressed = self.k.public_uncompressed_byte
-            #     self.public_key_hash = self.k.hash160()
-            #     self.address = self.k.address()
-            #     self.compressed = self.k.compressed
         elif script_type == 'multisig':
-            pass
-            # for pk in public_keys:
-            #     self.public_keys.append(to_bytes(pk))
+            self.redeemscript = serialize_multisig(self.keys, n_required=2)
 
     def json(self):
         """
@@ -610,6 +592,9 @@ class Transaction:
                 if i.script_type == 'p2pkh':
                     r += b'\x19\x76\xa9\x14' + to_bytes(i.keys[0].hash160()) + \
                          b'\x88\xac'
+                elif i.script_type == 'multisig':
+                    script = b'\x00\x4c' + struct.pack('B', len(i.redeemscript)) + i.redeemscript
+                    r += struct.pack('B', len(script)) + script
                 else:
                     raise TransactionError("Script type %s not supported at the moment" % i.script_type)
             else:
@@ -821,6 +806,8 @@ if __name__ == '__main__':
         '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a71'
         '5cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b756786098567550'
         'd4820c09db988fe9997d049d687292f815ccd6e7fb5c1b1a91137999818d17c73d0f80aef9',
+
+        '004cc9524104c898af7c30ff06735110f4041d02f242c676a85011b5ea9aae2b64c74e60b92a725372fb312d1affed1c26757caa27092a1accfe75d2ad9d8bb1663d83dbd25141043edd7b9b267dfea77f2ca7602e4cc4f9114001391d2ecd5e740bd29a340767a6c436440ab1fed4c731ef05e378230c16e3f4746ae221fa91fdc86296bf1a97164104a57c1e695dec5cc9bbfa17ab1533016d2b4306e09d6afbe7c8959367cf775a9c3f8003e7cd2b39f6d38ba0c8909a52afe11ccc06ddb31c098134d92be478095e53ae'
     ]
     for s in scripts:
         print("\nScript: %s" % s)
