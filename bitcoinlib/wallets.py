@@ -1611,13 +1611,15 @@ class HDWallet:
                     pub_keys.append(k.public_byte)
                     if k.isprivate:
                         priv_keys.append(k.private_byte)
+                script_type = 'multisig'
             elif key.key_type in ['bip32', 'single']:
                 k = HDKey(key.wif)
                 pub_keys = k.public_byte
                 priv_keys = k.private_byte
+                script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
-            id = transaction.add_input(inp[0], inp[1], public_keys=pub_keys, script_type=key.key_type)
+            id = transaction.add_input(inp[0], inp[1], keys=pub_keys, script_type=script_type)
             sign_arr.append((priv_keys, id, key.key_type))
 
         return transaction, sign_arr

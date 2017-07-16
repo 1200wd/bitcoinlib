@@ -383,14 +383,22 @@ class Input:
         :return dict: Json with tid, prev_hash, output_index, type, address, public_key, public_key_hash, unlocking_script and sequence
         
         """
+        addrs = []
+        pks = []
+        for k in self.keys:
+            addrs.append(k.address())
+            pks.append(k.public_hex)
+        if len(addrs) == 1:
+            addrs = addrs[0]
+        if len(pks) == 1:
+            pks = pks[0]
         return {
             'tid': self.tid,
             'prev_hash': to_hexstring(self.prev_hash),
             'output_index': to_hexstring(self.output_index),
-            'type': self.script_type,
-            # 'address': self.address,
-            # 'public_key': self.public_key_hex,
-            # 'public_key_hash': to_hexstring(self.public_key_hash),
+            'script_type': self.script_type,
+            'address': addrs,
+            'public_key': pks,
             'unlocking_script': to_hexstring(self.unlocking_script),
             'sequence': to_hexstring(self.sequence),
         }

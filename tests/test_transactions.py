@@ -50,18 +50,19 @@ class TestTransactionInputs(unittest.TestCase):
              b"\xbb)+U\xd7\xed\x1f\r\xc8 \x9d\x13"
         ti = Input(ph, ii, unlocking_script=ss)
         r = {
-            'tid': 0,
-            'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
+            'public_key': '02309a196919cff1d18754271be7ee54d1b37f414cbb292b55d7ed1f0dc8209d13',
+            'output_index': '00000000',
             'unlocking_script': '47304402206ca28f7bafdd65bdfc0fbd88f5a5b003699127caf0fff6e65535d7f131152c0302201617'
                                 '303f638e08947f18697edcb3a7a53ae66df94f2629db98dc0cc5076b34b7012102309a196919cff1d1'
                                 '8754271be7ee54d1b37f414cbb292b55d7ed1f0dc8209d13',
-            'type': '',
-            'public_key': '02309a196919cff1d18754271be7ee54d1b37f414cbb292b55d7ed1f0dc8209d13',
-            'output_index': '00000000',
             'sequence': 'ffffffff',
-            'public_key_hash': 'd077955d013e6c2ff161098c90a4ef1326853b9f',
-            'prev_hash': 'e33ebd17938bc013c62895892aac54df3f5bce96e44b8949949275741b1427e5'
+            'prev_hash': 'e33ebd17938bc013c62895892aac54df3f5bce96e44b8949949275741b1427e5',
+            'tid': 0,
+            'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
+            'script_type': 'p2pkh'
         }
+
+        print(ti.json())
         self.assertDictEqual(r, ti.json())
 
     def test_transaction_input_add_coinbase(self):
