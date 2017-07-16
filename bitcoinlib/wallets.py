@@ -840,6 +840,9 @@ class HDWallet:
                 key_type='multisig', network_name=network)
             self._session.add(multisig_key)
             self._session.commit()
+            self._session.query(DbKey).filter(DbKey.id.in_(public_key_ids)).\
+                update({DbKey.multisig_parent_id: multisig_key.id}, synchronize_session=False)
+            self._session.commit()
             return multisig_key
 
     def new_key_change(self, name='', account_id=None, network=None):
@@ -1524,7 +1527,7 @@ class HDWallet:
 
             :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
             :type output_arr: list 
-            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_id, value)]
+            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value)]
             :type input_arr: list
             :param account_id: Account ID
             :type account_id: int
@@ -1601,23 +1604,32 @@ class HDWallet:
             if not key:
                 raise WalletError("Key of UTXO %s not found in this wallet" % inp[0])
             if key.key_type == 'multisig':
-                id = transaction.add_input(inp[0], inp[1], unlocking_script='')
-                sig = key.redeemscript
+                pub_keys = []
+                priv_keys = []
+                for ck in key.multisig_children:
+                    k = HDKey(ck.wif)
+                    pub_keys.append(k.public_byte)
+                    if k.isprivate:
+                        priv_keys.append(k.private_byte)
             elif key.key_type in ['bip32', 'single']:
                 k = HDKey(key.wif)
-                id = transaction.add_input(inp[0], inp[1], public_keys=k.public_byte)
-                sig = k.private_byte
+                pub_keys = k.public_byte
+                priv_keys = k.private_byte
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
-            sign_arr.append((sig, id, key.key_type))
+            id = transaction.add_input(inp[0], inp[1], public_keys=pub_keys, script_type=key.key_type)
+            sign_arr.append((priv_keys, id, key.key_type))
 
         return transaction, sign_arr
 
-    @staticmethod
-    def transaction_sign(transaction, sign_arr):
+    def transaction_sign(self, transaction, sign_arr):
         # Sign inputs,
         for ti in sign_arr:
-            transaction.sign(ti[0], ti[1])
+            if isinstance(ti[0], list):
+                for pk in ti[0]:
+                    transaction.sign(pk, ti[1])
+            else:
+                transaction.sign(ti[0], ti[1])
         # Verify transaction
         if not transaction.verify():
             raise WalletError("Cannot verify transaction. Create transaction failed")

@@ -297,8 +297,8 @@ class Input:
     
     """
 
-    def __init__(self, prev_hash, output_index, unlocking_script=b'', public_keys=b'', script_type='p2pkh',
-                 network=DEFAULT_NETWORK, sequence=b'\xff\xff\xff\xff', tid=0):
+    def __init__(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
+                 sequence=b'\xff\xff\xff\xff', network=DEFAULT_NETWORK, tid=0):
         """
         Create a new transaction input
         
@@ -308,8 +308,8 @@ class Input:
         :type output_index: bytes, int
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param public_keys: A public can be provided to construct an Unlocking script. Optional
-        :type public_keys: bytes, str
+        :param keys: A list of HDKey objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
+        :type keys: list (bytes, str)
         :param network: Network, leave empty for default
         :type network: str
         :param sequence: Sequence part of input, you normally do not have to touch this
@@ -322,48 +322,59 @@ class Input:
         if isinstance(output_index, numbers.Number):
             self.output_index_int = output_index
             self.output_index = struct.pack('>I', output_index)
+        if isinstance(keys, (bytes, str)):
+            keys = [keys]
         self.unlocking_script = to_bytes(unlocking_script)
+        self.script_type = script_type
         self.sequence = to_bytes(sequence)
-        self.tid = tid
-        self.signature = b''
-        self.compressed = True
-        self.public_key_uncompressed = ''
-        self.k = None
-        self.public_key_hash = b''
-        self.address = ''
-        self.type = ''
-        self.public_key_hex = None
-        self.public_keys = []
         self.network = Network(network)
+        self.tid = tid
+        if keys is None:
+            keys = []
+        self.keys = []
+        for key in keys:
+            if not isinstance(key, Key):
+                kobj = Key(key, network=network)
+            else:
+                kobj = key
+            self.keys.append(kobj)
+
+        self.signatures = []
+        # self.compressed = True
+        # self.public_key_uncompressed = ''
+        # self.k = None
+        # self.public_key_hash = b''
+        # self.address = ''
+        # self.type = ''
+        # self.public_key_hex = None
+        # self.public_keys = []
 
         if prev_hash == b'\0' * 32:
-            self.type = 'coinbase'
+            self.script_type = 'coinbase'
 
         if script_type == 'p2pkh':
-            if isinstance(public_keys, list) and len(public_keys) == 1:
-                pk = public_keys[0]
-            else:
-                pk = public_keys
-            self.public_keys = [to_bytes(pk)]
+            # self.public_keys = [to_bytes(pk)]
             pk2 = b''
-            if unlocking_script and self.type != 'coinbase':
+            if unlocking_script:
                 try:
-                    self.signature, pk2 = script_deserialize_sigpk(unlocking_script)
+                    signature, pk2 = script_deserialize_sigpk(unlocking_script)
+                    self.signatures.append(signature)
                 except IndexError as err:
                     raise TransactionError("Could not parse input script signature: %s" % err)
-            if not public_keys and pk2:
-                self.public_keys = [pk2]
+            if not self.keys and pk2:
+                self.keys.append(Key(pk2))
 
-            if self.public_keys:
-                self.public_key_hex = to_hexstring(self.public_keys[0])
-                self.k = Key(self.public_key_hex, network=network)
-                self.public_key_uncompressed = self.k.public_uncompressed_byte
-                self.public_key_hash = self.k.hash160()
-                self.address = self.k.address()
-                self.compressed = self.k.compressed
+            # if self.public_keys:
+            #     self.public_key_hex = to_hexstring(self.public_keys[0])
+            #     self.k = Key(self.public_key_hex, network=network)
+            #     self.public_key_uncompressed = self.k.public_uncompressed_byte
+            #     self.public_key_hash = self.k.hash160()
+            #     self.address = self.k.address()
+            #     self.compressed = self.k.compressed
         elif script_type == 'multisig':
-            for pk in public_keys:
-                self.public_keys.append(to_bytes(pk))
+            pass
+            # for pk in public_keys:
+            #     self.public_keys.append(to_bytes(pk))
 
     def json(self):
         """
@@ -376,16 +387,17 @@ class Input:
             'tid': self.tid,
             'prev_hash': to_hexstring(self.prev_hash),
             'output_index': to_hexstring(self.output_index),
-            'type': self.type,
-            'address': self.address,
-            'public_key': self.public_key_hex,
-            'public_key_hash': to_hexstring(self.public_key_hash),
+            'type': self.script_type,
+            # 'address': self.address,
+            # 'public_key': self.public_key_hex,
+            # 'public_key_hash': to_hexstring(self.public_key_hash),
             'unlocking_script': to_hexstring(self.unlocking_script),
             'sequence': to_hexstring(self.sequence),
         }
 
     def __repr__(self):
-        return "<Input (tid=%s, index=%s, address=%s)>" % (self.tid, to_hexstring(self.output_index), self.address)
+        return "<Input (tid=%s, index=%s, script_type=%s)>" % (self.tid, to_hexstring(self.output_index),
+                                                               self.script_type)
 
 
 class Output:
@@ -587,8 +599,11 @@ class Transaction:
             if sign_id is None:
                 r += struct.pack('B', len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.tid:
-                r += b'\x19\x76\xa9\x14' + to_bytes(i.public_key_hash) + \
-                     b'\x88\xac'
+                if i.script_type == 'p2pkh':
+                    r += b'\x19\x76\xa9\x14' + to_bytes(i.keys[0].hash160()) + \
+                         b'\x88\xac'
+                else:
+                    raise TransactionError("Script type %s not supported at the moment" % i.script_type)
             else:
                 r += b'\0'
             r += i.sequence
@@ -621,11 +636,12 @@ class Transaction:
         :return bool: True if signatures are valid 
         """
         for i in self.inputs:
-            if i.type == 'coinbase':
+            if i.script_type == 'coinbase':
                 return True
             t_to_sign = self.raw(i.tid)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
-            pk = i.public_key_uncompressed[1:]
+            # pk = i.public_key_uncompressed[1:]
+            pk = i.keys[0].public_uncompressed_byte[1:]
             try:
                 signature, pk2 = script_deserialize_sigpk(i.unlocking_script)
             except Exception as e:
@@ -653,7 +669,7 @@ class Transaction:
         :type tid: int
         :return: 
         """
-        if self.inputs[tid].type == 'coinbase':
+        if self.inputs[tid].script_type == 'coinbase':
             raise TransactionError("Can not sign coinbase transactions")
         tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
         sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
@@ -668,10 +684,11 @@ class Transaction:
             if s < ecdsa.SECP256k1.order / 2:
                 break
 
-        self.inputs[tid].unlocking_script = varstr(sig_der + b'\01') + varstr(self.inputs[tid].public_keys[0])
+        self.inputs[tid].unlocking_script = varstr(sig_der + b'\01') + varstr(self.inputs[tid].keys[0].public_byte)
         self.inputs[tid].signature = tsig
 
-    def add_input(self, prev_hash, output_index, unlocking_script=b'', public_keys=b'', sequence=b'\xff\xff\xff\xff'):
+    def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
+                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff'):
         """
         Add input to this transaction
         
@@ -683,14 +700,14 @@ class Transaction:
         :type output_index: bytes, int
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param public_keys: A public can be provided to construct an Unlocking script. Optional
-        :type public_keys: bytes, str
+        :param keys: A public can be provided to construct an Unlocking script. Optional
+        :type keys: bytes, str
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes
         :return int: Transaction index 
         """
         new_id = len(self.inputs)
-        self.inputs.append(Input(prev_hash, output_index, unlocking_script, public_keys,
+        self.inputs.append(Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
                                  network=self.network.network_name, sequence=sequence, tid=new_id))
         return new_id
 
@@ -811,7 +828,7 @@ if __name__ == '__main__':
     t = Transaction()
     prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
     ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-    t.add_input(prev_hash=prev_tx, output_index=1, public_keys=ki.public_hex)
+    t.add_input(prev_hash=prev_tx, output_index=1, keys=ki.public_hex)
     t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
     t.sign(ki.private_byte)
     pprint(t.get())
@@ -822,7 +839,7 @@ if __name__ == '__main__':
           "http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html ===")
     ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
     txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-    utxo_input = Input(prev_hash=txid, output_index=0, public_keys=ki.public_byte)
+    utxo_input = Input(prev_hash=txid, output_index=0, keys=ki.public_byte)
     pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
     transaction_output = Output(amount=91234, public_key_hash=pkh)
     t = Transaction([utxo_input], [transaction_output])
@@ -835,7 +852,7 @@ if __name__ == '__main__':
           "See txid 71b0bc8669575cebf01110ed9bdb2b015f95ed830aac71720c81880f3935ece7 ===")
     ki = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import
     input = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
-                  public_keys=ki.public(), network='testnet')
+                  keys=ki.public(), network='testnet')
     # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
     ko = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
     output = Output(880000, public_key_hash=ko.hash160(), network='testnet')
@@ -850,7 +867,7 @@ if __name__ == '__main__':
           "\nSee txid f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618 ===")
     ki = Key('cRMjy1LLMPsVU4uaAt3br8Ft5vdJLx6prY4Sx7WjPARrpYAnVEkV', network='testnet')  # Private key for import
     ti = Input(prev_hash='adee8bdd011f60e52949b65b069ff9f19fc220815fdc1a6034613ed1f6b775f1', output_index=1,
-               public_keys=ki.public(), network='testnet')
+               keys=ki.public(), network='testnet')
     amount_per_address = 27172943
     output_addresses = ['mn6xJw1Cp2gLcSSQAYPnX4G2M6GARGyX5j', 'n3pdL33MgTA316odzeydhNrcKXdu6jy8ry',
                         'n1Bq89KaJrcaXEMUEsDSyhKHfTGi8mkfRJ', 'mrqYnxFPcf6u5xkEfmA3dxQzjB7ZcPgtTq',
@@ -885,7 +902,7 @@ if __name__ == '__main__':
     inputs = []
     for ti in tis:
         ki = Key(ti[2], network='testnet')
-        t.add_input(prev_hash=ti[0], output_index=ti[1], public_keys=ki.public(), sequence=b'\xff\xff\xff\xff')
+        t.add_input(prev_hash=ti[0], output_index=ti[1], keys=ki.public(), sequence=b'\xff\xff\xff\xff')
     icount = 0
     for ti in tis:
         ki = Key(ti[2], network='testnet')
@@ -903,7 +920,7 @@ if __name__ == '__main__':
     send_to_address = '1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF'
 
     ki = Key(private_key)
-    utxo_input = Input(prev_hash=utxo, output_index=1, public_keys=ki.public())
+    utxo_input = Input(prev_hash=utxo, output_index=1, keys=ki.public())
     output_to = Output(amount, address=send_to_address)
     t = Transaction([utxo_input], [output_to])
     t.sign(ki.private_byte, 0)

@@ -126,6 +126,8 @@ class DbKey(Base):
     used = Column(Boolean, default=False)
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
+    multisig_parent_id = Column(Integer, ForeignKey('keys.id'))
+    multisig_children = relationship("DbKey", lazy="joined", join_depth=2)
 
     __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),)
 

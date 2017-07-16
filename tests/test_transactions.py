@@ -66,13 +66,13 @@ class TestTransactionInputs(unittest.TestCase):
 
     def test_transaction_input_add_coinbase(self):
         ti = Input(b'\0'*32, 0)
-        self.assertEqual('coinbase', ti.type)
+        self.assertEqual('coinbase', ti.script_type)
 
     def test_transaction_input_add_public_key(self):
         ph = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         k = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        ti = Input(prev_hash=ph, output_index=1, public_keys=k.public())
-        self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', ti.address)
+        ti = Input(prev_hash=ph, output_index=1, keys=k.public())
+        self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', ti.keys[0].address())
 
 
 class TestTransactionOutputs(unittest.TestCase):
@@ -149,7 +149,7 @@ class TestTransactions(unittest.TestCase):
     def test_transactions_sign_1(self):
         pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import
         inp = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_index=1,
-                    public_keys=pk.public(), network='testnet')
+                    keys=pk.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
         out = Output(880000, public_key_hash=pubkey.hash160(), network='testnet')
@@ -162,7 +162,7 @@ class TestTransactions(unittest.TestCase):
     def test_transactions_sign_2(self):
         pk = Key('KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4')  # Private key for import
         inp = Input(prev_hash='fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3',
-                    output_index=1, public_keys=pk.public())
+                    output_index=1, keys=pk.public())
         out = Output(95000, address='1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF')
         t = Transaction([inp], [out])
         t.sign(pk.private_byte)
@@ -187,8 +187,8 @@ class TestTransactions(unittest.TestCase):
         utxo_hash = '0177ac29fa8b2960051321c730c6f15017503aa5b9c1dd2d61e7286e366fbaba'
         pk1 = HDKey(wif1)
         pk2 = HDKey(wif2)
-        input1 = Input(prev_hash=utxo_hash, output_index=0, public_keys=pk1.public_byte, tid=0)
-        input2 = Input(prev_hash=utxo_hash, output_index=1, public_keys=pk2.public_byte, tid=1)
+        input1 = Input(prev_hash=utxo_hash, output_index=0, keys=pk1.public_byte, tid=0)
+        input2 = Input(prev_hash=utxo_hash, output_index=1, keys=pk2.public_byte, tid=1)
 
         # Create a transaction with 2 inputs, and add 2 outputs below
         osm_address = '1J3pt9koWJZTo2jarg98RL89iJqff9Kobp'
