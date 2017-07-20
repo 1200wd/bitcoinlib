@@ -529,7 +529,6 @@ class HDWallet:
             raise WalletError("Path must be of type 'list'")
         if len(basepath) and basepath[-1] != "/":
             basepath += "/"
-        parent_id = 0
         nk = parent
         ck = nk.key()
 
@@ -545,6 +544,7 @@ class HDWallet:
             nk = self.key(rkey.id)
             ck = nk.key()
 
+        parent_id = nk.key_id
         # Create new keys from path
         for l in range(len(path)):
             pp = "/".join(path[:l+1])
