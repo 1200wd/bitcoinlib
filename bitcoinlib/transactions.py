@@ -325,6 +325,7 @@ class Input:
         if isinstance(keys, (bytes, str)):
             keys = [keys]
         self.unlocking_script = to_bytes(unlocking_script)
+        self.unlocking_script_unsigned = b''
         self.script_type = script_type
         self.sequence = to_bytes(sequence)
         self.network = Network(network)
@@ -355,7 +356,11 @@ class Input:
                     raise TransactionError("Could not parse input script signature: %s" % err)
             if not self.keys and pk2:
                 self.keys.append(Key(pk2))
-        elif script_type == 'multisig':
+            if self.keys:
+                self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
+                # if not self.unlocking_script:
+                #     self.unlocking_script = self.unlocking_script_unsigned
+        elif script_type == 'multisig': # TODO: Should be p2sh or p2sh_multisig
             self.redeemscript = serialize_multisig(self.keys, n_required=2)
 
     def json(self):
@@ -589,14 +594,15 @@ class Transaction:
             if sign_id is None:
                 r += struct.pack('B', len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.tid:
-                if i.script_type == 'p2pkh':
-                    r += b'\x19\x76\xa9\x14' + to_bytes(i.keys[0].hash160()) + \
-                         b'\x88\xac'
-                elif i.script_type == 'multisig':
-                    script = b'\x00\x4c' + struct.pack('B', len(i.redeemscript)) + i.redeemscript
-                    r += struct.pack('B', len(script)) + script
-                else:
-                    raise TransactionError("Script type %s not supported at the moment" % i.script_type)
+                r += struct.pack('B', len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
+                # if i.script_type == 'p2pkh':
+                #     r += b'\x19\x76\xa9\x14' + to_bytes(i.keys[0].hash160()) + \
+                #          b'\x88\xac'
+                # elif i.script_type == 'multisig':
+                #     script = b'\x00\x4c' + struct.pack('B', len(i.redeemscript)) + i.redeemscript
+                #     r += struct.pack('B', len(script)) + script
+                # else:
+                #     raise TransactionError("Script type %s not supported at the moment" % i.script_type)
             else:
                 r += b'\0'
             r += i.sequence
