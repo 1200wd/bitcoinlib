@@ -19,6 +19,7 @@
 #
 
 import logging
+import binascii
 from bitcoinlib.services.baseclient import BaseClient
 
 _logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class BitcoinLibTestClient(BaseClient):
             utxos.append(
                 {
                     'address': address,
-                    'tx_hash': 'txhash-%s' % address,
+                    'tx_hash': binascii.hexlify(address.encode('ISO-8859-1'))[:64],
                     'confirmations': 10,
                     'output_n': 0,
                     'index': 0,
