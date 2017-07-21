@@ -1647,7 +1647,7 @@ class HDWallet:
 
         # Update db: Update spend UTXO's, add transaction to database
         for inp in transaction.inputs:
-            tx_hash = normalize_string(inp.prev_hash)
+            tx_hash = to_hexstring(inp.prev_hash)
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == tx_hash,
                        DbTransactionOutput.output_n == inp.output_index_int).all()

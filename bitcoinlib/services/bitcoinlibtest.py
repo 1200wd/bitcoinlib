@@ -18,9 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os
 import logging
+import codecs
 import binascii
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.encoding import normalize_string
 
 _logger = logging.getLogger(__name__)
 
@@ -38,10 +41,12 @@ class BitcoinLibTestClient(BaseClient):
     def getutxos(self, addresslist):
         utxos = []
         for address in addresslist:
+
             utxos.append(
                 {
                     'address': address,
-                    'tx_hash': binascii.hexlify(address.encode('ISO-8859-1'))[:64],
+                    # 'tx_hash': normalize_string(binascii.hexlify(address.encode('ISO-8859-1'))[:64]),
+                    'tx_hash': codecs.encode(os.urandom(32), 'hex').decode(),
                     'confirmations': 10,
                     'output_n': 0,
                     'index': 0,
