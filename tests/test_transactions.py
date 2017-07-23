@@ -59,10 +59,9 @@ class TestTransactionInputs(unittest.TestCase):
             'prev_hash': 'e33ebd17938bc013c62895892aac54df3f5bce96e44b8949949275741b1427e5',
             'tid': 0,
             'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
+            'redeemscript': '',
             'script_type': 'p2pkh'
         }
-
-        print(ti.json())
         self.assertDictEqual(r, ti.json())
 
     def test_transaction_input_add_coinbase(self):
