@@ -110,8 +110,9 @@ class Service(object):
                     self.errors.update(
                         {sp: err}
                     )
-                    from pprint import pprint
-                    pprint(self.errors)
+                    # -- Use this to debug specific Services errors --
+                    # from pprint import pprint
+                    # pprint(self.errors)
                 _logger.warning("%s.%s(%s) Error %s" % (sp, method, argument, e))
 
             if self.resultcount >= self.max_providers:
