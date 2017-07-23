@@ -268,6 +268,8 @@ def _serialize_multisig(public_key_list, n_required=None):
 
 
 def serialize_multisig(key_list, n_required=None):
+    if not key_list:
+        return b''
     if not isinstance(key_list, list):
         raise TransactionError("Argument public_key_list must be of type list")
     public_key_list = []
@@ -384,9 +386,10 @@ class Input:
             'prev_hash': to_hexstring(self.prev_hash),
             'output_index': to_hexstring(self.output_index),
             'script_type': self.script_type,
-            'address': addrs,
-            'public_key': pks,
+            'addresses': addrs,
+            'public_keys': pks,
             'unlocking_script': to_hexstring(self.unlocking_script),
+            'redeemscript': to_hexstring(self.redeemscript),
             'sequence': to_hexstring(self.sequence),
         }
 
