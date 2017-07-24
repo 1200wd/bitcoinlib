@@ -886,7 +886,7 @@ class HDWallet:
         if dbkey:
             return HDWalletKey(dbkey.id, session=self._session)
         else:
-            return self.new_key(account_id=account_id, network=network, change=change)
+            return self.new_key(account_id=account_id, network=network, change=change, max_depth=depth_of_keys)
 
     def get_key_change(self, account_id=None, network=None, depth_of_keys=5):
         """
