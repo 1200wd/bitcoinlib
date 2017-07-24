@@ -22,7 +22,7 @@ import numbers
 from itertools import groupby
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash, normalize_string
+from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
@@ -822,7 +822,7 @@ class HDWallet:
             public_key_ids = []
             for csw in co_sign_wallets:
                 w = HDWallet(csw.id, session=self._session)
-                wk = w.new_key()
+                wk = w.new_key(change=change, max_depth=max_depth)
                 public_key_list.append(wk.key().public_hex)
                 public_key_ids.append(str(wk.key_id))
 
