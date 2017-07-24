@@ -288,6 +288,23 @@ def serialize_multisig(key_list, n_required=None):
     return _serialize_multisig(public_key_list, n_required)
 
 
+def _p2sh_multisig_unlocking_script(keys, redeemscript):
+    usu = b'\x00'
+    if not isinstance(keys, list):
+        keys = [keys]
+    for key in keys:
+        usu = b'\x14' + to_bytes(key)
+    rs_size = int_to_varbyteint(len(redeemscript))
+    if len(rs_size) == 1:
+        size_byte = b'\x4c'
+    elif len(rs_size) == 2:
+        size_byte = b'\x4d'
+    else:
+        size_byte = b'\x4e'
+    usu += size_byte + rs_size + redeemscript
+    return usu
+
+
 class Input:
     """
     Transaction Input class, normally part of Transaction class
@@ -362,21 +379,13 @@ class Input:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
                 # if not self.unlocking_script:
                 #     self.unlocking_script = self.unlocking_script_unsigned
-        elif script_type == 'multisig': # TODO: Should be p2sh or p2sh_multisig
+        elif script_type == 'multisig':  # TODO: Should be p2sh or p2sh_multisig
             self.redeemscript = serialize_multisig(self.keys, n_required=2)
-            usu = b'\x00'
+            hashed_keys = []
             for key in self.keys:
-                usu = b'\x14' + to_bytes(key.hash160())
-            rs_size = varbyteint_to_int(self.redeemscript)
-            if len(rs_size) == 1:
-                size_byte = b'\x4c'
-            elif len(rs_size) == 2:
-                size_byte = b'\x4d'
-            else:
-                size_byte = b'\x4e'
-            usu += size_byte + rs_size + self.redeemscript
-            self.unlocking_script_unsigned = usu
-            
+                hashed_keys = key.hash160()
+            self.unlocking_script_unsigned = _p2sh_multisig_unlocking_script(hashed_keys, self.redeemscript)
+
     def json(self):
         """
         Get transaction input information in json format
@@ -610,14 +619,6 @@ class Transaction:
                 r += struct.pack('B', len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.tid:
                 r += struct.pack('B', len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
-                # if i.script_type == 'p2pkh':
-                #     r += b'\x19\x76\xa9\x14' + to_bytes(i.keys[0].hash160()) + \
-                #          b'\x88\xac'
-                # elif i.script_type == 'multisig':
-                #     script = b'\x00\x4c' + struct.pack('B', len(i.redeemscript)) + i.redeemscript
-                #     r += struct.pack('B', len(script)) + script
-                # else:
-                #     raise TransactionError("Script type %s not supported at the moment" % i.script_type)
             else:
                 r += b'\0'
             r += i.sequence
@@ -673,33 +674,43 @@ class Transaction:
                 return False
         return True
 
-    def sign(self, priv_key, tid=0):
+    def sign(self, priv_keys, tid=0):
         """
         Sign the transaction input with provided private key
         
-        :param priv_key: A private key
-        :type priv_key: bytes
+        :param priv_keys: A private key or list of private keys
+        :type priv_keys: bytes or list of bytes
         :param tid: Index of transaction input
         :type tid: int
         :return: 
         """
+        if not isinstance(priv_keys, list):
+            priv_keys = [priv_keys]
+
         if self.inputs[tid].script_type == 'coinbase':
             raise TransactionError("Can not sign coinbase transactions")
         tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
-        sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
-
-        while True:
-            sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
-            # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
-            # TODO: Recalc 's' instead, see:
-            #       https://github.com/richardkiss/pycoin/pull/24/files#diff-12d8832e97767321d1f3c40909be8b23
-            signature = convert_der_sig(sig_der)
-            s = int(signature[64:], 16)
-            if s < ecdsa.SECP256k1.order / 2:
-                break
-
-        self.inputs[tid].unlocking_script = varstr(sig_der + b'\01') + varstr(self.inputs[tid].keys[0].public_byte)
         self.inputs[tid].signature = tsig
+
+        sigs_der = []
+        for priv_key in priv_keys:
+            sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
+            while True:
+                sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
+                # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
+                # TODO: Recalc 's' instead, see:
+                #       https://github.com/richardkiss/pycoin/pull/24/files#diff-12d8832e97767321d1f3c40909be8b23
+                signature = convert_der_sig(sig_der)
+                s = int(signature[64:], 16)
+                if s < ecdsa.SECP256k1.order / 2:
+                    break
+            sigs_der.append(sig_der)
+
+        if self.inputs[tid].script_type == 'p2pkh':
+            self.inputs[tid].unlocking_script = varstr(sigs_der[0] + b'\01') + \
+                                                varstr(self.inputs[tid].keys[0].public_byte)
+        elif self.inputs[tid].script_type == 'multisig':
+            self.inputs[tid].unlocking_script = _p2sh_multisig_unlocking_script(sigs_der, self.inputs[tid].redeemscript)
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
                   script_type='p2pkh', sequence=b'\xff\xff\xff\xff'):

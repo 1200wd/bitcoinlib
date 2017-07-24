@@ -1627,11 +1627,7 @@ class HDWallet:
     def transaction_sign(self, transaction, sign_arr):
         # Sign inputs,
         for ti in sign_arr:
-            if isinstance(ti[0], list):
-                for pk in ti[0]:
-                    transaction.sign(pk, ti[1])
-            else:
-                transaction.sign(ti[0], ti[1])
+            transaction.sign(ti[0], ti[1])
         # Verify transaction
         if not transaction.verify():
             raise WalletError("Cannot verify transaction. Create transaction failed")
