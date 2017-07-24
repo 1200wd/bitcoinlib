@@ -822,7 +822,7 @@ class HDWallet:
             public_key_ids = []
             for csw in co_sign_wallets:
                 w = HDWallet(csw.id, session=self._session)
-                wk = w.new_key(change=change, max_depth=max_depth)
+                wk = w.get_key(change=change, depth_of_keys=max_depth)
                 public_key_list.append(wk.key().public_hex)
                 public_key_ids.append(str(wk.key_id))
 
