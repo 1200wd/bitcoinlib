@@ -364,7 +364,19 @@ class Input:
                 #     self.unlocking_script = self.unlocking_script_unsigned
         elif script_type == 'multisig': # TODO: Should be p2sh or p2sh_multisig
             self.redeemscript = serialize_multisig(self.keys, n_required=2)
-
+            usu = b'\x00'
+            for key in self.keys:
+                usu = b'\x14' + to_bytes(key.hash160())
+            rs_size = varbyteint_to_int(self.redeemscript)
+            if len(rs_size) == 1:
+                size_byte = b'\x4c'
+            elif len(rs_size) == 2:
+                size_byte = b'\x4d'
+            else:
+                size_byte = b'\x4e'
+            usu += size_byte + rs_size + self.redeemscript
+            self.unlocking_script_unsigned = usu
+            
     def json(self):
         """
         Get transaction input information in json format
