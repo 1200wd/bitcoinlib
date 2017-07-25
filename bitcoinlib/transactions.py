@@ -327,7 +327,7 @@ class Input:
         :type output_index: bytes, int
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param keys: A list of HDKey objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
+        :param keys: A list of Key objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
         :type keys: list (bytes, str)
         :param network: Network, leave empty for default
         :type network: str
@@ -383,7 +383,7 @@ class Input:
             self.redeemscript = serialize_multisig(self.keys, n_required=2)
             hashed_keys = []
             for key in self.keys:
-                hashed_keys = key.hash160()
+                hashed_keys.append(key.hash160())
             self.unlocking_script_unsigned = _p2sh_multisig_unlocking_script(hashed_keys, self.redeemscript)
 
     def json(self):
@@ -634,13 +634,13 @@ class Transaction:
             r += b'\1\0\0\0'
         return r
 
-    def raw_hex(self):
+    def raw_hex(self, sign_id=None):
         """
         Wrapper for raw method. Return current raw transaction hex
         
         :return hexstring: 
         """
-        return to_hexstring(self.raw())
+        return to_hexstring(self.raw(sign_id))
 
     def verify(self):
         """
@@ -725,7 +725,7 @@ class Transaction:
         :type output_index: bytes, int
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
-        :param keys: A public can be provided to construct an Unlocking script. Optional
+        :param keys: Public keys can be provided to construct an Unlocking script. Optional
         :type keys: bytes, str
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes
