@@ -293,7 +293,7 @@ def _p2sh_multisig_unlocking_script(keys, redeemscript):
     if not isinstance(keys, list):
         keys = [keys]
     for key in keys:
-        usu += struct.pack('B', len(to_bytes(key))) + to_bytes(key)
+        usu += int_to_varbyteint(len(to_bytes(key))) + to_bytes(key)
     rs_size = int_to_varbyteint(len(redeemscript))
     if len(rs_size) == 1:
         size_byte = b'\x4c'
@@ -616,9 +616,9 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_index[::-1]
             if sign_id is None:
-                r += struct.pack('<Q', len(i.unlocking_script)) + i.unlocking_script
+                r += int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.tid:
-                r += struct.pack('<Q', len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
+                r += int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
             else:
                 r += b'\0'
             r += i.sequence
@@ -628,7 +628,7 @@ class Transaction:
             if o.amount < 0:
                 raise TransactionError("Output amount <0 not allowed")
             r += struct.pack('<Q', o.amount)
-            r += struct.pack('B', len(o.lock_script)) + o.lock_script
+            r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += b'\1\0\0\0'
