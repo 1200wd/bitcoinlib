@@ -648,11 +648,13 @@ class Transaction:
         
         Does not check if UTXO is valid or has already been spent
         
-        :return bool: True if signatures are valid 
+        :return bool: True if all signatures are valid 
         """
         for i in self.inputs:
             if i.script_type == 'coinbase':
                 return True
+            if not i.signatures:
+                raise TransactionError("No signatures found for transaction input %d" % i.tid)
             t_to_sign = self.raw(i.tid)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             sig_id = 0
@@ -665,9 +667,11 @@ class Transaction:
                     return False
                 try:
                     ver_key.verify_digest(i.signatures[sig_id], hashtosign)
-                except ecdsa.keys.BadSignatureError as e:
-                    continue  # Try next key
-                # except ecdsa.keys.BadDigestError as e:
+                except ecdsa.keys.BadSignatureError:
+                    continue  # Try next key (for multisigs)
+                except ecdsa.keys.BadDigestError as e:
+                    _logger.info("Bad Digest %s (error %s)" %
+                                 (binascii.hexlify(i.signatures[sig_id]), e))
                 sig_id += 1
         return True
 
