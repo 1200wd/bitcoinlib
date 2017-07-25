@@ -293,7 +293,7 @@ def _p2sh_multisig_unlocking_script(keys, redeemscript):
     if not isinstance(keys, list):
         keys = [keys]
     for key in keys:
-        usu = b'\x14' + to_bytes(key)
+        usu += struct.pack('B', len(to_bytes(key))) + to_bytes(key)
     rs_size = int_to_varbyteint(len(redeemscript))
     if len(rs_size) == 1:
         size_byte = b'\x4c'
@@ -616,9 +616,9 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_index[::-1]
             if sign_id is None:
-                r += struct.pack('B', len(i.unlocking_script)) + i.unlocking_script
+                r += struct.pack('<Q', len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.tid:
-                r += struct.pack('B', len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
+                r += struct.pack('<Q', len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
             else:
                 r += b'\0'
             r += i.sequence
