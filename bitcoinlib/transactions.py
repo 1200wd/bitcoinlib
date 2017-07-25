@@ -384,7 +384,6 @@ class Input:
             hashed_keys = []
             for key in self.keys:
                 hashed_keys.append(key.hash160())
-            # self.unlocking_script_unsigned = _p2sh_multisig_unlocking_script(hashed_keys, self.redeemscript)
             self.unlocking_script_unsigned = self.redeemscript
 
     def json(self):
@@ -657,22 +656,24 @@ class Transaction:
             t_to_sign = self.raw(i.tid)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             # pk = i.public_key_uncompressed[1:]
-            pk = i.keys[0].public_uncompressed_byte[1:]
-            try:
-                signature, pk2 = script_deserialize_sigpk(i.unlocking_script)
-            except Exception as e:
-                # TODO: Add support for other script_types
-                _logger.warning("Error %s. No support for script type %s" %
-                                (e, script_deserialize(i.unlocking_script)[0]))
-                return False
+            for key in i.keys:
+                pub_key = key.public_uncompressed_byte[1:]
+                # try:
+                #     signature, pk2 = script_deserialize_sigpk(i.unlocking_script)
+                # except Exception as e:
+                #     TODO: Add support for other script_types
+                    # _logger.warning("Error %s. No support for script type %s" %
+                    #                 (e, script_deserialize(i.unlocking_script)[0]))
+                    # return False
 
-            vk = ecdsa.VerifyingKey.from_string(pk, curve=ecdsa.SECP256k1)
-            try:
-                vk.verify_digest(signature, hashtosign)
-            except ecdsa.keys.BadDigestError as e:
-                _logger.info("Bad Signature %s (error %s)" %
-                             (binascii.hexlify(signature), e))
-                return False
+                vk = ecdsa.VerifyingKey.from_string(pub_key, curve=ecdsa.SECP256k1)
+                signature = i.signatures[0]
+                try:
+                    vk.verify_digest(signature, hashtosign)
+                except ecdsa.keys.BadDigestError as e:
+                    _logger.info("Bad Signature %s (error %s)" %
+                                 (binascii.hexlify(signature), e))
+                    return False
         return True
 
     def sign(self, priv_keys, tid=0):
@@ -691,9 +692,8 @@ class Transaction:
         if self.inputs[tid].script_type == 'coinbase':
             raise TransactionError("Can not sign coinbase transactions")
         tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
-        self.inputs[tid].signature = tsig
 
-        sigs_der = []
+        self.inputs[tid].signatures = []
         for priv_key in priv_keys:
             sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
             while True:
@@ -705,13 +705,14 @@ class Transaction:
                 s = int(signature[64:], 16)
                 if s < ecdsa.SECP256k1.order / 2:
                     break
-            sigs_der.append(sig_der)
+            self.inputs[tid].signatures.append(sig_der)
 
         if self.inputs[tid].script_type == 'p2pkh':
-            self.inputs[tid].unlocking_script = varstr(sigs_der[0] + b'\01') + \
+            self.inputs[tid].unlocking_script = varstr(self.inputs[tid].signatures[0] + b'\01') + \
                                                 varstr(self.inputs[tid].keys[0].public_byte)
         elif self.inputs[tid].script_type == 'multisig':
-            self.inputs[tid].unlocking_script = _p2sh_multisig_unlocking_script(sigs_der, self.inputs[tid].redeemscript)
+            self.inputs[tid].unlocking_script = \
+                _p2sh_multisig_unlocking_script(self.inputs[tid].signatures, self.inputs[tid].redeemscript)
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
                   script_type='p2pkh', sequence=b'\xff\xff\xff\xff'):
