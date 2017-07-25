@@ -823,7 +823,7 @@ class HDWallet:
             for csw in co_sign_wallets:
                 w = HDWallet(csw.id, session=self._session)
                 wk = w.get_key(change=change, depth_of_keys=max_depth)
-                public_key_list.append(wk.key().public_hex)
+                public_key_list.append(wk.key().key.public_uncompressed())
                 public_key_ids.append(str(wk.key_id))
 
             # Calculate redeemscript and address and add multisig key to database
