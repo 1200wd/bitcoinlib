@@ -822,7 +822,7 @@ class HDWallet:
             public_key_ids = []
             for csw in co_sign_wallets:
                 w = HDWallet(csw.id, session=self._session)
-                wk = w.get_key(change=change, depth_of_keys=max_depth)
+                wk = w.new_key(change=change, max_depth=max_depth)
                 public_key_list.append(wk.key().key.public_uncompressed())
                 public_key_ids.append(str(wk.key_id))
 
@@ -1445,30 +1445,6 @@ class HDWallet:
             res.append(u)
         return res
 
-    def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4):
-        """
-        Create transaction and send it with default Service objects sendrawtransaction method
-        
-        :param to_address: Single output address
-        :type to_address: str
-        :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin)
-        :type amount: int
-        :param account_id: Account ID, default is last used
-        :type account_id: int
-        :param network: Network name. Leave empty for default network
-        :type network: str
-        :param transaction_fee: Fee to use for this transaction. Leave empty to automatically estimate.
-        :type transaction_fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
-        :type min_confirms: int
-        
-        :return str, list: Transaction ID or result array 
-        """
-
-        outputs = [(to_address, amount)]
-        return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
-                         min_confirms=min_confirms)
-
     @staticmethod
     def _select_inputs(amount, utxo_query=None):
         """
@@ -1692,6 +1668,30 @@ class HDWallet:
                 transaction = self.transaction_sign(transaction, sign_arr)
 
         return self.transaction_send(transaction)
+
+    def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4):
+        """
+        Create transaction and send it with default Service objects sendrawtransaction method
+
+        :param to_address: Single output address
+        :type to_address: str
+        :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin)
+        :type amount: int
+        :param account_id: Account ID, default is last used
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param transaction_fee: Fee to use for this transaction. Leave empty to automatically estimate.
+        :type transaction_fee: int
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
+        :type min_confirms: int
+
+        :return str, list: Transaction ID or result array 
+        """
+
+        outputs = [(to_address, amount)]
+        return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
+                         min_confirms=min_confirms)
 
     def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
         """
