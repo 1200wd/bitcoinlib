@@ -384,7 +384,8 @@ class Input:
             hashed_keys = []
             for key in self.keys:
                 hashed_keys.append(key.hash160())
-            self.unlocking_script_unsigned = _p2sh_multisig_unlocking_script(hashed_keys, self.redeemscript)
+            # self.unlocking_script_unsigned = _p2sh_multisig_unlocking_script(hashed_keys, self.redeemscript)
+            self.unlocking_script_unsigned = self.redeemscript
 
     def json(self):
         """
