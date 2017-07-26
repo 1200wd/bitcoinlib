@@ -458,7 +458,6 @@ class Output:
         self.address = address
         self.public_key = to_bytes(public_key)
         self.network = Network(network)
-
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
@@ -480,8 +479,17 @@ class Output:
                 self.public_key_hash = ps[1][0]
                 self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=self.versionbyte)
 
+        # TODO: Recognise scripttype from address
+        script_type = 'p2pkh'
+        if self.address[0] == '2':
+            script_type = 'p2sh'
         if self.lock_script == b'':
-            self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
+            if script_type == 'p2pkh':
+                self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
+            elif script_type == 'p2sh':
+                self.lock_script = b'\xa9\x14' + self.public_key_hash + b'\x87'
+            else:
+                raise TransactionError("Unknown output script type %s, please provide own locking script" % script_type)
 
     def json(self):
         """

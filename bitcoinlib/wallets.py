@@ -1657,6 +1657,7 @@ class HDWallet:
         transaction, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee,
                                                         min_confirms)
         import pprint; pprint.pprint(transaction.get())
+        print(transaction.raw_hex())
 
         transaction = self.transaction_sign(transaction, sign_arr)
         # Calculate exact estimated fees and update change output if necessary
