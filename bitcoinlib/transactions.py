@@ -361,6 +361,7 @@ class Input:
 
         self.signatures = []
         self.redeemscript = b''
+        self.address = self.keys[0].address
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
@@ -381,6 +382,8 @@ class Input:
                 #     self.unlocking_script = self.unlocking_script_unsigned
         elif script_type == 'multisig':  # TODO: Should be p2sh or p2sh_multisig
             self.redeemscript = serialize_multisig(self.keys, n_required=2)
+            self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
+                                              versionbyte=Network(network).prefix_address_p2sh)
             hashed_keys = []
             for key in self.keys:
                 hashed_keys.append(key.hash160())
@@ -393,13 +396,7 @@ class Input:
         :return dict: Json with tid, prev_hash, output_index, type, address, public_key, public_key_hash, unlocking_script and sequence
         
         """
-        addrs = []
         pks = []
-        for k in self.keys:
-            addrs.append(k.address())
-            pks.append(k.public_hex)
-        if len(addrs) == 1:
-            addrs = addrs[0]
         if len(pks) == 1:
             pks = pks[0]
         return {
@@ -407,7 +404,7 @@ class Input:
             'prev_hash': to_hexstring(self.prev_hash),
             'output_index': to_hexstring(self.output_index),
             'script_type': self.script_type,
-            'address': addrs,
+            'address': self.address,
             'public_key': pks,
             'unlocking_script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
