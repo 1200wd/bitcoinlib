@@ -49,6 +49,12 @@ class BitcoindClient(BaseClient):
         config = configparser.ConfigParser()
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/bitcoin.conf')
+            if not os.path.isfile(cfn):
+                cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/bitcoin.conf')
+            if not os.path.isfile(cfn):
+                raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
+                                  "default. Or place a config file in .bitcoinlib/config/bitcoin.conf to reference to "
+                                  "an external server.")
         else:
             cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
             if not os.path.isfile(cfn):
@@ -64,7 +70,11 @@ class BitcoindClient(BaseClient):
             port = 18332
         else:
             raise ConfigError("Network %s not supported by BitcoindClient" % network)
-        url = "http://%s:%s@127.0.0.1:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), port)
+        try:
+            server = config.get('rpc', 'server')
+        except:
+            server = '127.0.0.1'
+        url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return url
 
     def __init__(self, network='bitcoin', base_url='', denominator=100000000, api_key=''):
