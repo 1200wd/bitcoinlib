@@ -358,10 +358,9 @@ class Input:
             else:
                 kobj = key
             self.keys.append(kobj)
-
+        self.address = ''
         self.signatures = []
         self.redeemscript = b''
-        self.address = self.keys[0].address
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
@@ -378,6 +377,7 @@ class Input:
                 self.keys.append(Key(pk2))
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
+                self.address = self.keys[0].address()
                 # if not self.unlocking_script:
                 #     self.unlocking_script = self.unlocking_script_unsigned
         elif script_type == 'multisig':  # TODO: Should be p2sh or p2sh_multisig
@@ -397,7 +397,9 @@ class Input:
         
         """
         pks = []
-        if len(pks) == 1:
+        for k in self.keys:
+            pks.append(k.public_hex)
+        if len(self.keys) == 1:
             pks = pks[0]
         return {
             'tid': self.tid,
@@ -481,7 +483,7 @@ class Output:
 
         # TODO: Recognise scripttype from address
         script_type = 'p2pkh'
-        if self.address[0] == '2':
+        if self.address and self.address[0] == '2':
             script_type = 'p2sh'
         if self.lock_script == b'':
             if script_type == 'p2pkh':
