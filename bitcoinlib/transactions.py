@@ -36,6 +36,11 @@ SCRIPT_TYPES = {
     'nulldata': ['OP_RETURN', 'return_data']
 }
 
+SIGHASH_ALL = 1
+SIGHASH_NONE = 2
+SIGHASH_SINGLE = 3
+SIGHASH_ANYONECANPAY = 80
+
 
 class TransactionError(Exception):
     def __init__(self, msg=''):
@@ -294,6 +299,7 @@ def _p2sh_multisig_unlocking_script(keys, redeemscript):
         keys = [keys]
     for key in keys:
         usu += int_to_varbyteint(len(to_bytes(key))) + to_bytes(key)
+        usu += b'\x01'  # TODO: This is SIGHASH_ALL, use other methods as well
     rs_size = int_to_varbyteint(len(redeemscript))
     if len(rs_size) == 1:
         size_byte = b'\x4c'
@@ -381,6 +387,8 @@ class Input:
                 # if not self.unlocking_script:
                 #     self.unlocking_script = self.unlocking_script_unsigned
         elif script_type == 'multisig':  # TODO: Should be p2sh or p2sh_multisig
+            if not self.keys:
+                raise TransactionError("Please provide keys to append multisig transaction input")
             self.redeemscript = serialize_multisig(self.keys, n_required=2)
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=Network(network).prefix_address_p2sh)
@@ -607,7 +615,7 @@ class Transaction:
             'locktime': self.locktime,
         }
 
-    def raw(self, sign_id=None):
+    def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
         Get raw transaction 
         
@@ -638,7 +646,8 @@ class Transaction:
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
-            r += b'\1\0\0\0'
+            # r += b'\1\0\0\0'
+            r += struct.pack('I', hash_type)
         return r
 
     def raw_hex(self, sign_id=None):
@@ -721,6 +730,7 @@ class Transaction:
         elif self.inputs[tid].script_type == 'multisig':
             self.inputs[tid].unlocking_script = \
                 _p2sh_multisig_unlocking_script(sigs_der, self.inputs[tid].redeemscript)
+            print(script_to_string(self.inputs[tid].unlocking_script))
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
                   script_type='p2pkh', sequence=b'\xff\xff\xff\xff'):
