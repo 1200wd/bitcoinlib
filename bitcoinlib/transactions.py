@@ -293,13 +293,13 @@ def serialize_multisig(key_list, n_required=None):
     return _serialize_multisig(public_key_list, n_required)
 
 
-def _p2sh_multisig_unlocking_script(keys, redeemscript):
+def _p2sh_multisig_unlocking_script(keys, redeemscript, hash_type=SIGHASH_ALL):
     usu = b'\x00'
     if not isinstance(keys, list):
         keys = [keys]
     for key in keys:
         usu += int_to_varbyteint(len(to_bytes(key))) + to_bytes(key)
-        usu += b'\x01'  # TODO: This is SIGHASH_ALL, use other methods as well
+        usu += struct.pack('B', hash_type)
     rs_size = int_to_varbyteint(len(redeemscript))
     if len(rs_size) == 1:
         size_byte = b'\x4c'
@@ -646,8 +646,7 @@ class Transaction:
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
-            # r += b'\1\0\0\0'
-            r += struct.pack('I', hash_type)
+            r += struct.pack('<L', hash_type)
         return r
 
     def raw_hex(self, sign_id=None):
@@ -691,7 +690,7 @@ class Transaction:
                 sig_id += 1
         return True
 
-    def sign(self, priv_keys, tid=0):
+    def sign(self, priv_keys, tid=0, hash_type=SIGHASH_ALL):
         """
         Sign the transaction input with provided private key
         
@@ -725,11 +724,11 @@ class Transaction:
             sigs_der.append(sig_der)
 
         if self.inputs[tid].script_type == 'p2pkh':
-            self.inputs[tid].unlocking_script = varstr(sigs_der[0] + b'\01') + \
+            self.inputs[tid].unlocking_script = varstr(sigs_der[0] + struct.pack('B', hash_type)) + \
                                                 varstr(self.inputs[tid].keys[0].public_byte)
         elif self.inputs[tid].script_type == 'multisig':
             self.inputs[tid].unlocking_script = \
-                _p2sh_multisig_unlocking_script(sigs_der, self.inputs[tid].redeemscript)
+                _p2sh_multisig_unlocking_script(sigs_der, self.inputs[tid].redeemscript, hash_type)
             print(script_to_string(self.inputs[tid].unlocking_script))
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
