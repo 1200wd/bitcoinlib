@@ -26,7 +26,7 @@ from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubk
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
-from bitcoinlib.transactions import Transaction, serialize_multisig
+from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript
 from bitcoinlib.mnemonic import Mnemonic
 
 _logger = logging.getLogger(__name__)
@@ -827,7 +827,7 @@ class HDWallet:
                 public_key_ids.append(str(wk.key_id))
 
             # Calculate redeemscript and address and add multisig key to database
-            redeemscript = serialize_multisig(public_key_list, n_required=self.multisig_n_required)
+            redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
             address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
                                          versionbyte=Network(network).prefix_address_p2sh)
             path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)

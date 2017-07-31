@@ -256,7 +256,7 @@ def script_to_string(script):
     return ' '.join(scriptstr)
 
 
-def _serialize_multisig(public_key_list, n_required=None):
+def _serialize_multisig_redeemscript(public_key_list, n_required=None):
     for key in public_key_list:
         if not isinstance(key, (str, bytes)):
             raise TransactionError("Item %s in public_key_list is not of type string or bytes")
@@ -272,7 +272,7 @@ def _serialize_multisig(public_key_list, n_required=None):
     return script
 
 
-def serialize_multisig(key_list, n_required=None, compressed=True):
+def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
     if not key_list:
         return b''
     if not isinstance(key_list, list):
@@ -296,7 +296,7 @@ def serialize_multisig(key_list, n_required=None, compressed=True):
             except:
                 raise TransactionError("Unknown key %s, please specify Key object, public or private key string")
 
-    return _serialize_multisig(public_key_list, n_required)
+    return _serialize_multisig_redeemscript(public_key_list, n_required)
 
 
 def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
@@ -331,7 +331,7 @@ class Input:
     """
 
     def __init__(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
-                 sequence=b'\xff\xff\xff\xff', network=DEFAULT_NETWORK, tid=0):
+                 sequence=b'\xff\xff\xff\xff', compressed=None, network=DEFAULT_NETWORK, tid=0):
         """
         Create a new transaction input
         
@@ -397,7 +397,7 @@ class Input:
         elif script_type == 'multisig':  # TODO: Should be p2sh or p2sh_multisig
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
-            self.redeemscript = serialize_multisig(self.keys, n_required=2)
+            self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=2, compressed=compressed)
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=Network(network).prefix_address_p2sh)
             hashed_keys = []
@@ -741,7 +741,7 @@ class Transaction:
             print(script_to_string(self.inputs[tid].unlocking_script))
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
-                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff'):
+                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=None):
         """
         Add input to this transaction
         
@@ -760,8 +760,9 @@ class Transaction:
         :return int: Transaction index 
         """
         new_id = len(self.inputs)
-        self.inputs.append(Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
-                                 network=self.network.network_name, sequence=sequence, tid=new_id))
+        self.inputs.append(
+            Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
+                  network=self.network.network_name, sequence=sequence, compressed=compressed, tid=new_id))
         return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):

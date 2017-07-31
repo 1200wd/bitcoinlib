@@ -293,3 +293,5 @@ class TestTransactionsScriptType(unittest.TestCase):
                                     '002207345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d01')
         self.assertEqual(
             to_hexstring(ds[1][1]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
+
+

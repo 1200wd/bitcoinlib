@@ -349,22 +349,5 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
 class TestWalletMultisig(unittest.TestCase):
 
-    def setUp(self):
-        # Source: Example from
-        #   http://www.soroushjp.com/2014/12/20/bitcoin-multisig-the-hard-way-understanding-raw-multisignature-bitcoin-transactions/
-        if os.path.isfile(DATABASEFILE_UNITTESTS):
-            os.remove(DATABASEFILE_UNITTESTS)
-        key1 = 'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6TJG6MaYHtXdxCePfeN1JQAHic2UFxujpMrK62f3' \
-               'Qn4HAeGN8nm'
-        key2 = 'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6Sr15fZW12RHSQBKKrND4VHeRvtX8BhdJ2QPcTbv' \
-               'eYZrsBum5cv'
-        key3 = 'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6S9yUPYqYra2xVE9Yq6wRbGXDdNHpUoz2EQY6ECN' \
-               'Kg98YTZZiGz'
-        self.keylist = [key1, key2, key3]
-        self.multisig_wallet = HDWallet.create_multisig('mcw', self.keylist, databasefile=DATABASEFILE_UNITTESTS)
-
-    def test_wallet_multisig_create_wallet_id(self):
-        self.assertEqual(self.multisig_wallet.wallet_id, 1)
-
-    def test_wallet_multisig_create_address(self):
-        self.assertEqual(self.multisig_wallet.new_key().address, '3N4PFaWbsNE1SctZVsb5N9tVp15UG5mPg9')
+    # TODO TestWalletMultisig
+    pass
