@@ -257,6 +257,7 @@ def script_to_string(script):
 
 
 def _serialize_multisig_redeemscript(public_key_list, n_required=None):
+    # Serialize m-to-n multisig script. Needs a list of public keys
     for key in public_key_list:
         if not isinstance(key, (str, bytes)):
             raise TransactionError("Item %s in public_key_list is not of type string or bytes")
