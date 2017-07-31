@@ -272,7 +272,7 @@ def _serialize_multisig(public_key_list, n_required=None):
     return script
 
 
-def serialize_multisig(key_list, n_required=None):
+def serialize_multisig(key_list, n_required=None, compressed=True):
     if not key_list:
         return b''
     if not isinstance(key_list, list):
@@ -280,13 +280,19 @@ def serialize_multisig(key_list, n_required=None):
     public_key_list = []
     for k in key_list:
         if isinstance(k, Key):
-            public_key_list.append(k.public_uncompressed_byte)
+            if compressed:
+                public_key_list.append(k.public_byte)
+            else:
+                public_key_list.append(k.public_uncompressed_byte)
         elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
             public_key_list.append(k)
         else:
             try:
                 kobj = Key(k)
-                public_key_list.append(kobj.public_uncompressed_byte)
+                if compressed:
+                    public_key_list.append(kobj.public_byte)
+                else:
+                    public_key_list.append(kobj.public_uncompressed_byte)
             except:
                 raise TransactionError("Unknown key %s, please specify Key object, public or private key string")
 
