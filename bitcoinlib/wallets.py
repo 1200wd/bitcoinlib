@@ -1551,8 +1551,7 @@ class HDWallet:
                        DbTransaction.confirmations >= min_confirms)
             utxos = utxo_query.all()
             if not utxos:
-                _logger.warning("Create transaction: No unspent transaction outputs found")
-                return None
+                raise WalletError("Create transaction: No unspent transaction outputs found")
             input_arr = []
             selected_utxos = self._select_inputs(amount_total_output + transaction.fee, utxo_query)
             if not selected_utxos:

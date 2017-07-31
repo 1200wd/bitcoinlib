@@ -293,13 +293,15 @@ def serialize_multisig(key_list, n_required=None):
     return _serialize_multisig(public_key_list, n_required)
 
 
-def _p2sh_multisig_unlocking_script(keys, redeemscript, hash_type=SIGHASH_ALL):
+def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
     usu = b'\x00'
-    if not isinstance(keys, list):
-        keys = [keys]
-    for key in keys:
-        usu += int_to_varbyteint(len(to_bytes(key))) + to_bytes(key)
-        usu += struct.pack('B', hash_type)
+    if not isinstance(sigs, list):
+        sigs = [sigs]
+    for sig in sigs:
+        s = to_bytes(sig)
+        if hash_type:
+            s += struct.pack('B', hash_type)
+        usu += int_to_varbyteint(len(s)) + to_bytes(s)
     rs_size = int_to_varbyteint(len(redeemscript))
     if len(rs_size) == 1:
         size_byte = b'\x4c'
@@ -727,8 +729,9 @@ class Transaction:
             self.inputs[tid].unlocking_script = varstr(sigs_der[0] + struct.pack('B', hash_type)) + \
                                                 varstr(self.inputs[tid].keys[0].public_byte)
         elif self.inputs[tid].script_type == 'multisig':
+            n_required = int(self.inputs[tid].redeemscript[0]) - 80
             self.inputs[tid].unlocking_script = \
-                _p2sh_multisig_unlocking_script(sigs_der, self.inputs[tid].redeemscript, hash_type)
+                _p2sh_multisig_unlocking_script(sigs_der[:n_required], self.inputs[tid].redeemscript, hash_type)
             print(script_to_string(self.inputs[tid].unlocking_script))
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
