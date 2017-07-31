@@ -209,7 +209,7 @@ class DbTransactionOutput(Base):
     spend = Column(Boolean(), default=False)
 
     # TODO: sig_pubkey ?
-    __table_args__ = (CheckConstraint(script_type.in_(['pubkey', 'nulldata', 'multisig', 'multisig2'])),)
+    __table_args__ = (CheckConstraint(script_type.in_(['pubkey', 'nulldata', 'multisig', 'p2sh_multisig'])),)
 
 
 if __name__ == '__main__':

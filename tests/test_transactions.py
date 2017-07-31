@@ -295,3 +295,35 @@ class TestTransactionsScriptType(unittest.TestCase):
             to_hexstring(ds[1][1]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
 
 
+class TestTransactionsMultisig(unittest.TestCase):
+    # Source: Example from
+    #   http://www.soroushjp.com/2014/12/20/bitcoin-multisig-the-hard-way-understanding-raw-multisignature-bitcoin-transactions/
+
+    def setUp(self):
+        key1 = '5JruagvxNLXTnkksyLMfgFgf3CagJ3Ekxu5oGxpTm5mPfTAPez3'
+        key2 = '5JX3qAwDEEaapvLXRfbXRMSiyRgRSW9WjgxeyJQWwBugbudCwsk'
+        key3 = '5JjHVMwJdjPEPQhq34WMUhzLcEd4SD7HgZktEh8WHstWcCLRceV'
+        self.keylist = [key1, key2, key3]
+
+    def test_transaction_multisig_redeemscript(self):
+        redeemscript = serialize_multisig_redeemscript(self.keylist, 2, False)
+        expected_redeemscript = \
+            '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09e63975a1700' \
+            'c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff90e28da1848f640de68c2f' \
+            'e913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c70776538d079fbae117dc38effafb33304' \
+            'af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea600bd217870a8b4f1f09f3a8e8353ae'
+        self.assertEqual(to_hexstring(redeemscript), expected_redeemscript)
+
+    def test_transaction_multisig_p2sh_sign(self):
+        t = Transaction()
+        t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
+        t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,
+                    keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='multisig', compressed=False)
+        pk1 = Key(self.keylist[0]).private_byte
+        pk2 = Key(self.keylist[2]).private_byte
+        t.sign([pk1, pk2])
+        self.assertTrue(t.verify())
+        unlocking_script = t.inputs[0].unlocking_script
+        unlocking_script_str = script_deserialize(unlocking_script)
+        self.assertEqual(unlocking_script_str[0], 'p2sh_multisig')
+        self.assertEqual(len(unlocking_script_str[1]), 2)

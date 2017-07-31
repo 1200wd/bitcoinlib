@@ -30,7 +30,7 @@ SCRIPT_TYPES = {
     'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
     'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
-    'multisig2': ['OP_0', 'multisig'],
+    'p2sh_multisig': ['OP_0', 'multisig'],
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
     'pubkey': ['signature', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data']
@@ -738,7 +738,6 @@ class Transaction:
             n_required = int(self.inputs[tid].redeemscript[0]) - 80
             self.inputs[tid].unlocking_script = \
                 _p2sh_multisig_unlocking_script(sigs_der[:n_required], self.inputs[tid].redeemscript, hash_type)
-            print(script_to_string(self.inputs[tid].unlocking_script))
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
                   script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=None):
