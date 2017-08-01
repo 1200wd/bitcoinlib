@@ -1594,7 +1594,8 @@ class HDWallet:
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
-            id = transaction.add_input(inp[0], inp[1], keys=pub_keys, script_type=script_type)
+            id = transaction.add_input(inp[0], inp[1], keys=pub_keys, script_type=script_type,
+                                       multisig_n_required=self.multisig_n_required)
             sign_arr.append((priv_keys, id, key.key_type))
 
         return transaction, sign_arr
