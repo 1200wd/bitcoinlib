@@ -22,7 +22,7 @@ import csv
 import enum
 import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, Float, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -111,10 +111,10 @@ class DbKey(Base):
     depth = Column(Integer)
     change = Column(Integer)
     address_index = Column(Integer, index=True)
-    key = Column(String(255), unique=True)
-    wif = Column(String(255), unique=True, index=True)
+    key = Column(String(255))
+    wif = Column(String(255), index=True)
     key_type = Column(String(10), default='bip32')
-    address = Column(String(255), unique=True)
+    address = Column(String(255))
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
     path = Column(String(100))
@@ -129,7 +129,12 @@ class DbKey(Base):
     multisig_parent_id = Column(Integer, ForeignKey('keys.id'))
     multisig_children = relationship("DbKey", lazy="joined", join_depth=2)
 
-    __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),)
+    __table_args__ = (
+        CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),
+        UniqueConstraint('wallet_id', 'key', name='_wallet_key_uc'),
+        UniqueConstraint('wallet_id', 'wif', name='_wallet_wif_uc'),
+        UniqueConstraint('wallet_id', 'address', name='_wallet_address_uc'),
+    )
 
     def __repr__(self):
         return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)

@@ -1015,7 +1015,7 @@ class HDWallet:
             spath = '/'.join(spath.split("/")[:-1])
 
         # Key already found in db, return key
-        if rkey.path == path:
+        if rkey and rkey.path == path:
             return self.key(rkey.id)
 
         parent_key = self.main_key
