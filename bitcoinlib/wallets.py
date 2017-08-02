@@ -1605,12 +1605,13 @@ class HDWallet:
         # Sign inputs,
         for ti in sign_arr:
             transaction.sign(ti[0], ti[1])
-        # Verify transaction
-        if not transaction.verify():
-            raise WalletError("Cannot verify transaction. Create transaction failed")
         return transaction
 
     def transaction_send(self, transaction):
+        # Verify transaction
+        if not transaction.verify():
+            raise WalletError("Cannot verify transaction. Create transaction failed")
+
         # Push it to the network
         srv = Service(network=transaction.network.network_name)
         res = srv.sendrawtransaction(transaction.raw_hex())
