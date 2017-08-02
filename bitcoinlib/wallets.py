@@ -1632,7 +1632,8 @@ class HDWallet:
         else:
             return res
 
-    def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4):
+    def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4,
+             priv_keys=None):
         """
         Create new transaction with specified outputs and push it to the network. 
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -1656,6 +1657,9 @@ class HDWallet:
 
         transaction, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee,
                                                         min_confirms)
+        if priv_keys:
+            for priv_key in priv_keys:
+                sign_arr[0][0].append(priv_key)
         transaction = self.transaction_sign(transaction, sign_arr)
         # Calculate exact estimated fees and update change output if necessary
         if transaction_fee is None and transaction.fee_per_kb and transaction.change:
@@ -1669,7 +1673,8 @@ class HDWallet:
 
         return self.transaction_send(transaction)
 
-    def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4):
+    def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4,
+                priv_keys=None):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
 
@@ -1691,7 +1696,7 @@ class HDWallet:
 
         outputs = [(to_address, amount)]
         return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
-                         min_confirms=min_confirms)
+                         min_confirms=min_confirms, priv_keys=priv_keys)
 
     def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
         """

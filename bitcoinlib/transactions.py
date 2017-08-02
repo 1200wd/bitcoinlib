@@ -20,7 +20,7 @@
 
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
-from bitcoinlib.keys import Key, get_key_format
+from bitcoinlib.keys import HDKey, Key, get_key_format
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 
 
@@ -682,7 +682,8 @@ class Transaction:
                 _logger.info("No signatures found for transaction input %d" % i.tid)
                 return False
             if len(i.signatures) < i.multisig_n_required:
-                _logger.info("Not enough signatures provided. Found %d signatures but %d needed")
+                _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
+                             (len(i.signatures), i.multisig_n_required))
                 return False
             t_to_sign = self.raw(i.tid)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
@@ -725,6 +726,13 @@ class Transaction:
         tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
 
         for priv_key in priv_keys:
+            kf = get_key_format(priv_key)
+            if kf['format'] != 'bin':
+                ko = HDKey(priv_key)
+                priv_key = ko.private_byte
+                if not priv_key:
+                    raise TransactionError("Please provide a valid private key to sign the transaction. "
+                                           "%s is not a private key" % priv_key)
             sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
             while True:
                 sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
