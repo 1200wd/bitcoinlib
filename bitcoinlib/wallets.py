@@ -481,10 +481,12 @@ class HDWallet:
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id,
                           purpose=purpose, scheme='multisig', databasefile=databasefile)
         co_id = 0
+        cls.cosigner = []
         for cokey in key_list:
             wn = name + '-cosigner-%d' % co_id
-            cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
+            w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
                        purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
+            cls.cosigner.append(w)
             co_id += 1
 
         hdpm.multisig_n_required = sigs_required
@@ -595,6 +597,7 @@ class HDWallet:
             self.main_key = None
             self.default_account_id = 0
             self.multisig_n_required = w.multisig_n_required
+            self.cosigners = []
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             elif w.main_key_id:
