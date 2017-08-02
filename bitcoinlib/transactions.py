@@ -332,7 +332,7 @@ class Input:
     """
 
     def __init__(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
-                 sequence=b'\xff\xff\xff\xff', compressed=None, multisig_n_required=None, network=DEFAULT_NETWORK,
+                 sequence=b'\xff\xff\xff\xff', compressed=None, sigs_required=None, network=DEFAULT_NETWORK,
                  tid=0):
         """
         Create a new transaction input
@@ -377,7 +377,12 @@ class Input:
         self.address = ''
         self.signatures = []
         self.redeemscript = b''
-        self.multisig_n_required = multisig_n_required
+        if not sigs_required:
+            if script_type == 'multisig':
+                sigs_required = len(self.keys)
+            else:
+                sigs_required = 1
+        self.sigs_required = sigs_required
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
@@ -400,7 +405,8 @@ class Input:
         elif script_type == 'multisig':  # TODO: Should be p2sh or p2sh_multisig
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
-            self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=multisig_n_required, compressed=compressed)
+            self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=sigs_required,
+                                                                compressed=compressed)
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=Network(network).prefix_address_p2sh)
             hashed_keys = []
@@ -681,9 +687,9 @@ class Transaction:
             if not i.signatures:
                 _logger.info("No signatures found for transaction input %d" % i.tid)
                 return False
-            if len(i.signatures) < i.multisig_n_required:
+            if len(i.signatures) < i.sigs_required:
                 _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
-                             (len(i.signatures), i.multisig_n_required))
+                             (len(i.signatures), i.sigs_required))
                 return False
             t_to_sign = self.raw(i.tid)
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
@@ -755,7 +761,7 @@ class Transaction:
                                                 self.inputs[tid].redeemscript, hash_type)
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
-                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=None, multisig_n_required=None):
+                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=None, sigs_required=None):
         """
         Add input to this transaction
         
@@ -777,7 +783,7 @@ class Transaction:
         self.inputs.append(
             Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
                   network=self.network.network_name, sequence=sequence, compressed=compressed,
-                  multisig_n_required=multisig_n_required, tid=new_id))
+                  sigs_required=sigs_required, tid=new_id))
         return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):

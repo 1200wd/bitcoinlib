@@ -85,8 +85,8 @@ class DbWallet(Base):
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
     balance = Column(Integer, default=0)
-    multisig_n_required = Column(Integer, doc="Number of required signature for multisig, only used for "
-                                              "multisignature master key")
+    multisig_n_required = Column(Integer, default=1, doc="Number of required signature for multisig, "
+                                                         "only used for multisignature master key")
     parent_id = Column(Integer, ForeignKey('wallets.id'))
     children = relationship("DbWallet", lazy="joined", join_depth=2)
 

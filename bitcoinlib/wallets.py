@@ -460,7 +460,7 @@ class HDWallet:
         return w
 
     @classmethod
-    def create_multisig(cls, name, key_list, n_required=None, owner='', network=None, account_id=0, purpose=45,
+    def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
                         databasefile=None):
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
@@ -473,9 +473,9 @@ class HDWallet:
             raise WalletError("Need list of keys to create multi-signature key structure")
         if len(key_list) < 2:
             raise WalletError("Key list must contain at least 2 keys")
-        if n_required is None:
-            n_required = len(key_list)
-        if n_required > len(key_list):
+        if sigs_required is None:
+            sigs_required = len(key_list)
+        if sigs_required > len(key_list):
             raise WalletError("Number of keys required to sign is greater then number of keys provided")
 
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id,
@@ -487,8 +487,9 @@ class HDWallet:
                        purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
             co_id += 1
 
-        hdpm.multisig_n_required = n_required
-        session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id).update({DbWallet.multisig_n_required: n_required})
+        hdpm.multisig_n_required = sigs_required
+        session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id).\
+            update({DbWallet.multisig_n_required: sigs_required})
         session.commit()
         session.close()
         return hdpm
@@ -1595,7 +1596,7 @@ class HDWallet:
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
             id = transaction.add_input(inp[0], inp[1], keys=pub_keys, script_type=script_type,
-                                       multisig_n_required=self.multisig_n_required)
+                                       sigs_required=self.multisig_n_required)
             sign_arr.append((priv_keys, id, key.key_type))
 
         return transaction, sign_arr
