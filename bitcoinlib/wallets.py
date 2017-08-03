@@ -1371,7 +1371,7 @@ class HDWallet:
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
         for utxo in utxos:
-            key = self._session.query(DbKey).filter_by(address=utxo['address']).scalar()
+            key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
             if key and not key.used:
                 key.used = True
 
@@ -1577,7 +1577,6 @@ class HDWallet:
             transaction.add_output(transaction.change, ck.address)
 
         # Add inputs
-        sign_arr = []
         for inp in input_arr:
             key = self._session.query(DbKey).filter_by(id=inp[2]).scalar()
             if not key:
@@ -1588,8 +1587,10 @@ class HDWallet:
                 for ck in key.multisig_children:
                     k = HDKey(ck.wif)
                     pub_keys.append(k.public_byte)
+                    priv_key = ''
                     if k.isprivate:
-                        priv_keys.append(k.private_byte)
+                        priv_key = k.private_byte
+                    priv_keys.append(priv_key)
                 script_type = 'multisig'
             elif key.key_type in ['bip32', 'single']:
                 k = HDKey(key.wif)
@@ -1598,16 +1599,15 @@ class HDWallet:
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
-            id = transaction.add_input(inp[0], inp[1], keys=pub_keys, script_type=script_type,
+            id = transaction.add_input(inp[0], inp[1], keys=pub_keys, priv_keys= priv_keys, script_type=script_type,
                                        sigs_required=self.multisig_n_required)
-            sign_arr.append((priv_keys, id, key.key_type))
 
-        return transaction, sign_arr
+        return transaction
 
-    def transaction_sign(self, transaction, sign_arr):
+    def transaction_sign(self, transaction, priv_keys):
         # Sign inputs,
-        for ti in sign_arr:
-            transaction.sign(ti[0], ti[1])
+        for ti in transaction.inputs:
+            transaction.sign(ti.priv_keys, ti.tid)
         return transaction
 
     def transaction_send(self, transaction):
@@ -1660,21 +1660,18 @@ class HDWallet:
         :return str, list: Transaction ID or result array
         """
 
-        transaction, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee,
-                                                        min_confirms)
-        if priv_keys:
-            for priv_key in priv_keys:
-                sign_arr[0][0].append(priv_key)
-        transaction = self.transaction_sign(transaction, sign_arr)
+        transaction = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee,
+                                              min_confirms)
+        transaction = self.transaction_sign(transaction, priv_keys)
         # Calculate exact estimated fees and update change output if necessary
         if transaction_fee is None and transaction.fee_per_kb and transaction.change:
             fee_exact = transaction.estimate_fee()
             if abs((transaction.fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
-                transaction, sign_arr = self.transaction_create(output_arr, input_arr, account_id, network,
-                                                                fee_exact, min_confirms)
-                transaction = self.transaction_sign(transaction, sign_arr)
+                transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee_exact,
+                                                      min_confirms)
+                transaction = self.transaction_sign(transaction, priv_keys)
 
         return self.transaction_send(transaction)
 
