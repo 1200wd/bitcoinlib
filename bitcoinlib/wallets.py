@@ -1587,10 +1587,8 @@ class HDWallet:
                 for ck in key.multisig_children:
                     k = HDKey(ck.wif)
                     pub_keys.append(k.public_byte)
-                    priv_key = ''
                     if k.isprivate:
-                        priv_key = k.private_byte
-                    priv_keys.append(priv_key)
+                        priv_keys.append(k.private_byte)
                 script_type = 'multisig'
             elif key.key_type in ['bip32', 'single']:
                 k = HDKey(key.wif)
@@ -1604,10 +1602,13 @@ class HDWallet:
 
         return transaction
 
-    def transaction_sign(self, transaction, priv_keys):
+    def transaction_sign(self, transaction, priv_keys=None):
         # Sign inputs,
+        if priv_keys is None:
+            priv_keys = []
         for ti in transaction.inputs:
-            transaction.sign(ti.priv_keys, ti.tid)
+            priv_keys_all = ti.priv_keys + priv_keys
+            transaction.sign(priv_keys_all, ti.tid)
         return transaction
 
     def transaction_send(self, transaction):
