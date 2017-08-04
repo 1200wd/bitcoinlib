@@ -705,9 +705,9 @@ class Transaction:
                                  (binascii.hexlify(i.signatures[sig_id-1]), e))
                     return False
                 try:
-                    signature = i.signatures[sig_id]
-                    if signature[:1] == b'\x30':
-                        signature = binascii.unhexlify(convert_der_sig(signature))
+                    signature = i.signatures[sig_id]['signature']
+                    # if signature[:1] == b'\x30':
+                    #     signature = binascii.unhexlify(convert_der_sig(signature))
                     ver_key.verify_digest(signature, hashtosign)
                 except ecdsa.keys.BadSignatureError:
                     continue  # Try next key (for multisigs)
@@ -752,16 +752,23 @@ class Transaction:
                 s = int(signature[64:], 16)
                 if s < ecdsa.SECP256k1.order / 2:
                     break
-            self.inputs[tid].signatures.append(to_bytes(sig_der))
+            self.inputs[tid].signatures.append(
+                {
+                    'sig_der': to_bytes(sig_der),
+                    'signature': to_bytes(signature),
+                    'priv_key': priv_key
+                }
+            )
 
         if self.inputs[tid].script_type == 'p2pkh':
-            self.inputs[tid].unlocking_script = varstr(self.inputs[tid].signatures[0] + struct.pack('B', hash_type)) + \
-                                                varstr(self.inputs[tid].keys[0].public_byte)
+            self.inputs[tid].unlocking_script = \
+                varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
+                varstr(self.inputs[tid].keys[0].public_byte)
         elif self.inputs[tid].script_type == 'multisig':
             n_required = int(self.inputs[tid].redeemscript[0]) - 80
+            signatures = [s['sig_der'] for s in self.inputs[tid].signatures[:n_required]]
             self.inputs[tid].unlocking_script = \
-                _p2sh_multisig_unlocking_script(self.inputs[tid].signatures[:n_required],
-                                                self.inputs[tid].redeemscript, hash_type)
+                _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
 
     def add_input(self, prev_hash, output_index, keys=None, priv_keys=None, unlocking_script=b'',
                   script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=None, sigs_required=None):

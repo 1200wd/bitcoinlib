@@ -372,6 +372,15 @@ class HDWalletKey:
         print("\n")
 
 
+class HDWalletTransaction(Transaction):
+
+    def add_input(self, prev_hash, output_index, keys=None, priv_keys=None, unlocking_script=b'',
+                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=None, sigs_required=None, key_id=None):
+        id = super().add_input(prev_hash, output_index, keys, priv_keys, unlocking_script, script_type, sequence,
+                                 compressed, sigs_required)
+        return id
+
+
 class HDWallet:
     """
     Class to create and manage keys Using the BIP0044 Hierarchical Deterministic wallet definitions, so you can 
@@ -1526,7 +1535,7 @@ class HDWallet:
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         # Create transaction and add outputs
-        transaction = Transaction(network=network)
+        transaction = HDWalletTransaction(network=network)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
@@ -1598,7 +1607,7 @@ class HDWallet:
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
             id = transaction.add_input(inp[0], inp[1], keys=pub_keys, priv_keys= priv_keys, script_type=script_type,
-                                       sigs_required=self.multisig_n_required)
+                                       sigs_required=self.multisig_n_required, key_id=inp[2])
 
         return transaction
 
@@ -1607,6 +1616,9 @@ class HDWallet:
         if priv_keys is None:
             priv_keys = []
         for ti in transaction.inputs:
+            # Check if private key is in this wallet but not in key list
+            qr = self._session.query(DbKey).\
+                filter_by(wallet_id=self.wallet_id, address=ti.keys[1].address(), is_private=True)
             priv_keys_all = ti.priv_keys + priv_keys
             transaction.sign(priv_keys_all, ti.tid)
         return transaction
