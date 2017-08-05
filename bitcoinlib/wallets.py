@@ -422,9 +422,9 @@ class HDWallet:
             _logger.info("Create new wallet '%s'" % name)
         if key:
             network = check_network_and_key(key, network)
-            searchkey = session.query(DbKey).filter_by(wif=key).scalar()
-            if searchkey:
-                raise WalletError("Key already found in wallet %s" % searchkey.wallet.name)
+            # searchkey = session.query(DbKey).filter_by(wif=key).scalar()
+            # if searchkey:
+            #     raise WalletError("Key already found in wallet %s" % searchkey.wallet.name)
         elif network is None:
             network = DEFAULT_NETWORK
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
@@ -482,12 +482,12 @@ class HDWallet:
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id,
                           purpose=purpose, scheme='multisig', databasefile=databasefile)
         co_id = 0
-        cls.cosigner = []
+        hdpm.cosigner = []
         for cokey in key_list:
             wn = name + '-cosigner-%d' % co_id
             w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
                            purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
-            cls.cosigner.append(w)
+            hdpm.cosigner.append(w)
             co_id += 1
 
         hdpm.multisig_n_required = sigs_required
