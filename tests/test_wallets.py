@@ -349,5 +349,18 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
 class TestWalletMultisig(unittest.TestCase):
 
-    # TODO TestWalletMultisig
-    pass
+    def test_wallet_multisig_2_wallets_private_master_plus_account_public(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        pk1 = 'tprv8ZgxMBicQKsPdPVdNSEeAhagkU6tUDhUQi8DcCTmJyNLUyU7svTFzXQdkYqNJDEtQ3S2wAspz3K56CMcmMsZ9eXZ2nkNq' \
+              'gVxJhMHq3bGJ1X'
+        pk1_acc_pub = 'tpubDCZUk9HLxh5gdB9eC8FUxPB1AbZtsSnbvyrAAzsC8x3tiYDgbzyxcngU99rG333jegHG5vJhs11AHcSVkbwrU' \
+                      'bYEsPK8vA7E6yFB9qbsTYi'
+        w1 = self.wallet = HDWallet.create(name='test_wallet_create_1', key=pk1, databasefile=DATABASEFILE_UNITTESTS)
+        w2 = self.wallet = HDWallet.create(name='test_wallet_create_2', key=pk1_acc_pub,
+                                           databasefile=DATABASEFILE_UNITTESTS)
+        wk1 = w1.new_key()
+        wk2 = w2.new_key()
+        self.assertTrue(wk1.is_private)
+        self.assertFalse(wk2.is_private)
+        self.assertEqual(wk1.address, wk2.address)

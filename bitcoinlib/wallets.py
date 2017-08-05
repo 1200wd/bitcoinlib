@@ -221,7 +221,7 @@ class HDWalletKey:
         else:
             k = hdkey_object
 
-        keyexists = session.query(DbKey).filter(DbKey.wif == k.wif()).first()
+        keyexists = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.wif == k.wif()).first()
         if keyexists:
             _logger.warning("Key %s already exists" % (key or k.wif()))
             return HDWalletKey(keyexists.id, session, k)
@@ -236,7 +236,8 @@ class HDWalletKey:
                 raise WalletError("Key depth of %d does not match path lenght of %d for path %s" %
                                   (k.depth, len(path.split('/')) - 1, path))
 
-        wk = session.query(DbKey).filter(or_(DbKey.key == k.key_hex,
+        wk = session.query(DbKey).filter(DbKey.wallet_id == wallet_id,
+                                         or_(DbKey.key == k.key_hex,
                                              DbKey.wif == k.wif())).first()
         if wk:
             return HDWalletKey(wk.id, session, k)
@@ -244,7 +245,7 @@ class HDWalletKey:
         nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    wif=k.wif(), address=k.key.address(), parent_id=parent_id,
-                   is_private=True, path=path, key_type=key_type, network_name=network)
+                   is_private=k.isprivate, path=path, key_type=key_type, network_name=network)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -372,15 +373,6 @@ class HDWalletKey:
         print("\n")
 
 
-class HDWalletTransaction(Transaction):
-
-    def add_input(self, prev_hash, output_index, keys=None, priv_keys=None, unlocking_script=b'',
-                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=None, sigs_required=None, key_id=None):
-        id = super().add_input(prev_hash, output_index, keys, priv_keys, unlocking_script, script_type, sequence,
-                                 compressed, sigs_required)
-        return id
-
-
 class HDWallet:
     """
     Class to create and manage keys Using the BIP0044 Hierarchical Deterministic wallet definitions, so you can 
@@ -494,7 +486,7 @@ class HDWallet:
         for cokey in key_list:
             wn = name + '-cosigner-%d' % co_id
             w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
-                       purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
+                           purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
             cls.cosigner.append(w)
             co_id += 1
 
@@ -606,7 +598,7 @@ class HDWallet:
             self.main_key = None
             self.default_account_id = 0
             self.multisig_n_required = w.multisig_n_required
-            self.cosigners = []
+            self.cosigner = []
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             elif w.main_key_id:
@@ -1535,7 +1527,7 @@ class HDWallet:
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         # Create transaction and add outputs
-        transaction = HDWalletTransaction(network=network)
+        transaction = Transaction(network=network)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
@@ -1606,8 +1598,8 @@ class HDWallet:
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
-            id = transaction.add_input(inp[0], inp[1], keys=pub_keys, priv_keys= priv_keys, script_type=script_type,
-                                       sigs_required=self.multisig_n_required, key_id=inp[2])
+            transaction.add_input(inp[0], inp[1], keys=pub_keys, priv_keys= priv_keys, script_type=script_type,
+                                  sigs_required=self.multisig_n_required)
 
         return transaction
 
@@ -1617,9 +1609,12 @@ class HDWallet:
             priv_keys = []
         for ti in transaction.inputs:
             # Check if private key is in this wallet but not in key list
-            qr = self._session.query(DbKey).\
-                filter_by(wallet_id=self.wallet_id, address=ti.keys[1].address(), is_private=True)
-            priv_keys_all = ti.priv_keys + priv_keys
+            co_addresses = [k.address() for k in ti.keys]
+            wallet_ids = [x.wallet_id for x in self.cosigner]
+            qr = self._session.query(DbKey.key).\
+                filter(DbKey.wallet_id.in_(wallet_ids), DbKey.address.in_(co_addresses), DbKey.is_private.is_(True))
+            known_priv_keys = [k[0] for k in qr.all()]
+            priv_keys_all = ti.priv_keys + priv_keys + known_priv_keys
             transaction.sign(priv_keys_all, ti.tid)
         return transaction
 
