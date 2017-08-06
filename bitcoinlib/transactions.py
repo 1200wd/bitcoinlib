@@ -395,7 +395,13 @@ class Input:
             if unlocking_script:
                 try:
                     signature, pk2 = script_deserialize_sigpk(unlocking_script)
-                    self.signatures.append(signature)
+                    self.signatures.append(
+                        {
+                            'sig_der': b'',
+                            'signature': to_bytes(signature),
+                            'priv_key': pk2
+                        }
+                    )
                 except IndexError as err:
                     raise TransactionError("Could not parse input script signature: %s" % err)
             if not self.keys and pk2:
