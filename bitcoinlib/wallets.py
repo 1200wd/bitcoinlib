@@ -22,7 +22,7 @@ import numbers
 from itertools import groupby
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
+from bitcoinlib.encoding import pubkeyhash_to_addr, to_bytes, to_hexstring, script_to_pubkeyhash
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
@@ -1605,16 +1605,19 @@ class HDWallet:
 
     def transaction_sign(self, transaction, priv_keys=None):
         # Sign inputs,
+        # FIXME: tid of priv_key is missing here
         if priv_keys is None:
             priv_keys = []
+        elif not isinstance(priv_keys, list):
+            priv_keys = [priv_keys]
         for ti in transaction.inputs:
             # Check if private key is in this wallet but not in key list
             co_addresses = [k.address() for k in ti.keys]
             wallet_ids = [x.wallet_id for x in self.cosigner]
             qr = self._session.query(DbKey.key).\
                 filter(DbKey.wallet_id.in_(wallet_ids), DbKey.address.in_(co_addresses), DbKey.is_private.is_(True))
-            known_priv_keys = [k[0] for k in qr.all()]
-            priv_keys_all = ti.priv_keys + priv_keys + known_priv_keys
+            known_priv_keys = [to_bytes(k[0]) for k in qr.all()]
+            priv_keys_all = list(set(ti.priv_keys + priv_keys + known_priv_keys))
             transaction.sign(priv_keys_all, ti.tid)
         return transaction
 
