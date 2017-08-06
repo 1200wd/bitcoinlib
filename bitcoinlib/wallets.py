@@ -1059,7 +1059,7 @@ class HDWallet:
         :return list: List of Keys
         """
 
-        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
+        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose).order_by(DbKey.id)
         if network is not None:
             qr = qr.filter(DbKey.network_name == network)
         if account_id is not None:

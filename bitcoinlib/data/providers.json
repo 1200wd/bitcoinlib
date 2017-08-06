@@ -62,15 +62,6 @@
     "priority": 10,
     "denominator": 1
   },
-  "blockr": {
-    "provider": "blockr",
-    "network": "bitcoin",
-    "client_class": "BlockrClient",
-    "url": "http://btc.blockr.io/api/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000
-  },
   "blockcypher": {
     "provider": "blockcypher",
     "network": "bitcoin",
