@@ -776,8 +776,8 @@ class Transaction:
             self.inputs[tid].unlocking_script = \
                 _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
 
-    def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
-                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None):
+    def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
+                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, bip45_sort=True):
         """
         Add input to this transaction
         
@@ -799,7 +799,7 @@ class Transaction:
         self.inputs.append(
             Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
                   network=self.network.network_name, sequence=sequence, compressed=compressed,
-                  sigs_required=sigs_required, tid=new_id))
+                  sigs_required=sigs_required, bip45_sort=bip45_sort, tid=new_id))
         return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
