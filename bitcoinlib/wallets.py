@@ -462,7 +462,7 @@ class HDWallet:
 
     @classmethod
     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
-                        databasefile=None):
+                        multisig_compressed=True, databasefile=None):
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
         session = DbInit(databasefile=databasefile).session
@@ -481,6 +481,7 @@ class HDWallet:
 
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id,
                           purpose=purpose, scheme='multisig', databasefile=databasefile)
+        hdpm.multisig_compressed = multisig_compressed
         co_id = 0
         hdpm.cosigner = []
         for cokey in key_list:
@@ -598,6 +599,7 @@ class HDWallet:
             self.main_key = None
             self.default_account_id = 0
             self.multisig_n_required = w.multisig_n_required
+            self.multisig_compressed = None
             self.cosigner = []
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
@@ -1583,22 +1585,24 @@ class HDWallet:
             if not key:
                 raise WalletError("Key of UTXO %s not found in this wallet" % inp[0])
             if key.key_type == 'multisig':
-                pub_keys = []
-                priv_keys = []
+                inp_keys = []
                 for ck in key.multisig_children:
                     k = HDKey(ck.wif)
-                    pub_keys.append(k.public_byte)
                     if k.isprivate:
-                        priv_keys.append(k.private_byte)
+                        inp_keys.append(k.private_byte)
+                    else:
+                        inp_keys.append(k.public_byte)
                 script_type = 'multisig'
             elif key.key_type in ['bip32', 'single']:
                 k = HDKey(key.wif)
-                pub_keys = k.public_byte
-                priv_keys = k.private_byte
+                if k.isprivate:
+                    inp_keys = k.private_byte
+                else:
+                    inp_keys = k.public_byte
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
-            transaction.add_input(inp[0], inp[1], keys=pub_keys, priv_keys= priv_keys, script_type=script_type,
+            transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
                                   sigs_required=self.multisig_n_required)
 
         return transaction
@@ -1611,14 +1615,18 @@ class HDWallet:
         elif not isinstance(priv_keys, list):
             priv_keys = [priv_keys]
         for ti in transaction.inputs:
-            # Check if private key is in this wallet but not in key list
-            co_addresses = [k.address() for k in ti.keys]
-            wallet_ids = [x.wallet_id for x in self.cosigner]
-            qr = self._session.query(DbKey.key).\
-                filter(DbKey.wallet_id.in_(wallet_ids), DbKey.address.in_(co_addresses), DbKey.is_private.is_(True))
-            known_priv_keys = [to_bytes(k[0]) for k in qr.all()]
-            priv_keys_all = list(set(ti.priv_keys + priv_keys + known_priv_keys))
-            transaction.sign(priv_keys_all, ti.tid)
+            for k in ti.keys:
+                if k.isprivate:
+                    priv_keys.append(k.private_byte)
+            # if len(ti.priv_keys) < ti.sigs_required:
+            #     # Check if private key is in this wallet but not in key list
+            #     co_addresses = [k.address() for k in ti.keys]
+            #     wallet_ids = [x.wallet_id for x in self.cosigner]
+            #     qr = self._session.query(DbKey.key).\
+            #         filter(DbKey.wallet_id.in_(wallet_ids), DbKey.address.in_(co_addresses), DbKey.is_private.is_(True))
+            #     known_priv_keys = [to_bytes(k[0]) for k in qr.all()]
+            #     priv_keys_all = list(set(ti.priv_keys + priv_keys + known_priv_keys))
+            transaction.sign(priv_keys, ti.tid)
         return transaction
 
     def transaction_send(self, transaction):

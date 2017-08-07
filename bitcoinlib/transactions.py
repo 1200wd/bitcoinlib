@@ -331,9 +331,9 @@ class Input:
     
     """
 
-    def __init__(self, prev_hash, output_index, keys=None, priv_keys=None, unlocking_script=b'', script_type='p2pkh',
-                 sequence=b'\xff\xff\xff\xff', compressed=None, sigs_required=None, network=DEFAULT_NETWORK,
-                 tid=0):
+    def __init__(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
+                 sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, network=DEFAULT_NETWORK,
+                 bip45_sort=True, tid=0):
         """
         Create a new transaction input
         
@@ -365,9 +365,6 @@ class Input:
         self.sequence = to_bytes(sequence)
         self.network = Network(network)
         self.tid = tid
-        if isinstance(priv_keys, (bytes, str)):
-            priv_keys = [priv_keys]
-        self.priv_keys = priv_keys
         if keys is None:
             keys = []
         self.keys = []
@@ -377,6 +374,9 @@ class Input:
             else:
                 kobj = key
             self.keys.append(kobj)
+        # Sort according to BIP45 standard
+        if bip45_sort:
+            self.keys.sort(key=lambda x: x.public_byte)
         self.address = ''
         self.signatures = []
         self.redeemscript = b''
@@ -418,9 +418,9 @@ class Input:
                                                                 compressed=compressed)
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=Network(network).prefix_address_p2sh)
-            hashed_keys = []
-            for key in self.keys:
-                hashed_keys.append(key.hash160())
+            # hashed_keys = []
+            # for key in self.keys:
+            #     hashed_keys.append(key.hash160())
             self.unlocking_script_unsigned = self.redeemscript
 
     def json(self):
@@ -776,8 +776,8 @@ class Transaction:
             self.inputs[tid].unlocking_script = \
                 _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
 
-    def add_input(self, prev_hash, output_index, keys=None, priv_keys=None, unlocking_script=b'',
-                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=None, sigs_required=None):
+    def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'',
+                  script_type='p2pkh', sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None):
         """
         Add input to this transaction
         
@@ -797,7 +797,7 @@ class Transaction:
         """
         new_id = len(self.inputs)
         self.inputs.append(
-            Input(prev_hash, output_index, keys, priv_keys, unlocking_script, script_type=script_type,
+            Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
                   network=self.network.network_name, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, tid=new_id))
         return new_id
