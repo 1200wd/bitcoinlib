@@ -484,7 +484,16 @@ class HDWallet:
         hdpm.multisig_compressed = multisig_compressed
         co_id = 0
         hdpm.cosigner = []
+        hdkey_list = []
         for cokey in key_list:
+            if not isinstance(cokey, HDKey):
+                hdkey_list.append(HDKey(cokey))
+            else:
+                hdkey_list.append(cokey)
+        hdkey_list.sort(key=lambda x: x.public_byte)
+        # TODO: Allow HDKey objects in Wallet.create (?)
+        key_wif_list = [k.wif() for k in hdkey_list]
+        for cokey in key_wif_list:
             wn = name + '-cosigner-%d' % co_id
             w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
                            purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
