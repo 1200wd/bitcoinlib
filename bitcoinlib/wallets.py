@@ -1599,18 +1599,20 @@ class HDWallet:
             if key.key_type == 'multisig':
                 inp_keys = []
                 for ck in key.multisig_children:
-                    k = HDKey(ck.wif)
-                    if k.isprivate:
-                        inp_keys.append(k.private_byte)
-                    else:
-                        inp_keys.append(k.public_byte)
+                    inp_keys.append(HDKey(ck.wif).key)
+                    # k = HDKey(ck.wif)
+                    # if k.isprivate:
+                    #     inp_keys.append(k.private_byte)
+                    # else:
+                    #     inp_keys.append(k.public_byte)
                 script_type = 'multisig'
             elif key.key_type in ['bip32', 'single']:
-                k = HDKey(key.wif)
-                if k.isprivate:
-                    inp_keys = k.private_byte
-                else:
-                    inp_keys = k.public_byte
+                # k = HDKey(key.wif)
+                # if k.isprivate:
+                #     inp_keys = k.private_byte
+                # else:
+                #     inp_keys = k.public_byte
+                inp_keys = HDKey(key.wif).key
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)

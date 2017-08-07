@@ -368,6 +368,8 @@ class Input:
         if keys is None:
             keys = []
         self.keys = []
+        if not isinstance(keys, list):
+            keys = [keys]
         for key in keys:
             if not isinstance(key, Key):
                 kobj = Key(key, network=network)
@@ -376,7 +378,7 @@ class Input:
             self.keys.append(kobj)
         # Sort according to BIP45 standard
         if bip45_sort:
-            self.keys.sort(key=lambda x: x.public_byte)
+            self.keys.sort(key=lambda k: k.public_byte)
         self.address = ''
         self.signatures = []
         self.redeemscript = b''
