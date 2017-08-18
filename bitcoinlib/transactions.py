@@ -165,7 +165,8 @@ def script_deserialize(script, script_types=None):
                 cur += total_length
             elif ch == 'public_key':
                 pk_size, size = varbyteint_to_int(script[cur:cur + 9])
-                data['signatures'] += [script[cur + size:cur + size + pk_size]]
+                der_key = script[cur + size:cur + size + pk_size]
+                data['keys'] += binascii.unhexlify(convert_der_sig(der_key[:-1]))
                 cur += size + pk_size
             elif ch == 'OP_RETURN':
                 if cur_char == opcodes['OP_RETURN'] and cur == 0:
@@ -235,7 +236,7 @@ def script_deserialize_sigpk(script):
     :return tuple: Tuple with a signature and public key in bytes
     """
     _, data, _, _ = script_deserialize(script, 'sig_pubkey')
-    return binascii.unhexlify(convert_der_sig(data[0][:-1])), data[1]
+    return data['keys'][0], data['signatures'][0]
 
 
 def script_to_string(script):
