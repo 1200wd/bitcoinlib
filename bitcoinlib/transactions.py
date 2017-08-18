@@ -77,13 +77,13 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         inp_index = rawtx[cursor + 32:cursor + 36][::-1]
         cursor += 36
 
-        unlock_scr_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+        unlocking_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
-        unlock_scr = rawtx[cursor:cursor + unlock_scr_size]
-        cursor += unlock_scr_size
+        unlocking_script = rawtx[cursor:cursor + unlocking_script_size]
+        cursor += unlocking_script_size
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
-        inputs.append(Input(prev_hash=inp_hash, output_index=inp_index, unlocking_script=unlock_scr,
+        inputs.append(Input(prev_hash=inp_hash, output_index=inp_index, unlocking_script=unlocking_script,
                             sequence=sequence_number, tid=i, network=network))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
@@ -142,9 +142,9 @@ def script_deserialize(script, script_types=None):
     elif not isinstance(script_types, list):
         script_types = [script_types]
 
-    for tp in script_types:
+    for script_type in script_types:
         cur = 0
-        ost = SCRIPT_TYPES[tp]
+        ost = SCRIPT_TYPES[script_type]
         data = []
         number_of_sigs_n = 1
         number_of_sigs_m = 1
@@ -209,10 +209,10 @@ def script_deserialize(script, script_types=None):
                         found = False
                         break
                 except IndexError:
-                    raise TransactionError("Opcode %s not found [type %s]" % (ch, tp))
+                    raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
 
         if found:
-            return [tp, data, number_of_sigs_m, number_of_sigs_n]
+            return [script_type, data, number_of_sigs_m, number_of_sigs_n]
     _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
     return ["unknown", '', '', '']
 
@@ -331,7 +331,7 @@ class Input:
     
     """
 
-    def __init__(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
+    def __init__(self, prev_hash, output_index, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, network=DEFAULT_NETWORK,
                  bip45_sort=True, tid=0):
         """
@@ -376,6 +376,10 @@ class Input:
             else:
                 kobj = key
             self.keys.append(kobj)
+        if signatures is None:
+            signatures = []
+        if not isinstance(signatures, list):
+            signatures = [signatures]
         # Sort according to BIP45 standard
         if bip45_sort:
             self.keys.sort(key=lambda k: k.public_byte)
@@ -391,6 +395,10 @@ class Input:
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
+
+        # If unlocking script is specified extract keys, signatures, type from script
+        if unlocking_script:
+            print(unlocking_script)
 
         if script_type == 'p2pkh':
             pk2 = b''
