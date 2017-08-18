@@ -145,7 +145,7 @@ def script_deserialize(script, script_types=None):
     for script_type in script_types:
         cur = 0
         ost = SCRIPT_TYPES[script_type]
-        data = {'signatures': [], 'redeemscript': b''}
+        data = {'keys': [], 'signatures': [], 'redeemscript': b''}
         number_of_sigs_n = 1
         number_of_sigs_m = 1
         found = True
@@ -179,7 +179,12 @@ def script_deserialize(script, script_types=None):
                 s, total_length = _parse_signatures(script[cur:])
                 data['signatures'] += s
                 cur += total_length
-                data['redeemscript'] = script[cur+2:]
+                sl = len(script)
+                if sl > cur+2:
+                    data['redeemscript'] = script[cur+2:]
+                    _, keys, number_of_sigs_m, number_of_sigs_n = script_deserialize(data['redeemscript'])
+                    data['keys'] = keys['signatures']
+                    cur = len(script)
             elif ch == 'op_m':
                 if cur_char in OP_N_CODES:
                     number_of_sigs_m = cur_char - opcodes['OP_1'] + 1
