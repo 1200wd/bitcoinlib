@@ -135,7 +135,7 @@ def script_deserialize(script, script_types=None):
 
     script = to_bytes(script)
     if not script:
-        return ["empty", '', '', '']
+        return "empty", '', '', ''
 
     if script_types is None:
         script_types = SCRIPT_TYPES
@@ -148,6 +148,7 @@ def script_deserialize(script, script_types=None):
         data = []
         number_of_sigs_n = 1
         number_of_sigs_m = 1
+        redeemscript = b''
         found = True
         for ch in ost:
             if cur >= len(script):
@@ -175,10 +176,11 @@ def script_deserialize(script, script_types=None):
                 else:
                     found = False
                     break
-            elif ch == 'multisig':  # one or more signature
+            elif ch == 'multisig':  # one or more signatures
                 s, total_length = _parse_signatures(script[cur:])
                 data += s
                 cur += total_length
+                data.append({'redeemscript': script[cur+2:]})
             elif ch == 'op_m':
                 if cur_char in OP_N_CODES:
                     number_of_sigs_m = cur_char - opcodes['OP_1'] + 1
@@ -212,9 +214,9 @@ def script_deserialize(script, script_types=None):
                     raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
 
         if found:
-            return [script_type, data, number_of_sigs_m, number_of_sigs_n]
+            return script_type, data, number_of_sigs_m, number_of_sigs_n
     _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
-    return ["unknown", '', '', '']
+    return "unknown", '', '', ''
 
 
 def script_deserialize_sigpk(script):
