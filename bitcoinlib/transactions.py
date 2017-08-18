@@ -165,8 +165,11 @@ def script_deserialize(script, script_types=None):
                 cur += total_length
             elif ch == 'public_key':
                 pk_size, size = varbyteint_to_int(script[cur:cur + 9])
-                der_key = script[cur + size:cur + size + pk_size]
-                data['keys'] += binascii.unhexlify(convert_der_sig(der_key[:-1]))
+                key = script[cur + size:cur + size + pk_size]
+                if key[0] == '0x30':
+                    data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
+                else:
+                    data['keys'].append(key)
                 cur += size + pk_size
             elif ch == 'OP_RETURN':
                 if cur_char == opcodes['OP_RETURN'] and cur == 0:
@@ -236,7 +239,7 @@ def script_deserialize_sigpk(script):
     :return tuple: Tuple with a signature and public key in bytes
     """
     _, data, _, _ = script_deserialize(script, 'sig_pubkey')
-    return data['keys'][0], data['signatures'][0]
+    return data['signatures'][0], data['keys'][0]
 
 
 def script_to_string(script):
@@ -529,8 +532,8 @@ class Output:
         if self.lock_script and not self.public_key_hash:
             ps = script_deserialize(self.lock_script)
             if ps[0] == 'p2pkh':
-                self.public_key_hash = ps[1][0]
-                self.address = pubkeyhash_to_addr(ps[1][0], versionbyte=self.versionbyte)
+                self.public_key_hash = ps[1]['signatures'][0]
+                self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
 
         # TODO: Recognise scripttype from address
         script_type = 'p2pkh'
