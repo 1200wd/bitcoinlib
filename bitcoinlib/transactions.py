@@ -145,10 +145,9 @@ def script_deserialize(script, script_types=None):
     for script_type in script_types:
         cur = 0
         ost = SCRIPT_TYPES[script_type]
-        data = []
+        data = {'signatures': [], 'redeemscript': b''}
         number_of_sigs_n = 1
         number_of_sigs_m = 1
-        redeemscript = b''
         found = True
         for ch in ost:
             if cur >= len(script):
@@ -162,15 +161,15 @@ def script_deserialize(script, script_types=None):
                 if not s:
                     found = False
                     break
-                data += s
+                data['signatures'] += s
                 cur += total_length
             elif ch == 'public_key':
                 pk_size, size = varbyteint_to_int(script[cur:cur + 9])
-                data += [script[cur + size:cur + size + pk_size]]
+                data['signatures'] += [script[cur + size:cur + size + pk_size]]
                 cur += size + pk_size
             elif ch == 'OP_RETURN':
                 if cur_char == opcodes['OP_RETURN'] and cur == 0:
-                    data.append(script[cur+1:])
+                    data.update({'op_return': script[cur+1:]})
                     found = True
                     break
                 else:
@@ -178,9 +177,9 @@ def script_deserialize(script, script_types=None):
                     break
             elif ch == 'multisig':  # one or more signatures
                 s, total_length = _parse_signatures(script[cur:])
-                data += s
+                data['signatures'] += s
                 cur += total_length
-                data.append({'redeemscript': script[cur+2:]})
+                data['redeemscript'] = script[cur+2:]
             elif ch == 'op_m':
                 if cur_char in OP_N_CODES:
                     number_of_sigs_m = cur_char - opcodes['OP_1'] + 1
@@ -196,9 +195,9 @@ def script_deserialize(script, script_types=None):
                 if number_of_sigs_m > number_of_sigs_n:
                     raise TransactionError("Number of signatures to sign (%d) is higher then actual "
                                            "amount of signatures (%d)" % (number_of_sigs_m, number_of_sigs_n))
-                if len(data) > number_of_sigs_n:
+                if len(data['signatures']) > number_of_sigs_n:
                     raise TransactionError("%d signatures found, but %d sigs expected" %
-                                           (len(data), number_of_sigs_n))
+                                           (len(data['signatures']), number_of_sigs_n))
                 cur += 1
             elif ch == 'SIGHASH_ALL':
                 pass
