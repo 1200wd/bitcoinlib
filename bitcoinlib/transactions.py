@@ -133,7 +133,7 @@ def script_deserialize(script, script_types=None):
             scr = scr[l + 1:]
         return sigs, total_lenght
 
-    data = {'keys': [], 'signatures': [], 'redeemscript': b''}
+    data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b''}
     script = to_bytes(script)
     if not script:
         data.update({'script_type': 'empty'})
@@ -228,7 +228,7 @@ def script_deserialize(script, script_types=None):
         if found:
             return data
     _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
-    return False
+    return {'script_type': 'unknown'}
 
 
 def script_deserialize_sigpk(script):
@@ -268,7 +268,7 @@ def script_to_string(script):
     scriptstr = [sigs if x in ['signature', 'multisig', 'return_data'] else x for x in scriptstr]
     if 'redeemscript' in data and data['redeemscript']:
         redeemscript_str = script_to_string(data['redeemscript'])
-    scriptstr = [redeemscript_str if x == 'redeemscript' else x for x in scriptstr]
+        scriptstr = [redeemscript_str if x == 'redeemscript' else x for x in scriptstr]
     scriptstr = [opcodenames[80 + int(data['number_of_sigs_m'])] if x == 'op_m' else x for x in scriptstr]
     scriptstr = [opcodenames[80 + int(data['number_of_sigs_n'])] if x == 'op_n' else x for x in scriptstr]
 
@@ -540,9 +540,9 @@ class Output:
             self.public_key_hash = self.k.hash160()
 
         if self.lock_script and not self.public_key_hash:
-            ps = script_deserialize(self.lock_script)
-            if ps[0] == 'p2pkh':
-                self.public_key_hash = ps[1]['signatures'][0]
+            ss = script_deserialize(self.lock_script)
+            if ss['script_type'] == 'p2pkh':
+                self.public_key_hash = ss['signatures'][0]
                 self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
 
         # TODO: Recognise scripttype from address
@@ -742,8 +742,8 @@ class Transaction:
                     return False
                 try:
                     signature = i.signatures[sig_id]['signature']
-                    # if signature[:1] == b'\x30':
-                    #     signature = binascii.unhexlify(convert_der_sig(signature))
+                    if to_hexstring(signature[:1]) == '30':
+                        signature = binascii.unhexlify(convert_der_sig(signature[:-1]))
                     ver_key.verify_digest(signature, hashtosign)
                 except ecdsa.keys.BadSignatureError:
                     continue  # Try next key (for multisigs)
@@ -908,7 +908,7 @@ if __name__ == '__main__':
     print("Raw: %s" % to_hexstring(t.raw()))
     pprint(t.get())
     output_script = t.outputs[0].lock_script
-    print("\nOutput Script Type: %s " % script_deserialize(output_script)[0])
+    print("\nOutput Script Type: %s " % script_deserialize(output_script)['script_type'])
     print("Output Script String: %s" % script_to_string(output_script))
     print("\nt.verified() ==> %s" % t.verify())
 
@@ -940,10 +940,10 @@ if __name__ == '__main__':
     for s in scripts:
         print("\nScript: %s" % s)
         sp = script_deserialize(s)
-        print("Type: %s" % sp[0])
-        for d in sp[1]:
+        print("Type: %s" % sp['script_type'])
+        for d in sp['signatures']:
             print("Data: %s" % binascii.hexlify(d))
-        print("Signatures n/m: %s/%s" % (sp[2], sp[3]))
+        print("Signatures n of m: %s of %s" % (sp['number_of_sigs_n'], sp['number_of_sigs_m']))
         print("Script as String: %s" % script_to_string(s))
 
     print("\n=== Example based on explanation on "

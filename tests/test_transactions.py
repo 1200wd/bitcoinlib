@@ -108,7 +108,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_deserialize_raw(self):
         for r in self.rawtxs:
-            print("Deserialize %s" % r[0])
+            print("Deserialize %s" % r[0], r[1])
             t = Transaction.import_raw(r[1], r[4])
             self.assertEqual(len(t.inputs), r[2], msg="Incorrect numbers of inputs for tx '%s'" % r[0])
             self.assertEqual(len(t.outputs), r[3], msg="Incorrect numbers of outputs for tx '%s'" % r[0])
@@ -208,42 +208,42 @@ class TestTransactionsScriptType(unittest.TestCase):
 
     def test_transaction_script_type_p2pkh(self):
         s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
-        self.assertEqual('p2pkh', script_deserialize(s)[0])
+        self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_p2pkh_2(self):
         s = binascii.unhexlify('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac')
-        self.assertEqual('p2pkh', script_deserialize(s)[0])
+        self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_p2sh(self):
         s = binascii.unhexlify('a914e3bdbeab033c7e03fd4cbf3a03ff14533260f3f487')
-        self.assertEqual('p2sh', script_deserialize(s)[0])
+        self.assertEqual('p2sh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_nulldata(self):
         s = binascii.unhexlify('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd')
         res = script_deserialize(s)
-        self.assertEqual('nulldata', res[0])
+        self.assertEqual('nulldata', res['script_type'])
         self.assertEqual(b'20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
-                         binascii.hexlify(res[1][0]))
+                         binascii.hexlify(res['op_return']))
 
     def test_transaction_script_type_nulldata_2(self):
         s = binascii.unhexlify('6a')
         res = script_deserialize(s)
-        self.assertEqual('nulldata', res[0])
-        self.assertEqual(b'', binascii.hexlify(res[1][0]))
+        self.assertEqual('nulldata', res['script_type'])
+        self.assertEqual(b'', binascii.hexlify(res['op_return']))
 
     def test_transaction_script_type_multisig(self):
         s = '514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f' \
             '26901099416b9265b76ba67c8b0b73d210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae'
         res = script_deserialize(s)
-        self.assertEqual('multisig', res[0])
-        self.assertEqual(2, res[3])
+        self.assertEqual('multisig', res['script_type'])
+        self.assertEqual(2, res['number_of_sigs_n'])
 
     def test_transaction_script_type_multisig_2(self):
         s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
                                '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
         res = script_deserialize(s)
-        self.assertEqual('multisig', res[0])
-        self.assertEqual(1, res[2])
+        self.assertEqual('multisig', res['script_type'])
+        self.assertEqual(1, res['number_of_sigs_m'])
 
     def test_transaction_script_type_multisig_error_count(self):
         s = binascii.unhexlify('51'
@@ -259,8 +259,7 @@ class TestTransactionsScriptType(unittest.TestCase):
         self.assertRaisesRegexp(TransactionError, 'is not an op_n code', script_deserialize, s)
 
     def test_transaction_script_type_empty_unknown(self):
-        res = script_deserialize(b'')[0]
-        self.assertEqual('empty', res)
+        self.assertEqual('empty', script_deserialize(b'')['script_type'])
 
     def test_transaction_script_type_string(self):
         s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
@@ -274,25 +273,28 @@ class TestTransactionsScriptType(unittest.TestCase):
               '715cf7c938e238afde90207e9d103dd9018e12cb7180e0141042daa93315eebbe2cb9b5c3505df4c6fb6caca8b75678609856' \
               '7550d4820c09db988fe9997d049d687292f815ccd6e7fb5c1b1a91137999818d17c73d0f80aef9'
         ds = script_deserialize(spk)
-        self.assertEqual(ds[0], 'sig_pubkey')
-        self.assertEqual(ds[1][0], bytearray(b"0F\x02!\x00\xcfMuq\xddG\xa4\xd4\x7f\\\xb7g\xd5Mg\x02S\n5Urk\'\xb6\xacV"
-                                             b"\x11\x7f^x\x08\xfe\x02!\x00\x8c\xbbB#;\xb0M\x7f(\xa7\x15\xcf|\x93\x8e#"
-                                             b"\x8a\xfd\xe9\x02\x07\xe9\xd1\x03\xdd\x90\x18\xe1,\xb7\x18\x0e\x01"))
-        self.assertEqual(ds[1][1], bytearray(b'\x04-\xaa\x931^\xeb\xbe,\xb9\xb5\xc3P]\xf4\xc6\xfbl\xac\xa8\xb7Vx`\x98'
-                                             b'VuP\xd4\x82\x0c\t\xdb\x98\x8f\xe9\x99}\x04\x9dhr\x92\xf8\x15\xcc\xd6'
-                                             b'\xe7\xfb\\\x1b\x1a\x91\x13y\x99\x81\x8d\x17\xc7=\x0f\x80\xae\xf9'))
+        self.assertEqual(ds['script_type'], 'sig_pubkey')
+        self.assertEqual(ds['signatures'][0],
+                         bytearray(b"0F\x02!\x00\xcfMuq\xddG\xa4\xd4\x7f\\\xb7g\xd5Mg\x02S\n5Urk\'\xb6\xacV"
+                                   b"\x11\x7f^x\x08\xfe\x02!\x00\x8c\xbbB#;\xb0M\x7f(\xa7\x15\xcf|\x93\x8e#"
+                                   b"\x8a\xfd\xe9\x02\x07\xe9\xd1\x03\xdd\x90\x18\xe1,\xb7\x18\x0e\x01"))
+        self.assertEqual(ds['keys'][0],
+                         bytearray(b'\x04-\xaa\x931^\xeb\xbe,\xb9\xb5\xc3P]\xf4\xc6\xfbl\xac\xa8\xb7Vx`\x98'
+                                   b'VuP\xd4\x82\x0c\t\xdb\x98\x8f\xe9\x99}\x04\x9dhr\x92\xf8\x15\xcc\xd6'
+                                   b'\xe7\xfb\\\x1b\x1a\x91\x13y\x99\x81\x8d\x17\xc7=\x0f\x80\xae\xf9'))
 
     def test_transaction_script_deserialize_sig_pk2(self):
         spk = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5' \
               'b412bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe6' \
               '1385aa7446'
         ds = script_deserialize(spk)
-        self.assertEqual(ds[0], 'sig_pubkey')
+        self.assertEqual(ds['script_type'], 'sig_pubkey')
         self.assertEqual(
-            to_hexstring(ds[1][0]), '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e'
-                                    '002207345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d01')
+            to_hexstring(ds['signatures'][0]), '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b762'
+                                               '38e002207345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d'
+                                               '1e0d01')
         self.assertEqual(
-            to_hexstring(ds[1][1]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
+            to_hexstring(ds['keys'][0]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
 
 
 class TestTransactionsMultisig(unittest.TestCase):
@@ -326,8 +328,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.assertTrue(t.verify())
         unlocking_script = t.inputs[0].unlocking_script
         unlocking_script_str = script_deserialize(unlocking_script)
-        self.assertEqual(unlocking_script_str[0], 'p2sh_multisig')
-        self.assertEqual(len(unlocking_script_str[1]), 2)
+        self.assertEqual(unlocking_script_str['script_type'], 'p2sh_multisig')
+        self.assertEqual(len(unlocking_script_str['signatures']), 2)
 
     def test_transaction_multisig_p2sh_sign_seperate(self):
         t = Transaction()
@@ -341,4 +343,4 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.sign([pk2])
         unlocking_script = t.inputs[0].unlocking_script
         unlocking_script_str = script_deserialize(unlocking_script)
-        self.assertEqual(len(unlocking_script_str[1]), 2)
+        self.assertEqual(len(unlocking_script_str['signatures']), 2)
