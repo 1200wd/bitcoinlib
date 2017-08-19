@@ -108,9 +108,10 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
         w = session.query(DbWallet).filter_by(name=wallet)
     if not w or not w.first():
         raise WalletError("Wallet '%s' not found" % wallet)
+    wallet_id = w.first().id
 
     # Delete keys from this wallet and update transactions (remove key_id)
-    ks = session.query(DbKey).filter_by(wallet_id=w.first().id)
+    ks = session.query(DbKey).filter_by(wallet_id=wallet_id)
     for k in ks:
         if not force and k.balance:
             raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
@@ -122,7 +123,13 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     res = w.delete()
     session.commit()
     session.close()
+
+    # Delete co-signer wallets if this is a multisig wallet
+    for cw in session.query(DbWallet).filter_by(parent_id=wallet_id).all():
+        delete_wallet(cw.id)
+
     _logger.info("Wallet '%s' deleted" % wallet)
+
     return res
 
 
