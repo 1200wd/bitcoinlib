@@ -527,6 +527,7 @@ class Output:
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
+        self.script_type = 'p2pkh'
 
         if self.public_key:
             self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
@@ -541,21 +542,22 @@ class Output:
 
         if self.lock_script and not self.public_key_hash:
             ss = script_deserialize(self.lock_script)
-            if ss['script_type'] == 'p2pkh':
+            self.script_type = ss['script_type']
+            if self.script_type == 'p2pkh':
                 self.public_key_hash = ss['signatures'][0]
                 self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
 
-        # TODO: Recognise scripttype from address
-        script_type = 'p2pkh'
+        # TODO: Recognise script type from address
         if self.address and self.address[0] == '2':
-            script_type = 'p2sh'
+            self.script_type = 'p2sh'
         if self.lock_script == b'':
-            if script_type == 'p2pkh':
+            if self.script_type == 'p2pkh':
                 self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
-            elif script_type == 'p2sh':
+            elif self.script_type == 'p2sh':
                 self.lock_script = b'\xa9\x14' + self.public_key_hash + b'\x87'
             else:
-                raise TransactionError("Unknown output script type %s, please provide own locking script" % script_type)
+                raise TransactionError("Unknown output script type %s, please provide own locking script" %
+                                       self.script_type)
 
     def json(self):
         """
@@ -621,9 +623,9 @@ class Transaction:
         after signing makes the transaction invalid.
         
         :param inputs: Array of Input objects. Leave empty to add later
-        :type inputs: Input
+        :type inputs: Input, list
         :param outputs: Array of Output object. Leave empty to add later
-        :type outputs: Output
+        :type outputs: Output, list
         :param locktime: Unix timestamp or blocknumber. Default is 0
         :type locktime: int
         :param version: Version rules. Defaults to 1 in bytes 
