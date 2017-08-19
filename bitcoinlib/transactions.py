@@ -266,6 +266,9 @@ def script_to_string(script):
 
     scriptstr = SCRIPT_TYPES[data['script_type']]
     scriptstr = [sigs if x in ['signature', 'multisig', 'return_data'] else x for x in scriptstr]
+    if 'redeemscript' in data and data['redeemscript']:
+        redeemscript_str = script_to_string(data['redeemscript'])
+    scriptstr = [redeemscript_str if x == 'redeemscript' else x for x in scriptstr]
     scriptstr = [opcodenames[80 + int(data['number_of_sigs_m'])] if x == 'op_m' else x for x in scriptstr]
     scriptstr = [opcodenames[80 + int(data['number_of_sigs_n'])] if x == 'op_n' else x for x in scriptstr]
 
