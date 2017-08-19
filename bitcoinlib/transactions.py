@@ -30,7 +30,7 @@ SCRIPT_TYPES = {
     'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
     'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
-    'p2sh_multisig': ['OP_0', 'multisig'],
+    'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
     'pubkey': ['signature', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data']
@@ -185,14 +185,13 @@ def script_deserialize(script, script_types=None):
                 s, total_length = _parse_signatures(script[cur:])
                 data['signatures'] += s
                 cur += total_length
-                sl = len(script)
-                if sl > cur+2:
-                    data['redeemscript'] = script[cur+2:]
-                    data2 = script_deserialize(data['redeemscript'])
-                    data['keys'] = data2['signatures']
-                    data['number_of_sigs_m'] = data2['number_of_sigs_m']
-                    data['number_of_sigs_n'] = data2['number_of_sigs_n']
-                    cur = len(script)
+            elif ch == 'redeemscript':
+                data['redeemscript'] = script[cur+2:]
+                data2 = script_deserialize(data['redeemscript'])
+                data['keys'] = data2['signatures']
+                data['number_of_sigs_m'] = data2['number_of_sigs_m']
+                data['number_of_sigs_n'] = data2['number_of_sigs_n']
+                cur = len(script)
             elif ch == 'op_m':
                 if cur_char in OP_N_CODES:
                     data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
