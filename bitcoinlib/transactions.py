@@ -260,15 +260,15 @@ def script_to_string(script):
     :return str: 
     """
     script = to_bytes(script)
-    tp, data, number_of_sigs_m, number_of_sigs_n = script_deserialize(script)
-    if tp == "unknown":
-        return tp
-    sigs = ' '.join([to_hexstring(i) for i in data])
+    data = script_deserialize(script)
+    if not data or data['script_type'] == 'empty':
+        return ""
+    sigs = ' '.join([to_hexstring(i) for i in data['signatures']])
 
-    scriptstr = SCRIPT_TYPES[tp]
+    scriptstr = SCRIPT_TYPES[data['script_type']]
     scriptstr = [sigs if x in ['signature', 'multisig', 'return_data'] else x for x in scriptstr]
-    scriptstr = [opcodenames[80 + number_of_sigs_m] if x == 'op_m' else x for x in scriptstr]
-    scriptstr = [opcodenames[80 + number_of_sigs_n] if x == 'op_n' else x for x in scriptstr]
+    scriptstr = [opcodenames[80 + int(data['number_of_sigs_m'])] if x == 'op_m' else x for x in scriptstr]
+    scriptstr = [opcodenames[80 + int(data['number_of_sigs_n'])] if x == 'op_n' else x for x in scriptstr]
 
     return ' '.join(scriptstr)
 
