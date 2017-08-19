@@ -133,9 +133,11 @@ def script_deserialize(script, script_types=None):
             scr = scr[l + 1:]
         return sigs, total_lenght
 
+    data = {'keys': [], 'signatures': [], 'redeemscript': b''}
     script = to_bytes(script)
     if not script:
-        return "empty", '', '', ''
+        data.update({'script_type': 'empty'})
+        return data
 
     if script_types is None:
         script_types = SCRIPT_TYPES
@@ -145,9 +147,9 @@ def script_deserialize(script, script_types=None):
     for script_type in script_types:
         cur = 0
         ost = SCRIPT_TYPES[script_type]
-        data = {'keys': [], 'signatures': [], 'redeemscript': b''}
-        number_of_sigs_n = 1
-        number_of_sigs_m = 1
+        data['script_type'] = script_type
+        data['number_of_sigs_n'] = 1
+        data['number_of_sigs_m'] = 1
         found = True
         for ch in ost:
             if cur >= len(script):
@@ -186,27 +188,30 @@ def script_deserialize(script, script_types=None):
                 sl = len(script)
                 if sl > cur+2:
                     data['redeemscript'] = script[cur+2:]
-                    _, keys, number_of_sigs_m, number_of_sigs_n = script_deserialize(data['redeemscript'])
-                    data['keys'] = keys['signatures']
+                    data2 = script_deserialize(data['redeemscript'])
+                    data['keys'] = data2['signatures']
+                    data['number_of_sigs_m'] = data2['number_of_sigs_m']
+                    data['number_of_sigs_n'] = data2['number_of_sigs_n']
                     cur = len(script)
             elif ch == 'op_m':
                 if cur_char in OP_N_CODES:
-                    number_of_sigs_m = cur_char - opcodes['OP_1'] + 1
+                    data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
                 else:
                     found = False
                     break
                 cur += 1
             elif ch == 'op_n':
                 if cur_char in OP_N_CODES:
-                    number_of_sigs_n = cur_char - opcodes['OP_1'] + 1
+                    data['number_of_sigs_n'] = cur_char - opcodes['OP_1'] + 1
                 else:
                     raise TransactionError("%s is not an op_n code" % cur_char)
-                if number_of_sigs_m > number_of_sigs_n:
-                    raise TransactionError("Number of signatures to sign (%d) is higher then actual "
-                                           "amount of signatures (%d)" % (number_of_sigs_m, number_of_sigs_n))
-                if len(data['signatures']) > number_of_sigs_n:
-                    raise TransactionError("%d signatures found, but %d sigs expected" %
-                                           (len(data['signatures']), number_of_sigs_n))
+                if data['number_of_sigs_m'] > data['number_of_sigs_n']:
+                    raise TransactionError("Number of signatures to sign (%s) is higher then actual "
+                                           "amount of signatures (%s)" %
+                                           (data['number_of_sigs_m'], data['number_of_sigs_n']))
+                if len(data['signatures']) > int(data['number_of_sigs_n']):
+                    raise TransactionError("%d signatures found, but %s sigs expected" %
+                                           (len(data['signatures']), data['number_of_sigs_n']))
                 cur += 1
             elif ch == 'SIGHASH_ALL':
                 pass
@@ -222,9 +227,9 @@ def script_deserialize(script, script_types=None):
                     raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
 
         if found:
-            return script_type, data, number_of_sigs_m, number_of_sigs_n
+            return data
     _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
-    return "unknown", '', '', ''
+    return False
 
 
 def script_deserialize_sigpk(script):
@@ -238,7 +243,9 @@ def script_deserialize_sigpk(script):
     :type script: bytes
     :return tuple: Tuple with a signature and public key in bytes
     """
-    _, data, _, _ = script_deserialize(script, 'sig_pubkey')
+    data = script_deserialize(script, ['sig_pubkey'])
+    assert(len(data['signatures']) == 1)
+    assert(len(data['keys']) == 1)
     return data['signatures'][0], data['keys'][0]
 
 
@@ -408,7 +415,8 @@ class Input:
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script:
-            print(unlocking_script)
+            # TODO parse it
+            pass
 
         if script_type == 'p2pkh':
             pk2 = b''
