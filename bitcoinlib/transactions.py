@@ -801,7 +801,10 @@ class Transaction:
                 varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                 varstr(self.inputs[tid].keys[0].public_byte)
         elif self.inputs[tid].script_type == 'multisig':
-            n_required = struct.unpack('B', self.inputs[tid].redeemscript[0])[0] - 80
+            n_tag = self.inputs[tid].redeemscript[0]
+            if not isinstance(n_tag, int):
+                n_tag = struct.unpack('B', n_tag)[0]
+            n_required = n_tag - 80
             signatures = [s['sig_der'] for s in self.inputs[tid].signatures[:n_required]]
             self.inputs[tid].unlocking_script = \
                 _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
