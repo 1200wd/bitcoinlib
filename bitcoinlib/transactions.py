@@ -389,12 +389,6 @@ class Input:
         self.keys = []
         if not isinstance(keys, list):
             keys = [keys]
-        for key in keys:
-            if not isinstance(key, Key):
-                kobj = Key(key, network=network)
-            else:
-                kobj = key
-            self.keys.append(kobj)
         if signatures is None:
             signatures = []
         if not isinstance(signatures, list):
@@ -411,31 +405,48 @@ class Input:
             else:
                 sigs_required = 1
         self.sigs_required = sigs_required
+        self.script_type = script_type
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script:
-            # TODO parse it
-            pass
+            us_dict = script_deserialize(unlocking_script)
+            if not us_dict or us_dict['script_type'] in ['unknown', 'empty']:
+                raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))
+            self.script_type = us_dict['script_type']
+            self.sigs_required = us_dict['number_of_sigs_n']
+            self.redeemscript = us_dict['number_of_sigs_n']
+            signatures += us_dict['signatures']
+            keys += us_dict['keys']
 
-        if script_type == 'p2pkh':
-            pk2 = b''
-            if unlocking_script:
-                try:
-                    signature, pk2 = script_deserialize_sigpk(unlocking_script)
-                    self.signatures.append(
-                        {
-                            'sig_der': b'',
-                            'signature': to_bytes(signature),
-                            'priv_key': pk2
-                        }
-                    )
-                except IndexError as err:
-                    raise TransactionError("Could not parse input script signature: %s" % err)
-            if not self.keys and pk2:
-                self.keys.append(Key(pk2))
+        for key in keys:
+            if not isinstance(key, Key):
+                kobj = Key(key, network=network)
+            else:
+                kobj = key
+            if kobj not in self.keys:
+                self.keys.append(kobj)
+
+        self.signatures = signatures
+
+        if self.script_type == 'p2pkh':
+            # pk2 = b''
+            # if unlocking_script:
+            #     try:
+            #         signature, pk2 = script_deserialize_sigpk(unlocking_script)
+            #         self.signatures.append(
+            #             {
+            #                 'sig_der': b'',
+            #                 'signature': to_bytes(signature),
+            #                 'priv_key': pk2
+            #             }
+            #         )
+            #     except IndexError as err:
+            #         raise TransactionError("Could not parse input script signature: %s" % err)
+            # if not self.keys and pk2:
+            #     self.keys.append(Key(pk2))
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
                 self.address = self.keys[0].address()
