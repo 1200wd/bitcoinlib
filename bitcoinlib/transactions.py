@@ -389,7 +389,7 @@ class Input:
         self.keys = []
         if not isinstance(keys, list):
             keys = [keys]
-        if signatures is None:
+        if not signatures:
             signatures = []
         if not isinstance(signatures, list):
             signatures = [signatures]
@@ -417,7 +417,7 @@ class Input:
                 raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))
             self.script_type = us_dict['script_type']
             self.sigs_required = us_dict['number_of_sigs_n']
-            self.redeemscript = us_dict['number_of_sigs_n']
+            self.redeemscript = us_dict['redeemscript']
             signatures += us_dict['signatures']
             keys += us_dict['keys']
 
@@ -429,7 +429,13 @@ class Input:
             if kobj not in self.keys:
                 self.keys.append(kobj)
 
-        self.signatures = signatures
+        for sig in signatures:
+            self.signatures.append(
+                {
+                    'sig_der': b'',
+                    'signature': to_bytes(sig),
+                    'priv_key': ''
+                })
 
         if self.script_type == 'p2pkh':
             # pk2 = b''
