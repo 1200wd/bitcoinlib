@@ -191,7 +191,10 @@ def script_deserialize(script, script_types=None):
                 data['signatures'] += s
                 cur += total_length
             elif ch == 'redeemscript':
-                data['redeemscript'] = script[cur+2:]
+                size_byte = 0
+                if script[cur:cur+1] in [b'\x4c', b'\x4d', b'\x4e']:
+                    size_byte = 1
+                data['redeemscript'] = script[cur+1+size_byte:]
                 data2 = script_deserialize(data['redeemscript'])
                 data['keys'] = data2['signatures']
                 data['number_of_sigs_m'] = data2['number_of_sigs_m']
