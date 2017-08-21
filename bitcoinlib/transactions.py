@@ -117,7 +117,7 @@ def script_deserialize(script, script_types=None):
     :return list: With this items: [script_type, data, number_of_sigs_n, number_of_sigs_m] 
     """
 
-    def _parse_signatures(scr, max_signatures=None):
+    def _parse_signatures(scr, max_signatures=None, redeemscript_expected=False):
         scr = to_bytes(scr)
         sigs = []
         total_lenght = 0
@@ -127,6 +127,8 @@ def script_deserialize(script, script_types=None):
             if l not in [20, 33, 65, 70, 71, 72, 73]:
                 break
             if len(scr) < l:
+                break
+            if redeemscript_expected and len(scr[l + 1:]) < 20:
                 break
             sigs.append(scr[1:l + 1])
             total_lenght += l + sl
@@ -182,7 +184,10 @@ def script_deserialize(script, script_types=None):
                     found = False
                     break
             elif ch == 'multisig':  # one or more signatures
-                s, total_length = _parse_signatures(script[cur:])
+                redeemscript_expected = False
+                if 'redeemscript' in ost:
+                    redeemscript_expected = True
+                s, total_length = _parse_signatures(script[cur:], redeemscript_expected=redeemscript_expected)
                 data['signatures'] += s
                 cur += total_length
             elif ch == 'redeemscript':
@@ -329,13 +334,15 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
             s += struct.pack('B', hash_type)
         usu += int_to_varbyteint(len(s)) + to_bytes(s)
     rs_size = int_to_varbyteint(len(redeemscript))
-    if len(rs_size) == 1:
-        size_byte = b'\x4c'
-    elif len(rs_size) == 2:
-        size_byte = b'\x4d'
-    else:
-        size_byte = b'\x4e'
-    usu += size_byte + rs_size + redeemscript
+    if len(redeemscript) >= 76:
+        if len(rs_size) == 1:
+            size_byte = b'\x4c'
+        elif len(rs_size) == 2:
+            size_byte = b'\x4d'
+        else:
+            size_byte = b'\x4e'
+        usu += size_byte
+    usu += rs_size + redeemscript
     return usu
 
 
