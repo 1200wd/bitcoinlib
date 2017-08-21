@@ -135,9 +135,20 @@ class TestTransactions(unittest.TestCase):
                           b'192cd6d04f106a62c6a6768719de41dcffffffff026804ab01000000001976a914cf75d22e78c86e2e3d29f7'
                           b'a772f8ffd62391190388ac442d0304000000001976a9145b92b92ddd598d2d4977b3c4e5f552332aed743188'
                           b'ac00000000')
-        print(rawtx)
         self.assertEqual('19MCFyVmyEhFjYNS8aKJT454jm4YZQjbqm',
                          Transaction.import_raw(rawtx).get()['outputs'][1]['address'])
+
+    def test_transactions_deserialize_p2sh_output(self):
+        rawtx = '0100000001a5a5d29fdfe9e6baf50eb35f9e5750cd35934cb538a101028fa432d6cff342d700000000fd4701004830450221' \
+                '00f35cd1c39efdf3f3f2a125bbad8d14c1b15e41c2253d2790886211fd9e7f5f2e02206b6e1f075ce30223c9c786c8a7d8d3' \
+                '51303b00ed74fbe9bd0578f86677d26dc9014830450221008168f73c5cfd9a6f84d0eee4a8d522d7e2b797979266e45e0e9f' \
+                'c02644d41ba8022049d8302af5f2d6248b36563ca1faa4921e08ab7ffbeeda549e0b8e57e113da2001483045022100c498c2' \
+                '29be69030cb9ef7dfda44bbb7470aa4d4ae37662439b7ebdfe1e59441c0220737e3488509930b9072008f446a05a02e7ab77' \
+                '178d782ffb1ad7f2319159db12014c69532102b10f1d1017cc7a4f1c09be88319fad6e7c7fb67ad258292a7a91f46fbeeeb7' \
+                'e321033d83963d35e38b282772cf05fdd57887ed808ee09f352715cf59e69f9d47f6f52103c79ffe09913eab71f857b7022a' \
+                '5e01da91730ed32c46a5dcacea20246658905853aeffffffff0158400f000000000017a914867f84607587f7c2054740c6ca' \
+                'e09298ccbcd5288700000000'
+        self.assertEqual(transaction_deserialize(rawtx, 'testnet'), '')
 
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:
@@ -326,8 +337,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         t = Transaction()
         t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
         t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,
-                    keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='multisig', sigs_required=2,
-                    compressed=False, bip45_sort=False)
+                    keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='p2sh_multisig',
+                    sigs_required=2, compressed=False, bip45_sort=False)
         pk1 = Key(self.keylist[0]).private_byte
         pk2 = Key(self.keylist[2]).private_byte
         t.sign([pk1, pk2])
@@ -341,8 +352,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         t = Transaction()
         t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
         t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,
-                    keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='multisig', sigs_required=2,
-                    compressed=False, bip45_sort=False)
+                    keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='p2sh_multisig',
+                    sigs_required=2, compressed=False, bip45_sort=False)
         pk1 = Key(self.keylist[0]).private_byte
         pk2 = Key(self.keylist[2]).private_byte
         t.sign([pk1])

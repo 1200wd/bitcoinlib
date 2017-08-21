@@ -400,7 +400,7 @@ class Input:
         self.signatures = []
         self.redeemscript = b''
         if not sigs_required:
-            if script_type == 'multisig':
+            if script_type == 'p2sh_multisig':
                 sigs_required = len(self.keys)
             else:
                 sigs_required = 1
@@ -440,36 +440,16 @@ class Input:
         if self.script_type == 'sig_pubkey':
             self.script_type = 'p2pkh'
         if self.script_type == 'p2pkh':
-            # pk2 = b''
-            # if unlocking_script:
-            #     try:
-            #         signature, pk2 = script_deserialize_sigpk(unlocking_script)
-            #         self.signatures.append(
-            #             {
-            #                 'sig_der': b'',
-            #                 'signature': to_bytes(signature),
-            #                 'priv_key': pk2
-            #             }
-            #         )
-            #     except IndexError as err:
-            #         raise TransactionError("Could not parse input script signature: %s" % err)
-            # if not self.keys and pk2:
-            #     self.keys.append(Key(pk2))
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
                 self.address = self.keys[0].address()
-                # if not self.unlocking_script:
-                #     self.unlocking_script = self.unlocking_script_unsigned
-        elif script_type == 'multisig':  # TODO: Should be p2sh or p2sh_multisig
+        elif script_type == 'p2sh_multisig':
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
             self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=sigs_required,
                                                                 compressed=compressed)
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=Network(network).prefix_address_p2sh)
-            # hashed_keys = []
-            # for key in self.keys:
-            #     hashed_keys.append(key.hash160())
             self.unlocking_script_unsigned = self.redeemscript
 
     def json(self):
@@ -497,8 +477,7 @@ class Input:
         }
 
     def __repr__(self):
-        return "<Input (tid=%s, index=%s, script_type=%s)>" % (self.tid, to_hexstring(self.output_index),
-                                                               self.script_type)
+        return "<Input (tid=%s, index=%s, type=%s)>" % (self.tid, to_hexstring(self.output_index), self.script_type)
 
 
 class Output:
@@ -594,7 +573,7 @@ class Output:
         }
 
     def __repr__(self):
-        return "<Output (address=%s, amount=%d)>" % (self.address, self.amount)
+        return "<Output (address=%s, amount=%d, type=%s)>" % (self.address, self.amount, self.script_type)
 
 
 class Transaction:
@@ -669,7 +648,7 @@ class Transaction:
         self.change = None
 
     def __repr__(self):
-        return "<Transaction (inputcount=%d, outputcount=%d, network=%s)>" % \
+        return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \
                (len(self.inputs), len(self.outputs), self.network.network_name)
 
     def get(self):
@@ -821,7 +800,7 @@ class Transaction:
             self.inputs[tid].unlocking_script = \
                 varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                 varstr(self.inputs[tid].keys[0].public_byte)
-        elif self.inputs[tid].script_type == 'multisig':
+        elif self.inputs[tid].script_type == 'p2sh_multisig':
             n_tag = self.inputs[tid].redeemscript[0]
             if not isinstance(n_tag, int):
                 n_tag = struct.unpack('B', n_tag)[0]
