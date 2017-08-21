@@ -752,11 +752,12 @@ class Transaction:
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             sig_id = 0
             for key in i.keys:
+                if sig_id > i.sigs_required-1:
+                    break
                 pub_key = key.public_uncompressed_byte[1:]
                 ver_key = ecdsa.VerifyingKey.from_string(pub_key, curve=ecdsa.SECP256k1)
-                if sig_id > len(i.keys):
-                    _logger.info("Bad Signature %s (error %s)" %
-                                 (binascii.hexlify(i.signatures[sig_id-1]), e))
+                if sig_id >= len(i.signatures):
+                    _logger.info("No valid signatures found")
                     return False
                 try:
                     signature = i.signatures[sig_id]['signature']
