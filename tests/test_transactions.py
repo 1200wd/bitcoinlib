@@ -82,6 +82,11 @@ class TestTransactionOutputs(unittest.TestCase):
         self.assertEqual(b'v\xa9\x14\x13\xd2\x15\xd2\x12\xcdQ\x88\xae\x02\xc5c_\xaa\xbd\xc4\xd7\xd4\xec\x91\x88\xac',
                          to.lock_script)
 
+    def test_transaction_output_add_address_p2sh(self):
+        to = Output(1000, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
+        self.assertEqual(b'\xa9\x14\x86\x7f\x84`u\x87\xf7\xc2\x05G@\xc6\xca\xe0\x92\x98\xcc\xbc\xd5(\x87',
+                         to.lock_script)
+
     def test_transaction_output_add_public_key(self):
         to = Output(1000000000, public_key='0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470'
                                            '243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6')
