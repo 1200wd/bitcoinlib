@@ -317,7 +317,7 @@ class TestTransactionsScriptType(unittest.TestCase):
             to_hexstring(ds['keys'][0]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
 
 
-class TestTransactionsMultisig(unittest.TestCase):
+class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
     #   http://www.soroushjp.com/2014/12/20/bitcoin-multisig-the-hard-way-understanding-raw-multisignature-bitcoin-transactions/
 
@@ -364,3 +364,30 @@ class TestTransactionsMultisig(unittest.TestCase):
         unlocking_script = t.inputs[0].unlocking_script
         unlocking_script_str = script_deserialize(unlocking_script)
         self.assertEqual(len(unlocking_script_str['signatures']), 2)
+
+
+class TestTransactionsMultisig(unittest.TestCase):
+
+    def test_transactions_multisig_signature_redeemscript_mixup(self):
+        pk1 = HDKey('tprv8ZgxMBicQKsPen95zTdorkDGPi4jHy9xBf4TdVxrB1wTJgSKCZbHpWhmaTGoRXHj2dJRcJQhRkV22Mz3uhg9nThjGLA'
+                    'JKzrPuZXPmFUgQ42')
+        pk2 = HDKey('tprv8ZgxMBicQKsPdhv4GxyNcfNK1Wka7QEnQ2c8DNdRL5z3hzf7ufUYNW14fgArjFvLtyg5xmPrkpx6oGBo2dquPf5inH6'
+                    'Jg6h2D89nsQdY8Ga')
+        redeemscript = b'522103b008ee001282efb523f68d494896f3072903e03b3fb91d16713c56bf79693a382102d43dcc8a5db03172ba' \
+                       b'95c345bb2d478654853f311dc4b1cbd313e5a327f0e3ba52ae'
+
+        # Create 2-of-2 multisig transaction with 1 input and 1 output
+        t = Transaction(network='testnet')
+        t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
+                    [pk1.key.public_byte, pk2.key.public_byte], script_type='p2sh_multisig', sigs_required=2)
+        t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
+        print(binascii.hexlify(t.inputs[0].redeemscript))
+
+        # Sign with private key and verify
+        t.sign(pk1.private_byte)
+        t.sign(pk2.private_byte)
+        self.assertTrue(t.verify())
+
+        # Now deserialize and check if redeemscript is still the same
+        dt = transaction_deserialize(t.raw_hex(), network='testnet')
+        self.assertEqual(binascii.hexlify(dt[0][0].redeemscript), redeemscript)
