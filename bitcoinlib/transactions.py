@@ -382,6 +382,7 @@ class Input:
         self.unlocking_script_unsigned = b''
         self.script_type = script_type
         self.sequence = to_bytes(sequence)
+        self.compressed = compressed
         self.network = Network(network)
         self.tid = tid
         if keys is None:
@@ -446,10 +447,12 @@ class Input:
         elif self.script_type == 'p2sh_multisig':
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
-            self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=sigs_required,
-                                                                compressed=compressed)
+            if not self.redeemscript:
+                self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
+                                                                    compressed=self.compressed)
+
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
-                                              versionbyte=Network(network).prefix_address_p2sh)
+                                              versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
 
     def json(self):

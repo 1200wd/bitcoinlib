@@ -139,18 +139,19 @@ class TestTransactions(unittest.TestCase):
                          Transaction.import_raw(rawtx).get()['outputs'][1]['address'])
 
     def test_transactions_deserialize_p2sh_output(self):
-        rawtx = '0100000001a5a5d29fdfe9e6baf50eb35f9e5750cd35934cb538a101028fa432d6cff342d700000000fd4701004830450221' \
-                '00f35cd1c39efdf3f3f2a125bbad8d14c1b15e41c2253d2790886211fd9e7f5f2e02206b6e1f075ce30223c9c786c8a7d8d3' \
-                '51303b00ed74fbe9bd0578f86677d26dc9014830450221008168f73c5cfd9a6f84d0eee4a8d522d7e2b797979266e45e0e9f' \
-                'c02644d41ba8022049d8302af5f2d6248b36563ca1faa4921e08ab7ffbeeda549e0b8e57e113da2001483045022100c498c2' \
-                '29be69030cb9ef7dfda44bbb7470aa4d4ae37662439b7ebdfe1e59441c0220737e3488509930b9072008f446a05a02e7ab77' \
-                '178d782ffb1ad7f2319159db12014c69532102b10f1d1017cc7a4f1c09be88319fad6e7c7fb67ad258292a7a91f46fbeeeb7' \
-                'e321033d83963d35e38b282772cf05fdd57887ed808ee09f352715cf59e69f9d47f6f52103c79ffe09913eab71f857b7022a' \
-                '5e01da91730ed32c46a5dcacea20246658905853aeffffffff0158400f000000000017a914867f84607587f7c2054740c6ca' \
-                'e09298ccbcd5288700000000'
+        rawtx = '01000000011a422ceb2104d9c3ace9fcbda16b9a9f12a1a93c389a0740c70c9b56d3a0c7bf00000000fd4501004730440220' \
+                '7ed9498344a1ddb6e52d2b3fb270c85ec49527fe7cc0915264aa334a9d61a7770220032cb9d97cec92d027fcf80f0e11fbe7' \
+                'f454db77ea49e1efebea725bfb08195e0147304402204acac2c8c9f84b083d2768c358645e0dc56e13fa0eb625b74d1f9e67' \
+                'f061fb3f02207eb66aae538afeeaeb2eea96e8863793d3a96232587b440e7453ea8c6316d6de01483045022100d868fe1026' \
+                'd496f262e269e2f644f05a84ce13f5e532d6356d901a0d7bd8dc7c0220573717a3bfabc491a2d8a38380a4a2c9d6e709650c' \
+                '6624538a2d361bbae0b0fe014c69532103ccf652bab8cf942453d68a2539560e5f267ee01f757395db96eab57bbb888af621' \
+                '0272a9d882836778834d454e9293486f2da74ebdce82282bfcfaf2873a95ac2e5d21023c7776e9908983e35e3304c540816f' \
+                'ab387523fd7bdce168be7bbfef7afc4c6e53aeffffffff02a08601000000000017a914eb2f6545c638f7ab3897dfeb9e92bb' \
+                '8b11b840c687f23a0d000000000017a9145ac6cc10677d242eeb260dae9770221be9c87c8b8700000000'
         dt = transaction_deserialize(rawtx, 'testnet')
-        self.assertEqual(dt[0][0].address, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
-        self.assertEqual(dt[1][0].address, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
+        self.assertEqual(dt[0][0].address, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
+        self.assertEqual(dt[1][0].address, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
+        self.assertEqual(dt[1][1].address, '2N1XCxDRsyi8so3wr6C5xj5Arcv2wej7znf')
 
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:
