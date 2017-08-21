@@ -443,7 +443,7 @@ class Input:
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
                 self.address = self.keys[0].address()
-        elif script_type == 'p2sh_multisig':
+        elif self.script_type == 'p2sh_multisig':
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
             self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=sigs_required,
@@ -477,7 +477,8 @@ class Input:
         }
 
     def __repr__(self):
-        return "<Input (tid=%s, index=%s, type=%s)>" % (self.tid, to_hexstring(self.output_index), self.script_type)
+        return "<Input (address=%s, tid=%s, index=%s, type=%s)>" % \
+               (self.address, self.tid, struct.unpack('I', self.output_index)[0], self.script_type)
 
 
 class Output:
