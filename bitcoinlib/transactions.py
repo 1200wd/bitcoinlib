@@ -437,6 +437,8 @@ class Input:
                     'priv_key': ''
                 })
 
+        if self.script_type == 'sig_pubkey':
+            self.script_type = 'p2pkh'
         if self.script_type == 'p2pkh':
             # pk2 = b''
             # if unlocking_script:
