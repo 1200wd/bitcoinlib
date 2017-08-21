@@ -149,8 +149,8 @@ class TestTransactions(unittest.TestCase):
                 '5e01da91730ed32c46a5dcacea20246658905853aeffffffff0158400f000000000017a914867f84607587f7c2054740c6ca' \
                 'e09298ccbcd5288700000000'
         dt = transaction_deserialize(rawtx, 'testnet')
-        self.assertEqual(dt[0][0].address, '2NEW7A5nS4Vmsat5RDMAesxj6RjrRxeqBtj')
-        self.assertEqual(dt[1][0].address, '2NEW7A5nS4Vmsat5RDMAesxj6RjrRxeqBtj')
+        self.assertEqual(dt[0][0].address, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
+        self.assertEqual(dt[1][0].address, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
 
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:

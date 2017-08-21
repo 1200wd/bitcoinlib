@@ -542,9 +542,13 @@ class Output:
         if self.lock_script and not self.public_key_hash:
             ss = script_deserialize(self.lock_script)
             self.script_type = ss['script_type']
-            if self.script_type == 'p2pkh':
+            if self.script_type == 'p2sh':
+                self.versionbyte = self.network.prefix_address_p2sh
+            if self.script_type in ['p2pkh', 'p2sh']:
                 self.public_key_hash = ss['signatures'][0]
                 self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
+            else:
+                raise TransactionError("Script type %s not supported" % self.script_type)
 
         # TODO: Recognise script type from address
         if self.address and self.address[0] == '2':
