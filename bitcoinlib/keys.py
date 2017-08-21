@@ -103,7 +103,7 @@ def get_key_format(key, isprivate=None):
     key_format = ""
     networks = None
 
-    if isinstance(key, (bytes, bytearray)) and len(key) in [64, 66, 128, 130]:
+    if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
         key = to_hexstring(key)
 
     if not (isprivate is None or isinstance(isprivate, bool)):
@@ -111,10 +111,10 @@ def get_key_format(key, isprivate=None):
     elif isinstance(key, numbers.Number):
         key_format = 'decimal'
         isprivate = True
-    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[:1] in [b'\2', b'\3']:
+    elif isinstance(key, (bytes, bytearray)) and len(key) in [33, 65] and key[:1] in [b'\2', b'\3']:
         key_format = 'bin_compressed'
         isprivate = False
-    elif isinstance(key, (bytes, bytearray)) and (len(key) == 33 and key[:1] == b'\4'):
+    elif isinstance(key, (bytes, bytearray)) and (len(key) in [33, 65] and key[:1] == b'\4'):
         key_format = 'bin'
         isprivate = False
     elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\1':

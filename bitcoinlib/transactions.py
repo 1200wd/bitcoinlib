@@ -548,7 +548,7 @@ class Output:
                 self.public_key_hash = ss['signatures'][0]
                 self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
             else:
-                raise TransactionError("Script type %s not supported" % self.script_type)
+                _logger.warning("Script type %s not supported" % self.script_type)
 
         # TODO: Recognise script type from address
         if self.address and self.address[0] == '2':

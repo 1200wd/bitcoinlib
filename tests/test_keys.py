@@ -39,6 +39,11 @@ class TestGetKeyFormat(unittest.TestCase):
         key = 'L2Q5U2zjxeoSf3dcNZsk19Z9bGr7RMeCTigvv7gJNJQq9uzQnF47'
         self.assertEqual('wif_compressed', get_key_format(key)['format'])
 
+    def test_format_bin_uncompressed(self):
+        key = b'\x04\xa8\x82\xd4\x14\xe4x\x03\x9c\xd5\xb5*\x92\xff\xb1=\xd5\xe6\xbdE\x15It9\xdf\xfdi\x1a\x0f\x12\xaf' \
+              b'\x95u\xfa4\x9bV\x94\xed1U\xb16\xf0\x9ec\x97Z\x17\x00\xc9\xf4\xd4\xdf\x84\x93#\xda\xc0l\xf3\xbddX\xcd'
+        self.assertEqual('bin', get_key_format(key)['format'])
+
     def test_format_hdkey_private(self):
         key = 'xprv9s21ZrQH143K2JF8RafpqtKiTbsbaxEeUaMnNHsm5o6wCW3z8ySyH4UxFVSfZ8n7ESu7fgir8imbZKLYVBxFPND1pniTZ81v' \
               'Kfd45EHKX73'
