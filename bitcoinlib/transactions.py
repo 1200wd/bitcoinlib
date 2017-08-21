@@ -402,7 +402,7 @@ class Input:
         self.redeemscript = b''
         if not sigs_required:
             if script_type == 'p2sh_multisig':
-                sigs_required = len(self.keys)
+                raise TransactionError("Please specify number of signatures required (sigs_required) parameter")
             else:
                 sigs_required = 1
         self.sigs_required = sigs_required
