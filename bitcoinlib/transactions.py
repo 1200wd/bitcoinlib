@@ -120,7 +120,7 @@ def script_deserialize(script, script_types=None):
     def _parse_signatures(scr, max_signatures=None, redeemscript_expected=False):
         scr = to_bytes(scr)
         sigs = []
-        total_lenght = 0
+        total_length = 0
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
             l, sl = varbyteint_to_int(scr[0:9])
             # TODO: Rethink and rewrite this:
@@ -131,9 +131,9 @@ def script_deserialize(script, script_types=None):
             if redeemscript_expected and len(scr[l + 1:]) < 20:
                 break
             sigs.append(scr[1:l + 1])
-            total_lenght += l + sl
+            total_length += l + sl
             scr = scr[l + 1:]
-        return sigs, total_lenght
+        return sigs, total_length
 
     data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b''}
     script = to_bytes(script)
@@ -196,6 +196,9 @@ def script_deserialize(script, script_types=None):
                     size_byte = 1
                 data['redeemscript'] = script[cur+1+size_byte:]
                 data2 = script_deserialize(data['redeemscript'])
+                if 'signatures' not in data2:
+                    found = False
+                    break
                 data['keys'] = data2['signatures']
                 data['number_of_sigs_m'] = data2['number_of_sigs_m']
                 data['number_of_sigs_n'] = data2['number_of_sigs_n']
@@ -445,7 +448,8 @@ class Input:
                 {
                     'sig_der': b'',
                     'signature': to_bytes(sig),
-                    'priv_key': ''
+                    'priv_key': '',
+                    'pub_key': ''
                 })
 
         if self.script_type == 'sig_pubkey':
