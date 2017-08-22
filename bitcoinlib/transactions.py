@@ -772,31 +772,34 @@ class Transaction:
                 sig_id += 1
         return True
 
-    def sign(self, priv_keys, tid=0, hash_type=SIGHASH_ALL):
+    def sign(self, keys, tid=0, hash_type=SIGHASH_ALL):
         """
         Sign the transaction input with provided private key
         
-        :param priv_keys: A private key or list of private keys
-        :type priv_keys: bytes or list of bytes
+        :param keys: A private key or list of private keys
+        :type keys: HDKey, Key, bytes, list
         :param tid: Index of transaction input
         :type tid: int
         :return: 
         """
-        if not isinstance(priv_keys, list):
-            priv_keys = [priv_keys]
+        if not isinstance(keys, list):
+            keys = [keys]
 
         if self.inputs[tid].script_type == 'coinbase':
             raise TransactionError("Can not sign coinbase transactions")
         tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
 
-        for priv_key in priv_keys:
-            kf = get_key_format(priv_key)
-            if kf['format'] != 'bin':
-                ko = HDKey(priv_key)
+        for key in keys:
+            if isinstance(key, (HDKey, Key)):
+                priv_key = key.private_byte
+                pub_key = key.public_byte
+            else:
+                ko = Key(key)
                 priv_key = ko.private_byte
-                if not priv_key:
-                    raise TransactionError("Please provide a valid private key to sign the transaction. "
-                                           "%s is not a private key" % priv_key)
+                pub_key = ko.public_byte
+            if not priv_key:
+                raise TransactionError("Please provide a valid private key to sign the transaction. "
+                                       "%s is not a private key" % priv_key)
             sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
             while True:
                 sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
@@ -811,7 +814,8 @@ class Transaction:
                 {
                     'sig_der': to_bytes(sig_der),
                     'signature': to_bytes(signature),
-                    'priv_key': priv_key
+                    'priv_key': priv_key,
+                    'pub_key': pub_key
                 }
             )
 
