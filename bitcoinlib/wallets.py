@@ -1696,7 +1696,8 @@ class HDWallet:
         # Calculate exact estimated fees and update change output if necessary
         if transaction_fee is None and transaction.fee_per_kb and transaction.change:
             fee_exact = transaction.estimate_fee()
-            if abs((transaction.fee - fee_exact) / fee_exact) > 0.10:  # Fee estimation more then 10% off
+            # Recreate transaction if fee estimation more then 10% off
+            if fee_exact and abs((transaction.fee - fee_exact) / float(fee_exact)) > 0.10:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
                 transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee_exact,
