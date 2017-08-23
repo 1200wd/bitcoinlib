@@ -814,14 +814,26 @@ class Transaction:
                 s = int(signature[64:], 16)
                 if s < ecdsa.SECP256k1.order / 2:
                     break
-            self.inputs[tid].signatures.append(
-                {
+            newsig = {
                     'sig_der': to_bytes(sig_der),
                     'signature': to_bytes(signature),
                     'priv_key': priv_key,
                     'pub_key': pub_key
                 }
+
+            # Check if signature signs known key and is not already in list
+            pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
+            if pub_key not in pub_key_list:
+                raise TransactionError("This key does not sign any known key: %s" % pub_key)
+            if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
+                raise TransactionError("Key %s already signed" % pub_key)
+            self.inputs[tid].signatures.append(
+               newsig
             )
+
+        if len(self.inputs[tid].signatures) > 1:
+            # TODO: sort according to self.keys
+            pass
 
         if self.inputs[tid].script_type == 'p2pkh':
             self.inputs[tid].unlocking_script = \
