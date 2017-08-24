@@ -469,7 +469,7 @@ class HDWallet:
 
     @classmethod
     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
-                        multisig_compressed=True, bip45_sort=True, databasefile=None):
+                        multisig_compressed=True, sort_keys=True, databasefile=None):
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
         session = DbInit(databasefile=databasefile).session
@@ -497,7 +497,7 @@ class HDWallet:
                 hdkey_list.append(HDKey(cokey))
             else:
                 hdkey_list.append(cokey)
-        if bip45_sort:
+        if sort_keys:
             hdkey_list.sort(key=lambda x: x.public_byte)
         # TODO: Allow HDKey objects in Wallet.create (?)
         key_wif_list = [k.wif() for k in hdkey_list]
@@ -509,7 +509,7 @@ class HDWallet:
             co_id += 1
 
         hdpm.multisig_n_required = sigs_required
-        hdpm.bip45_sort = bip45_sort
+        hdpm.sort_keys = sort_keys
         session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id).\
             update({DbWallet.multisig_n_required: sigs_required})
         session.commit()
@@ -619,7 +619,7 @@ class HDWallet:
             self.multisig_n_required = w.multisig_n_required
             self.multisig_compressed = None
             self.cosigner = []
-            self.bip45_sort = True
+            self.sort_keys = True
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             elif w.main_key_id:
@@ -1614,7 +1614,7 @@ class HDWallet:
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
             transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
-                                  sigs_required=self.multisig_n_required, bip45_sort=self.bip45_sort)
+                                  sigs_required=self.multisig_n_required, sort=self.sort_keys)
 
         return transaction
 

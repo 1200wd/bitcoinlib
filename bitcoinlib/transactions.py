@@ -365,7 +365,7 @@ class Input:
 
     def __init__(self, prev_hash, output_index, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, network=DEFAULT_NETWORK,
-                 bip45_sort=True, tid=0):
+                 sort=True, tid=0):
         """
         Create a new transaction input
         
@@ -379,6 +379,8 @@ class Input:
         :type keys: list (bytes, str)
         :param network: Network, leave empty for default
         :type network: str
+        :param sort: Sort public keys according to BIP0045 standard
+        :type sort: boolean
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes
         :param tid: Index of input in transaction. Used by Transaction class.
@@ -408,7 +410,8 @@ class Input:
         if not isinstance(signatures, list):
             signatures = [signatures]
         # Sort according to BIP45 standard
-        if bip45_sort:
+        self.sort = sort
+        if sort:
             self.keys.sort(key=lambda k: k.public_byte)
         self.address = ''
         self.signatures = []
@@ -835,6 +838,7 @@ class Transaction:
 
         if len(self.inputs[tid].signatures) > 1:
             # TODO: sort according to self.keys
+            print([x['pub_key'] for x in self.inputs[tid].signatures])
             pass
 
         if self.inputs[tid].script_type == 'p2pkh':
@@ -852,7 +856,7 @@ class Transaction:
         return True
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
-                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, bip45_sort=True):
+                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=True):
         """
         Add input to this transaction
         
@@ -874,7 +878,7 @@ class Transaction:
         self.inputs.append(
             Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
                   network=self.network.network_name, sequence=sequence, compressed=compressed,
-                  sigs_required=sigs_required, bip45_sort=bip45_sort, tid=new_id))
+                  sigs_required=sigs_required, sort=sort, tid=new_id))
         return new_id
 
     def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
