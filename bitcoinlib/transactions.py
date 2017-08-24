@@ -824,7 +824,9 @@ class Transaction:
             # Check if signature signs known key and is not already in list
             pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
             if pub_key not in pub_key_list:
-                raise TransactionError("This key does not sign any known key: %s" % pub_key)
+                _logger.warning("This key does not sign any known key: %s" % pub_key)
+                # FIXME: test_wallet_bitcoinlib_testnet_sweep fails when break removed
+                # break
             if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
                 raise TransactionError("Key %s already signed" % pub_key)
             self.inputs[tid].signatures.append(
@@ -847,6 +849,7 @@ class Transaction:
             signatures = [s['sig_der'] for s in self.inputs[tid].signatures[:n_required]]
             self.inputs[tid].unlocking_script = \
                 _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
+        return True
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
                   sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, bip45_sort=True):

@@ -343,6 +343,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.new_key()
         w.updateutxos()
+        w.info()
         self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
                          'succesfull_test_sendrawtransaction')
 
