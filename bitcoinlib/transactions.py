@@ -837,9 +837,11 @@ class Transaction:
             )
 
         if len(self.inputs[tid].signatures) > 1:
-            # TODO: sort according to self.keys
-            print([x['pub_key'] for x in self.inputs[tid].signatures])
-            pass
+            # Sort signatures according to self.keys
+            sorted_sigs = []
+            for k in self.inputs[tid].keys:
+                sorted_sigs += [x for x in self.inputs[tid].signatures if x['pub_key'] == k.public_byte]
+            self.inputs[tid].signatures = sorted_sigs
 
         if self.inputs[tid].script_type == 'p2pkh':
             self.inputs[tid].unlocking_script = \
