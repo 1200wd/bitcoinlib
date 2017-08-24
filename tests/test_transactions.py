@@ -341,7 +341,7 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
         t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,
                     keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='p2sh_multisig',
-                    sigs_required=2, compressed=False, bip45_sort=False)
+                    sigs_required=2, compressed=False, sort=False)
         pk1 = Key(self.keylist[0]).private_byte
         pk2 = Key(self.keylist[2]).private_byte
         t.sign([pk1, pk2])
@@ -356,7 +356,7 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
         t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,
                     keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='p2sh_multisig',
-                    sigs_required=2, compressed=False, bip45_sort=False)
+                    sigs_required=2, compressed=False, sort=False)
         pk1 = Key(self.keylist[0]).private_byte
         pk2 = Key(self.keylist[2]).private_byte
         t.sign([pk1])
