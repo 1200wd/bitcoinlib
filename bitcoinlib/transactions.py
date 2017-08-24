@@ -836,12 +836,12 @@ class Transaction:
                newsig
             )
 
-        # if len(self.inputs[tid].signatures) > 1:
-        #     Sort signatures according to self.keys
-            # sorted_sigs = []
-            # for k in self.inputs[tid].keys:
-            #     sorted_sigs += [x for x in self.inputs[tid].signatures if x['pub_key'] == k.public_byte]
-            # self.inputs[tid].signatures = sorted_sigs
+        if len(self.inputs[tid].signatures) > 1:
+            # Sort signatures according to self.keys
+            sorted_sigs = []
+            for k in self.inputs[tid].keys:
+                sorted_sigs += [x for x in self.inputs[tid].signatures if x['pub_key'] == k.public_byte]
+            self.inputs[tid].signatures = sorted_sigs
 
         if self.inputs[tid].script_type == 'p2pkh':
             self.inputs[tid].unlocking_script = \
