@@ -823,7 +823,8 @@ class Transaction:
                     'sig_der': to_bytes(sig_der),
                     'signature': to_bytes(signature),
                     'priv_key': priv_key,
-                    'pub_key': pub_key
+                    'pub_key': pub_key,
+                    'transaction_id': tid
                 }
 
             # Check if signature signs known key and is not already in list

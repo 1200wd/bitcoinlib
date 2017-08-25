@@ -20,6 +20,7 @@
 
 import numbers
 from itertools import groupby
+from copy import deepcopy
 from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.encoding import pubkeyhash_to_addr, to_bytes, to_hexstring, script_to_pubkeyhash
@@ -1619,29 +1620,22 @@ class HDWallet:
         return transaction
 
     def transaction_sign(self, transaction, private_keys=None):
-        # FIXME: tid of priv_key is missing here
-        priv_key_list = []
+        priv_key_list_arg = []
         if private_keys:
             if not isinstance(private_keys, list):
                 private_keys = [private_keys]
             for priv_key in private_keys:
                 if isinstance(priv_key, HDKey):
-                    priv_key_list.append(priv_key)
+                    priv_key_list_arg.append(priv_key)
                 else:
-                    priv_key_list.append(HDKey(priv_key, isprivate=True))
+                    priv_key_list_arg.append(HDKey(priv_key, isprivate=True))
         for ti in transaction.inputs:
+            priv_key_list = deepcopy(priv_key_list_arg)
             for k in ti.keys:
+                print(k)
                 if k.isprivate:
                     if k not in priv_key_list:
                         priv_key_list.append(k)
-            # if len(ti.priv_keys) < ti.sigs_required:
-            #     # Check if private key is in this wallet but not in key list
-            #     co_addresses = [k.address() for k in ti.keys]
-            #     wallet_ids = [x.wallet_id for x in self.cosigner]
-            #     qr = self._session.query(DbKey.key).\
-            #         filter(DbKey.wallet_id.in_(wallet_ids), DbKey.address.in_(co_addresses), DbKey.is_private.is_(True))
-            #     known_priv_keys = [to_bytes(k[0]) for k in qr.all()]
-            #     priv_keys_all = list(set(ti.priv_keys + priv_keys + known_priv_keys))
             transaction.sign(priv_key_list, ti.tid)
         return transaction
 
