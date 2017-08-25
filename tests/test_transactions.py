@@ -396,7 +396,6 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
                     [pk1.key.public_byte, pk2.key.public_byte], script_type='p2sh_multisig', sigs_required=2)
         t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
-        print(binascii.hexlify(t.inputs[0].redeemscript))
 
         # Sign with private key and verify
         t.sign(pk1.private_byte)
@@ -407,7 +406,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         dt = transaction_deserialize(t.raw_hex(), network='testnet')
         self.assertEqual(binascii.hexlify(dt[0][0].redeemscript), redeemscript)
 
-    def test_transaction_multisig_3_of_5(self):
+    def test_transaction_multisig_sign_3_of_5(self):
         t = Transaction(network='testnet')
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [self.pk1.public_byte, self.pk2.public_byte, self.pk3.public_byte, self.pk4.public_byte,
@@ -422,7 +421,7 @@ class TestTransactionsMultisig(unittest.TestCase):
 
         self.assertTrue(t.verify())
 
-    def test_transaction_multisig_2_of_5_not_enough(self):
+    def test_transaction_multisig_sign_2_of_5_not_enough(self):
         t = Transaction(network='testnet')
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [self.pk1.public_byte, self.pk2.public_byte, self.pk3.public_byte, self.pk4.public_byte,
@@ -435,3 +434,31 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.sign(self.pk1.private_byte)
 
         self.assertFalse(t.verify())
+
+    def test_transaction_multisig_sign_duplicate(self):
+        t = Transaction(network='testnet')
+        t.add_input(self.utxo_prev_tx, self.utxo_output_n,
+                    [self.pk1.public_byte, self.pk2.public_byte, self.pk3.public_byte, self.pk4.public_byte,
+                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3)
+
+        t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
+        t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
+
+        t.sign(self.pk1.private_byte)
+        self.assertRaisesRegex(TransactionError, 'already signed', t.sign, self.pk1.private_byte)
+
+    def test_transaction_multisig_sign_extra_sig(self):
+        t = Transaction(network='testnet')
+        t.add_input(self.utxo_prev_tx, self.utxo_output_n,
+                    [self.pk1.public_byte, self.pk2.public_byte, self.pk3.public_byte, self.pk4.public_byte,
+                     self.pk5.public_byte], script_type='p2sh_multisig', sigs_required=3)
+
+        t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
+        t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
+
+        t.sign(self.pk1.private_byte)
+        t.sign(self.pk4.private_byte)
+        t.sign(self.pk2.private_byte)
+        t.sign(self.pk5.private_byte)
+
+        self.assertTrue(t.verify())
