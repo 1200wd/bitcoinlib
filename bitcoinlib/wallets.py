@@ -1618,17 +1618,22 @@ class HDWallet:
 
         return transaction
 
-    def transaction_sign(self, transaction, priv_keys=None):
-        # Sign inputs,
+    def transaction_sign(self, transaction, private_keys=None):
         # FIXME: tid of priv_key is missing here
-        if priv_keys is None:
-            priv_keys = []
-        elif not isinstance(priv_keys, list):
-            priv_keys = [priv_keys]
+        priv_key_list = []
+        if private_keys:
+            if not isinstance(private_keys, list):
+                private_keys = [private_keys]
+            for priv_key in private_keys:
+                if isinstance(priv_key, HDKey):
+                    priv_key_list.append(priv_key)
+                else:
+                    priv_key_list.append(HDKey(priv_key, isprivate=True))
         for ti in transaction.inputs:
             for k in ti.keys:
                 if k.isprivate:
-                    priv_keys.append(k.private_byte)
+                    if k not in priv_key_list:
+                        priv_key_list.append(k)
             # if len(ti.priv_keys) < ti.sigs_required:
             #     # Check if private key is in this wallet but not in key list
             #     co_addresses = [k.address() for k in ti.keys]
@@ -1637,7 +1642,7 @@ class HDWallet:
             #         filter(DbKey.wallet_id.in_(wallet_ids), DbKey.address.in_(co_addresses), DbKey.is_private.is_(True))
             #     known_priv_keys = [to_bytes(k[0]) for k in qr.all()]
             #     priv_keys_all = list(set(ti.priv_keys + priv_keys + known_priv_keys))
-            transaction.sign(priv_keys, ti.tid)
+            transaction.sign(priv_key_list, ti.tid)
         return transaction
 
     def transaction_send(self, transaction):
