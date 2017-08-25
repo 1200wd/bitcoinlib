@@ -1632,7 +1632,6 @@ class HDWallet:
         for ti in transaction.inputs:
             priv_key_list = deepcopy(priv_key_list_arg)
             for k in ti.keys:
-                print(k)
                 if k.isprivate:
                     if k not in priv_key_list:
                         priv_key_list.append(k)

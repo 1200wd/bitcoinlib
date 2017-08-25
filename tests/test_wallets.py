@@ -332,21 +332,20 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found', w.send_to,
                                 '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
 
-    # FIXME: fix this test
-    # def test_wallet_bitcoinlib_testnet_sweep(self):
-    #     if os.path.isfile(DATABASEFILE_UNITTESTS):
-    #         os.remove(DATABASEFILE_UNITTESTS)
-    #     w = HDWallet.create(
-    #         network='bitcoinlib_test',
-    #         name='test_wallet_bitcoinlib_testnet',
-    #         databasefile=DATABASEFILE_UNITTESTS)
-    #     w.new_key()
-    #     w.new_key()
-    #     w.new_key()
-    #     w.updateutxos()
-    #     w.info()
-    #     self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
-    #                      'succesfull_test_sendrawtransaction')
+    def test_wallet_bitcoinlib_testnet_sweep(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        w = HDWallet.create(
+            network='bitcoinlib_test',
+            name='test_wallet_bitcoinlib_testnet',
+            databasefile=DATABASEFILE_UNITTESTS)
+        w.new_key()
+        w.new_key()
+        w.new_key()
+        w.updateutxos()
+        w.info()
+        self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
+                         'succesfull_test_sendrawtransaction')
 
 
 class TestWalletMultisig(unittest.TestCase):
