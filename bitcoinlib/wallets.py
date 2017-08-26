@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2017 July - 1200 Web Development <http://1200wd.com/>
+#    © 2017 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -1230,6 +1230,14 @@ class HDWallet:
                 return HDWalletKey(key_id=dbkey.id, session=self._session)
         else:
             raise KeyError("Key '%s' not found" % term)
+
+    def account(self, account_id):
+        qr = self._session.query(DbKey).\
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id, depth=3).scalar()
+        if not qr:
+            raise WalletError("Account with ID %d not found in this wallet" % account_id)
+        key_id = qr.id
+        return HDWalletKey(key_id, session=self._session)
 
     def accounts(self, network=None):
         """
