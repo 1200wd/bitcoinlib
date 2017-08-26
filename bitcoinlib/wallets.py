@@ -218,7 +218,9 @@ class HDWalletKey:
         :param parent_id: Key ID of parent, default is 0 (no parent)
         :type parent_id: int
         :param path: BIP0044 path of given key, default is 'm' (masterkey)
-        
+        :type path: str
+        :param key_type: Type of key, single or BIP44 type
+        :type key_type: str
         :return HDWalletKey: HDWalletKey object
         """
 
@@ -415,6 +417,10 @@ class HDWallet:
         :type account_id: int
         :param purpose: BIP0044 purpose field, default is 44
         :type purpose: int
+        :param scheme: Key structure type, i.e. bip32, single or multisig
+        :type scheme: str
+        :param parent_id: Parent Wallet ID used for multisig wallet structures
+        :type parent_id: int
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
         
@@ -748,7 +754,9 @@ class HDWallet:
         :type name: str
         :param network: Network name, method will try to extract from key if not specified. Raises warning if network could not be detected
         :type network: str
-        :param key_type: Key type of imported key, can be single (unrelated to wallet, bip32, bip44 or master for new or extra master key import.
+        :param purpose: BIP definition used, default is BIP44
+        :type purpose: int
+        :param key_type: Key type of imported key, can be single (unrelated to wallet, bip32, bip44 or master for new or extra master key import. Default is 'single'
         :type key_type: str
         
         :return HDWalletKey: 
@@ -1627,6 +1635,7 @@ class HDWallet:
 
         return transaction
 
+    # TODO: Move this to Transaction class (?)
     def transaction_sign(self, transaction, private_keys=None):
         priv_key_list_arg = []
         if private_keys:
@@ -1692,6 +1701,8 @@ class HDWallet:
         :type transaction_fee: int
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
         :type min_confirms: int
+        :param priv_keys: Specify extra private key if not available in this wallet
+        :type priv_keys: HDKey, list
         
         :return str, list: Transaction ID or result array
         """
@@ -1729,6 +1740,8 @@ class HDWallet:
         :type transaction_fee: int
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
         :type min_confirms: int
+        :param priv_keys: Specify extra private key if not available in this wallet
+        :type priv_keys: HDKey, list
 
         :return str, list: Transaction ID or result array 
         """
@@ -1752,6 +1765,8 @@ class HDWallet:
         :type max_utxos: int
         :param min_confirms: Minimal confirmations needed to include utxo
         :type min_confirms: int
+        :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider.
+        :type fee_per_kb: int
         
         :return str, list: Transaction ID or result array
         """
@@ -1814,10 +1829,10 @@ if __name__ == '__main__':
     #
 
     # First recreate database to avoid already exist errors
-    import os
     from pprint import pprint
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
+    # import os
     # if os.path.isfile(test_database):
     #     os.remove(test_database)
 
@@ -1942,8 +1957,8 @@ if __name__ == '__main__':
     print("\n= UTXOs =")
     utxos = wallet_import.getutxos(99)
     for utxo in utxos:
-        print("%s %s (%d confirms)" % (
-        utxo['address'], wallet_import.network.print_value(utxo['value']), utxo['confirmations']))
+        print("%s %s (%d confirms)" %
+              (utxo['address'], wallet_import.network.print_value(utxo['value']), utxo['confirmations']))
     res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 100000, 99)
     print("Send transaction result:")
     pprint(res)
