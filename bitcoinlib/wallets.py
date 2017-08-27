@@ -476,7 +476,7 @@ class HDWallet:
 
     @classmethod
     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
-                        multisig_compressed=True, sort_keys=True, databasefile=None):
+                        multisig_compressed=True, sort_keys=False, databasefile=None):
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
         session = DbInit(databasefile=databasefile).session
@@ -626,7 +626,7 @@ class HDWallet:
             self.multisig_n_required = w.multisig_n_required
             self.multisig_compressed = None
             self.cosigner = []
-            self.sort_keys = True
+            self.sort_keys = False
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             elif w.main_key_id:

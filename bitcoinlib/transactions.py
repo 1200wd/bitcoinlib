@@ -365,7 +365,7 @@ class Input:
 
     def __init__(self, prev_hash, output_index, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, network=DEFAULT_NETWORK,
-                 sort=True, tid=0):
+                 sort=False, tid=0):
         """
         Create a new transaction input
         
@@ -379,7 +379,7 @@ class Input:
         :type keys: list (bytes, str)
         :param network: Network, leave empty for default
         :type network: str
-        :param sort: Sort public keys according to BIP0045 standard
+        :param sort: Sort public keys according to BIP0045 standard. Default is False to avoid unexpected change of key order.
         :type sort: boolean
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes
@@ -859,7 +859,7 @@ class Transaction:
         return True
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
-                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=True):
+                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False):
         """
         Add input to this transaction
         
@@ -875,6 +875,9 @@ class Transaction:
         :type keys: bytes, str
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes
+        :param sort: Sort public keys according to BIP0045 standard. Default is False to avoid unexpected change of key order.
+        :type sort: boolean
+
         :return int: Transaction index 
         """
         new_id = len(self.inputs)
