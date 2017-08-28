@@ -323,6 +323,13 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
         with self.assertRaises(BKeyError):
             self.k2.subkey_for_path('m/-1').wif()
 
+    def test_hdkey_bip44_account(self):
+        pk = 'tprv8ZgxMBicQKsPdvHCP6VxtFgowj2k7nBJnuRiVWE4DReDFojkLjyqdT8mtR6XJK9dRBcaa3RwvqiKFjsEQVhKfQmHZCCYf4jRTWv' \
+             'JuVuK67n'
+        k = HDKey(pk)
+        self.assertEqual(k.account_key(3, 45).private_hex,
+                         '232b9d7b48fa4ca6e842f09f6811ff03cf33ba0582b4cca5752deec2e746c186')
+
 
 class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
 
