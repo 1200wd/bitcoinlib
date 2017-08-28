@@ -812,6 +812,23 @@ class HDKey:
                     key = key.child_private(index=index, hardened=hardened, network=network)
         return key
 
+    def account_key(self, account_id=0, purpose=44, network=None):
+        if network is None:
+            network = self.network.network_name
+        if self.depth != 0:
+            raise KeyError("Need a master key to generate account key")
+        if self.isprivate:
+            path = "m"
+        else:
+            path = "M"
+        path += "/%d'" % purpose
+        path += "/%d'" % self.network.bip44_cointype
+        path += "/%d'" % account_id
+        return self.subkey_for_path(path)
+
+    def account_multisig_key(self, account_id=0, purpose=45, network=None):
+        return self.account_key(account_id, purpose, network)
+
     def child_private(self, index=0, hardened=False, network=None):
         """
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
