@@ -111,7 +111,8 @@ class DbKey(Base):
     depth = Column(Integer)
     change = Column(Integer)
     address_index = Column(Integer, index=True)
-    key = Column(String(255))
+    public = Column(String(255))
+    private = Column(String(255))
     wif = Column(String(255), index=True)
     key_type = Column(String(10), default='bip32')
     address = Column(String(255))
@@ -131,13 +132,14 @@ class DbKey(Base):
 
     __table_args__ = (
         CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),
-        UniqueConstraint('wallet_id', 'key', name='_wallet_key_uc'),
+        UniqueConstraint('wallet_id', 'public', name='_wallet_key_uc'),
+        UniqueConstraint('wallet_id', 'private', name='_wallet_key_uc'),
         UniqueConstraint('wallet_id', 'wif', name='_wallet_wif_uc'),
         UniqueConstraint('wallet_id', 'address', name='_wallet_address_uc'),
     )
 
     def __repr__(self):
-        return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)
+        return "<DbKey(id='%s', name='%s', wif='%s'>" % (self.id, self.name, self.wif)
 
 
 class DbNetwork(Base):

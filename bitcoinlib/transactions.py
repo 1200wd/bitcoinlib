@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -63,6 +63,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     :type rawtx: str, bytes, bytearray
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
     :type network: str
+
     :return dict: json list with inputs, outputs, locktime and version
     """
     rawtx = to_bytes(rawtx)
@@ -114,6 +115,7 @@ def script_deserialize(script, script_types=None):
     :type script: str, bytes, bytearray
     :param script_types: Limit script type determination to this list. Leave to default None to search in all script types.
     :type script_types: list
+
     :return list: With this items: [script_type, data, number_of_sigs_n, number_of_sigs_m] 
     """
 
@@ -251,6 +253,7 @@ def script_deserialize_sigpk(script):
     
     :param script: A unlocking script
     :type script: bytes
+
     :return tuple: Tuple with a signature and public key in bytes
     """
     data = script_deserialize(script, ['sig_pubkey'])
@@ -267,6 +270,7 @@ def script_to_string(script):
     
     :param script: A locking or unlocking script
     :type script: bytes, str
+
     :return str: 
     """
     script = to_bytes(script)
@@ -304,6 +308,20 @@ def _serialize_multisig_redeemscript(public_key_list, n_required=None):
 
 
 def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
+    """
+    Create a multisig redeemscript used in a p2sh.
+
+    Contains the number of signatures, followed by the list of public keys and the OP-code for the number of signatures required.
+
+    :param key_list: List of public keys
+    :type key_list: Key, list
+    :param n_required: Number of required signatures
+    :type n_required: int
+    :param compressed: Use compressed public keys?
+    :type compressed: bool
+
+    :return bytes: A multisig redeemscript
+    """
     if not key_list:
         return b''
     if not isinstance(key_list, list):
@@ -364,8 +382,8 @@ class Input:
     """
 
     def __init__(self, prev_hash, output_index, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
-                 sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, network=DEFAULT_NETWORK,
-                 sort=False, tid=0):
+                 sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False, network=DEFAULT_NETWORK,
+                 tid=0):
         """
         Create a new transaction input
         
@@ -373,16 +391,24 @@ class Input:
         :type prev_hash: bytes, hexstring
         :param output_index: Output number in previous transaction.
         :type output_index: bytes, int
-        :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
-        :type unlocking_script: bytes, hexstring
         :param keys: A list of Key objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
         :type keys: list (bytes, str)
-        :param network: Network, leave empty for default
-        :type network: str
-        :param sort: Sort public keys according to BIP0045 standard. Default is False to avoid unexpected change of key order.
-        :type sort: boolean
+        :param signatures: Specify optional signatures
+        :type signatures: bytes, str
+        :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
+        :type unlocking_script: bytes, hexstring
+        :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
+        :type script_type: str
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes
+        :param compressed: Use compressed or uncompressed public keys. Default is compressed
+        :type compressed: bool
+        :param sigs_required: Number of signatures required for a p2sh_multisig unlocking script
+        :param sigs_required: int
+        :param sort: Sort public keys according to BIP0045 standard. Default is False to avoid unexpected change of key order.
+        :type sort: boolean
+        :param network: Network, leave empty for default
+        :type network: str
         :param tid: Index of input in transaction. Used by Transaction class.
         :type tid: int
         """
@@ -629,6 +655,7 @@ class Transaction:
         :type rawtx: bytes, str
         :param network: Network, leave empty for default
         :type network: str
+
         :return Transaction:
          
         """
@@ -703,6 +730,9 @@ class Transaction:
         
         :param sign_id: Create raw transaction which can be signed by transaction with this input ID
         :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
         :return bytes:
         
         """
@@ -743,7 +773,7 @@ class Transaction:
         
         Does not check if UTXO is valid or has already been spent
         
-        :return bool: True if all signatures are valid 
+        :return bool: True if enough signatures provided and if all signatures are valid
         """
         for i in self.inputs:
             if i.script_type == 'coinbase':
@@ -789,7 +819,10 @@ class Transaction:
         :type keys: HDKey, Key, bytes, list
         :param tid: Index of transaction input
         :type tid: int
-        :return: 
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
+        :return bool: Return True if successfully signed
         """
         if not isinstance(keys, list):
             keys = [keys]
@@ -869,17 +902,24 @@ class Transaction:
         :type prev_hash: bytes, hexstring
         :param output_index: Output number in previous transaction.
         :type output_index: bytes, int
-        :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
-        :type unlocking_script: bytes, hexstring
         :param keys: Public keys can be provided to construct an Unlocking script. Optional
         :type keys: bytes, str
+        :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
+        :type unlocking_script: bytes, hexstring
+        :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
+        :type script_type: str
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes
+        :param compressed: Use compressed or uncompressed public keys. Default is compressed
+        :type compressed: bool
+        :param sigs_required: Number of signatures required for a p2sh_multisig unlocking script
+        :param sigs_required: int
         :param sort: Sort public keys according to BIP0045 standard. Default is False to avoid unexpected change of key order.
         :type sort: boolean
 
         :return int: Transaction index 
         """
+
         new_id = len(self.inputs)
         self.inputs.append(
             Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
@@ -919,6 +959,11 @@ class Transaction:
                                    self.network.network_name))
 
     def estimate_fee(self):
+        """
+        Get estimated fee for this transaction in smallest denominator (i.e. Satoshi)
+
+        :return int: Estimated transaction fee
+        """
         return int(len(self.raw())/1024 * self.fee_per_kb)
 
 

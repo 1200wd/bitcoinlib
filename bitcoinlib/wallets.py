@@ -247,12 +247,12 @@ class HDWalletKey:
                                   (k.depth, len(path.split('/')) - 1, path))
 
         wk = session.query(DbKey).filter(DbKey.wallet_id == wallet_id,
-                                         or_(DbKey.key == k.key_hex,
+                                         or_(DbKey.public == k.public_hex,
                                              DbKey.wif == k.wif())).first()
         if wk:
             return HDWalletKey(wk.id, session, k)
 
-        nk = DbKey(name=name, wallet_id=wallet_id, key=k.key_hex, purpose=purpose,
+        nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    wif=k.wif(), address=k.key.address(), parent_id=parent_id,
                    is_private=k.isprivate, path=path, key_type=key_type, network_name=network)
@@ -279,7 +279,9 @@ class HDWalletKey:
             self.key_id = key_id
             self.name = wk.name
             self.wallet_id = wk.wallet_id
-            self.key_hex = wk.key
+            # self.key_hex = wk.key
+            self.key_public = wk.public
+            self.key_private = wk.private
             self.account_id = wk.account_id
             self.change = wk.change
             self.address_index = wk.address_index
@@ -348,7 +350,7 @@ class HDWalletKey:
             change = self.change
         if address_index is None:
             address_index = self.address_index
-        if self.key_hex:
+        if self.is_private:
             p = ["m"]
         else:
             p = ["M"]
@@ -370,7 +372,9 @@ class HDWalletKey:
         print(" Key Type                       %s" % self.key_type)
         print(" Is Private                     %s" % self.is_private)
         print(" Name                           %s" % self.name)
-        print(" Key Hex                        %s" % self.key_hex)
+        if self.is_private:
+            print(" Private Key                        %s" % self.key_private)
+        print(" Public Key                        %s" % self.key_public)
         print(" Key WIF                        %s" % self.wif)
         print(" Account ID                     %s" % self.account_id)
         print(" Parent ID                      %s" % self.parent_id)
@@ -871,7 +875,7 @@ class HDWallet:
             multisig_key = DbKey(
                 name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
                 depth=0, change=change, address_index=0, parent_id=0, is_private=False, path=path,
-                key=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address,
+                key_public=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address,
                 key_type='multisig', network_name=network)
             self._session.add(multisig_key)
             self._session.commit()
@@ -1652,6 +1656,12 @@ class HDWallet:
                 if k.isprivate:
                     if k not in priv_key_list:
                         priv_key_list.append(k)
+                else:
+                    # Check if private key is available in wallet for this key
+                    # self._session.query(DbKey).filter_by(address=ti.address, is_private=True)
+                    # TODO: Add this code, reorg db first
+                    dbpk = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=k.address()).scalar()
+                    print(dbpk)
             transaction.sign(priv_key_list, ti.tid)
         return transaction
 
