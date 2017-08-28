@@ -24,6 +24,7 @@ import json
 
 from bitcoinlib.db import DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet, list_wallets, delete_wallet, WalletError
+from bitcoinlib.keys import HDKey
 
 DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
 
@@ -366,20 +367,37 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertFalse(wk2.is_private)
         self.assertEqual(wk1.address, wk2.address)
 
+    def test_wallet_multisig_create_2_cosigner_wallets(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        pk_wif1 = 'tprv8ZgxMBicQKsPdvHCP6VxtFgowj2k7nBJnuRiVWE4DReDFojkLjyqdT8mtR6XJK9dRBcaa3RwvqiKFjsEQVhKfQmHZCCY' \
+                  'f4jRTWvJuVuK67n'
+        pk_wif2 = 'tprv8ZgxMBicQKsPdkJVWDkqQQAMVYB2usfVs3VS2tBEsFAzjC84M3TaLMkHyJWjydnJH835KHvksS92ecuwwWFEdLAAccwZ' \
+                  'KjhcA63NUyvDixB'
+        pk1 = HDKey(pk_wif1, network='testnet')
+        pk2 = HDKey(pk_wif2, network='testnet')
+        wl1 = HDWallet.create_multisig('multisig_test_wallet1',
+                                       [pk_wif1, pk2.subkey_for_path("m/45'/1'/0'").wif_public()],
+                                       sigs_required=2, network='testnet', databasefile=DATABASEFILE_UNITTESTS)
+        wl2 = HDWallet.create_multisig('multisig_test_wallet2',
+                                       [pk1.subkey_for_path("m/45'/1'/0'").wif_public(), pk_wif2],
+                                       sigs_required=2, network='testnet', databasefile=DATABASEFILE_UNITTESTS)
+        wl1_key = wl1.new_key()
+        wl2_key = wl2.new_key()
+        self.assertEqual(wl1_key.address, wl2_key.address)
+
     def test_wallet_multisig_bitcoinlib_testnet_transaction_send(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
 
-        NETWORK = 'bitcoinlib_test'
-
-        # Define keys
-        pk_wif1 = 'Pdke4WfXvALPdbrKEfBU9z9BNuRNbv1gRr66BEiZHKcRXDSZQ3gV'
-        pk_wif2 = 'PhUTR4ZkZu9Xkzn3ee3xMU1TxbNx6ENJvUjX4wBaZDyTCMrn1zuE'
-        pk_wif3 = 'PdnZFcwpxUSAcFE6MHB78weVAguwzSTUMBqswkqie7Uxfxsd77Zs'
-        key_list = [pk_wif1, pk_wif2, pk_wif3]
+        key_list = [
+            'Pdke4WfXvALPdbrKEfBU9z9BNuRNbv1gRr66BEiZHKcRXDSZQ3gV',
+            'PhUTR4ZkZu9Xkzn3ee3xMU1TxbNx6ENJvUjX4wBaZDyTCMrn1zuE',
+            'PdnZFcwpxUSAcFE6MHB78weVAguwzSTUMBqswkqie7Uxfxsd77Zs'
+        ]
 
         # Create wallet and generate key
-        wl = HDWallet.create_multisig('multisig_test_simple', key_list, sigs_required=2, network=NETWORK,
+        wl = HDWallet.create_multisig('multisig_test_simple', key_list, sigs_required=2, network='bitcoinlib_test',
                                       databasefile=DATABASEFILE_UNITTESTS)
         wl.new_key()
 
