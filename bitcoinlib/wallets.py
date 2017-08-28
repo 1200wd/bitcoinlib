@@ -875,7 +875,7 @@ class HDWallet:
             multisig_key = DbKey(
                 name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
                 depth=0, change=change, address_index=0, parent_id=0, is_private=False, path=path,
-                key_public=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address,
+                public=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address,
                 key_type='multisig', network_name=network)
             self._session.add(multisig_key)
             self._session.commit()

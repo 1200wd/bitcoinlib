@@ -365,3 +365,27 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertTrue(wk1.is_private)
         self.assertFalse(wk2.is_private)
         self.assertEqual(wk1.address, wk2.address)
+
+    def test_wallet_multisig_bitcoinlib_testnet_transaction_send(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+        NETWORK = 'bitcoinlib_test'
+
+        # Define keys
+        pk_wif1 = 'Pdke4WfXvALPdbrKEfBU9z9BNuRNbv1gRr66BEiZHKcRXDSZQ3gV'
+        pk_wif2 = 'PhUTR4ZkZu9Xkzn3ee3xMU1TxbNx6ENJvUjX4wBaZDyTCMrn1zuE'
+        pk_wif3 = 'PdnZFcwpxUSAcFE6MHB78weVAguwzSTUMBqswkqie7Uxfxsd77Zs'
+        key_list = [pk_wif1, pk_wif2, pk_wif3]
+
+        # Create wallet and generate key
+        wl = HDWallet.create_multisig('multisig_test_simple', key_list, sigs_required=2, network=NETWORK,
+                                      databasefile=DATABASEFILE_UNITTESTS)
+        wl.new_key()
+
+        # Sign, verify and send transaction
+        wl.updateutxos()  # In bitcoinlib_test network this generates new UTXO's
+        t = wl.transaction_create([('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 100000)])
+        t = wl.transaction_sign(t)
+        self.assertTrue(t.verify())
+        self.assertEqual(wl.transaction_send(t), 'succesfull_test_sendrawtransaction')
