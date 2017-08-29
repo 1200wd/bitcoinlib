@@ -1244,6 +1244,19 @@ class HDWallet:
             raise KeyError("Key '%s' not found" % term)
 
     def account(self, account_id):
+        """
+        Returns wallet key of specific BIP44 account.
+
+        Account keys have a BIP44 path depth of 3 and have the format m/purpose'/network'/account'
+
+        I.e: Use account(0).key().wif_public() to get wallet's public account key
+
+        :param account_id: ID of account. Default is 0
+        :type account_id: int
+
+        :return HDWalletKey:
+
+        """
         qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.network_name,
                       account_id=account_id, depth=3).scalar()
@@ -1658,11 +1671,12 @@ class HDWallet:
                     if k not in priv_key_list:
                         priv_key_list.append(k)
                 else:
-                    # Check if private key is available in wallet for this key
-                    # self._session.query(DbKey).filter_by(address=ti.address, is_private=True)
-                    # TODO: Add this code, reorg db first
-                    dbpk = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=k.address()).scalar()
-                    print(dbpk)
+                    # Check if private key is available in wallet
+                    cosign_wallet_ids = [w.wallet_id for w in self.cosigner]
+                    db_pk = self._session.query(DbKey).filter_by(public=k.public_hex, is_private=True).\
+                        filter(DbKey.wallet_id.in_(cosign_wallet_ids)).first()
+                    if db_pk:
+                        priv_key_list.append(HDKey(db_pk.wif))
             transaction.sign(priv_key_list, ti.tid)
         return transaction
 
