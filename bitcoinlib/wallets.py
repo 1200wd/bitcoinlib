@@ -1245,7 +1245,7 @@ class HDWallet:
 
     def account(self, account_id):
         qr = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network=self.network.bip44_cointype,
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.network_name,
                       account_id=account_id, depth=3).scalar()
         if not qr:
             raise WalletError("Account with ID %d not found in this wallet" % account_id)
