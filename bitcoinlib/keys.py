@@ -646,6 +646,7 @@ class HDKey:
                 else:
                     try:
                         self.key = Key(import_key, passphrase=passphrase, network=network)
+                        # FIXME: Maybe its better to create a random chain?
                         chain = b'\0'*32
                         key = self.key.private_byte
                         key_type = 'private'

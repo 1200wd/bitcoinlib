@@ -373,8 +373,8 @@ class HDWalletKey:
         print(" Is Private                     %s" % self.is_private)
         print(" Name                           %s" % self.name)
         if self.is_private:
-            print(" Private Key                        %s" % self.key_private)
-        print(" Public Key                        %s" % self.key_public)
+            print(" Private Key                    %s" % self.key_private)
+        print(" Public Key                     %s" % self.key_public)
         print(" Key WIF                        %s" % self.wif)
         print(" Account ID                     %s" % self.account_id)
         print(" Parent ID                      %s" % self.parent_id)
