@@ -813,9 +813,22 @@ class HDKey:
                     key = key.child_private(index=index, hardened=hardened, network=network)
         return key
 
-    def account_key(self, account_id=0, purpose=44, network=None):
-        if network is None:
-            network = self.network.network_name
+    def account_key(self, account_id=0, purpose=44, set_network=None):
+        """
+        Derive account BIP44 key for current master key
+
+        :param account_id: Account ID. Leave empty for account 0
+        :type account_id: int
+        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig
+        :type purpose: int
+        :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
+        :type set_network: str
+
+        :return HDKey:
+
+        """
+        if set_network:
+            self.network_change(set_network)
         if self.depth != 0:
             raise KeyError("Need a master key to generate account key")
         if self.isprivate:
@@ -827,8 +840,33 @@ class HDKey:
         path += "/%d'" % account_id
         return self.subkey_for_path(path)
 
-    def account_multisig_key(self, account_id=0, purpose=45, network=None):
-        return self.account_key(account_id, purpose, network)
+    def account_multisig_key(self, account_id=0, purpose=45, set_network=None):
+        """
+        Derives a multisig account key according to BIP44/45 definiation.
+        Wrapper for the 'account_key' method.
+
+        :param account_id: Account ID. Leave empty for account 0
+        :type account_id: int
+        :param purpose: BIP standard used, leave empty for 45 which is the default for multisig
+        :type purpose: int
+        :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
+        :type set_network: str
+
+        :return HDKey:
+        """
+        return self.account_key(account_id, purpose, set_network)
+
+    def network_change(self, new_network):
+        """
+        Change network for current key
+
+        :param new_network: Name of new network
+        :type new_network: str
+
+        :return bool: True
+        """
+        self.network = Network(new_network)
+        return True
 
     def child_private(self, index=0, hardened=False, network=None):
         """
