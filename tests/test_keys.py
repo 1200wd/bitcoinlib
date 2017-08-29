@@ -336,6 +336,12 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
         k = HDKey(pk)
         self.assertEqual(k.account_key().key.address(), 'LZ4gg2m6uNY3vj9RUFkderRP18ChTwWyiq')
 
+    def test_hdkey_bip44_account_set_network(self):
+        pk = 'xprv9s21ZrQH143K4BD5gnZ6MNxYj1gCr6ru1Bkx1L6LinZXY6y3dUjUeNysCLX5mqft7P8bWkRua99ZLUizsQ9hmY9TVzYsSC4jiG' \
+             'y4fnRdG9u'
+        k = HDKey(pk)
+        self.assertEqual(k.account_key(set_network='litecoin').key.address(), '1ARnzA24ATepUgVbCFwy5Ljbq3Aw8BE8iJ')
+
 
 class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
 
