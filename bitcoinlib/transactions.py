@@ -886,8 +886,12 @@ class Transaction:
                     signatures = deepcopy(self.inputs[tid].signatures)
                     for sig_pos in pp:
                         sig_domain[sig_pos] = signatures.pop()
-                    sig_domains += sig_domain
-                self.inputs[tid].signatures = sig_domains
+                    sig_domains.append(sig_domain)
+                if len(sig_domains) == 1:
+                    self.inputs[tid].signatures = sig_domains[0]
+                else:
+                    # Verify sig domains
+                    pass
 
                 # 3. try to sign and verify possible positions
             else:
