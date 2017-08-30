@@ -18,6 +18,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from itertools import combinations
+from copy import deepcopy
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, get_key_format
@@ -866,16 +868,39 @@ class Transaction:
                 raise TransactionError("This key does not sign any known key: %s" % pub_key)
             if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
                 raise TransactionError("Key %s already signed" % pub_key)
-            self.inputs[tid].signatures.append(
-               newsig
-            )
 
-        if len(self.inputs[tid].signatures) > 1:
-            # Sort signatures according to self.keys
-            sorted_sigs = []
-            for k in self.inputs[tid].keys:
-                sorted_sigs += [x for x in self.inputs[tid].signatures if x['pub_key'] == k.public_byte]
-            self.inputs[tid].signatures = sorted_sigs
+            # TODO: Insert newsig in correct place in list
+            if self.inputs[tid].signatures:
+                # 1. determine position for newsig according to key list
+                newsig_pos = pub_key_list.index(pub_key)
+                n_total_sigs = len(pub_key_list)
+
+                # 2. assume signature list is in correct order and determine possible position of newsig
+                sig_start_domain = ['' for i in range(n_total_sigs)]
+                sig_start_domain[newsig_pos] = newsig
+                sig_domains = []
+                empty_slots = [i for i, j in enumerate(sig_start_domain) if j == '']
+                possible_sig_positions = combinations(empty_slots, len(self.inputs[tid].signatures))
+                for pp in possible_sig_positions:
+                    sig_domain = deepcopy(sig_start_domain)
+                    signatures = deepcopy(self.inputs[tid].signatures)
+                    for sig_pos in pp:
+                        sig_domain[sig_pos] = signatures.pop()
+                    sig_domains.append(sig_domain)
+                self.inputs[tid].signatures = sig_domains
+
+                # 3. try to sign and verify possible positions
+            else:
+                self.inputs[tid].signatures.append(
+                   newsig
+                )
+
+        # if len(self.inputs[tid].signatures) > 1:
+        #     # Sort signatures according to self.keys
+        #     sorted_sigs = []
+        #     for k in self.inputs[tid].keys:
+        #         sorted_sigs += [x for x in self.inputs[tid].signatures if x['pub_key'] == k.public_byte or not x['pub_key']]
+        #     self.inputs[tid].signatures = sorted_sigs
 
         if self.inputs[tid].script_type == 'p2pkh':
             self.inputs[tid].unlocking_script = \

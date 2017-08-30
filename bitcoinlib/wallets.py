@@ -19,7 +19,7 @@
 #
 
 import numbers
-from itertools import groupby
+from itertools import groupby, combinations
 from copy import deepcopy
 from sqlalchemy import or_
 from bitcoinlib.db import *
