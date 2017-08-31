@@ -892,8 +892,6 @@ class Transaction:
                 else:
                     # Verify sig domains
                     pass
-
-                # 3. try to sign and verify possible positions
             else:
                 self.inputs[tid].signatures.append(
                    newsig

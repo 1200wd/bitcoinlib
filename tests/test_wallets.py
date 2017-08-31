@@ -407,3 +407,34 @@ class TestWalletMultisig(unittest.TestCase):
         t = wl.transaction_sign(t)
         self.assertTrue(t.verify())
         self.assertEqual(wl.transaction_send(t), 'succesfull_test_sendrawtransaction')
+
+    def test_wallet_multisig_sign_2_different_wallets(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+        keys = [
+            HDKey('YXscyqNJ5YK411nwB4wzazXjJn9L9iLAR1zEMFcpLipDA25rZregBGgwXmprsvQLeQAsuTvemtbCWR1AHaPv2qmvkartoiFUU6'
+                  'qu1uafT2FETtXT', network='bitcoinlib_test'),
+            HDKey('YXscyqNJ5YK411nwB4EyGbNZo9eQSUWb64vAFKHt7E2LYnbmoNz8Gyjs6xc7iYAudcnkgf127NPnaanuUgyRngAiwYBcXKGsSJ'
+                  'wadGhxByT2MnLd', network='bitcoinlib_test')]
+
+        msw1 = HDWallet.create_multisig('msw1', [keys[0], keys[1].subkey_for_path("m/45'/9999999'/0'").wif_public()],
+                                        network='bitcoinlib_test', sort_keys=False, sigs_required=2,
+                                        databasefile=DATABASEFILE_UNITTESTS)
+        msw2 = HDWallet.create_multisig('msw2', [keys[0].subkey_for_path("m/45'/9999999'/0'").wif_public(), keys[1]],
+                                        network='bitcoinlib_test', sort_keys=False, sigs_required=2,
+                                        databasefile=DATABASEFILE_UNITTESTS)
+        msw1.new_key()
+        msw2.new_key()
+        msw1.updateutxos()
+        utxos = msw1.getutxos()
+        output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
+        input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
+        t = msw1.transaction_create(output_arr, input_arr, transaction_fee=50000)
+        t = msw1.transaction_sign(t)
+        rawtx = t.raw()
+        # TODO: Use wallet.transaction_import method
+        from bitcoinlib.transactions import Transaction
+        t2 = Transaction.import_raw(rawtx, network='bitcoinlib_test')
+        t2 = msw2.transaction_sign(t2)
+        self.assertTrue(t2.verify())
