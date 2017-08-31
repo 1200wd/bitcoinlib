@@ -1621,6 +1621,7 @@ class HDWallet:
                 amount_total_input += utxo.value
                 input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
         else:
+            # TODO: Get key_ids, value from Db if not specified
             for i in input_arr:
                 amount_total_input += i[3]
 
@@ -1652,6 +1653,22 @@ class HDWallet:
                                   sigs_required=self.multisig_n_required, sort=self.sort_keys)
 
         return transaction
+
+    def transaction_import(self, rawtx):
+        t = Transaction.import_raw(rawtx, network=self.network.network_name)
+
+        inp_arr = []
+        for inp in t.inputs:
+            # [(tx_hash, output_n, key_ids, value)]
+            # TODO: Get key IDs
+            key_ids = None
+            inp_arr.append((inp.prev_hash, inp.output_index_int, key_ids, 0))
+
+        output_arr = []
+        for out in t.outputs:
+            output_arr.append((out.address, out.value))
+
+        return self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee)
 
     # TODO: Move this to Transaction class (?)
     def transaction_sign(self, transaction, private_keys=None):
