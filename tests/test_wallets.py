@@ -27,6 +27,7 @@ from bitcoinlib.wallets import HDWallet, list_wallets, delete_wallet, WalletErro
 from bitcoinlib.keys import HDKey
 
 DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
+DATABASEFILE_UNITTESTS_2 = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest2.sqlite'
 
 
 class TestWalletCreate(unittest.TestCase):
@@ -432,9 +433,9 @@ class TestWalletMultisig(unittest.TestCase):
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = msw1.transaction_create(output_arr, input_arr, transaction_fee=50000)
         t = msw1.transaction_sign(t)
-        rawtx = t.raw()
-        # TODO: Use wallet.transaction_import method
-        from bitcoinlib.transactions import Transaction
-        t2 = Transaction.import_raw(rawtx, network='bitcoinlib_test')
+        t2 = msw2.transaction_create(output_arr, input_arr, transaction_fee=50000)
         t2 = msw2.transaction_sign(t2)
         self.assertTrue(t2.verify())
+
+    # TODO def test_wallet_multisig_sign_2_different_wallets_import_transaction(self):
+    # TODO def test_wallet_multisig_sign_2_different_wallets_in_different_database(self): DATABASEFILE_UNITTESTS_2
