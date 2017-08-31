@@ -45,6 +45,11 @@ SIGHASH_ANYONECANPAY = 80
 
 
 class TransactionError(Exception):
+    """
+    Handle Transaction class Exceptions
+
+    """
+
     def __init__(self, msg=''):
         self.msg = msg
         _logger.error(msg)
@@ -791,6 +796,7 @@ class Transaction:
             hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             sig_id = 0
             for key in i.keys:
+                signature = b''
                 if sig_id > i.sigs_required-1:
                     break
                 pub_key = key.public_uncompressed_byte[1:]
@@ -876,7 +882,7 @@ class Transaction:
                 n_total_sigs = len(pub_key_list)
 
                 # 2. assume signature list is in correct order and determine possible position of newsig
-                sig_start_domain = ['' for i in range(n_total_sigs)]
+                sig_start_domain = [''] * n_total_sigs
                 sig_start_domain[newsig_pos] = newsig
                 sig_domains = []
                 empty_slots = [i for i, j in enumerate(sig_start_domain) if j == '']
@@ -896,13 +902,6 @@ class Transaction:
                 self.inputs[tid].signatures.append(
                    newsig
                 )
-
-        # if len(self.inputs[tid].signatures) > 1:
-        #     # Sort signatures according to self.keys
-        #     sorted_sigs = []
-        #     for k in self.inputs[tid].keys:
-        #         sorted_sigs += [x for x in self.inputs[tid].signatures if x['pub_key'] == k.public_byte or not x['pub_key']]
-        #     self.inputs[tid].signatures = sorted_sigs
 
         if self.inputs[tid].script_type == 'p2pkh':
             self.inputs[tid].unlocking_script = \

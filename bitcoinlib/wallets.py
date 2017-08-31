@@ -19,7 +19,7 @@
 #
 
 import numbers
-from itertools import groupby, combinations
+from itertools import groupby
 from copy import deepcopy
 from sqlalchemy import or_
 from bitcoinlib.db import *
@@ -34,6 +34,10 @@ _logger = logging.getLogger(__name__)
 
 
 class WalletError(Exception):
+    """
+    Handle Wallet class Exceptions
+
+    """
     def __init__(self, msg=''):
         self.msg = msg
         _logger.error(msg)
