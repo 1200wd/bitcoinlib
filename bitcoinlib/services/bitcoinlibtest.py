@@ -18,11 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
 import logging
-import binascii
+import hashlib
 from bitcoinlib.services.baseclient import BaseClient
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import addr_to_pubkeyhash
 
 _logger = logging.getLogger(__name__)
 
@@ -40,11 +39,10 @@ class BitcoinLibTestClient(BaseClient):
     def getutxos(self, addresslist):
         utxos = []
         for address in addresslist:
-
             utxos.append(
                 {
                     'address': address,
-                    'tx_hash': to_hexstring(binascii.hexlify(os.urandom(32))),
+                    'tx_hash': hashlib.sha256(addr_to_pubkeyhash('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo')).hexdigest(),
                     'confirmations': 10,
                     'output_n': 0,
                     'index': 0,
