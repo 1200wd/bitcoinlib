@@ -927,21 +927,21 @@ class Transaction:
                     for sig_pos in pp:
                         sig_domain[sig_pos] = signatures.pop()
                     sig_domains.append(sig_domain)
-                if len(sig_domains) == 1:
-                    self.inputs[tid].signatures = sig_domains[0]
+
+                # Verify sig domains
+                for sig_domain in sig_domains:
+                    signature_list = [s for s in sig_domain if s != '']
+                    for sig in signature_list:
+                        pos = sig_domain.index(sig)
+                        if not verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
+                            sig_domains.remove(sig_domain)
+                            break
+                            # TODO: Remove all domains with signature on this position
+                if len(sig_domains):
+                    self.inputs[tid].signatures = [s for s in sig_domains[0] if s != '']
                 else:
-                    # Verify sig domains
-                    for sig_domain in sig_domains:
-                        signature_list = [s for s in sig_domain if s != '']
-                        for sig in signature_list:
-                            pos = sig_domain.index(sig)
-                            if not verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
-                                sig_domains.remove(sig_domain)
-                                break
-                                # TODO: Remove all domains with signature on this position
-                        self.inputs[tid].signatures = signature_list
-                        # TODO: Think about what will happen when 2 or more identical private keys are used
-                        break
+                    raise TransactionError("Invalid signatures found")
+                # TODO: Think about what will happen when 2 or more identical private keys are used
             else:
                 self.inputs[tid].signatures.append(
                    newsig
