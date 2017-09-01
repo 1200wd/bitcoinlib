@@ -1673,7 +1673,6 @@ class HDWallet:
 
         return self.transaction_create(output_arr, input_arr)
 
-
     # TODO: Move this to Transaction class (?)
     def transaction_sign(self, transaction, private_keys=None):
         priv_key_list_arg = []

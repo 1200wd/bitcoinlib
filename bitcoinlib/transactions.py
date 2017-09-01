@@ -377,6 +377,35 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
     return usu
 
 
+def verify_signature(transaction_hash_to_sign, signature, public_key):
+    # t_to_sign = self.raw(i.tid)
+    # hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
+    # sig_id = 0
+    # for key in i.keys:
+    # signature = b''
+    # if sig_id > i.sigs_required - 1:
+    #     break
+    # pub_key = key.public_uncompressed_byte[1:]
+
+    if len(public_key) == 65:
+        public_key = public_key[1:]
+    ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
+    # if sig_id >= len(i.signatures):
+    #     _logger.info("No valid signatures found")
+    #     return False
+    try:
+        # signature = i.signatures[sig_id]['signature']
+        if to_hexstring(signature[:1]) == '30':
+            signature = binascii.unhexlify(convert_der_sig(signature[:-1]))
+        ver_key.verify_digest(signature, transaction_hash_to_sign)
+    except ecdsa.keys.BadSignatureError:
+        return False
+    except ecdsa.keys.BadDigestError as e:
+        _logger.info("Bad Digest %s (error %s)" %
+                     (binascii.hexlify(signature), e))
+        return False
+    return True
+
 class Input:
     """
     Transaction Input class, normally part of Transaction class
@@ -783,6 +812,7 @@ class Transaction:
         
         :return bool: True if enough signatures provided and if all signatures are valid
         """
+        # TODO: Use verify_signature method
         for i in self.inputs:
             if i.script_type == 'coinbase':
                 return True
@@ -873,18 +903,19 @@ class Transaction:
 
             # Check if signature signs known key and is not already in list
             pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
+            pub_key_list_uncompressed = [x.public_uncompressed_byte for x in self.inputs[tid].keys]
             if pub_key not in pub_key_list:
                 raise TransactionError("This key does not sign any known key: %s" % pub_key)
             if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
                 raise TransactionError("Key %s already signed" % pub_key)
 
-            # TODO: Insert newsig in correct place in list
+            # Insert newsig in correct place in list
             if self.inputs[tid].signatures:
                 # 1. determine position for newsig according to key list
                 newsig_pos = pub_key_list.index(pub_key)
                 n_total_sigs = len(pub_key_list)
 
-                # 2. assume signature list is in correct order and determine possible position of newsig
+                # 2. assume signature list is in correct order then determine possible position of newsig
                 sig_start_domain = [''] * n_total_sigs
                 sig_start_domain[newsig_pos] = newsig
                 sig_domains = []
@@ -892,7 +923,7 @@ class Transaction:
                 possible_sig_positions = combinations(empty_slots, len(self.inputs[tid].signatures))
                 for pp in possible_sig_positions:
                     sig_domain = deepcopy(sig_start_domain)
-                    signatures = deepcopy(self.inputs[tid].signatures)
+                    signatures = deepcopy(self.inputs[tid].signatures)[::-1]
                     for sig_pos in pp:
                         sig_domain[sig_pos] = signatures.pop()
                     sig_domains.append(sig_domain)
@@ -900,7 +931,17 @@ class Transaction:
                     self.inputs[tid].signatures = sig_domains[0]
                 else:
                     # Verify sig domains
-                    pass
+                    for sig_domain in sig_domains:
+                        signature_list = [s for s in sig_domain if s != '']
+                        for sig in signature_list:
+                            pos = sig_domain.index(sig)
+                            if not verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
+                                sig_domains.remove(sig_domain)
+                                break
+                                # TODO: Remove all domains with signature on this position
+                        self.inputs[tid].signatures = signature_list
+                        # TODO: Think about what will happen when 2 or more identical private keys are used
+                        break
             else:
                 self.inputs[tid].signatures.append(
                    newsig
