@@ -1457,10 +1457,8 @@ class HDWallet:
                 else:
                     tid = transaction_in_db.scalar().id
 
-                new_utxo = DbTransactionOutput(transaction_id=tid,
-                                               output_n=utxo['output_n'], value=utxo['value'],
-                                               key_id=key.id,
-                                               script=utxo['script'], spend=False)
+                new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'], value=utxo['value'],
+                                               key_id=key.id, script=utxo['script'], spend=False)
                 self._session.add(new_utxo)
                 count_utxos += 1
             # TODO: Removing this gives errors??
