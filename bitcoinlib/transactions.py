@@ -378,6 +378,9 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
 
 
 def verify_signature(transaction_to_sign, signature, public_key):
+    transaction_to_sign = to_bytes(transaction_to_sign)
+    signature = to_bytes(signature)
+    public_key = to_bytes(public_key)
     if len(transaction_to_sign) != 32:
         transaction_to_sign = hashlib.sha256(hashlib.sha256(transaction_to_sign).digest()).digest()
     if len(public_key) == 65:
@@ -802,7 +805,6 @@ class Transaction:
         
         :return bool: True if enough signatures provided and if all signatures are valid
         """
-        # TODO: Use verify_signature method
         for i in self.inputs:
             if i.script_type == 'coinbase':
                 return True
@@ -814,27 +816,16 @@ class Transaction:
                              (len(i.signatures), i.sigs_required))
                 return False
             t_to_sign = self.raw(i.tid)
-            hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
+            transaction_hash_to_sign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             sig_id = 0
             for key in i.keys:
-                signature = b''
                 if sig_id > i.sigs_required-1:
                     break
-                pub_key = key.public_uncompressed_byte[1:]
-                ver_key = ecdsa.VerifyingKey.from_string(pub_key, curve=ecdsa.SECP256k1)
                 if sig_id >= len(i.signatures):
                     _logger.info("No valid signatures found")
                     return False
-                try:
-                    signature = i.signatures[sig_id]['signature']
-                    if to_hexstring(signature[:1]) == '30':
-                        signature = binascii.unhexlify(convert_der_sig(signature[:-1]))
-                    ver_key.verify_digest(signature, hashtosign)
-                except ecdsa.keys.BadSignatureError:
-                    continue  # Try next key (for multisigs)
-                except ecdsa.keys.BadDigestError as e:
-                    _logger.info("Bad Digest %s (error %s)" %
-                                 (binascii.hexlify(signature), e))
+                verify_signature(transaction_hash_to_sign,
+                                 i.signatures[sig_id]['signature'], key.public_uncompressed_byte[1:])
                 sig_id += 1
             if sig_id < i.sigs_required:
                 _logger.info("Not enough valid signatures provided. Found %d signatures but %d needed" %
