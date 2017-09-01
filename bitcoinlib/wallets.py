@@ -1625,10 +1625,17 @@ class HDWallet:
                 amount_total_input += utxo.value
                 input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
         else:
-            # TODO: Get key_ids, value from Db if not specified
-            # new_input_arr = []
-            for i in input_arr:
-                amount_total_input += i[3]
+            for i, inp in enumerate(input_arr):
+                amount_total_input += inp[3]
+                # Get key_ids, value from Db if not specified
+                if not (inp[2] or inp[3]):
+                    inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+                        filter(DbKey.wallet_id == self.wallet_id, DbTransaction.hash == inp[0],
+                               DbTransactionOutput.output_n == inp[1]).first()
+                    if inp_utxo:
+                        input_arr[i][2] = inp_utxo.key_id
+                        input_arr[i][3] = inp_utxo.value
+
             # input_arr = new_input_arr
 
         transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
