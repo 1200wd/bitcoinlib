@@ -698,6 +698,7 @@ class Transaction:
             self.outputs = []
         else:
             self.outputs = outputs
+
         self.version = version
         self.locktime = locktime
         self.network = Network(network)
@@ -816,6 +817,8 @@ class Transaction:
                                  (binascii.hexlify(signature), e))
                 sig_id += 1
             if sig_id < i.sigs_required:
+                _logger.info("Not enough valid signatures provided. Found %d signatures but %d needed" %
+                             (sig_id, i.sigs_required))
                 return False
         return True
 

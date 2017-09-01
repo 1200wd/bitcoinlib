@@ -1626,8 +1626,10 @@ class HDWallet:
                 input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
         else:
             # TODO: Get key_ids, value from Db if not specified
+            # new_input_arr = []
             for i in input_arr:
                 amount_total_input += i[3]
+            # input_arr = new_input_arr
 
         transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
         # If change amount is smaller then estimated fee it will cost to send it then skip change
@@ -1661,18 +1663,16 @@ class HDWallet:
     def transaction_import(self, rawtx):
         t = Transaction.import_raw(rawtx, network=self.network.network_name)
 
-        inp_arr = []
+        input_arr = []
         for inp in t.inputs:
-            # [(tx_hash, output_n, key_ids, value)]
-            # TODO: Get key IDs
-            key_ids = None
-            inp_arr.append((inp.prev_hash, inp.output_index_int, key_ids, 0))
+            input_arr.append((inp.prev_hash, inp.output_index, None, 0))
 
         output_arr = []
         for out in t.outputs:
-            output_arr.append((out.address, out.value))
+            output_arr.append((out.address, out.amount))
 
-        return self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee)
+        return self.transaction_create(output_arr, input_arr)
+
 
     # TODO: Move this to Transaction class (?)
     def transaction_sign(self, transaction, private_keys=None):
