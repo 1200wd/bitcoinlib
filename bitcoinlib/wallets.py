@@ -1495,7 +1495,6 @@ class HDWallet:
                    DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
-        # print("qr:", qr, min_confirms, account_id, key_id, self._session)
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
