@@ -377,27 +377,16 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
     return usu
 
 
-def verify_signature(transaction_hash_to_sign, signature, public_key):
-    # t_to_sign = self.raw(i.tid)
-    # hashtosign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
-    # sig_id = 0
-    # for key in i.keys:
-    # signature = b''
-    # if sig_id > i.sigs_required - 1:
-    #     break
-    # pub_key = key.public_uncompressed_byte[1:]
-
+def verify_signature(transaction_to_sign, signature, public_key):
+    if len(transaction_to_sign) != 32:
+        transaction_to_sign = hashlib.sha256(hashlib.sha256(transaction_to_sign).digest()).digest()
     if len(public_key) == 65:
         public_key = public_key[1:]
     ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
-    # if sig_id >= len(i.signatures):
-    #     _logger.info("No valid signatures found")
-    #     return False
     try:
-        # signature = i.signatures[sig_id]['signature']
         if to_hexstring(signature[:1]) == '30':
             signature = binascii.unhexlify(convert_der_sig(signature[:-1]))
-        ver_key.verify_digest(signature, transaction_hash_to_sign)
+        ver_key.verify_digest(signature, transaction_to_sign)
     except ecdsa.keys.BadSignatureError:
         return False
     except ecdsa.keys.BadDigestError as e:
@@ -405,6 +394,7 @@ def verify_signature(transaction_hash_to_sign, signature, public_key):
                      (binascii.hexlify(signature), e))
         return False
     return True
+
 
 class Input:
     """
