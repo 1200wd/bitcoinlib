@@ -1624,15 +1624,17 @@ class HDWallet:
                 input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
         else:
             for i, inp in enumerate(input_arr):
-                amount_total_input += inp[3]
                 # Get key_ids, value from Db if not specified
                 if not (inp[2] or inp[3]):
+                    import struct
+                    import binascii
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
-                        filter(DbKey.wallet_id == self.wallet_id, DbTransaction.hash == inp[0],
-                               DbTransactionOutput.output_n == inp[1]).first()
+                        filter(DbKey.wallet_id == self.wallet_id, DbTransaction.hash == binascii.hexlify(inp[0]),
+                               DbTransactionOutput.output_n == struct.unpack('I', inp[1])).first()
                     if inp_utxo:
                         input_arr[i][2] = inp_utxo.key_id
-                        input_arr[i][3] = inp_utxo.value
+                        input_arr[i][3] = inp[3] = inp_utxo.value
+                amount_total_input += inp[3]
 
             # input_arr = new_input_arr
 
@@ -1649,7 +1651,7 @@ class HDWallet:
         for inp in input_arr:
             key = self._session.query(DbKey).filter_by(id=inp[2]).scalar()
             if not key:
-                raise WalletError("Key of UTXO %s not found in this wallet" % inp[0])
+                raise WalletError("Key '%s' not found in this wallet" % inp[2])
             if key.key_type == 'multisig':
                 inp_keys = []
                 for ck in key.multisig_children:
