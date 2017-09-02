@@ -131,7 +131,7 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
 
     # Delete co-signer wallets if this is a multisig wallet
     for cw in session.query(DbWallet).filter_by(parent_id=wallet_id).all():
-        delete_wallet(cw.id)
+        delete_wallet(cw.id, databasefile=databasefile, force=force)
 
     _logger.info("Wallet '%s' deleted" % wallet)
 
@@ -143,7 +143,8 @@ def normalize_path(path):
 
     :param path: BIP0044 key path 
     :type path: str
-    :return str: Normalized BIP004 key path with single quotes
+
+    :return str: Normalized BIP0044 key path with single quotes
     """
 
     levels = path.split("/")
