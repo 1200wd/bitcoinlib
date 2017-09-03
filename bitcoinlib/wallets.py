@@ -1630,7 +1630,7 @@ class HDWallet:
                     import binascii
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbKey.wallet_id == self.wallet_id, DbTransaction.hash == binascii.hexlify(inp[0]),
-                               DbTransactionOutput.output_n == struct.unpack('I', inp[1])).first()
+                               DbTransactionOutput.output_n == struct.unpack('I', inp[1])[0]).first()
                     if inp_utxo:
                         input_arr[i][2] = inp_utxo.key_id
                         input_arr[i][3] = inp[3] = inp_utxo.value

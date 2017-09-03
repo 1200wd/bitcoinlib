@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    DataBase - SqlAlchemy database definitions
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -84,6 +84,7 @@ class DbWallet(Base):
     scheme = Column(String(25))
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
+    transactions = relationship("DbTransaction", back_populates="wallet")
     balance = Column(Integer, default=0)
     multisig_n_required = Column(Integer, default=1, doc="Number of required signature for multisig, "
                                                          "only used for multisignature master key")
@@ -178,6 +179,8 @@ class DbTransaction(Base):
     size = Column(Integer)
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
+    wallet_id = Column(Integer, ForeignKey('wallets.id'))
+    wallet = relationship("DbWallet", back_populates="transactions")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
     # TODO: Add network field (?)
 
