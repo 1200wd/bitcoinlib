@@ -197,6 +197,39 @@ def ec_point(p):
     return point
 
 
+def deserialize_address(address):
+    try:
+        address_bytes = change_base(address, 58, 256, 25)
+    except EncodingError as err:
+        raise EncodingError("Invalid address %s: %s" % (address, err))
+    check = address_bytes[-4:]
+    key_hash = address_bytes[:-4]
+    checksum = hashlib.sha256(hashlib.sha256(key_hash).digest()).digest()[0:4]
+    assert (check == checksum), "Invalid address, checksum incorrect"
+    address_prefix = key_hash[0:1]
+    networks_p2pkh = network_by_value('prefix_address', address_prefix)
+    networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
+    public_key_hash = key_hash[1:]
+    script_type = ''
+    network = ''
+    if len(networks_p2pkh) == 1 and not networks_p2sh:
+        script_type = 'p2pkh'
+        network = networks_p2pkh[0]
+    elif len(networks_p2sh) == 1 and not networks_p2pkh:
+        script_type = 'p2sh'
+        network = networks_p2sh[0]
+
+    return {
+        'address': address,
+        'public_key_hash': change_base(public_key_hash, 256, 16),
+        'public_key_hash_bytes': public_key_hash,
+        'network': network,
+        'script_type': script_type,
+        'networks_p2sh': networks_p2sh,
+        'networks_p2pkh': networks_p2pkh
+    }
+
+
 class Key:
     """
     Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
