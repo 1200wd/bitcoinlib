@@ -625,8 +625,8 @@ class Output:
             else:
                 _logger.warning("Script type %s not supported" % self.script_type)
 
-        if self.address and not self.script_type:
-            address_prefix = change_base(self.address, 58, 256)[0]
+        if self.address:
+            address_prefix = change_base(self.address, 58, 256)[0:1]
             if address_prefix == self.network.prefix_address_p2sh:
                 self.script_type = 'p2sh'
             elif address_prefix != self.network.prefix_address:
