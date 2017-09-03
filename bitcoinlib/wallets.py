@@ -1421,8 +1421,8 @@ class HDWallet:
         for current_utxo in current_utxos:
             if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
                 utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction). \
-                    filter(DbTransaction.hash == current_utxo['tx_hash']).filter(
-                    DbTransactionOutput.output_n == current_utxo['output_n'])
+                    filter(DbTransaction.hash == current_utxo['tx_hash'],
+                           DbTransactionOutput.output_n == current_utxo['output_n'])
                 if utxo_in_db.count():
                     utxo_record = utxo_in_db.scalar()
                     utxo_record.spend = True
@@ -1439,9 +1439,11 @@ class HDWallet:
 
             # Update confirmations in db if utxo was already imported
             # TODO: Add network filter (?)
-            transaction_in_db = self._session.query(DbTransaction).filter_by(hash=utxo['tx_hash'])
+            transaction_in_db = self._session.query(DbTransaction).filter_by(wallet_id=self.wallet_id, hash=utxo['tx_hash'])
             utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.hash == utxo['tx_hash']).filter(DbTransactionOutput.output_n == utxo['output_n'])
+                filter(DbTransaction.wallet_id == self.wallet_id,
+                       DbTransaction.hash == utxo['tx_hash'],
+                       DbTransactionOutput.output_n == utxo['output_n'])
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
                 utxo_record.key_id = key.id
@@ -1451,7 +1453,8 @@ class HDWallet:
             else:
                 # Add transaction if not exist and then add output
                 if not transaction_in_db.count():
-                    new_tx = DbTransaction(hash=utxo['tx_hash'], confirmations=utxo['confirmations'])
+                    new_tx = DbTransaction(wallet_id=self.wallet_id, hash=utxo['tx_hash'],
+                                           confirmations=utxo['confirmations'])
                     self._session.add(new_tx)
                     self._session.commit()
                     tid = new_tx.id
@@ -1491,7 +1494,7 @@ class HDWallet:
             join(DbTransaction).join(DbKey). \
             filter(DbTransactionOutput.spend.op("IS")(False),
                    DbKey.account_id == account_id,
-                   DbKey.wallet_id == self.wallet_id,
+                   DbTransaction.wallet_id == self.wallet_id,
                    DbKey.network_name == network,
                    DbTransaction.confirmations >= min_confirms)
         if key_id is not None:
@@ -1608,8 +1611,8 @@ class HDWallet:
         amount_total_input = 0
         if input_arr is None:
             utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey).\
-                filter(DbKey.wallet_id == self.wallet_id,
-                       DbKey. account_id == account_id,
+                filter(DbTransaction.wallet_id == self.wallet_id,
+                       DbKey.account_id == account_id,
                        DbTransactionOutput.spend.op("IS")(False),
                        DbTransaction.confirmations >= min_confirms)
             utxos = utxo_query.all()
@@ -1627,13 +1630,12 @@ class HDWallet:
                 # Get key_ids, value from Db if not specified
                 if not (inp[2] or inp[3]):
                     import struct
-                    import binascii
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
-                        filter(DbKey.wallet_id == self.wallet_id, DbTransaction.hash == binascii.hexlify(inp[0]),
+                        filter(DbTransaction.wallet_id == self.wallet_id,
+                               DbTransaction.hash == to_hexstring(inp[0]),
                                DbTransactionOutput.output_n == struct.unpack('I', inp[1])[0]).first()
                     if inp_utxo:
-                        input_arr[i][2] = inp_utxo.key_id
-                        input_arr[i][3] = inp[3] = inp_utxo.value
+                        input_arr[i] = (inp[0], inp[1], inp_utxo.key_id, inp_utxo.value)
                 amount_total_input += inp[3]
 
             # input_arr = new_input_arr

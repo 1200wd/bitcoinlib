@@ -170,7 +170,7 @@ class DbTransaction(Base):
     """
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
-    hash = Column(String(64), unique=True)
+    hash = Column(String(64))
     version = Column(Integer, default=1)
     lock_time = Column(Integer, default=0)
     date = Column(DateTime, default=datetime.datetime.utcnow)
@@ -183,6 +183,10 @@ class DbTransaction(Base):
     wallet = relationship("DbWallet", back_populates="transactions")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
     # TODO: Add network field (?)
+
+    __table_args__ = (
+        UniqueConstraint('wallet_id', 'hash', name='_transaction_hash_wallet_uc'),
+    )
 
     def __repr__(self):
         return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.hash, self.confirmations)
