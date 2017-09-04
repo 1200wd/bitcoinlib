@@ -212,12 +212,14 @@ def deserialize_address(address):
     public_key_hash = key_hash[1:]
     script_type = ''
     network = ''
-    if len(networks_p2pkh) == 1 and not networks_p2sh:
+    if networks_p2pkh and not networks_p2sh:
         script_type = 'p2pkh'
-        network = networks_p2pkh[0]
-    elif len(networks_p2sh) == 1 and not networks_p2pkh:
+        if len(networks_p2pkh) == 1:
+            network = networks_p2pkh[0]
+    elif networks_p2sh and not networks_p2pkh:
         script_type = 'p2sh'
-        network = networks_p2sh[0]
+        if len(networks_p2sh) == 1:
+            network = networks_p2sh[0]
 
     return {
         'address': address,

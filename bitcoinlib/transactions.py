@@ -22,7 +22,7 @@ from itertools import combinations
 from copy import deepcopy
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
-from bitcoinlib.keys import HDKey, Key, get_key_format
+from bitcoinlib.keys import HDKey, Key, deserialize_address
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 
 
@@ -609,8 +609,16 @@ class Output:
             self.compressed = self.k.compressed
         if self.public_key_hash and not self.address:
             self.address = pubkeyhash_to_addr(public_key_hash, versionbyte=self.versionbyte)
-        if self.address and not self.public_key_hash:
-            self.public_key_hash = addr_to_pubkeyhash(self.address)
+        if self.address:
+            address_dict = deserialize_address(self.address)
+            if address_dict['script_type']:
+                self.script_type = address_dict['script_type']
+            else:
+                raise TransactionError("Could not determine script type of address %s" % self.address)
+            self.public_key_hash = address_dict['public_key_hash_bytes']
+            if address_dict['network'] and self.network.network_name != address_dict['network']:
+                raise TransactionError("Address (%s) is from different network then defined %s" %
+                                       (address_dict['network'], self.network.network_name))
         if not self.public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
 
@@ -625,14 +633,6 @@ class Output:
             else:
                 _logger.warning("Script type %s not supported" % self.script_type)
 
-        if self.address:
-            address_dict = deserialize_address(self.address)
-            address_prefix = change_base(self.address, 58, 256)[0:1]
-            if address_prefix == self.network.prefix_address_p2sh:
-                self.script_type = 'p2sh'
-            elif address_prefix != self.network.prefix_address:
-                raise TransactionError("Address prefix '%s' not recognised, is network correctly defined?" %
-                                       address_prefix)
         if self.lock_script == b'':
             if self.script_type == 'p2pkh':
                 self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
