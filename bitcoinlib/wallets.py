@@ -21,6 +21,7 @@
 import numbers
 from itertools import groupby
 from copy import deepcopy
+import struct
 from sqlalchemy import or_
 from bitcoinlib.db import *
 from bitcoinlib.encoding import pubkeyhash_to_addr, to_bytes, to_hexstring, script_to_pubkeyhash
@@ -1629,7 +1630,6 @@ class HDWallet:
             for i, inp in enumerate(input_arr):
                 # Get key_ids, value from Db if not specified
                 if not (inp[2] or inp[3]):
-                    import struct
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == to_hexstring(inp[0]),
@@ -1670,11 +1670,11 @@ class HDWallet:
         return transaction
 
     def transaction_import(self, rawtx):
-        t = Transaction.import_raw(rawtx, network=self.network.network_name)
+        t_import = Transaction.import_raw(rawtx, network=self.network.network_name)
 
-        input_arr = []
-        for inp in t.inputs:
-            input_arr.append((inp.prev_hash, inp.output_index, None, 0))
+        amount_total_input = 0
+        for inp in t_import.inputs:
+            pass
 
         output_arr = []
         for out in t.outputs:

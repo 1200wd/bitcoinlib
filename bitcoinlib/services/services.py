@@ -80,7 +80,7 @@ class Service(object):
         self.errors = {}
         self.resultcount = 0
 
-    def _provider_execute(self, method, argument):
+    def _provider_execute(self, method, *arguments):
         self.results = {}
         self.errors = {}
         self.resultcount = 0
@@ -96,7 +96,7 @@ class Service(object):
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
-                res = providermethod(argument)
+                res = providermethod(*arguments)
                 self.results.update(
                     {sp: res}
                 )
@@ -113,7 +113,7 @@ class Service(object):
                     # -- Use this to debug specific Services errors --
                     # from pprint import pprint
                     # pprint(self.errors)
-                _logger.warning("%s.%s(%s) Error %s" % (sp, method, argument, e))
+                _logger.warning("%s.%s(%s) Error %s" % (sp, method, arguments, e))
 
             if self.resultcount >= self.max_providers:
                 break
@@ -140,6 +140,18 @@ class Service(object):
         utxos = []
         while addresslist:
             utxos += self._provider_execute('getutxos', addresslist[:20])
+            addresslist = addresslist[20:]
+        return utxos
+
+    def address_transactions(self, addresslist, unspent_only=False):
+        if not addresslist:
+            return []
+        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
+            addresslist = [addresslist]
+
+        utxos = []
+        while addresslist:
+            utxos += self._provider_execute('address_transactions', addresslist[:20], unspent_only)
             addresslist = addresslist[20:]
         return utxos
 
