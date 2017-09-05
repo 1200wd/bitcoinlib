@@ -1103,11 +1103,11 @@ class HDWallet:
             qr = qr.filter(DbKey.network_name == network)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
-            if self.scheme == 'bip32':
+            if self.scheme == 'bip32' and depth is None:
                 qr = qr.filter(DbKey.depth >= 3)
         if change is not None:
             qr = qr.filter(DbKey.change == change)
-            if self.scheme == 'bip32':
+            if self.scheme == 'bip32' and depth is None:
                 qr = qr.filter(DbKey.depth > 4)
         if depth is not None:
             qr = qr.filter(DbKey.depth == depth)
