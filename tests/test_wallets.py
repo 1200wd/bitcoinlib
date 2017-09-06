@@ -21,10 +21,11 @@
 import unittest
 import os
 import json
-
+from random import shuffle
 from bitcoinlib.db import DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet, list_wallets, delete_wallet, WalletError
 from bitcoinlib.keys import HDKey
+from bitcoinlib.networks import Network
 
 DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
 DATABASEFILE_UNITTESTS_2 = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest2.sqlite'
@@ -409,7 +410,7 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertTrue(t.verify())
         self.assertEqual(wl.transaction_send(t), 'succesfull_test_sendrawtransaction')
 
-    def test_wallet_multisig_sign_2_different_wallets(self):
+    def test_wallet_multisig_2of2(self):
         """
         Create 2 cosigner wallets with 1 own private key a public key from other cosigner
         Then create and sign transaction if first wallet, import and sign it in second wallet
@@ -444,7 +445,7 @@ class TestWalletMultisig(unittest.TestCase):
         t2 = msw2.transaction_sign(t2)
         self.assertTrue(t2.verify())
 
-    def test_wallet_multisig_sign_2_different_wallets_in_different_database(self):
+    def test_wallet_multisig_2of2_different_database(self):
         """
         Same unittest as before (test_wallet_multisig_sign_2_different_wallets) but now with 2
         separate databases to check for database inteference.
@@ -479,3 +480,65 @@ class TestWalletMultisig(unittest.TestCase):
         t2 = msw2.transaction_import(t.raw())
         t2 = msw2.transaction_sign(t2)
         self.assertTrue(t2.verify())
+
+    @staticmethod
+    def _multisig_test(sigs_required, number_of_sigs, network):
+        # Create Keys
+        key_dict = {}
+        for key_id in range(number_of_sigs):
+            key_dict[key_id] = HDKey(network=network)
+        random_output_address = HDKey(network=network).key.address()
+
+        # Create wallets with 1 private key each
+        wallet_dict = {}
+        wallet_keys = {}
+        for wallet_id in range(number_of_sigs):
+            wallet_name = 'multisig-%d' % wallet_id
+            key_list = []
+            for key_id in key_dict:
+                if key_id == wallet_id:
+                    key_list.append(key_dict[key_id])
+                else:
+                    key_list.append(key_dict[key_id].
+                                    subkey_for_path(
+                        "m/45'/%d'/0'" % Network(network).bip44_cointype).wif_public())
+            wallet_dict[wallet_id] = HDWallet.create_multisig(
+                wallet_name, key_list, sigs_required=sigs_required, network=network, sort_keys=False,
+                databasefile=DATABASEFILE_UNITTESTS)
+            wallet_keys[wallet_id] = wallet_dict[wallet_id].new_key()
+            wallet_dict[wallet_id].updateutxos()
+
+        # Create transaction in one random wallet
+        wallet_ids = [i for i in range(0, number_of_sigs)]
+        shuffle(wallet_ids)
+        transaction_fee = 50000
+        wallet_id = wallet_ids.pop()
+        wlt = wallet_dict[wallet_id]
+        utxos = wlt.getutxos()
+        output_arr = [(random_output_address, utxos[0]['value'] - transaction_fee)]
+        input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
+        t = wlt.transaction_create(output_arr, input_arr, transaction_fee=transaction_fee)
+        t = wlt.transaction_sign(t)
+        n_signs = 1
+
+        # Sign transaction with other wallets until required number of signatures is reached
+        while wallet_ids and n_signs < sigs_required:
+            wallet_id = wallet_ids.pop()
+            t = wallet_dict[wallet_id].transaction_import(t.raw())
+            t = wallet_dict[wallet_id].transaction_sign(t)
+            n_signs += 1
+        return t
+
+    def test_wallet_multisig_2of3(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        t = self._multisig_test(2, 3, 'bitcoinlib_test')
+        self.assertTrue(t.verify())
+
+    def test_wallet_multisig_3of5(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        t = self._multisig_test(3, 5, 'bitcoinlib_test')
+        self.assertTrue(t.verify())
+
+    # TODO 2-3, 3-5, x-x multisig test + other networks + sorted keys
