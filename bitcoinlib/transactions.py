@@ -504,7 +504,11 @@ class Input:
         for sig in signatures:
             sig_der = ''
             if sig.startswith(b'\x30'):
-                sig_der = sig
+                # FIXME: What if last \x01 is not a hashtype but just part of signature?
+                if sig.endswith(b'\x01'):
+                    sig_der = sig[:-1]
+                else:
+                    sig_der = sig
                 sig = convert_der_sig(sig[:-1], as_hex=False)
             self.signatures.append(
                 {
