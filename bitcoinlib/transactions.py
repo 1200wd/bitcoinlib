@@ -502,9 +502,10 @@ class Input:
                 self.keys.append(kobj)
 
         for sig in signatures:
+            # 'signature': convert_der_sig(sig[:-1]),
             self.signatures.append(
                 {
-                    'sig_der': b'',
+                    'sig_der': to_bytes(sig),
                     'signature': to_bytes(sig),
                     'priv_key': '',
                     'pub_key': ''
@@ -943,6 +944,9 @@ class Transaction:
                 n_tag = struct.unpack('B', n_tag)[0]
             n_required = n_tag - 80
             signatures = [s['sig_der'] for s in self.inputs[tid].signatures[:n_required]]
+            if b'' in signatures:
+                raise TransactionError("Empty signature found in signature list when signing. "
+                                       "Is DER encoded version of signature defined?")
             self.inputs[tid].unlocking_script = \
                 _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
         return True
