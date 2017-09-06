@@ -387,8 +387,8 @@ def verify_signature(transaction_to_sign, signature, public_key):
         public_key = public_key[1:]
     ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
     try:
-        if signature.startswith(b("\x30")):
-            signature = binascii.unhexlify(convert_der_sig(signature[:-1]))
+        if signature.startswith(b'\x30'):
+            signature = convert_der_sig(signature[:-1], as_hex=False)
         ver_key.verify_digest(signature, transaction_to_sign)
     except ecdsa.keys.BadSignatureError:
         return False
@@ -502,10 +502,13 @@ class Input:
                 self.keys.append(kobj)
 
         for sig in signatures:
-            # 'signature': convert_der_sig(sig[:-1]),
+            sig_der = ''
+            if sig.startswith(b'\x30'):
+                sig_der = sig
+                sig = convert_der_sig(sig[:-1], as_hex=False)
             self.signatures.append(
                 {
-                    'sig_der': to_bytes(sig),
+                    'sig_der': sig_der,
                     'signature': to_bytes(sig),
                     'priv_key': '',
                     'pub_key': ''
