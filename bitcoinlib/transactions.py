@@ -201,8 +201,12 @@ def script_deserialize(script, script_types=None):
                 cur += total_length
             elif ch == 'redeemscript':
                 size_byte = 0
-                if script[cur:cur+1] in [b'\x4c', b'\x4d', b'\x4e']:
+                if script[cur:cur+1] == b'\x4c':
                     size_byte = 1
+                elif script[cur:cur + 1] == b'\x4d':
+                    size_byte = 2
+                elif script[cur:cur + 1] == b'\x4e':
+                    size_byte = 3
                 data['redeemscript'] = script[cur+1+size_byte:]
                 data2 = script_deserialize(data['redeemscript'])
                 if 'signatures' not in data2:
