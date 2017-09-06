@@ -1570,7 +1570,7 @@ class HDWallet:
 
             :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
             :type output_arr: list 
-            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value)]
+            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures)]
             :type input_arr: list
             :param account_id: Account ID
             :type account_id: int
@@ -1625,7 +1625,7 @@ class HDWallet:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value))
+                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value, []))
         else:
             for i, inp in enumerate(input_arr):
                 # Get key_ids, value from Db if not specified
@@ -1637,6 +1637,8 @@ class HDWallet:
                     if inp_utxo:
                         input_arr[i] = (inp[0], inp[1], inp_utxo.key_id, inp_utxo.value)
                 amount_total_input += inp[3]
+                if len(inp) > 4:
+                    input_arr[i] += (inp[4],)
 
             # input_arr = new_input_arr
 
@@ -1664,20 +1666,22 @@ class HDWallet:
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
-            transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
-                                  sigs_required=self.multisig_n_required, sort=self.sort_keys)
+            inp_id = transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
+                                           sigs_required=self.multisig_n_required, sort=self.sort_keys)
+            if len(inp) > 4:
+                transaction.inputs[inp_id].signatures += inp[4]
 
         return transaction
 
     def transaction_import(self, rawtx):
         t_import = Transaction.import_raw(rawtx, network=self.network.network_name)
 
-        amount_total_input = 0
+        input_arr = []
         for inp in t_import.inputs:
-            pass
+            input_arr.append((inp.prev_hash, inp.output_index, None, 0, inp.signatures))
 
         output_arr = []
-        for out in t.outputs:
+        for out in t_import.outputs:
             output_arr.append((out.address, out.amount))
 
         return self.transaction_create(output_arr, input_arr)

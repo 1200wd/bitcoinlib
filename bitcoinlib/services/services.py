@@ -140,21 +140,27 @@ class Service(object):
 
         utxos = []
         while addresslist:
-            utxos += self._provider_execute('getutxos', addresslist[:20])
+            res = self._provider_execute('getutxos', addresslist[:20])
+            if not res:
+                break
+            utxos += res
             addresslist = addresslist[20:]
         return utxos
 
-    def address_transactions(self, addresslist, unspent_only=False):
+    def address_transactions(self, addresslist):
         if not addresslist:
             return []
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
             addresslist = [addresslist]
 
-        utxos = []
+        transactions = []
         while addresslist:
-            utxos += self._provider_execute('address_transactions', addresslist[:20], unspent_only)
+            res = self._provider_execute('address_transactions', addresslist[:20])
+            if not res:
+                break
+            transactions += res
             addresslist = addresslist[20:]
-        return utxos
+        return transactions
 
     def getrawtransaction(self, txid):
         return self._provider_execute('getrawtransaction', txid)
