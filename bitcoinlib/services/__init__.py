@@ -24,7 +24,6 @@ import bitcoinlib.services.bitcoind
 import bitcoinlib.services.blockexplorer
 import bitcoinlib.services.bitgo
 import bitcoinlib.services.coinfees
-import bitcoinlib.services.blockr
 import bitcoinlib.services.blockchaininfo
 import bitcoinlib.services.blockcypher
 import bitcoinlib.services.blocktrail
