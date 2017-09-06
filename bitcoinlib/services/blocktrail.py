@@ -78,6 +78,10 @@ class BlockTrail(BaseClient):
             _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
         return utxos
 
+    def address_transactions(self, addresslist):
+        # TODO: write this method if possible
+        pass
+
     def estimatefee(self, blocks):
         res = self.compose_request('fee-per-kb', '')
         if blocks <= 10:

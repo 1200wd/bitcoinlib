@@ -48,6 +48,10 @@ class BlockExplorerClient(BaseClient):
             })
         return utxos
 
+    def address_transactions(self, addresslist):
+        # TODO: write this method if possible
+        pass
+
     def getbalance(self, addresslist):
         utxos = self.getutxos(addresslist)
         balance = 0

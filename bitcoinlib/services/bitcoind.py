@@ -101,6 +101,9 @@ class BitcoindClient(BaseClient):
         res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
+    def address_transactions(self, addresslist):
+        # TODO: write this method if possible
+        pass
 
 if __name__ == '__main__':
     #

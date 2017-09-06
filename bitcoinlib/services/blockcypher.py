@@ -52,29 +52,7 @@ class BlockCypher(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
-        addresses = ';'.join(addresslist)
-        res = self.compose_request('addrs', addresses, variables={'unspentOnly': 1, 'limit': 2000})
-        utxos = []
-        if not isinstance(res, list):
-            res = [res]
-        for a in res:
-            address = a['address']
-            if 'txrefs' not in a:
-                continue
-            if len(a['txrefs']) > 500:
-                _logger.warning("BlockCypher: Large number of outputs for address %s, "
-                                "UTXO list may be incomplete" % address)
-            for utxo in a['txrefs']:
-                utxos.append({
-                    'address': address,
-                    'tx_hash': utxo['tx_hash'],
-                    'confirmations': utxo['confirmations'],
-                    'output_n': utxo['tx_output_n'],
-                    'index': 0,
-                    'value': int(round(utxo['value'] * self.units, 0)),
-                    'script': '',
-                })
-        return utxos
+        return self.address_transactions(addresslist, unspent_only=True)
 
     def address_transactions(self, addresslist, unspent_only=False):
         addresses = ';'.join(addresslist)
@@ -87,8 +65,8 @@ class BlockCypher(BaseClient):
             if 'txrefs' not in a:
                 continue
             if len(a['txrefs']) > 500:
-                _logger.warning("BlockCypher: Large number of outputs for address %s, "
-                                "UTXO list may be incomplete" % address)
+                _logger.warning("BlockCypher: Large number of transactions for address %s, "
+                                "Transaction list may be incomplete" % address)
             for tx in a['txrefs']:
                 transactions.append({
                     'address': address,

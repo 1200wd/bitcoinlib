@@ -63,6 +63,10 @@ class BlockrClient(BaseClient):
                 })
         return utxos
 
+    def address_transactions(self, addresslist):
+        # TODO: write this method if possible
+        pass
+
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', 'raw', txid)
         return res['tx']['hex']
