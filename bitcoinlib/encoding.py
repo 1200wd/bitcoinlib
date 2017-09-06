@@ -271,7 +271,7 @@ def varstr(s):
     return int_to_varbyteint(len(s)) + s
 
 
-def convert_der_sig(s):
+def convert_der_sig(s, as_hex=True):
     if not s:
         return ""
     sg, junk = ecdsa.der.remove_sequence(s)
@@ -279,7 +279,11 @@ def convert_der_sig(s):
         raise EncodingError("Junk found in encoding sequence %s" % junk)
     x, sg = ecdsa.der.remove_integer(sg)
     y, sg = ecdsa.der.remove_integer(sg)
-    return '%064x%064x' % (x, y)
+    sig = '%064x%064x' % (x, y)
+    if as_hex:
+        return sig
+    else:
+        return binascii.unhexlify(sig)
 
 
 def addr_to_pubkeyhash(address, as_hex=False):
