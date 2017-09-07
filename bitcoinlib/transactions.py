@@ -508,6 +508,8 @@ class Input:
         for sig in signatures:
             sig_der = ''
             if sig.startswith(b'\x30'):
+                # If signature ends with Hashtype, remove hashtype and continue
+                # TODO: support for other hashtypes
                 if sig.endswith(b'\x01'):
                     _, junk = ecdsa.der.remove_sequence(sig)
                     if junk == b'\x01':

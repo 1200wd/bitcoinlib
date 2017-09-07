@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Helper methods for encoding and conversion
-#    © 2017 February - 1200 Web Development <http://1200wd.com/>
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -36,6 +36,7 @@ PY3 = sys.version_info[0] == 3
 
 
 class EncodingError(Exception):
+    """ Log and raise encoding errors """
     def __init__(self, msg=''):
         self.msg = msg
         _logger.error(msg)
@@ -58,14 +59,14 @@ code_strings = {
 }
 
 
-def get_code_string(base):
+def _get_code_string(base):
     if base in code_strings:
         return code_strings[base]
     else:
         return list(range(0, base))
 
 
-def in_code_string_check(inp, code_str_from):
+def _in_code_string_check(inp, code_str_from):
     if not PY3 and isinstance(inp, bytearray):
         inp = str(inp)
     if inp in code_str_from:
@@ -127,11 +128,11 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
     if base_from == 10 and not min_lenght:
         raise EncodingError("For a decimal input a minimum output lenght is required!")
 
-    code_str = get_code_string(base_to)
+    code_str = _get_code_string(base_to)
     if int(base_to) not in code_strings:
         output_as_list = True
 
-    code_str_from = get_code_string(base_from)
+    code_str_from = _get_code_string(base_from)
     if not isinstance(code_str_from, (bytes, list)):
         raise EncodingError("Code strings must be a list or defined as bytes")
     output = []
@@ -161,7 +162,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
             else:
                 item = inp[-1:]
                 inp = inp[:-1]
-            itemindex = in_code_string_check(item, code_str_from)
+            itemindex = _in_code_string_check(item, code_str_from)
             try:
                 pos = code_str_from.index(itemindex)
             except ValueError:

@@ -1730,7 +1730,7 @@ class HDWallet:
             tx_hash = to_hexstring(inp.prev_hash)
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == tx_hash,
-                       DbTransactionOutput.output_n == inp.output_index_int).all()
+                       DbTransactionOutput.output_n == inp.output_index).all()
             for u in utxos:
                 u.spend = True
 
