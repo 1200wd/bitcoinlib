@@ -911,7 +911,8 @@ class Transaction:
             if pub_key not in pub_key_list:
                 raise TransactionError("This key does not sign any known key: %s" % pub_key)
             if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
-                raise TransactionError("Key %s already signed" % pub_key)
+                _logger.warning("Key %s already signed" % pub_key)
+                break
 
             # Insert newsig in correct place in list
             if self.inputs[tid].signatures:
