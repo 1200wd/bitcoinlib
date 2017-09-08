@@ -1702,7 +1702,7 @@ class HDWallet:
                 if k.isprivate:
                     if k not in priv_key_list:
                         priv_key_list.append(k)
-                else:
+                elif self.cosigner:
                     # Check if private key is available in wallet
                     cosign_wallet_ids = [w.wallet_id for w in self.cosigner]
                     db_pk = self._session.query(DbKey).filter_by(public=k.public_hex, is_private=True).\

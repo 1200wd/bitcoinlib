@@ -541,7 +541,6 @@ class TestWalletMultisig(unittest.TestCase):
         t = self._multisig_test(3, 5, 'bitcoinlib_test')
         self.assertTrue(t.verify())
 
-
     # Disable for now takes about 46 seconds because it needs to create 9 * 9 wallets and lots of keys
     # def test_wallet_multisig_5of9(self):
     #     if os.path.isfile(DATABASEFILE_UNITTESTS):
