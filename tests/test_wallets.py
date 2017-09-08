@@ -479,7 +479,7 @@ class TestWalletMultisig(unittest.TestCase):
         t = msw1.transaction_sign(t)
         t2 = msw2.transaction_import(t.raw())
         t2 = msw2.transaction_sign(t2)
-        self.assertTrue(t2.verify())
+        self.assertEqual(msw2.transaction_send(t2), 'succesfull_test_sendrawtransaction')
 
     @staticmethod
     def _multisig_test(sigs_required, number_of_sigs, network):
@@ -540,6 +540,7 @@ class TestWalletMultisig(unittest.TestCase):
             os.remove(DATABASEFILE_UNITTESTS)
         t = self._multisig_test(3, 5, 'bitcoinlib_test')
         self.assertTrue(t.verify())
+
 
     # Disable for now takes about 46 seconds because it needs to create 9 * 9 wallets and lots of keys
     # def test_wallet_multisig_5of9(self):

@@ -450,6 +450,9 @@ class Input:
         if isinstance(output_index, numbers.Number):
             self.output_index_int = output_index
             self.output_index = struct.pack('>I', output_index)
+        else:
+            self.output_index_int = struct.unpack('I', output_index)[0]
+            self.output_index = output_index
         if isinstance(keys, (bytes, str)):
             keys = [keys]
         self.unlocking_script = to_bytes(unlocking_script)

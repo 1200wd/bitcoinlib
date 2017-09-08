@@ -1424,8 +1424,7 @@ class HDWallet:
                 utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction). \
                     filter(DbTransaction.hash == current_utxo['tx_hash'],
                            DbTransactionOutput.output_n == current_utxo['output_n'])
-                if utxo_in_db.count():
-                    utxo_record = utxo_in_db.scalar()
+                for utxo_record in utxo_in_db.all():
                     utxo_record.spend = True
                 # self._session.query(DbTransaction).filter(DbTransaction.hash == current_utxo['tx_hash']).\
                 #     update({DbTransaction.spend: True})
@@ -1730,7 +1729,7 @@ class HDWallet:
             tx_hash = to_hexstring(inp.prev_hash)
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == tx_hash,
-                       DbTransactionOutput.output_n == inp.output_index).all()
+                       DbTransactionOutput.output_n == inp.output_index_int).all()
             for u in utxos:
                 u.spend = True
 
