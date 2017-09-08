@@ -968,6 +968,19 @@ class HDKey:
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False, network=network)
 
+    # def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
+    #              child_index=0, isprivate=True, network=None, key_type='bip32', passphrase=''):
+    def public(self):
+        """
+        Public version of current private key.
+
+        :return HDKey:
+        """
+
+        #TODO: more clevvvvver
+        return HDKey(self.wif_public(), parent_fingerprint=self.parent_fingerprint, isprivate=self.isprivate,
+                     key_type=self.key_type, network=self.network.network_name)
+
 
 if __name__ == '__main__':
     #

@@ -476,8 +476,13 @@ class HDWallet:
         elif scheme == 'multisig':
             w = cls(new_wallet_id, databasefile=databasefile)
         elif scheme == 'single':
+            mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
+                                      account_id=account_id, purpose=purpose, key_type='single')
+            new_wallet.main_key_id = mk.key_id
+            session.commit()
+            w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
             # TODO: Allow single key wallets
-            raise WalletError("Wallet with scheme %s not supported at the moment" % scheme)
+            # raise WalletError("Wallet with scheme %s not supported at the moment" % scheme)
         else:
             raise WalletError("Wallet with scheme %s not supported at the moment" % scheme)
 
@@ -517,11 +522,11 @@ class HDWallet:
         if sort_keys:
             hdkey_list.sort(key=lambda x: x.public_byte)
         # TODO: Allow HDKey objects in Wallet.create (?)
-        key_wif_list = [k.wif() for k in hdkey_list]
-        for cokey in key_wif_list:
+        # key_wif_list2 = [k.wif() for k in hdkey_list]
+        for cokey in hdkey_list:
             wn = name + '-cosigner-%d' % co_id
-            w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
-                           purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile)
+            w = cls.create(name=wn, key=cokey.wif(), owner=owner, network=network, account_id=account_id,
+                           purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile, scheme=cokey.key_type)
             hdpm.cosigner.append(w)
             co_id += 1
 
@@ -815,7 +820,8 @@ class HDWallet:
         """
 
         if self.scheme == 'single':
-            raise WalletError("New key creation not supported for single key wallets")
+            return self.main_key
+            # raise WalletError("New key creation not supported for single key wallets")
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         if self.scheme == 'bip32':
