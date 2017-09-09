@@ -174,8 +174,8 @@ class TestWalletKeys(unittest.TestCase):
     def setUp(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-            self.private_wif = 'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF9ySUHZw5qJkk5LCALAhXS' \
-                               'XoCmCSnStRvgwLBtcbGsg1PeKT2en'
+        self.private_wif = 'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF9ySUHZw5qJkk5LCALAhXS' \
+                           'XoCmCSnStRvgwLBtcbGsg1PeKT2en'
         self.wallet = HDWallet.create(
             key=self.private_wif,
             name='test_wallet_keys',
@@ -212,6 +212,14 @@ class TestWalletKeys(unittest.TestCase):
 
     def test_wallet_keys_method_keys_change(self):
         self.assertEqual(self.wallet.keys_address_change()[0].address, '13uQKuiWwWp15BsEijnpKZSuTuHVTpZMvP')
+
+    def test_wallet_keys_single_key(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        wk = 'xprv9s21ZrQH143K3tCgu8uhkA2fw9F9opbvoNNzh5wcuEvNHbCU6Kg3c6dam2a6cw4UYeDxAsgBorAqXp2nsoYS84DqYMwkzxZ15' \
+             'ujRHzmBMxE'
+        w = HDWallet.create('test_wallet_keys_single_key', wk, scheme='single', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.new_key(), w.new_key())
 
 
 class TestWalletElectrum(unittest.TestCase):
