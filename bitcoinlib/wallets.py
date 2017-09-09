@@ -1665,8 +1665,7 @@ class HDWallet:
             if key.key_type == 'multisig':
                 inp_keys = []
                 for ck in key.multisig_children:
-                    inp_keys.append(HDKey(ck.parent_page.wif).key)
-                # TODO: Add single type keys
+                    inp_keys.append(HDKey(ck.child_key.wif).key)
                 script_type = 'p2sh_multisig'
             elif key.key_type in ['bip32', 'single']:
                 inp_keys = HDKey(key.wif).key
