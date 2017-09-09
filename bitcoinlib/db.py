@@ -97,6 +97,13 @@ class DbWallet(Base):
         return "<DbWallet(name='%s', network='%s'>" % (self.name, self.network_name)
 
 
+class DbKeyMultisigChildren(Base):
+    __tablename__ = 'key_multisig_children'
+
+    parent_id = Column(Integer, ForeignKey('keys.id'), primary_key=True)
+    child_id = Column(Integer, ForeignKey('keys.id'), primary_key=True)
+
+
 class DbKey(Base):
     """
     Database definitions for keys in Sqlalchemy format
@@ -128,8 +135,12 @@ class DbKey(Base):
     used = Column(Boolean, default=False)
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
-    multisig_parent_id = Column(Integer, ForeignKey('keys.id'))
-    multisig_children = relationship("DbKey", lazy="joined", join_depth=2)
+    # multisig_parent_id = Column(Integer, ForeignKey('key_multisig_children.parent_id'))
+    # multisig_children = relationship("DbKey", lazy="joined", join_depth=2)
+    multisig_parents = relationship("DbKeyMultisigChildren", backref='parent_page',
+                             primaryjoin=id == DbKeyMultisigChildren.child_id)
+    multisig_children = relationship("DbKeyMultisigChildren", backref='child_page',
+                             primaryjoin=id == DbKeyMultisigChildren.parent_id)
 
     __table_args__ = (
         CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),

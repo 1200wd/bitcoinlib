@@ -891,8 +891,9 @@ class HDWallet:
                 key_type='multisig', network_name=network)
             self._session.add(multisig_key)
             self._session.commit()
-            self._session.query(DbKey).filter(DbKey.id.in_(public_key_ids)).\
-                update({DbKey.multisig_parent_id: multisig_key.id}, synchronize_session=False)
+            for child_id in public_key_ids:
+                self._session.add(DbKeyMultisigChildren(parent_id=multisig_key.id, child_id=child_id))
+            # self._session.query(DbKey).filter(DbKey.id.in_(public_key_ids)).update({DbKey.multisig_parents.parent_id: multisig_key.id}, synchronize_session=False)
             self._session.commit()
             return multisig_key
 
@@ -1664,7 +1665,8 @@ class HDWallet:
             if key.key_type == 'multisig':
                 inp_keys = []
                 for ck in key.multisig_children:
-                    inp_keys.append(HDKey(ck.wif).key)
+                    inp_keys.append(HDKey(ck.parent_page.wif).key)
+                # TODO: Add single type keys
                 script_type = 'p2sh_multisig'
             elif key.key_type in ['bip32', 'single']:
                 inp_keys = HDKey(key.wif).key
