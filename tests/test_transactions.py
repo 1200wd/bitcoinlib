@@ -445,7 +445,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
 
         t.sign(self.pk1.private_byte)
-        self.assertRaisesRegex(TransactionError, 'already signed', t.sign, self.pk1.private_byte)
+        # self.assertRaisesRegex(TransactionError, 'already signed', t.sign, self.pk1.private_byte)
+        self.assertTrue(t.sign(self.pk1.private_byte))
 
     def test_transaction_multisig_sign_extra_sig(self):
         t = Transaction(network='testnet')

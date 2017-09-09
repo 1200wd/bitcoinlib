@@ -869,6 +869,8 @@ class Transaction:
 
         :return bool: Return True if successfully signed
         """
+
+        # TODO: Return False if nothing is signed, duplicate signs
         if not isinstance(keys, list):
             keys = [keys]
 
