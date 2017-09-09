@@ -548,4 +548,29 @@ class TestWalletMultisig(unittest.TestCase):
     #     t = self._multisig_test(5, 9, 'bitcoinlib_test')
     #     self.assertTrue(t.verify())
 
+    def test_wallet_multisig_2of2_with_single_key(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        keys = [
+            HDKey(network='bitcoinlib_test'),
+            HDKey(network='bitcoinlib_test', key_type='single')
+        ]
+        key_list = [keys[0], keys[1].public()]
+
+        wl = HDWallet.create_multisig('multisig_expk2', key_list, sigs_required=2, network='bitcoinlib_test',
+                                      databasefile=DATABASEFILE_UNITTESTS)
+        wl.new_key()
+        wl.new_key()
+        wl.new_key_change()
+        wl.updateutxos()
+
+        self.assertEqual(wl.keys()[0].name, 'Multisig Key 8/7')
+        self.assertEqual(wl.keys()[1].name, 'Multisig Key 10/7')
+        self.assertEqual(wl.keys()[2].name, 'Multisig Key 12/7')
+
+        t = wl.transaction_create([(HDKey(network='bitcoinlib_test').key.address(), 6400000)], min_confirms=0)
+        t = wl.transaction_sign(t, keys[1])
+        self.assertEqual(wl.transaction_send(t), 'succesfull_test_sendrawtransaction')
+
+
     # TODO: other networks test + sorted keys
