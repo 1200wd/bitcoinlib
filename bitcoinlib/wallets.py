@@ -481,8 +481,6 @@ class HDWallet:
             new_wallet.main_key_id = mk.key_id
             session.commit()
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
-            # TODO: Allow single key wallets
-            # raise WalletError("Wallet with scheme %s not supported at the moment" % scheme)
         else:
             raise WalletError("Wallet with scheme %s not supported at the moment" % scheme)
 
@@ -524,9 +522,12 @@ class HDWallet:
         # TODO: Allow HDKey objects in Wallet.create (?)
         # key_wif_list2 = [k.wif() for k in hdkey_list]
         for cokey in hdkey_list:
+            scheme = 'bip32'
             wn = name + '-cosigner-%d' % co_id
+            if cokey.key_type == 'single':
+                scheme = 'single'
             w = cls.create(name=wn, key=cokey.wif(), owner=owner, network=network, account_id=account_id,
-                           purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile, scheme=cokey.key_type)
+                           purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile, scheme=scheme)
             hdpm.cosigner.append(w)
             co_id += 1
 
