@@ -124,6 +124,8 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
                               (k.id, k.address))
         session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
         session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
+        session.query(DbKeyMultisigChildren).filter_by(parent_id=k.id).delete()
+        session.query(DbKeyMultisigChildren).filter_by(child_id=k.id).delete()
     ks.delete()
 
     res = w.delete()
@@ -1667,6 +1669,7 @@ class HDWallet:
                 inp_keys = []
                 for ck in key.multisig_children:
                     inp_keys.append(HDKey(ck.child_key.wif).key)
+                # TODO: Take care of correct key order
                 script_type = 'p2sh_multisig'
             elif key.key_type in ['bip32', 'single']:
                 inp_keys = HDKey(key.wif).key
@@ -1677,6 +1680,9 @@ class HDWallet:
                                            sigs_required=self.multisig_n_required, sort=self.sort_keys)
             if len(inp) > 4:
                 transaction.inputs[inp_id].signatures += inp[4]
+            if transaction.inputs[inp_id].address != key.address:
+                raise WalletError("Created input address is different from address of used key. Possibly wrong key "
+                                  "order in multisig?")
 
         return transaction
 
@@ -1717,7 +1723,7 @@ class HDWallet:
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids)).first()
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif))
-            transaction.sign(priv_key_list, ti.tid)
+            print(transaction.sign(priv_key_list, ti.tid))
         return transaction
 
     def transaction_send(self, transaction):
