@@ -1087,7 +1087,8 @@ class HDWallet:
             network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
         return newkey
 
-    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, network=None, as_dict=False):
+    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, network=None,
+             as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -1103,6 +1104,8 @@ class HDWallet:
         :type change: int
         :param depth: Only include keys with this depth
         :type depth: int
+        :param used: Only return used or unused keys
+        :type used: bool
         :param network: Network name filter
         :type network: str
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
@@ -1127,14 +1130,18 @@ class HDWallet:
             qr = qr.filter(DbKey.name == name)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
+        if used is not None:
+            qr = qr.filter(DbKey.used == used)
         ret = as_dict and [x.__dict__ for x in qr.all()] or qr.all()
         qr.session.close()
         return ret
 
-    def keys_networks(self, as_dict=False):
+    def keys_networks(self, used=None, as_dict=False):
         """
         Get keys of defined networks for this wallet. Wrapper for the keys() method
-        
+
+        :param used: Only return used or unused keys
+        :type used: bool
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
         
@@ -1142,9 +1149,9 @@ class HDWallet:
         
         """
 
-        res = self.keys(depth=2, as_dict=as_dict)
+        res = self.keys(depth=2, used=used, as_dict=as_dict)
         if not res:
-            res = self.keys(depth=3, as_dict=as_dict)
+            res = self.keys(depth=3, used=used, as_dict=as_dict)
         return res
 
     def keys_accounts(self, account_id=None, network=None, as_dict=False):
@@ -1163,12 +1170,14 @@ class HDWallet:
 
         return self.keys(account_id, depth=3, network=network, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, network=None, as_dict=False):
+    def keys_addresses(self, account_id=None, used=None, network=None, as_dict=False):
         """
         Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
 
         :param account_id: Account ID
         :type account_id: int
+        :param used: Only return used or unused keys
+        :type used: bool
         :param network: Network name filter
         :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
@@ -1177,14 +1186,16 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=5, used=used, network=network, as_dict=as_dict)
 
-    def keys_address_payment(self, account_id=None, network=None, as_dict=False):
+    def keys_address_payment(self, account_id=None, used=None, network=None, as_dict=False):
         """
         Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the keys() methods.
 
         :param account_id: Account ID
         :type account_id: int
+        :param used: Only return used or unused keys
+        :type used: bool
         :param network: Network name filter
         :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
@@ -1193,14 +1204,16 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, change=0, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=5, change=0, used=used, network=network, as_dict=as_dict)
 
-    def keys_address_change(self, account_id=None, network=None, as_dict=False):
+    def keys_address_change(self, account_id=None, used=None, network=None, as_dict=False):
         """
         Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the keys() methods.
 
         :param account_id: Account ID
         :type account_id: int
+        :param used: Only return used or unused keys
+        :type used: bool
         :param network: Network name filter
         :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
@@ -1209,14 +1222,16 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, change=1, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=5, change=1, used=used, network=network, as_dict=as_dict)
 
-    def addresslist(self, account_id=None, network=None, depth=5, key_id=None):
+    def addresslist(self, account_id=None, used=None, network=None, depth=5, key_id=None):
         """
         Get list of addresses defined in current wallet
 
         :param account_id: Account ID
         :type account_id: int
+        :param used: Only return used or unused keys
+        :type used: bool
         :param network: Network name filter
         :type network: str
         :param depth: Filter by key depth
@@ -1228,7 +1243,7 @@ class HDWallet:
         """
 
         addresslist = []
-        for key in self.keys(account_id=account_id, depth=depth, network=network, key_id=key_id):
+        for key in self.keys(account_id=account_id, depth=depth, used=used, network=network, key_id=key_id):
             addresslist.append(key.address)
         return addresslist
 
@@ -1392,7 +1407,7 @@ class HDWallet:
         self._session.commit()
         _logger.info("Got balance for %d key(s). Total balance is %s" % (len(utxo_keys), total_balance))
 
-    def updateutxos(self, account_id=None, network=None, key_id=None, depth=None):
+    def updateutxos(self, account_id=None, used=False, network=None, key_id=None, depth=None):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1420,7 +1435,7 @@ class HDWallet:
 
         # Get all UTXO's for this wallet from default Service object
         utxos = Service(network=network).\
-            getutxos(self.addresslist(account_id=account_id, network=network, key_id=key_id, depth=depth))
+            getutxos(self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id, depth=depth))
         if utxos is False:
             raise WalletError("No response from any service provider, could not update UTXO's")
         count_utxos = 0
@@ -1724,7 +1739,7 @@ class HDWallet:
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids)).first()
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif))
-            print(transaction.sign(priv_key_list, ti.tid))
+            transaction.sign(priv_key_list, ti.tid)
         return transaction
 
     def transaction_send(self, transaction):
