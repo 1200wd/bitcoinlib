@@ -867,10 +867,10 @@ class Transaction:
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
 
-        :return bool: Return True if successfully signed
+        :return int: Return int with number of signatures added
         """
 
-        # TODO: Return False if nothing is signed, ie duplicate signs
+        n_signs = 0
         if not isinstance(keys, list):
             keys = [keys]
 
@@ -916,6 +916,7 @@ class Transaction:
                 _logger.warning("Key %s already signed" % pub_key)
                 break
 
+            n_signs += 1
             # Insert newsig in correct place in list
             if self.inputs[tid].signatures:
                 # 1. determine position for newsig according to key list
@@ -969,7 +970,9 @@ class Transaction:
                                        "Is DER encoded version of signature defined?")
             self.inputs[tid].unlocking_script = \
                 _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
-        return True
+        else:
+            raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
+        return n_signs
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
                   sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False):
