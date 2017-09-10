@@ -107,6 +107,7 @@ class DbKeyMultisigChildren(Base):
 
     parent_id = Column(Integer, ForeignKey('keys.id'), primary_key=True)
     child_id = Column(Integer, ForeignKey('keys.id'), primary_key=True)
+    key_order = Column(Integer, Sequence('key_multisig_children_id_seq'))
 
 
 class DbKey(Base):
@@ -143,6 +144,7 @@ class DbKey(Base):
     multisig_parents = relationship("DbKeyMultisigChildren", backref='child_key',
                                     primaryjoin=id == DbKeyMultisigChildren.child_id)
     multisig_children = relationship("DbKeyMultisigChildren", backref='parent_key',
+                                     order_by="DbKeyMultisigChildren.key_order",
                                      primaryjoin=id == DbKeyMultisigChildren.parent_id)
 
     __table_args__ = (

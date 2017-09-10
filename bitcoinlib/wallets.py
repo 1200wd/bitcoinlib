@@ -895,7 +895,8 @@ class HDWallet:
             self._session.add(multisig_key)
             self._session.commit()
             for child_id in public_key_ids:
-                self._session.add(DbKeyMultisigChildren(parent_id=multisig_key.id, child_id=child_id))
+                self._session.add(DbKeyMultisigChildren(key_order=public_key_ids.index(child_id),
+                                                        parent_id=multisig_key.id, child_id=child_id))
             # self._session.query(DbKey).filter(DbKey.id.in_(public_key_ids)).update({DbKey.multisig_parents.parent_id: multisig_key.id}, synchronize_session=False)
             self._session.commit()
             return multisig_key
