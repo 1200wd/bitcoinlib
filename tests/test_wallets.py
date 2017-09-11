@@ -490,7 +490,7 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertEqual(msw2.transaction_send(t2), 'succesfull_test_sendrawtransaction')
 
     @staticmethod
-    def _multisig_test(sigs_required, number_of_sigs, network):
+    def _multisig_test(sigs_required, number_of_sigs, sort_keys, network):
         # Create Keys
         key_dict = {}
         for key_id in range(number_of_sigs):
@@ -511,7 +511,7 @@ class TestWalletMultisig(unittest.TestCase):
                                     subkey_for_path(
                         "m/45'/%d'/0'" % Network(network).bip44_cointype).wif_public())
             wallet_dict[wallet_id] = HDWallet.create_multisig(
-                wallet_name, key_list, sigs_required=sigs_required, network=network, sort_keys=False,
+                wallet_name, key_list, sigs_required=sigs_required, network=network, sort_keys=sort_keys,
                 databasefile=DATABASEFILE_UNITTESTS)
             wallet_keys[wallet_id] = wallet_dict[wallet_id].new_key()
             wallet_dict[wallet_id].updateutxos()
@@ -540,13 +540,19 @@ class TestWalletMultisig(unittest.TestCase):
     def test_wallet_multisig_2of3(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        t = self._multisig_test(2, 3, 'bitcoinlib_test')
+        t = self._multisig_test(2, 3, False, 'bitcoinlib_test')
+        self.assertTrue(t.verify())
+
+    def test_wallet_multisig_2of3_sorted(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        t = self._multisig_test(2, 3, True, 'bitcoinlib_test')
         self.assertTrue(t.verify())
 
     def test_wallet_multisig_3of5(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        t = self._multisig_test(3, 5, 'bitcoinlib_test')
+        t = self._multisig_test(3, 5, False, 'bitcoinlib_test')
         self.assertTrue(t.verify())
 
     # Disable for now takes about 46 seconds because it needs to create 9 * 9 wallets and lots of keys
@@ -580,5 +586,27 @@ class TestWalletMultisig(unittest.TestCase):
         t = wl.transaction_sign(t, keys[1])
         self.assertEqual(wl.transaction_send(t), 'succesfull_test_sendrawtransaction')
 
-
-    # TODO: other networks test + sorted keys
+    def test_wallet_multisig_sorted_keys(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        key1 = HDKey()
+        key2 = HDKey()
+        key3 = HDKey()
+        print(key1.wif())
+        print(key2.wif())
+        print(key3.wif())
+        w1 = HDWallet.create_multisig(
+            'w1', [key1, key2.account_multisig_key().public(), key3.account_multisig_key().public()],
+            sigs_required=2, sort_keys=True, databasefile=DATABASEFILE_UNITTESTS)
+        w2 = HDWallet.create_multisig(
+            'w2', [key1.account_multisig_key().public(), key2, key3.account_multisig_key().public()],
+            sigs_required=2, sort_keys=True, databasefile=DATABASEFILE_UNITTESTS)
+        w3 = HDWallet.create_multisig(
+            'w3', [key1.account_multisig_key().public(), key2.account_multisig_key().public(), key3],
+            sigs_required=2,  sort_keys=True, databasefile=DATABASEFILE_UNITTESTS)
+        for _ in range(10):
+            address1 = w1.new_key().address
+            address2 = w2.new_key().address
+            address3 = w3.new_key().address
+            self.assertTrue((address1 == address2 == address3),
+                            'Different addressed generated: %s %s %s' % (address1, address2, address3))
