@@ -411,7 +411,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip32', parent_id=None,
-               databasefile=None):
+               sort_keys=False, databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
@@ -454,7 +454,7 @@ class HDWallet:
         elif network is None:
             network = DEFAULT_NETWORK
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
-                              parent_id=parent_id)
+                              sort_keys=sort_keys, parent_id=parent_id)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
@@ -509,7 +509,7 @@ class HDWallet:
             raise WalletError("Number of keys required to sign is greater then number of keys provided")
 
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id,
-                          purpose=purpose, scheme='multisig', databasefile=databasefile)
+                          purpose=purpose, scheme='multisig', sort_keys=sort_keys, databasefile=databasefile)
         hdpm.multisig_compressed = multisig_compressed
         co_id = 0
         hdpm.cosigner = []
@@ -878,11 +878,12 @@ class HDWallet:
                 wk = w.new_key(change=change, max_depth=max_depth)
                 public_keys.append({
                     'key_id': wk.key_id,
-                    'public_key': wk.key().key.public_uncompressed()
+                    'public_key_uncompressed': wk.key().key.public_uncompressed(),
+                    'public_key': wk.key().key.public()
                 })
             if self.sort_keys:
                 public_keys.sort(key=lambda x: x['public_key'])
-            public_key_list = [x['public_key'] for x in public_keys]
+            public_key_list = [x['public_key_uncompressed'] for x in public_keys]
             public_key_ids = [str(x['key_id']) for x in public_keys]
 
             # Calculate redeemscript and address and add multisig key to database
