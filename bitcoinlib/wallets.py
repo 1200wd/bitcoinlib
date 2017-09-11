@@ -935,9 +935,12 @@ class HDWallet:
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
+        keys_depth = depth_of_keys
+        if self.scheme == 'multisig':
+            keys_depth = 0
         dbkey = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
-                      used=False, change=change, depth=depth_of_keys).\
+                      used=False, change=change, depth=keys_depth).\
             order_by(DbKey.id).first()
         if dbkey:
             return HDWalletKey(dbkey.id, session=self._session)
@@ -1679,15 +1682,15 @@ class HDWallet:
         else:
             transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
 
+        if transaction.change < 0:
+            raise WalletError("Total amount of outputs is greater then total amount of inputs")
         # If change amount is smaller then estimated fee it will cost to send it then skip change
         if fee_per_output and transaction.change < fee_per_output:
             transaction.change = 0
         ck = None
         if transaction.change:
             key_depth = 5
-            if self.scheme == 'multisig':
-                key_depth = 0
-            ck = self.get_key(account_id=account_id, network=network, change=1, depth_of_keys=key_depth)
+            ck = self.get_key(account_id=account_id, network=network, change=1)
             transaction.add_output(transaction.change, ck.address)
             amount_total_output += transaction.change
 
