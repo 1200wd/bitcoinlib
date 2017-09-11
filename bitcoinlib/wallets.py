@@ -1454,9 +1454,6 @@ class HDWallet:
                            DbTransactionOutput.output_n == current_utxo['output_n'])
                 for utxo_record in utxo_in_db.all():
                     utxo_record.spend = True
-                # self._session.query(DbTransaction).filter(DbTransaction.hash == current_utxo['tx_hash']).\
-                #     update({DbTransaction.spend: True})
-                # self._session.query(DbKey).filter(DbKey.id == current_utxo['key_id']).update({DbKey.used: True})
             self._session.commit()
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
@@ -1467,7 +1464,8 @@ class HDWallet:
 
             # Update confirmations in db if utxo was already imported
             # TODO: Add network filter (?)
-            transaction_in_db = self._session.query(DbTransaction).filter_by(wallet_id=self.wallet_id, hash=utxo['tx_hash'])
+            transaction_in_db = self._session.query(DbTransaction).filter_by(wallet_id=self.wallet_id,
+                                                                             hash=utxo['tx_hash'])
             utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.wallet_id == self.wallet_id,
                        DbTransaction.hash == utxo['tx_hash'],
@@ -1686,7 +1684,10 @@ class HDWallet:
             transaction.change = 0
         ck = None
         if transaction.change:
-            ck = self.get_key(account_id=account_id, network=network, change=1)
+            key_depth = 5
+            if self.scheme == 'multisig':
+                key_depth = 0
+            ck = self.get_key(account_id=account_id, network=network, change=1, depth_of_keys=key_depth)
             transaction.add_output(transaction.change, ck.address)
             amount_total_output += transaction.change
 
