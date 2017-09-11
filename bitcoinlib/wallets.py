@@ -1407,7 +1407,7 @@ class HDWallet:
         self._session.commit()
         _logger.info("Got balance for %d key(s). Total balance is %s" % (len(utxo_keys), total_balance))
 
-    def updateutxos(self, account_id=None, used=False, network=None, key_id=None, depth=None):
+    def updateutxos(self, account_id=None, used=None, network=None, key_id=None, depth=None):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1415,6 +1415,8 @@ class HDWallet:
         
         :param account_id: Account ID
         :type account_id: int
+        :param used: Only check for UTXO for used or unused keys. Default is both
+        :type used: bool
         :param network: Network name. Leave empty for default network
         :type network: str
         :param key_id: Key ID to just update 1 key
@@ -1627,11 +1629,16 @@ class HDWallet:
         transaction.fee = transaction_fee
         transaction.fee_per_kb = None
         fee_per_output = None
+        tr_size = 100 + (1 * 150) + (len(output_arr) + 1 * 50)
         if transaction_fee is None:
-            transaction.fee_per_kb = srv.estimatefee()
-            tr_size = 100 + (1 * 150) + (len(output_arr)+1 * 50)
-            transaction.fee = int((tr_size / 1024) * transaction.fee_per_kb)
-            fee_per_output = int((50 / 1024) * transaction.fee_per_kb)
+            if not input_arr:
+                transaction.fee_per_kb = srv.estimatefee()
+                if transaction.fee_per_kb is False:
+                    raise WalletError("Could not estimate transaction fees, please specify fees manually")
+                transaction.fee = int((tr_size / 1024) * transaction.fee_per_kb)
+                fee_per_output = int((50 / 1024) * transaction.fee_per_kb)
+            else:
+                transaction.fee = 0
 
         # Add inputs
         amount_total_input = 0
@@ -1659,15 +1666,21 @@ class HDWallet:
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == to_hexstring(inp[0]),
                                DbTransactionOutput.output_n == struct.unpack('>I', inp[1])[0]).first()
-                    if inp_utxo:
-                        input_arr[i] = (inp[0], inp[1], inp_utxo.key_id, inp_utxo.value)
-                amount_total_input += inp[3]
+                    if not inp_utxo:
+                        raise WalletError("UTXO %s not found in this wallet. Please update UTXO's" %
+                                          to_hexstring(inp[0]))
+                    input_arr[i] = (inp[0], inp[1], inp_utxo.key_id, inp_utxo.value)
+                    amount_total_input = inp_utxo.value
+                else:
+                    amount_total_input += inp[3]
                 if len(inp) > 4:
                     input_arr[i] += (inp[4],)
 
-            # input_arr = new_input_arr
+        if transaction_fee is False:
+            transaction.change = 0
+        else:
+            transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
 
-        transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
         # If change amount is smaller then estimated fee it will cost to send it then skip change
         if fee_per_output and transaction.change < fee_per_output:
             transaction.change = 0
@@ -1675,6 +1688,10 @@ class HDWallet:
         if transaction.change:
             ck = self.get_key(account_id=account_id, network=network, change=1)
             transaction.add_output(transaction.change, ck.address)
+            amount_total_output += transaction.change
+
+        # TODO: Extra check for ridiculous fees
+        # if (amount_total_input - amount_total_output) > tr_size * MAXIMUM_FEE_PER_KB
 
         # Add inputs
         for inp in input_arr:
@@ -1704,16 +1721,13 @@ class HDWallet:
 
     def transaction_import(self, rawtx):
         t_import = Transaction.import_raw(rawtx, network=self.network.network_name)
-
         input_arr = []
         for inp in t_import.inputs:
             input_arr.append((inp.prev_hash, inp.output_index, None, 0, inp.signatures))
-
         output_arr = []
         for out in t_import.outputs:
             output_arr.append((out.address, out.amount))
-
-        return self.transaction_create(output_arr, input_arr)
+        return self.transaction_create(output_arr, input_arr, transaction_fee=False)
 
     # TODO: Move this to Transaction class (?)
     def transaction_sign(self, transaction, private_keys=None):

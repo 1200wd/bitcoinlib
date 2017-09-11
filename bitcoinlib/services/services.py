@@ -141,9 +141,8 @@ class Service(object):
         utxos = []
         while addresslist:
             res = self._provider_execute('getutxos', addresslist[:20])
-            if not res:
-                break
-            utxos += res
+            if res:
+                utxos += res
             addresslist = addresslist[20:]
         return utxos
 
