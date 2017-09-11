@@ -644,7 +644,7 @@ class HDWallet:
             self.multisig_n_required = w.multisig_n_required
             self.multisig_compressed = None
             self.cosigner = []
-            self.sort_keys = False
+            self.sort_keys = w.sort_keys
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             elif w.main_key_id:
@@ -872,13 +872,18 @@ class HDWallet:
             co_sign_wallets = self._session.query(DbWallet).\
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
 
-            public_key_list = []
-            public_key_ids = []
+            public_keys = []
             for csw in co_sign_wallets:
                 w = HDWallet(csw.id, session=self._session)
                 wk = w.new_key(change=change, max_depth=max_depth)
-                public_key_list.append(wk.key().key.public_uncompressed())
-                public_key_ids.append(str(wk.key_id))
+                public_keys.append({
+                    'key_id': wk.key_id,
+                    'public_key': wk.key().key.public_uncompressed()
+                })
+            if self.sort_keys:
+                public_keys.sort(key=lambda x: x['public_key'])
+            public_key_list = [x['public_key'] for x in public_keys]
+            public_key_ids = [str(x['key_id']) for x in public_keys]
 
             # Calculate redeemscript and address and add multisig key to database
             redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
