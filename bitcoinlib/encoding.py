@@ -80,9 +80,13 @@ def normalize_var(var, base=256):
     For Python 2 convert variabele to string
     For Python 3 convert to bytes
     Convert decimals to integer type
+
     :param var: input variable in any format
+    :type var: str, byte, bytearray, unicode
     :param base: specify variable format, i.e. 10 for decimal, 16 for hex
-    :return: string for Python 2, bytes for Python 3, decimal for base10
+    :type base: int
+
+    :return: Normalized var in string for Python 2, bytes for Python 3, decimal for base10
     """
     try:
         if PY3 and isinstance(var, str):
@@ -116,14 +120,19 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
     > change_base(100, 16, 2048) will return [100]
 
     :param chars: Input string
+    :type chars: any
     :param base_from: Base number from input string
+    :type base_from: int
     :param base_to: Base number for output
-    :param min_lenght: Minimal output length. Required for decimal,
-           advised for all output to avoid leading zeros conversion problems.
-    :param output_even: Specify if output must contain a even number of characters.
-           Sometimes handy for hex conversions.
+    :type base_to: int
+    :param min_lenght: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
+    :type min_lenght: int
+    :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
+    :type output_even: bool
     :param output_as_list: Always output as list instead of string.
-    :return: Base converted input as string or list.
+    :type output_as_list: bool
+
+    :return str, list: Base converted input as string or list.
     """
     if base_from == 10 and not min_lenght:
         raise EncodingError("For a decimal input a minimum output lenght is required!")
@@ -234,6 +243,7 @@ def varbyteint_to_int(byteint):
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
     :param byteint: 1-9 byte representation as integer
+
     :return: normal integer
     """
     # byteint = to_bytearray(byteint)
@@ -255,6 +265,16 @@ def varbyteint_to_int(byteint):
 
 
 def int_to_varbyteint(inp):
+    """
+    Convert integer to CompactSize Variable length integer in byte format.
+
+    See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
+
+    :param inp: Integer to convert
+    :type inp: int
+
+    :return: byteint: 1-9 byte representation as integer
+    """
     if not isinstance(inp, numbers.Number):
         raise EncodingError("Input must be a number type")
     if inp < 0xfd:
@@ -268,11 +288,29 @@ def int_to_varbyteint(inp):
 
 
 def varstr(s):
+    """
+    Convert string to bytestring preceeded with length byte
+
+    :param s: bytestring
+    :type s: bytes
+
+    :return bytes: varstring
+    """
     s = normalize_var(s)
     return int_to_varbyteint(len(s)) + s
 
 
 def convert_der_sig(s, as_hex=True):
+    """
+    Convert DER encoded signature to signature
+
+    :param s: DER signature
+    :type s: bytes
+    :param as_hex: Output as hexstring
+    :type as_hex: bool
+
+    :return bytes, str: Signature
+    """
     if not s:
         return ""
     sg, junk = ecdsa.der.remove_sequence(s)
@@ -288,6 +326,16 @@ def convert_der_sig(s, as_hex=True):
 
 
 def addr_to_pubkeyhash(address, as_hex=False):
+    """
+    Convert address to public key hash
+
+    :param address: Cryptocurrency address in base-58 format
+    :type address: str
+    :param as_hex: Output as hexstring
+    :type as_hex: bool
+
+    :return bytes, str: public key hash
+    """
     try:
         address = change_base(address, 58, 256, 25)
     except EncodingError as err:
@@ -303,6 +351,17 @@ def addr_to_pubkeyhash(address, as_hex=False):
 
 
 def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
+    """
+    Convert public key hash to address
+
+    :param pkh: Public key hash
+    :type pkh: bytes, str
+    :param versionbyte: Prefix version byte of network, default is bitcoin '\x00'
+    :type versionbyte: bytes
+
+    :return str: Base-58 encoded address
+
+    """
     pkh = to_bytearray(pkh)
     key = versionbyte + pkh
     addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
@@ -310,6 +369,14 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
 
 
 def script_to_pubkeyhash(script):
+    """
+    Creates a RIPEMD-160 hash of a locking, unlocking, redeemscript, etc
+
+    :param script: Script
+    :type script: bytes
+
+    :return bytes: RIPEMD-160 hash of script
+    """
     return hashlib.new('ripemd160', hashlib.sha256(script).digest()).digest()
 
 
@@ -370,6 +437,15 @@ def to_hexstring(var):
 
 
 def normalize_string(txt):
+    """
+    Normalize a string to the default format
+
+    :param txt: string value
+    :type txt: bytes, bytearray, str
+
+    :return: string
+
+    """
     if isinstance(txt, str if sys.version < '3' else bytes):
         utxt = txt.decode('utf8')
     elif isinstance(txt, unicode if sys.version < '3' else str):

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -41,6 +41,10 @@ _logger = logging.getLogger(__name__)
 
 
 class BKeyError(Exception):
+    """
+    Handle Key class Exceptions
+
+    """
     def __init__(self, msg=''):
         self.msg = msg
         _logger.error(msg)
@@ -198,6 +202,18 @@ def ec_point(p):
 
 
 def deserialize_address(address):
+    """
+    Deserialize cryptocurrency address. Calculate public key hash and try to determine script type and network.
+
+    If one and only one network is found the 'network' dictionary item with contain this network. Same applies for the script type.
+
+    If more networks and or script types are found you can find these in 'networks_p2sh' and 'networks_p2pkh'.
+
+    :param address: A base-58 encoded address
+    :type address: str
+
+    :return dict: with information about this address
+    """
     try:
         address_bytes = change_base(address, 58, 256, 25)
     except EncodingError as err:
@@ -968,8 +984,6 @@ class HDKey:
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False, network=network)
 
-    # def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-    #              child_index=0, isprivate=True, network=None, key_type='bip32', passphrase=''):
     def public(self):
         """
         Public version of current private key.

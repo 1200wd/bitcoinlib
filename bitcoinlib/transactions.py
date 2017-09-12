@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 August - 1200 Web Development <http://1200wd.com/>
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -382,6 +382,19 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
 
 
 def verify_signature(transaction_to_sign, signature, public_key):
+    """
+    Verify if signatures signs provided transaction hash and corresponds with public key
+
+    :param transaction_to_sign: Raw transaction to sign
+    :type transaction_to_sign: bytes, str
+    :param signature: A signature
+    :type signature: bytes, str
+    :param public_key: The public key
+    :type public_key: bytes, str
+
+    :return bool: Return True if verified
+
+    """
     transaction_to_sign = to_bytes(transaction_to_sign)
     signature = to_bytes(signature)
     public_key = to_bytes(public_key)
@@ -522,7 +535,10 @@ class Input:
                         sig_der = sig[:-1]
                 else:
                     sig_der = sig
-                sig = convert_der_sig(sig[:-1], as_hex=False)
+                try:
+                    sig = convert_der_sig(sig[:-1], as_hex=False)
+                except:
+                    pass
             self.signatures.append(
                 {
                     'sig_der': sig_der,

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2017 August - 1200 Web Development <http://1200wd.com/>
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -427,12 +427,14 @@ class HDWallet:
         :type network: str
         :param account_id: Account ID, default is 0
         :type account_id: int
-        :param purpose: BIP0044 purpose field, default is 44
+        :param purpose: BIP44 purpose field, default is 44
         :type purpose: int
-        :param scheme: Key structure type, i.e. bip32, single or multisig
+        :param scheme: Key structure type, i.e. BIP32, single or multisig
         :type scheme: str
         :param parent_id: Parent Wallet ID used for multisig wallet structures
         :type parent_id: int
+        :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
+        :type sort_keys: bool
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
         
@@ -492,6 +494,32 @@ class HDWallet:
     @classmethod
     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
                         multisig_compressed=True, sort_keys=False, databasefile=None):
+        """
+        Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
+        public or private keys. For every key a cosigner wallet will be created with a BIP32 key structure or a
+        single key depending on the key_type.
+
+        :param name: Unique name of this Wallet
+        :type name: str
+        :param key_list: List of keys in HDKey format or any other format supported by HDKey class
+        :type key_list: list
+        :param sigs_required: Number of signatures required for validation. For example 2 for 2-of-3 multisignature. Default is all keys must signed
+        :type sigs_required: int
+        :type owner: str
+        :param network: Network name, use default if not specified
+        :type network: str
+        :param account_id: Account ID, default is 0
+        :type account_id: int
+        :param purpose: BIP44 purpose field, default is 44
+        :type purpose: int
+        :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
+        :type sort_keys: bool
+        :param databasefile: Location of database file. Leave empty to use default
+        :type databasefile: str
+
+        :return HDWallet:
+
+        """
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
         session = DbInit(databasefile=databasefile).session
@@ -1712,7 +1740,6 @@ class HDWallet:
                 inp_keys = []
                 for ck in key.multisig_children:
                     inp_keys.append(HDKey(ck.child_key.wif).key)
-                # TODO: Take care of correct key order
                 script_type = 'p2sh_multisig'
             elif key.key_type in ['bip32', 'single']:
                 inp_keys = HDKey(key.wif).key
@@ -1730,6 +1757,15 @@ class HDWallet:
         return transaction
 
     def transaction_import(self, rawtx):
+        """
+        Import a raw transaction. Link inputs to wallet keys if possible and return Transaction object
+
+        :param rawtx: Raw transaction
+        :type rawtx: str, bytes
+
+        :return Transaction:
+
+        """
         t_import = Transaction.import_raw(rawtx, network=self.network.network_name)
         input_arr = []
         for inp in t_import.inputs:
@@ -1741,6 +1777,17 @@ class HDWallet:
 
     # TODO: Move this to Transaction class (?)
     def transaction_sign(self, transaction, private_keys=None):
+        """
+        Sign transaction with private keys available in this wallet or extra private_keys specified.
+        Return a signed transaction
+
+        :param transaction: A transaction object
+        :type transaction: Transaction
+        :param private_keys: Extra private keys
+        :type private_keys: list, HDKey, bytes, str
+
+        :return Transaction: A transaction with one or more signed keys
+        """
         priv_key_list_arg = []
         if private_keys:
             if not isinstance(private_keys, list):
@@ -1767,6 +1814,15 @@ class HDWallet:
         return transaction
 
     def transaction_send(self, transaction):
+        """
+        Verify and push transaction to network. Update UTXO's in database after successfull send
+
+        :param transaction: A signed transaction
+        :type transaction: Transaction
+
+        :return str, dict: Transaction ID if successfull or dict with results otherwise
+
+        """
         # Verify transaction
         if not transaction.verify():
             raise WalletError("Cannot verify transaction. Create transaction failed")
