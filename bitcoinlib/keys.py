@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -41,6 +41,10 @@ _logger = logging.getLogger(__name__)
 
 
 class BKeyError(Exception):
+    """
+    Handle Key class Exceptions
+
+    """
     def __init__(self, msg=''):
         self.msg = msg
         _logger.error(msg)
@@ -77,7 +81,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
             raise KeyError("Specified key %s is from different network then specified: %s" % (kf_networks, network))
         elif network is None and len(kf_networks) == 1:
             return kf_networks[0]
-        elif network is None and len(kf_networks) > 1:
+        elif network is None and len(kf_networks) > 1 and not default_network:
             raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf_networks)
     if network is None:
         return default_network
@@ -103,7 +107,7 @@ def get_key_format(key, isprivate=None):
     key_format = ""
     networks = None
 
-    if isinstance(key, (bytes, bytearray)) and len(key) in [64, 66, 128, 130]:
+    if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
         key = to_hexstring(key)
 
     if not (isprivate is None or isinstance(isprivate, bool)):
@@ -111,10 +115,10 @@ def get_key_format(key, isprivate=None):
     elif isinstance(key, numbers.Number):
         key_format = 'decimal'
         isprivate = True
-    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[:1] in [b'\2', b'\3']:
+    elif isinstance(key, (bytes, bytearray)) and len(key) in [33, 65] and key[:1] in [b'\2', b'\3']:
         key_format = 'bin_compressed'
         isprivate = False
-    elif isinstance(key, (bytes, bytearray)) and (len(key) == 33 and key[:1] == b'\4'):
+    elif isinstance(key, (bytes, bytearray)) and (len(key) in [33, 65] and key[:1] == b'\4'):
         key_format = 'bin'
         isprivate = False
     elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\1':
@@ -195,6 +199,53 @@ def ec_point(p):
     point = generator
     point *= p
     return point
+
+
+def deserialize_address(address):
+    """
+    Deserialize cryptocurrency address. Calculate public key hash and try to determine script type and network.
+
+    If one and only one network is found the 'network' dictionary item with contain this network. Same applies for the script type.
+
+    If more networks and or script types are found you can find these in 'networks_p2sh' and 'networks_p2pkh'.
+
+    :param address: A base-58 encoded address
+    :type address: str
+
+    :return dict: with information about this address
+    """
+    try:
+        address_bytes = change_base(address, 58, 256, 25)
+    except EncodingError as err:
+        raise EncodingError("Invalid address %s: %s" % (address, err))
+    check = address_bytes[-4:]
+    key_hash = address_bytes[:-4]
+    checksum = hashlib.sha256(hashlib.sha256(key_hash).digest()).digest()[0:4]
+    assert (check == checksum), "Invalid address, checksum incorrect"
+    address_prefix = key_hash[0:1]
+    networks_p2pkh = network_by_value('prefix_address', address_prefix)
+    networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
+    public_key_hash = key_hash[1:]
+    script_type = ''
+    network = ''
+    if networks_p2pkh and not networks_p2sh:
+        script_type = 'p2pkh'
+        if len(networks_p2pkh) == 1:
+            network = networks_p2pkh[0]
+    elif networks_p2sh and not networks_p2pkh:
+        script_type = 'p2sh'
+        if len(networks_p2sh) == 1:
+            network = networks_p2sh[0]
+
+    return {
+        'address': address,
+        'public_key_hash': change_base(public_key_hash, 256, 16),
+        'public_key_hash_bytes': public_key_hash,
+        'network': network,
+        'script_type': script_type,
+        'networks_p2sh': networks_p2sh,
+        'networks_p2pkh': networks_p2pkh
+    }
 
 
 class Key:
@@ -351,7 +402,10 @@ class Key:
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
 
     def __repr__(self):
-        return "<Key (%s)>" % self.wif()
+        if self.secret:
+            return "<Key (%s)>" % self.wif()
+        else:
+            return "<Key (public %s)" % self.public_hex
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
@@ -478,7 +532,7 @@ class Key:
 
     def public_point(self):
         """
-        Get public key point on Eliptic curve
+        Get public key point on Elliptic curve
         
         :return tuple: (x, y) point
         """
@@ -643,6 +697,7 @@ class HDKey:
                 else:
                     try:
                         self.key = Key(import_key, passphrase=passphrase, network=network)
+                        # FIXME: Maybe its better to create a random chain?
                         chain = b'\0'*32
                         key = self.key.private_byte
                         key_type = 'private'
@@ -809,6 +864,61 @@ class HDKey:
                     key = key.child_private(index=index, hardened=hardened, network=network)
         return key
 
+    def account_key(self, account_id=0, purpose=44, set_network=None):
+        """
+        Derive account BIP44 key for current master key
+
+        :param account_id: Account ID. Leave empty for account 0
+        :type account_id: int
+        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig
+        :type purpose: int
+        :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
+        :type set_network: str
+
+        :return HDKey:
+
+        """
+        if set_network:
+            self.network_change(set_network)
+        if self.depth != 0:
+            raise KeyError("Need a master key to generate account key")
+        if self.isprivate:
+            path = "m"
+        else:
+            path = "M"
+        path += "/%d'" % purpose
+        path += "/%d'" % self.network.bip44_cointype
+        path += "/%d'" % account_id
+        return self.subkey_for_path(path)
+
+    def account_multisig_key(self, account_id=0, purpose=45, set_network=None):
+        """
+        Derives a multisig account key according to BIP44/45 definiation.
+        Wrapper for the 'account_key' method.
+
+        :param account_id: Account ID. Leave empty for account 0
+        :type account_id: int
+        :param purpose: BIP standard used, leave empty for 45 which is the default for multisig
+        :type purpose: int
+        :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
+        :type set_network: str
+
+        :return HDKey:
+        """
+        return self.account_key(account_id, purpose, set_network)
+
+    def network_change(self, new_network):
+        """
+        Change network for current key
+
+        :param new_network: Name of new network
+        :type new_network: str
+
+        :return bool: True
+        """
+        self.network = Network(new_network)
+        return True
+
     def child_private(self, index=0, hardened=False, network=None):
         """
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
@@ -873,6 +983,17 @@ class HDKey:
         secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False, network=network)
+
+    def public(self):
+        """
+        Public version of current private key.
+
+        :return HDKey:
+        """
+
+        #TODO: more clevvvvver
+        return HDKey(self.wif_public(), parent_fingerprint=self.parent_fingerprint, isprivate=self.isprivate,
+                     key_type=self.key_type, network=self.network.network_name)
 
 
 if __name__ == '__main__':

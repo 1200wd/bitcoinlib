@@ -80,7 +80,7 @@ class Service(object):
         self.errors = {}
         self.resultcount = 0
 
-    def _provider_execute(self, method, argument):
+    def _provider_execute(self, method, *arguments):
         self.results = {}
         self.errors = {}
         self.resultcount = 0
@@ -96,7 +96,7 @@ class Service(object):
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
-                res = providermethod(argument)
+                res = providermethod(*arguments)
                 self.results.update(
                     {sp: res}
                 )
@@ -110,13 +110,17 @@ class Service(object):
                     self.errors.update(
                         {sp: err}
                     )
-                _logger.warning("%s.%s(%s) Error %s" % (sp, method, argument, e))
+                    # -- Use this to debug specific Services errors --
+                    # from pprint import pprint
+                    # pprint(self.errors)
+                _logger.warning("%s.%s(%s) Error %s" % (sp, method, arguments, e))
 
             if self.resultcount >= self.max_providers:
                 break
 
         if not self.resultcount:
-            raise ServiceError("No successfull response from any serviceprovider: %s" % list(self.providers.keys()))
+            _logger.warning("No successfull response from any serviceprovider: %s" % list(self.providers.keys()))
+            return False
         return list(self.results.values())[0]
 
     def getbalance(self, addresslist):
@@ -128,6 +132,7 @@ class Service(object):
         return self._provider_execute('getbalance', addresslist)
 
     def getutxos(self, addresslist):
+        # TODO: This could possible be removed and replaced with address_transactions
         if not addresslist:
             return []
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
@@ -135,9 +140,26 @@ class Service(object):
 
         utxos = []
         while addresslist:
-            utxos += self._provider_execute('getutxos', addresslist[:20])
+            res = self._provider_execute('getutxos', addresslist[:20])
+            if res:
+                utxos += res
             addresslist = addresslist[20:]
         return utxos
+
+    def address_transactions(self, addresslist):
+        if not addresslist:
+            return []
+        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
+            addresslist = [addresslist]
+
+        transactions = []
+        while addresslist:
+            res = self._provider_execute('address_transactions', addresslist[:20])
+            if not res:
+                break
+            transactions += res
+            addresslist = addresslist[20:]
+        return transactions
 
     def getrawtransaction(self, txid):
         return self._provider_execute('getrawtransaction', txid)

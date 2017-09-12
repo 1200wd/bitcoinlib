@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    DataBase - SqlAlchemy database definitions
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@ import csv
 import enum
 import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, Float, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -81,12 +81,34 @@ class DbWallet(Base):
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
     purpose = Column(Integer, default=44)
+    scheme = Column(String(25))
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
+    transactions = relationship("DbTransaction", back_populates="wallet")
     balance = Column(Integer, default=0)
+    multisig_n_required = Column(Integer, default=1, doc="Number of required signature for multisig, "
+                                                         "only used for multisignature master key")
+    sort_keys = Column(Boolean, default=False, doc="Sort keys in multisig wallet")
+    parent_id = Column(Integer, ForeignKey('wallets.id'))
+    children = relationship("DbWallet", lazy="joined", join_depth=2)
+
+    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip32', 'multisig']), name='allowed_schemes'),)
 
     def __repr__(self):
         return "<DbWallet(name='%s', network='%s'>" % (self.name, self.network_name)
+
+
+class DbKeyMultisigChildren(Base):
+    """
+    Use many-to-many relationship for multisig keys. A multisig keys contains 2 or more child keys
+    and a child key can be used in more then one multisig key.
+
+    """
+    __tablename__ = 'key_multisig_children'
+
+    parent_id = Column(Integer, ForeignKey('keys.id'), primary_key=True)
+    child_id = Column(Integer, ForeignKey('keys.id'), primary_key=True)
+    key_order = Column(Integer, Sequence('key_multisig_children_id_seq'))
 
 
 class DbKey(Base):
@@ -103,16 +125,16 @@ class DbKey(Base):
     account_id = Column(Integer, index=True)
     depth = Column(Integer)
     change = Column(Integer)
-    address_index = Column(Integer, index=True)
-    key = Column(String(255), unique=True)
-    wif = Column(String(255), unique=True, index=True)
-    type = Column(String(10))
+    address_index = Column(Integer)
+    public = Column(String(255), index=True)
+    private = Column(String(255), index=True)
+    wif = Column(String(255), index=True)
     key_type = Column(String(10), default='bip32')
-    address = Column(String(255), unique=True)
+    address = Column(String(255), index=True)
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
     path = Column(String(100))
-    wallet_id = Column(Integer, ForeignKey('wallets.id'))
+    wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True)
     wallet = relationship("DbWallet", back_populates="keys")
     transaction_inputs = relationship("DbTransactionInput", cascade="all,delete", back_populates="key")
     transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key")
@@ -120,11 +142,22 @@ class DbKey(Base):
     used = Column(Boolean, default=False)
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
+    multisig_parents = relationship("DbKeyMultisigChildren", backref='child_key',
+                                    primaryjoin=id == DbKeyMultisigChildren.child_id)
+    multisig_children = relationship("DbKeyMultisigChildren", backref='parent_key',
+                                     order_by="DbKeyMultisigChildren.key_order",
+                                     primaryjoin=id == DbKeyMultisigChildren.parent_id)
 
-    __table_args__ = (CheckConstraint(key_type.in_(['single', 'bip32', 'bip44'])),)
+    __table_args__ = (
+        CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),
+        UniqueConstraint('wallet_id', 'public', name='_wallet_key_uc'),
+        UniqueConstraint('wallet_id', 'private', name='_wallet_key_uc'),
+        UniqueConstraint('wallet_id', 'wif', name='_wallet_wif_uc'),
+        UniqueConstraint('wallet_id', 'address', name='_wallet_address_uc'),
+    )
 
     def __repr__(self):
-        return "<DbKey(id='%s', name='%s', key='%s'>" % (self.id, self.name, self.wif)
+        return "<DbKey(id='%s', name='%s', wif='%s'>" % (self.id, self.name, self.wif)
 
 
 class DbNetwork(Base):
@@ -154,7 +187,7 @@ class DbTransaction(Base):
     """
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
-    hash = Column(String(64), unique=True)
+    hash = Column(String(64))
     version = Column(Integer, default=1)
     lock_time = Column(Integer, default=0)
     date = Column(DateTime, default=datetime.datetime.utcnow)
@@ -163,8 +196,14 @@ class DbTransaction(Base):
     size = Column(Integer)
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
+    wallet_id = Column(Integer, ForeignKey('wallets.id'))
+    wallet = relationship("DbWallet", back_populates="transactions")
     # TODO: TYPE: watch-only, wallet, incoming, outgoing
     # TODO: Add network field (?)
+
+    __table_args__ = (
+        UniqueConstraint('wallet_id', 'hash', name='_transaction_hash_wallet_uc'),
+    )
 
     def __repr__(self):
         return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.hash, self.confirmations)
@@ -178,11 +217,14 @@ class DbTransactionInput(Base):
     prev_hash = Column(String(64))
     output_n = Column(Integer, default=0)
     script = Column(String)
+    script_type = Column(String, default='p2pkh')
     sequence = Column(Integer)
     value = Column(Integer, default=0)
     spend = Column(Boolean(), default=False)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_inputs")
+
+    __table_args__ = (CheckConstraint(script_type.in_(['p2pkh', 'multisig', 'p2sh'])),)
 
 
 class DbTransactionOutput(Base):
@@ -193,8 +235,12 @@ class DbTransactionOutput(Base):
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_outputs")
     script = Column(String)
+    script_type = Column(String, default='pubkey')
     value = Column(Integer, default=0)
     spend = Column(Boolean(), default=False)
+
+    # TODO: sig_pubkey ?
+    __table_args__ = (CheckConstraint(script_type.in_(['pubkey', 'nulldata', 'multisig', 'p2sh_multisig'])),)
 
 
 if __name__ == '__main__':

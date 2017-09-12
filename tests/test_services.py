@@ -87,8 +87,8 @@ class TestService(unittest.TestCase):
 
     def test_get_utxos(self):
         srv = Service()
-        utxos = srv.getutxos('15kcoKVd4vPbr7kneykb5PtwAAboWPmEBN')
-        tx_hash = '7543d66fa8b300c3da9625023692bae18c86c7a45f1c8e5f2a6daa8c2540affd'
+        utxos = srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
+        tx_hash = '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8'
         self.assertEqual(tx_hash, utxos[0]['tx_hash'])
 
     def test_estimatefee(self):

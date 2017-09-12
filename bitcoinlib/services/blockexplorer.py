@@ -48,6 +48,55 @@ class BlockExplorerClient(BaseClient):
             })
         return utxos
 
+    def address_transactions(self, addresslist):
+        addresses = ','.join(addresslist)
+        # TODO: Finish this
+        # res = self.compose_request('addrs', addresses, 'txs')
+        # /api/addrs/2NF2baYuJAkCKo5onjUKEPdARQkZ6SYyKd5,2NAre8sX2povnjy4aeiHKeEh97Qhn97tB1f/txs?from=0&to=20
+        # from pprint import pprint
+        # pprint(res)
+        # {'from': 0,
+        #  'items': [{'blockhash': '00000000000004c...d53cefe26e92fd5cd',
+        #             'blockheight': 1153001,
+        #             'blocktime': 1499977636,
+        #             'confirmations': 28157,
+        #             'fees': 8.15e-06,
+        #             'locktime': 0,
+        #             'size': 226,
+        #             'time': 1499977636,
+        #             'txid': '8bcac07df4a5...0d7cebf9b7d7ee',
+        #             'valueIn': 4.50759446,
+        #             'valueOut': 4.50758631,
+        #             'version': 1,
+        #             'vin': [{'addr': 'msrbEQkm1svA9r9x6Jaypb6cpSX1VepYHf',
+        #                      'doubleSpentTxID': None,
+        #                      'n': 0,
+        #                      'scriptSig': {'asm':
+        #                                        'hex':
+        # 'sequence': 4294967295,
+        #             'txid': '0cf6ad653cde...034abb65b1',
+        # 'value': 4.50759446,
+        # 'valueSat': 450759446,
+        # 'vout': 0}],
+        # 'vout': [{'n': 0,
+        #           'scriptPubKey': {'addresses': ['mxdLD8SAG..MHp8N'],
+        #                            'asm':,
+        #           'hex': '76a914bbaeed8a02f6....88ac',
+        #           'type': 'pubkeyhash'},
+        #          'spentHeight': None,
+        #                         'spentIndex': None,
+        # 'spentTxId': None,
+        # 'value': '0.00100000'},
+        # {'n': 1,
+        #  'scriptPubKey': {'addresses': ['n1JFNC8zMerPuY.53oagzK6'],
+        #                   'asm': ...,
+        #                   'hex': '76a914d8fb5bc...c428a88ac',
+        #                   'type': 'pubkeyhash'},
+        #  'spentHeight': 1153005,
+        #  'spentIndex': 0,
+        #  'spentTxId': 'a5308741fe17d...32e7659f09408c43008d',
+        #  'value': '4.50658631'}]},
+
     def getbalance(self, addresslist):
         utxos = self.getutxos(addresslist)
         balance = 0

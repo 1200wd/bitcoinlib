@@ -39,6 +39,11 @@ class TestGetKeyFormat(unittest.TestCase):
         key = 'L2Q5U2zjxeoSf3dcNZsk19Z9bGr7RMeCTigvv7gJNJQq9uzQnF47'
         self.assertEqual('wif_compressed', get_key_format(key)['format'])
 
+    def test_format_bin_uncompressed(self):
+        key = b'\x04\xa8\x82\xd4\x14\xe4x\x03\x9c\xd5\xb5*\x92\xff\xb1=\xd5\xe6\xbdE\x15It9\xdf\xfdi\x1a\x0f\x12\xaf' \
+              b'\x95u\xfa4\x9bV\x94\xed1U\xb16\xf0\x9ec\x97Z\x17\x00\xc9\xf4\xd4\xdf\x84\x93#\xda\xc0l\xf3\xbddX\xcd'
+        self.assertEqual('bin', get_key_format(key)['format'])
+
     def test_format_hdkey_private(self):
         key = 'xprv9s21ZrQH143K2JF8RafpqtKiTbsbaxEeUaMnNHsm5o6wCW3z8ySyH4UxFVSfZ8n7ESu7fgir8imbZKLYVBxFPND1pniTZ81v' \
               'Kfd45EHKX73'
@@ -317,6 +322,27 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
     def test_hdkey_path_invalid2(self):
         with self.assertRaises(BKeyError):
             self.k2.subkey_for_path('m/-1').wif()
+
+    def test_hdkey_bip44_account(self):
+        pk = 'tprv8ZgxMBicQKsPdvHCP6VxtFgowj2k7nBJnuRiVWE4DReDFojkLjyqdT8mtR6XJK9dRBcaa3RwvqiKFjsEQVhKfQmHZCCYf4jRTWv' \
+             'JuVuK67n'
+        k = HDKey(pk)
+        self.assertEqual(k.account_key(3, 45).private_hex,
+                         '232b9d7b48fa4ca6e842f09f6811ff03cf33ba0582b4cca5752deec2e746c186')
+
+    def test_hdkey_bip44_account_litecoin(self):
+        pk = 'Ltpv71G8qDifUiNes8hK1m3ZjL3bW76X4AKF3J26FVDM5awe6mWdyyzZgTrbvkK5z4WQyKkyVnDvC56KfRaHHhcZjWcWvRFCzBYUsCc' \
+             'FoNNHjck'
+        k = HDKey(pk)
+        self.assertEqual(k.account_key().key.address(), 'LZ4gg2m6uNY3vj9RUFkderRP18ChTwWyiq')
+
+    def test_hdkey_bip44_account_set_network(self):
+        pk = 'xprv9s21ZrQH143K3eL4S7g5DWNecoKFw1tbWA5wQDbeQcNKQD4dvFjG4UZE9U3xXK3DcpYWpaYCtWN2jmuiPsNTxDA1YoCupKFFAAb' \
+             'DxnrSZLh'
+        k = HDKey(pk)
+        self.assertEqual(k.account_key(set_network='litecoin').wif_public(),
+                         'Ltub2YFrLu4dWbKxpypR9AytvMy8uiHE1STWpDHbv3Qa19jLwjqAqpTJpA2McrRGGfZUkSEgQiz9GC7J3UoNmxc32z'
+                         'czaR2hpDfCny9xmCGoG9V')
 
 
 class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):

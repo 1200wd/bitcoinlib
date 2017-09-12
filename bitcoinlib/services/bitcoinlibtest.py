@@ -19,7 +19,9 @@
 #
 
 import logging
+import hashlib
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.encoding import addr_to_pubkeyhash
 
 _logger = logging.getLogger(__name__)
 
@@ -40,7 +42,7 @@ class BitcoinLibTestClient(BaseClient):
             utxos.append(
                 {
                     'address': address,
-                    'tx_hash': 'txhash-%s' % address,
+                    'tx_hash': hashlib.sha256(addr_to_pubkeyhash('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo')).hexdigest(),
                     'confirmations': 10,
                     'output_n': 0,
                     'index': 0,

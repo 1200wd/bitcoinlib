@@ -65,6 +65,10 @@ class BlockchainInfoClient(BaseClient):
                 })
         return utxos
 
+    def address_transactions(self, addresslist):
+        # TODO: write this method if possible
+        pass
+
     def getrawtransaction(self, txid):
         res = self.compose_request('rawtx', txid, {'format': 'hex'})
         return res

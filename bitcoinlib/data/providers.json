@@ -62,15 +62,6 @@
     "priority": 10,
     "denominator": 1
   },
-  "blockr": {
-    "provider": "blockr",
-    "network": "bitcoin",
-    "client_class": "BlockrClient",
-    "url": "http://btc.blockr.io/api/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000
-  },
   "blockcypher": {
     "provider": "blockcypher",
     "network": "bitcoin",
@@ -98,15 +89,6 @@
     "priority": 10,
     "denominator": 1
   },
-  "blockr.testnet": {
-    "provider": "blockr",
-    "network": "testnet",
-    "client_class": "BlockrClient",
-    "url": "http://tbtc.blockr.io/api/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000
-  },
   "blockcypher.testnet": {
     "provider": "blockcypher",
     "network": "testnet",
@@ -115,15 +97,6 @@
     "api_key": "",
     "priority": 10,
     "denominator": 1
-  },
-  "blockr.litecoin": {
-    "provider": "blockr",
-    "network": "litecoin",
-    "client_class": "BlockrClient",
-    "url": "http://ltc.blockr.io/api/v1/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000
   },
   "blockcypher.litecoin": {
     "provider": "blockcypher",

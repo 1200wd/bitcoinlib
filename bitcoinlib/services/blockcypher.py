@@ -52,9 +52,12 @@ class BlockCypher(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
+        return self.address_transactions(addresslist, unspent_only=True)
+
+    def address_transactions(self, addresslist, unspent_only=False):
         addresses = ';'.join(addresslist)
-        res = self.compose_request('addrs', addresses, variables={'unspentOnly': 1, 'limit': 2000})
-        utxos = []
+        res = self.compose_request('addrs', addresses, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
+        transactions = []
         if not isinstance(res, list):
             res = [res]
         for a in res:
@@ -62,19 +65,19 @@ class BlockCypher(BaseClient):
             if 'txrefs' not in a:
                 continue
             if len(a['txrefs']) > 500:
-                _logger.warning("BlockCypher: Large number of outputs for address %s, "
-                                "UTXO list may be incomplete" % address)
-            for utxo in a['txrefs']:
-                utxos.append({
+                _logger.warning("BlockCypher: Large number of transactions for address %s, "
+                                "Transaction list may be incomplete" % address)
+            for tx in a['txrefs']:
+                transactions.append({
                     'address': address,
-                    'tx_hash': utxo['tx_hash'],
-                    'confirmations': utxo['confirmations'],
-                    'output_n': utxo['tx_output_n'],
+                    'tx_hash': tx['tx_hash'],
+                    'confirmations': tx['confirmations'],
+                    'output_n': tx['tx_output_n'],
                     'index': 0,
-                    'value': int(round(utxo['value'] * self.units, 0)),
+                    'value': int(round(tx['value'] * self.units, 0)),
                     'script': '',
                 })
-        return utxos
+        return transactions
 
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')

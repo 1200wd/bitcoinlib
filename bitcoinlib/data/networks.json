@@ -11,7 +11,7 @@
     "prefix_wif": "99",
     "prefix_hdkey_private": "9488ADE4",
     "prefix_hdkey_public": "9488B21E",
-    "bip44_cointype": 0,
+    "bip44_cointype": 9999999,
     "denominator": 0.00000001
   },
   "bitcoin":
@@ -37,7 +37,7 @@
     "currency_symbol": "TBTC",
     "currency_code": "TBTC",
     "prefix_address": "6F",
-    "prefix_address_p2sh": "05",
+    "prefix_address_p2sh": "C4",
     "prefix_wif": "EF",
     "prefix_hdkey_private": "04358394",
     "prefix_hdkey_public": "043587CF",

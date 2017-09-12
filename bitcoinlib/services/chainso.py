@@ -88,3 +88,7 @@ class ChainSo(BaseClient):
         if len(utxos) >= 1000:
             _logger.warning("ChainSo: UTXO's list has been truncated, UTXO list is incomplete")
         return utxos
+
+    def address_transactions(self, addresslist):
+        # TODO: write this method if possible
+        pass

@@ -120,6 +120,8 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 * pycrypto
 * scrypt
 * sqlalchemy
+* requests
+* enum34 (for older python installations)
 
 Python development packages
 ---------------------------
