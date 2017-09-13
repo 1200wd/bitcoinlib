@@ -68,8 +68,8 @@ class ChainSo(BaseClient):
 
     def getutxos(self, addresslist):
         utxos = []
-        lastutxo = ''
         for address in addresslist:
+            lastutxo = ''
             while len(utxos) < 1000:
                 res = self.compose_request('get_tx_unspent', address, lastutxo)
                 for utxo in res['data']['txs']:
