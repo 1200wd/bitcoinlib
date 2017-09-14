@@ -1014,6 +1014,11 @@ class HDWallet:
         :return HDWalletKey: 
         """
 
+        # if self.scheme != 'bip32':
+        #     raise WalletError("We can only create new accounts for a wallet with a BIP32 key scheme")
+        if self.main_key.depth != 0 or self.main_key.is_private is False:
+            raise WalletError("A master private key of depth 0 is needed to create new accounts")
+
         if network is None:
             network = self.network.network_name
 
@@ -1439,8 +1444,9 @@ class HDWallet:
 
         # Bulk update database
         self._session.bulk_update_mappings(DbKey, utxo_keys)
-        self._dbwallet.balance = total_balance
-        self._balance = total_balance
+        if self._dbwallet.network_name == network:
+            self._dbwallet.balance = total_balance
+            self._balance = total_balance
         self._session.commit()
         _logger.info("Got balance for %d key(s). Total balance is %s" % (len(utxo_keys), total_balance))
 
@@ -1473,8 +1479,8 @@ class HDWallet:
                 depth = 0
 
         # Get all UTXO's for this wallet from default Service object
-        utxos = Service(network=network).\
-            getutxos(self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id, depth=depth))
+        addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id, depth=depth)
+        utxos = Service(network=network).getutxos(addresslist)
         if utxos is False:
             raise WalletError("No response from any service provider, could not update UTXO's")
         count_utxos = 0
@@ -1533,7 +1539,7 @@ class HDWallet:
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
-        self.updatebalance(account_id=account_id, key_id=key_id)
+        self.updatebalance(account_id=account_id, network=network, key_id=key_id)
         return count_utxos
 
     def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
