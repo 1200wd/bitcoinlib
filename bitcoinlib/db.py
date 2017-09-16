@@ -21,7 +21,7 @@
 import csv
 import enum
 import datetime
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy import Column, Integer, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -85,7 +85,7 @@ class DbWallet(Base):
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
     transactions = relationship("DbTransaction", back_populates="wallet")
-    balance = Column(Integer, default=0)
+    # balance = Column(Integer, default=0)
     multisig_n_required = Column(Integer, default=1, doc="Number of required signature for multisig, "
                                                          "only used for multisignature master key")
     sort_keys = Column(Boolean, default=False, doc="Sort keys in multisig wallet")

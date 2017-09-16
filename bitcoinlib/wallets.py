@@ -67,7 +67,6 @@ def list_wallets(databasefile=DEFAULT_DATABASE):
             'owner': w.owner,
             'network': w.network_name,
             'purpose': w.purpose,
-            'balance': w.balance,
         })
     session.close()
     return wlst
@@ -665,7 +664,7 @@ class HDWallet:
             self.network = Network(w.network_name)
             self.purpose = w.purpose
             self.scheme = w.scheme
-            self._balance = w.balance
+            self._balances = {}
             self.main_key_id = w.main_key_id
             self.main_key = None
             self.default_account_id = 0
@@ -728,8 +727,8 @@ class HDWallet:
 
         :param as_string: Set True to return a string in currency format. Default returns float.
         :type as_string: boolean
-        
-        :return float, str: Key balance 
+
+        :return float, str: Key balance
         """
         if as_string:
             return self.network.print_value(self._balance)
@@ -1381,7 +1380,7 @@ class HDWallet:
 
         return [x[field] for x in self.networks()]
 
-    def updatebalance_from_serviceprovider(self, account_id=None, network=None):
+    def balance_update_from_serviceprovider(self, account_id=None, network=None):
         """
         Update balance of currents account addresses using default Service objects getbalance method. Update total 
         wallet balance in database. 
@@ -1398,11 +1397,12 @@ class HDWallet:
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        self._balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
-        self._dbwallet.balance = self._balance
+        balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
+        self._balances.update({network: balance})
+        self._dbwallet.balance = balance
         self._session.commit()
 
-    def updatebalance(self, account_id=None, network=None, key_id=None):
+    def balance_update(self, account_id=None, network=None, key_id=None, min_confirms=1):
         """
         Update balance from UTXO's in database. To get most recent balance use 'updateutxos' method first.
         
@@ -1419,36 +1419,37 @@ class HDWallet:
         :return: 
         """
 
-        network, account_id, acckey = self._get_account_defaults(network, account_id)
-
-        # Get UTXO's and convert to dict with key_id and balance
-        utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
-        utxos.sort(key=lambda x: x['key_id'])
-        utxo_keys = []
-        total_balance = 0
-        for key, group in groupby(utxos, lambda x: x['key_id']):
-            balance = sum(r['value'] for r in group)
-            utxo_keys.append({
-                    'id': key,
-                    'balance': balance
+        qr = self._session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbKey.network_name).\
+            join(DbTransaction).join(DbKey). \
+            filter(DbTransactionOutput.spend.op("IS")(False),
+                   DbTransaction.wallet_id == self.wallet_id,
+                   DbTransaction.confirmations >= min_confirms). \
+            group_by(DbTransactionOutput.key_id)
+        # TODO DbKey.account_id == account_id,
+        # TODO  DbKey.network_name == network,
+        if key_id is not None:
+            qr = qr.filter(DbKey.id == key_id)
+        utxos = qr.all()
+        key_values = []
+        network_values = []
+        for utxo in utxos:
+            key_values.append({
+                'id': utxo[0].key_id,
+                'balance': utxo[0].value
             })
-            total_balance += balance
+            network = utxo[2]
+            if network in network_values:
+                network_values[network] += utxo[0].value
+            else:
+                network_values[network] = utxo[0].value
 
-        # Add keys with no UTXO's with 0 balance
-        for key in self.keys(account_id=account_id, network=network, key_id=key_id):
-            if key.id not in [x['key_id'] for x in utxos]:
-                utxo_keys.append({
-                    'id': key.id,
-                    'balance': 0
-                })
+        print(key_values)
 
         # Bulk update database
-        self._session.bulk_update_mappings(DbKey, utxo_keys)
-        if self._dbwallet.network_name == network:
-            self._dbwallet.balance = total_balance
-            self._balance = total_balance
+        self._session.bulk_update_mappings(DbKey, key_value_map)
         self._session.commit()
-        _logger.info("Got balance for %d key(s). Total balance is %s" % (len(utxo_keys), total_balance))
+
+        _logger.info("Got balance for %d key(s)" % len(utxo_keys))
 
     def updateutxos(self, account_id=None, used=None, network=None, key_id=None, depth=None):
         """
@@ -1539,7 +1540,7 @@ class HDWallet:
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
-        self.updatebalance(account_id=account_id, network=network, key_id=key_id)
+        self.balance_update(account_id=account_id, network=network, key_id=key_id)
         return count_utxos
 
     def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
@@ -1559,7 +1560,8 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
-        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash).\
+        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash,
+                                 DbKey.network_name).\
             join(DbTransaction).join(DbKey). \
             filter(DbTransactionOutput.spend.op("IS")(False),
                    DbKey.account_id == account_id,
@@ -1577,6 +1579,7 @@ class HDWallet:
             u['address'] = utxo[1]
             u['confirmations'] = int(utxo[2])
             u['tx_hash'] = utxo[3]
+            u['network_name'] = utxo[4]
             res.append(u)
         return res
 
@@ -1995,6 +1998,35 @@ class HDWallet:
                                                               Network(key.network_name).print_value(key.balance)))
         print("\n")
 
+    def dict(self, detail=3):
+        """
+        Return wallet information in dictionary format
+
+        :return:
+        """
+
+        if detail and self.main_key:
+            self.main_key.info()
+        if detail > 1:
+            for nw in self.networks():
+                print("- Network: %s -" % nw['network_name'])
+                if detail < 3:
+                    ds = [0, 3, 5]
+                else:
+                    ds = range(6)
+                for d in ds:
+                    for key in self.keys(depth=d, network=nw['network_name']):
+                        print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
+                                                              Network(key.network_name).print_value(key.balance)))
+
+        return {
+            'wallet_id': self.wallet_id,
+            'name': self.name,
+            'owner': self._owner,
+            'scheme': self.scheme,
+            'balance': self.balance(),
+            'balance_str': self.balance(as_string=True),
+        }
 
 if __name__ == '__main__':
     #

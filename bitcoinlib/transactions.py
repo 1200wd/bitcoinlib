@@ -775,7 +775,7 @@ class Transaction:
         return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \
                (len(self.inputs), len(self.outputs), self.network.network_name)
 
-    def get(self):
+    def dict(self):
         """
         Return Json dictionary with transaction information: Inputs, outputs, version and locktime
         
