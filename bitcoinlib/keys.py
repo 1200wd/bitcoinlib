@@ -763,6 +763,32 @@ class HDKey:
         print(" Extended Private Key (wif)  %s" % self.wif(public=False))
         print("\n")
 
+    def dict(self):
+        """
+        Returns key information as dictionary
+
+        """
+
+        point_x, point_y = self.key.public_point()
+        return {
+            'private_hex': self.private_hex,
+            'private_long': self.secret,
+            'private_wif': self.key.wif(),
+            'public_hex': self.public_hex,
+            'public_hash160': self.key.hash160(),
+            'address': self.key.address(),
+            'fingerprint': change_base(self.fingerprint(), 256, 16),
+            'point_x': point_x,
+            'point_y': point_y,
+            'key_type': self.key_type,
+            'chain_code': change_base(self.chain, 256, 16),
+            'child_index': self.child_index,
+            'fingerprint_parent': change_base(self.parent_fingerprint, 256, 16),
+            'depth': self.depth,
+            'extended_wif_public': self.wif_public(),
+            'extended_wif_private': self.wif(public=False),
+        }
+        
     def _key_derivation(self, seed):
         """
         Derive extended private key with key and chain part from seed

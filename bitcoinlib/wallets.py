@@ -368,30 +368,55 @@ class HDWalletKey:
         p.append(str(address_index))
         return p[:max_depth]
 
-    def info(self):
+    # def info(self):
+    #     """
+    #     Output current key information to standard output
+    #
+    #     """
+    #
+    #     print("--- Key ---")
+    #     print(" ID                             %s" % self.key_id)
+    #     print(" Key Type                       %s" % self.key_type)
+    #     print(" Is Private                     %s" % self.is_private)
+    #     print(" Name                           %s" % self.name)
+    #     if self.is_private:
+    #         print(" Private Key                    %s" % self.key_private)
+    #     print(" Public Key                     %s" % self.key_public)
+    #     print(" Key WIF                        %s" % self.wif)
+    #     print(" Account ID                     %s" % self.account_id)
+    #     print(" Parent ID                      %s" % self.parent_id)
+    #     print(" Depth                          %s" % self.depth)
+    #     print(" Change                         %s" % self.change)
+    #     print(" Address Index                  %s" % self.address_index)
+    #     print(" Address                        %s" % self.address)
+    #     print(" Path                           %s" % self.path)
+    #     print(" Balance                        %s" % self.balance(fmt='string'))
+    #     print("\n")
+
+    def dict(self):
         """
-        Output current key information to standard output
-        
+        Return current key information as dictionary
+
         """
 
-        print("--- Key ---")
-        print(" ID                             %s" % self.key_id)
-        print(" Key Type                       %s" % self.key_type)
-        print(" Is Private                     %s" % self.is_private)
-        print(" Name                           %s" % self.name)
-        if self.is_private:
-            print(" Private Key                    %s" % self.key_private)
-        print(" Public Key                     %s" % self.key_public)
-        print(" Key WIF                        %s" % self.wif)
-        print(" Account ID                     %s" % self.account_id)
-        print(" Parent ID                      %s" % self.parent_id)
-        print(" Depth                          %s" % self.depth)
-        print(" Change                         %s" % self.change)
-        print(" Address Index                  %s" % self.address_index)
-        print(" Address                        %s" % self.address)
-        print(" Path                           %s" % self.path)
-        print(" Balance                        %s" % self.balance(fmt='string'))
-        print("\n")
+        return {
+            'id': self.key_id,
+            'key_type': self.key_type,
+            'is_private': self.is_private,
+            'name': self.name,
+            'key_private': self.key_private,
+            'key_public': self.key_public,
+            'wif': self.wif,
+            'account_id':  self.account_id,
+            'parent_id': self.parent_id,
+            'depth': self.depth,
+            'change': self.change,
+            'address_index': self.address_index,
+            'address': self.address,
+            'path': self.path,
+            'balance': self.balance(),
+            'balance_str': self.balance(fmt='string')
+        }
 
 
 class HDWallet:
@@ -1991,7 +2016,7 @@ class HDWallet:
 
         if detail and self.main_key:
             print("= Main key =")
-            self.main_key.info()
+            self.main_key.dict()
         if detail > 1:
             for nw in self.networks():
                 print("- Network: %s -" % nw['network_name'])
@@ -2165,7 +2190,7 @@ if __name__ == '__main__':
     except WalletError as e:
         print("Import litecoin key in bitcoin wallet gives an EXPECTED error: %s" % e)
 
-    print("\n=== Normalize BIP48 key path ===")
+    print("\n=== Normalize BIP32 key path ===")
     key_path = "m/44h/1'/0p/2000/1"
     print("Raw: %s, Normalized: %s" % (key_path, normalize_path(key_path)))
 

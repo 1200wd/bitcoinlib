@@ -47,7 +47,7 @@ class TestWalletCreate(unittest.TestCase):
         self.assertIsNot(self.wallet.info(), "")
 
     def test_wallet_key_info(self):
-        self.assertIsNot(self.wallet.main_key.info(), "")
+        self.assertIsNot(self.wallet.main_key.dict(), "")
 
     def test_wallet_create_account(self):
         new_account = self.wallet.new_account(account_id=100)
@@ -354,7 +354,6 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.new_key()
         w.utxos_update()
-        w.info()
         self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
                          'succesfull_test_sendrawtransaction')
 
