@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -312,7 +312,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
 
         w.new_key()
-        w.updateutxos()
+        w.utxos_update()
         self.assertEqual(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 50000000),
                          'succesfull_test_sendrawtransaction')
 
@@ -325,10 +325,10 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
 
         w.new_key()
-        w.updateutxos()
-        self.assertEqual(len(w.getutxos()), 1)
+        w.utxos_update()
+        self.assertEqual(len(w.utxos()), 1)
         w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 50000000)
-        self.assertEqual(w.getutxos(), [])
+        self.assertEqual(w.utxos(), [])
 
     def test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -338,7 +338,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
             name='test_wallet_bitcoinlib_testnet',
             databasefile=DATABASEFILE_UNITTESTS)
         w.new_key()
-        w.updateutxos()
+        w.utxos_update()
         balance = w.balance()
         self.assertRaisesRegex(WalletError, 'Not enough unspent transaction outputs found', w.send_to,
                                '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
@@ -353,7 +353,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.new_key()
         w.new_key()
-        w.updateutxos()
+        w.utxos_update()
         w.info()
         self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
                          'succesfull_test_sendrawtransaction')
@@ -412,7 +412,7 @@ class TestWalletMultisig(unittest.TestCase):
         wl.new_key()
 
         # Sign, verify and send transaction
-        wl.updateutxos()  # In bitcoinlib_test network this generates new UTXO's
+        wl.utxos_update()  # In bitcoinlib_test network this generates new UTXO's
         t = wl.transaction_create([('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 100000)])
         t = wl.transaction_sign(t)
         self.assertTrue(t.verify())
@@ -442,9 +442,9 @@ class TestWalletMultisig(unittest.TestCase):
                                         databasefile=DATABASEFILE_UNITTESTS)
         msw1.new_key()
         msw2.new_key()
-        msw1.updateutxos()
-        msw2.updateutxos()
-        utxos = msw1.getutxos()
+        msw1.utxos_update()
+        msw2.utxos_update()
+        utxos = msw1.utxos()
         output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = msw1.transaction_create(output_arr, input_arr, transaction_fee=50000)
@@ -478,9 +478,9 @@ class TestWalletMultisig(unittest.TestCase):
                                         databasefile=DATABASEFILE_UNITTESTS_2)
         msw1.new_key()
         msw2.new_key()
-        msw1.updateutxos()
-        msw2.updateutxos()
-        utxos = msw1.getutxos()
+        msw1.utxos_update()
+        msw2.utxos_update()
+        utxos = msw1.utxos()
         output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = msw1.transaction_create(output_arr, input_arr, transaction_fee=50000)
@@ -514,7 +514,7 @@ class TestWalletMultisig(unittest.TestCase):
                 wallet_name, key_list, sigs_required=sigs_required, network=network, sort_keys=sort_keys,
                 databasefile=DATABASEFILE_UNITTESTS)
             wallet_keys[wallet_id] = wallet_dict[wallet_id].new_key()
-            wallet_dict[wallet_id].updateutxos()
+            wallet_dict[wallet_id].utxos_update()
 
         # Create transaction in one random wallet
         wallet_ids = [i for i in range(0, number_of_sigs)]
@@ -522,7 +522,7 @@ class TestWalletMultisig(unittest.TestCase):
         transaction_fee = 50000
         wallet_id = wallet_ids.pop()
         wlt = wallet_dict[wallet_id]
-        utxos = wlt.getutxos()
+        utxos = wlt.utxos()
         output_arr = [(random_output_address, utxos[0]['value'] - transaction_fee)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = wlt.transaction_create(output_arr, input_arr, transaction_fee=transaction_fee)
@@ -576,7 +576,7 @@ class TestWalletMultisig(unittest.TestCase):
         wl.new_key()
         wl.new_key()
         wl.new_key_change()
-        wl.updateutxos()
+        wl.utxos_update()
 
         self.assertEqual(wl.keys()[0].name, 'Multisig Key 8/7')
         self.assertEqual(wl.keys()[1].name, 'Multisig Key 10/7')

@@ -664,7 +664,7 @@ class HDWallet:
             self.network = Network(w.network_name)
             self.purpose = w.purpose
             self.scheme = w.scheme
-            self._balance = None
+            self._balance = 0
             self._balances = {}
             self.main_key_id = w.main_key_id
             self.main_key = None
@@ -1408,7 +1408,7 @@ class HDWallet:
 
     def balance_update(self, account_id=None, network=None, key_id=None, min_confirms=1):
         """
-        Update balance from UTXO's in database. To get most recent balance use 'updateutxos' method first.
+        Update balance from UTXO's in database. To get most recent balance update UTXO's first.
         
         Also updates balance of wallet and keys in this wallet for the specified account or all accounts if
         no account is specified.
@@ -1457,7 +1457,7 @@ class HDWallet:
 
         _logger.info("Got balance for %d key(s)" % len(key_values))
 
-    def updateutxos(self, account_id=None, used=None, network=None, key_id=None, depth=None):
+    def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=None):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1493,7 +1493,7 @@ class HDWallet:
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
-        current_utxos = self.getutxos(account_id=account_id, network=network, key_id=key_id)
+        current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
 
         # Update spend UTXO's (not found in list) and mark key as used
         utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
@@ -1549,9 +1549,9 @@ class HDWallet:
         self.balance_update(account_id=account_id, network=network, key_id=key_id)
         return count_utxos
 
-    def getutxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
+    def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
-        Get UTXO's (Unspent Outputs) from database. Use updateutxos method first for updated values
+        Get UTXO's (Unspent Outputs) from database. Use utxos_update method first for updated values
         
         :param account_id: Account ID
         :type account_id: int
@@ -1955,7 +1955,7 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
-        utxos = self.getutxos(account_id=account_id, network=network, min_confirms=min_confirms)
+        utxos = self.utxos(account_id=account_id, network=network, min_confirms=min_confirms)
         utxos = utxos[0:max_utxos]
         input_arr = []
         total_amount = 0
@@ -2053,9 +2053,9 @@ if __name__ == '__main__':
     from pprint import pprint
     test_databasefile = 'bitcoinlib.test.sqlite'
     test_database = DEFAULT_DATABASEDIR + test_databasefile
-    # import os
-    # if os.path.isfile(test_database):
-    #     os.remove(test_database)
+    import os
+    if os.path.isfile(test_database):
+        os.remove(test_database)
 
     print("\n=== Most simple way to create Bitcoin Wallet ===")
     w = HDWallet.create('MyWallet', databasefile=test_database)
@@ -2091,7 +2091,7 @@ if __name__ == '__main__':
     nk2 = testnet_wallet.new_key(account_id=99, name="Address #2")
     nkc = testnet_wallet.new_key_change(account_id=99, name="Change #1")
     nkc2 = testnet_wallet.new_key_change(account_id=99, name="Change #2")
-    testnet_wallet.updateutxos()
+    testnet_wallet.utxos_update()
     testnet_wallet.info(detail=3)
 
     # Three ways of getting the a HDWalletKey, with ID, address and name:
@@ -2118,7 +2118,7 @@ if __name__ == '__main__':
         databasefile=test_database)
     simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
     simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
-    simple_wallet.updateutxos()
+    simple_wallet.utxos_update()
     simple_wallet.info(detail=3)
     del simple_wallet
 
@@ -2173,10 +2173,10 @@ if __name__ == '__main__':
     wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
     for _ in range(10):
         wallet_import.new_key()
+    wallet_import.utxos_update(99)
     wallet_import.info(detail=3)
-    wallet_import.updateutxos(99)
+    utxos = wallet_import.utxos(99)
     print("\n= UTXOs =")
-    utxos = wallet_import.getutxos(99)
     for utxo in utxos:
         print("%s %s (%d confirms)" %
               (utxo['address'], wallet_import.network.print_value(utxo['value']), utxo['confirmations']))
