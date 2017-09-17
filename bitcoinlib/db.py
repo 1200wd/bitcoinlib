@@ -92,7 +92,7 @@ class DbWallet(Base):
     parent_id = Column(Integer, ForeignKey('wallets.id'))
     children = relationship("DbWallet", lazy="joined", join_depth=2)
 
-    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip32', 'multisig']), name='allowed_schemes'),)
+    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='allowed_schemes'),)
 
     def __repr__(self):
         return "<DbWallet(name='%s', network='%s'>" % (self.name, self.network_name)

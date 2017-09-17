@@ -646,7 +646,7 @@ class HDKey:
         :type key: bytes
         :param chain: A chain code (lenght 32)
         :type chain: bytes
-        :param depth: Level of depth in path (BIP0043/BIP0044)
+        :param depth: Level of depth in BIP32 key path
         :type depth: int
         :param parent_fingerprint: 4-byte fingerprint of parent
         :type parent_fingerprint: bytes

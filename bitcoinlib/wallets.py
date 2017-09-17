@@ -409,7 +409,7 @@ class HDWallet:
     """
 
     @classmethod
-    def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip32', parent_id=None,
+    def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
                sort_keys=False, databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
@@ -428,7 +428,7 @@ class HDWallet:
         :type account_id: int
         :param purpose: BIP44 purpose field, default is 44
         :type purpose: int
-        :param scheme: Key structure type, i.e. BIP32, single or multisig
+        :param scheme: Key structure type, i.e. BIP44, single or multisig
         :type scheme: str
         :param parent_id: Parent Wallet ID used for multisig wallet structures
         :type parent_id: int
@@ -460,7 +460,7 @@ class HDWallet:
         session.commit()
         new_wallet_id = new_wallet.id
 
-        if scheme == 'bip32':
+        if scheme == 'bip44':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='bip32')
             if mk.depth > 4:
@@ -495,7 +495,7 @@ class HDWallet:
                         multisig_compressed=True, sort_keys=False, databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
-        public or private keys. For every key a cosigner wallet will be created with a BIP32 key structure or a
+        public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
         single key depending on the key_type.
 
         :param name: Unique name of this Wallet
@@ -551,7 +551,7 @@ class HDWallet:
         # TODO: Allow HDKey objects in Wallet.create (?)
         # key_wif_list2 = [k.wif() for k in hdkey_list]
         for cokey in hdkey_list:
-            scheme = 'bip32'
+            scheme = 'bip44'
             wn = name + '-cosigner-%d' % co_id
             if cokey.key_type == 'single':
                 scheme = 'single'
@@ -841,7 +841,7 @@ class HDWallet:
             # raise WalletError("New key creation not supported for single key wallets")
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        if self.scheme == 'bip32':
+        if self.scheme == 'bip44':
             # Get account key, create one if it doesn't exist
             if not acckey:
                 acckey = self._session.query(DbKey). \
@@ -853,7 +853,7 @@ class HDWallet:
                     acckey = hk._dbkey
             if not acckey:
                 raise WalletError("No key found this wallet_id, network and purpose. "
-                                  "Is there a BIP32 Master key imported?")
+                                  "Is there a master key imported?")
             else:
                 main_acc_key = self.key(acckey.id)
 
@@ -948,7 +948,7 @@ class HDWallet:
         :type network: str
         :param change: Payment (0) or change key (1). Default is 0
         :type change: int
-        :param depth_of_keys: Depth of account keys. Default is 5 according to BIP0032 standards
+        :param depth_of_keys: Depth of account keys. Default is 5 according to BIP44 standards
         :type depth_of_keys: int
         
         :return HDWalletKey: 
@@ -976,7 +976,7 @@ class HDWallet:
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param depth_of_keys: Depth of account keys. Default is 5 according to BIP0032 standards
+        :param depth_of_keys: Depth of account keys. Default is 5 according to BIP44 standards
         :type depth_of_keys: int
         
         :return HDWalletKey:  
@@ -1000,8 +1000,8 @@ class HDWallet:
         :return HDWalletKey: 
         """
 
-        # if self.scheme != 'bip32':
-        #     raise WalletError("We can only create new accounts for a wallet with a BIP32 key scheme")
+        if self.scheme != 'bip44':
+            raise WalletError("We can only create new accounts for a wallet with a BIP44 key scheme")
         if self.main_key.depth != 0 or self.main_key.is_private is False:
             raise WalletError("A master private key of depth 0 is needed to create new accounts")
 
@@ -1034,7 +1034,7 @@ class HDWallet:
                     session=self._session)
             except IndexError:
                 raise WalletError("No key found for this wallet_id and purpose. Can not create new"
-                                  "account for this wallet, is there a BIP32 Master key imported?")
+                                  "account for this wallet, is there a master key imported?")
         else:
             accrootkey = res[0]
             accrootkey_obj = self.key(accrootkey.id)
@@ -1146,11 +1146,11 @@ class HDWallet:
             qr = qr.filter(DbKey.network_name == network)
         if account_id is not None:
             qr = qr.filter(DbKey.account_id == account_id)
-            if self.scheme == 'bip32' and depth is None:
+            if self.scheme == 'bip44' and depth is None:
                 qr = qr.filter(DbKey.depth >= 3)
         if change is not None:
             qr = qr.filter(DbKey.change == change)
-            if self.scheme == 'bip32' and depth is None:
+            if self.scheme == 'bip44' and depth is None:
                 qr = qr.filter(DbKey.depth > 4)
         if depth is not None:
             qr = qr.filter(DbKey.depth == depth)
@@ -1348,7 +1348,7 @@ class HDWallet:
         :return: List of keys as dictionary
         """
 
-        if self.scheme == 'bip32':
+        if self.scheme == 'bip44':
             wks = self.keys_networks(as_dict=True)
             for wk in wks:
                 if '_sa_instance_state' in wk:
@@ -1480,7 +1480,7 @@ class HDWallet:
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         if depth is None:
             # TODO: implement bip45/67/electrum/?
-            if self.scheme == 'bip32':
+            if self.scheme == 'bip44':
                 depth = 5
             else:
                 depth = 0
