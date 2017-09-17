@@ -664,7 +664,7 @@ class HDWallet:
             self.network = Network(w.network_name)
             self.purpose = w.purpose
             self.scheme = w.scheme
-            self._balance = 0
+            self._balance = None
             self._balances = {}
             self.main_key_id = w.main_key_id
             self.main_key = None
@@ -1389,7 +1389,6 @@ class HDWallet:
         self._dbwallet.balance = balance
         self._session.commit()
 
-
     def balance(self, as_string=False):
         """
         Get total of unspent outputs
@@ -1399,6 +1398,9 @@ class HDWallet:
 
         :return float, str: Key balance
         """
+
+        if self._balance is None:
+            self.balance_update()
         if as_string:
             return self.network.print_value(self._balance)
         else:
