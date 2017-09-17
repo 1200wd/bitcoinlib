@@ -664,6 +664,7 @@ class HDWallet:
             self.network = Network(w.network_name)
             self.purpose = w.purpose
             self.scheme = w.scheme
+            self._balance = 0
             self._balances = {}
             self.main_key_id = w.main_key_id
             self.main_key = None
@@ -720,20 +721,6 @@ class HDWallet:
         if not account_id and acckey:
             account_id = acckey.account_id
         return network, account_id, acckey
-
-    def balance(self, as_string=False):
-        """
-        Get total of unspent outputs
-
-        :param as_string: Set True to return a string in currency format. Default returns float.
-        :type as_string: boolean
-
-        :return float, str: Key balance
-        """
-        if as_string:
-            return self.network.print_value(self._balance)
-        else:
-            return self._balance
 
     @property
     def owner(self):
@@ -1402,6 +1389,21 @@ class HDWallet:
         self._dbwallet.balance = balance
         self._session.commit()
 
+
+    def balance(self, as_string=False):
+        """
+        Get total of unspent outputs
+
+        :param as_string: Set True to return a string in currency format. Default returns float.
+        :type as_string: boolean
+
+        :return float, str: Key balance
+        """
+        if as_string:
+            return self.network.print_value(self._balance)
+        else:
+            return self._balance
+
     def balance_update(self, account_id=None, network=None, key_id=None, min_confirms=1):
         """
         Update balance from UTXO's in database. To get most recent balance use 'updateutxos' method first.
@@ -1423,13 +1425,14 @@ class HDWallet:
             join(DbTransaction).join(DbKey). \
             filter(DbTransactionOutput.spend.op("IS")(False),
                    DbTransaction.wallet_id == self.wallet_id,
-                   DbTransaction.confirmations >= min_confirms). \
-            group_by(DbTransactionOutput.key_id)
-        # TODO DbKey.account_id == account_id,
-        # TODO  DbKey.network_name == network,
+                   DbTransaction.confirmations >= min_confirms)
+        if account_id is not None:
+            qr = qr.filter(DbKey.account_id == account_id)
+        if network is not None:
+            qr = qr.filter(DbKey.network_name == network)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
-        utxos = qr.all()
+        utxos = qr.group_by(DbTransactionOutput.key_id).all()
         key_values = []
         network_values = {}
         for utxo in utxos:
@@ -1443,13 +1446,14 @@ class HDWallet:
                 new_value = network_values[network] + utxo[0].value
             network_values.update({network: new_value})
 
-        self._balances = network_values
-        self._balance = network_values[self.main_key.network_name]
+        self._balances.update(network_values)
+        if self.network.network_name in network_values:
+            self._balance = network_values[self.network.network_name]
         # Bulk update database
         self._session.bulk_update_mappings(DbKey, key_values)
         self._session.commit()
 
-        _logger.info("Got balance for %d key(s)" % len(utxo_keys))
+        _logger.info("Got balance for %d key(s)" % len(key_values))
 
     def updateutxos(self, account_id=None, used=None, network=None, key_id=None, depth=None):
         """
@@ -1979,6 +1983,7 @@ class HDWallet:
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self._owner)
         print(" Scheme                         %s" % self.scheme)
+        print(" Main network                   %s" % self.network.network_name)
         print(" Balance                        %s" % self.balance(as_string=True))
         print("")
 
@@ -2024,8 +2029,17 @@ class HDWallet:
             'name': self.name,
             'owner': self._owner,
             'scheme': self.scheme,
-            'balance': self.balance(),
-            'balance_str': self.balance(as_string=True),
+            'main_network': self.network.network_name,
+            'main_balance': self.balance(),
+            'main_balance_str': self.balance(as_string=True),
+            'balances': self._balances,
+            'default_account_id': self.default_account_id,
+            'multisig_n_required': self.multisig_n_required,
+            'multisig_compressed': self.multisig_compressed,
+            'cosigner': self.cosigner,
+            'sort_keys': self.sort_keys,
+            # 'main_key': self.main_key.dict(),
+            'main_key_id': self.main_key_id
         }
 
 if __name__ == '__main__':
