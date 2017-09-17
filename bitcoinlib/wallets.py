@@ -1431,22 +1431,22 @@ class HDWallet:
             qr = qr.filter(DbKey.id == key_id)
         utxos = qr.all()
         key_values = []
-        network_values = []
+        network_values = {}
         for utxo in utxos:
             key_values.append({
                 'id': utxo[0].key_id,
                 'balance': utxo[0].value
             })
             network = utxo[2]
+            new_value = utxo[0].value
             if network in network_values:
-                network_values[network] += utxo[0].value
-            else:
-                network_values[network] = utxo[0].value
+                new_value = network_values[network] + utxo[0].value
+            network_values.update({network: new_value})
 
-        print(key_values)
-
+        self._balances = network_values
+        self._balance = network_values[self.main_key.network_name]
         # Bulk update database
-        self._session.bulk_update_mappings(DbKey, key_value_map)
+        self._session.bulk_update_mappings(DbKey, key_values)
         self._session.commit()
 
         _logger.info("Got balance for %d key(s)" % len(utxo_keys))
