@@ -1,0 +1,123 @@
+# -*- coding: utf-8 -*-
+#
+#    BitcoinLib - Python Cryptocurrency Library
+#
+#    EXAMPLES - Transaction Class examples
+#
+#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#
+
+from pprint import pprint
+from bitcoinlib.transactions import *
+
+#
+# Create transactions
+#
+
+print("\n=== Create and sign transaction with add_input, add_output methods ===")
+print("(Based on http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a-basic-tx/24580)")
+t = Transaction()
+prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
+ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
+t.add_input(prev_hash=prev_tx, output_index=1, keys=ki.public_hex)
+t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
+t.sign(ki.private_byte)
+pprint(t.dict())
+print("Raw:", binascii.hexlify(t.raw()))
+print("Verified %s " % t.verify())
+
+print("\n=== Create and sign transaction with transactions Input and Output objects ===")
+print("(Based on http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html)")
+ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
+txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
+transaction_input = Input(prev_hash=txid, output_index=0, keys=ki.public_byte)
+pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
+transaction_output = Output(amount=91234, public_key_hash=pkh)
+t = Transaction([transaction_input], [transaction_output])
+t.sign(ki.private_byte)
+print("Raw:", binascii.hexlify(t.raw()))
+pprint(t.dict())
+print("Verified %s " % t.verify())
+
+print("\n=== Create and sign Testnet Transaction with Multiple OUTPUTS using keys from Wallet class "
+      "'TestNetWallet' example"
+      "\nSee txid f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618 ===")
+ki = Key('cRMjy1LLMPsVU4uaAt3br8Ft5vdJLx6prY4Sx7WjPARrpYAnVEkV', network='testnet')  # Private key for import
+transaction_input = Input(prev_hash='adee8bdd011f60e52949b65b069ff9f19fc220815fdc1a6034613ed1f6b775f1', output_index=1,
+                          keys=ki.public(), network='testnet')
+amount_per_address = 27172943
+output_addresses = ['mn6xJw1Cp2gLcSSQAYPnX4G2M6GARGyX5j', 'n3pdL33MgTA316odzeydhNrcKXdu6jy8ry',
+                    'n1Bq89KaJrcaXEMUEsDSyhKHfTGi8mkfRJ', 'mrqYnxFPcf6u5xkEfmA3dxQzjB7ZcPgtTq',
+                    'mwrETLWFdvEfDwRa44JvXngxCZp59MFcC6']
+transaction_outputs = []
+for output_address in output_addresses:
+    transaction_outputs.append(Output(amount_per_address, address=output_address, network='testnet'))
+t = Transaction([transaction_input], transaction_outputs, network='testnet')
+t.sign(ki.private_byte)
+pprint(t.dict())
+print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+print("Verified %s" % t.verify())
+
+print("\n=== Create and sign Testnet Transaction with Multiple INPUTS using keys from "
+      "Wallet class 'TestNetWallet' example"
+      "\nSee txid 82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9 ===")
+transaction_outputs = [Output(135000000, address='mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2', network='testnet')]
+t = Transaction(outputs=transaction_outputs, network='testnet')
+transaction_inputs = [
+    (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 0,
+     'cQowpHh56TrwVk3YSYFuUo8X4ZLXkGJMtbkuo7NyauZZBGs9Tb7U'),
+    (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 1,
+     'cSVr1HyJ2V2S2C57HsSF5QwkJjEhfLDpPporv6iFgJG2kFQqE9yh'),
+    (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 2,
+     'cPMakfwNRW2dzBBcfcxiJu7ucpD5Xjb1Zev88Tz6mYNrwU4ymZCf'),
+    (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 3,
+     'cR1TSoqB8vS3azmBMZa4khssXw1V2agPxM76Xc4ciULie3cdKPDr'),
+    (u'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618', 4,
+     'cW19vMM1k8x2Luawr1FZogQibggg5745eNE8GLJcZXYQb7eYc3Cf')
+]
+for ti in transaction_inputs:
+    ki = Key(ti[2], network='testnet')
+    t.add_input(prev_hash=ti[0], output_index=ti[1], keys=ki.public(), sequence=b'\xff\xff\xff\xff')
+icount = 0
+for ti in transaction_inputs:
+    ki = Key(ti[2], network='testnet')
+    t.sign(ki.private_byte, icount)
+    icount += 1
+pprint(t.dict())
+print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+print("Verified %s\n\n\n" % t.verify())
+
+# TODO: Add multisig, other P2SH, nulldata examples
+
+#
+# Deserialize input and output transaction scripts
+#
+
+print("\n=== Determine Script Types ===")
+print("\n- p2pkh -")
+script = '76a914f0d34949650af161e7cb3f0325a1a8833075165088ac'
+script_dict = script_deserialize(script)
+pprint(script_dict)
+
+print("\n- sig_pubkey -")
+script = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5b41' \
+         '2bd24d09151c2008b7fef10eb5f13e484d1e0d01210207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa' \
+         '7446'
+script_dict = script_deserialize(script)
+pprint(script_dict)
+
+print("\n- nulldata -")
+script = '6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd'
+script_dict = script_deserialize(script)
+pprint(script_dict)
+
+print("\n- multisig -")
+script = '5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d16987eaa010e540901cc6' \
+         'fe3695e758c19f46ce604e174dac315e685a52ae'
+script_dict = script_deserialize(script)
+pprint(script_dict)
+
+print("\n- p2sh_multisig -")
+script = '004cc9524104c898af7c30ff06735110f4041d02f242c676a85011b5ea9aae2b64c74e60b92a725372fb312d1affed1c26757caa27092a1accfe75d2ad9d8bb1663d83dbd25141043edd7b9b267dfea77f2ca7602e4cc4f9114001391d2ecd5e740bd29a340767a6c436440ab1fed4c731ef05e378230c16e3f4746ae221fa91fdc86296bf1a97164104a57c1e695dec5cc9bbfa17ab1533016d2b4306e09d6afbe7c8959367cf775a9c3f8003e7cd2b39f6d38ba0c8909a52afe11ccc06ddb31c098134d92be478095e53ae'
+script_dict = script_deserialize(script)
+pprint(script_dict)
