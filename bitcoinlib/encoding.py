@@ -438,7 +438,8 @@ def to_hexstring(var):
 
 def normalize_string(txt):
     """
-    Normalize a string to the default format
+    Normalize a string to the default NFKD unicode format
+    See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
     :param txt: string value
     :type txt: bytes, bytearray, str

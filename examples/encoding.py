@@ -74,7 +74,7 @@ print("\n=== Varbyte Int conversions ===")
 print("Number 1000 as Varbyte Integer (hexstring): %s" % to_hexstring(int_to_varbyteint(1000)))
 print("Converted back (3 is size in bytes: 1 size byte + integer in bytes): ", varbyteint_to_int(to_bytes('fde803')))
 
-# Normalize data - See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
+# Normalize data
 print("\n=== Normalizations ===")
 data = [
     u"guion cruz envío papel otoño percha hazaña salir joya gorra íntimo actriz",
