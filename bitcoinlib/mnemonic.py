@@ -164,7 +164,7 @@ class Mnemonic:
         wi = []
         for word in words:
             wi.append(self._wordlist.index(word))
-        ent = change_base(wi, 2048, 256, output_even=0)
+        ent = change_base(wi, 2048, 256, output_even=False)
         if includes_checksum:
             binresult = change_base(ent, 256, 2, len(ent) * 4)
             ent = change_base(binresult[:-len(binresult) // 33], 2, 256)
