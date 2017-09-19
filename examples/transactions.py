@@ -10,6 +10,7 @@
 from pprint import pprint
 from bitcoinlib.transactions import *
 
+
 #
 # Create transactions
 #
@@ -85,9 +86,29 @@ for ti in transaction_inputs:
     icount += 1
 pprint(t.dict())
 print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
-print("Verified %s\n\n\n" % t.verify())
+print("Verified %s" % t.verify())
 
-# TODO: Add multisig, other P2SH, nulldata examples
+
+#
+# Create Multisignature Transactions
+#
+
+print("\nCreate a multisignature transaction")
+pk1 = HDKey()
+pk2 = HDKey()
+pk3 = HDKey()
+t = Transaction()
+test_tx_hash = 'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618'
+t.add_input(prev_hash=test_tx_hash, output_index=0,
+            keys=[pk1.public_byte, pk2.public_byte, pk3.public_byte],
+            script_type='p2sh_multisig', sigs_required=2)
+t.add_output(100000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+t.sign(pk3.private_byte)
+t.sign(pk1.private_byte)
+print("Transaction:")
+pprint(t.dict())
+print("Verified %s" % t.verify())
+
 
 #
 # Deserialize input and output transaction scripts
@@ -118,6 +139,9 @@ script_dict = script_deserialize(script)
 pprint(script_dict)
 
 print("\n- p2sh_multisig -")
-script = '004cc9524104c898af7c30ff06735110f4041d02f242c676a85011b5ea9aae2b64c74e60b92a725372fb312d1affed1c26757caa27092a1accfe75d2ad9d8bb1663d83dbd25141043edd7b9b267dfea77f2ca7602e4cc4f9114001391d2ecd5e740bd29a340767a6c436440ab1fed4c731ef05e378230c16e3f4746ae221fa91fdc86296bf1a97164104a57c1e695dec5cc9bbfa17ab1533016d2b4306e09d6afbe7c8959367cf775a9c3f8003e7cd2b39f6d38ba0c8909a52afe11ccc06ddb31c098134d92be478095e53ae'
+script = '004cc9524104c898af7c30ff06735110f4041d02f242c676a85011b5ea9aae2b64c74e60b92a725372fb312d1affed1c26757c' \
+         'aa27092a1accfe75d2ad9d8bb1663d83dbd25141043edd7b9b267dfea77f2ca7602e4cc4f9114001391d2ecd5e740bd29a3407' \
+         '67a6c436440ab1fed4c731ef05e378230c16e3f4746ae221fa91fdc86296bf1a97164104a57c1e695dec5cc9bbfa17ab153301' \
+         '6d2b4306e09d6afbe7c8959367cf775a9c3f8003e7cd2b39f6d38ba0c8909a52afe11ccc06ddb31c098134d92be478095e53ae'
 script_dict = script_deserialize(script)
 pprint(script_dict)
