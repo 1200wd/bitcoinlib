@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
-#    EXAMPLES - Wallets
+#    EXAMPLES - Creating and Using Cryptocurrency Wallets
 #
 #    © 2017 September - 1200 Web Development <http://1200wd.com/>
 #
@@ -18,7 +18,6 @@ from bitcoinlib.wallets import *
 # First recreate database to avoid already exist errors
 test_databasefile = 'bitcoinlib.test.sqlite'
 test_database = DEFAULT_DATABASEDIR + test_databasefile
-
 if os.path.isfile(test_database):
     os.remove(test_database)
 
