@@ -992,6 +992,36 @@ class HDWallet:
         else:
             return self.new_key(account_id=account_id, network=network, change=change, max_depth=depth_of_keys)
 
+    def get_keys(self, account_id=None, network=None, change=0, depth_of_keys=5):
+        """
+        Get a unused key or create a new one if there are no unused keys.
+        Returns a key from this wallet which has no transactions linked to it.
+
+        :param account_id: Account ID. Default is last used or created account ID.
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param change: Payment (0) or change key (1). Default is 0
+        :type change: int
+        :param depth_of_keys: Depth of account keys. Default is 5 according to BIP44 standards
+        :type depth_of_keys: int
+
+        :return HDWalletKey:
+        """
+
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+        keys_depth = depth_of_keys
+        if self.scheme == 'multisig':
+            keys_depth = 0
+        dbkeys = self._session.query(DbKey). \
+            filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
+                      used=False, change=change, depth=keys_depth). \
+            order_by(DbKey.id).all()
+        unusedkeys = []
+        for dk in dbkeys:
+            unusedkeys.append(HDWalletKey(dk.id, session=self._session))
+        return unusedkeys
+
     def get_key_change(self, account_id=None, network=None, depth_of_keys=5):
         """
         Get a unused change key or create a new one if there are no unused keys. 
@@ -1428,6 +1458,8 @@ class HDWallet:
             self.balance_update()
         if network is None:
             network = self.network.network_name
+        if network not in self._balances:
+            return 0
         if as_string:
             return Network(network).print_value(self._balances[network])
         else:
