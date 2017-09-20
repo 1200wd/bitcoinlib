@@ -32,7 +32,26 @@ _logger = logging.getLogger(__name__)
 DEFAULT_NETWORK = 'bitcoin'
 
 
+
+
+class NetworkError(Exception):
+    """
+    Network Exception class
+    """
+    def __init__(self, msg=''):
+        self.msg = msg
+        _logger.error(msg)
+
+    def __str__(self):
+        return self.msg
+
+
 def read_network_definitions():
+    """
+    Returns network definitions from json file in settings dir
+
+    :return dict: Network definitions
+    """
     try:
         fn = DEFAULT_SETTINGSDIR + "/networks.json"
         f = open(fn, "r")
@@ -121,15 +140,6 @@ def network_defined(network):
     return True
 
 
-class NetworkError(Exception):
-    def __init__(self, msg=''):
-        self.msg = msg
-        _logger.error(msg)
-
-    def __str__(self):
-        return self.msg
-
-
 class Network:
     """
     Network class with all network definitions. 
@@ -178,29 +188,3 @@ class Network:
         balance = round(value * denominator, denominator_size)
         format_str = "%%.%df %%s" % denominator_size
         return format_str % (balance, symb)
-
-
-if __name__ == '__main__':
-    #
-    # NETWORK EXAMPLES
-    #
-
-    network = Network('bitcoin')
-    print("\n=== Get all WIF prefixes ===")
-    print("WIF Prefixes: %s" % network_values_for('prefix_wif'))
-
-    print("\n=== Get all HDkey private prefixes ===")
-    print("HDkey private prefixes: %s" % network_values_for('prefix_hdkey_private', output_as='str'))
-
-    print("\n=== Get network(s) for WIF prefix B0 ===")
-    print("WIF Prefixes: %s" % network_by_value('prefix_wif', 'B0'))
-
-    print("\n=== Get HD key private prefix for current network ===")
-    print("self.prefix_hdkey_private: %s" % network.prefix_hdkey_private)
-
-    print("\n=== Network parameters ===")
-    for k in network.__dir__():
-        if k[:1] != '_':
-            v = eval('network.%s' % k)
-            if not callable(v):
-                print("%25s: %s" % (k, v))

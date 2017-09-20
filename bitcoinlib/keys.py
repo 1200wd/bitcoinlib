@@ -646,7 +646,7 @@ class HDKey:
         :type key: bytes
         :param chain: A chain code (lenght 32)
         :type chain: bytes
-        :param depth: Level of depth in path (BIP0043/BIP0044)
+        :param depth: Level of depth in BIP32 key path
         :type depth: int
         :param parent_fingerprint: 4-byte fingerprint of parent
         :type parent_fingerprint: bytes
@@ -763,6 +763,32 @@ class HDKey:
         print(" Extended Private Key (wif)  %s" % self.wif(public=False))
         print("\n")
 
+    def dict(self):
+        """
+        Returns key information as dictionary
+
+        """
+
+        point_x, point_y = self.key.public_point()
+        return {
+            'private_hex': self.private_hex,
+            'private_long': self.secret,
+            'private_wif': self.key.wif(),
+            'public_hex': self.public_hex,
+            'public_hash160': self.key.hash160(),
+            'address': self.key.address(),
+            'fingerprint': change_base(self.fingerprint(), 256, 16),
+            'point_x': point_x,
+            'point_y': point_y,
+            'key_type': self.key_type,
+            'chain_code': change_base(self.chain, 256, 16),
+            'child_index': self.child_index,
+            'fingerprint_parent': change_base(self.parent_fingerprint, 256, 16),
+            'depth': self.depth,
+            'extended_wif_public': self.wif_public(),
+            'extended_wif_private': self.wif(public=False),
+        }
+        
     def _key_derivation(self, seed):
         """
         Derive extended private key with key and chain part from seed
@@ -836,8 +862,10 @@ class HDKey:
         
         :return HDKey: HD Key class object of subkey
         """
-        key = self
 
+        if self.key_type == 'single':
+            raise KeyError("Key derivation cannot be used for 'single' type keys")
+        key = self
         first_public = False
         if path[0] == 'm':  # Use Private master key
             path = path[2:]
@@ -878,10 +906,10 @@ class HDKey:
         :return HDKey:
 
         """
-        if set_network:
-            self.network_change(set_network)
         if self.depth != 0:
             raise KeyError("Need a master key to generate account key")
+        if set_network:
+            self.network_change(set_network)
         if self.isprivate:
             path = "m"
         else:
@@ -994,93 +1022,3 @@ class HDKey:
         #TODO: more clevvvvver
         return HDKey(self.wif_public(), parent_fingerprint=self.parent_fingerprint, isprivate=self.isprivate,
                      key_type=self.key_type, network=self.network.network_name)
-
-
-if __name__ == '__main__':
-    #
-    # KEYS EXAMPLES
-    #
-
-    print("\n=== Generate random key ===")
-    k = Key()
-    k.info()
-
-    print("\n=== Import Public key ===")
-    K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
-    K.info()
-
-    print("\n=== Import Private key as decimal ===")
-    pk = 45552833878247474734848656701264879218668934469350493760914973828870088122784
-    k = Key(import_key=pk, network='testnet')
-    k.info()
-
-    print("\n=== Import Private key as byte ===")
-    pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
-    k = Key(pk)
-    k.info()
-
-    print("\n=== Import Private WIF Key ===")
-    k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
-    print("Private key     %s" % k.wif())
-    print("Private key hex %s " % k.private_hex)
-    print("Compressed      %s\n" % k.compressed)
-
-    print("\n=== Import Private Testnet Key ===")
-    k = Key('92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc', network='testnet')
-    k.info()
-
-    print("\n=== Import Private Litecoin key ===")
-    pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
-    k = Key(import_key=pk)
-    k.info()
-
-    print("\n=== Import uncompressed Private Key and Encrypt with BIP38 ===")
-    k = Key('5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR')
-    print("Private key     %s" % k.wif())
-    print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
-    print("Is Compressed   %s\n" % k.compressed)
-
-    print("\n=== Import and Decrypt BIP38 Key ===")
-    k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
-    print("Private key     %s" % k.wif())
-    print("Is Compressed   %s\n" % k.compressed)
-
-    print("\n=== Generate random HD Key on testnet ===")
-    hdk = HDKey(network='testnet')
-    print("Random BIP32 HD Key on testnet %s" % hdk.wif())
-
-    print("\n=== Import HD Key from seed ===")
-    k = HDKey.from_seed('000102030405060708090a0b0c0d0e0f')
-    print("HD Key WIF for seed 000102030405060708090a0b0c0d0e0f:  %s" % k.wif())
-    print("Key type is : %s" % k.key_type)
-
-    print("\n=== Generate random Litecoin key ===")
-    lk = HDKey(network='litecoin')
-    lk.info()
-
-    print("\n=== Import simple private key as HDKey ===")
-    k = HDKey('L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73')
-    print("HD Key WIF for Private Key L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73:  %s" % k.wif())
-    print("Key type is : %s" % k.key_type)
-
-    print("\n=== Derive path with Child Key derivation ===")
-    print("Derive path path 'm/0H/1':")
-    print("  Private Extended WIF: %s" % k.subkey_for_path('m/0H/1').wif())
-    print("  Public Extended WIF : %s\n" % k.subkey_for_path('m/0H/1').wif_public())
-
-    print("\n=== Test Child Key Derivation ===")
-    print("Use the 2 different methods to derive child keys. One through derivation from public parent, "
-          "and one thought private parent. They should be the same.")
-    K = HDKey('xpub6ASuArnXKPbfEVRpCesNx4P939HDXENHkksgxsVG1yNp9958A33qYoPiTN9QrJmWFa2jNLdK84bWmyqTSPGtApP8P'
-              '7nHUYwxHPhqmzUyeFG')
-    k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM'
-              '1h3BoPuEJzsgeypdKj')
-
-    index = 1000
-    pub_with_pubparent = K.child_public(index).key.address()
-    pub_with_privparent = k.child_private(index).key.address()
-    if pub_with_privparent != pub_with_pubparent:
-        print("Error index %4d: pub-child %s, priv-child %s" % (index, pub_with_privparent, pub_with_pubparent))
-    else:
-        print("Child Key Derivation for key %d worked!" % index)
-        print("%s == %s" % (pub_with_pubparent, pub_with_privparent))

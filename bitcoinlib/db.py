@@ -21,7 +21,7 @@
 import csv
 import enum
 import datetime
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy import Column, Integer, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -34,7 +34,12 @@ Base = declarative_base()
 
 
 class DbInit:
+    """
+    Initialize database and open session
 
+    Import data if database did not exist yet
+
+    """
     def __init__(self, databasefile=DEFAULT_DATABASE):
         engine = create_engine('sqlite:///%s' % databasefile)
         Session = sessionmaker(bind=engine)
@@ -85,14 +90,14 @@ class DbWallet(Base):
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
     transactions = relationship("DbTransaction", back_populates="wallet")
-    balance = Column(Integer, default=0)
+    # balance = Column(Integer, default=0)
     multisig_n_required = Column(Integer, default=1, doc="Number of required signature for multisig, "
                                                          "only used for multisignature master key")
     sort_keys = Column(Boolean, default=False, doc="Sort keys in multisig wallet")
     parent_id = Column(Integer, ForeignKey('wallets.id'))
     children = relationship("DbWallet", lazy="joined", join_depth=2)
 
-    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip32', 'multisig']), name='allowed_schemes'),)
+    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='allowed_schemes'),)
 
     def __repr__(self):
         return "<DbWallet(name='%s', network='%s'>" % (self.name, self.network_name)
@@ -174,6 +179,9 @@ class DbNetwork(Base):
 
 
 class TransactionType(enum.Enum):
+    """
+    Incoming or Outgoing transaction Enumeration
+    """
     incoming = 1
     outgoing = 2
 
@@ -210,6 +218,12 @@ class DbTransaction(Base):
 
 
 class DbTransactionInput(Base):
+    """
+    Transaction Input Table
+
+    Relates to Transaction table and Key table
+
+    """
     __tablename__ = 'transaction_inputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='inputs')
@@ -228,6 +242,14 @@ class DbTransactionInput(Base):
 
 
 class DbTransactionOutput(Base):
+    """
+    Transaction Output Table
+
+    Relates to Transaction and Key table
+
+    When spend is False output is considered an UTXO
+
+    """
     __tablename__ = 'transaction_outputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='outputs')
