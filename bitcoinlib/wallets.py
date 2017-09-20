@@ -1865,7 +1865,10 @@ class HDWallet:
         """
         # Verify transaction
         if not transaction.verify():
-            raise WalletError("Cannot verify transaction. Create transaction failed")
+            return {
+                'error': "Cannot verify transaction. Create transaction failed",
+                'transaction': transaction
+            }
 
         # Push it to the network
         srv = Service(network=transaction.network.network_name)
