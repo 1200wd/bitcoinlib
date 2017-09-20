@@ -19,7 +19,10 @@
 #
 
 import csv
-import enum
+try:
+    import enum
+except:
+    import enum34 as enum
 import datetime
 from sqlalchemy import create_engine, func
 from sqlalchemy import Column, Integer, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime

@@ -1710,7 +1710,7 @@ class HDWallet:
                 transaction.fee_per_kb = srv.estimatefee()
                 if transaction.fee_per_kb is False:
                     raise WalletError("Could not estimate transaction fees, please specify fees manually")
-                transaction.fee = int((tr_size / 1024) * transaction.fee_per_kb)
+                transaction.fee = int((tr_size / 1024.0) * transaction.fee_per_kb)
                 fee_per_output = int((50 / 1024) * transaction.fee_per_kb)
             else:
                 transaction.fee = 0

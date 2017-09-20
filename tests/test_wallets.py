@@ -243,7 +243,6 @@ class TestWalletElectrum(unittest.TestCase):
 
     def test_electrum_keys(self):
         for key in self.wallet.keys():
-            print(key.address)
             if key.name[:6] == '-test-' and key.path not in ['m/0', 'm/1']:
                 self.assertIn(key.address, self.el_keys.keys(),
                               msg='Key %s (%s, %s) not found in Electrum wallet key export' %
@@ -340,8 +339,8 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.utxos_update()
         balance = w.balance()
-        self.assertRaisesRegex(WalletError, 'Not enough unspent transaction outputs found', w.send_to,
-                               '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
+        self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found', w.send_to,
+                                '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
 
     def test_wallet_bitcoinlib_testnet_sweep(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -591,9 +590,6 @@ class TestWalletMultisig(unittest.TestCase):
         key1 = HDKey()
         key2 = HDKey()
         key3 = HDKey()
-        print(key1.wif())
-        print(key2.wif())
-        print(key3.wif())
         w1 = HDWallet.create_multisig(
             'w1', [key1, key2.account_multisig_key().public(), key3.account_multisig_key().public()],
             sigs_required=2, sort_keys=True, databasefile=DATABASEFILE_UNITTESTS)
