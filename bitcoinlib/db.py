@@ -34,7 +34,12 @@ Base = declarative_base()
 
 
 class DbInit:
+    """
+    Initialize database and open session
 
+    Import data if database did not exist yet
+
+    """
     def __init__(self, databasefile=DEFAULT_DATABASE):
         engine = create_engine('sqlite:///%s' % databasefile)
         Session = sessionmaker(bind=engine)
@@ -174,6 +179,9 @@ class DbNetwork(Base):
 
 
 class TransactionType(enum.Enum):
+    """
+    Incoming or Outgoing transaction Enumeration
+    """
     incoming = 1
     outgoing = 2
 
@@ -210,6 +218,12 @@ class DbTransaction(Base):
 
 
 class DbTransactionInput(Base):
+    """
+    Transaction Input Table
+
+    Relates to Transaction table and Key table
+
+    """
     __tablename__ = 'transaction_inputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='inputs')
@@ -228,6 +242,14 @@ class DbTransactionInput(Base):
 
 
 class DbTransactionOutput(Base):
+    """
+    Transaction Output Table
+
+    Relates to Transaction and Key table
+
+    When spend is False output is considered an UTXO
+
+    """
     __tablename__ = 'transaction_outputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='outputs')
