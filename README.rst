@@ -23,7 +23,7 @@ Disclaimer
 ----------
 
 This library is still in development, please use at your own risk and test sufficiently before using it in a
-production environment. Support for Litecoin and Dash is just for read only wallet, not for creating or
+production environment. Support for Dash is just for read only wallet, not for creating or
 sending transactions.
 
 
