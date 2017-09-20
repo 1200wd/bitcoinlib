@@ -862,8 +862,10 @@ class HDKey:
         
         :return HDKey: HD Key class object of subkey
         """
-        key = self
 
+        if self.key_type == 'single':
+            raise KeyError("Key derivation cannot be used for 'single' type keys")
+        key = self
         first_public = False
         if path[0] == 'm':  # Use Private master key
             path = path[2:]
@@ -904,10 +906,10 @@ class HDKey:
         :return HDKey:
 
         """
-        if set_network:
-            self.network_change(set_network)
         if self.depth != 0:
             raise KeyError("Need a master key to generate account key")
+        if set_network:
+            self.network_change(set_network)
         if self.isprivate:
             path = "m"
         else:

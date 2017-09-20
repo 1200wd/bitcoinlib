@@ -93,11 +93,41 @@ else:
     wl2.utxos_update()
     t2 = wl2.transaction_import(res['transaction'].raw())
     t2 = wl2.transaction_sign(t2)
+    print("Verified: ", t2.verify())
     print("Push transaction result: ", wl2.transaction_send(t2))
 
 #
-# TODO: Multisig wallet with single keys
+# Multisig wallet using single keys for cosigner wallets instead of BIP32 type key structures
 #
+
+NETWORK = 'testnet'
+pk1 = HDKey('tprv8ZgxMBicQKsPepBisbN2kXAhfuzct3u61LPKSwHDxLeUYndap5er9MBRKjXKdJsYBz2rbH8k9P8x1BU5hL5eR3yT2DFdxwpjQ'
+            'kodGvHGKvN', network=NETWORK)
+pk2 = HDKey('tprv8ZgxMBicQKsPeaQu7QHhL5xmUaAAqktnV1dG5UtujonHSGv8THGKvs9Rg1somkd65dUauPNwRHo2MpLdmU1swPgSHoKDh7duy'
+            'E9rGcCiGvC', network=NETWORK, key_type='single')
+
+# Create wallet
+wl = HDWallet.create_multisig('multisig_single_keys', [pk1, pk2.wif_public()],
+                              sigs_required=2, network=NETWORK, databasefile=test_database)
+
+# Create multisig key, update UTXO's and then sign, verify and send transaction
+wl.new_key()
+# wl.utxos_update()
+wl.info()
+# pprint(wl.utxos())
+# t = wl.transaction_create([('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', 24000000)], min_confirms=0)
+# t = wl.transaction_sign(t)
+# print(t.verify())
+# pprint(t.get())
+
+# pk2 = keys[1].account_multisig_key().subkey_for_path('0/0')
+# print(pk2.public_hex)
+# print(pk2.key.address())
+# t = wl.transaction_sign(t, keys[1].account_multisig_key().subkey_for_path('1/8'))
+# print(t.verify())
+#
+# print(wl.transaction_send(t))
+
 
 #
 # TODO: Multisig wallet with multiple currencies
