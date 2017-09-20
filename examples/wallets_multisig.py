@@ -98,7 +98,7 @@ else:
 
 
 #
-# Multisig wallet using single keys for cosigner wallets instead of BIP32 type key structures
+# Multisig wallet using single keys for cosigner wallet instead of BIP32 type key structures
 #
 
 NETWORK = 'bitcoinlib_test'
@@ -116,19 +116,11 @@ wl1.new_key()
 wl2.new_key()
 wl1.utxos_update()
 wl2.utxos_update()
-utxos = wl2.utxos()
 
 # Create transaction and sign with both wallets, return address should be the same
 t = wl2.transaction_create([('23Gd1mfrqgaYiPGkMm5n5UDRkCxruDAA8wo', 5000000)])
 t = wl2.transaction_sign(t)
-return_address1 = t.outputs[1].address
 t2 = wl1.transaction_import(t.raw())
 t2 = wl1.transaction_sign(t2)
-return_address2 = t2.outputs[1].address
-print("%s == %s: %s" % (return_address1, return_address2, return_address1 == return_address2))
+print("%s == %s: %s" % (t.outputs[1].address, t2.outputs[1].address, t.outputs[1].address == t2.outputs[1].address))
 print("Verified: ", t2.verify())
-
-
-#
-# TODO: Multisig wallet with multiple currencies
-#
