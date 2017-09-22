@@ -1496,16 +1496,14 @@ class HDWallet:
         utxos = qr.group_by(DbTransactionOutput.key_id).all()
         key_values = []
         network_values = {}
-        for utxo in utxos:
-            key_values.append({
-                'id': utxo[0].key_id,
-                'balance': utxo[0].value
-            })
-            network = utxo[2]
-            new_value = utxo[0].value
-            if network in network_values:
-                new_value = network_values[network] + utxo[0].value
-            network_values.update({network: new_value})
+
+        # Add keys with no UTXO's with 0 balance
+        for key in self.keys(account_id=account_id, network=network, key_id=key_id):
+            if key.id not in [utxo[0].key_id for utxo in utxos]:
+                key_values.append({
+                    'id': key.id,
+                    'balance': 0
+                })
 
         self._balances.update(network_values)
         if self.network.network_name in network_values:
@@ -1994,7 +1992,7 @@ class HDWallet:
         return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
                          min_confirms=min_confirms, priv_keys=priv_keys)
 
-    def sweep(self, to_address, account_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
+    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -2017,7 +2015,7 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
-        utxos = self.utxos(account_id=account_id, network=network, min_confirms=min_confirms)
+        utxos = self.utxos(account_id=account_id, network=network, min_confirms=min_confirms, key_id=input_key_id)
         utxos = utxos[0:max_utxos]
         input_arr = []
         total_amount = 0
