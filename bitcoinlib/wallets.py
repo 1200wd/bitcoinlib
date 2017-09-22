@@ -1037,7 +1037,7 @@ class HDWallet:
         :return HDWalletKey:  
         """
 
-        return self.get_key(account_id=account_id, network=network, depth_of_keys=depth_of_keys)
+        return self.get_key(account_id=account_id, network=network, change=1, depth_of_keys=depth_of_keys)
 
     def new_account(self, name='', account_id=None, network=None):
         """
@@ -2039,7 +2039,7 @@ class HDWallet:
         if fee_per_kb is None:
             fee_per_kb = srv.estimatefee()
         tr_size = 125 + (len(input_arr) * 125)
-        estimated_fee = int((tr_size / 1024) * fee_per_kb)
+        estimated_fee = int((tr_size / 1024.0) * fee_per_kb)
         return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
                          transaction_fee=estimated_fee, min_confirms=min_confirms)
 
