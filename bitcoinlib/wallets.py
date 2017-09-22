@@ -1497,6 +1497,17 @@ class HDWallet:
         key_values = []
         network_values = {}
 
+        for utxo in utxos:
+            key_values.append({
+                'id': utxo[0].key_id,
+                'balance': utxo[0].value
+            })
+            network = utxo[2]
+            new_value = utxo[0].value
+            if network in network_values:
+                new_value = network_values[network] + utxo[0].value
+            network_values.update({network: new_value})
+
         # Add keys with no UTXO's with 0 balance
         for key in self.keys(account_id=account_id, network=network, key_id=key_id):
             if key.id not in [utxo[0].key_id for utxo in utxos]:
@@ -1603,7 +1614,7 @@ class HDWallet:
 
         _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
         self._session.commit()
-        self.balance_update(account_id=account_id, network=network, key_id=key_id)
+        self.balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
         return count_utxos
 
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
