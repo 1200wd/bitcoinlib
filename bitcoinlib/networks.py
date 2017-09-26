@@ -32,8 +32,6 @@ _logger = logging.getLogger(__name__)
 DEFAULT_NETWORK = 'bitcoin'
 
 
-
-
 class NetworkError(Exception):
     """
     Network Exception class
