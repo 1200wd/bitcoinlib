@@ -825,6 +825,11 @@ class HDWallet:
                 raise WalletError("Network %s not available in this wallet, please create an account for this "
                                   "network first." % network)
 
+        # FIXME: this is just testing...
+        hdkey = HDKey(key)
+        ak = hdkey.account_key()
+        print(ak.key.address())
+
         ik_path = 'm'
         if key_type == 'single':
             # Create path for unrelated import keys
@@ -1693,7 +1698,7 @@ class HDWallet:
             order_by(DbTransactionOutput.value).first()
         if one_utxo:
             return [one_utxo]
-        elif max_utxos <= 1:
+        elif max_utxos and max_utxos <= 1:
             _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
                          "multiple UTXO's")
             return []
@@ -1741,7 +1746,7 @@ class HDWallet:
         amount_total_output = 0
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
-        if len(input_arr) > max_utxos:
+        if input_arr and max_utxos and len(input_arr) > max_utxos:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
         # Create transaction and add outputs
@@ -1973,7 +1978,7 @@ class HDWallet:
         :return str, list: Transaction ID or result array
         """
 
-        if len(input_arr) > max_utxos:
+        if input_arr and max_utxos and len(input_arr) > max_utxos:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
 
