@@ -799,7 +799,7 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
-    def import_key(self, key, account_id=0, name='', network=None, purpose=44, key_type='single'):
+    def import_key(self, key, account_id=0, name='', network=None, purpose=44, key_type=None):
         """
         Add new single key to wallet.
         
@@ -825,10 +825,13 @@ class HDWallet:
                 raise WalletError("Network %s not available in this wallet, please create an account for this "
                                   "network first." % network)
 
-        # FIXME: this is just testing...
-        hdkey = HDKey(key)
-        ak = hdkey.account_key()
-        print(ak.key.address())
+        # Check if public version of key is already known
+        hdkey = HDKey(key, network=network, key_type=key_type)
+        if hdkey.isprivate:
+            ak = hdkey.account_key()
+            print(ak.key.address())
+        elif key_type is None:
+            key_type = 'single'
 
         ik_path = 'm'
         if key_type == 'single':
@@ -843,7 +846,7 @@ class HDWallet:
                 name = ik_path
 
         mk = HDWalletKey.from_key(
-            key=key, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
+            hdkey_object=hdkey, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
             account_id=account_id, purpose=purpose, session=self._session, path=ik_path)
         return mk
 
