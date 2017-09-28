@@ -1658,7 +1658,7 @@ class HDWallet:
         return res
 
     @staticmethod
-    def _select_inputs(amount, utxo_query=None):
+    def _select_inputs(amount, utxo_query=None, max_utxos=None):
         """
         Internal method used by create transaction to select best inputs (UTXO's) for a transaction. To get the
         least number of inputs
@@ -1678,6 +1678,8 @@ class HDWallet:
         :type amount: int
         :param utxo_query: List of outputs in SQLalchemy query format. Wallet and Account ID filter must be included already. 
         :type utxo_query: self._session.query
+        :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
+        :type max_utxos: int
         
         :return list: List of selected UTXO 
         """
@@ -1691,6 +1693,10 @@ class HDWallet:
             order_by(DbTransactionOutput.value).first()
         if one_utxo:
             return [one_utxo]
+        elif max_utxos <= 1:
+            _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
+                         "multiple UTXO's")
+            return []
 
         # Otherwise compose of 2 or more lesser outputs
         lessers = utxo_query.\
@@ -1698,7 +1704,7 @@ class HDWallet:
             order_by(DbTransactionOutput.value.desc()).all()
         total_amount = 0
         selected_utxos = []
-        for utxo in lessers:
+        for utxo in lessers[:max_utxos]:
             if total_amount < amount:
                 selected_utxos.append(utxo)
                 total_amount += utxo.value
@@ -1707,7 +1713,7 @@ class HDWallet:
         return selected_utxos
 
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None,
-                           min_confirms=4):
+                           min_confirms=4, max_utxos=None):
         """
             Create new transaction with specified outputs. 
             Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -1725,6 +1731,8 @@ class HDWallet:
             :type transaction_fee: int
             :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
             :type min_confirms: int
+            :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
+            :type max_utxos: int
 
             :return Transaction: object
         """
@@ -1733,6 +1741,9 @@ class HDWallet:
         amount_total_output = 0
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
+        if len(input_arr) > max_utxos:
+            raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
+                              (len(input_arr), max_utxos))
         # Create transaction and add outputs
         transaction = Transaction(network=network)
         if not isinstance(output_arr, list):
@@ -1770,7 +1781,7 @@ class HDWallet:
             if not utxos:
                 raise WalletError("Create transaction: No unspent transaction outputs found")
             input_arr = []
-            selected_utxos = self._select_inputs(amount_total_output + transaction.fee, utxo_query)
+            selected_utxos = self._select_inputs(amount_total_output + transaction.fee, utxo_query, max_utxos)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -1936,7 +1947,7 @@ class HDWallet:
             return res
 
     def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4,
-             priv_keys=None):
+             priv_keys=None, max_utxos=None):
         """
         Create new transaction with specified outputs and push it to the network. 
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -1956,12 +1967,18 @@ class HDWallet:
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
-        
+        :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
+        :type max_utxos: int
+
         :return str, list: Transaction ID or result array
         """
 
+        if len(input_arr) > max_utxos:
+            raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
+                              (len(input_arr), max_utxos))
+
         transaction = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee,
-                                              min_confirms)
+                                              min_confirms, max_utxos)
         transaction = self.transaction_sign(transaction, priv_keys)
         # Calculate exact estimated fees and update change output if necessary
         if transaction_fee is None and transaction.fee_per_kb and transaction.change:
@@ -1971,7 +1988,7 @@ class HDWallet:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
                 transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee_exact,
-                                                      min_confirms)
+                                                      min_confirms, max_utxos)
                 transaction = self.transaction_sign(transaction, priv_keys)
 
         return self.transaction_send(transaction)
