@@ -2148,16 +2148,21 @@ class HDWallet:
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self._owner)
         print(" Scheme                         %s" % self.scheme)
+        if self.scheme == 'multisig':
+            print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
         print(" Main network                   %s" % self.network.network_name)
-        print(" Balance                        %s" % self.balance(as_string=True))
-        print("")
+        print(" Balance                        %s\n" % self.balance(as_string=True))
+
+        if self.scheme == 'multisig':
+            print("= Multisig main keys =")
+            [print(w.main_key.wif) for w in self.cosigner]
 
         if detail and self.main_key:
-            print("= Main key =")
+            print("\n= Main key =")
             self.main_key.dict()
         if detail > 1:
             for nw in self.networks():
-                print("- Network: %s -" % nw['network_name'])
+                print("\n- Network: %s -" % nw['network_name'])
                 if detail < 3:
                     ds = [0, 3, 5]
                 else:
@@ -2201,7 +2206,8 @@ class HDWallet:
             'default_account_id': self.default_account_id,
             'multisig_n_required': self.multisig_n_required,
             'multisig_compressed': self.multisig_compressed,
-            'cosigner': self.cosigner,
+            'cosigner_wallet_ids': [w.wallet_id for w in self.cosigner],
+            'cosigner_mainkey_wifs': [w.main_key.wif for w in self.cosigner],
             'sort_keys': self.sort_keys,
             # 'main_key': self.main_key.dict(),
             'main_key_id': self.main_key_id
