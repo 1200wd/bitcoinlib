@@ -696,7 +696,9 @@ class HDWallet:
             self.default_account_id = 0
             self.multisig_n_required = w.multisig_n_required
             self.multisig_compressed = None
-            self.cosigner = []
+            co_sign_wallets = self._session.query(DbWallet).\
+                filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
+            self.cosigner = [HDWallet(w.id) for w in co_sign_wallets]
             self.sort_keys = w.sort_keys
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
