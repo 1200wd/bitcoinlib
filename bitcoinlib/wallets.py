@@ -670,7 +670,7 @@ class HDWallet:
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
         :param main_key_object: Pass main key object to save time
-        :type main_key_object: HDWalletKey
+        :type main_key_object: HDKey
         """
 
         if session:
@@ -799,6 +799,64 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
+    def key_add_private(self, wallet_key, private_key):
+        """
+        Change public key in wallet to private key in current HDWallet object and in database
+
+        :param wallet_key: Key object of wallet
+        :type wallet_key: HDWalletKey
+        :param private_key: Private key wif or HDKey object
+        :type private_key: HDKey, str
+
+        :return HDWalletKey:
+        """
+        assert isinstance(wallet_key, HDWalletKey)
+        if not isinstance(private_key, HDKey):
+            private_key = HDKey(private_key)
+        wallet_key.is_private = True
+        wallet_key.wif = private_key.wif()
+        wallet_key.private = private_key.private_hex
+        self._session.query(DbKey).filter(DbKey.id == wallet_key.key_id).update(
+                {DbKey.is_private: True, DbKey.private: private_key.private_hex, DbKey.wif: private_key.wif()})
+        self._session.commit()
+        return wallet_key
+
+    def import_master_key(self, hdkey, name='Masterkey (imported)'):
+        network, account_id, acckey = self._get_account_defaults()
+
+        if not isinstance(hdkey, HDKey):
+            hdkey = HDKey(hdkey)
+        if not isinstance(self.main_key, HDWalletKey):
+            raise WalletError("Main wallet key in not an HDWalletKey instance")
+        if not hdkey.isprivate or hdkey.depth != 0:
+            raise WalletError("Please supply a valid private BIP32 master key with key depth 0")
+        if self.main_key.depth != 3 or self.main_key.is_private or self.main_key.key_type != 'bip32':
+            raise WalletError("Current main key is not a valid BIP32 public account key")
+        if self.main_key.wif != hdkey.account_key().wif_public():
+            raise WalletError("This key does not correspond to current main account key")
+        if not (self.network.network_name == self.main_key.network.network_name == hdkey.network.network_name):
+            raise WalletError("Network of Wallet class, main account key and the imported private key must use "
+                              "the same network")
+
+        self.main_key = HDWalletKey.from_key(
+            key=hdkey.wif(), name=name, session=self._session, wallet_id=self.wallet_id, network=network,
+            account_id=account_id, purpose=self.purpose, key_type='bip32')
+        self.main_key_id = self.main_key.key_id
+        network_code = self.network.bip44_cointype
+        path = ["%d'" % self.purpose, "%s'" % network_code]
+        self._create_keys_from_path(
+            self.main_key, path, name=name, wallet_id=self.wallet_id, network=network, session=self._session,
+            account_id=account_id, purpose=self.purpose, basepath="m")
+
+        self._key_objects = {
+            self.main_key_id: self.main_key
+        }
+        # FIXME: Use wallet object for this (integrate self._db and self)
+        self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id).\
+            update({DbWallet.main_key_id: self.main_key_id})
+        self._session.commit()
+        return self.main_key
+
     def import_key(self, key, account_id=0, name='', network=None, purpose=44, key_type=None):
         """
         Add new single key to wallet.
@@ -827,11 +885,13 @@ class HDWallet:
 
         # Check if public version of key is already known
         hdkey = HDKey(key, network=network, key_type=key_type)
-        if hdkey.isprivate:
-            key_account = hdkey.account_key()
-            if key_account.wif_public() in [x.wif for x in self.keys(is_private=True)]:
-                print(key_account)
+        # TODO: Add multisig BIP45 support
+        if hdkey.isprivate and hdkey.depth == 0 and self.main_key.depth == 3 and self.scheme == 'bip44':
+            hdkey.key_type = 'bip32'
+            return self.import_master_key(hdkey, name)
+
         if key_type is None:
+            hdkey.key_type = 'single'
             key_type = 'single'
 
         ik_path = 'm'
