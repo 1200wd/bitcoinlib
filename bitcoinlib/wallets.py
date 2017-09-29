@@ -828,9 +828,10 @@ class HDWallet:
         # Check if public version of key is already known
         hdkey = HDKey(key, network=network, key_type=key_type)
         if hdkey.isprivate:
-            ak = hdkey.account_key()
-            print(ak.key.address())
-        elif key_type is None:
+            key_account = hdkey.account_key()
+            if key_account.wif_public() in [x.wif for x in self.keys(is_private=True)]:
+                print(key_account)
+        if key_type is None:
             key_type = 'single'
 
         ik_path = 'm'
@@ -1178,8 +1179,8 @@ class HDWallet:
             network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
         return newkey
 
-    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, network=None,
-             as_dict=False):
+    def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
+             network=None, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -1197,6 +1198,8 @@ class HDWallet:
         :type depth: int
         :param used: Only return used or unused keys
         :type used: bool
+        :param is_private: Only return private keys
+        :type is_private: bool
         :param network: Network name filter
         :type network: str
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
@@ -1223,6 +1226,8 @@ class HDWallet:
             qr = qr.filter(DbKey.id == key_id)
         if used is not None:
             qr = qr.filter(DbKey.used == used)
+        if is_private is not None:
+            qr = qr.filter(DbKey.is_private == is_private)
         ret = as_dict and [x.__dict__ for x in qr.all()] or qr.all()
         qr.session.close()
         return ret
