@@ -829,7 +829,7 @@ class HDWallet:
         if not isinstance(hdkey, HDKey):
             hdkey = HDKey(hdkey)
         if not isinstance(self.main_key, HDWalletKey):
-            raise WalletError("Main wallet key in not an HDWalletKey instance")
+            raise WalletError("Main wallet key is not an HDWalletKey instance. Type %s" % type(self.main_key))
         if not hdkey.isprivate or hdkey.depth != 0:
             raise WalletError("Please supply a valid private BIP32 master key with key depth 0")
         if self.main_key.depth != 3 or self.main_key.is_private or self.main_key.key_type != 'bip32':
@@ -1796,7 +1796,7 @@ class HDWallet:
 
             :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
             :type output_arr: list 
-            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures)]
+            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script)]
             :type input_arr: list
             :param account_id: Account ID
             :type account_id: int
@@ -1879,6 +1879,8 @@ class HDWallet:
                     amount_total_input += inp[3]
                 if len(inp) > 4:
                     input_arr[i] += (inp[4],)
+                if len(inp) > 5:
+                    input_arr[i] += (inp[5],)
 
         if transaction_fee is False:
             transaction.change = 0
@@ -1892,7 +1894,7 @@ class HDWallet:
             transaction.change = 0
         ck = None
         if transaction.change:
-            key_depth = 5
+            # key_depth = 5
             ck = self.get_key(account_id=account_id, network=network, change=1)
             transaction.add_output(transaction.change, ck.address)
             amount_total_output += transaction.change
@@ -1917,8 +1919,11 @@ class HDWallet:
                 raise WalletError("Input key type %s not supported" % key.key_type)
             inp_id = transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
                                            sigs_required=self.multisig_n_required, sort=self.sort_keys)
+            # FIXME: This dirty stuff needs to be rewritten...
             if len(inp) > 4:
                 transaction.inputs[inp_id].signatures += inp[4]
+            if len(inp) > 5:
+                transaction.inputs[inp_id].unlocking_script = inp[5]
             if transaction.inputs[inp_id].address != key.address:
                 raise WalletError("Created input address is different from address of used key. Possibly wrong key "
                                   "order in multisig?")
@@ -1938,7 +1943,7 @@ class HDWallet:
         t_import = Transaction.import_raw(rawtx, network=self.network.network_name)
         input_arr = []
         for inp in t_import.inputs:
-            input_arr.append((inp.prev_hash, inp.output_index, None, 0, inp.signatures))
+            input_arr.append((inp.prev_hash, inp.output_index, None, 0, inp.signatures, inp.unlocking_script))
         output_arr = []
         for out in t_import.outputs:
             output_arr.append((out.address, out.amount))
