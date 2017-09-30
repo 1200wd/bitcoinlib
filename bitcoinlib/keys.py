@@ -719,6 +719,7 @@ class HDKey:
         self.network = Network(network)
         self.public_byte = self.key.public_byte
         self.public_hex = self.key.public_hex
+        self.secret = None
         self.private_hex = None
         self.private_byte = None
         if isprivate:
@@ -771,9 +772,9 @@ class HDKey:
 
         point_x, point_y = self.key.public_point()
         return {
-            'private_hex': self.private_hex,
-            'private_long': self.secret,
-            'private_wif': self.key.wif(),
+            'private_hex': '' if not self.isprivate else self.private_hex,
+            'private_long': '' if not self.isprivate else self.secret,
+            'private_wif': '' if not self.isprivate else self.key.wif(),
             'public_hex': self.public_hex,
             'public_hash160': self.key.hash160(),
             'address': self.key.address(),

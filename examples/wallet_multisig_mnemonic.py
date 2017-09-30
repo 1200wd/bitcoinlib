@@ -13,12 +13,9 @@ from bitcoinlib.wallets import *
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 
-# WALLET_NAME = "Multisig-2-of-3-example"
-# NETWORK = 'testnet'
-# KEY_STRENGHT = 32
-WALLET_NAME = "WalletVault0"
-NETWORK = 'bitcoin'
-KEY_STRENGHT = 128
+WALLET_NAME = "Multisig-2-of-3-example"
+NETWORK = 'testnet'
+KEY_STRENGHT = 32
 
 test_databasefile = 'bitcoinlib.test.sqlite'
 test_database = DEFAULT_DATABASEDIR + test_databasefile
@@ -52,9 +49,9 @@ if not wallet_exists(WALLET_NAME, databasefile=test_database):
         key_list.append(hdkey)
 
     thispc_keylist = [
-        key_list[0].wif(),
-        key_list[1].account_multisig_key().wif_public(),
-        key_list[2].account_multisig_key().wif_public()
+        HDKey(key_list[0].wif(), network=NETWORK),
+        HDKey(key_list[1].account_multisig_key().wif_public(), network=NETWORK),
+        HDKey(key_list[2].wif_public(), network=NETWORK, key_type='single')
     ]
     thispc_wallet = HDWallet.create_multisig(WALLET_NAME, thispc_keylist, 2, sort_keys=True,
                                              network=NETWORK, databasefile=test_database)
@@ -64,9 +61,9 @@ if not wallet_exists(WALLET_NAME, databasefile=test_database):
     thispc_wallet.info()
 
     otherpc_keylist = [
-        key_list[1].wif(),
         key_list[0].account_multisig_key().wif_public(),
-        key_list[2].account_multisig_key().wif_public()
+        key_list[1].wif(),
+        key_list[2].wif_public()
     ]
     print("\n---> Please create a wallet on your Other PC like this:")
     print("from bitcoinlib.wallets import HDWallet")
