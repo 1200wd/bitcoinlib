@@ -676,6 +676,11 @@ class HDKey:
             elif isinstance(import_key, (bytearray, bytes if sys.version > '3' else bytearray)) and len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
+            elif isinstance(import_key, Key):
+                self.key = import_key
+                chain = b'\0' * 32
+                key = self.key.private_byte
+                key_type = 'private'
             else:
                 kf = get_key_format(import_key)
                 self.key_format = kf["format"]

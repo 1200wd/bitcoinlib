@@ -1975,12 +1975,16 @@ class HDWallet:
                 if isinstance(priv_key, HDKey):
                     priv_key_list_arg.append(priv_key)
                 else:
-                    priv_key_list_arg.append(HDKey(priv_key, isprivate=True))
+                    priv_key_list_arg.append(HDKey(priv_key))
         for ti in transaction.inputs:
             priv_key_list = deepcopy(priv_key_list_arg)
             for k in ti.keys:
                 if k.isprivate:
-                    if k not in priv_key_list:
+                    if isinstance(k, HDKey):
+                        hdkey = k
+                    else:
+                        hdkey = HDKey(k)
+                    if hdkey not in priv_key_list:
                         priv_key_list.append(k)
                 elif self.cosigner:
                     # Check if private key is available in wallet
