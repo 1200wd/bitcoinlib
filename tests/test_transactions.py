@@ -174,7 +174,7 @@ class TestTransactions(unittest.TestCase):
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
         out = Output(880000, public_key_hash=pubkey.hash160(), network='testnet')
         t = Transaction([inp], [out], network='testnet')
-        t.sign(pk.private_byte)
+        t.sign(pk)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
         self.assertEqual(t.dict()['inputs'][0]['address'], 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
         self.assertEqual(t.dict()['outputs'][0]['address'], 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
@@ -185,7 +185,7 @@ class TestTransactions(unittest.TestCase):
                     output_index=1, keys=pk.public())
         out = Output(95000, address='1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF')
         t = Transaction([inp], [out])
-        t.sign(pk.private_byte)
+        t.sign(pk)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
 
     def test_transactions_multiple_outputs(self):
@@ -219,7 +219,7 @@ class TestTransactions(unittest.TestCase):
 
         # Sign the inputs and verify
         # See txid 1ec28c925df0079ead9976d38165909ccb3580a428ce069ee13e63879df0c2fc
-        t.sign(pk1.private_byte, 0)
+        t.sign(pk1, 0)
         t.sign(pk2.private_byte, 1)
         self.assertTrue(t.verify())
 
@@ -398,8 +398,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
 
         # Sign with private key and verify
-        t.sign(pk1.private_byte)
-        t.sign(pk2.private_byte)
+        t.sign(pk1)
+        t.sign(pk2)
         self.assertTrue(t.verify())
 
         # Now deserialize and check if redeemscript is still the same
@@ -415,8 +415,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
 
-        t.sign(self.pk5.private_byte)
-        t.sign(self.pk2.private_byte)
+        t.sign(self.pk5)
+        t.sign(self.pk2)
         t.sign(self.pk3.private_byte)
 
         self.assertTrue(t.verify())
@@ -430,8 +430,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
 
-        t.sign(self.pk4.private_byte)
-        t.sign(self.pk1.private_byte)
+        t.sign(self.pk4)
+        t.sign(self.pk1)
 
         self.assertFalse(t.verify())
 
@@ -444,8 +444,8 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
 
-        self.assertEqual(t.sign(self.pk1.private_byte), 1)
-        self.assertEqual(t.sign(self.pk1.private_byte), 0)
+        self.assertEqual(t.sign(self.pk1), 1)
+        self.assertEqual(t.sign(self.pk1), 0)
 
     def test_transaction_multisig_sign_extra_sig(self):
         t = Transaction(network='testnet')
@@ -456,9 +456,9 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
 
-        t.sign(self.pk1.private_byte)
-        t.sign(self.pk4.private_byte)
-        t.sign(self.pk2.private_byte)
-        t.sign(self.pk5.private_byte)
+        t.sign(self.pk1)
+        t.sign(self.pk4)
+        t.sign(self.pk2)
+        t.sign(self.pk5)
 
         self.assertTrue(t.verify())
