@@ -879,16 +879,21 @@ class HDWallet:
         :return HDWalletKey: 
         """
 
-        if network is None:
-            network = check_network_and_key(key, default_network=self.network.network_name)
-            if network not in self.network_list():
-                raise WalletError("Network %s not available in this wallet, please create an account for this "
-                                  "network first." % network)
+        if isinstance(key, HDKey):
+            network = key.network.network_name
+            hdkey = key
+        else:
+            if network is None:
+                network = check_network_and_key(key, default_network=self.network.network_name)
+                if network not in self.network_list():
+                    raise WalletError("Network %s not available in this wallet, please create an account for this "
+                                      "network first." % network)
 
-        # Check if public version of key is already known
-        hdkey = HDKey(key, network=network, key_type=key_type)
+            hdkey = HDKey(key, network=network, key_type=key_type)
+
         # TODO: Add multisig BIP45 support
-        if hdkey.isprivate and hdkey.depth == 0 and self.main_key.depth == 3 and self.scheme == 'bip44':
+        if self.main_key and self.main_key.depth == 3 and \
+                hdkey.isprivate and hdkey.depth == 0 and self.scheme == 'bip44':
             hdkey.key_type = 'bip32'
             return self.import_master_key(hdkey, name)
 
@@ -1269,7 +1274,7 @@ class HDWallet:
         :return list: List of Keys
         """
 
-        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose).order_by(DbKey.id)
+        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id).order_by(DbKey.id)
         if network is not None:
             qr = qr.filter(DbKey.network_name == network)
         if account_id is not None:
