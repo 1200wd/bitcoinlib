@@ -24,6 +24,7 @@ import json
 from random import shuffle
 from bitcoinlib.db import DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet, list_wallets, delete_wallet, WalletError
+from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 from bitcoinlib.networks import Network
 
@@ -605,3 +606,34 @@ class TestWalletMultisig(unittest.TestCase):
             address3 = w3.new_key().address
             self.assertTrue((address1 == address2 == address3),
                             'Different addressed generated: %s %s %s' % (address1, address2, address3))
+
+    def test_wallet_multisig_sign_with_external_single_key(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        NETWORK = 'bitcoinlib_test'
+        words = 'square innocent drama'
+        seed = Mnemonic().to_seed(words, 'paper-backup10')
+        hdkey = HDKey.from_seed(seed, network=NETWORK)
+        hdkey.key_type = 'single'
+
+        key_list = [
+            HDKey(network=NETWORK).account_multisig_key().public(),
+            HDKey(network=NETWORK),
+            hdkey.public()
+        ]
+        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=NETWORK,
+                                          databasefile=DATABASEFILE_UNITTESTS)
+        wallet.new_key()
+        wallet.utxos_update()
+        res = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
+        t = res['transaction'].raw_hex()
+        t2 = wallet.transaction_import(t)
+        self.assertFalse(t2.verify())
+        t2 = wallet.transaction_sign(t2, hdkey)
+        self.assertTrue(t2.verify())
+
+
+class TestWalletKeyImport(unittest.TestCase):
+
+    def test_wallet_key_import_and_sign_multisig(self):
+        pass
