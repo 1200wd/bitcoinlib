@@ -897,6 +897,11 @@ class Transaction:
             raise TransactionError("Can not sign coinbase transactions")
         tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
 
+        pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
+        pub_key_list_uncompressed = [x.public_uncompressed_byte for x in self.inputs[tid].keys]
+        n_total_sigs = len(pub_key_list)
+        sig_domain = [''] * n_total_sigs
+
         for key in keys:
             if isinstance(key, (HDKey, Key)):
                 priv_key = key.private_byte
@@ -927,52 +932,28 @@ class Transaction:
                 }
 
             # Check if signature signs known key and is not already in list
-            pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
-            pub_key_list_uncompressed = [x.public_uncompressed_byte for x in self.inputs[tid].keys]
             if pub_key not in pub_key_list:
                 raise TransactionError("This key does not sign any known key: %s" % pub_key)
             if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
                 _logger.warning("Key %s already signed" % pub_key)
                 break
 
+            newsig_pos = pub_key_list.index(pub_key)
+            sig_domain[newsig_pos] = newsig
             n_signs += 1
-            # Insert newsig in correct place in list
-            if self.inputs[tid].signatures:
-                # 1. determine position for newsig according to key list
-                newsig_pos = pub_key_list.index(pub_key)
-                n_total_sigs = len(pub_key_list)
 
-                # 2. assume signature list is in correct order then determine possible position of newsig
-                sig_start_domain = [''] * n_total_sigs
-                sig_start_domain[newsig_pos] = newsig
-                sig_domains = []
-                empty_slots = [i for i, j in enumerate(sig_start_domain) if j == '']
-                possible_sig_positions = combinations(empty_slots, len(self.inputs[tid].signatures))
-                for pp in possible_sig_positions:
-                    sig_domain = deepcopy(sig_start_domain)
-                    signatures = deepcopy(self.inputs[tid].signatures)[::-1]
-                    for sig_pos in pp:
-                        sig_domain[sig_pos] = signatures.pop()
-                    sig_domains.append(sig_domain)
-
-                # Verify sig domains
-                for sig_domain in sig_domains:
-                    signature_list = [s for s in sig_domain if s != '']
-                    for sig in signature_list:
-                        pos = sig_domain.index(sig)
-                        if not verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
-                            sig_domains.remove(sig_domain)
-                            break
-                            # TODO: Remove all domains with signature on this position
-                if len(sig_domains):
-                    self.inputs[tid].signatures = [s for s in sig_domains[0] if s != '']
-                else:
-                    raise TransactionError("Invalid signatures found")
-                # TODO: Think about what will happen when 2 or more identical private keys are used
-            else:
-                self.inputs[tid].signatures.append(
-                   newsig
-                )
+        # Add already known signatures on correct position
+        n_sigs_to_insert = len(self.inputs[tid].signatures)
+        for sig in self.inputs[tid].signatures:
+            free_positions = [i for i, s in enumerate(sig_domain) if s == '']
+            for pos in free_positions:
+                if verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
+                    sig_domain[pos] = sig
+                    n_sigs_to_insert -= 1
+                    break
+        if n_sigs_to_insert:
+            _logger.info("Some signatures are replaced with the signatures of the provided keys")
+        self.inputs[tid].signatures = [s for s in sig_domain if s != '']
 
         if self.inputs[tid].script_type == 'p2pkh':
             self.inputs[tid].unlocking_script = \
@@ -991,7 +972,7 @@ class Transaction:
                 _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
         else:
             raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
-        return n_signs
+        return n_signs - n_sigs_to_insert
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
                   sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False):

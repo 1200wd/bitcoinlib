@@ -1954,7 +1954,6 @@ class HDWallet:
             output_arr.append((out.address, out.amount))
         return self.transaction_create(output_arr, input_arr, transaction_fee=False)
 
-    # TODO: Move this to Transaction class (?)
     def transaction_sign(self, transaction, private_keys=None):
         """
         Sign transaction with private keys available in this wallet or extra private_keys specified.
