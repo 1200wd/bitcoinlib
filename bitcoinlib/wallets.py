@@ -199,7 +199,7 @@ class HDWalletKey:
     """
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='', hdkey_object=None, account_id=0, network=None, change=0,
+    def from_key(name, wallet_id, session, key='',account_id=0, network=None, change=0,
                  purpose=44, parent_id=0, path='m', key_type=None):
         """
         Create HDWalletKey from a HDKey object or key
@@ -211,9 +211,7 @@ class HDWalletKey:
         :param session: Required Sqlalchemy Session object
         :type session: sqlalchemy.orm.session.Session
         :param key: Optional key in any format accepted by the HDKey class
-        :type key: str, int, byte, bytearray
-        :param hdkey_object: Optional HDKey object to import, use this if available to save key derivation time
-        :type hdkey_object: HDKey
+        :type key: str, int, byte, bytearray, HDKey
         :param account_id: Account ID for specified key, default is 0
         :type account_id: int
         :param network: Network of specified key
@@ -231,12 +229,12 @@ class HDWalletKey:
         :return HDWalletKey: HDWalletKey object
         """
 
-        if not hdkey_object:
+        if isinstance(key, HDKey):
+            k = key
+        else:
             if network is None:
                 network = DEFAULT_NETWORK
             k = HDKey(import_key=key, network=network)
-        else:
-            k = hdkey_object
 
         keyexists = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.wif == k.wif()).first()
         if keyexists:
@@ -472,8 +470,11 @@ class HDWallet:
             raise WalletError("Wallet with name '%s' already exists" % name)
         else:
             _logger.info("Create new wallet '%s'" % name)
-        if key:
+        if isinstance(key, HDKey):
+            network = key.network.network_name
+        elif key:
             network = check_network_and_key(key, network)
+            key = HDKey(key)
             # searchkey = session.query(DbKey).filter_by(wif=key).scalar()
             # if searchkey:
             #     raise WalletError("Key already found in wallet %s" % searchkey.wallet.name)
@@ -650,7 +651,7 @@ class HDWallet:
             pp = "/".join(path[:l+1])
             fullpath = basepath + pp
             ck = ck.subkey_for_path(path[l], network=network)
-            nk = HDWalletKey.from_key(hdkey_object=ck, name=name, wallet_id=wallet_id, network=network,
+            nk = HDWalletKey.from_key(key=ck, name=name, wallet_id=wallet_id, network=network,
                                       account_id=account_id, change=change, purpose=purpose, path=fullpath,
                                       parent_id=parent_id, session=session)
             self._key_objects.update({nk.key_id: nk})
@@ -914,7 +915,7 @@ class HDWallet:
                 name = ik_path
 
         mk = HDWalletKey.from_key(
-            hdkey_object=hdkey, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
+            key=hdkey, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
             account_id=account_id, purpose=purpose, session=self._session, path=ik_path)
         return mk
 

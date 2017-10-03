@@ -22,7 +22,8 @@ if os.path.isfile(test_database):
     os.remove(test_database)
 
 print("\n=== Most simple way to create Bitcoin Wallet ===")
-w = HDWallet.create('MyWallet', databasefile=test_database)
+k = HDKey()
+w = HDWallet.create('MyWallet', key=k, databasefile=test_database)
 w.new_key_change()
 w.new_key()
 w.info()
