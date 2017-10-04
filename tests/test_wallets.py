@@ -657,3 +657,17 @@ class TestWalletKeyImport(unittest.TestCase):
         wallet.info()
         res = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
         self.assertEqual(res, 'succesfull_test_sendrawtransaction')
+
+    def test_wallet_import_private_for_known_public(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+        hdkey = HDKey(
+            'xprv9s21ZrQH143K2noEZoqGHnaDDLjrnFpis8jm7NWDhkWuNNCqMupGSy7PMYtGL9jvdTY7Nx3GZ6UZ9C52nebwbYXK73imaPUK24'
+            'dZJtGZhGd')
+        wallet = HDWallet.create('public-private', hdkey.account_key().public(), databasefile=DATABASEFILE_UNITTESTS)
+        wallet.import_key(hdkey)
+
+        self.assertListEqual([k.path for k in wallet.keys()], ["m/44'/0'/0'", 'm', "m/44'", "m/44'/0'"])
+        self.assertEqual(wallet.new_account().address, '16m3JAtQjHbmEZd8uYTyKebvrxh2RsFHB')
+        self.assertEqual(wallet.new_key().address, '1P8BTrsBn8DKGQq7nSWPiEiUDgiG8sW1kf')
