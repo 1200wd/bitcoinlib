@@ -28,7 +28,7 @@ from bitcoinlib.encoding import pubkeyhash_to_addr, to_bytes, to_hexstring, scri
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
-from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript
+from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output
 from bitcoinlib.mnemonic import Mnemonic
 
 _logger = logging.getLogger(__name__)
@@ -1831,8 +1831,11 @@ class HDWallet:
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
         for o in output_arr:
-            amount_total_output += o[1]
-            transaction.add_output(o[1], o[0])
+            if isinstance(o, Output):
+                transaction.outputs.append(o)
+            else:
+                amount_total_output += o[1]
+                transaction.add_output(o[1], o[0])
 
         # Calculate fees
         srv = Service(network=network)

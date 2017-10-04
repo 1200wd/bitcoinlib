@@ -1036,7 +1036,7 @@ class Transaction:
             to = public_key_hash
         if not float(amount).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
-        if amount <= 0:
+        if amount < 0:
             raise TransactionError("Output to %s must be more then zero" % to)
         self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
                                    self.network.network_name))
