@@ -1990,7 +1990,7 @@ class HDWallet:
                     # Check if private key is available in wallet
                     cosign_wallet_ids = [w.wallet_id for w in self.cosigner]
                     db_pk = self._session.query(DbKey).filter_by(public=k.public_hex, is_private=True).\
-                        filter(DbKey.wallet_id.in_(cosign_wallet_ids)).first()
+                        filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.wallet_id])).first()
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif))
             transaction.sign(priv_key_list, ti.tid)
