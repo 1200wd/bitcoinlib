@@ -612,7 +612,7 @@ class TestWalletMultisig(unittest.TestCase):
             os.remove(DATABASEFILE_UNITTESTS)
         NETWORK = 'bitcoinlib_test'
         words = 'square innocent drama'
-        seed = Mnemonic().to_seed(words, 'paper-backup10')
+        seed = Mnemonic().to_seed(words, 'password')
         hdkey = HDKey.from_seed(seed, network=NETWORK)
         hdkey.key_type = 'single'
 
@@ -621,7 +621,7 @@ class TestWalletMultisig(unittest.TestCase):
             HDKey(network=NETWORK),
             hdkey.public()
         ]
-        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=NETWORK,
+        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, network=NETWORK,
                                           databasefile=DATABASEFILE_UNITTESTS)
         wallet.new_key()
         wallet.utxos_update()
@@ -636,4 +636,24 @@ class TestWalletMultisig(unittest.TestCase):
 class TestWalletKeyImport(unittest.TestCase):
 
     def test_wallet_key_import_and_sign_multisig(self):
-        pass
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        NETWORK = 'bitcoinlib_test'
+        words = 'square innocent drama'
+        seed = Mnemonic().to_seed(words, 'password')
+        hdkey = HDKey.from_seed(seed, network=NETWORK)
+        hdkey.key_type = 'single'
+
+        key_list = [
+            HDKey(network=NETWORK).account_multisig_key().public(),
+            HDKey(network=NETWORK),
+            hdkey.public()
+        ]
+        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=NETWORK,
+                                          databasefile=DATABASEFILE_UNITTESTS)
+        wallet.new_key()
+        wallet.utxos_update()
+        wallet.import_key(hdkey)
+        wallet.info()
+        res = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
+        self.assertEqual(res, 'succesfull_test_sendrawtransaction')
