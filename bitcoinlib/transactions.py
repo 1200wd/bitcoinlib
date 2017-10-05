@@ -501,6 +501,7 @@ class Input:
                 sigs_required = 1
         self.sigs_required = sigs_required
         self.script_type = script_type
+        self.value = 0
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'

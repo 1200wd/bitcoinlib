@@ -19,16 +19,15 @@
 #
 
 import numbers
-from itertools import groupby
 from copy import deepcopy
 import struct
 from sqlalchemy import or_
 from bitcoinlib.db import *
-from bitcoinlib.encoding import pubkeyhash_to_addr, to_bytes, to_hexstring, script_to_pubkeyhash
+from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
-from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output
+from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input
 from bitcoinlib.mnemonic import Mnemonic
 
 _logger = logging.getLogger(__name__)
@@ -203,6 +202,13 @@ def parse_bip44_path(path):
         'change': '' if len(pathl) < 5 else pathl[4],
         'address_index': '' if len(pathl) < 6 else pathl[5],
     }
+
+
+class WalletTransactionInput(Input):
+
+    def __init__(self, *args, **kwargs):
+        self.wallet_keys = None
+        super().__init__(*args, **kwargs)
 
 
 class HDWalletKey:
@@ -1889,6 +1895,9 @@ class HDWallet:
                 input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value, []))
         else:
             for i, inp in enumerate(input_arr):
+                # FIXME: Dirty stuff, please rewrite...
+                if isinstance(inp, Input):
+                    inp = (inp.prev_hash, inp.output_index, None, 0, inp.signatures, inp.unlocking_script)
                 # Get key_ids, value from Db if not specified
                 if not (inp[2] or inp[3]):
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
@@ -1966,13 +1975,7 @@ class HDWallet:
 
         """
         t_import = Transaction.import_raw(rawtx, network=self.network.network_name)
-        input_arr = []
-        for inp in t_import.inputs:
-            input_arr.append((inp.prev_hash, inp.output_index, None, 0, inp.signatures, inp.unlocking_script))
-        output_arr = []
-        for out in t_import.outputs:
-            output_arr.append((out.address, out.amount))
-        return self.transaction_create(output_arr, input_arr, transaction_fee=False)
+        return self.transaction_create(t_import.outputs, t_import.inputs, transaction_fee=False)
 
     def transaction_sign(self, transaction, private_keys=None):
         """
