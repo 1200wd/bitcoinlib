@@ -654,7 +654,6 @@ class TestWalletKeyImport(unittest.TestCase):
         wallet.new_key()
         wallet.utxos_update()
         wallet.import_key(hdkey)
-        wallet.info()
         res = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
         self.assertEqual(res, 'succesfull_test_sendrawtransaction')
 

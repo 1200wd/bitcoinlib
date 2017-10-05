@@ -91,6 +91,21 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
     return False
 
 
+def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44',
+                          parent_id=None, sort_keys=False, databasefile=None):
+    """
+    Create a wallet with specified options if it doesn't exist, otherwise just open
+
+    See Wallets class create method for option documentation
+
+    """
+    if wallet_exists(name):
+        return HDWallet(name)
+    else:
+        return HDWallet.create(name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
+                               databasefile)
+
+
 def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
     """
     Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
@@ -1833,6 +1848,7 @@ class HDWallet:
         for o in output_arr:
             if isinstance(o, Output):
                 transaction.outputs.append(o)
+                amount_total_output += o.amount
             else:
                 amount_total_output += o[1]
                 transaction.add_output(o[1], o[0])
