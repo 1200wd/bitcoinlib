@@ -962,7 +962,6 @@ class HDWallet:
 
         if self.scheme == 'single':
             return self.main_key
-            # raise WalletError("New key creation not supported for single key wallets")
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         if self.scheme == 'bip44':
@@ -993,7 +992,6 @@ class HDWallet:
             # Compose key path and create new key
             newpath = [(str(change)), str(address_index)]
             bpath = main_acc_key.path + '/'
-            # pathdepth = max_depth - self.main_key.depth
             if not name:
                 if change:
                     name = "Change %d" % address_index
@@ -1021,7 +1019,7 @@ class HDWallet:
                 })
             if self.sort_keys:
                 public_keys.sort(key=lambda x: x['public_key'])
-            public_key_list = [x['public_key_uncompressed'] for x in public_keys]
+            public_key_list = [x['public_key'] for x in public_keys]
             public_key_ids = [str(x['key_id']) for x in public_keys]
 
             # Calculate redeemscript and address and add multisig key to database
@@ -1041,7 +1039,6 @@ class HDWallet:
             for child_id in public_key_ids:
                 self._session.add(DbKeyMultisigChildren(key_order=public_key_ids.index(child_id),
                                                         parent_id=multisig_key.id, child_id=child_id))
-            # self._session.query(DbKey).filter(DbKey.id.in_(public_key_ids)).update({DbKey.multisig_parents.parent_id: multisig_key.id}, synchronize_session=False)
             self._session.commit()
             return multisig_key
 

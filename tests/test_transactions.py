@@ -72,7 +72,7 @@ class TestTransactionInputs(unittest.TestCase):
     def test_transaction_input_add_public_key(self):
         ph = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         k = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        ti = Input(prev_hash=ph, output_index=1, keys=k.public())
+        ti = Input(prev_hash=ph, output_index=1, keys=k.public(), compressed=k.compressed)
         self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', ti.keys[0].address())
 
 
