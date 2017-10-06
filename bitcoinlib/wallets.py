@@ -280,7 +280,7 @@ class HDWalletKey:
 
         nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
-                   wif=k.wif(), address=k.key.address(), parent_id=parent_id,
+                   wif=k.wif(), address=k.key.address(), parent_id=parent_id, compressed=k.compressed,
                    is_private=k.isprivate, path=path, key_type=key_type, network_name=network)
         session.add(nk)
         session.commit()
@@ -325,6 +325,7 @@ class HDWalletKey:
             self.network = Network(self.network_name)
             self.depth = wk.depth
             self.key_type = wk.key_type
+            self.compressed = wk.compressed
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -495,7 +496,7 @@ class HDWallet:
             network = key.network.network_name
         elif key:
             network = check_network_and_key(key, network)
-            key = HDKey(key)
+            key = HDKey(key, network=network)
             # searchkey = session.query(DbKey).filter_by(wif=key).scalar()
             # if searchkey:
             #     raise WalletError("Key already found in wallet %s" % searchkey.wallet.name)
@@ -1947,7 +1948,7 @@ class HDWallet:
                     inp_keys.append(HDKey(ck.child_key.wif).key)
                 script_type = 'p2sh_multisig'
             elif key.key_type in ['bip32', 'single']:
-                inp_keys = HDKey(key.wif).key
+                inp_keys = HDKey(key.wif, compressed=key.compressed).key
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)

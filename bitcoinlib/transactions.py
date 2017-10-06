@@ -523,6 +523,9 @@ class Input:
             else:
                 kobj = key
             if kobj not in self.keys:
+                if kobj.compressed != self.compressed:
+                    raise TransactionError("Key compressed is %s but Input class compressed argument is %s " %
+                                           (kobj.compressed, self.compressed))
                 self.keys.append(kobj)
 
         for sig in signatures:
@@ -908,7 +911,7 @@ class Transaction:
                 priv_key = key.private_byte
                 pub_key = key.public_byte
             else:
-                ko = Key(key)
+                ko = Key(key, compressed=self.inputs[tid].compressed)
                 priv_key = ko.private_byte
                 pub_key = ko.public_byte
             if not priv_key:

@@ -278,8 +278,10 @@ class Key:
         """
         self.public_hex = None
         self.public_uncompressed_hex = None
+        self.public_compressed_hex = None
         self.public_byte = None
         self.public_uncompressed_byte = None
+        self.public_compressed_byte = None
         self.private_byte = None
         self.private_hex = None
         self._x = None
@@ -316,6 +318,7 @@ class Key:
                 else:
                     prefix = '02'
                 self.public_hex = prefix + self._x
+                self.public_compressed_hex = prefix + self._x
             else:
                 self.public_hex = pub_key
                 self._x = pub_key[2:66]
@@ -329,8 +332,13 @@ class Key:
                     y = secp256k1_p - y
                 self._y = change_base(y, 10, 16, 64)
                 self.public_uncompressed_hex = '04' + self._x + self._y
-            self.public_byte = binascii.unhexlify(self.public_hex)
+                self.public_compressed_hex = pub_key
+            self.public_compressed_byte = binascii.unhexlify(self.public_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
+            if self.compressed:
+                self.public_byte = self.public_compressed_byte
+            else:
+                self.public_byte = self.public_uncompressed_byte
         elif self.isprivate and self.key_format == 'decimal':
             self.secret = import_key
             self.private_hex = change_base(import_key, 10, 16, 64)
@@ -396,9 +404,13 @@ class Key:
                 prefix = '03'
             else:
                 prefix = '02'
-            self.public_hex = prefix + self._x
+
+            self.public_compressed_hex = prefix + self._x
             self.public_uncompressed_hex = '04' + self._x + self._y
+            self.public_hex = self.public_compressed_hex if self.compressed else self.public_uncompressed_hex
+
             self.public_byte = binascii.unhexlify(self.public_hex)
+            self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
 
     def __repr__(self):
@@ -633,7 +645,7 @@ class HDKey:
         return HDKey(key=key, chain=chain, network=network)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, isprivate=True, network=None, key_type='bip32', passphrase=''):
+                 child_index=0, isprivate=True, network=None, key_type='bip32', passphrase='', compressed=True):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with systems cryptographically random function.
@@ -666,6 +678,7 @@ class HDKey:
         if (key and not chain) or (not key and chain):
             raise KeyError("Please specify both key and chain, use import_key attribute "
                            "or use simple Key class instead")
+        self.compressed = compressed
         self.key = None
         if not (key and chain):
             if not import_key:
@@ -678,6 +691,9 @@ class HDKey:
                 chain = import_key[32:]
             elif isinstance(import_key, Key):
                 self.key = import_key
+                if not import_key.compressed:
+                    _logger.warning("Uncompressed private keys are not standard for BIP32 keys, use at your own risk!")
+                    self.compressed = False
                 chain = b'\0' * 32
                 key = self.key.private_byte
                 key_type = 'private'
@@ -702,6 +718,10 @@ class HDKey:
                 else:
                     try:
                         self.key = Key(import_key, passphrase=passphrase, network=network)
+                        if not self.key.compressed:
+                            _logger.warning(
+                                "Uncompressed private keys are not standard for BIP32 keys, use at your own risk!")
+                            self.compressed = False
                         # FIXME: Maybe its better to create a random chain?
                         chain = b'\0'*32
                         key = self.key.private_byte
@@ -714,7 +734,7 @@ class HDKey:
                            "'import_key' attribute to import keys in other formats")
         self.chain = chain
         if self.key is None:
-            self.key = Key(key, passphrase=passphrase, network=network)
+            self.key = Key(key, passphrase=passphrase, network=network, compressed=compressed)
         self.depth = depth
         self.parent_fingerprint = parent_fingerprint
         self.child_index = child_index
