@@ -23,7 +23,7 @@ import os
 import json
 from random import shuffle
 from bitcoinlib.db import DEFAULT_DATABASEDIR
-from bitcoinlib.wallets import HDWallet, list_wallets, delete_wallet, WalletError
+from bitcoinlib.wallets import *
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 from bitcoinlib.networks import Network
@@ -221,6 +221,13 @@ class TestWalletKeys(unittest.TestCase):
              'ujRHzmBMxE'
         w = HDWallet.create('test_wallet_keys_single_key', wk, scheme='single', databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(w.new_key(), w.new_key())
+
+    def test_wallet_create_uncompressed_masterkey(self):
+        wlt = wallet_create_or_open('uncompressed_test', key='68vBWcBndYGLpd4KmeNTk1gS1A71zyDX6uVQKCxq6umYKyYUav5',
+                                    network='bitcoinlib_test')
+        wlt.get_key()
+        wlt.utxos_update()
+        self.assertEqual(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY'), 'succesfull_test_sendrawtransaction')
 
 
 class TestWalletElectrum(unittest.TestCase):

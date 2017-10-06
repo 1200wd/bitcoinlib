@@ -370,7 +370,7 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
                          'N45k67UKsJUXM1JfRCdn1', str(self.k2.subkey_for_path('3/2H').wif()))
 
 
-class TestHDKeysTestnet(unittest.TestCase):
+class TestHDKeys(unittest.TestCase):
 
     def test_hdkey_testnet_random(self):
         self.k = HDKey(network='testnet')
@@ -387,6 +387,18 @@ class TestHDKeysTestnet(unittest.TestCase):
         self.assertEqual('tpubD6NzVbkrYhZ4YVTo2VV3PDwW8Cq3vxurVptAybVk9YY9sJbMEmtURL7bWgKxXSWSahXu6HbHkdpjBGzwYYkJm'
                          'u2VmoeHuiTmzHZpJo8Cdpb', self.k.wif_public())
         self.assertEqual('n4c8TKkqUmj3b8VJrTioiZuciyaCDRd6iE', self.k.key.address())
+
+    def test_hdkey_uncompressed_key_conversion(self):
+        key = Key('5JGSWMSfKiXVDvXzUeod8HeSsGRpHWQgrETithYjZKcxWNpexVK')
+        hdkey = HDKey(key)
+        hdkey_uncompressed = HDKey(hdkey.wif(), compressed=False)
+        hdkey_compressed = HDKey(hdkey.wif())
+
+        self.assertFalse(key.compressed)
+        self.assertFalse(hdkey.compressed)
+        self.assertEqual(hdkey_uncompressed.private_hex, hdkey_compressed.private_hex)
+        self.assertEqual(hdkey_uncompressed.wif(), hdkey.wif())
+        self.assertEqual(hdkey_compressed.key.wif(), 'KyD9aZEG9cHZa3Hnh3rnTAUHAs6XhroYtJQwuBy4qfBhzHGEApgv')
 
 
 class TestBip38(unittest.TestCase):
