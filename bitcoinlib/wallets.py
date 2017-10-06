@@ -1950,7 +1950,8 @@ class HDWallet:
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
             inp_id = transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
-                                           sigs_required=self.multisig_n_required, sort=self.sort_keys)
+                                           sigs_required=self.multisig_n_required, sort=self.sort_keys,
+                                           compressed=key.compressed)
             # FIXME: This dirty stuff needs to be rewritten...
             if len(inp) > 4:
                 transaction.inputs[inp_id].signatures += inp[4]
