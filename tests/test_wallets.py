@@ -229,6 +229,13 @@ class TestWalletKeys(unittest.TestCase):
         wlt.utxos_update()
         self.assertEqual(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY'), 'succesfull_test_sendrawtransaction')
 
+    def test_wallet_single_key(self):
+        wlt = wallet_create_or_open('single_key', scheme='single', network='bitcoinlib_test')
+        wlt.utxos_update()
+        transaction = wlt.transaction_create([('21DQCyZTNRoAccG1TWz9YaffDUKzZf6JWii', 90000000)])
+        transaction = wlt.transaction_sign(transaction)
+        self.assertTrue(transaction.verify())
+
 
 class TestWalletElectrum(unittest.TestCase):
 
