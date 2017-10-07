@@ -1600,10 +1600,10 @@ class HDWallet:
         for utxo in utxos:
             key_values.append({
                 'id': utxo[0].key_id,
-                'balance': utxo[0].value
+                'balance': utxo[1]
             })
             network = utxo[2]
-            new_value = utxo[0].value
+            new_value = utxo[1]
             if network in network_values:
                 new_value = network_values[network] + utxo[0].value
             network_values.update({network: new_value})

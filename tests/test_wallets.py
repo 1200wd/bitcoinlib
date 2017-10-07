@@ -684,3 +684,22 @@ class TestWalletKeyImport(unittest.TestCase):
         self.assertListEqual([k.path for k in wallet.keys()], ["m/44'/0'/0'", 'm', "m/44'", "m/44'/0'"])
         self.assertEqual(wallet.new_account().address, '16m3JAtQjHbmEZd8uYTyKebvrxh2RsFHB')
         self.assertEqual(wallet.new_key().address, '1P8BTrsBn8DKGQq7nSWPiEiUDgiG8sW1kf')
+
+
+class TestWalletTransaction(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfqZY6DFj6x61Wwbrg8Q'
+        self.wallet = wallet_create_or_open('utxo-test', key=account_key, network='testnet',
+                                    databasefile=DATABASEFILE_UNITTESTS)
+        self.wallet.new_key()
+        self.wallet.utxos_update()
+
+    def test_wallet_import_utxos(self):
+        total_value = sum([utxo['value'] for utxo in self.wallet.utxos()])
+        self.assertEqual(total_value, 60000000)
+
+
+    # TODO insert create transaction tests
