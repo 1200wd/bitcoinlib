@@ -1625,7 +1625,7 @@ class HDWallet:
 
         _logger.info("Got balance for %d key(s)" % len(key_values))
 
-    def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=5):
+    def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=5, utxos=None):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1653,11 +1653,12 @@ class HDWallet:
             else:
                 depth = 0
 
-        # Get all UTXO's for this wallet from default Service object
-        addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id, depth=depth)
-        utxos = Service(network=network).getutxos(addresslist)
-        if utxos is False:
-            raise WalletError("No response from any service provider, could not update UTXO's")
+        if utxos is None:
+            # Get all UTXO's for this wallet from default Service object
+            addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id, depth=depth)
+            utxos = Service(network=network).getutxos(addresslist)
+            if utxos is False:
+                raise WalletError("No response from any service provider, could not update UTXO's")
         count_utxos = 0
 
         # Get current UTXO's from database to compare with Service objects UTXO's
