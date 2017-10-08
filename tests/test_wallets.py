@@ -689,9 +689,11 @@ class TestWalletKeyImport(unittest.TestCase):
 class TestWalletTransaction(unittest.TestCase):
 
     def setUp(self):
+        print(DATABASEFILE_UNITTESTS)
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfqZY6DFj6x61Wwbrg8Q'
+        account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfq' \
+                      'ZY6DFj6x61Wwbrg8Q'
         self.wallet = wallet_create_or_open('utxo-test', key=account_key, network='testnet',
                                             databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.new_key()
@@ -701,4 +703,29 @@ class TestWalletTransaction(unittest.TestCase):
         total_value = sum([utxo['value'] for utxo in self.wallet.utxos()])
         self.assertEqual(total_value, 60000000)
 
-    # TODO insert create transaction tests
+    def test_wallet_sweep_public_wallet(self):
+        res = self.wallet.sweep('mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7', fee_per_kb=50000)
+        raw_tx = '010000000326d6ebf29d03b4c78954cfd1917123f7901874f1b906ac77549e00507cbfff4f0100000000ffffffff1e8e5b6' \
+                 'e64e5db433c41a61cf070891a525b199550cd2f3d635cb185919123940000000000ffffffff6f1a257daf1d808a5b2dbef9' \
+                 'a11513a8fa2839f7cc10fe6a0ddc5def425957fb0000000000ffffffff01a2279303000000001976a914ac18de4751ada70' \
+                 '7bc5c6d65b8f050f139e4427c88ac00000000'
+        self.assertEqual(res['transaction'].raw_hex(), raw_tx)
+
+    def test_wallet_offline_create_transaction(self):
+        hdkey_wif = 'tprv8ZgxMBicQKsPf5exCdeBgnYjJt2LxDcQbv6u9HHymY3qh6EoTy8SGwou5xyvExL3iWfBsZWp3YUyo9gRmxQxrBS2FwGk' \
+                    'qjcDhTcyVLhrXXZ'
+        hdkey = HDKey(hdkey_wif)
+        wlt = wallet_create_or_open('offline-create-transaction', key=hdkey, network='testnet')
+        wlt.get_key()
+        utxos = [{
+            'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
+            'script': '',
+            'confirmations': 10,
+            'output_n': 1,
+            'tx_hash': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
+            'value': 8970937
+        }]
+        wlt.utxos_update(utxos=utxos)
+        t = wlt.transaction_create([('n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN', 100)], transaction_fee=5000)
+        t = wlt.transaction_sign(t)
+        self.assertTrue(t.verify())

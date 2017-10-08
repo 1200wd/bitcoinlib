@@ -91,15 +91,15 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 
 def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44',
-                          parent_id=None, sort_keys=False, databasefile=None):
+                          parent_id=None, sort_keys=False, databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
     See Wallets class create method for option documentation
 
     """
-    if wallet_exists(name):
-        return HDWallet(name)
+    if wallet_exists(name, databasefile=databasefile):
+        return HDWallet(name, databasefile=databasefile)
     else:
         return HDWallet.create(name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
                                databasefile)
@@ -1646,12 +1646,11 @@ class HDWallet:
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        if depth is None:
-            # TODO: implement bip45/67/electrum/?
-            if self.scheme == 'bip44':
-                depth = 5
-            else:
-                depth = 0
+        # TODO: implement bip45/67/electrum/?
+        if self.scheme == 'bip44':
+            depth = 5
+        else:
+            depth = 0
 
         if utxos is None:
             # Get all UTXO's for this wallet from default Service object
