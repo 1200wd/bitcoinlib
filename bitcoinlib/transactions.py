@@ -960,9 +960,10 @@ class Transaction:
         self.inputs[tid].signatures = [s for s in sig_domain if s != '']
 
         if self.inputs[tid].script_type == 'p2pkh':
-            self.inputs[tid].unlocking_script = \
-                varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
-                varstr(self.inputs[tid].keys[0].public_byte)
+            if len(self.inputs[tid].signatures):
+                self.inputs[tid].unlocking_script = \
+                    varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
+                    varstr(self.inputs[tid].keys[0].public_byte)
         elif self.inputs[tid].script_type == 'p2sh_multisig':
             n_tag = self.inputs[tid].redeemscript[0]
             if not isinstance(n_tag, int):

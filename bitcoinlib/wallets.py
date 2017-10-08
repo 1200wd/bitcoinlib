@@ -1625,7 +1625,7 @@ class HDWallet:
 
         _logger.info("Got balance for %d key(s)" % len(key_values))
 
-    def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=None):
+    def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=5):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1813,7 +1813,7 @@ class HDWallet:
         return selected_utxos
 
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None,
-                           min_confirms=4, max_utxos=None):
+                           min_confirms=1, max_utxos=None):
         """
             Create new transaction with specified outputs. 
             Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -1829,7 +1829,7 @@ class HDWallet:
             :type network: str
             :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
             :type transaction_fee: int
-            :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
+            :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
             :type min_confirms: int
             :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
             :type max_utxos: int

@@ -693,13 +693,12 @@ class TestWalletTransaction(unittest.TestCase):
             os.remove(DATABASEFILE_UNITTESTS)
         account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfqZY6DFj6x61Wwbrg8Q'
         self.wallet = wallet_create_or_open('utxo-test', key=account_key, network='testnet',
-                                    databasefile=DATABASEFILE_UNITTESTS)
+                                            databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.new_key()
         self.wallet.utxos_update()
 
     def test_wallet_import_utxos(self):
         total_value = sum([utxo['value'] for utxo in self.wallet.utxos()])
         self.assertEqual(total_value, 60000000)
-
 
     # TODO insert create transaction tests
