@@ -62,15 +62,15 @@ class TestWalletCreate(unittest.TestCase):
         self.assertEqual(new_key.wif[:4], 'xprv')
         self.assertEqual(new_key.path, "m/44'/0'/100'/0/0")
 
-    def test_list_wallets(self):
-        wallets = list_wallets(databasefile=DATABASEFILE_UNITTESTS)
+    def test_wallets_list(self):
+        wallets = wallets_list(databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(wallets[0]['name'], 'test_wallet_create')
 
     def test_delete_wallet(self):
         HDWallet.create(
             name='wallet_to_remove',
             databasefile=DATABASEFILE_UNITTESTS)
-        self.assertEqual(delete_wallet('wallet_to_remove', databasefile=DATABASEFILE_UNITTESTS), 1)
+        self.assertEqual(wallet_delete('wallet_to_remove', databasefile=DATABASEFILE_UNITTESTS), 1)
 
     def test_delete_wallet_exception(self):
         self.assertRaisesRegexp(WalletError, '', delete_wallet, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)

@@ -46,7 +46,7 @@ class WalletError(Exception):
         return self.msg
 
 
-def list_wallets(databasefile=DEFAULT_DATABASE):
+def wallets_list(databasefile=DEFAULT_DATABASE):
     """
     List Wallets from database
     
@@ -83,9 +83,9 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
     :return bool: True if wallet exists otherwise False
     """
 
-    if wallet in [x['name'] for x in list_wallets(databasefile)]:
+    if wallet in [x['name'] for x in wallets_list(databasefile)]:
         return True
-    if isinstance(wallet, int) and wallet in [x['id'] for x in list_wallets(databasefile)]:
+    if isinstance(wallet, int) and wallet in [x['id'] for x in wallets_list(databasefile)]:
         return True
     return False
 
@@ -105,7 +105,7 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
                                databasefile)
 
 
-def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
+def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
     """
     Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
     unless 'force=True' is specified
@@ -147,7 +147,7 @@ def delete_wallet(wallet, databasefile=DEFAULT_DATABASE, force=False):
 
     # Delete co-signer wallets if this is a multisig wallet
     for cw in session.query(DbWallet).filter_by(parent_id=wallet_id).all():
-        delete_wallet(cw.id, databasefile=databasefile, force=force)
+        wallet_delete(cw.id, databasefile=databasefile, force=force)
 
     _logger.info("Wallet '%s' deleted" % wallet)
 

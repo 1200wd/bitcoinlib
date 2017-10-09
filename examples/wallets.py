@@ -159,6 +159,6 @@ pprint(res)
 #
 
 print("\n=== List wallets & delete a wallet ===")
-print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
-res = delete_wallet('Personal', databasefile=test_database, force=True)
-print(','.join([w['name'] for w in list_wallets(databasefile=test_database)]))
+print(','.join([w['name'] for w in wallets_list(databasefile=test_database)]))
+res = wallet_delete('Personal', databasefile=test_database, force=True)
+print(','.join([w['name'] for w in wallets_list(databasefile=test_database)]))
