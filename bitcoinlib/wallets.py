@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 Oktober - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -105,6 +105,22 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
                                databasefile)
 
 
+def wallet_create_or_open_multisig(
+        name, key_list, sigs_required=None, owner='', network=None, account_id=0,
+        purpose=44, multisig_compressed=True, sort_keys=False, databasefile=DEFAULT_DATABASE):
+    """
+    Create a wallet with specified options if it doesn't exist, otherwise just open
+
+    See Wallets class create method for option documentation
+
+    """
+    if wallet_exists(name, databasefile=databasefile):
+        return HDWallet(name, databasefile=databasefile)
+    else:
+        return HDWallet.create_multisig(name, key_list, sigs_required, owner, network, account_id, purpose,
+                                        multisig_compressed, sort_keys, databasefile)
+
+
 def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
     """
     Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
@@ -152,6 +168,11 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
     _logger.info("Wallet '%s' deleted" % wallet)
 
     return res
+
+
+def wallet_delete_if_exists(wallet, databasefile=DEFAULT_DATABASE, force=False):
+    if wallet_exists(wallet, databasefile):
+        return wallet_delete(wallet, databasefile, force)
 
 
 def normalize_path(path):
