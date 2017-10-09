@@ -73,7 +73,7 @@ class TestWalletCreate(unittest.TestCase):
         self.assertEqual(wallet_delete('wallet_to_remove', databasefile=DATABASEFILE_UNITTESTS), 1)
 
     def test_delete_wallet_exception(self):
-        self.assertRaisesRegexp(WalletError, '', delete_wallet, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, '', wallet_delete, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
 
     def test_wallet_duplicate_key_for_path(self):
         nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")

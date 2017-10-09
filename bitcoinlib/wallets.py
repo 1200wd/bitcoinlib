@@ -1079,7 +1079,33 @@ class HDWallet:
 
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
-    def get_key(self, account_id=None, network=None, change=0, depth_of_keys=5):
+    def scan(self, scan_depth=5, account_id=None, change=None, network=None, _recursion_depth=0):
+        """
+        Generate new keys for this wallet and scan for UTXO's
+
+        :param scan_depth:
+        :param account_id:
+        :param network:
+        :return:
+        """
+
+        if _recursion_depth > 10:
+            raise WalletError("UTXO scanning has reached a recursion depth of more then 10")
+        _recursion_depth += 1
+        if self.scheme != 'bip44':
+            raise WalletError("The wallet scan() method is only available for BIP44 wallets")
+        if change != 1:
+            scanned_keys = self.get_key(account_id, network, number_of_keys=scan_depth)
+            nr_new_utxos = self.utxos_update(change=1)
+            if nr_new_utxos:
+                self.scan(scan_depth, account_id, change=0, network=network, _recursion_depth=_recursion_depth)
+        if change != 0:
+            scanned_keys_change = self.get_key(account_id, network, change=1, number_of_keys=scan_depth)
+            nr_new_utxos = self.utxos_update(change=1)
+            if nr_new_utxos:
+                self.scan(scan_depth, account_id, change=1, network=network, _recursion_depth=_recursion_depth)
+
+    def get_key(self, account_id=None, network=None, number_of_keys=1, change=0, depth_of_keys=5):
         """
         Get a unused key or create a new one if there are no unused keys. 
         Returns a key from this wallet which has no transactions linked to it.
@@ -1100,14 +1126,27 @@ class HDWallet:
         keys_depth = depth_of_keys
         if self.scheme == 'multisig':
             keys_depth = 0
-        dbkey = self._session.query(DbKey).\
+        last_used_qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
-                      used=False, change=change, depth=keys_depth).\
-            order_by(DbKey.id).first()
-        if dbkey:
-            return HDWalletKey(dbkey.id, session=self._session)
-        else:
-            return self.new_key(account_id=account_id, network=network, change=change, max_depth=depth_of_keys)
+                      used=True, change=change, depth=keys_depth).\
+            order_by(DbKey.id.desc()).first()
+        dbkey = None
+        if last_used_qr:
+            last_used_key_id = last_used_qr.id
+            dbkey = self._session.query(DbKey).\
+                filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
+                          used=False, change=change, depth=keys_depth).filter(DbKey.id > last_used_key_id).\
+                order_by(DbKey.id).all()
+        key_list = []
+        for i in range(number_of_keys):
+            if dbkey:
+                dk = dbkey.pop()
+                key_list.append(HDWalletKey(dk.id, session=self._session))
+            else:
+                key_list.append(self.new_key(account_id=account_id, network=network, change=change,
+                                             max_depth=depth_of_keys))
+
+        return key_list
 
     def get_keys(self, account_id=None, network=None, change=0, depth_of_keys=5):
         """
@@ -1428,7 +1467,7 @@ class HDWallet:
 
         return self.keys(account_id, depth=5, change=1, used=used, network=network, as_dict=as_dict)
 
-    def addresslist(self, account_id=None, used=None, network=None, depth=5, key_id=None):
+    def addresslist(self, account_id=None, used=None, network=None, change=None, depth=5, key_id=None):
         """
         Get list of addresses defined in current wallet
 
@@ -1447,7 +1486,8 @@ class HDWallet:
         """
 
         addresslist = []
-        for key in self.keys(account_id=account_id, depth=depth, used=used, network=network, key_id=key_id):
+        for key in self.keys(account_id=account_id, depth=depth, used=used, network=network, change=change,
+                             key_id=key_id):
             addresslist.append(key.address)
         return addresslist
 
@@ -1646,7 +1686,7 @@ class HDWallet:
 
         _logger.info("Got balance for %d key(s)" % len(key_values))
 
-    def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=5, utxos=None):
+    def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None, utxos=None):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1668,14 +1708,22 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         # TODO: implement bip45/67/electrum/?
-        if self.scheme == 'bip44':
-            depth = 5
-        else:
-            depth = 0
+        schemes_key_depth = {
+            'bip44': 5,
+            'single': 0,
+            'electrum': 4,
+            'multisig': 0
+        }
+        if depth is None:
+            if self.scheme == 'bip44':
+                depth = 5
+            else:
+                depth = 0
 
         if utxos is None:
             # Get all UTXO's for this wallet from default Service object
-            addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id, depth=depth)
+            addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
+                                           change=change, depth=depth)
             utxos = Service(network=network).getutxos(addresslist)
             if utxos is False:
                 raise WalletError("No response from any service provider, could not update UTXO's")
