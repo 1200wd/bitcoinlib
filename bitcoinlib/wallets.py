@@ -1146,7 +1146,10 @@ class HDWallet:
                 key_list.append(self.new_key(account_id=account_id, network=network, change=change,
                                              max_depth=depth_of_keys))
 
-        return key_list
+        if len(key_list) == 1:
+            return key_list[0]
+        else:
+            return key_list
 
     def get_keys(self, account_id=None, network=None, change=0, depth_of_keys=5):
         """
