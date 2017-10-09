@@ -1096,12 +1096,18 @@ class HDWallet:
             raise WalletError("The wallet scan() method is only available for BIP44 wallets")
         if change != 1:
             scanned_keys = self.get_key(account_id, network, number_of_keys=scan_depth)
-            nr_new_utxos = self.utxos_update(change=1)
+            new_key_ids = [k.key_id for k in scanned_keys]
+            nr_new_utxos = 0
+            for new_key_id in new_key_ids:
+                nr_new_utxos += self.utxos_update(change=0, key_id=new_key_id)
             if nr_new_utxos:
                 self.scan(scan_depth, account_id, change=0, network=network, _recursion_depth=_recursion_depth)
         if change != 0:
             scanned_keys_change = self.get_key(account_id, network, change=1, number_of_keys=scan_depth)
-            nr_new_utxos = self.utxos_update(change=1)
+            new_key_ids = [k.key_id for k in scanned_keys_change]
+            nr_new_utxos = 0
+            for new_key_id in new_key_ids:
+                nr_new_utxos += self.utxos_update(change=1, key_id=new_key_id)
             if nr_new_utxos:
                 self.scan(scan_depth, account_id, change=1, network=network, _recursion_depth=_recursion_depth)
 
@@ -1759,6 +1765,7 @@ class HDWallet:
             utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.wallet_id == self.wallet_id,
                        DbTransaction.hash == utxo['tx_hash'],
+                       # DbTransactionOutput.key_id == key_id,
                        DbTransactionOutput.output_n == utxo['output_n'])
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
