@@ -1079,13 +1079,17 @@ class HDWallet:
 
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
-    def scan(self, scan_depth=5, account_id=None, change=None, network=None, _recursion_depth=0):
+    def scan(self, scan_depth=10, account_id=None, change=None, network=None, _recursion_depth=0):
         """
         Generate new keys for this wallet and scan for UTXO's
 
-        :param scan_depth:
-        :param account_id:
-        :param network:
+        :param scan_depth: Amount of new keys and change keys (addresses) created for this wallet
+        :type scan_depth: int
+        :param account_id: Account ID. Default is last used or created account ID.
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+
         :return:
         """
 
@@ -1098,6 +1102,7 @@ class HDWallet:
             scanned_keys = self.get_key(account_id, network, number_of_keys=scan_depth)
             new_key_ids = [k.key_id for k in scanned_keys]
             nr_new_utxos = 0
+            # TODO: Allow list of keys in utxos_update
             for new_key_id in new_key_ids:
                 nr_new_utxos += self.utxos_update(change=0, key_id=new_key_id)
             if nr_new_utxos:
@@ -1618,6 +1623,8 @@ class HDWallet:
         """
         Get total of unspent outputs
 
+        :param network: Network name. Leave empty for default network
+        :type network: str
         :param as_string: Set True to return a string in currency format. Default returns float.
         :type as_string: boolean
 
@@ -1648,8 +1655,10 @@ class HDWallet:
         :type network: str
         :param key_id: Key ID Filter
         :type key_id: int
-        
-        :return: 
+        :param min_confirms: Minimal confirmations needed to include in balance (default = 1)
+        :type min_confirms: int
+
+        :return: Updated balance
         """
 
         qr = self._session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbKey.network_name).\
@@ -1695,15 +1704,25 @@ class HDWallet:
         # Bulk update database
         self._session.bulk_update_mappings(DbKey, key_values)
         self._session.commit()
-
         _logger.info("Got balance for %d key(s)" % len(key_values))
+        return self._balance
 
     def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None, utxos=None):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
         Delete old UTXO's which are spend and append new UTXO's to database.
-        
+
+        For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries:
+        [{
+            'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
+            'script': '',
+            'confirmations': 10,
+            'output_n': 1,
+            'tx_hash': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
+            'value': 8970937
+        }]
+
         :param account_id: Account ID
         :type account_id: int
         :param used: Only check for UTXO for used or unused keys. Default is both
@@ -1714,6 +1733,10 @@ class HDWallet:
         :type key_id: int
         :param depth: Only update keys with this depth, default is depth 5 according to BIP0048 standard. Set depth to None to update all keys of this wallet.
         :type depth: int
+        :param change: Only update change or normal keys, default is both (None)
+        :type change: int
+        :param utxos: List of unspent outputs in dictionary format specified in this method DOC header
+        :type utxos: list
         
         :return int: Number of new UTXO's added 
         """
@@ -1811,7 +1834,8 @@ class HDWallet:
         :param min_confirms: Minimal confirmation needed to include in output list
         :type min_confirms: int
         :param key_id: Key ID to just get 1 key
-        :type key_id: int  
+        :type key_id: int
+
         :return list: List of transactions 
         """
 
@@ -2046,17 +2070,17 @@ class HDWallet:
 
         return transaction
 
-    def transaction_import(self, rawtx):
+    def transaction_import(self, raw_tx):
         """
         Import a raw transaction. Link inputs to wallet keys if possible and return Transaction object
 
-        :param rawtx: Raw transaction
-        :type rawtx: str, bytes
+        :param raw_tx: Raw transaction
+        :type raw_tx: str, bytes
 
         :return Transaction:
 
         """
-        t_import = Transaction.import_raw(rawtx, network=self.network.network_name)
+        t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
         return self.transaction_create(t_import.outputs, t_import.inputs, transaction_fee=False)
 
     def transaction_sign(self, transaction, private_keys=None):
@@ -2213,7 +2237,8 @@ class HDWallet:
         return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
                          min_confirms=min_confirms, priv_keys=priv_keys)
 
-    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1, fee_per_kb=None):
+    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
+              fee_per_kb=None):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -2295,7 +2320,10 @@ class HDWallet:
         """
         Return wallet information in dictionary format
 
-        :return:
+        :param detail: Level of detail to show, can be 0, 1, 2 or 3
+        :type detail: int
+
+        :return dict:
         """
 
         # if detail and self.main_key:
