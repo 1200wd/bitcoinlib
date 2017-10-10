@@ -20,7 +20,7 @@ print("(Based on http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a
 t = Transaction()
 prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
 ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-t.add_input(prev_hash=prev_tx, output_index=1, keys=ki.public_hex)
+t.add_input(prev_hash=prev_tx, output_index=1, keys=ki.public_hex, compressed=False)
 t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
 t.sign(ki.private_byte)
 pprint(t.dict())
@@ -32,7 +32,7 @@ print("\n=== Create and sign transaction with transactions Input and Output obje
 print("(Based on http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html)")
 ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
 txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-transaction_input = Input(prev_hash=txid, output_index=0, keys=ki.public_byte)
+transaction_input = Input(prev_hash=txid, output_index=0, keys=ki.public_byte, compressed=ki.compressed)
 pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
 transaction_output = Output(amount=91234, public_key_hash=pkh)
 t = Transaction([transaction_input], [transaction_output])

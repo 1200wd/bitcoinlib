@@ -137,6 +137,7 @@ class DbKey(Base):
     public = Column(String(255), index=True)
     private = Column(String(255), index=True)
     wif = Column(String(255), index=True)
+    compressed = Column(Boolean, default=True)
     key_type = Column(String(10), default='bip32')
     address = Column(String(255), index=True)
     purpose = Column(Integer, default=44)
