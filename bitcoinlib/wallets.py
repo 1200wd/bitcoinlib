@@ -1686,9 +1686,12 @@ class HDWallet:
                     'balance': 0
                 })
 
-        self._balances.update(network_values)
-        if self.network.network_name in network_values:
-            self._balance = network_values[self.network.network_name]
+        if not (key_id or account_id):
+            self._balances.update(network_values)
+            if self.network.network_name in network_values:
+                self._balance = network_values[self.network.network_name]
+        # TODO: else...
+
         # Bulk update database
         self._session.bulk_update_mappings(DbKey, key_values)
         self._session.commit()
@@ -1765,10 +1768,11 @@ class HDWallet:
             utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.wallet_id == self.wallet_id,
                        DbTransaction.hash == utxo['tx_hash'],
-                       # DbTransactionOutput.key_id == key_id,
                        DbTransactionOutput.output_n == utxo['output_n'])
             if utxo_in_db.count():
                 utxo_record = utxo_in_db.scalar()
+                if not utxo_record.key_id:
+                    count_utxos += 1
                 utxo_record.key_id = key.id
                 utxo_record.spend = False
                 transaction_record = transaction_in_db.scalar()
