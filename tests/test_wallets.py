@@ -729,3 +729,13 @@ class TestWalletTransaction(unittest.TestCase):
         t = wlt.transaction_create([('n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN', 100)], transaction_fee=5000)
         t = wlt.transaction_sign(t)
         self.assertTrue(t.verify())
+
+    def test_wallet_scan(self):
+        account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfq' \
+                      'ZY6DFj6x61Wwbrg8Q'
+        self.wallet = wallet_create_or_open('scan-test', key=account_key, network='testnet',
+                                            databasefile=DATABASEFILE_UNITTESTS)
+        self.wallet.scan()
+        self.wallet.info()
+        self.assertEqual(len(self.wallet.keys()), 31)
+        self.assertEqual(self.wallet.balance(), 60500000)
