@@ -1141,13 +1141,13 @@ class HDWallet:
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
                       used=True, change=change, depth=keys_depth).\
             order_by(DbKey.id.desc()).first()
-        dbkey = None
+        last_used_key_id = 0
         if last_used_qr:
             last_used_key_id = last_used_qr.id
-            dbkey = self._session.query(DbKey).\
-                filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
-                          used=False, change=change, depth=keys_depth).filter(DbKey.id > last_used_key_id).\
-                order_by(DbKey.id).all()
+        dbkey = self._session.query(DbKey).\
+            filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
+                      used=False, change=change, depth=keys_depth).filter(DbKey.id > last_used_key_id).\
+            order_by(DbKey.id).all()
         key_list = []
         for i in range(number_of_keys):
             if dbkey:
