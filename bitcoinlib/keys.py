@@ -627,7 +627,7 @@ class HDKey:
     """
 
     @staticmethod
-    def from_seed(import_seed, network=DEFAULT_NETWORK):
+    def from_seed(import_seed, key_type='bip32', network=DEFAULT_NETWORK):
         """
         Used by class init function, import key from seed
 
@@ -642,7 +642,7 @@ class HDKey:
         I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
-        return HDKey(key=key, chain=chain, network=network)
+        return HDKey(key=key, chain=chain, network=network, key_type=key_type)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, isprivate=True, network=None, key_type='bip32', passphrase='', compressed=True):
