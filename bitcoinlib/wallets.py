@@ -1024,6 +1024,9 @@ class HDWallet:
             )
             return newkey
         elif self.scheme == 'multisig':
+            if self.network.network_name != network:
+                raise WalletError("Multiple networks is currently not supported for multisig")
+                # TODO: Should be quite easy to support this...
             if not self.multisig_n_required:
                 raise WalletError("Multisig_n_required not set, cannot create new key")
             co_sign_wallets = self._session.query(DbWallet).\
@@ -1032,7 +1035,7 @@ class HDWallet:
             public_keys = []
             for csw in co_sign_wallets:
                 w = HDWallet(csw.id, session=self._session)
-                wk = w.new_key(change=change, max_depth=max_depth)
+                wk = w.new_key(change=change, max_depth=max_depth, network=network)
                 public_keys.append({
                     'key_id': wk.key_id,
                     'public_key_uncompressed': wk.key().key.public_uncompressed(),
@@ -1406,6 +1409,8 @@ class HDWallet:
         
         """
 
+        if self.scheme != 'bip44':
+            raise WalletError("The 'keys_network' method can only be used with BIP44 type wallets")
         res = self.keys(depth=2, used=used, as_dict=as_dict)
         if not res:
             res = self.keys(depth=3, used=used, as_dict=as_dict)
