@@ -2150,7 +2150,11 @@ class HDWallet:
         srv = Service(network=transaction.network.network_name)
         res = srv.sendrawtransaction(transaction.raw_hex())
         if not res:
-            raise WalletError("Could not send transaction: %s" % srv.errors)
+            # raise WalletError("Could not send transaction: %s" % srv.errors)
+            return {
+                'error': "Cannot send transaction. %s" % srv.errors,
+                'transaction': transaction
+            }
         _logger.info("Successfully pushed transaction, result: %s" % res)
 
         # Update db: Update spend UTXO's, add transaction to database
