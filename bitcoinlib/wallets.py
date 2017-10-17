@@ -28,7 +28,6 @@ from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input
-from bitcoinlib.mnemonic import Mnemonic
 
 _logger = logging.getLogger(__name__)
 
@@ -223,13 +222,6 @@ def parse_bip44_path(path):
         'change': '' if len(pathl) < 5 else pathl[4],
         'address_index': '' if len(pathl) < 6 else pathl[5],
     }
-
-
-class WalletTransactionInput(Input):
-
-    def __init__(self, *args, **kwargs):
-        self.wallet_keys = None
-        super().__init__(*args, **kwargs)
 
 
 class HDWalletKey:
