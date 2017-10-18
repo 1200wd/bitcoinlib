@@ -2120,12 +2120,14 @@ class HDWallet:
             transaction.sign(priv_key_list, ti.tid)
         return transaction
 
-    def transaction_send(self, transaction):
+    def transaction_send(self, transaction, offline=False):
         """
         Verify and push transaction to network. Update UTXO's in database after successfull send
 
         :param transaction: A signed transaction
         :type transaction: Transaction
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :type offline: bool
 
         :return str, dict: Transaction ID if successfull or dict with results otherwise
 
@@ -2134,6 +2136,11 @@ class HDWallet:
         if not transaction.verify():
             return {
                 'error': "Cannot verify transaction. Create transaction failed",
+                'transaction': transaction
+            }
+
+        if offline:
+            return {
                 'transaction': transaction
             }
 
@@ -2164,7 +2171,7 @@ class HDWallet:
             return res
 
     def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4,
-             priv_keys=None, max_utxos=None):
+             priv_keys=None, max_utxos=None, offline=False):
         """
         Create new transaction with specified outputs and push it to the network. 
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -2208,10 +2215,10 @@ class HDWallet:
                                                       min_confirms, max_utxos)
                 transaction = self.transaction_sign(transaction, priv_keys)
 
-        return self.transaction_send(transaction)
+        return self.transaction_send(transaction, offline)
 
     def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4,
-                priv_keys=None):
+                priv_keys=None, offline=False):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
 
@@ -2235,10 +2242,10 @@ class HDWallet:
 
         outputs = [(to_address, amount)]
         return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
-                         min_confirms=min_confirms, priv_keys=priv_keys)
+                         min_confirms=min_confirms, priv_keys=priv_keys, offline=offline)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
-              fee_per_kb=None):
+              fee_per_kb=None, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -2247,6 +2254,8 @@ class HDWallet:
         :type to_address: str
         :param account_id: Wallet's account ID
         :type account_id: int
+        :param input_key_id: Limit sweep to UTXO's with this key_id
+        :type input_key_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
         :param max_utxos: Limit maximum number of outputs to use. Default is 999
@@ -2276,7 +2285,7 @@ class HDWallet:
         tr_size = 125 + (len(input_arr) * 125)
         estimated_fee = int((tr_size / 1024.0) * fee_per_kb)
         return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
-                         transaction_fee=estimated_fee, min_confirms=min_confirms)
+                         transaction_fee=estimated_fee, min_confirms=min_confirms, offline=offline)
 
     def info(self, detail=3):
         """
