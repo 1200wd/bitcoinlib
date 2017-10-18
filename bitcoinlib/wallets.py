@@ -1056,7 +1056,7 @@ class HDWallet:
                 self._session.add(DbKeyMultisigChildren(key_order=public_key_ids.index(child_id),
                                                         parent_id=multisig_key.id, child_id=child_id))
             self._session.commit()
-            return multisig_key
+            return HDWalletKey(multisig_key.id, session=self._session)
 
     def new_key_change(self, name='', account_id=None, network=None):
         """
@@ -1091,7 +1091,7 @@ class HDWallet:
         if _recursion_depth > 10:
             raise WalletError("UTXO scanning has reached a recursion depth of more then 10")
         _recursion_depth += 1
-        if self.scheme != 'bip44':
+        if self.scheme != 'bip44' and self.scheme != 'multisig':
             raise WalletError("The wallet scan() method is only available for BIP44 wallets")
         if change != 1:
             scanned_keys = self.get_key(account_id, network, number_of_keys=scan_depth)
@@ -1147,11 +1147,10 @@ class HDWallet:
         for i in range(number_of_keys):
             if dbkey:
                 dk = dbkey.pop()
-                key_list.append(HDWalletKey(dk.id, session=self._session))
+                nk = HDWalletKey(dk.id, session=self._session)
             else:
-                key_list.append(self.new_key(account_id=account_id, network=network, change=change,
-                                             max_depth=depth_of_keys))
-
+                nk = self.new_key(account_id=account_id, network=network, change=change, max_depth=depth_of_keys)
+            key_list.append(nk)
         if len(key_list) == 1:
             return key_list[0]
         else:
