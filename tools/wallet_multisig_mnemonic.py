@@ -2,9 +2,11 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
-#    Multisig 2-of-3 wallet with Mnemonic passphrase keys
+#    Create a multisig 2-of-3 wallet with Mnemonic passphrase keys.
+#    Use an online PC to create transaction and sign with the first key and then sign with a second key
+#    on an Offline PC. The third key is a stored on a paper in case one of the others keys is lost.
 #
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 Oktober - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -13,37 +15,30 @@ from bitcoinlib.wallets import *
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 
-WALLET_NAME = "Multisig-2-of-3-example"
-NETWORK = 'testnet'
-KEY_STRENGHT = 32
+WALLET_NAME = "Multisig-2of3"
+NETWORK = 'bitcoin'
+KEY_STRENGHT = 128
 
-test_databasefile = 'bitcoinlib.test.sqlite'
-test_database = DEFAULT_DATABASEDIR + test_databasefile
-# Uncomment to delete database and recreate wallet
-# if os.path.isfile(test_database):
-#     os.remove(test_database)
-
-if not wallet_exists(WALLET_NAME, databasefile=test_database):
-    cosign_names = ['This PC', 'Other PC', 'Paper backup']
+# wallet_delete_if_exists(WALLET_NAME)
+if not wallet_exists(WALLET_NAME):
+    cosign_names = ['This PC', 'Offline PC', 'Paper backup']
 
     print("We will generate 3 private keys, to sign and send a transaction 2 keys are needed:"
           "\n- With 1 private key a wallet on This PC is created"
-          "\n- Use private key 2 to create a wallet on an Other PC"
+          "\n- Use private key 2 to create a wallet on an Offline PC"
           "\n- Store key 3 on a Paper in a safe in case one of the PC's is not available anymore"
-          "\nPLEASE NOTE: THIS IS AN EXAMPLE. In real life use a better key strenght, "
-          "no passwords or better passwords if they are important and do not generate all private keys on a "
-          "single instance"
           )
     key_list = []
     for cosigner in cosign_names:
         words = Mnemonic().generate(KEY_STRENGHT)
-        password = '%s%d' % (cosigner.replace(' ', '-').lower(), randint(10, 99))
+        print("\nKey for cosigner '%s' generated. Please store both passphrase and password carefully!" % cosigner)
+        password = ''
+        if cosigner != 'Paper backup':
+            password = input("Enter password for this key (or enter for no password): ")
         seed = Mnemonic().to_seed(words, password)
         hdkey = HDKey.from_seed(seed, network=NETWORK)
         public_account_wif = hdkey.account_multisig_key().wif_public()
-        print("\nKey for cosigner '%s' generated. Please store both passphrase and password carefully!" % cosigner)
         print("Passphrase: %s" % words)
-        print("Password: %s" % password)
         print("Share this public key below with other cosigner")
         print("Public key: %s" % public_account_wif)
         key_list.append(hdkey)
@@ -60,15 +55,13 @@ if not wallet_exists(WALLET_NAME, databasefile=test_database):
     print("\n\nA multisig wallet with 1 key has been created on this system")
     thispc_wallet.info()
 
-    otherpc_keylist = [
-        key_list[0].account_multisig_key().wif_public(),
-        key_list[1].wif(),
-        key_list[2].wif_public()
-    ]
     print("\n---> Please create a wallet on your Other PC like this:")
     print("from bitcoinlib.wallets import HDWallet")
-    print("key_list = ", end='')
-    pprint(otherpc_keylist)
+    print("key_list = [")
+    print("    '%s'," % key_list[0].account_multisig_key().wif_public())
+    print("    '%s'," % key_list[1].wif())
+    print("    HDKey('%s', key_type='single')" % key_list[2].wif_public())
+    print("]")
     print("wallet = HDWallet.create_multisig('%s', key_list, 2, sort_keys=True, network='%s')" % (WALLET_NAME, NETWORK))
     print("wallet.new_key()")
     print("wallet.info()")
