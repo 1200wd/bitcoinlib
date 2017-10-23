@@ -11,6 +11,8 @@
 #    © 2017 October - 1200 Web Development <http://1200wd.com/>
 #
 
+from __future__ import print_function
+
 from pprint import pprint
 from bitcoinlib.wallets import wallet_exists, HDWallet
 from bitcoinlib.mnemonic import Mnemonic
@@ -20,6 +22,9 @@ WALLET_NAME = "Multisig-2of3"
 NETWORK = 'testnet'
 KEY_STRENGTH = 128  # Remove this line to use the default 256 bit key strength
 SIGNATURES_REQUIRED = 2
+
+# from bitcoinlib.wallets import wallet_delete_if_exists
+# wallet_delete_if_exists(WALLET_NAME, force=True)
 
 if not wallet_exists(WALLET_NAME):
     cosigners = [
@@ -36,6 +41,7 @@ if not wallet_exists(WALLET_NAME):
           "single instance"
           )
     key_list = []
+    key_list_thispc = []
     for cosigner in cosigners:
         print("\n")
         words = Mnemonic().generate(KEY_STRENGTH)
@@ -53,12 +59,15 @@ if not wallet_exists(WALLET_NAME):
         print("Password: %s" % ('*' * len(password)))
         print("Share this public key below with other cosigner")
         print("Public key: %s" % public_account.wif_public())
+
         if cosigner[3] == 'private':
             key_list.append(hdkey)
+            key_list_thispc.append(hdkey)
         else:
             key_list.append(public_account)
+            key_list_thispc.append(public_account.public())
 
-    thispc_wallet = HDWallet.create_multisig(WALLET_NAME, key_list, SIGNATURES_REQUIRED, sort_keys=True,
+    thispc_wallet = HDWallet.create_multisig(WALLET_NAME, key_list_thispc, SIGNATURES_REQUIRED, sort_keys=True,
                                              network=NETWORK)
     thispc_wallet.new_key()
 
@@ -92,10 +101,10 @@ else:
         print("Now copy-and-paste the raw transaction hex to your Other PC and sign it there with a second signature:")
         print("\nfrom bitcoinlib.wallets import HDWallet")
         print("")
-        print("wlt = HDWallet(%s, network='%s')" % (WALLET_NAME, NETWORK))
-        print("utxos = [%s")
+        print("wlt = HDWallet('%s')" % WALLET_NAME)
+        print("utxos = ", end='')
         pprint(utxos)
-        print("]")
+        print("")
         print("wlt.utxos_update(utxos=utxos)")
         print("t = wlt.transaction_import('%s')" % res['transaction'].raw_hex())
         print("t_signed = wlt.transaction_sign(t)")
