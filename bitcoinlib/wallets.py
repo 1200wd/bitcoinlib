@@ -1335,7 +1335,7 @@ class HDWallet:
         return newkey
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
-             network=None, as_dict=False):
+             has_balance=None, network=None, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -1383,6 +1383,8 @@ class HDWallet:
             qr = qr.filter(DbKey.used == used)
         if is_private is not None:
             qr = qr.filter(DbKey.is_private == is_private)
+        if has_balance:
+            qr = qr.filter(DbKey.balance != 0)
         ret = as_dict and [x.__dict__ for x in qr.all()] or qr.all()
         qr.session.close()
         return ret
@@ -2291,7 +2293,7 @@ class HDWallet:
         """
         Prints wallet information to standard output
         
-        :param detail: Level of detail to show, can be 0, 1, 2 or 3
+        :param detail: Level of detail to show. Specify a number between 0 and 4, with 0 low detail and 4 highest detail
         :type detail: int
 
         """
@@ -2320,7 +2322,14 @@ class HDWallet:
                 else:
                     ds = range(6)
                 for d in ds:
-                    for key in self.keys(depth=d, network=nw['network_name']):
+                    if detail < 4:
+                        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id).order_by(DbKey.id).\
+                            filter(DbKey.network_name == nw['network_name'], DbKey.depth == d,
+                                   or_(DbKey.used == False, DbKey.balance != 0))
+                        key_list = qr.all()
+                    else:
+                        key_list = self.keys(depth=d, network=nw['network_name'])
+                    for key in key_list:
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
                                                               Network(key.network_name).print_value(key.balance)))
         print("\n")
