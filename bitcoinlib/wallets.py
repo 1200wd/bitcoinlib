@@ -1335,7 +1335,7 @@ class HDWallet:
         return newkey
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
-             has_balance=None, hide_unused=True, network=None, as_dict=False):
+             has_balance=None, is_active=True, network=None, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -1357,8 +1357,8 @@ class HDWallet:
         :type is_private: bool
         :param has_balance: Only include keys with a balance or without a balance, default is both
         :type has_balance: bool
-        :param hide_unused: Hide inactive keys. Only include active keys with either a balance or which are unused, default is True
-        :type hide_unused: bool
+        :param is_active: Hide inactive keys. Only include active keys with either a balance or which are unused, default is True
+        :type is_active: bool
         :param network: Network name filter
         :type network: str
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
@@ -1387,14 +1387,14 @@ class HDWallet:
             qr = qr.filter(DbKey.used == used)
         if is_private is not None:
             qr = qr.filter(DbKey.is_private == is_private)
-        if has_balance is True and hide_unused is True:
+        if has_balance is True and is_active is True:
             raise WalletError("Cannot use has_balance and hide_unused parameter together")
         if has_balance is not None:
             if has_balance:
                 qr = qr.filter(DbKey.balance != 0)
             else:
                 qr = qr.filter(DbKey.balance == 0)
-        if hide_unused:  # Unused keys and keys with a balance
+        if is_active:  # Unused keys and keys with a balance
             qr = qr.filter(or_(DbKey.balance != 0, DbKey.used == False))
         ret = as_dict and [x.__dict__ for x in qr.all()] or qr.all()
         qr.session.close()
@@ -2337,10 +2337,10 @@ class HDWallet:
                 else:
                     ds = range(6)
                 for d in ds:
-                    hide_unused = True
+                    is_active = True
                     if detail > 3:
-                        hide_unused = False
-                    for key in self.keys(depth=d, network=nw['network_name'], hide_unused=hide_unused):
+                        is_active = False
+                    for key in self.keys(depth=d, network=nw['network_name'], is_active=is_active):
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
                                                               Network(key.network_name).print_value(key.balance)))
         print("\n")
