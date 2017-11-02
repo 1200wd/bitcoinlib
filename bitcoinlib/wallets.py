@@ -2290,6 +2290,10 @@ class HDWallet:
         if not utxos:
             return False
         for utxo in utxos:
+            # Skip dust transactions
+            # TODO: Add to network settings
+            if utxo['value'] < 100:
+                continue
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
         srv = Service(network=network)
@@ -2333,11 +2337,10 @@ class HDWallet:
                 else:
                     ds = range(6)
                 for d in ds:
-                    if detail < 4:
-                        key_list = self.keys(depth=d, network=nw['network_name'])
-                    else:
-                        key_list = self.keys(depth=d, network=nw['network_name'], hide_unused=False)
-                    for key in key_list:
+                    hide_unused = True
+                    if detail > 3:
+                        hide_unused = False
+                    for key in self.keys(depth=d, network=nw['network_name'], hide_unused=hide_unused):
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
                                                               Network(key.network_name).print_value(key.balance)))
         print("\n")

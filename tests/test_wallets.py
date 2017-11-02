@@ -590,10 +590,8 @@ class TestWalletMultisig(unittest.TestCase):
         wl.new_key()
         wl.new_key_change()
         wl.utxos_update()
-
-        self.assertEqual(wl.keys()[0].name, 'Multisig Key 8/7')
-        self.assertEqual(wl.keys()[1].name, 'Multisig Key 10/7')
-        self.assertEqual(wl.keys()[2].name, 'Multisig Key 12/7')
+        key_names = [k.name for k in wl.keys(hide_unused=False)]
+        self.assertListEqual(key_names, ['Multisig Key 8/7', 'Multisig Key 10/7', 'Multisig Key 12/7'])
 
         t = wl.transaction_create([(HDKey(network='bitcoinlib_test').key.address(), 6400000)], min_confirms=0)
         t = wl.transaction_sign(t, keys[1])
