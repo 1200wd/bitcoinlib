@@ -612,6 +612,9 @@ class HDWallet:
         # TODO: Allow HDKey objects in Wallet.create (?)
         # key_wif_list2 = [k.wif() for k in hdkey_list]
         for cokey in hdkey_list:
+            if hdpm.network != cokey.network:
+                raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
+                                  (cokey.wif(), cokey.network.network_name, network, hdpm.network.network_name))
             scheme = 'bip44'
             wn = name + '-cosigner-%d' % co_id
             if cokey.key_type == 'single':
