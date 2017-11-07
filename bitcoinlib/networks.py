@@ -163,6 +163,7 @@ class Network:
         self.prefix_hdkey_private = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_private'])
         self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
         self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']
+        self.dust_ignore_amount = NETWORK_DEFINITIONS[network_name]['dust_ignore_amount']
 
         # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
         # for f in list(NETWORK_DEFINITIONS[network_name].keys()):

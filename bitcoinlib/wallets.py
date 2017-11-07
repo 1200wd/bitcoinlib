@@ -2291,8 +2291,7 @@ class HDWallet:
             return False
         for utxo in utxos:
             # Skip dust transactions
-            # TODO: Add to network settings
-            if utxo['value'] < 100:
+            if utxo['value'] < self.network.dust_ignore_amount:
                 continue
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
