@@ -1222,7 +1222,8 @@ class HDWallet:
         if self.scheme != 'bip44':
             raise WalletError("We can only create new accounts for a wallet with a BIP44 key scheme")
         if self.main_key.depth != 0 or self.main_key.is_private is False:
-            raise WalletError("A master private key of depth 0 is needed to create new accounts")
+            raise WalletError("A master private key of depth 0 is needed to create new accounts (%s)" %
+                              self.main_key.wif)
 
         if network is None:
             network = self.network.network_name
