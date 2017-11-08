@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2017 Oktober - 1200 Web Development <http://1200wd.com/>
+#    © 2017 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -2327,7 +2327,8 @@ class HDWallet:
 
         if self.scheme == 'multisig':
             print("= Multisig main keys =")
-            [print(w.main_key.wif) for w in self.cosigner]
+            for mk_wif in [w.main_key.wif for w in self.cosigner]:
+                print(mk_wif)
 
         if detail and self.main_key:
             print("\n= Main key =")
