@@ -27,6 +27,7 @@ SIGNATURES_REQUIRED = 2
 # wallet_delete_if_exists(WALLET_NAME, force=True)
 
 if not wallet_exists(WALLET_NAME):
+    # Define cosigners, format (name, key_type, [password], private|public)
     cosigners = [
         ('This PC', 'bip44', 'password', 'private'),
         ('Offline PC', 'bip44', '', 'public'),
