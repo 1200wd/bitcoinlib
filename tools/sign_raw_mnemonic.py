@@ -8,6 +8,9 @@
 #
 
 from bitcoinlib.wallets import HDWallet
+from bitcoinlib.mnemonic import Mnemonic
+from bitcoinlib.keys import HDKey
+
 
 WALLET_NAME = "Multisig_3of5"
 
@@ -25,8 +28,13 @@ raw_tx = ''
 if not raw_tx:
     raw_tx = input("Paste raw transaction hex: ")
 
+passphrase = input("Enter passphrase: ")
+password = input("Enter password []:")
+seed = Mnemonic().to_seed(passphrase, password)
+hdkey = HDKey.from_seed(seed, network=wlt.network.network_name)
+
 t = wlt.transaction_import(raw_tx)
-t_signed = wlt.transaction_sign(t)
+t_signed = wlt.transaction_sign(t, hdkey)
 
 print("Raw signed transaction: ")
 print(t_signed.raw_hex())
