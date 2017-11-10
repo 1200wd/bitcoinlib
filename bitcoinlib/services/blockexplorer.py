@@ -35,22 +35,37 @@ class BlockExplorerClient(BaseClient):
     def getutxos(self, addresslist):
         addresses = ','.join(addresslist)
         res = self.compose_request('addrs', addresses, 'utxo')
-        utxos = []
-        for utxo in res:
-            utxos.append({
-                'address': utxo['address'],
-                'tx_hash': utxo['txid'],
-                'confirmations': utxo['confirmations'],
-                'output_n': utxo['vout'],
+        txs = []
+        for tx in res:
+            txs.append({
+                'address': tx['address'],
+                'tx_hash': tx['txid'],
+                'confirmations': tx['confirmations'],
+                'output_n': tx['vout'],
                 'index': 0,
-                'value': int(round(utxo['amount'] * self.units, 0)),
-                'script': utxo['scriptPubKey'],
+                'value': int(round(tx['amount'] * self.units, 0)),
+                'script': tx['scriptPubKey'],
+                'date': 0
             })
-        return utxos
+        return txs
 
     def address_transactions(self, addresslist):
         addresses = ','.join(addresslist)
-        # TODO: Finish this
+        res = self.compose_request('addrs', addresses, 'txs')
+        txs = []
+        for tx in res:
+            txs.append({
+                'address': tx['address'],
+                'tx_hash': tx['txid'],
+                'confirmations': tx['confirmations'],
+                'output_n': -1 if 'vout' not in tx else tx['vout'],
+                'input_n': -1 if 'vin' not in tx else tx['vin'],
+                'index': 0,
+                'value': int(round(tx['amount'] * self.units, 0)),
+                'script': tx['scriptPubKey'],
+                'date': 0
+            })
+        return txs        # TODO: Finish this
         # res = self.compose_request('addrs', addresses, 'txs')
         # /api/addrs/2NF2baYuJAkCKo5onjUKEPdARQkZ6SYyKd5,2NAre8sX2povnjy4aeiHKeEh97Qhn97tB1f/txs?from=0&to=20
         # from pprint import pprint
