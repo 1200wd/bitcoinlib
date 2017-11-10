@@ -68,7 +68,7 @@
     "client_class": "BlockCypher",
     "url": "https://api.blockcypher.com/v1/btc/main/",
     "api_key": "",
-    "priority": 10,
+    "priority": 8,
     "denominator": 1
   },
   "bitgo": {
@@ -95,7 +95,7 @@
     "client_class": "BlockCypher",
     "url": "https://api.blockcypher.com/v1/btc/test3/",
     "api_key": "",
-    "priority": 10,
+    "priority": 8,
     "denominator": 1
   },
   "blockcypher.litecoin": {
