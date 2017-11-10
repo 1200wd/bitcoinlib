@@ -66,29 +66,34 @@ class ChainSo(BaseClient):
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, addresslist):
-        utxos = []
+    def _get_transactions(self, addresslist, method):
+        txs = []
         for address in addresslist:
-            lastutxo = ''
-            while len(utxos) < 1000:
-                res = self.compose_request('get_tx_unspent', address, lastutxo)
-                for utxo in res['data']['txs']:
-                    utxos.append({
+            lasttx = ''
+            while len(txs) < 1000:
+                res = self.compose_request(method, address, lasttx)
+                for tx in res['data']['txs']:
+                    txs.append({
                         'address': address,
-                        'tx_hash': utxo['txid'],
-                        'confirmations': utxo['confirmations'],
-                        'output_n': utxo['output_no'],
+                        'tx_hash': tx['txid'],
+                        'confirmations': tx['confirmations'],
+                        'output_n': -1 if 'output_no' not in tx else tx['output_no'],
+                        'input_n': -1 if 'input_no' not in tx else tx['input_no'],
                         'index': 0,
-                        'value': int(round(float(utxo['value']) * self.units, 0)),
-                        'script': utxo['script_hex'],
+                        'value': int(round(float(tx['value']) * self.units, 0)),
+                        'script': tx['script_hex'],
+                        'date': tx['time'],
                     })
-                    lastutxo = utxo['txid']
+                    lasttx = tx['txid']
                 if len(res['data']['txs']) < 100:
                     break
-        if len(utxos) >= 1000:
-            _logger.warning("ChainSo: UTXO's list has been truncated, UTXO list is incomplete")
-        return utxos
+        if len(txs) >= 1000:
+            _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
+        return txs
+
+    def getutxos(self, addresslist):
+        return
 
     def address_transactions(self, addresslist):
-        # TODO: write this method if possible
-        pass
+        return self._get_transactions(addresslist, 'get_tx_received') + \
+               self._get_transactions(addresslist, 'get_tx_spent')
