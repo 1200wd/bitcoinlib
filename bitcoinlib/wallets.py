@@ -612,6 +612,9 @@ class HDWallet:
         # TODO: Allow HDKey objects in Wallet.create (?)
         # key_wif_list2 = [k.wif() for k in hdkey_list]
         for cokey in hdkey_list:
+            if hdpm.network.network_name != cokey.network.network_name:
+                raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
+                                  (cokey.wif(), cokey.network.network_name, network, hdpm.network.network_name))
             scheme = 'bip44'
             wn = name + '-cosigner-%d' % co_id
             if cokey.key_type == 'single':
@@ -1222,7 +1225,8 @@ class HDWallet:
         if self.scheme != 'bip44':
             raise WalletError("We can only create new accounts for a wallet with a BIP44 key scheme")
         if self.main_key.depth != 0 or self.main_key.is_private is False:
-            raise WalletError("A master private key of depth 0 is needed to create new accounts")
+            raise WalletError("A master private key of depth 0 is needed to create new accounts (%s)" %
+                              self.main_key.wif)
 
         if network is None:
             network = self.network.network_name
@@ -1335,7 +1339,7 @@ class HDWallet:
         return newkey
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
-             network=None, as_dict=False):
+             has_balance=None, is_active=True, network=None, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -1355,6 +1359,10 @@ class HDWallet:
         :type used: bool
         :param is_private: Only return private keys
         :type is_private: bool
+        :param has_balance: Only include keys with a balance or without a balance, default is both
+        :type has_balance: bool
+        :param is_active: Hide inactive keys. Only include active keys with either a balance or which are unused, default is True
+        :type is_active: bool
         :param network: Network name filter
         :type network: str
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
@@ -1383,6 +1391,15 @@ class HDWallet:
             qr = qr.filter(DbKey.used == used)
         if is_private is not None:
             qr = qr.filter(DbKey.is_private == is_private)
+        if has_balance is True and is_active is True:
+            raise WalletError("Cannot use has_balance and hide_unused parameter together")
+        if has_balance is not None:
+            if has_balance:
+                qr = qr.filter(DbKey.balance != 0)
+            else:
+                qr = qr.filter(DbKey.balance == 0)
+        if is_active:  # Unused keys and keys with a balance
+            qr = qr.filter(or_(DbKey.balance != 0, DbKey.used == False))
         ret = as_dict and [x.__dict__ for x in qr.all()] or qr.all()
         qr.session.close()
         return ret
@@ -2277,6 +2294,9 @@ class HDWallet:
         if not utxos:
             return False
         for utxo in utxos:
+            # Skip dust transactions
+            if utxo['value'] < self.network.dust_ignore_amount:
+                continue
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
         srv = Service(network=network)
@@ -2291,7 +2311,7 @@ class HDWallet:
         """
         Prints wallet information to standard output
         
-        :param detail: Level of detail to show, can be 0, 1, 2 or 3
+        :param detail: Level of detail to show. Specify a number between 0 and 4, with 0 low detail and 4 highest detail
         :type detail: int
 
         """
@@ -2321,7 +2341,10 @@ class HDWallet:
                 else:
                     ds = range(6)
                 for d in ds:
-                    for key in self.keys(depth=d, network=nw['network_name']):
+                    is_active = True
+                    if detail > 3:
+                        is_active = False
+                    for key in self.keys(depth=d, network=nw['network_name'], is_active=is_active):
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
                                                               Network(key.network_name).print_value(key.balance)))
         print("\n")

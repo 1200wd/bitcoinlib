@@ -97,6 +97,12 @@ class Service(object):
                     continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(*arguments)
+                if not res:
+                    self.errors.update(
+                        {sp: 'Received empty response'}
+                    )
+                    _logger.info("Empty response from %s when calling %s" % (sp, method))
+                    continue
                 self.results.update(
                     {sp: res}
                 )
