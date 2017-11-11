@@ -55,6 +55,7 @@ keys = session_backup.query(DbKey).all()
 for key in keys:
     fields = key.__dict__
     del (fields['_sa_instance_state'])
+    fields['used'] = False  # To force rescan of all keys
     # db_main_key = DbKey(**fields)
     session.add(DbKey(**fields))
 session.commit()
