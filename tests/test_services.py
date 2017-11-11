@@ -69,8 +69,8 @@ class TestService(unittest.TestCase):
                 self.assertIn('has already been spent', srv.errors['blockcypher.testnet'])
             elif provider == 'blockexplorer.testnet' or provider == 'bitcoind.testnet':
                 self.assertIn('Missing inputs', srv.errors['blockexplorer.testnet'])
-            elif provider == 'blockr.testnet':
-                self.assertIn('Did you sign your transaction', srv.errors['blockr.testnet'])
+            elif provider == 'chain.so':
+                self.assertIn('are still available to spend', srv.errors['chain.so'])
 
     def test_get_balance(self):
         srv = Service(min_providers=5)
