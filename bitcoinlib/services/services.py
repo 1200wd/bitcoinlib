@@ -178,7 +178,7 @@ class Service(object):
 
     def estimatefee(self, blocks=3):
         return self._provider_execute('estimatefee', blocks)
-    
+
 
 if __name__ == '__main__':
     from pprint import pprint

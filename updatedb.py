@@ -19,17 +19,19 @@
 #
 
 import os
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from shutil import move
 from bitcoinlib.main import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
 from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren
 
-# TODO: Rename to backup-timestamp
-DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib_tmp.sqlite")
+
+DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib.backup-%d.sqlite" %
+                               datetime.now().strftime("%A, %d. %B %Y %I:%M%p"))
 
 # Move old database to temporary database
-# move(DEFAULT_DATABASE, DATABASE_BACKUP)
+move(DEFAULT_DATABASE, DATABASE_BACKUP)
 
 # Create new database
 engine = create_engine('sqlite:///%s' % DEFAULT_DATABASE)
@@ -60,7 +62,7 @@ for key in keys:
     session.add(DbKey(**fields))
 session.commit()
 
-keysubs= session_backup.query(DbKeyMultisigChildren).all()
+keysubs = session_backup.query(DbKeyMultisigChildren).all()
 for keysub in keysubs:
     fields = keysub.__dict__
     del (fields['_sa_instance_state'])
