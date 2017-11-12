@@ -152,7 +152,7 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
                               (k.id, k.address))
         session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
         session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
-        session.query(DbKeyMultisigChildren).filter_by(parent_id=k.id).delete()
+        session.query(DbKeyMultisigChildren).filter_by(ranparent_id=k.id).delete()
         session.query(DbKeyMultisigChildren).filter_by(child_id=k.id).delete()
     ks.delete()
 

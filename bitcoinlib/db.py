@@ -199,18 +199,18 @@ class DbTransaction(Base):
     """
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
-    hash = Column(String(64))
+    hash = Column(String(64), index=True)
+    wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True)
+    wallet = relationship("DbWallet", back_populates="transactions")
     version = Column(Integer, default=1)
     lock_time = Column(Integer, default=0)
     date = Column(DateTime, default=datetime.datetime.utcnow)
     coinbase = Column(Boolean, default=False)
     confirmations = Column(Integer, default=0)
+    block_height = Column(Integer, index=True)
     size = Column(Integer)
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
-    wallet_id = Column(Integer, ForeignKey('wallets.id'))
-    wallet = relationship("DbWallet", back_populates="transactions")
-    # TODO: TYPE: watch-only, wallet, incoming, outgoing
     # TODO: Add network field (?)
 
     __table_args__ = (
@@ -231,16 +231,15 @@ class DbTransactionInput(Base):
     __tablename__ = 'transaction_inputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='inputs')
-    index = Column(Integer, primary_key=True)
+    input_n = Column(Integer, default=0, primary_key=True)
+    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
+    key = relationship("DbKey", back_populates="transaction_inputs")
     prev_hash = Column(String(64))
-    output_n = Column(Integer, default=0)
     script = Column(String)
     script_type = Column(String, default='p2pkh')
     sequence = Column(Integer)
     value = Column(Integer, default=0)
-    spend = Column(Boolean(), default=False)
-    key_id = Column(Integer, ForeignKey('keys.id'), index=True)
-    key = relationship("DbKey", back_populates="transaction_inputs")
+    double_spend = Column(Boolean, default=False)
 
     __table_args__ = (CheckConstraint(script_type.in_(['p2pkh', 'multisig', 'p2sh'])),)
 
