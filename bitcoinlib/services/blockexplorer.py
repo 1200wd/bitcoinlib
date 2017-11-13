@@ -53,7 +53,7 @@ class BlockExplorerClient(BaseClient):
         addresses = ','.join(addresslist)
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
-        for tx in res:
+        for tx in res['items']:
             txs.append({
                 'address': tx['address'],
                 'tx_hash': tx['txid'],

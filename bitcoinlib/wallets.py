@@ -152,7 +152,7 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
                               (k.id, k.address))
         session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
         session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
-        session.query(DbKeyMultisigChildren).filter_by(ranparent_id=k.id).delete()
+        session.query(DbKeyMultisigChildren).filter_by(parent_id=k.id).delete()
         session.query(DbKeyMultisigChildren).filter_by(child_id=k.id).delete()
     ks.delete()
 
@@ -1877,14 +1877,20 @@ class HDWallet:
             res.append(u)
         return res
 
-    def transaction_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
+    def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
         network, account_id, acckey = self._get_account_defaults(network, account_id)
+        if depth is None:
+            if self.scheme == 'bip44':
+                depth = 5
+            else:
+                depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        txs = Service(network=network).gettransactions(addresslist)
+        srv = Service(network=network, providers=['blockexplorer'])
+        txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
-
+        return txs
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None, max_utxos=None):
