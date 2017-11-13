@@ -55,32 +55,32 @@ class BlockCypher(BaseClient):
         return self.gettransactions(addresslist, unspent_only=True)
 
     def gettransactions(self, addresslist, unspent_only=False):
-        addresses = ';'.join(addresslist)
-        res = self.compose_request('addrs', addresses, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
         transactions = []
-        if not isinstance(res, list):
-            res = [res]
-        for a in res:
-            address = a['address']
-            if 'txrefs' not in a:
-                continue
-            if len(a['txrefs']) > 500:
-                _logger.warning("BlockCypher: Large number of transactions for address %s, "
-                                "Transaction list may be incomplete" % address)
-            for tx in a['txrefs']:
-                transactions.append({
-                    'address': address,
-                    'tx_hash': tx['tx_hash'],
-                    'confirmations': tx['confirmations'],
-                    'block_height': tx['block_height'],
-                    'date': tx['confirmed'],
-                    'input_n': tx['tx_input_n'],
-                    'output_n': tx['tx_output_n'],
-                    'double_spend': tx['double_spend'],
-                    'index': 0,
-                    'value': int(round(tx['value'] * self.units, 0)),
-                    'script': '',
-                })
+        for address in addresslist:
+            res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
+            if not isinstance(res, list):
+                res = [res]
+            for a in res:
+                address = a['address']
+                if 'txrefs' not in a:
+                    continue
+                if len(a['txrefs']) > 500:
+                    _logger.warning("BlockCypher: Large number of transactions for address %s, "
+                                    "Transaction list may be incomplete" % address)
+                for tx in a['txrefs']:
+                    transactions.append({
+                        'address': address,
+                        'tx_hash': tx['tx_hash'],
+                        'confirmations': tx['confirmations'],
+                        'block_height': tx['block_height'],
+                        'date': tx['confirmed'],
+                        'input_n': tx['tx_input_n'],
+                        'output_n': tx['tx_output_n'],
+                        'double_spend': tx['double_spend'],
+                        'index': 0,
+                        'value': int(round(tx['value'] * self.units, 0)),
+                        'script': '',
+                    })
         return transactions
 
     def sendrawtransaction(self, rawtx):
