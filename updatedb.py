@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    Update database to new version -
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    Update database
+#    © 2017 November - 1200 Web Development <http://1200wd.com/>
 #
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#    This script creates a database with latest structure and copies only wallets and keys from old database
+#    Transactions, UTXO's and values are not copied, but can be recreated with utxos_update and transaction_update
+#    methods of the Wallet class.
 #
 
 import os
@@ -27,8 +18,8 @@ from bitcoinlib.main import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
 from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren
 
 
-DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib.backup-%d.sqlite" %
-                               datetime.now().strftime("%A, %d. %B %Y %I:%M%p"))
+DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib.backup-%s.sqlite" %
+                               datetime.now().strftime("%Y%m%d-%I:%M"))
 
 # Move old database to temporary database
 move(DEFAULT_DATABASE, DATABASE_BACKUP)
@@ -68,3 +59,6 @@ for keysub in keysubs:
     del (fields['_sa_instance_state'])
     session.add(DbKeyMultisigChildren(**fields))
 session.commit()
+
+print("Database %s has been updated, backup of old database has been created at %s" %
+      (DEFAULT_DATABASE, DATABASE_BACKUP))

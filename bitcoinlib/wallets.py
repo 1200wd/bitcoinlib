@@ -1881,9 +1881,10 @@ class HDWallet:
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        utxos = Service(network=network).getutxos(addresslist)
-        if utxos is False:
-            raise WalletError("No response from any service provider, could not update UTXO's")
+        txs = Service(network=network).gettransactions(addresslist)
+        if txs is False:
+            raise WalletError("No response from any service provider, could not update transactions")
+
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None, max_utxos=None):
