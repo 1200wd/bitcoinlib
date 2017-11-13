@@ -66,7 +66,7 @@ class ChainSo(BaseClient):
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
         return int(balance * self.units)
 
-    def _get_transactions(self, addresslist, method):
+    def _gettransactions(self, addresslist, method):
         txs = []
         for address in addresslist:
             lasttx = ''
@@ -91,9 +91,9 @@ class ChainSo(BaseClient):
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
 
-    def getutxos(self, addresslist):
-        return
+    # def getutxos(self, addresslist):
+    #     return
 
-    def address_transactions(self, addresslist):
-        return self._get_transactions(addresslist, 'get_tx_received') + \
-               self._get_transactions(addresslist, 'get_tx_spent')
+    def gettransactions(self, addresslist):
+        return self._gettransactions(addresslist, 'get_tx_received') + \
+               self._gettransactions(addresslist, 'get_tx_spent')

@@ -78,7 +78,7 @@ class BlockTrail(BaseClient):
             _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
         return utxos
 
-    def address_transactions(self, addresslist):
+    def gettransactions(self, addresslist):
         # TODO: write this method if possible
         pass
 

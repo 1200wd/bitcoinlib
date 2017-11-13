@@ -138,7 +138,7 @@ class Service(object):
         return self._provider_execute('getbalance', addresslist)
 
     def getutxos(self, addresslist):
-        # TODO: This could possible be removed and replaced with address_transactions
+        # TODO: This could possible be removed and replaced with gettransactions
         if not addresslist:
             return []
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
@@ -152,7 +152,7 @@ class Service(object):
             addresslist = addresslist[20:]
         return utxos
 
-    def address_transactions(self, addresslist):
+    def gettransactions(self, addresslist):
         if not addresslist:
             return []
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
@@ -160,7 +160,7 @@ class Service(object):
 
         transactions = []
         while addresslist:
-            res = self._provider_execute('address_transactions', addresslist[:20])
+            res = self._provider_execute('gettransactions', addresslist[:20])
             if not res:
                 break
             transactions += res

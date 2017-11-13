@@ -52,9 +52,9 @@ class BlockCypher(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
-        return self.address_transactions(addresslist, unspent_only=True)
+        return self.gettransactions(addresslist, unspent_only=True)
 
-    def address_transactions(self, addresslist, unspent_only=False):
+    def gettransactions(self, addresslist, unspent_only=False):
         addresses = ';'.join(addresslist)
         res = self.compose_request('addrs', addresses, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
         transactions = []

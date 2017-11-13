@@ -65,7 +65,7 @@ class BlockchainInfoClient(BaseClient):
                 })
         return utxos
 
-    def address_transactions(self, addresslist):
+    def gettransactions(self, addresslist):
         # TODO: write this method if possible
         pass
 

@@ -49,7 +49,7 @@ class BlockExplorerClient(BaseClient):
             })
         return txs
 
-    def address_transactions(self, addresslist):
+    def gettransactions(self, addresslist):
         addresses = ','.join(addresslist)
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
