@@ -1905,24 +1905,24 @@ class HDWallet:
             assert tx_id
             if not (tx['output_n'] == -1 or tx['input_n'] == -1):
                 raise WalletError("Transaction item must be input or output but cannot be both")
-            key_id = 0
+            key_id = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=tx['address']).one().id
             # Add transaction input/output
+            new_tx_item = None
             if tx['output_n'] == -1:
                 db_tx_item = self._session.query(DbTransactionInput).\
                     filter_by(transaction_id=tx_id, input_n=tx['input_n']).scalar()
                 if not db_tx_item:
                     new_tx_item = DbTransactionInput(transaction_id=tx_id, input_n=tx['input_n'], key_id=key_id,
                                                      value=tx['value'])
-                    self._session.add(new_tx_item)
-                    self._session.commit()
             else:
                 db_tx_item = self._session.query(DbTransactionOutput).\
                     filter_by(transaction_id=tx_id, output_n=tx['output_n']).scalar()
                 if not db_tx_item:
                     new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=tx['output_n'], key_id=key_id,
                                                       value=tx['value'])
-                    self._session.add(new_tx_item)
-                    self._session.commit()
+            if new_tx_item:
+                self._session.add(new_tx_item)
+                self._session.commit()
 
         return True
 
