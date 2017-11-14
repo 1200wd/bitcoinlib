@@ -19,6 +19,7 @@
 #
 
 import logging
+from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'blockcypher'
@@ -73,7 +74,7 @@ class BlockCypher(BaseClient):
                         'tx_hash': tx['tx_hash'],
                         'confirmations': tx['confirmations'],
                         'block_height': tx['block_height'],
-                        'date': tx['confirmed'],
+                        'date': datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ"),
                         'input_n': tx['tx_input_n'],
                         'output_n': tx['tx_output_n'],
                         'double_spend': tx['double_spend'],

@@ -1890,7 +1890,22 @@ class HDWallet:
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
-        return txs
+        for tx in txs:
+            # If tx_hash is unknown add it to database, else update
+            db_tx = self._session.query(DbTransaction).filter(DbTransaction.hash == tx['tx_hash']).scalar()
+            if not db_tx:
+                new_tx = DbTransaction(wallet_id=self.wallet_id, hash=tx['tx_hash'], block_height=tx['block_height'],
+                                       confirmations=tx['confirmations'], date=tx['date'])
+                self._session.add(new_tx)
+                self._session.commit()
+                tx_id = new_tx.id
+            else:
+                tx_id = db_tx.id
+
+            # Add transaction input/output
+            print(tx)
+
+        return True
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None, max_utxos=None):
