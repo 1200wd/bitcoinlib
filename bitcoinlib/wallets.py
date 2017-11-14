@@ -1514,7 +1514,7 @@ class HDWallet:
 
         addresslist = []
         for key in self.keys(account_id=account_id, depth=depth, used=used, network=network, change=change,
-                             key_id=key_id):
+                             key_id=key_id, is_active=False):
             addresslist.append(key.address)
         return addresslist
 
@@ -1917,6 +1917,8 @@ class HDWallet:
             else:
                 db_tx_item = self._session.query(DbTransactionOutput).\
                     filter_by(transaction_id=tx_id, output_n=tx['output_n']).scalar()
+                # TODO: Update utxo's
+                # if self._session.query(DbTransactionInput).filter_by(prev_hash=tx['tx_hash'])
                 if not db_tx_item:
                     new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=tx['output_n'], key_id=key_id,
                                                       value=tx['value'])
@@ -1925,6 +1927,48 @@ class HDWallet:
                 self._session.commit()
 
         return True
+
+    def transactions(self, account_id=None, network=None, key_id=None):
+        """
+
+        :return list: List of transactions
+        """
+
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
+
+        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
+                                 DbTransaction.hash, DbKey.network_name). \
+            join(DbTransaction).join(DbKey). \
+            filter(DbKey.account_id == account_id,
+                   DbTransaction.wallet_id == self.wallet_id,
+                   DbKey.network_name == network)
+        if key_id is not None:
+            qr = qr.filter(DbKey.id == key_id)
+        txs = qr.all()
+
+        qr = self._session.query(DbTransactionInput, DbKey.address, DbTransaction.confirmations,
+                                 DbTransaction.hash, DbKey.network_name). \
+            join(DbTransaction).join(DbKey). \
+            filter(DbKey.account_id == account_id,
+                   DbTransaction.wallet_id == self.wallet_id,
+                   DbKey.network_name == network)
+        if key_id is not None:
+            qr = qr.filter(DbKey.id == key_id)
+        txs += qr.all()
+
+        txs = sorted(txs, key=lambda k: k[2])
+
+        res = []
+        for tx in txs:
+            u = tx[0].__dict__
+            if '_sa_instance_state' in u:
+                del u['_sa_instance_state']
+            u['address'] = tx[1]
+            u['confirmations'] = int(tx[2])
+            u['tx_hash'] = tx[3]
+            u['network_name'] = tx[4]
+            res.append(u)
+        return res
 
     @staticmethod
     def _select_inputs(amount, utxo_query=None, max_utxos=None):
