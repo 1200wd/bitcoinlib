@@ -704,12 +704,13 @@ class TestWalletTransaction(unittest.TestCase):
         self.assertEqual(total_value, 60000000)
 
     def test_wallet_sweep_public_wallet(self):
-        res = self.wallet.sweep('mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7', fee_per_kb=50000)
-        raw_tx = '010000000326d6ebf29d03b4c78954cfd1917123f7901874f1b906ac77549e00507cbfff4f0100000000ffffffff1e8e5b6' \
-                 'e64e5db433c41a61cf070891a525b199550cd2f3d635cb185919123940000000000ffffffff6f1a257daf1d808a5b2dbef9' \
-                 'a11513a8fa2839f7cc10fe6a0ddc5def425957fb0000000000ffffffff01a2279303000000001976a914ac18de4751ada70' \
-                 '7bc5c6d65b8f050f139e4427c88ac00000000'
-        self.assertEqual(res['transaction'].raw_hex(), raw_tx)
+        tx = self.wallet.sweep('mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7', fee_per_kb=50000)
+        prev_tx_list_check = [
+            '4fffbf7c50009e5477ac06b9f1741890f7237191d1cf5489c7b4039df2ebd626',
+            '9423919185b15c633d2fcd5095195b521a8970f01ca6413c43dbe5646e5b8e1e',
+            'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f']
+        prev_tx_list = [x['prev_hash'] for x in tx['transaction'].dict()['inputs']]
+        self.assertListEqual(prev_tx_list, prev_tx_list_check)
 
     def test_wallet_offline_create_transaction(self):
         hdkey_wif = 'tprv8ZgxMBicQKsPf5exCdeBgnYjJt2LxDcQbv6u9HHymY3qh6EoTy8SGwou5xyvExL3iWfBsZWp3YUyo9gRmxQxrBS2FwGk' \
