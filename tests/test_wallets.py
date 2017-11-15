@@ -709,7 +709,7 @@ class TestWalletTransaction(unittest.TestCase):
             '4fffbf7c50009e5477ac06b9f1741890f7237191d1cf5489c7b4039df2ebd626',
             '9423919185b15c633d2fcd5095195b521a8970f01ca6413c43dbe5646e5b8e1e',
             'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f']
-        prev_tx_list = [x['prev_hash'] for x in tx['transaction'].dict()['inputs']]
+        prev_tx_list = sorted([x['prev_hash'] for x in tx['transaction'].dict()['inputs']])
         self.assertListEqual(prev_tx_list, prev_tx_list_check)
 
     def test_wallet_offline_create_transaction(self):
