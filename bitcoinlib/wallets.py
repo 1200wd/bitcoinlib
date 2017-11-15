@@ -1886,7 +1886,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['blockcypher'])
+        srv = Service(network=network, providers=['blockexplorer'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -1905,8 +1905,10 @@ class HDWallet:
             assert tx_id
             if not (tx['output_n'] == -1 or tx['input_n'] == -1):
                 raise WalletError("Transaction item must be input or output but cannot be both")
-            tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=tx['address']).one()
-            key_id = tx_key.id
+            tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=tx['address']).scalar()
+            key_id = None
+            if tx_key:
+                key_id = tx_key.id
             # Add transaction input/output
             new_tx_item = None
             if tx['output_n'] == -1:
@@ -1922,7 +1924,8 @@ class HDWallet:
                     new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=tx['output_n'], key_id=key_id,
                                                       value=tx['value'], spent=tx['spent'])
             if new_tx_item:
-                tx_key.used = True
+                if tx_key:
+                    tx_key.used = True
                 self._session.add(new_tx_item)
                 self._session.commit()
 

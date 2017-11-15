@@ -56,7 +56,7 @@ class BlockCypher(BaseClient):
         return self.gettransactions(addresslist, unspent_only=True)
 
     def gettransactions(self, addresslist, unspent_only=False):
-        transactions = []
+        txs = []
         for address in addresslist:
             res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
             if not isinstance(res, list):
@@ -69,7 +69,7 @@ class BlockCypher(BaseClient):
                     _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                     "Transaction list may be incomplete" % address)
                 for tx in a['txrefs']:
-                    transactions.append({
+                    txs.append({
                         'address': address,
                         'tx_hash': tx['tx_hash'],
                         'confirmations': tx['confirmations'],
@@ -83,7 +83,7 @@ class BlockCypher(BaseClient):
                         'value': int(round(tx['value'] * self.units, 0)),
                         'script': '',
                     })
-        return transactions
+        return txs
 
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')

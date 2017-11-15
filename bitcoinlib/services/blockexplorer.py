@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'blockexplorer'
@@ -54,63 +55,86 @@ class BlockExplorerClient(BaseClient):
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
         for tx in res['items']:
-            txs.append({
-                'address': tx['address'],
-                'tx_hash': tx['txid'],
-                'confirmations': tx['confirmations'],
-                'output_n': -1 if 'vout' not in tx else tx['vout'],
-                'input_n': -1 if 'vin' not in tx else tx['vin'],
-                'index': 0,
-                'value': int(round(tx['amount'] * self.units, 0)),
-                'script': tx['scriptPubKey'],
-                'date': 0
-            })
-        return txs        # TODO: Finish this
-        # res = self.compose_request('addrs', addresses, 'txs')
-        # /api/addrs/2NF2baYuJAkCKo5onjUKEPdARQkZ6SYyKd5,2NAre8sX2povnjy4aeiHKeEh97Qhn97tB1f/txs?from=0&to=20
-        # from pprint import pprint
-        # pprint(res)
-        # {'from': 0,
-        #  'items': [{'blockhash': '00000000000004c...d53cefe26e92fd5cd',
-        #             'blockheight': 1153001,
-        #             'blocktime': 1499977636,
-        #             'confirmations': 28157,
-        #             'fees': 8.15e-06,
-        #             'locktime': 0,
-        #             'size': 226,
-        #             'time': 1499977636,
-        #             'txid': '8bcac07df4a5...0d7cebf9b7d7ee',
-        #             'valueIn': 4.50759446,
-        #             'valueOut': 4.50758631,
-        #             'version': 1,
-        #             'vin': [{'addr': 'msrbEQkm1svA9r9x6Jaypb6cpSX1VepYHf',
-        #                      'doubleSpentTxID': None,
-        #                      'n': 0,
-        #                      'scriptSig': {'asm':
-        #                                        'hex':
-        # 'sequence': 4294967295,
-        #             'txid': '0cf6ad653cde...034abb65b1',
-        # 'value': 4.50759446,
-        # 'valueSat': 450759446,
-        # 'vout': 0}],
-        # 'vout': [{'n': 0,
-        #           'scriptPubKey': {'addresses': ['mxdLD8SAG..MHp8N'],
-        #                            'asm':,
-        #           'hex': '76a914bbaeed8a02f6....88ac',
-        #           'type': 'pubkeyhash'},
-        #          'spentHeight': None,
-        #                         'spentIndex': None,
-        # 'spentTxId': None,
-        # 'value': '0.00100000'},
-        # {'n': 1,
-        #  'scriptPubKey': {'addresses': ['n1JFNC8zMerPuY.53oagzK6'],
-        #                   'asm': ...,
-        #                   'hex': '76a914d8fb5bc...c428a88ac',
-        #                   'type': 'pubkeyhash'},
-        #  'spentHeight': 1153005,
-        #  'spentIndex': 0,
-        #  'spentTxId': 'a5308741fe17d...32e7659f09408c43008d',
-        #  'value': '4.50658631'}]},
+            for vin in tx['vin']:
+                txs.append({
+                    'address': vin['addr'],
+                    'tx_hash': tx['txid'],
+                    'confirmations': tx['confirmations'],
+                    'block_height': tx['blockheight'],
+                    'date': datetime.fromtimestamp(tx['blocktime']),
+                    'input_n': vin['n'],
+                    'output_n': -1,
+                    'double_spend': False if vin['doubleSpentTxID'] is None else vin['doubleSpentTxID'],
+                    'spent': False if 'spentTxId' not in vin else True,
+                    'prev_hash': vin['txid'],
+                    'value': int(round(vin['value'] * self.units, 0)),
+                    'script': vin['scriptSig']['hex'],
+                })
+            for vout in tx['vout']:
+                txs.append({
+                    'address': vout['scriptPubKey']['addresses'][0],
+                    'tx_hash': tx['txid'],
+                    'confirmations': tx['confirmations'],
+                    'block_height': tx['blockheight'],
+                    'date': datetime.fromtimestamp(tx['blocktime']),
+                    'input_n': -1,
+                    'output_n': vout['n'],
+                    'double_spend': None,
+                    'spent': False if vout['spentTxId'] not in vout else True,
+                    'prev_hash': '',
+                    'value': int(round(float(vout['value']) * self.units, 0)),
+                    'script': vout['scriptPubKey']['hex'],
+                })
+
+        return txs
+
+        # txs = {
+        #      'blockhash': '000000002190d712c0c461d5ff389b929a98ed3ee1c7175a110a68b2a2cee2e9',
+        #      'blockheight': 1209767,
+        #      'blocktime': 1507466589,
+        #      'confirmations': 20671,
+        #      'fees': 0.00026192,
+        #      'locktime': 0,
+        #      'size': 226,
+        #      'time': 1507466589,
+        #      'txid': '757ca7f3a395fa8edc0d261042ff88e077de6c2a069d2e4468d6ea4b679e028b',
+        #      'valueIn': 0.08970937,
+        #      'valueOut': 0.08944745,
+        #      'version': 1,
+        #      'vin': [{'addr': 'n14ecTtK4FAmK9irj9fnnqjnVrJtYLwM8V',
+        #               'doubleSpentTxID': None,
+        #               'n': 0,
+        #               'scriptSig': {'asm': '3045022100efaccd93b5dadf76c2d4f80ad1a305cd92ff2c4554cd02e66410d9aab8994001022031e873e218ccdcd87c17e55b2fcc61e1a9e425f775eeec9194fa51b5039932da[ALL] '
+        #                                    '02ea011dbee8a1184fb59cb99dda290fce8893f8dbe151eb3091034054f00245ca',
+        #                             'hex': '483045022100efaccd93b5dadf76c2d4f80ad1a305cd92ff2c4554cd02e66410d9aab8994001022031e873e218ccdcd87c17e55b2fcc61e1a9e425f775eeec9194fa51b5039932da012102ea011dbee8a1184fb59cb99dda290fce8893f8dbe151eb3091034054f00245ca'},
+        #               'sequence': 4294967295,
+        #               'txid': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
+        #               'value': 0.08970937,
+        #               'valueSat': 8970937,
+        #               'vout': 1}],
+        #      'vout': [{'n': 0,
+        #                'scriptPubKey': {'addresses': ['mmUHBuNE25zCu4RqoCBsHEuf8xUEqZCQf3'],
+        #                                 'asm': 'OP_DUP OP_HASH160 '
+        #                                        '414f4758ea8b34439e46b1af9ab2a6a7ef291439 '
+        #                                        'OP_EQUALVERIFY OP_CHECKSIG',
+        #                                 'hex': '76a914414f4758ea8b34439e46b1af9ab2a6a7ef29143988ac',
+        #                                 'type': 'pubkeyhash'},
+        #                'spentHeight': None,
+        #                'spentIndex': None,
+        #                'spentTxId': None,
+        #                'value': '0.01000000'},
+        #               {'n': 1,
+        #                'scriptPubKey': {'addresses': ['mhpMi5aU1tqbiivuFm2WM8HrxFewRySy84'],
+        #                                 'asm': 'OP_DUP OP_HASH160 '
+        #                                        '193ade3e4e24dc05f59f4d2a75747964496a3654 '
+        #                                        'OP_EQUALVERIFY OP_CHECKSIG',
+        #                                 'hex': '76a914193ade3e4e24dc05f59f4d2a75747964496a365488ac',
+        #                                 'type': 'pubkeyhash'},
+        #                'spentHeight': None,
+        #                'spentIndex': None,
+        #                'spentTxId': None,
+        #                'value': '0.07944745'}]}
+
 
     def getbalance(self, addresslist):
         utxos = self.getutxos(addresslist)
