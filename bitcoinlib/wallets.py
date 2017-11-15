@@ -1676,7 +1676,7 @@ class HDWallet:
 
         qr = self._session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbKey.network_name).\
             join(DbTransaction).join(DbKey). \
-            filter(DbTransactionOutput.spend.op("IS")(False),
+            filter(DbTransactionOutput.spent.op("IS")(False),
                    DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.confirmations >= min_confirms)
         if account_id is not None:
@@ -1724,7 +1724,7 @@ class HDWallet:
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
-        Delete old UTXO's which are spend and append new UTXO's to database.
+        Delete old UTXO's which are spent and append new UTXO's to database.
 
         For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries:
         [{
@@ -1780,7 +1780,7 @@ class HDWallet:
         # Get current UTXO's from database to compare with Service objects UTXO's
         current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
 
-        # Update spend UTXO's (not found in list) and mark key as used
+        # Update spent UTXO's (not found in list) and mark key as used
         utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
         for current_utxo in current_utxos:
             if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
@@ -1788,7 +1788,7 @@ class HDWallet:
                     filter(DbTransaction.hash == current_utxo['tx_hash'],
                            DbTransactionOutput.output_n == current_utxo['output_n'])
                 for utxo_record in utxo_in_db.all():
-                    utxo_record.spend = True
+                    utxo_record.spent = True
             self._session.commit()
 
         # If UTXO is new, add to database otherwise update depth (confirmation count)
@@ -1810,7 +1810,7 @@ class HDWallet:
                 if not utxo_record.key_id:
                     count_utxos += 1
                 utxo_record.key_id = key.id
-                utxo_record.spend = False
+                utxo_record.spent = False
                 transaction_record = transaction_in_db.scalar()
                 transaction_record.confirmations = utxo['confirmations']
             else:
@@ -1825,7 +1825,7 @@ class HDWallet:
                     tid = transaction_in_db.scalar().id
 
                 new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'], value=utxo['value'],
-                                               key_id=key.id, script=utxo['script'], spend=False)
+                                               key_id=key.id, script=utxo['script'], spent=False)
                 self._session.add(new_utxo)
                 count_utxos += 1
             # TODO: Removing this gives errors??
@@ -1857,7 +1857,7 @@ class HDWallet:
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash,
                                  DbKey.network_name).\
             join(DbTransaction).join(DbKey). \
-            filter(DbTransactionOutput.spend.op("IS")(False),
+            filter(DbTransactionOutput.spent.op("IS")(False),
                    DbKey.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
                    DbKey.network_name == network,
@@ -1913,15 +1913,13 @@ class HDWallet:
                     filter_by(transaction_id=tx_id, input_n=tx['input_n']).scalar()
                 if not db_tx_item:
                     new_tx_item = DbTransactionInput(transaction_id=tx_id, input_n=tx['input_n'], key_id=key_id,
-                                                     value=tx['value'])
+                                                     value=tx['value'], prev_hash=tx['prev_hash'])
             else:
                 db_tx_item = self._session.query(DbTransactionOutput).\
                     filter_by(transaction_id=tx_id, output_n=tx['output_n']).scalar()
-                # TODO: Update utxo's
-                # if self._session.query(DbTransactionInput).filter_by(prev_hash=tx['tx_hash'])
                 if not db_tx_item:
                     new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=tx['output_n'], key_id=key_id,
-                                                      value=tx['value'])
+                                                      value=tx['value'], spent=tx['spent'])
             if new_tx_item:
                 self._session.add(new_tx_item)
                 self._session.commit()
@@ -1955,8 +1953,7 @@ class HDWallet:
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         txs += qr.all()
-
-        txs = sorted(txs, key=lambda k: k[2])
+        txs = sorted(txs, key=lambda k: (k[2], k[3]), reverse=True)
 
         res = []
         for tx in txs:
@@ -1982,9 +1979,9 @@ class HDWallet:
             transactions.confirmations AS transactions_confirmations, transactions.output_n AS transactions_output_n, 
             transactions."index" AS transactions_index, transactions.value AS transactions_value, 
             transactions.script AS transactions_script, transactions.description AS transactions_description, 
-            transactions.spend AS transactions_spend 
+            transactions.spent AS transactions_spent
             FROM transactions JOIN keys ON keys.id = transactions.key_id 
-            WHERE (transactions.spend IS ?) AND transactions.confirmations >= ? AND 
+            WHERE (transactions.spent IS ?) AND transactions.confirmations >= ? AND
             keys.account_id = ? AND keys.wallet_id = ?
         
         :param amount: Amount to transfer
@@ -2002,7 +1999,7 @@ class HDWallet:
 
         # Try to find one utxo with exact amount or higher
         one_utxo = utxo_query.\
-            filter(DbTransactionOutput.spend.op("IS")(False), DbTransactionOutput.value >= amount).\
+            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
             order_by(DbTransactionOutput.value).first()
         if one_utxo:
             return [one_utxo]
@@ -2013,7 +2010,7 @@ class HDWallet:
 
         # Otherwise compose of 2 or more lesser outputs
         lessers = utxo_query.\
-            filter(DbTransactionOutput.spend.op("IS")(False), DbTransactionOutput.value < amount).\
+            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
             order_by(DbTransactionOutput.value.desc()).all()
         total_amount = 0
         selected_utxos = []
@@ -2092,7 +2089,7 @@ class HDWallet:
             utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey).\
                 filter(DbTransaction.wallet_id == self.wallet_id,
                        DbKey.account_id == account_id,
-                       DbTransactionOutput.spend.op("IS")(False),
+                       DbTransactionOutput.spent.op("IS")(False),
                        DbTransaction.confirmations >= min_confirms)
             utxos = utxo_query.all()
             if not utxos:
@@ -2265,14 +2262,14 @@ class HDWallet:
             }
         _logger.info("Successfully pushed transaction, result: %s" % res)
 
-        # Update db: Update spend UTXO's, add transaction to database
+        # Update db: Update spent UTXO's, add transaction to database
         for inp in transaction.inputs:
             tx_hash = to_hexstring(inp.prev_hash)
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == tx_hash,
                        DbTransactionOutput.output_n == inp.output_index_int).all()
             for u in utxos:
-                u.spend = True
+                u.spent = True
 
         self._session.commit()
         if 'txid' in res:

@@ -250,7 +250,7 @@ class DbTransactionOutput(Base):
 
     Relates to Transaction and Key table
 
-    When spend is False output is considered an UTXO
+    When spent is False output is considered an UTXO
 
     """
     __tablename__ = 'transaction_outputs'
@@ -262,7 +262,7 @@ class DbTransactionOutput(Base):
     script = Column(String)
     script_type = Column(String, default='pubkey')
     value = Column(Integer, default=0)
-    spend = Column(Boolean(), default=False)
+    spent = Column(Boolean(), default=False)
 
     # TODO: sig_pubkey ?
     __table_args__ = (CheckConstraint(script_type.in_(['pubkey', 'nulldata', 'multisig', 'p2sh_multisig'])),)

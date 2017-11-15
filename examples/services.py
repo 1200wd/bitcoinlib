@@ -38,7 +38,7 @@ rt = '0100000001573ae2bb133f88cba0a96e9cf6179810a9fbdc2dc550c123b80c1ae1fc354855
 print("\nDECODE Raw Transaction:")
 pprint(Service(network='testnet').decoderawtransaction(rt))
 
-# SEND Raw Transaction data (UTXO's already spend, so should give 'missing inputs' error)
+# SEND Raw Transaction data (UTXO's already spent, so should give 'missing inputs' error)
 rt = '010000000108004b4c0394a211d4ec0d344b70bf1e3b1ce1731d11d1d30279ab0c0f6d9fd7000000006c493046022100ab18a72f7' \
      '87e4c8ea5d2f983b99df28d27e13482b91fd6d48701c055af92f525022100d1c26b8a779896a53a026248388896501e724e46407f' \
      '14a4a1b6478d3293da24012103e428723c145e61c35c070da86faadaf0fab21939223a5e6ce3e1cfd76bad133dffffffff0240420' \

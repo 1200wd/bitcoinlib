@@ -78,7 +78,8 @@ class BlockCypher(BaseClient):
                         'input_n': tx['tx_input_n'],
                         'output_n': tx['tx_output_n'],
                         'double_spend': tx['double_spend'],
-                        'index': 0,
+                        'spent': None if 'spent' not in tx else tx['spent'],
+                        'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
                         'value': int(round(tx['value'] * self.units, 0)),
                         'script': '',
                     })
