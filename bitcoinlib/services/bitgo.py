@@ -74,8 +74,31 @@ class BitGoClient(BaseClient):
         return utxos
 
     def gettransactions(self, addresslist):
-        # TODO: write this method if possible
-        pass
+        txs = []
+        for address in addresslist:
+            skip = 0
+            total = 1
+            while total > skip:
+                variables = {'limit': 100, 'skip': skip}
+                res = self.compose_request('address', address, 'tx', variables)
+                for tx in res['transactions']:
+                    txs.append(
+                        {
+                            'address': unspent['address'],
+                            'tx_hash': unspent['tx_hash'],
+                            'confirmations': unspent['confirmations'],
+                            'output_n': unspent['tx_output_n'],
+                            'index': 0,
+                            'value': int(round(unspent['value'] * self.units, 0)),
+                            'script': unspent['script'],
+                         }
+                    )
+                total = res['total']
+                skip = res['start'] + res['count']
+                if skip > 2000:
+                    _logger.warning("BitGoClient: UTXO's list has been truncated, UTXO list is incomplete")
+                    break
+        return txs
 
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', txid)
