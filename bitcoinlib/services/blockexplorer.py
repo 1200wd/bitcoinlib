@@ -59,19 +59,20 @@ class BlockExplorerClient(BaseClient):
             outputs = []
             for ti in tx['vin']:
                 inputs.append({
-                    'address': ti['addr'],
-                    'input_n': ti['n'],
-                    'double_spend': False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'],
                     'prev_hash': ti['txid'],
+                    'input_n': ti['n'],
+                    'address': ti['addr'],
                     'value': int(round(ti['value'] * self.units, 0)),
+                    'double_spend': False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'],
                     'script': ti['scriptSig']['hex'],
                 })
             for to in tx['vout']:
+                # FIXME: What about multisig addresses...
                 outputs.append({
                     'address': to['scriptPubKey']['addresses'][0],
                     'output_n': to['n'],
-                    'spent': True if to['spentTxId'] else False,
                     'value': int(round(float(to['value']) * self.units, 0)),
+                    'spent': True if to['spentTxId'] else False,
                     'script': to['scriptPubKey']['hex'],
                 })
             txs.append({
