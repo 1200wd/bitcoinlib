@@ -102,6 +102,7 @@ class BitGoClient(BaseClient):
                             'output_n': to['vout'],
                             'address': to['account'],
                             'value': int(round(to['value'] * self.units, 0)),
+                            'spent': None
                         })
                     txs.append({
                         'hash': tx['id'],

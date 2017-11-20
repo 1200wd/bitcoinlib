@@ -1836,6 +1836,9 @@ class HDWallet:
         self.balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
         return count_utxos
 
+    def _utxos_update_from_transactions(self, account_id=None, key_id=None):
+        pass
+
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
         Get UTXO's (Unspent Outputs) from database. Use utxos_update method first for updated values
@@ -1890,11 +1893,12 @@ class HDWallet:
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
+        no_spent_info = False
         for tx in txs:
             # If tx_hash is unknown add it to database, else update
-            db_tx = self._session.query(DbTransaction).filter(DbTransaction.hash == tx['tx_hash']).scalar()
+            db_tx = self._session.query(DbTransaction).filter(DbTransaction.hash == tx['hash']).scalar()
             if not db_tx:
-                new_tx = DbTransaction(wallet_id=self.wallet_id, hash=tx['tx_hash'], block_height=tx['block_height'],
+                new_tx = DbTransaction(wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'],
                                        confirmations=tx['confirmations'], date=tx['date'])
                 self._session.add(new_tx)
                 self._session.commit()
@@ -1903,32 +1907,39 @@ class HDWallet:
                 tx_id = db_tx.id
 
             assert tx_id
-            if not (tx['output_n'] == -1 or tx['input_n'] == -1):
-                raise WalletError("Transaction item must be input or output but cannot be both")
-            tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=tx['address']).scalar()
-            key_id = None
-            if tx_key:
-                key_id = tx_key.id
-            # Add transaction input/output
-            new_tx_item = None
-            if tx['output_n'] == -1:
-                db_tx_item = self._session.query(DbTransactionInput).\
-                    filter_by(transaction_id=tx_id, input_n=tx['input_n']).scalar()
-                if not db_tx_item:
-                    new_tx_item = DbTransactionInput(transaction_id=tx_id, input_n=tx['input_n'], key_id=key_id,
-                                                     value=tx['value'], prev_hash=tx['prev_hash'])
-            else:
-                db_tx_item = self._session.query(DbTransactionOutput).\
-                    filter_by(transaction_id=tx_id, output_n=tx['output_n']).scalar()
-                if not db_tx_item:
-                    new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=tx['output_n'], key_id=key_id,
-                                                      value=tx['value'], spent=tx['spent'])
-            if new_tx_item:
+            for ti in tx['inputs']:
+                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=ti['address']).scalar()
+                key_id = None
                 if tx_key:
+                    key_id = tx_key.id
                     tx_key.used = True
-                self._session.add(new_tx_item)
-                self._session.commit()
+                db_tx_item = self._session.query(DbTransactionInput).\
+                    filter_by(transaction_id=tx_id, input_n=ti['input_n']).scalar()
+                if not db_tx_item:
+                    new_tx_item = DbTransactionInput(transaction_id=tx_id, input_n=ti['input_n'], key_id=key_id,
+                                                     value=ti['value'], prev_hash=ti['prev_hash'])
+                    self._session.add(new_tx_item)
+                    self._session.commit()
+            for to in tx['outputs']:
+                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,
+                                                              address=to['address']).scalar()
+                key_id = None
+                if tx_key:
+                    key_id = tx_key.id
+                    tx_key.used = True
+                db_tx_item = self._session.query(DbTransactionOutput). \
+                    filter_by(transaction_id=tx_id, output_n=to['output_n']).scalar()
+                if not db_tx_item:
+                    spent = to['spent']
+                    if spent is None:
+                        no_spent_info = True
 
+                    new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=to['output_n'], key_id=key_id,
+                                                      value=to['value'], spent=spent)
+                    self._session.add(new_tx_item)
+                    self._session.commit()
+        if no_spent_info:
+            self._utxos_update_from_transactions()
         return True
 
     def transactions(self, account_id=None, network=None, key_id=None):
