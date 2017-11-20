@@ -1959,7 +1959,7 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
-        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
+        qr = self._session.query(DbTransactionInput, DbKey.address, DbTransaction.confirmations,
                                  DbTransaction.hash, DbKey.network_name). \
             join(DbTransaction).join(DbKey). \
             filter(DbKey.account_id == account_id,
@@ -1969,7 +1969,7 @@ class HDWallet:
             qr = qr.filter(DbKey.id == key_id)
         txs = qr.all()
 
-        qr = self._session.query(DbTransactionInput, DbKey.address, DbTransaction.confirmations,
+        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
                                  DbTransaction.hash, DbKey.network_name). \
             join(DbTransaction).join(DbKey). \
             filter(DbKey.account_id == account_id,
@@ -1978,6 +1978,7 @@ class HDWallet:
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         txs += qr.all()
+
         txs = sorted(txs, key=lambda k: (k[2], k[3]), reverse=True)
 
         res = []
@@ -1989,6 +1990,8 @@ class HDWallet:
             u['confirmations'] = int(tx[2])
             u['tx_hash'] = tx[3]
             u['network_name'] = tx[4]
+            if 'input_n' in u:
+                u['value'] = -u['value']
             res.append(u)
         return res
 
@@ -2462,6 +2465,14 @@ class HDWallet:
                     for key in self.keys(depth=d, network=nw['network_name'], is_active=is_active):
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
                                                               Network(key.network_name).print_value(key.balance)))
+        print("\n= Transactions =")
+        if detail > 2:
+            for t in self.transactions():
+                spent = ""
+                if 'spent' in t and t['spent'] is False:
+                    spent = "U"
+                print("%64s %36s %8d %13d %s" % (t['tx_hash'], t['address'], t['confirmations'], t['value'], spent))
+
         print("\n")
 
     def dict(self, detail=3):
