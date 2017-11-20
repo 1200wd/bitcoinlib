@@ -90,25 +90,25 @@ class BitGoClient(BaseClient):
                     # FIXME: Assumes entries are in same order as inputs
                     input_entries = [ie for ie in tx['entries'] if ie['value'] < 0][::-1]
                     for i in tx['inputs']:
-                        ci = input_entries.pop()
+                        ti = input_entries.pop()
                         inputs.append({
                             'prev_hash': i['previousHash'],
                             'input_n': i['previousOutputIndex'],
-                            'address': ci['account'],
-                            'value': ci['value']
+                            'address': ti['account'],
+                            'value': int(round(-ti['value'] * self.units, 0)),
                         })
-                    for o in tx['outputs']:
+                    for to in tx['outputs']:
                         outputs.append({
-                            'output_n': o['vout'],
-                            'address': o['account'],
-                            'value': int(round(o['value'] * self.units, 0)),
+                            'output_n': to['vout'],
+                            'address': to['account'],
+                            'value': int(round(to['value'] * self.units, 0)),
                         })
                     txs.append({
                         'hash': tx['id'],
                         'date': datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
                         'confirmations': tx['confirmations'],
                         'block_height': tx['height'],
-                        # 'fee': TODO
+                        'fee': tx['fee'],
                         'inputs': inputs,
                         'outputs': outputs
                     })
