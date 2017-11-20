@@ -107,6 +107,9 @@ class BitGoClient(BaseClient):
                             'spent': None,
                             'script': ''
                         })
+                    status = 'unconfirmed'
+                    if tx['confirmations']:
+                        status = 'confirmed'
                     txs.append({
                         'hash': tx['id'],
                         'date': datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -115,7 +118,8 @@ class BitGoClient(BaseClient):
                         'fee': tx['fee'],
                         'size': 0,
                         'inputs': inputs,
-                        'outputs': outputs
+                        'outputs': outputs,
+                        'status': status
                     })
                 total = res['total']
                 skip = res['start'] + res['count']

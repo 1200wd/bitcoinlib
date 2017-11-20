@@ -212,10 +212,12 @@ class DbTransaction(Base):
     fee = Column(Integer)
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
+    status = Column(String, default='new')
     # TODO: Add network field (?)
 
     __table_args__ = (
         UniqueConstraint('wallet_id', 'hash', name='_transaction_hash_wallet_uc'),
+        CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed'])),
     )
 
     def __repr__(self):

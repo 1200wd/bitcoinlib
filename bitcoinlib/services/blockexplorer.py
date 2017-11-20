@@ -75,6 +75,9 @@ class BlockExplorerClient(BaseClient):
                     'spent': True if to['spentTxId'] else False,
                     'script': to['scriptPubKey']['hex'],
                 })
+            status = 'unconfirmed'
+            if tx['confirmations']:
+                status = 'confirmed'
             txs.append({
                 'hash': tx['txid'],
                 'date': datetime.fromtimestamp(tx['blocktime']),
@@ -83,7 +86,8 @@ class BlockExplorerClient(BaseClient):
                 'fee': int(round(float(tx['fees']) * self.units, 0)),
                 'size': tx['size'],
                 'inputs': inputs,
-                'outputs': outputs
+                'outputs': outputs,
+                'status': status
             })
 
         return txs
