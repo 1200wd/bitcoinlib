@@ -70,7 +70,7 @@ class BitGoClient(BaseClient):
                 total = res['total']
                 skip = res['start'] + res['count']
                 if skip > 2000:
-                    _logger.warning("BitGoClient: UTXO's list has been truncated, UTXO list is incomplete")
+                    _logger.warning("BitGoClient: UTXO's list has been truncated, list is incomplete")
                     break
         return utxos
 
@@ -96,13 +96,16 @@ class BitGoClient(BaseClient):
                             'input_n': i['previousOutputIndex'],
                             'address': ti['account'],
                             'value': int(round(-ti['value'] * self.units, 0)),
+                            'double_spend': None,
+                            'script': ''
                         })
                     for to in tx['outputs']:
                         outputs.append({
                             'output_n': to['vout'],
                             'address': to['account'],
                             'value': int(round(to['value'] * self.units, 0)),
-                            'spent': None
+                            'spent': None,
+                            'script': ''
                         })
                     txs.append({
                         'hash': tx['id'],
@@ -117,7 +120,7 @@ class BitGoClient(BaseClient):
                 total = res['total']
                 skip = res['start'] + res['count']
                 if skip > 2000:
-                    _logger.warning("BitGoClient: UTXO's list has been truncated, UTXO list is incomplete")
+                    _logger.warning("BitGoClient: Transactions list has been truncated, list is incomplete")
                     break
         return txs
 

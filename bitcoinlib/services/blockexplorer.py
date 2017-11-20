@@ -55,36 +55,35 @@ class BlockExplorerClient(BaseClient):
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
         for tx in res['items']:
-            for vin in tx['vin']:
-                txs.append({
-                    'address': vin['addr'],
-                    'tx_hash': tx['txid'],
-                    'confirmations': tx['confirmations'],
-                    'block_height': tx['blockheight'],
-                    'date': datetime.fromtimestamp(tx['blocktime']),
-                    'input_n': vin['n'],
-                    'output_n': -1,
-                    'double_spend': False if vin['doubleSpentTxID'] is None else vin['doubleSpentTxID'],
-                    'spent': False if 'spentTxId' not in vin else True,
-                    'prev_hash': vin['txid'],
-                    'value': int(round(vin['value'] * self.units, 0)),
-                    'script': vin['scriptSig']['hex'],
+            inputs = []
+            outputs = []
+            for ti in tx['vin']:
+                inputs.append({
+                    'address': ti['addr'],
+                    'input_n': ti['n'],
+                    'double_spend': False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'],
+                    'prev_hash': ti['txid'],
+                    'value': int(round(ti['value'] * self.units, 0)),
+                    'script': ti['scriptSig']['hex'],
                 })
-            for vout in tx['vout']:
-                txs.append({
-                    'address': vout['scriptPubKey']['addresses'][0],
-                    'tx_hash': tx['txid'],
-                    'confirmations': tx['confirmations'],
-                    'block_height': tx['blockheight'],
-                    'date': datetime.fromtimestamp(tx['blocktime']),
-                    'input_n': -1,
-                    'output_n': vout['n'],
-                    'double_spend': None,
-                    'spent': True if vout['spentTxId'] else False,
-                    'prev_hash': '',
-                    'value': int(round(float(vout['value']) * self.units, 0)),
-                    'script': vout['scriptPubKey']['hex'],
+            for to in tx['vout']:
+                outputs.append({
+                    'address': to['scriptPubKey']['addresses'][0],
+                    'output_n': to['n'],
+                    'spent': True if to['spentTxId'] else False,
+                    'value': int(round(float(to['value']) * self.units, 0)),
+                    'script': to['scriptPubKey']['hex'],
                 })
+            txs.append({
+                'hash': tx['txid'],
+                'date': datetime.fromtimestamp(tx['blocktime']),
+                'confirmations': tx['confirmations'],
+                'block_height': tx['blockheight'],
+                'fee': int(round(float(tx['fees']) * self.units, 0)),
+                'size': tx['size'],
+                'inputs': inputs,
+                'outputs': outputs
+            })
 
         return txs
 
