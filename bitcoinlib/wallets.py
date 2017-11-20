@@ -1836,8 +1836,14 @@ class HDWallet:
         self.balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
         return count_utxos
 
-    def _utxos_update_from_transactions(self, account_id=None, key_id=None):
-        pass
+    def _utxos_update_from_transactions(self, key_ids):
+        for key_id in key_ids:
+            outputs = self._session.query(DbTransactionOutput).filter_by(key_id=key_id).all()
+            for to in outputs:
+                if self._session.query(DbTransactionInput).\
+                        filter_by(prev_hash=to.transaction.hash, input_n=to.output_n).scalar():
+                    to.spent = True
+        self._session.commit()
 
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
@@ -1894,12 +1900,13 @@ class HDWallet:
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
         no_spent_info = False
+        key_ids = set()
         for tx in txs:
             # If tx_hash is unknown add it to database, else update
             db_tx = self._session.query(DbTransaction).filter(DbTransaction.hash == tx['hash']).scalar()
             if not db_tx:
                 new_tx = DbTransaction(wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'],
-                                       confirmations=tx['confirmations'], date=tx['date'])
+                                       confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'])
                 self._session.add(new_tx)
                 self._session.commit()
                 tx_id = new_tx.id
@@ -1912,6 +1919,7 @@ class HDWallet:
                 key_id = None
                 if tx_key:
                     key_id = tx_key.id
+                    key_ids.add(key_id)
                     tx_key.used = True
                 db_tx_item = self._session.query(DbTransactionInput).\
                     filter_by(transaction_id=tx_id, input_n=ti['input_n']).scalar()
@@ -1926,6 +1934,7 @@ class HDWallet:
                 key_id = None
                 if tx_key:
                     key_id = tx_key.id
+                    key_ids.add(key_id)
                     tx_key.used = True
                 db_tx_item = self._session.query(DbTransactionOutput). \
                     filter_by(transaction_id=tx_id, output_n=to['output_n']).scalar()
@@ -1939,7 +1948,7 @@ class HDWallet:
                     self._session.add(new_tx_item)
                     self._session.commit()
         if no_spent_info:
-            self._utxos_update_from_transactions()
+            self._utxos_update_from_transactions(list(key_ids))
         return True
 
     def transactions(self, account_id=None, network=None, key_id=None):

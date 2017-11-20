@@ -110,6 +110,7 @@ class BitGoClient(BaseClient):
                         'confirmations': tx['confirmations'],
                         'block_height': tx['height'],
                         'fee': tx['fee'],
+                        'size': 0,
                         'inputs': inputs,
                         'outputs': outputs
                     })
