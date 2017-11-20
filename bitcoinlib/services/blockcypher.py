@@ -69,20 +69,35 @@ class BlockCypher(BaseClient):
                     _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                     "Transaction list may be incomplete" % address)
                 for tx in a['txrefs']:
-                    txs.append({
-                        'address': address,
-                        'tx_hash': tx['tx_hash'],
-                        'confirmations': tx['confirmations'],
-                        'block_height': tx['block_height'],
-                        'date': datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ"),
-                        'input_n': tx['tx_input_n'],
-                        'output_n': tx['tx_output_n'],
-                        'double_spend': tx['double_spend'],
-                        'spent': None if 'spent' not in tx else tx['spent'],
-                        'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
-                        'value': int(round(tx['value'] * self.units, 0)),
-                        'script': '',
-                    })
+                    if a['txrefs'] not in [t['hash'] for t in txs]:
+                        txs.append({
+                            'hash': tx['tx_hash'],
+                            'date': datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ"),
+                            'confirmations': tx['confirmations'],
+                            'block_height': tx['block_height'],
+                            'fee': None,
+                            'size': 0,
+                            'inputs': [],
+                            'outputs': [],
+                            'status': 'incomplete',
+                        })
+                    if tx['tx_input_n'] != -1:
+                        next((item for item in txs if item['hash'] == tx['tx_hash']))['inputs'].append({
+                            'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
+                            'input_n': tx['tx_input_n'],
+                            'address': address,
+                            'value': int(round(tx['value'] * self.units, 0)),
+                            'double_spend': tx['double_spend'],
+                            'script': ''
+                        })
+                    else:
+                        next((item for item in txs if item['hash'] == tx['tx_hash']))['outputs'].append({
+                            'address': address,
+                            'output_n': tx['tx_input_n'],
+                            'value': int(round(tx['value'] * self.units, 0)),
+                            'spent': None if 'spent' not in tx else tx['spent'],
+                            'script': ''
+                        })
         return txs
 
     def sendrawtransaction(self, rawtx):
