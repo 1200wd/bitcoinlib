@@ -19,6 +19,7 @@
 #
 
 import logging
+from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
 
 _logger = logging.getLogger(__name__)
@@ -82,17 +83,35 @@ class BitGoClient(BaseClient):
                 variables = {'limit': 100, 'skip': skip}
                 res = self.compose_request('address', address, 'tx', variables)
                 for tx in res['transactions']:
-                    txs.append(
-                        {
-                            'address': unspent['address'],
-                            'tx_hash': unspent['tx_hash'],
-                            'confirmations': unspent['confirmations'],
-                            'output_n': unspent['tx_output_n'],
-                            'index': 0,
-                            'value': int(round(unspent['value'] * self.units, 0)),
-                            'script': unspent['script'],
-                         }
-                    )
+                    if tx['id'] in [t['hash'] for t in txs]:
+                        break
+                    inputs = []
+                    outputs = []
+                    # FIXME: Assumes entries are in same order as inputs
+                    input_entries = [ie for ie in tx['entries'] if ie['value'] < 0][::-1]
+                    for i in tx['inputs']:
+                        ci = input_entries.pop()
+                        inputs.append({
+                            'prev_hash': i['previousHash'],
+                            'input_n': i['previousOutputIndex'],
+                            'address': ci['account'],
+                            'value': ci['value']
+                        })
+                    for o in tx['outputs']:
+                        outputs.append({
+                            'output_n': o['vout'],
+                            'address': o['account'],
+                            'value': int(round(o['value'] * self.units, 0)),
+                        })
+                    txs.append({
+                        'hash': tx['id'],
+                        'date': datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
+                        'confirmations': tx['confirmations'],
+                        'block_height': tx['height'],
+                        # 'fee': TODO
+                        'inputs': inputs,
+                        'outputs': outputs
+                    })
                 total = res['total']
                 skip = res['start'] + res['count']
                 if skip > 2000:
@@ -102,7 +121,7 @@ class BitGoClient(BaseClient):
 
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', txid)
-        return res['tx']['hex']
+        return res['hex']
 
     def estimatefee(self, blocks):
         res = self.compose_request('tx', 'fee', variables={'numBlocks': blocks})
