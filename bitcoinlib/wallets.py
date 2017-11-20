@@ -1886,7 +1886,7 @@ class HDWallet:
             res.append(u)
         return res
 
-    def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
+    def transactions_update(self, account_id=None, used=False, network=None, key_id=None, depth=None, change=None):
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         if depth is None:
             if self.scheme == 'bip44':
