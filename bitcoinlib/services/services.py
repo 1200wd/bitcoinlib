@@ -163,14 +163,15 @@ class Service(object):
             addresslist = [addresslist]
 
         transactions = []
+        addresses_per_request = 5
         while addresslist:
-            res = self._provider_execute('gettransactions', addresslist[:3])
+            res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
             if res is False:
                 break
             for new_t in res:
                 if new_t['hash'] not in [t['hash'] for t in transactions]:
                     transactions.append(new_t)
-            addresslist = addresslist[3:]
+            addresslist = addresslist[addresses_per_request:]
         return transactions
 
     def getrawtransaction(self, txid):
