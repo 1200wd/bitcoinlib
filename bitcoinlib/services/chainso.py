@@ -135,8 +135,6 @@ class ChainSo(BaseClient):
                         'script': tx['incoming']['script_hex']
                     })
                 if 'outgoing' in tx:
-                    if len(tx['outgoing']['outputs']) > 1:
-                        print("Chainso client: More then one input in incoming tx not supported")
                     for tx_outp in tx['outgoing']['outputs']:
                         next((item for item in txs if item['hash'] == tx['txid']))['outputs'].append({
                                 'address': tx_outp['address'],

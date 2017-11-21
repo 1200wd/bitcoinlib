@@ -21,6 +21,7 @@
 import sys
 import logging
 import json
+import random
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
 from bitcoinlib.networks import DEFAULT_NETWORK
 from bitcoinlib import services
@@ -85,7 +86,10 @@ class Service(object):
         self.errors = {}
         self.resultcount = 0
 
-        for sp in self.providers:
+        provider_lst = [p[0] for p in sorted([(x, self.providers[x]['priority']) for x in self.providers],
+                        key=lambda x: (x[1], random.random()), reverse=True)]
+
+        for sp in provider_lst:
             if self.resultcount >= self.max_providers:
                 break
             try:
