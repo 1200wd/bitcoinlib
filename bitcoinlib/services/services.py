@@ -97,7 +97,7 @@ class Service(object):
                     continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(*arguments)
-                if not res:
+                if res is False:
                     self.errors.update(
                         {sp: 'Received empty response'}
                     )
@@ -161,7 +161,7 @@ class Service(object):
         transactions = []
         while addresslist:
             res = self._provider_execute('gettransactions', addresslist[:3])
-            if not res:
+            if res is False:
                 break
             transactions += res
             addresslist = addresslist[3:]

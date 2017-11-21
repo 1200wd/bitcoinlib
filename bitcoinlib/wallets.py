@@ -1895,7 +1895,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['chainso', 'blockcypher'])
+        srv = Service(network=network, providers=['chainso'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -1948,6 +1948,7 @@ class HDWallet:
                     self._session.add(new_tx_item)
                     self._session.commit()
         if no_spent_info:
+            key_ids = [k.id for k in self.keys()]
             self._utxos_update_from_transactions(list(key_ids))
         return True
 
@@ -2471,7 +2472,7 @@ class HDWallet:
                 spent = ""
                 if 'spent' in t and t['spent'] is False:
                     spent = "U"
-                print("%64s %36s %8d %13d %s" % (t['tx_hash'], t['address'], t['confirmations'], t['value'], spent))
+                print("%4d %64s %36s %8d %13d %s" % (t['transaction_id'], t['tx_hash'], t['address'], t['confirmations'], t['value'], spent))
 
         print("\n")
 

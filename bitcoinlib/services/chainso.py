@@ -22,6 +22,8 @@ import logging
 import time
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.services import ServiceError
+
 
 _logger = logging.getLogger(__name__)
 
@@ -103,37 +105,44 @@ class ChainSo(BaseClient):
         return self._gettransactions(addresslist, 'get_tx_unspent')
 
     def gettransactions(self, addresslist):
-        tx_list = self._gettransactions(addresslist, 'get_tx_received') + \
-                  self._gettransactions(addresslist, 'get_tx_spent')
         txs = []
-        for tx in tx_list:
-            if tx['hash'] not in [t['hash'] for t in txs]:
-                txs.append({
-                    'hash': tx['hash'],
-                    'date': tx['date'],
-                    'confirmations': tx['confirmations'],
-                    'block_height': tx['block_height'],
-                    'fee': tx['fee'],
-                    'size': tx['size'],
-                    'inputs': [],
-                    'outputs': [],
-                    'status': 'incomplete',
-                })
-            if tx['input_n'] != -1:
-                next((item for item in txs if item['hash'] == tx['hash']))['inputs'].append({
-                    'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
-                    'input_n': tx['input_n'],
-                    'address': tx['address'],
-                    'value': tx['value'],
-                    'double_spend': None,
-                    'script': tx['script']
-                })
-            else:
-                next((item for item in txs if item['hash'] == tx['hash']))['outputs'].append({
-                    'address': tx['address'],
-                    'output_n': tx['output_n'],
-                    'value': tx['value'],
-                    'spent': None,
-                    'script': tx['script']
-                })
+        for address in addresslist:
+            res = self.compose_request('address', address)
+            if res['status'] != 'success':
+                pass
+            for tx in res['data']['txs']:
+                if tx['txid'] not in [t['hash'] for t in txs]:
+                    txs.append({
+                        'hash': tx['txid'],
+                        'date': datetime.fromtimestamp(tx['time']),
+                        'confirmations': tx['confirmations'],
+                        'block_height': tx['block_no'],
+                        'fee': None,
+                        'size': 0,
+                        'inputs': [],
+                        'outputs': [],
+                        'status': 'incomplete',
+                    })
+                if 'incoming' in tx:
+                    if len(tx['incoming']['inputs']) > 1:
+                        raise ServiceError("Chainso client: More then one input in incoming tx not supported")
+                    next((item for item in txs if item['hash'] == tx['txid']))['inputs'].append({
+                        'prev_hash': tx['incoming']['inputs'][0]['received_from']['txid'],
+                        'input_n': tx['incoming']['inputs'][0]['received_from']['output_no'],
+                        'address': tx['incoming']['inputs'][0]['address'],
+                        'value': int(round(float(tx['incoming']['value']) * self.units, 0)),
+                        'double_spend': None,
+                        'script': tx['incoming']['script_hex']
+                    })
+                if 'outgoing' in tx:
+                    if len(tx['outgoing']['outputs']) > 1:
+                        print("Chainso client: More then one input in incoming tx not supported")
+                    for tx_outp in tx['outgoing']['outputs']:
+                        next((item for item in txs if item['hash'] == tx['txid']))['outputs'].append({
+                                'address': tx_outp['address'],
+                                'output_n': tx_outp['output_no'],
+                                'value': int(round(float(tx_outp['value']) * self.units, 0)),
+                                'spent': bool(tx_outp['spent']),
+                                'script': ''
+                            })
         return txs
