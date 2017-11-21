@@ -1887,6 +1887,31 @@ class HDWallet:
         return res
 
     def transactions_update(self, account_id=None, used=False, network=None, key_id=None, depth=None, change=None):
+        """
+        Update wallets transaction from service providers. Get all transactions for known keys in this wallet.
+        The balances and unspent outputs (UTXO's) are updated as well, but for large wallets use the utxo_update
+        method if possible.
+
+        Depending on the service provider used, complete transactions with all inputs and outputs might be added to
+        the database or just partial transactions with only items from this wallets keys. If an incomplete transaction
+        is returned the transaction status is set to 'incomplete'
+
+        :param account_id: Account ID
+        :type account_id: int
+        :param used: Only update used or unused keys, specify None to update both. Default is False
+        :type used: bool, None
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param key_id: Key ID to just update 1 key
+        :type key_id: int
+        :param depth: Only update keys with this depth, default is depth 5 according to BIP0048 standard. Set depth to None to update all keys of this wallet.
+        :type depth: int
+        :param change: Only update change or normal keys, default is both (None)
+        :type change: int
+
+        :return bool: True if all transactions are updated
+
+        """
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         if depth is None:
             if self.scheme == 'bip44':
@@ -1954,8 +1979,14 @@ class HDWallet:
 
     def transactions(self, account_id=None, network=None, key_id=None):
         """
+        :param account_id: Filter by Account ID
+        :type account_id: int
+        :param network: Filter by network name. Leave empty for default network
+        :type network: str
+        :param key_id: Filter by key ID
+        :type key_id: int
 
-        :return list: List of transactions
+        :return list: List of transactions as dictionary
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
