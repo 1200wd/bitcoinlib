@@ -160,11 +160,11 @@ class Service(object):
 
         transactions = []
         while addresslist:
-            res = self._provider_execute('gettransactions', addresslist[:20])
+            res = self._provider_execute('gettransactions', addresslist[:3])
             if not res:
                 break
             transactions += res
-            addresslist = addresslist[20:]
+            addresslist = addresslist[3:]
         return transactions
 
     def getrawtransaction(self, txid):

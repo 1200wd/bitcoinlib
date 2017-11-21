@@ -19,6 +19,8 @@
 #
 
 import logging
+import time
+from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
 
 _logger = logging.getLogger(__name__)
@@ -72,28 +74,66 @@ class ChainSo(BaseClient):
             lasttx = ''
             while len(txs) < 1000:
                 res = self.compose_request(method, address, lasttx)
+                if res['status'] != 'success':
+                    pass
                 for tx in res['data']['txs']:
                     txs.append({
                         'address': address,
-                        'tx_hash': tx['txid'],
+                        'hash': tx['txid'],
                         'confirmations': tx['confirmations'],
                         'output_n': -1 if 'output_no' not in tx else tx['output_no'],
                         'input_n': -1 if 'input_no' not in tx else tx['input_no'],
-                        'index': 0,
+                        'block_height': None,
+                        'fee': None,
+                        'size': 0,
                         'value': int(round(float(tx['value']) * self.units, 0)),
                         'script': tx['script_hex'],
-                        'date': tx['time'],
+                        'date': datetime.fromtimestamp(tx['time']),
                     })
                     lasttx = tx['txid']
+                time.sleep(0.3)
                 if len(res['data']['txs']) < 100:
                     break
+
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
 
-    # def getutxos(self, addresslist):
-    #     return
+    def getutxos(self, addresslist):
+        return self._gettransactions(addresslist, 'get_tx_unspent')
 
     def gettransactions(self, addresslist):
-        return self._gettransactions(addresslist, 'get_tx_received') + \
-               self._gettransactions(addresslist, 'get_tx_spent')
+        tx_list = self._gettransactions(addresslist, 'get_tx_received') + \
+                  self._gettransactions(addresslist, 'get_tx_spent')
+        txs = []
+        for tx in tx_list:
+            if tx['hash'] not in [t['hash'] for t in txs]:
+                txs.append({
+                    'hash': tx['hash'],
+                    'date': tx['date'],
+                    'confirmations': tx['confirmations'],
+                    'block_height': tx['block_height'],
+                    'fee': tx['fee'],
+                    'size': tx['size'],
+                    'inputs': [],
+                    'outputs': [],
+                    'status': 'incomplete',
+                })
+            if tx['input_n'] != -1:
+                next((item for item in txs if item['hash'] == tx['hash']))['inputs'].append({
+                    'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
+                    'input_n': tx['input_n'],
+                    'address': tx['address'],
+                    'value': tx['value'],
+                    'double_spend': None,
+                    'script': tx['script']
+                })
+            else:
+                next((item for item in txs if item['hash'] == tx['hash']))['outputs'].append({
+                    'address': tx['address'],
+                    'output_n': tx['output_n'],
+                    'value': tx['value'],
+                    'spent': None,
+                    'script': tx['script']
+                })
+        return txs

@@ -1501,7 +1501,7 @@ class HDWallet:
         :param account_id: Account ID
         :type account_id: int
         :param used: Only return used or unused keys
-        :type used: bool
+        :type used: bool, None
         :param network: Network name filter
         :type network: str
         :param depth: Filter by key depth
@@ -1895,7 +1895,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['blocktrail'])
+        srv = Service(network=network, providers=['chainso', 'blockcypher'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
