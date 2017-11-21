@@ -167,7 +167,9 @@ class Service(object):
             res = self._provider_execute('gettransactions', addresslist[:3])
             if res is False:
                 break
-            transactions += res
+            for new_t in res:
+                if new_t['hash'] not in [t['hash'] for t in transactions]:
+                    transactions.append(new_t)
             addresslist = addresslist[3:]
         return transactions
 
