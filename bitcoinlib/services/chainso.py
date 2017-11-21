@@ -70,18 +70,18 @@ class ChainSo(BaseClient):
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
         return int(balance * self.units)
 
-    def _gettransactions(self, addresslist, method):
+    def getutxos(self, addresslist):
         txs = []
         for address in addresslist:
             lasttx = ''
             while len(txs) < 1000:
-                res = self.compose_request(method, address, lasttx)
+                res = self.compose_request('get_tx_unspent', address, lasttx)
                 if res['status'] != 'success':
                     pass
                 for tx in res['data']['txs']:
                     txs.append({
                         'address': address,
-                        'hash': tx['txid'],
+                        'tx_hash': tx['txid'],
                         'confirmations': tx['confirmations'],
                         'output_n': -1 if 'output_no' not in tx else tx['output_no'],
                         'input_n': -1 if 'input_no' not in tx else tx['input_no'],
@@ -96,13 +96,9 @@ class ChainSo(BaseClient):
                 time.sleep(0.3)
                 if len(res['data']['txs']) < 100:
                     break
-
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
-
-    def getutxos(self, addresslist):
-        return self._gettransactions(addresslist, 'get_tx_unspent')
 
     def gettransactions(self, addresslist):
         txs = []
