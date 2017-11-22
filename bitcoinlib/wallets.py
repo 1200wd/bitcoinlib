@@ -1928,7 +1928,8 @@ class HDWallet:
         key_ids = set()
         for tx in txs:
             # If tx_hash is unknown add it to database, else update
-            db_tx = self._session.query(DbTransaction).filter(DbTransaction.hash == tx['hash']).scalar()
+            db_tx = self._session.query(DbTransaction).\
+                filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).scalar()
             if not db_tx:
                 new_tx = DbTransaction(wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'],
                                        confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'])
@@ -1946,13 +1947,17 @@ class HDWallet:
                     key_id = tx_key.id
                     key_ids.add(key_id)
                     tx_key.used = True
-                db_tx_item = self._session.query(DbTransactionInput).\
+                tx_input = self._session.query(DbTransactionInput).\
                     filter_by(transaction_id=tx_id, input_n=ti['input_n']).scalar()
-                if not db_tx_item:
+                if not tx_input:
                     new_tx_item = DbTransactionInput(transaction_id=tx_id, input_n=ti['input_n'], key_id=key_id,
                                                      value=ti['value'], prev_hash=ti['prev_hash'])
                     self._session.add(new_tx_item)
-                    self._session.commit()
+                elif key_id:
+                    tx_input.key_id = key_id
+                    if ti['prev_hash']:
+                        tx_input.prev_hash = ti['prev_hash']
+                self._session.commit()
             for to in tx['outputs']:
                 tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,
                                                               address=to['address']).scalar()
