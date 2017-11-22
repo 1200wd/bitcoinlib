@@ -21,8 +21,7 @@
 import logging
 import time
 from datetime import datetime
-from bitcoinlib.services.baseclient import BaseClient
-from bitcoinlib.services.services import ServiceError
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 
 
 _logger = logging.getLogger(__name__)
@@ -121,7 +120,7 @@ class ChainSo(BaseClient):
                     })
                 if 'incoming' in tx:
                     if len(tx['incoming']['inputs']) > 1:
-                        raise ServiceError("Chainso client: More then one input in incoming tx not supported")
+                        raise ClientError("Chainso client: More then one input in incoming tx not supported")
                     next((item for item in txs if item['hash'] == tx['txid']))['inputs'].append({
                         'prev_hash': tx['incoming']['inputs'][0]['received_from']['txid'],
                         'input_n': tx['incoming']['inputs'][0]['received_from']['output_no'],
