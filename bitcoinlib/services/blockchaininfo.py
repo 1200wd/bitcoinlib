@@ -19,6 +19,7 @@
 #
 
 import logging
+from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
 
 PROVIDERNAME = 'blockchaininfo'
@@ -66,8 +67,47 @@ class BlockchainInfoClient(BaseClient):
         return utxos
 
     def gettransactions(self, addresslist):
-        # TODO: write this method if possible
-        pass
+        addresses = "|".join(addresslist)
+        txs = []
+        variables = {'active': addresses, 'limit': 100}
+        # res = self.compose_request('multiaddr', variables=variables)
+        res = {'info': {'symbol_local': {'symbol': '$', 'symbolAppearsAfter': False, 'name': 'U.S. dollar', 'code': 'USD', 'local': True, 'conversion': 12058.88595188}, 'latest_block': {'hash': '0000000000000000006832ac69aa0eb190dc20a08b982310d236b02827d90dda', 'block_index': 1641090, 'time': 1511348622, 'height': 495576}, 'symbol_btc': {'symbol': 'BTC', 'symbolAppearsAfter': True, 'name': 'Bitcoin', 'code': 'BTC', 'local': False, 'conversion': 100000000.0}, 'nconnected': 0, 'conversion': 100000000.0}, 'wallet': {'total_sent': 0, 'n_tx_filtered': 2, 'total_received': 9000, 'n_tx': 2, 'final_balance': 9000}, 'txs': [{'vout_sz': 3, 'ver': 1, 'tx_index': 153235888, 'double_spend': False, 'vin_sz': 1, 'block_height': 415336, 'weight': 1040, 'balance': 9000, 'time': 1465378572, 'inputs': [{'prev_out': {'type': 0, 'addr_tag': 'Please help student', 'value': 9738, 'addr': '13erKEzxsbYM68UpaqwfeGzSoVrcS4T4GM', 'n': 0, 'tx_index': 141579440, 'spent': True, 'script': '76a9141d18cecdfbfe6a8fd9b59fe52f48a7e8ee84387c88ac'}, 'witness': '', 'script': '483045022100e40f8f3513f8adbd69cec6f5b1b8fa2110724c5ad472bc8a6a72b479f71891c7022050cb537d115337f182cfe5728fed531297a93bbe8eb33a6bd22b3e161754e30a012103c35334ae22227e869a681cf89d603b57d14346bf194b01ab097499d9ed6f93b6', 'sequence': 4294967294}], 'size': 260, 'lock_time': 410835, 'result': 3500, 'hash': 'd36b4294a5c84650489e9b317b9482c3a0e4184c0982fb88af6d7f78bf0fd175', 'relayed_by': '0.0.0.0', 'out': [{'type': 0, 'value': 3500, 'addr': '15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd', 'n': 2, 'tx_index': 153235888, 'spent': False, 'script': '76a914334e656c736f6e2d4d616e64656c612e6a70673f88ac'}], 'fee': 2600}, {'vout_sz': 32, 'ver': 1, 'tx_index': 44222775, 'double_spend': False, 'vin_sz': 1, 'block_height': 273536, 'weight': 4984, 'balance': 5500, 'time': 1386401628, 'inputs': [{'prev_out': {'type': 0, 'value': 15724500, 'addr': '16LseQUKmhA1XUq39QmxNg9c1bPQq6Jxvh', 'n': 3, 'tx_index': 44217743, 'spent': True, 'script': '76a9143a9acef57a9b6c9308360ba4d801796a4d1bfe1488ac'}, 'witness': '', 'script': '4830450220454506f817e7a96f56bc5b1e27365e7e00b838652fa95172fe08259117ff998c022100c227681ea312e5d6dea791c54f4065f6e964127838da2262e936eb746a09229f0121030c8d5aaf2213561bb70d5acf01b8c54794568642cb5068424ab11c914619818a', 'sequence': 4294967295}], 'size': 1246, 'lock_time': 0, 'result': 5500, 'hash': '8881a937a437ff6ce83be3a89d77ea88ee12315f37f7ef0dd3742c30eef92dba', 'relayed_by': '85.17.239.32', 'out': [{'type': 0, 'value': 5500, 'addr': '15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd', 'n': 21, 'tx_index': 44222775, 'spent': False, 'script': '76a914334e656c736f6e2d4d616e64656c612e6a70673f88ac'}], 'fee': 20000}], 'recommend_include_fee': True, 'addresses': [{'total_sent': 0, 'total_received': 9000, 'account_index': 0, 'n_tx': 2, 'final_balance': 9000, 'change_index': 0, 'address': '15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd'}]}
+        for tx in res['txs']:
+            inputs = []
+            outputs = []
+            for ti in tx['inputs']:
+                inputs.append({
+                    'prev_hash': '',
+                    'input_n': ti['prev_out']['n'],
+                    'address': ti['prev_out']['addr'],
+                    'value': int(round(ti['prev_out']['value'] * self.units, 0)),
+                    'double_spend': tx['double_spend'],
+                    'script': ti['prev_out']['script'],
+                })
+            for to in tx['out']:
+                outputs.append({
+                    'address': to['addr'],
+                    'output_n': to['n'],
+                    'value': int(round(float(to['value']) * self.units, 0)),
+                    'spent': to['spent'],
+                    'script': to['script'],
+                })
+            status = 'unconfirmed'
+            if tx['confirmations']:
+                status = 'confirmed'
+            txs.append({
+                'hash': tx['hash'],
+                'date': datetime.fromtimestamp(tx['time']),
+                'confirmations': tx['confirmations'],
+                'block_height': tx['blockheight'],
+                'fee': int(round(float(tx['fees']) * self.units, 0)),
+                'size': tx['size'],
+                'inputs': inputs,
+                'outputs': outputs,
+                'status': status
+            })
+
+        return res
 
     def getrawtransaction(self, txid):
         res = self.compose_request('rawtx', txid, {'format': 'hex'})
