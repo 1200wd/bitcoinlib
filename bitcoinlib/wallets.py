@@ -156,6 +156,9 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
         session.query(DbKeyMultisigChildren).filter_by(child_id=k.id).delete()
     ks.delete()
 
+    # Delete transactions from this wallet (remove wallet_id)
+    session.query(DbTransaction).filter_by(wallet_id=wallet_id).update({DbTransaction.wallet_id: None})
+
     res = w.delete()
     session.commit()
     session.close()
@@ -1957,6 +1960,9 @@ class HDWallet:
                     tx_input.key_id = key_id
                     if ti['prev_hash']:
                         tx_input.prev_hash = ti['prev_hash']
+                    if ti['script']:
+                        tx_input.script = ti['script']
+
                 self._session.commit()
             for to in tx['outputs']:
                 tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,
