@@ -1934,6 +1934,10 @@ class HDWallet:
             db_tx = self._session.query(DbTransaction).\
                 filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).scalar()
             if not db_tx:
+                db_tx = self._session.query(DbTransaction).filter(DbTransaction.wallet_id == None, DbTransaction.hash == tx['hash']).scalar()
+                if db_tx:
+                    db_tx.wallet_id = self.wallet_id
+            if not db_tx:
                 new_tx = DbTransaction(wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'],
                                        confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'])
                 self._session.add(new_tx)
