@@ -53,6 +53,8 @@ class ChainSo(BaseClient):
             variables = {}
         if self.api_key:
             variables.update({'api_key': self.api_key})
+        # Sleep for 0.2 seconds to avoid 429 errors
+        time.sleep(0.2)
         return self.request(url_path, variables, method)
 
     def getrawtransaction(self, txid):
@@ -92,52 +94,68 @@ class ChainSo(BaseClient):
                         'date': datetime.fromtimestamp(tx['time']),
                     })
                     lasttx = tx['txid']
-                time.sleep(0.3)
                 if len(res['data']['txs']) < 100:
                     break
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
 
-    # FIXME: Disabled because Chainso returns incomplete transactions, ie missing inputs
-    # The way to go is probably first get all transactions-ids for an address and query for the transactions seperately. Although Chainso has a pretty strict query limit, so this might not be workable
-    # def gettransactions(self, addresslist):
-    #     txs = []
-    #     for address in addresslist:
-    #         res = self.compose_request('address', address)
-    #         if res['status'] != 'success':
-    #             pass
-    #         for tx in res['data']['txs']:
-    #             if tx['txid'] not in [t['hash'] for t in txs]:
-    #                 txs.append({
-    #                     'hash': tx['txid'],
-    #                     'date': datetime.fromtimestamp(tx['time']),
-    #                     'confirmations': tx['confirmations'],
-    #                     'block_height': tx['block_no'],
-    #                     'fee': None,
-    #                     'size': 0,
-    #                     'inputs': [],
-    #                     'outputs': [],
-    #                     'status': 'incomplete',
-    #                 })
-    #             if 'incoming' in tx:
-    #                 if len(tx['incoming']['inputs']) > 1:
-    #                     raise ClientError("Chainso client: More then one input in incoming tx not supported")
-    #                 next((item for item in txs if item['hash'] == tx['txid']))['inputs'].append({
-    #                     'prev_hash': tx['incoming']['inputs'][0]['received_from']['txid'],
-    #                     'input_n': tx['incoming']['inputs'][0]['received_from']['output_no'],
-    #                     'address': tx['incoming']['inputs'][0]['address'],
-    #                     'value': int(round(float(tx['incoming']['value']) * self.units, 0)),
-    #                     'double_spend': None,
-    #                     'script': tx['incoming']['script_hex']
-    #                 })
-    #             if 'outgoing' in tx:
-    #                 for tx_outp in tx['outgoing']['outputs']:
-    #                     next((item for item in txs if item['hash'] == tx['txid']))['outputs'].append({
-    #                             'address': tx_outp['address'],
-    #                             'output_n': tx_outp['output_no'],
-    #                             'value': int(round(float(tx_outp['value']) * self.units, 0)),
-    #                             'spent': bool(tx_outp['spent']),
-    #                             'script': ''
-    #                         })
-    #     return txs
+    def gettransactions(self, addresslist):
+        txs = []
+        tx_ids = []
+        for address in addresslist:
+            res = self.compose_request('address', address)
+            if res['status'] != 'success':
+                pass
+            for tx in res['data']['txs']:
+                if tx['txid'] not in tx_ids:
+                    tx_ids.append(tx['txid'])
+
+        for tx_hash in tx_ids:
+            res = self.compose_request('get_tx', tx_hash)
+            tx = res['data']
+            inputs = []
+            outputs = []
+            input_total = 0
+            output_total = 0
+            for ti in tx['inputs']:
+                value = int(round(float(ti['value']) * self.units, 0))
+                inputs.append({
+                    'prev_hash': ti['from_output']['txid'],
+                    'input_n': ti['from_output']['output_no'],
+                    'address': ti['address'],
+                    'value': value,
+                    'double_spend': None,
+                    'script': '',
+                })
+                input_total += value
+            for to in tx['outputs']:
+                value = int(round(float(to['value']) * self.units, 0))
+                outputs.append({
+                    'address': to['address'],
+                    'output_n': to['output_no'],
+                    'value': value,
+                    'spent': None,
+                    'script': '',
+                })
+                output_total += value
+            status = 'unconfirmed'
+            fee = input_total - output_total
+            if tx['confirmations']:
+                status = 'confirmed'
+            txs.append({
+                'hash': tx_hash,
+                'date': datetime.fromtimestamp(tx['time']),
+                'confirmations': tx['confirmations'],
+                'block_height': None,
+                'fee': fee,
+                'size': tx['size'],
+                'inputs': inputs,
+                'outputs': outputs,
+                'input_total': input_total,
+                'output_total': output_total,
+                'raw': tx['tx_hex'],
+                'network': self.network,
+                'status': status,
+            })
+        return txs
