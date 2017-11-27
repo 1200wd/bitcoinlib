@@ -1934,7 +1934,8 @@ class HDWallet:
             db_tx = self._session.query(DbTransaction).\
                 filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).scalar()
             if not db_tx:
-                db_tx = self._session.query(DbTransaction).filter(DbTransaction.wallet_id == None, DbTransaction.hash == tx['hash']).scalar()
+                db_tx = self._session.query(DbTransaction).\
+                    filter(DbTransaction.wallet_id.is_(None), DbTransaction.hash == tx['hash']).scalar()
                 if db_tx:
                     db_tx.wallet_id = self.wallet_id
             if not db_tx:
@@ -1948,7 +1949,7 @@ class HDWallet:
 
             assert tx_id
             for ti in tx['inputs']:
-                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=ti['address']).scalar()
+                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,  address=ti['address']).scalar()
                 key_id = None
                 if tx_key:
                     key_id = tx_key.id
@@ -1969,16 +1970,15 @@ class HDWallet:
 
                 self._session.commit()
             for to in tx['outputs']:
-                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,
-                                                              address=to['address']).scalar()
+                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,  address=to['address']).scalar()
                 key_id = None
                 if tx_key:
                     key_id = tx_key.id
                     key_ids.add(key_id)
                     tx_key.used = True
-                db_tx_item = self._session.query(DbTransactionOutput). \
+                tx_output = self._session.query(DbTransactionOutput). \
                     filter_by(transaction_id=tx_id, output_n=to['output_n']).scalar()
-                if not db_tx_item:
+                if not tx_output:
                     spent = to['spent']
                     if spent is None:
                         no_spent_info = True
@@ -1986,7 +1986,10 @@ class HDWallet:
                     new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=to['output_n'], key_id=key_id,
                                                       value=to['value'], spent=spent)
                     self._session.add(new_tx_item)
-                    self._session.commit()
+                elif key_id:
+                    tx_output.key_id = key_id
+
+                self._session.commit()
         if no_spent_info:
             key_ids = [k.id for k in self.keys()]
             self._utxos_update_from_transactions(list(key_ids))
