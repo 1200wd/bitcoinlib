@@ -234,10 +234,11 @@ class DbTransactionInput(Base):
     __tablename__ = 'transaction_inputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='inputs')
-    input_n = Column(Integer, default=0, primary_key=True)
+    index_n = Column(Integer, default=0, primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_inputs")
     prev_hash = Column(String(64))
+    output_n = Column(Integer)
     script = Column(String)
     script_type = Column(String, default='p2pkh')
     sequence = Column(Integer)

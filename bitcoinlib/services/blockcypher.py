@@ -83,8 +83,9 @@ class BlockCypher(BaseClient):
                         })
                     if tx['tx_input_n'] != -1:
                         next((item for item in txs if item['hash'] == tx['tx_hash']))['inputs'].append({
+                            'index_n': None,
                             'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
-                            'input_n': tx['tx_input_n'],
+                            'output_n': tx['tx_input_n'],
                             'address': address,
                             'value': int(round(tx['value'] * self.units, 0)),
                             'double_spend': tx['double_spend'],

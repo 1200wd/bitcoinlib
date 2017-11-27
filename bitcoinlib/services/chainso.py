@@ -121,8 +121,9 @@ class ChainSo(BaseClient):
             for ti in tx['inputs']:
                 value = int(round(float(ti['value']) * self.units, 0))
                 inputs.append({
+                    'index_n': ti['input_no'],
                     'prev_hash': ti['from_output']['txid'],
-                    'input_n': ti['from_output']['output_no'],
+                    'output_n': ti['from_output']['output_no'],
                     'address': ti['address'],
                     'value': value,
                     'double_spend': None,

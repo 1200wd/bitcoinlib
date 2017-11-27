@@ -1845,7 +1845,7 @@ class HDWallet:
             for to in outputs:
                 if self._session.query(DbTransactionInput).\
                         filter_by(key_id=key_id, prev_hash=to.transaction.hash,
-                                  input_n=to.output_n).scalar():
+                                  output_n=to.output_n).scalar():
                     to.spent = True
         self._session.commit()
 
@@ -1924,7 +1924,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network)
+        srv = Service(network=network, providers=['blockcypher'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -1958,9 +1958,9 @@ class HDWallet:
                     tx_key.used = True
                     key_ids.add(key_id)
                 tx_input = self._session.query(DbTransactionInput).\
-                    filter_by(transaction_id=tx_id, input_n=ti['input_n']).scalar()
+                    filter_by(transaction_id=tx_id, output_n=ti['output_n']).scalar()
                 if not tx_input:
-                    new_tx_item = DbTransactionInput(transaction_id=tx_id, input_n=ti['input_n'], key_id=key_id,
+                    new_tx_item = DbTransactionInput(transaction_id=tx_id, output_n=ti['output_n'], key_id=key_id,
                                                      value=ti['value'], prev_hash=ti['prev_hash'])
                     self._session.add(new_tx_item)
                 elif key_id:
@@ -2041,7 +2041,7 @@ class HDWallet:
             u['confirmations'] = int(tx[2])
             u['tx_hash'] = tx[3]
             u['network_name'] = tx[4]
-            if 'input_n' in u:
+            if 'index_n' in u:
                 u['value'] = -u['value']
             res.append(u)
         return res
@@ -2522,7 +2522,8 @@ class HDWallet:
                 spent = ""
                 if 'spent' in t and t['spent'] is False:
                     spent = "U"
-                print("%4d %64s %36s %8d %13d %s" % (t['transaction_id'], t['tx_hash'], t['address'], t['confirmations'], t['value'], spent))
+                print("%4d %64s %36s %8d %13d %s" % (t['transaction_id'], t['tx_hash'], t['address'],
+                                                     t['confirmations'], t['value'], spent))
 
         print("\n")
 
