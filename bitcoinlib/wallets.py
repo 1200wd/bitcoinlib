@@ -1923,7 +1923,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['chainso'])
+        srv = Service(network=network)
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -1955,6 +1955,7 @@ class HDWallet:
                     key_id = tx_key.id
                     key_ids.add(key_id)
                     tx_key.used = True
+                    key_ids.add(key_id)
                 tx_input = self._session.query(DbTransactionInput).\
                     filter_by(transaction_id=tx_id, input_n=ti['input_n']).scalar()
                 if not tx_input:
@@ -1976,13 +1977,13 @@ class HDWallet:
                     key_id = tx_key.id
                     key_ids.add(key_id)
                     tx_key.used = True
+                    key_ids.add(key_id)
+                spent = to['spent']
+                if spent is None:
+                    no_spent_info = True
                 tx_output = self._session.query(DbTransactionOutput). \
                     filter_by(transaction_id=tx_id, output_n=to['output_n']).scalar()
                 if not tx_output:
-                    spent = to['spent']
-                    if spent is None:
-                        no_spent_info = True
-
                     new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=to['output_n'], key_id=key_id,
                                                       value=to['value'], spent=spent)
                     self._session.add(new_tx_item)
@@ -1991,7 +1992,6 @@ class HDWallet:
 
                 self._session.commit()
         if no_spent_info:
-            key_ids = [k.id for k in self.keys()]
             self._utxos_update_from_transactions(list(key_ids))
         return True
 

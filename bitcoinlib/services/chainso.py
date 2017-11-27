@@ -53,8 +53,8 @@ class ChainSo(BaseClient):
             variables = {}
         if self.api_key:
             variables.update({'api_key': self.api_key})
-        # Sleep for 0.2 seconds to avoid 429 errors
-        time.sleep(0.2)
+        # Sleep for n seconds to avoid 429 errors
+        time.sleep(0.3)
         return self.request(url_path, variables, method)
 
     def getrawtransaction(self, txid):
