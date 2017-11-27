@@ -1844,7 +1844,8 @@ class HDWallet:
             outputs = self._session.query(DbTransactionOutput).filter_by(key_id=key_id).all()
             for to in outputs:
                 if self._session.query(DbTransactionInput).\
-                        filter_by(prev_hash=to.transaction.hash, input_n=to.output_n).scalar():
+                        filter_by(key_id=key_id, prev_hash=to.transaction.hash,
+                                  input_n=to.output_n).scalar():
                     to.spent = True
         self._session.commit()
 
