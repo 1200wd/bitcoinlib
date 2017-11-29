@@ -1959,7 +1959,7 @@ class HDWallet:
                     tx_key.used = True
                     key_ids.add(key_id)
                 tx_input = self._session.query(DbTransactionInput).\
-                    filter_by(transaction_id=tx_id, output_n=ti['index_n']).scalar()
+                    filter_by(transaction_id=tx_id, output_n=ti['output_n']).scalar()
                 if not tx_input:
                     index_n = ti['index_n']
                     if index_n is None:

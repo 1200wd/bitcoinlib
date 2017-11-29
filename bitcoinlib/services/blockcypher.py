@@ -89,7 +89,8 @@ class BlockCypher(BaseClient):
                             'address': address,
                             'value': int(round(tx['value'] * self.units, 0)),
                             'double_spend': tx['double_spend'],
-                            'script': ''
+                            'script': '',
+                            'script_type': ''
                         })
                     else:
                         next((item for item in txs if item['hash'] == tx['tx_hash']))['outputs'].append({
@@ -97,7 +98,8 @@ class BlockCypher(BaseClient):
                             'output_n': tx['tx_output_n'],
                             'value': int(round(tx['value'] * self.units, 0)),
                             'spent': None if 'spent' not in tx else tx['spent'],
-                            'script': ''
+                            'script': '',
+                            'script_type': ''
                         })
         return txs
 
