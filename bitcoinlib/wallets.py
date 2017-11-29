@@ -1924,7 +1924,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['blockcypher'])
+        srv = Service(network=network, providers=['chainso'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -1940,8 +1940,9 @@ class HDWallet:
                 if db_tx:
                     db_tx.wallet_id = self.wallet_id
             if not db_tx:
-                new_tx = DbTransaction(wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'],
-                                       confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'])
+                new_tx = DbTransaction(
+                    wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'], size=tx['size'],
+                    confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'])
                 self._session.add(new_tx)
                 self._session.commit()
                 tx_id = new_tx.id
@@ -1971,7 +1972,7 @@ class HDWallet:
                     new_tx_item = DbTransactionInput(
                         transaction_id=tx_id, output_n=ti['output_n'], key_id=key_id, value=ti['value'],
                         prev_hash=ti['prev_hash'], index_n=index_n, double_spend=ti['double_spend'],
-                        script=ti['script'])
+                        script=ti['script'], script_type=ti['script_type'])
                     self._session.add(new_tx_item)
                 elif key_id:
                     tx_input.key_id = key_id
@@ -1995,8 +1996,9 @@ class HDWallet:
                 tx_output = self._session.query(DbTransactionOutput). \
                     filter_by(transaction_id=tx_id, output_n=to['output_n']).scalar()
                 if not tx_output:
-                    new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=to['output_n'], key_id=key_id,
-                                                      value=to['value'], spent=spent, script=to['script'])
+                    new_tx_item = DbTransactionOutput(
+                        transaction_id=tx_id, output_n=to['output_n'], key_id=key_id,  value=to['value'], spent=spent,
+                        script=to['script'], script_type=to['script_type'])
                     self._session.add(new_tx_item)
                 elif key_id:
                     tx_output.key_id = key_id

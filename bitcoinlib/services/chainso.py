@@ -128,6 +128,7 @@ class ChainSo(BaseClient):
                     'value': value,
                     'double_spend': None,
                     'script': '',
+                    'script_type': ''
                 })
                 input_total += value
             for to in tx['outputs']:
@@ -138,6 +139,7 @@ class ChainSo(BaseClient):
                     'value': value,
                     'spent': None,
                     'script': '',
+                    'script_type': ''
                 })
                 output_total += value
             status = 'unconfirmed'

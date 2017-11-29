@@ -100,7 +100,7 @@ class DbWallet(Base):
     parent_id = Column(Integer, ForeignKey('wallets.id'))
     children = relationship("DbWallet", lazy="joined", join_depth=2)
 
-    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='allowed_schemes'),)
+    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='constrained_allowed_schemes'),)
 
     def __repr__(self):
         return "<DbWallet(name='%s', network='%s'>" % (self.name, self.network_name)
@@ -158,11 +158,11 @@ class DbKey(Base):
                                      primaryjoin=id == DbKeyMultisigChildren.parent_id)
 
     __table_args__ = (
-        CheckConstraint(key_type.in_(['single', 'bip32', 'multisig'])),
-        UniqueConstraint('wallet_id', 'public', name='_wallet_key_uc'),
-        UniqueConstraint('wallet_id', 'private', name='_wallet_key_uc'),
-        UniqueConstraint('wallet_id', 'wif', name='_wallet_wif_uc'),
-        UniqueConstraint('wallet_id', 'address', name='_wallet_address_uc'),
+        CheckConstraint(key_type.in_(['single', 'bip32', 'multisig']), name='constraint_key_types_allowed'),
+        UniqueConstraint('wallet_id', 'public', name='constraint_wallet_pubkey_unique'),
+        UniqueConstraint('wallet_id', 'private', name='constraint_wallet_privkey_unique'),
+        UniqueConstraint('wallet_id', 'wif', name='constraint_wallet_wif_unique'),
+        UniqueConstraint('wallet_id', 'address', name='constraint_wallet_address_unique'),
     )
 
     def __repr__(self):
@@ -216,8 +216,9 @@ class DbTransaction(Base):
     # TODO: Add network field (?)
 
     __table_args__ = (
-        UniqueConstraint('wallet_id', 'hash', name='_transaction_hash_wallet_uc'),
-        CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed'])),
+        UniqueConstraint('wallet_id', 'hash', name='constraint_wallet_transaction_hash_unique'),
+        CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed']),
+                        name='constraint_status_allowed'),
     )
 
     def __repr__(self):
@@ -245,7 +246,8 @@ class DbTransactionInput(Base):
     value = Column(Integer, default=0)
     double_spend = Column(Boolean, default=False)
 
-    __table_args__ = (CheckConstraint(script_type.in_(['p2pkh', 'multisig', 'p2sh'])),)
+    __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh', 'multisig', 'p2sh']),
+                                      name='constraint_script_types_allowed'),)
 
 
 class DbTransactionOutput(Base):
@@ -269,7 +271,8 @@ class DbTransactionOutput(Base):
     spent = Column(Boolean(), default=False)
 
     # TODO: sig_pubkey ?
-    __table_args__ = (CheckConstraint(script_type.in_(['pubkey', 'nulldata', 'multisig', 'p2sh_multisig'])),)
+    __table_args__ = (CheckConstraint(script_type.in_(['', 'pubkey', 'nulldata', 'multisig', 'p2sh_multisig']),
+                                      name='constraint_script_types_allowed'),)
 
 
 if __name__ == '__main__':
