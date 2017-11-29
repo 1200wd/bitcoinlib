@@ -1958,10 +1958,20 @@ class HDWallet:
                     tx_key.used = True
                     key_ids.add(key_id)
                 tx_input = self._session.query(DbTransactionInput).\
-                    filter_by(transaction_id=tx_id, output_n=ti['output_n']).scalar()
+                    filter_by(transaction_id=tx_id, output_n=ti['index_n']).scalar()
                 if not tx_input:
-                    new_tx_item = DbTransactionInput(transaction_id=tx_id, output_n=ti['output_n'], key_id=key_id,
-                                                     value=ti['value'], prev_hash=ti['prev_hash'])
+                    index_n = ti['index_n']
+                    if index_n is None:
+                        last_index_n = self._session.query(DbTransactionInput.index_n).filter_by(transaction_id=tx_id).\
+                            order_by(DbTransactionInput.index_n.desc()).first()
+                        index_n = 0
+                        if last_index_n:
+                            index_n = last_index_n + 1
+
+                    new_tx_item = DbTransactionInput(
+                        transaction_id=tx_id, output_n=ti['output_n'], key_id=key_id, value=ti['value'],
+                        prev_hash=ti['prev_hash'], index_n=index_n, double_spend=ti['double_spend'],
+                        script=ti['script'])
                     self._session.add(new_tx_item)
                 elif key_id:
                     tx_input.key_id = key_id
@@ -1986,7 +1996,7 @@ class HDWallet:
                     filter_by(transaction_id=tx_id, output_n=to['output_n']).scalar()
                 if not tx_output:
                     new_tx_item = DbTransactionOutput(transaction_id=tx_id, output_n=to['output_n'], key_id=key_id,
-                                                      value=to['value'], spent=spent)
+                                                      value=to['value'], spent=spent, script=to['script'])
                     self._session.add(new_tx_item)
                 elif key_id:
                     tx_output.key_id = key_id

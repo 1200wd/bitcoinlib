@@ -89,16 +89,19 @@ class BitGoClient(BaseClient):
                     outputs = []
                     # FIXME: Assumes entries are in same order as inputs
                     input_entries = [ie for ie in tx['entries'] if ie['value'] < 0][::-1]
+                    index_n = 0
                     for i in tx['inputs']:
                         ti = input_entries.pop()
                         inputs.append({
+                            'index_n': index_n,
                             'prev_hash': i['previousHash'],
-                            'input_n': i['previousOutputIndex'],
+                            'output_n': i['previousOutputIndex'],
                             'address': ti['account'],
                             'value': int(round(-ti['value'] * self.units, 0)),
                             'double_spend': None,
                             'script': ''
                         })
+                        index_n += 1
                     for to in tx['outputs']:
                         outputs.append({
                             'output_n': to['vout'],
