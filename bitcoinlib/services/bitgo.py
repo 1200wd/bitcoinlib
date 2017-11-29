@@ -99,7 +99,8 @@ class BitGoClient(BaseClient):
                             'address': ti['account'],
                             'value': int(round(-ti['value'] * self.units, 0)),
                             'double_spend': None,
-                            'script': ''
+                            'script': '',
+                            'script_type': ''
                         })
                         index_n += 1
                     for to in tx['outputs']:
@@ -108,7 +109,8 @@ class BitGoClient(BaseClient):
                             'address': to['account'],
                             'value': int(round(to['value'] * self.units, 0)),
                             'spent': None,
-                            'script': ''
+                            'script': '',
+                            'script_type': ''
                         })
                     status = 'unconfirmed'
                     if tx['confirmations']:
