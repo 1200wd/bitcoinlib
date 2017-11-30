@@ -92,9 +92,9 @@ class BitGoClient(BaseClient):
                     # FIXME: Assumes entries are in same order as inputs
                     input_entries = [ie for ie in tx['entries'] if ie['value'] < 0][::-1]
                     index_n = 0
-                    value = int(round(-ti['value'] * self.units, 0))
                     for i in tx['inputs']:
                         ti = input_entries.pop()
+                        value = int(round(-ti['value'] * self.units, 0))
                         inputs.append({
                             'index_n': index_n,
                             'prev_hash': i['previousHash'],
@@ -132,7 +132,7 @@ class BitGoClient(BaseClient):
                         'outputs': outputs,
                         'input_total': input_total,
                         'output_total': output_total,
-                        # 'raw': tx['tx_hex'],
+                        'raw': '',
                         'network': self.network,
                         'status': status
                     })

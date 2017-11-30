@@ -62,9 +62,9 @@ class BlockExplorerClient(BaseClient):
             for ti in tx['vin']:
                 value = int(round(ti['value'] * self.units, 0))
                 inputs.append({
-                    'index_n': 0,
+                    'index_n': ti['vout'],
                     'prev_hash': ti['txid'],
-                    'input_n': ti['n'],
+                    'output_n': ti['n'],
                     'address': ti['addr'],
                     'value': value,
                     'double_spend': False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'],
@@ -98,7 +98,7 @@ class BlockExplorerClient(BaseClient):
                 'outputs': outputs,
                 'input_total': input_total,
                 'output_total': output_total,
-                # 'raw': tx['tx_hex'],
+                'raw': '',
                 'network': self.network,
                 'status': status
             })

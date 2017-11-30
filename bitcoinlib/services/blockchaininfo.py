@@ -81,11 +81,12 @@ class BlockchainInfoClient(BaseClient):
                 value = int(round(ti['prev_out']['value'] * self.units, 0))
                 inputs.append({
                     'prev_hash': '',
-                    'input_n': ti['prev_out']['n'],
+                    'output_n': ti['prev_out']['n'],
                     'address': ti['prev_out']['addr'],
                     'value': value,
                     'double_spend': tx['double_spend'],
                     'script': ti['prev_out']['script'],
+                    'script_type': '',
                 })
                 input_total += value
             for to in tx['out']:
@@ -96,6 +97,7 @@ class BlockchainInfoClient(BaseClient):
                     'value': value,
                     'spent': to['spent'],
                     'script': to['script'],
+                    'script_type': '',
                 })
                 output_total += value
             status = 'unconfirmed'
@@ -113,7 +115,7 @@ class BlockchainInfoClient(BaseClient):
                 'outputs': outputs,
                 'input_total': input_total,
                 'output_total': output_total,
-                # 'raw': tx['tx_hex'],
+                'raw': '',
                 'network': self.network,
                 'status': status
             })
