@@ -92,24 +92,33 @@ class BlockTrail(BaseClient):
                         break
                     inputs = []
                     outputs = []
+                    input_total = 0
+                    output_total = 0
                     for ti in tx['inputs']:
+                        value = int(round(ti['value'] * self.units, 0))
                         inputs.append({
+                            'index_n': 0,
                             'prev_hash': ti['output_hash'],
                             'input_n': ti['output_index'],
                             'address': ti['address'],
-                            'value': int(round(ti['value'] * self.units, 0)),
+                            'value': value,
                             'double_spend': None,
-                            'script': ti['script_signature']
+                            'script': ti['script_signature'],
+                            'script_type': ''
                             # TODO: Add 'script_type': ti['type']
                         })
+                        input_total += value
                     for to in tx['outputs']:
+                        value = int(round(to['value'] * self.units, 0))
                         outputs.append({
                             'output_n': to['index'],
                             'address': to['address'],
-                            'value': int(round(to['value'] * self.units, 0)),
+                            'value': value,
                             'spent': bool(to['spent_hash']),
-                            'script': to['script_hex']
+                            'script': to['script_hex'],
+                            'script_type': ''
                         })
+                        output_total += value
                     status = 'unconfirmed'
                     if tx['confirmations']:
                         status = 'confirmed'
@@ -122,6 +131,10 @@ class BlockTrail(BaseClient):
                         'size': 0,
                         'inputs': inputs,
                         'outputs': outputs,
+                        'input_total': input_total,
+                        'output_total': output_total,
+                        # 'raw': tx['tx_hex'],
+                        'network': self.network,
                         'status': status
                     })
                 if current_page*200 > int(res['total']):

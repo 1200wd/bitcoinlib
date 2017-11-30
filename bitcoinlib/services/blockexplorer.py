@@ -57,24 +57,33 @@ class BlockExplorerClient(BaseClient):
         for tx in res['items']:
             inputs = []
             outputs = []
+            input_total = 0
+            output_total = 0
             for ti in tx['vin']:
+                value = int(round(ti['value'] * self.units, 0))
                 inputs.append({
+                    'index_n': 0,
                     'prev_hash': ti['txid'],
                     'input_n': ti['n'],
                     'address': ti['addr'],
-                    'value': int(round(ti['value'] * self.units, 0)),
+                    'value': value,
                     'double_spend': False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'],
                     'script': ti['scriptSig']['hex'],
+                    'script_type': '',
                 })
+                input_total += value
             for to in tx['vout']:
                 # FIXME: What about multisig addresses...
+                int(round(float(to['value']) * self.units, 0))
                 outputs.append({
                     'address': to['scriptPubKey']['addresses'][0],
                     'output_n': to['n'],
-                    'value': int(round(float(to['value']) * self.units, 0)),
+                    'value': value,
                     'spent': True if to['spentTxId'] else False,
                     'script': to['scriptPubKey']['hex'],
+                    'script_type': '',
                 })
+                output_total += value
             status = 'unconfirmed'
             if tx['confirmations']:
                 status = 'confirmed'
@@ -87,6 +96,10 @@ class BlockExplorerClient(BaseClient):
                 'size': tx['size'],
                 'inputs': inputs,
                 'outputs': outputs,
+                'input_total': input_total,
+                'output_total': output_total,
+                # 'raw': tx['tx_hex'],
+                'network': self.network,
                 'status': status
             })
 

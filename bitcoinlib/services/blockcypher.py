@@ -79,6 +79,10 @@ class BlockCypher(BaseClient):
                             'size': 0,
                             'inputs': [],
                             'outputs': [],
+                            'input_total': 0,
+                            'output_total': 0,
+                            'raw': '',
+                            'network': self.network,
                             'status': 'incomplete',
                         })
                     if tx['tx_input_n'] != -1:

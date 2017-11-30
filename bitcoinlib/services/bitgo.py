@@ -87,9 +87,12 @@ class BitGoClient(BaseClient):
                         break
                     inputs = []
                     outputs = []
+                    input_total = 0
+                    output_total = 0
                     # FIXME: Assumes entries are in same order as inputs
                     input_entries = [ie for ie in tx['entries'] if ie['value'] < 0][::-1]
                     index_n = 0
+                    value = int(round(-ti['value'] * self.units, 0))
                     for i in tx['inputs']:
                         ti = input_entries.pop()
                         inputs.append({
@@ -97,21 +100,24 @@ class BitGoClient(BaseClient):
                             'prev_hash': i['previousHash'],
                             'output_n': i['previousOutputIndex'],
                             'address': ti['account'],
-                            'value': int(round(-ti['value'] * self.units, 0)),
+                            'value': value,
                             'double_spend': None,
                             'script': '',
                             'script_type': ''
                         })
                         index_n += 1
+                        input_total += value
                     for to in tx['outputs']:
+                        value = int(round(to['value'] * self.units, 0))
                         outputs.append({
                             'output_n': to['vout'],
                             'address': to['account'],
-                            'value': int(round(to['value'] * self.units, 0)),
+                            'value': value,
                             'spent': None,
                             'script': '',
                             'script_type': ''
                         })
+                        output_total += value
                     status = 'unconfirmed'
                     if tx['confirmations']:
                         status = 'confirmed'
@@ -124,6 +130,10 @@ class BitGoClient(BaseClient):
                         'size': 0,
                         'inputs': inputs,
                         'outputs': outputs,
+                        'input_total': input_total,
+                        'output_total': output_total,
+                        # 'raw': tx['tx_hex'],
+                        'network': self.network,
                         'status': status
                     })
                 total = res['total']
