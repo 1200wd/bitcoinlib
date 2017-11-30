@@ -75,23 +75,29 @@ class BlockchainInfoClient(BaseClient):
         for tx in res['txs']:
             inputs = []
             outputs = []
+            input_total = 0
+            output_total = 0
             for ti in tx['inputs']:
+                value = int(round(ti['prev_out']['value'] * self.units, 0))
                 inputs.append({
                     'prev_hash': '',
                     'input_n': ti['prev_out']['n'],
                     'address': ti['prev_out']['addr'],
-                    'value': int(round(ti['prev_out']['value'] * self.units, 0)),
+                    'value': value,
                     'double_spend': tx['double_spend'],
                     'script': ti['prev_out']['script'],
                 })
+                input_total += value
             for to in tx['out']:
+                value = int(round(float(to['value']) * self.units, 0))
                 outputs.append({
                     'address': to['addr'],
                     'output_n': to['n'],
-                    'value': int(round(float(to['value']) * self.units, 0)),
+                    'value': value,
                     'spent': to['spent'],
                     'script': to['script'],
                 })
+                output_total += value
             status = 'unconfirmed'
             confirmations = latest_block - tx['block_height']
             if confirmations:
@@ -105,6 +111,10 @@ class BlockchainInfoClient(BaseClient):
                 'size': tx['size'],
                 'inputs': inputs,
                 'outputs': outputs,
+                'input_total': input_total,
+                'output_total': output_total,
+                # 'raw': tx['tx_hex'],
+                'network': self.network,
                 'status': status
             })
 

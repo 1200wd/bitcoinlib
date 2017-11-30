@@ -1932,14 +1932,22 @@ class HDWallet:
         key_ids = set()
         for tx in txs:
             # If tx_hash is unknown add it to database, else update
-            db_tx = self._session.query(DbTransaction).\
-                filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).scalar()
+            db_tx_query = self._session.query(DbTransaction).\
+                filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash'])
+            db_tx = db_tx_query.scalar()
             if not db_tx:
-                db_tx = self._session.query(DbTransaction).\
-                    filter(DbTransaction.wallet_id.is_(None), DbTransaction.hash == tx['hash']).scalar()
+                db_tx_query = self._session.query(DbTransaction).\
+                    filter(DbTransaction.wallet_id.is_(None), DbTransaction.hash == tx['hash'])
+                db_tx = db_tx_query.scalar()
                 if db_tx:
                     db_tx.wallet_id = self.wallet_id
-            if not db_tx or db_tx.status == 'incomplete':
+                    tx_id = db_tx.id
+                if db_tx and db_tx.status == 'incomplete' and tx['status'] != 'incomplete':
+                    # Delete old transaction and insert again
+                    self._session.query(DbTransaction). \
+                        filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).delete()
+                    db_tx = None
+            if not db_tx:
                 new_tx = DbTransaction(
                     wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'], size=tx['size'],
                     confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'], status=tx['status'])
