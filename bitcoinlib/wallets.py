@@ -1924,7 +1924,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['chainso'])
+        srv = Service(network=network, providers=['bitgo'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -1941,12 +1941,13 @@ class HDWallet:
                 db_tx = db_tx_query.scalar()
                 if db_tx:
                     db_tx.wallet_id = self.wallet_id
-                    tx_id = db_tx.id
-                if db_tx and db_tx.status == 'incomplete' and tx['status'] != 'incomplete':
-                    # Delete old transaction and insert again
-                    self._session.query(DbTransaction). \
-                        filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).delete()
-                    db_tx = None
+            if db_tx and db_tx.status == 'incomplete' and tx['status'] != 'incomplete':
+                # Delete old transaction and insert again
+                self._session.query(DbTransaction). \
+                    filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).delete()
+                #TODO: also delete inputs/outputs
+                self._session.commit()
+                db_tx = None
             if not db_tx:
                 new_tx = DbTransaction(
                     wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'], size=tx['size'],
