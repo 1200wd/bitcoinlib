@@ -1954,6 +1954,8 @@ class HDWallet:
                 self._session.add(new_tx)
                 self._session.commit()
                 tx_id = new_tx.id
+            else:
+                tx_id = db_tx.id
 
             assert tx_id
             for ti in tx['inputs']:
