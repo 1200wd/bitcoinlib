@@ -22,10 +22,10 @@ from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren
 DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib.backup-%s.sqlite" %
                                datetime.now().strftime("%Y%m%d-%I:%M"))
 
-print("Old database backuped to %s")
 print("Wallet and Key data will be copied to new database. Transaction data will NOT be copied")
+print("Old database will be backed up to %s" % DATABASE_BACKUP)
 
-if input("Type y to continue: ") != 'y':
+if input("Type 'y' or 'Y' to continue or any other key to cancel: ") in ['y', 'Y']:
     print("Aborted by user")
     sys.exit()
 
