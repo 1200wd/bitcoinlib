@@ -10,6 +10,7 @@
 #
 
 import os
+import sys
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -21,44 +22,69 @@ from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren
 DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib.backup-%s.sqlite" %
                                datetime.now().strftime("%Y%m%d-%I:%M"))
 
+print("Old database backuped to %s")
+print("Wallet and Key data will be copied to new database. Transaction data will NOT be copied")
+
+if input("Type y to continue: ") != 'y':
+    print("Aborted by user")
+    sys.exit()
+
 # Move old database to temporary database
 move(DEFAULT_DATABASE, DATABASE_BACKUP)
 
-# Create new database
-engine = create_engine('sqlite:///%s' % DEFAULT_DATABASE)
-Base.metadata.create_all(engine)
+try:
+    # Create new database
+    engine = create_engine('sqlite:///%s' % DEFAULT_DATABASE)
+    Base.metadata.create_all(engine)
 
-# Copy wallets and keys to new database
-Session = sessionmaker(bind=engine)
-session = Session()
+    # Copy wallets and keys to new database
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-engine_backup = create_engine('sqlite:///%s' % DATABASE_BACKUP)
-Session_backup = sessionmaker(bind=engine_backup)
-session_backup = Session_backup()
+    engine_backup = create_engine('sqlite:///%s' % DATABASE_BACKUP)
+    Session_backup = sessionmaker(bind=engine_backup)
+    session_backup = Session_backup()
 
-wallets = session_backup.query(DbWallet).all()
-for wallet in wallets:
-    fields = wallet.__dict__
-    del(fields['children'])
-    del(fields['_sa_instance_state'])
-    session.add(DbWallet(**fields))
-session.commit()
+    wallets = session_backup.execute("SELECT * FROM wallets")
+    for wallet in wallets:
+        fields = dict(wallet)
 
-keys = session_backup.query(DbKey).all()
-for key in keys:
-    fields = key.__dict__
-    del (fields['_sa_instance_state'])
-    fields['used'] = False  # To force rescan of all keys
-    # db_main_key = DbKey(**fields)
-    session.add(DbKey(**fields))
-session.commit()
+        # Update, rename and delete fields
+        try:
+            del(fields['balance'])
+        except:
+            pass
 
-keysubs = session_backup.query(DbKeyMultisigChildren).all()
-for keysub in keysubs:
-    fields = keysub.__dict__
-    del (fields['_sa_instance_state'])
-    session.add(DbKeyMultisigChildren(**fields))
-session.commit()
+        session.add(DbWallet(**fields))
+    session.commit()
 
-print("Database %s has been updated, backup of old database has been created at %s" %
-      (DEFAULT_DATABASE, DATABASE_BACKUP))
+    keys = session_backup.execute("SELECT * FROM keys")
+    for key in keys:
+        fields = dict(key)
+
+        # Update, rename and delete fields
+        if 'key' in fields:
+            if fields['is_private']:
+                fields['private'] = fields['key']
+            else:
+                fields['public'] = fields['key']
+            del(fields['key'])
+
+        fields['used'] = False  # To force rescan of all keys
+        session.add(DbKey(**fields))
+    session.commit()
+
+    keysubs = session_backup.execute("SELECT * FROM key_multisig_children")
+    for keysub in keysubs:
+        fields = dict(keysub)
+        session.add(DbKeyMultisigChildren(**fields))
+    session.commit()
+
+    print("Database %s has been updated, backup of old database has been created at %s" %
+          (DEFAULT_DATABASE, DATABASE_BACKUP))
+
+except Exception as e:
+    # If ANYTHING goes wrong move back to old database
+    print(e)
+    print("Errors occured, database not updated")
+    move(DATABASE_BACKUP, DEFAULT_DATABASE)
