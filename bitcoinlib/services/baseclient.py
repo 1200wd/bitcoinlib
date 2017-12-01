@@ -61,9 +61,9 @@ class BaseClient(object):
                 url_vars = '?' + urlencode(variables)
             url += url_vars
             _logger.debug("Url request %s" % url)
-            self.resp = requests.get(url)
+            self.resp = requests.get(url, timeout=TIMEOUT_REQUESTS)
         elif method == 'post':
-            self.resp = requests.post(url, json=dict(variables))
+            self.resp = requests.post(url, json=dict(variables), timeout=TIMEOUT_REQUESTS)
 
         resp_text = self.resp.text
         if len(resp_text) > 1000:

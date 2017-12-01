@@ -633,7 +633,7 @@ class Output:
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
-        self.amount = amount
+        self.amount = amount  # TODO rename value
         self.lock_script = to_bytes(lock_script)
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
@@ -774,6 +774,7 @@ class Transaction:
         self.fee_per_kb = None
         self.size = None
         self.change = None
+        # TODO self.status = new, pending, confirmed, view/incomplete, partially signed
 
     def __repr__(self):
         return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \

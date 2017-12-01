@@ -80,6 +80,15 @@
     "priority": 10,
     "denominator": 1
   },
+  "bitgo.testnet": {
+    "provider": "bitgo",
+    "network": "testnet",
+    "client_class": "BitGoClient",
+    "url": "https://testnet.bitgo.com/api/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
   "coinfees": {
     "provider": "coinfees",
     "network": "bitcoin",

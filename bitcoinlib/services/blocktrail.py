@@ -19,6 +19,7 @@
 #
 
 import logging
+from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
 
 _logger = logging.getLogger(__name__)
@@ -78,9 +79,65 @@ class BlockTrail(BaseClient):
             _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
         return utxos
 
-    def address_transactions(self, addresslist):
-        # TODO: write this method if possible
-        pass
+    def gettransactions(self, addresslist):
+        txs = []
+        for address in addresslist:
+            # res = self.compose_request('address', address, 'unspent-outputs')
+            current_page = 1
+            while len(txs) < 2000:
+                variables = {'page': current_page, 'limit': 200}
+                res = self.compose_request('address', address, 'transactions', variables)
+                for tx in res['data']:
+                    if tx['hash'] in [t['hash'] for t in txs]:
+                        break
+                    inputs = []
+                    outputs = []
+                    for ti in tx['inputs']:
+                        inputs.append({
+                            'index_n': 0,
+                            'prev_hash': ti['output_hash'],
+                            'output_n': ti['output_index'],
+                            'address': ti['address'],
+                            'value': int(round(ti['value'] * self.units, 0)),
+                            'double_spend': None,
+                            'script': ti['script_signature'],
+                            'script_type': ''
+                            # TODO: Add 'script_type': ti['type']
+                        })
+                    for to in tx['outputs']:
+                        outputs.append({
+                            'output_n': to['index'],
+                            'address': to['address'],
+                            'value': int(round(to['value'] * self.units, 0)),
+                            'spent': bool(to['spent_hash']),
+                            'script': to['script_hex'],
+                            'script_type': ''
+                        })
+                    status = 'unconfirmed'
+                    if tx['confirmations']:
+                        status = 'confirmed'
+                    txs.append({
+                        'hash': tx['hash'],
+                        'date': datetime.strptime(tx['time'], "%Y-%m-%dT%H:%M:%S+%f"),
+                        'confirmations': tx['confirmations'],
+                        'block_height': tx['block_height'],
+                        'fee': tx['total_fee'],
+                        'size': 0,
+                        'inputs': inputs,
+                        'outputs': outputs,
+                        'input_total': tx['total_input_value'],
+                        'output_total': tx['total_output_value'],
+                        'raw': '',
+                        'network': self.network,
+                        'status': status
+                    })
+                if current_page*200 > int(res['total']):
+                    break
+                current_page += 1
+
+        if len(txs) >= 2000:
+            _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
+        return txs
 
     def estimatefee(self, blocks):
         res = self.compose_request('fee-per-kb', '')

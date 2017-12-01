@@ -33,7 +33,7 @@ CURRENT_INSTALLDIR = os.path.dirname(__file__)
 CURRENT_INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
 DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
-
+TIMEOUT_REQUESTS = 2
 
 if not os.path.exists(DEFAULT_DOCDIR):
     os.makedirs(DEFAULT_DOCDIR)
