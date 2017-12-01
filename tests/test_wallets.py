@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -224,13 +224,14 @@ class TestWalletKeys(unittest.TestCase):
 
     def test_wallet_create_uncompressed_masterkey(self):
         wlt = wallet_create_or_open('uncompressed_test', key='68vBWcBndYGLpd4KmeNTk1gS1A71zyDX6uVQKCxq6umYKyYUav5',
-                                    network='bitcoinlib_test')
+                                    network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
         wlt.get_key()
         wlt.utxos_update()
         self.assertEqual(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY'), 'succesfull_test_sendrawtransaction')
 
     def test_wallet_single_key(self):
-        wlt = wallet_create_or_open('single_key', scheme='single', network='bitcoinlib_test')
+        wlt = wallet_create_or_open('single_key', scheme='single', network='bitcoinlib_test',
+                                    databasefile=DATABASEFILE_UNITTESTS)
         wlt.utxos_update()
         transaction = wlt.transaction_create([('21DQCyZTNRoAccG1TWz9YaffDUKzZf6JWii', 90000000)])
         transaction = wlt.transaction_sign(transaction)
@@ -715,7 +716,8 @@ class TestWalletTransaction(unittest.TestCase):
         hdkey_wif = 'tprv8ZgxMBicQKsPf5exCdeBgnYjJt2LxDcQbv6u9HHymY3qh6EoTy8SGwou5xyvExL3iWfBsZWp3YUyo9gRmxQxrBS2FwGk' \
                     'qjcDhTcyVLhrXXZ'
         hdkey = HDKey(hdkey_wif)
-        wlt = wallet_create_or_open('offline-create-transaction', key=hdkey, network='testnet')
+        wlt = wallet_create_or_open('offline-create-transaction', key=hdkey, network='testnet',
+                                    databasefile=DATABASEFILE_UNITTESTS)
         wlt.get_key()
         utxos = [{
             'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
