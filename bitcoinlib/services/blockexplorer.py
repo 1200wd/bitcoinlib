@@ -91,7 +91,7 @@ class BlockExplorerClient(BaseClient):
                 'date': datetime.fromtimestamp(tx['blocktime']),
                 'confirmations': tx['confirmations'],
                 'block_height': tx['blockheight'],
-                'block_hash': '',
+                'block_hash': tx['blockhash'],
                 'fee': int(round(float(tx['fees']) * self.units, 0)),
                 'size': tx['size'],
                 'inputs': inputs,
