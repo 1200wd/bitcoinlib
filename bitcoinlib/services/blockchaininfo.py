@@ -77,17 +77,20 @@ class BlockchainInfoClient(BaseClient):
             outputs = []
             input_total = 0
             output_total = 0
+            index_n = 0
             for ti in tx['inputs']:
                 value = int(round(ti['prev_out']['value'] * self.units, 0))
                 inputs.append({
+                    'index_n': index_n,
                     'prev_hash': '',
                     'output_n': ti['prev_out']['n'],
                     'address': ti['prev_out']['addr'],
                     'value': value,
                     'double_spend': tx['double_spend'],
-                    'script': ti['prev_out']['script'],
+                    'script': ti['script'],
                     'script_type': '',
                 })
+                index_n += 1
                 input_total += value
             for to in tx['out']:
                 value = int(round(float(to['value']) * self.units, 0))
