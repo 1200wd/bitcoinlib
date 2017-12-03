@@ -1943,9 +1943,9 @@ class HDWallet:
                     db_tx.wallet_id = self.wallet_id
             if db_tx and db_tx.status == 'incomplete' and tx['status'] != 'incomplete':
                 # Delete old transaction and insert again
-                self._session.query(DbTransaction). \
-                    filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).delete()
-                #TODO: also delete inputs/outputs
+                self._session.query(DbTransaction).filter_by(id=db_tx.id).delete()
+                self._session.query(DbTransactionInput).filter_by(transaction_id=db_tx.id).delete()
+                self._session.query(DbTransactionOutput).filter_by(transaction_id=db_tx.id).delete()
                 self._session.commit()
                 db_tx = None
             if not db_tx:
