@@ -73,8 +73,7 @@ class BlockExplorerClient(BaseClient):
                 })
                 input_total += value
             for to in tx['vout']:
-                # FIXME: What about multisig addresses...
-                int(round(float(to['value']) * self.units, 0))
+                value = int(round(float(to['value']) * self.units, 0))
                 outputs.append({
                     'address': to['scriptPubKey']['addresses'][0],
                     'output_n': to['n'],
