@@ -1924,7 +1924,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network)
+        srv = Service(network=network, providers=['bitgo'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -1951,7 +1951,10 @@ class HDWallet:
             if not db_tx:
                 new_tx = DbTransaction(
                     wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'], size=tx['size'],
-                    confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'], status=tx['status'])
+                    confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'], status=tx['status'],
+                    input_total=tx['input_total'], output_total=tx['output_total'], network_name=tx['network'],
+                    raw=tx['raw']
+                )
                 self._session.add(new_tx)
                 self._session.commit()
                 tx_id = new_tx.id

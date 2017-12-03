@@ -75,6 +75,7 @@ class BlockCypher(BaseClient):
                             'date': datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ"),
                             'confirmations': tx['confirmations'],
                             'block_height': tx['block_height'],
+                            'block_hash': '',
                             'fee': None,
                             'size': 0,
                             'inputs': [],

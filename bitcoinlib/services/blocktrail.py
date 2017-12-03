@@ -121,6 +121,7 @@ class BlockTrail(BaseClient):
                         'date': datetime.strptime(tx['time'], "%Y-%m-%dT%H:%M:%S+%f"),
                         'confirmations': tx['confirmations'],
                         'block_height': tx['block_height'],
+                        'block_hash': '',
                         'fee': tx['total_fee'],
                         'size': 0,
                         'inputs': inputs,

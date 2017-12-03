@@ -112,6 +112,7 @@ class BlockchainInfoClient(BaseClient):
                 'date': datetime.fromtimestamp(tx['time']),
                 'confirmations': confirmations,
                 'block_height': tx['block_height'],
+                'block_hash': '',
                 'fee': int(round(float(tx['fee']) * self.units, 0)),
                 'size': tx['size'],
                 'inputs': inputs,

@@ -208,12 +208,17 @@ class DbTransaction(Base):
     coinbase = Column(Boolean, default=False)
     confirmations = Column(Integer, default=0)
     block_height = Column(Integer, index=True)
+    block_hash = Column(String(64), index=True)
     size = Column(Integer)
     fee = Column(Integer)
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
     status = Column(String, default='new')
-    # TODO: Add network field (?)
+    input_total = Column(Integer, default=0)
+    output_total = Column(Integer, default=0)
+    network_name = Column(String, ForeignKey('networks.name'))
+    network = relationship("DbNetwork")
+    raw = Column(String)
 
     __table_args__ = (
         UniqueConstraint('wallet_id', 'hash', name='constraint_wallet_transaction_hash_unique'),

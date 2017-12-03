@@ -151,6 +151,7 @@ class ChainSo(BaseClient):
                 'date': datetime.fromtimestamp(tx['time']),
                 'confirmations': tx['confirmations'],
                 'block_height': None,
+                'block_hash': '',
                 'fee': fee,
                 'size': tx['size'],
                 'inputs': inputs,

@@ -126,6 +126,7 @@ class BitGoClient(BaseClient):
                         'date': datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
                         'confirmations': tx['confirmations'],
                         'block_height': tx['height'],
+                        'block_hash': tx['blockhash'],
                         'fee': tx['fee'],
                         'size': 0,
                         'inputs': inputs,
