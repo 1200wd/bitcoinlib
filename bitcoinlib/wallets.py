@@ -1890,7 +1890,7 @@ class HDWallet:
             res.append(u)
         return res
 
-    def transactions_update(self, account_id=None, used=False, network=None, key_id=None, depth=None, change=None):
+    def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet.
         The balances and unspent outputs (UTXO's) are updated as well, but for large wallets use the utxo_update
@@ -1902,7 +1902,7 @@ class HDWallet:
 
         :param account_id: Account ID
         :type account_id: int
-        :param used: Only update used or unused keys, specify None to update both. Default is False
+        :param used: Only update used or unused keys, specify None to update both. Default is None
         :type used: bool, None
         :param network: Network name. Leave empty for default network
         :type network: str
@@ -1924,7 +1924,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['blockexplorer'])
+        srv = Service(network=network)
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
