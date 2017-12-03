@@ -163,7 +163,7 @@ class Service(object):
             addresslist = [addresslist]
 
         transactions = []
-        addresses_per_request = 3
+        addresses_per_request = 5
         while addresslist:
             res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
             if res is False:
