@@ -1924,7 +1924,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['chainso'])
+        srv = Service(network=network, providers=['blockcypher'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -1963,7 +1963,7 @@ class HDWallet:
 
             assert tx_id
             for ti in tx['inputs']:
-                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,  address=ti['address']).scalar()
+                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=ti['address']).scalar()
                 key_id = None
                 if tx_key:
                     key_id = tx_key.id

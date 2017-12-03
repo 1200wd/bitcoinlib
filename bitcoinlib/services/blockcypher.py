@@ -69,7 +69,7 @@ class BlockCypher(BaseClient):
                     _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                     "Transaction list may be incomplete" % address)
                 for tx in a['txrefs']:
-                    if a['txrefs'] not in [t['hash'] for t in txs]:
+                    if tx['tx_hash'] not in [t['hash'] for t in txs]:
                         txs.append({
                             'hash': tx['tx_hash'],
                             'date': datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ"),

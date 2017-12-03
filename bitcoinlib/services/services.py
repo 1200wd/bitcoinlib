@@ -163,7 +163,7 @@ class Service(object):
             addresslist = [addresslist]
 
         transactions = []
-        addresses_per_request = 5
+        addresses_per_request = 3
         while addresslist:
             res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
             if res is False:
@@ -171,6 +171,11 @@ class Service(object):
             for new_t in res:
                 if new_t['hash'] not in [t['hash'] for t in transactions]:
                     transactions.append(new_t)
+                elif new_t['status'] == 'incomplete':
+                    for inp in new_t['inputs']:
+                        next((item for item in transactions if item['hash'] == new_t['hash']))['inputs'].append(inp)
+                    for out in new_t['outputs']:
+                        next((item for item in transactions if item['hash'] == new_t['hash']))['outputs'].append(out)
             addresslist = addresslist[addresses_per_request:]
         return transactions
 
