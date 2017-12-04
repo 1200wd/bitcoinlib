@@ -106,3 +106,7 @@ class TestService(unittest.TestCase):
             if fee_difference_from_average > MAXIMUM_ESTIMATED_FEE_DIFFERENCE:
                 self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
                           (provider, fee_difference_from_average * 100))
+
+    def test_gettransactions(self):
+        tx_hash = 'fbd5aef91df2d328bb1b2aaa8ab6a08d6b63aa8489db1f4b07474899b50fe16c'
+        srv = Service(min_providers=5)
