@@ -108,5 +108,57 @@ class TestService(unittest.TestCase):
                           (provider, fee_difference_from_average * 100))
 
     def test_gettransactions(self):
-        tx_hash = 'fbd5aef91df2d328bb1b2aaa8ab6a08d6b63aa8489db1f4b07474899b50fe16c'
+        tx_hash = '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74'
+        address = '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w'
+        block_height = 300000
+        input_total = 4534802265
+        output_total = 4534776015
+        fee = 26250
+        status = 'confirmed'
+        size = 523
+        input0 = {
+            'address': '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w',
+            'index_n': 0,
+            'output_n': 1,
+            'prev_hash': '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef',
+            'value': 3200955
+        }
+        input2 = {
+            'address': '1E1MxdfLkv1TZWQRkCtszxEVnrxwRBByZP',
+            'index_n': 2,
+            'output_n': 1,
+            'prev_hash': 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52',
+            'value': 4527385460
+        }
+
         srv = Service(min_providers=5)
+        srv.gettransactions(address)
+        for provider in srv.results:
+            res = srv.results[provider]
+            t = [r for r in res if r['hash'] == tx_hash][0]
+
+            # Compare transaction
+            if t['block_height']:
+                self.assertEqual(t['block_height'], block_height,
+                                 msg="Unexpected block height for %s provider" % provider)
+            self.assertEqual(t['input_total'], input_total, msg="Unexpected input_total for %s provider" % provider)
+            self.assertEqual(t['output_total'], output_total, msg="Unexpected output_total for %s provider" % provider)
+            self.assertEqual(t['fee'], fee, msg="Unexpected fee for %s provider" % provider)
+            self.assertEqual(t['status'], status, msg="Unexpected status for %s provider" % provider)
+            if t['size']:
+                self.assertEqual(t['size'], size)
+
+            # Compare inputs and outputs
+            r_input0 = [x for x in t['inputs'] if x['address'] == '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w'][0]
+            r_input2 = [x for x in t['inputs'] if x['address'] == '1E1MxdfLkv1TZWQRkCtszxEVnrxwRBByZP'][0]
+            del(r_input0['double_spend'])
+            del(r_input0['script'])
+            del(r_input0['script_type'])
+            del(r_input2['double_spend'])
+            del(r_input2['script'])
+            del(r_input2['script_type'])
+            if provider == 'blockchaininfo':  # Blockchain.info does not provide previous hashes
+                r_input0['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
+                r_input2['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
+            self.assertEqual(r_input0, input0, msg="Unexpected transaction input values for %s provider" % provider)
+            self.assertEqual(r_input2, input2, msg="Unexpected transaction input values for %s provider" % provider)
