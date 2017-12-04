@@ -74,6 +74,7 @@ class BitGoClient(BaseClient):
                     break
         return utxos
 
+    # FIXME: Disabled because index_n is not known and order not trustworthy
     # def gettransactions(self, addresslist):
     #     txs = []
     #     for address in addresslist:
