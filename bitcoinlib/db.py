@@ -240,7 +240,7 @@ class DbTransactionInput(Base):
     __tablename__ = 'transaction_inputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='inputs')
-    index_n = Column(Integer, default=0, primary_key=True)
+    index_n = Column(Integer, primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_inputs")
     prev_hash = Column(String(64))
