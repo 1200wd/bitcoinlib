@@ -92,9 +92,10 @@ class BlockTrail(BaseClient):
                         break
                     inputs = []
                     outputs = []
+                    index_n = 0
                     for ti in tx['inputs']:
                         inputs.append({
-                            'index_n': 0,
+                            'index_n': index_n,
                             'prev_hash': ti['output_hash'],
                             'output_n': ti['output_index'],
                             'address': ti['address'],
@@ -104,6 +105,7 @@ class BlockTrail(BaseClient):
                             'script_type': ''
                             # TODO: Add 'script_type': ti['type']
                         })
+                        index_n += 1
                     for to in tx['outputs']:
                         outputs.append({
                             'output_n': to['index'],
