@@ -145,6 +145,10 @@ class BitGoClient(BaseClient):
     #                 break
     #     return txs
 
+    def gettransaction(self, txid):
+        res = self.compose_request('tx', txid)
+        return res
+
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', txid)
         return res['hex']

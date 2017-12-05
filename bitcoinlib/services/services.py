@@ -179,6 +179,9 @@ class Service(object):
             addresslist = addresslist[addresses_per_request:]
         return transactions
 
+    def gettransaction(self, txid):
+        return self._provider_execute('gettransaction', txid)
+
     def getrawtransaction(self, txid):
         return self._provider_execute('getrawtransaction', txid)
 
