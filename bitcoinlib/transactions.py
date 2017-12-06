@@ -99,6 +99,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     outputs = []
     n_outputs, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
     cursor += size
+    output_total = 0
     for o in range(0, n_outputs):
         amount = change_base(rawtx[cursor:cursor + 8][::-1], 256, 10)
         cursor += 8
@@ -107,11 +108,13 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         lock_script = rawtx[cursor:cursor + lock_script_size]
         cursor += lock_script_size
         outputs.append(Output(amount=amount, lock_script=lock_script, network=network))
+        output_total += amount
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
-    return inputs, outputs, locktime, version
+    return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
+                       rawtx=to_hexstring(rawtx))
 
 
 def script_deserialize(script, script_types=None):
@@ -568,7 +571,7 @@ class Input:
                                               versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
 
-    def json(self):
+    def dict(self):
         """
         Get transaction input information in json format
         
@@ -590,6 +593,7 @@ class Input:
             'unlocking_script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
             'sequence': to_hexstring(self.sequence),
+            'signatures': [to_hexstring(s['signature']) for s in self.signatures]
         }
 
     def __repr__(self):
@@ -683,7 +687,7 @@ class Output:
                 raise TransactionError("Unknown output script type %s, please provide own locking script" %
                                        self.script_type)
 
-    def json(self):
+    def dict(self):
         """
         Get transaction output information in json format
 
@@ -735,10 +739,11 @@ class Transaction:
          
         """
         rawtx = to_bytes(rawtx)
-        inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
-        return Transaction(inputs, outputs, locktime, version, network)
+        return transaction_deserialize(rawtx, network=network)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK):
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
+                 fee=None, fee_per_kb=None, size=None, change=None, hash='', date=None, confirmations=None,
+                 block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new'):
         """
         Create a new transaction class with provided inputs and outputs. 
         
@@ -770,11 +775,19 @@ class Transaction:
         self.version = version
         self.locktime = locktime
         self.network = Network(network)
-        self.fee = None
-        self.fee_per_kb = None
-        self.size = None
-        self.change = None
-        # TODO self.status = new, pending, confirmed, view/incomplete, partially signed
+        self.fee = fee
+        self.fee_per_kb = fee_per_kb
+        self.size = size
+        self.change = change
+        self.hash = hash
+        self.date = date
+        self.confirmations = confirmations
+        self.block_height = block_height
+        self.block_hash = block_hash
+        self.input_total = input_total
+        self.output_total = output_total
+        self.rawtx = rawtx
+        self.status = status
 
     def __repr__(self):
         return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \
@@ -789,14 +802,27 @@ class Transaction:
         inputs = []
         outputs = []
         for i in self.inputs:
-            inputs.append(i.json())
+            inputs.append(i.dict())
         for o in self.outputs:
-            outputs.append(o.json())
+            outputs.append(o.dict())
         return {
+            'hash': self.hash,
+            'date': self.date,
+            'network': self.network,
+            'confirmations': self.confirmations,
+            'block_height': self.block_height,
+            'block_hash': self.block_hash,
+            'fee': self.fee,
+            'fee_per_kb': self.fee_per_kb,
             'inputs': inputs,
             'outputs': outputs,
+            'input_total': self.input_total,
+            'output_total': self.output_total,
             'version': self.version,
             'locktime': self.locktime,
+            'raw': self.raw_hex(),
+            'size': self.size,
+            'status': self.status
         }
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
