@@ -63,7 +63,9 @@ class TestTransactionInputs(unittest.TestCase):
             'redeemscript': '',
             'script_type': 'p2pkh'
         }
-        self.assertDictEqual(r, ti.json())
+        tid = ti.dict()
+        del(tid['signatures'])
+        self.assertDictEqual(r, tid)
 
     def test_transaction_input_add_coinbase(self):
         ti = Input(b'\0'*32, 0)
@@ -149,9 +151,9 @@ class TestTransactions(unittest.TestCase):
                 'ab387523fd7bdce168be7bbfef7afc4c6e53aeffffffff02a08601000000000017a914eb2f6545c638f7ab3897dfeb9e92bb' \
                 '8b11b840c687f23a0d000000000017a9145ac6cc10677d242eeb260dae9770221be9c87c8b8700000000'
         dt = transaction_deserialize(rawtx, 'testnet')
-        self.assertEqual(dt[0][0].address, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
-        self.assertEqual(dt[1][0].address, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
-        self.assertEqual(dt[1][1].address, '2N1XCxDRsyi8so3wr6C5xj5Arcv2wej7znf')
+        self.assertEqual(dt.inputs[0].address, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK')
+        self.assertEqual(dt.outputs[0].address, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
+        self.assertEqual(dt.outputs[1].address, '2N1XCxDRsyi8so3wr6C5xj5Arcv2wej7znf')
 
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:
@@ -404,7 +406,7 @@ class TestTransactionsMultisig(unittest.TestCase):
 
         # Now deserialize and check if redeemscript is still the same
         dt = transaction_deserialize(t.raw_hex(), network='testnet')
-        self.assertEqual(binascii.hexlify(dt[0][0].redeemscript), redeemscript)
+        self.assertEqual(binascii.hexlify(dt.inputs[0].redeemscript), redeemscript)
 
     def test_transaction_multisig_sign_3_of_5(self):
         t = Transaction(network='testnet')
