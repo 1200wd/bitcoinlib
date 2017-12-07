@@ -614,7 +614,7 @@ class Output:
     Contains the amount and destination of a transaction. 
     
     """
-    def __init__(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
+    def __init__(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', output_n=0,
                  network=DEFAULT_NETWORK):
         """
         Create a new transaction output
@@ -654,6 +654,7 @@ class Output:
         self.versionbyte = self.network.prefix_address
         self.script_type = 'p2pkh'
         self.spent = False
+        self.output_n = output_n
 
         if self.public_key:
             self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
@@ -703,11 +704,12 @@ class Output:
         """
         return {
             'value': self.value,
-            'lock_script': to_hexstring(self.lock_script),
+            'script': to_hexstring(self.lock_script),
             'script_type': self.script_type,
             'public_key': to_hexstring(self.public_key),
             'public_key_hash': to_hexstring(self.public_key_hash),
             'address': self.address,
+            'output_n': self.output_n,
             'spent': self.spent,
         }
 
