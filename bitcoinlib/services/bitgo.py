@@ -117,26 +117,6 @@ class BitGoClient(BaseClient):
             tx['outputs'] = [o.dict() for o in t.outputs]
         return txs
 
-# {'address': '38qJv2aD8vNZSoxbFSinim7zmpwSyPDSep',
-#  'output_index': '00000001',
-#  'prev_hash': 'd87c9d31dec2c0a12cb8e6ee38d1c3c6fb47e8ba8270d80600b72fd5a2cad09d',
-#  'public_key': ['020f060a8d8af1f86c1ff75b001072594cb9c3f7fb2a4fd9df2b497cf0e3237038',
-#                 '0271b18e48c6d362696d439422b0ab933a031ec16ed0e51c1a1fc558c03f50f520',
-#                 '03c531065db2e61f2b86840b6371dc19f80ec7827e9ca3619cafa132c891f989e0'],
-#  'redeemscript': '5221020f060a8d8af1f86c1ff75b001072594cb9c3f7fb2a4fd9df2b497cf0e3237038210271b18e48c6d362696d439422b0ab933a031ec16ed0e51c1a1fc558c03f50f5202103c531065db2e61f2b86840b6371dc19f80ec7827e9ca3619cafa132c891f989e053ae',
-#  'script_type': 'p2sh_multisig',
-#  'sequence': 'ffffffff',
-#  'signatures': ['db9a8b8e83920439d660e3fccbabc502f2467abd07482f9b3e7a15bc2f9f8979197f180cf686183f684d0751a5f0338585cab49f22bbf85f00e6a37b55bec550',
-#                 '327885e08b84505750ef35223847e64fab6dbd8c9a1bd91ba1d84fd831cd7b2354021459830442595ba303caa4cbdcad3aaa61f224d2bd6bd43dcf47214d7f41'],
-#  'tid': 0,
-#  'unlocking_script': '00483045022100db9a8b8e83920439d660e3fccbabc502f2467abd07482f9b3e7a15bc2f9f89790220197f180cf686183f684d0751a5f0338585cab49f22bbf85f00e6a37b55bec550014730440220327885e08b84505750ef35223847e64fab6dbd8c9a1bd91ba1d84fd831cd7b23022054021459830442595ba303caa4cbdcad3aaa61f224d2bd6bd43dcf47214d7f41014c695221020f060a8d8af1f86c1ff75b001072594cb9c3f7fb2a4fd9df2b497cf0e3237038210271b18e48c6d362696d439422b0ab933a031ec16ed0e51c1a1fc558c03f50f5202103c531065db2e61f2b86840b6371dc19f80ec7827e9ca3619cafa132c891f989e053ae'}
-# pprint(t.outputs[0].dict())
-# {'address': '3NfRtyHPDPicXj9pLh4mw2yoyAycpKw8mT',
-#  'amount': 7990000,
-#  'lock_script': 'a914e60dd2333925d54165bb3042054e61952f75f51887',
-#  'public_key': '',
-#  'public_key_hash': 'e60dd2333925d54165bb3042054e61952f75f518'}
-
     def gettransaction(self, txid):
         res = self.compose_request('tx', txid)
         return res

@@ -2165,7 +2165,7 @@ class HDWallet:
         for o in output_arr:
             if isinstance(o, Output):
                 transaction.outputs.append(o)
-                amount_total_output += o.amount
+                amount_total_output += o.value
             else:
                 amount_total_output += o[1]
                 transaction.add_output(o[1], o[0])
@@ -2208,7 +2208,7 @@ class HDWallet:
             for i, inp in enumerate(input_arr):
                 # FIXME: Dirty stuff, please rewrite...
                 if isinstance(inp, Input):
-                    inp = (inp.prev_hash, inp.output_index, None, 0, inp.signatures, inp.unlocking_script)
+                    inp = (inp.prev_hash, inp.output_n, None, 0, inp.signatures, inp.unlocking_script)
                 # Get key_ids, value from Db if not specified
                 if not (inp[2] or inp[3]):
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \

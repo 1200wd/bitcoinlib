@@ -101,14 +101,14 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     cursor += size
     output_total = 0
     for o in range(0, n_outputs):
-        amount = change_base(rawtx[cursor:cursor + 8][::-1], 256, 10)
+        value = change_base(rawtx[cursor:cursor + 8][::-1], 256, 10)
         cursor += 8
         lock_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
         lock_script = rawtx[cursor:cursor + lock_script_size]
         cursor += lock_script_size
-        outputs.append(Output(amount=amount, lock_script=lock_script, network=network))
-        output_total += amount
+        outputs.append(Output(value=value, lock_script=lock_script, network=network))
+        output_total += value
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
@@ -508,6 +508,7 @@ class Input:
         self.sigs_required = sigs_required
         self.script_type = script_type
         self.value = 0
+        self.double_spend = False
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
@@ -594,10 +595,11 @@ class Input:
             'address': self.address,
             'value': self.value,
             'public_key': pks,
-            'unlocking_script': to_hexstring(self.unlocking_script),
+            'double_spend': self.double_spend,
+            'script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
             'sequence': to_hexstring(self.sequence),
-            'signatures': [to_hexstring(s['signature']) for s in self.signatures]
+            'signatures': [to_hexstring(s['signature']) for s in self.signatures],
         }
 
     def __repr__(self):
@@ -612,7 +614,7 @@ class Output:
     Contains the amount and destination of a transaction. 
     
     """
-    def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
+    def __init__(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
                  network=DEFAULT_NETWORK):
         """
         Create a new transaction output
@@ -624,8 +626,8 @@ class Output:
         public key, public key hash or a locking script. Only one needs to be provided as the they all can be derived 
         from each other, but you can provide as much attributes as you know to improve speed.
         
-        :param amount: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
-        :type amount: int
+        :param value: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
+        :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
         :type address: str
         :param public_key_hash: Hash of public key
@@ -641,7 +643,7 @@ class Output:
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
-        self.amount = amount  # TODO rename value
+        self.value = value
         self.lock_script = to_bytes(lock_script)
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
@@ -651,6 +653,7 @@ class Output:
         self.k = None
         self.versionbyte = self.network.prefix_address
         self.script_type = 'p2pkh'
+        self.spent = False
 
         if self.public_key:
             self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
@@ -699,15 +702,17 @@ class Output:
 
         """
         return {
-            'amount': self.amount,
+            'value': self.value,
             'lock_script': to_hexstring(self.lock_script),
+            'script_type': self.script_type,
             'public_key': to_hexstring(self.public_key),
             'public_key_hash': to_hexstring(self.public_key_hash),
             'address': self.address,
+            'spent': self.spent,
         }
 
     def __repr__(self):
-        return "<Output (address=%s, amount=%d, type=%s)>" % (self.address, self.amount, self.script_type)
+        return "<Output (address=%s, value=%d, type=%s)>" % (self.address, self.value, self.script_type)
 
 
 class Transaction:
