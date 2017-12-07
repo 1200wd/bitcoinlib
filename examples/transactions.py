@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Transaction Class examples
 #
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -156,7 +156,7 @@ rawtx = '0100000001eccf7e3034189b851985d871f91384b8ee357cd47c3024736e5676eb2debb
         '3582895e102add2e189188b9ab3779b20ae9535f5444196b150489c022042b1db0a2a76a75985264c0eb967af849a22e2af79c3' \
         '8048457dbc6c3d97c3e801210250863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b2352ffffffff01605' \
         'af405000000001976a914097072524438d003d23a2f23edb65aae1bb3e46988ac00000000'
-pprint(transaction_deserialize(rawtx))
+pprint(Transaction.import_raw(rawtx).dict())
 
 print("\nDeserialize Multisig Transaction")
 rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d9f300000000fdfd0000473044022026c' \
@@ -166,4 +166,4 @@ rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d
         '8a12658c75763feb3d8f3cf7be2236f231cd157e932103c0007ae565abf62a9005801b0dad123e307ab3826b7ad7511f113db9c' \
         '8bae26a2102d132eab76542dfaae8e824ec553f20a8f11c10960203cd581428f66e2b4a98f853aeffffffff01a0860100000000' \
         '001976a91413d215d212cd5188ae02c5635faabdc4d7d4ec9188ac00000000'
-pprint(transaction_deserialize(rawtx))
+pprint(Transaction.import_raw(rawtx).dict())

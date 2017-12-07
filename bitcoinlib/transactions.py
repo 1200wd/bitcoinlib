@@ -58,7 +58,7 @@ class TransactionError(Exception):
         return self.msg
 
 
-def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
+def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     """
     Deserialize a raw transaction
     
@@ -71,7 +71,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
     :type network: str
 
-    :return dict: json list with inputs, outputs, locktime and version
+    :return Transaction:
     """
     rawtx = to_bytes(rawtx)
     version = rawtx[0:4][::-1]
@@ -727,7 +727,7 @@ class Transaction:
         """
         Import a raw transaction and create a Transaction object
         
-        Uses the transaction_deserialize method to parse the raw transaction and then calls the init method of
+        Uses the _transaction_deserialize method to parse the raw transaction and then calls the init method of
         this transaction class to create the transaction object
         
         :param rawtx: Raw transaction string
@@ -739,7 +739,7 @@ class Transaction:
          
         """
         rawtx = to_bytes(rawtx)
-        return transaction_deserialize(rawtx, network=network)
+        return _transaction_deserialize(rawtx, network=network)
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, change=None, hash='', date=None, confirmations=None,
@@ -808,7 +808,7 @@ class Transaction:
         return {
             'hash': self.hash,
             'date': self.date,
-            'network': self.network,
+            'network': self.network.network_name,
             'confirmations': self.confirmations,
             'block_height': self.block_height,
             'block_hash': self.block_hash,
