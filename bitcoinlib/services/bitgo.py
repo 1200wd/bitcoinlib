@@ -21,6 +21,7 @@
 import logging
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
 
 _logger = logging.getLogger(__name__)
 
@@ -74,76 +75,67 @@ class BitGoClient(BaseClient):
                     break
         return utxos
 
-    # FIXME: Disabled because index_n is not known and order not trustworthy
-    # def gettransactions(self, addresslist):
-    #     txs = []
-    #     for address in addresslist:
-    #         skip = 0
-    #         total = 1
-    #         while total > skip:
-    #             variables = {'limit': 100, 'skip': skip}
-    #             res = self.compose_request('address', address, 'tx', variables)
-    #             for tx in res['transactions']:
-    #                 if tx['id'] in [t['hash'] for t in txs]:
-    #                     break
-    #                 inputs = []
-    #                 outputs = []
-    #                 input_total = 0
-    #                 output_total = 0
-    #                 # FIXME: Assumes entries are in same order as inputs
-    #                 input_entries = [ie for ie in tx['entries'] if ie['value'] < 0][::-1]
-    #                 index_n = 0
-    #                 for i in tx['inputs']:
-    #                     ti = input_entries.pop()
-    #                     value = int(round(-ti['value'] * self.units, 0))
-    #                     inputs.append({
-    #                         'index_n': index_n,
-    #                         'prev_hash': i['previousHash'],
-    #                         'output_n': i['previousOutputIndex'],
-    #                         'address': ti['account'],
-    #                         'value': value,
-    #                         'double_spend': None,
-    #                         'script': '',
-    #                         'script_type': ''
-    #                     })
-    #                     index_n += 1
-    #                     input_total += value
-    #                 for to in tx['outputs']:
-    #                     value = int(round(to['value'] * self.units, 0))
-    #                     outputs.append({
-    #                         'output_n': to['vout'],
-    #                         'address': to['account'],
-    #                         'value': value,
-    #                         'spent': None,
-    #                         'script': '',
-    #                         'script_type': ''
-    #                     })
-    #                     output_total += value
-    #                 status = 'unconfirmed'
-    #                 if tx['confirmations']:
-    #                     status = 'confirmed'
-    #                 txs.append({
-    #                     'hash': tx['id'],
-    #                     'date': datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
-    #                     'confirmations': tx['confirmations'],
-    #                     'block_height': tx['height'],
-    #                     'block_hash': tx['blockhash'],
-    #                     'fee': tx['fee'],
-    #                     'size': 0,
-    #                     'inputs': inputs,
-    #                     'outputs': outputs,
-    #                     'input_total': input_total,
-    #                     'output_total': output_total,
-    #                     'raw': '',
-    #                     'network': self.network,
-    #                     'status': status
-    #                 })
-    #             total = res['total']
-    #             skip = res['start'] + res['count']
-    #             if skip > 2000:
-    #                 _logger.warning("BitGoClient: Transactions list has been truncated, list is incomplete")
-    #                 break
-    #     return txs
+    def gettransactions(self, addresslist):
+        txs = []
+        for address in addresslist:
+            skip = 0
+            total = 1
+            while total > skip:
+                variables = {'limit': 100, 'skip': skip}
+                res = self.compose_request('address', address, 'tx', variables)
+                for tx in res['transactions']:
+                    if tx['id'] in [t['hash'] for t in txs]:
+                        break
+                    status = 'unconfirmed'
+                    if tx['confirmations']:
+                        status = 'confirmed'
+                    txs.append({
+                        'hash': tx['id'],
+                        'date': datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
+                        'confirmations': tx['confirmations'],
+                        'block_height': tx['height'],
+                        'block_hash': tx['blockhash'],
+                        'fee': tx['fee'],
+                        'size': 0,
+                        'inputs': [],
+                        'outputs': [],
+                        'input_total': 0,
+                        'output_total': 0,
+                        'raw': '',
+                        'network': self.network,
+                        'status': status
+                    })
+                total = res['total']
+                skip = res['start'] + res['count']
+                if skip > 2000:
+                    _logger.warning("BitGoClient: Transactions list has been truncated, list is incomplete")
+                    break
+        for tx in txs:
+            rawtx = self.getrawtransaction(tx['hash'])
+            t = Transaction.import_raw(rawtx)
+            tx['inputs'] = [i.dict() for i in t.inputs]
+            tx['outputs'] = [o.dict() for o in t.outputs]
+        return txs
+
+# {'address': '38qJv2aD8vNZSoxbFSinim7zmpwSyPDSep',
+#  'output_index': '00000001',
+#  'prev_hash': 'd87c9d31dec2c0a12cb8e6ee38d1c3c6fb47e8ba8270d80600b72fd5a2cad09d',
+#  'public_key': ['020f060a8d8af1f86c1ff75b001072594cb9c3f7fb2a4fd9df2b497cf0e3237038',
+#                 '0271b18e48c6d362696d439422b0ab933a031ec16ed0e51c1a1fc558c03f50f520',
+#                 '03c531065db2e61f2b86840b6371dc19f80ec7827e9ca3619cafa132c891f989e0'],
+#  'redeemscript': '5221020f060a8d8af1f86c1ff75b001072594cb9c3f7fb2a4fd9df2b497cf0e3237038210271b18e48c6d362696d439422b0ab933a031ec16ed0e51c1a1fc558c03f50f5202103c531065db2e61f2b86840b6371dc19f80ec7827e9ca3619cafa132c891f989e053ae',
+#  'script_type': 'p2sh_multisig',
+#  'sequence': 'ffffffff',
+#  'signatures': ['db9a8b8e83920439d660e3fccbabc502f2467abd07482f9b3e7a15bc2f9f8979197f180cf686183f684d0751a5f0338585cab49f22bbf85f00e6a37b55bec550',
+#                 '327885e08b84505750ef35223847e64fab6dbd8c9a1bd91ba1d84fd831cd7b2354021459830442595ba303caa4cbdcad3aaa61f224d2bd6bd43dcf47214d7f41'],
+#  'tid': 0,
+#  'unlocking_script': '00483045022100db9a8b8e83920439d660e3fccbabc502f2467abd07482f9b3e7a15bc2f9f89790220197f180cf686183f684d0751a5f0338585cab49f22bbf85f00e6a37b55bec550014730440220327885e08b84505750ef35223847e64fab6dbd8c9a1bd91ba1d84fd831cd7b23022054021459830442595ba303caa4cbdcad3aaa61f224d2bd6bd43dcf47214d7f41014c695221020f060a8d8af1f86c1ff75b001072594cb9c3f7fb2a4fd9df2b497cf0e3237038210271b18e48c6d362696d439422b0ab933a031ec16ed0e51c1a1fc558c03f50f5202103c531065db2e61f2b86840b6371dc19f80ec7827e9ca3619cafa132c891f989e053ae'}
+# pprint(t.outputs[0].dict())
+# {'address': '3NfRtyHPDPicXj9pLh4mw2yoyAycpKw8mT',
+#  'amount': 7990000,
+#  'lock_script': 'a914e60dd2333925d54165bb3042054e61952f75f51887',
+#  'public_key': '',
+#  'public_key_hash': 'e60dd2333925d54165bb3042054e61952f75f518'}
 
     def gettransaction(self, txid):
         res = self.compose_request('tx', txid)
