@@ -146,19 +146,21 @@ class TestService(unittest.TestCase):
             self.assertEqual(t['fee'], fee, msg="Unexpected fee for %s provider" % provider)
             self.assertEqual(t['status'], status, msg="Unexpected status for %s provider" % provider)
             if t['size']:
-                self.assertEqual(t['size'], size)
+                self.assertEqual(t['size'], size, msg="Unexpected transaction size for %s provider" % provider)
 
-            # Compare inputs and outputs
-            r_input0 = [x for x in t['inputs'] if x['address'] == '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w'][0]
-            r_input2 = [x for x in t['inputs'] if x['address'] == '1E1MxdfLkv1TZWQRkCtszxEVnrxwRBByZP'][0]
-            del(r_input0['double_spend'])
-            del(r_input0['script'])
-            del(r_input0['script_type'])
-            del(r_input2['double_spend'])
-            del(r_input2['script'])
-            del(r_input2['script_type'])
+            # Remove extra field from input dict and compare inputs and outputs
+            r_inputs = [
+                {
+                    'address': x['address'],
+                    'index_n': x['index_n'],
+                    'output_n': x['output_n'],
+                    'prev_hash': x['prev_hash'],
+                    'value': x['value']
+                }
+                for x in t['inputs']
+            ]
             if provider == 'blockchaininfo':  # Blockchain.info does not provide previous hashes
-                r_input0['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
-                r_input2['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
-            self.assertEqual(r_input0, input0, msg="Unexpected transaction input values for %s provider" % provider)
-            self.assertEqual(r_input2, input2, msg="Unexpected transaction input values for %s provider" % provider)
+                r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
+                r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
+            self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
+            self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)

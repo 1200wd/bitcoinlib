@@ -472,7 +472,7 @@ class Input:
             self.output_n_int = output_n
             self.output_n = struct.pack('>I', output_n)
         else:
-            self.output_n_int = struct.unpack('I', output_n)[0]
+            self.output_n_int = struct.unpack('>I', output_n)[0]
             self.output_n = output_n
         if isinstance(keys, (bytes, str)):
             keys = [keys]

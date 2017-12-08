@@ -126,8 +126,8 @@ class BitGoClient(BaseClient):
             tx['outputs'] = [o.dict() for o in t.outputs]
             tx['input_total'] = input_total
             tx['output_total'] = input_total - tx['fee']
-            tx['size'] = len(rawtx)
-            tx['raw'] = rawtx
+            tx['raw'] = t.raw()
+            tx['size'] = len(tx['raw'])
             del(tx['tmp_input_values'])
         return txs
 
