@@ -132,8 +132,28 @@ class BitGoClient(BaseClient):
         return txs
 
     def gettransaction(self, txid):
-        res = self.compose_request('tx', txid)
-        return res
+        tx = self.compose_request('tx', txid)
+        t = Transaction.import_raw(tx['hex'])
+        if tx['confirmations']:
+            t.status = 'confirmed'
+        t.hash = txid
+        t.date = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+        t.confirmations = tx['confirmations']
+        t.block_height = tx['height']
+        t.block_hash = tx['blockhash']
+        t.fee = tx['fee']
+        t.rawtx = tx['hex']
+        t.size = len(t.raw())
+        t.network_name = self.network
+        input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
+        t.input_total = 0
+        for i in t.inputs:
+            value = [x[1] for x in input_values if x[0] == i.address]
+            if len(value) != 1:
+                _logger.warning("BitGoClient: Address %s input value should be found exactly 1 times in value list")
+            i.value = value[0]
+            t.input_total += value[0]
+        return t
 
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', txid)
