@@ -150,14 +150,8 @@ class TestService(unittest.TestCase):
 
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
-                {
-                    'address': x['address'],
-                    'index_n': x['index_n'],
-                    'output_n': x['output_n'],
-                    'prev_hash': x['prev_hash'],
-                    'value': x['value']
-                }
-                for x in t['inputs']
+                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
+                for inp in t['inputs']
             ]
             if provider == 'blockchaininfo':  # Blockchain.info does not provide previous hashes
                 r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
