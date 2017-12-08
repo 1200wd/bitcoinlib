@@ -78,7 +78,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     n_inputs, size = varbyteint_to_int(rawtx[4:13])
     cursor = 4 + size
     inputs = []
-    for i in range(0, n_inputs):
+    for n in range(0, n_inputs):
         inp_hash = rawtx[cursor:cursor + 32][::-1]
         if not len(inp_hash):
             raise TransactionError("Input transaction hash not found. Probably malformed raw transaction")
@@ -92,7 +92,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
         inputs.append(Input(prev_hash=inp_hash, output_n=output_n, unlocking_script=unlocking_script,
-                            sequence=sequence_number, index_n=i, network=network))
+                            sequence=sequence_number, index_n=n, network=network))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
 
@@ -100,14 +100,14 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     n_outputs, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
     cursor += size
     output_total = 0
-    for o in range(0, n_outputs):
+    for n in range(0, n_outputs):
         value = change_base(rawtx[cursor:cursor + 8][::-1], 256, 10)
         cursor += 8
         lock_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
         lock_script = rawtx[cursor:cursor + lock_script_size]
         cursor += lock_script_size
-        outputs.append(Output(value=value, lock_script=lock_script, network=network))
+        outputs.append(Output(value=value, lock_script=lock_script, network=network, output_n=n))
         output_total += value
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
@@ -426,7 +426,7 @@ class Input:
     """
     Transaction Input class, normally part of Transaction class
     
-    An Input contains a reference to an UTXO or Unspent Transaction Output (prev_hash + output_index).
+    An Input contains a reference to an UTXO or Unspent Transaction Output (prev_hash + output_n).
     To spent the UTXO an unlocking script can be included to prove ownership.
     
     Inputs are verified by the Transaction class.
@@ -590,7 +590,7 @@ class Input:
         return {
             'index_n': self.index_n,
             'prev_hash': to_hexstring(self.prev_hash),
-            'output_n': to_hexstring(self.output_n),
+            'output_n': self.output_n_int,
             'script_type': self.script_type,
             'address': self.address,
             'value': self.value,
@@ -853,7 +853,7 @@ class Transaction:
         r = self.version[::-1]
         r += int_to_varbyteint(len(self.inputs))
         for i in self.inputs:
-            r += i.prev_hash[::-1] + i.output_index[::-1]
+            r += i.prev_hash[::-1] + i.output_n[::-1]
             if sign_id is None:
                 r += int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.index_n:
@@ -864,9 +864,9 @@ class Transaction:
 
         r += int_to_varbyteint(len(self.outputs))
         for o in self.outputs:
-            if o.amount < 0:
-                raise TransactionError("Output amount <0 not allowed")
-            r += struct.pack('<Q', o.amount)
+            if o.value < 0:
+                raise TransactionError("Output value < 0 not allowed")
+            r += struct.pack('<Q', o.value)
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
@@ -1017,7 +1017,7 @@ class Transaction:
             raise TransactionError("Script type %s not supported at the moment" % self.inputs[index_n].script_type)
         return n_signs - n_sigs_to_insert
 
-    def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
+    def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
                   sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False):
         """
         Add input to this transaction
@@ -1026,8 +1026,8 @@ class Transaction:
 
         :param prev_hash: Transaction hash of the UTXO (previous output) which will be spent.
         :type prev_hash: bytes, hexstring
-        :param output_index: Output number in previous transaction.
-        :type output_index: bytes, int
+        :param output_n: Output number in previous transaction.
+        :type output_n: bytes, int
         :param keys: Public keys can be provided to construct an Unlocking script. Optional
         :type keys: bytes, str
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
@@ -1048,7 +1048,7 @@ class Transaction:
 
         new_id = len(self.inputs)
         self.inputs.append(
-            Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
+            Input(prev_hash, output_n, keys, unlocking_script, script_type=script_type,
                   network=self.network.network_name, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=new_id))
         return new_id
