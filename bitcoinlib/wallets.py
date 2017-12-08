@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2017 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -2327,7 +2327,7 @@ class HDWallet:
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.wallet_id])).first()
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif))
-            transaction.sign(priv_key_list, ti.tid)
+            transaction.sign(priv_key_list, ti.index_n)
         return transaction
 
     def transaction_send(self, transaction, offline=False):
@@ -2370,7 +2370,7 @@ class HDWallet:
             tx_hash = to_hexstring(inp.prev_hash)
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == tx_hash,
-                       DbTransactionOutput.output_n == inp.output_index_int).all()
+                       DbTransactionOutput.output_n == inp.output_n_int).all()
             for u in utxos:
                 u.spent = True
 

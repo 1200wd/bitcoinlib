@@ -4,12 +4,14 @@
 #
 #    EXAMPLES - Creating and Using Cryptocurrency Wallets
 #
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 
 import os
 from pprint import pprint
 from bitcoinlib.wallets import *
+from bitcoinlib.mnemonic import Mnemonic
+
 
 #
 # Create Wallets

@@ -1082,7 +1082,7 @@ class Transaction:
         if amount < 0:
             raise TransactionError("Output to %s must be more then zero" % to)
         self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
-                                   self.network.network_name))
+                                   network=self.network.network_name))
 
     def estimate_fee(self):
         """
