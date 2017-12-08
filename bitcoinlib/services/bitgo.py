@@ -103,7 +103,9 @@ class BitGoClient(BaseClient):
                         'output_total': 0,
                         'raw': '',
                         'network': self.network,
-                        'status': status
+                        'status': status,
+                        'tmp_input_values':
+                            [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0],
                     })
                 total = res['total']
                 skip = res['start'] + res['count']
@@ -113,8 +115,20 @@ class BitGoClient(BaseClient):
         for tx in txs:
             rawtx = self.getrawtransaction(tx['hash'])
             t = Transaction.import_raw(rawtx)
+            input_total = 0
+            for i in t.inputs:
+                value = [x[1] for x in tx['tmp_input_values'] if x[0] == i.address]
+                if len(value) != 1:
+                    _logger.warning("BitGoClient: Address %s input value should be found 1 times in value list")
+                i.value = value[0]
+                input_total += value[0]
             tx['inputs'] = [i.dict() for i in t.inputs]
             tx['outputs'] = [o.dict() for o in t.outputs]
+            tx['input_total'] = input_total
+            tx['output_total'] = input_total - tx['fee']
+            tx['size'] = len(rawtx)
+            tx['raw'] = rawtx
+            del(tx['tmp_input_values'])
         return txs
 
     def gettransaction(self, txid):
