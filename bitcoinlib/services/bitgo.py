@@ -139,8 +139,9 @@ class BitGoClient(BaseClient):
         t.hash = txid
         t.date = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
         t.confirmations = tx['confirmations']
-        t.block_height = tx['height']
-        t.block_hash = tx['blockhash']
+        if 'height' in tx:
+            t.block_height = tx['height']
+            t.block_hash = tx['blockhash']
         t.fee = tx['fee']
         t.rawtx = tx['hex']
         t.size = len(t.raw())

@@ -57,10 +57,6 @@ class ChainSo(BaseClient):
         time.sleep(0.3)
         return self.request(url_path, variables, method)
 
-    def getrawtransaction(self, txid):
-        res = self.compose_request('get_tx', txid)
-        return res['data']['tx_hex']
-
     def sendrawtransaction(self, rawtx):
         return self.compose_request('send_tx', variables={'tx_hex': rawtx}, method='post')
 
@@ -99,6 +95,62 @@ class ChainSo(BaseClient):
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
+
+    def getrawtransaction(self, txid):
+        res = self.compose_request('get_tx', txid)
+        return res['data']['tx_hex']
+
+    def gettransaction(self, txid):
+        res = self.compose_request('get_tx', txid)
+        tx = res['data']
+        inputs = []
+        outputs = []
+        input_total = 0
+        output_total = 0
+        for ti in tx['inputs']:
+            value = int(round(float(ti['value']) * self.units, 0))
+            inputs.append({
+                'index_n': ti['input_no'],
+                'prev_hash': ti['from_output']['txid'],
+                'output_n': ti['from_output']['output_no'],
+                'address': ti['address'],
+                'value': value,
+                'double_spend': None,
+                'script': '',
+                'script_type': ''
+            })
+            input_total += value
+        for to in tx['outputs']:
+            value = int(round(float(to['value']) * self.units, 0))
+            outputs.append({
+                'address': to['address'],
+                'output_n': to['output_no'],
+                'value': value,
+                'spent': None,
+                'script': '',
+                'script_type': ''
+            })
+            output_total += value
+        status = 'unconfirmed'
+        fee = input_total - output_total
+        if tx['confirmations']:
+            status = 'confirmed'
+        return {
+            'hash': txid,
+            'date': datetime.fromtimestamp(tx['time']),
+            'confirmations': tx['confirmations'],
+            'block_height': None,
+            'block_hash': tx['blockhash'],
+            'fee': fee,
+            'size': tx['size'],
+            'inputs': inputs,
+            'outputs': outputs,
+            'input_total': input_total,
+            'output_total': output_total,
+            'raw': tx['tx_hex'],
+            'network': self.network,
+            'status': status,
+        }
 
     def gettransactions(self, addresslist):
         txs = []
