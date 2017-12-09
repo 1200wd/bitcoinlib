@@ -19,8 +19,11 @@
 #
 
 import logging
+import struct
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
+
 
 PROVIDERNAME = 'blockchaininfo'
 
@@ -77,8 +80,7 @@ class BlockchainInfoClient(BaseClient):
             outputs = []
             input_total = 0
             output_total = 0
-            index_n = 0
-            for ti in tx['inputs']:
+            for index_n, ti in enumerate(tx['inputs']):
                 value = int(round(ti['prev_out']['value'] * self.units, 0))
                 inputs.append({
                     'index_n': index_n,
@@ -90,7 +92,6 @@ class BlockchainInfoClient(BaseClient):
                     'script': ti['script'],
                     'script_type': '',
                 })
-                index_n += 1
                 input_total += value
             for to in tx['out']:
                 value = int(round(float(to['value']) * self.units, 0))
@@ -123,8 +124,33 @@ class BlockchainInfoClient(BaseClient):
                 'network': self.network,
                 'status': status
             })
-
         return txs
+
+    def gettransaction(self, txid):
+        tx = self.compose_request('rawtx', txid)
+        raw_tx = self.getrawtransaction(txid)
+        t = Transaction.import_raw(raw_tx)
+        input_total = 0
+        for n, i in enumerate(t.inputs):
+            i.value = tx['inputs'][n]['prev_out']['value']
+            input_total += i.value
+        for n, o in enumerate(t.outputs):
+            o.spent = tx['out'][n]['spent']
+        if tx['relayed_by'] == '0.0.0.0':
+            t.status = 'unconfirmed'
+        else:
+            t.status = 'confirmed'
+        t.hash = txid
+        t.date = datetime.fromtimestamp(tx['time'])
+        t.block_height = tx['block_height']
+        t.rawtx = raw_tx
+        t.size = tx['size']
+        t.network_name = self.network
+        t.locktime = tx['lock_time']
+        t.version = struct.pack('>L', tx['ver'])
+        t.input_total = input_total
+        t.fee = t.input_total - t.output_total
+        return t
 
     def getrawtransaction(self, txid):
         res = self.compose_request('rawtx', txid, {'format': 'hex'})

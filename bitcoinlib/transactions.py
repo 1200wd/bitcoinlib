@@ -770,7 +770,7 @@ class Transaction:
         :param locktime: Unix timestamp or blocknumber. Default is 0
         :type locktime: int
         :param version: Version rules. Defaults to 1 in bytes 
-        :type version: bytes
+        :type version: bytes, int
         :param network: Network, leave empty for default network
         :type network: str
         """
@@ -783,7 +783,10 @@ class Transaction:
         else:
             self.outputs = outputs
 
-        self.version = version
+        if isinstance(version, int):
+            self.version = struct.pack('>L', version)
+        else:
+            self.version = version
         self.locktime = locktime
         self.network = Network(network)
         self.fee = fee
