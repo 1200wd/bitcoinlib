@@ -135,23 +135,23 @@ class TestService(unittest.TestCase):
         srv.gettransactions(address)
         for provider in srv.results:
             res = srv.results[provider]
-            t = [r for r in res if r['hash'] == tx_hash][0]
+            t = [r for r in res if r.hash == tx_hash][0]
 
             # Compare transaction
-            if t['block_height']:
-                self.assertEqual(t['block_height'], block_height,
+            if t.block_height:
+                self.assertEqual(t.block_height, block_height,
                                  msg="Unexpected block height for %s provider" % provider)
-            self.assertEqual(t['input_total'], input_total, msg="Unexpected input_total for %s provider" % provider)
-            self.assertEqual(t['output_total'], output_total, msg="Unexpected output_total for %s provider" % provider)
-            self.assertEqual(t['fee'], fee, msg="Unexpected fee for %s provider" % provider)
-            self.assertEqual(t['status'], status, msg="Unexpected status for %s provider" % provider)
-            if t['size']:
-                self.assertEqual(t['size'], size, msg="Unexpected transaction size for %s provider" % provider)
+            self.assertEqual(t.input_total, input_total, msg="Unexpected input_total for %s provider" % provider)
+            self.assertEqual(t.output_total, output_total, msg="Unexpected output_total for %s provider" % provider)
+            self.assertEqual(t.fee, fee, msg="Unexpected fee for %s provider" % provider)
+            self.assertEqual(t.status, status, msg="Unexpected status for %s provider" % provider)
+            if t.size:
+                self.assertEqual(t.size, size, msg="Unexpected transaction size for %s provider" % provider)
 
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
                 {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
-                for inp in t['inputs']
+                for inp in [i.dict() for i in t.inputs]
             ]
             if provider == 'blockchaininfo':  # Blockchain.info does not provide previous hashes
                 r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'

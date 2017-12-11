@@ -75,68 +75,33 @@ class BitGoClient(BaseClient):
                     break
         return utxos
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, address_list):
         txs = []
-        for address in addresslist:
+        tx_ids = []
+        for address in address_list:
             skip = 0
             total = 1
             while total > skip:
                 variables = {'limit': 100, 'skip': skip}
                 res = self.compose_request('address', address, 'tx', variables)
                 for tx in res['transactions']:
-                    if tx['id'] in [t['hash'] for t in txs]:
-                        break
-                    status = 'unconfirmed'
-                    if tx['confirmations']:
-                        status = 'confirmed'
-                    txs.append({
-                        'hash': tx['id'],
-                        'date': datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
-                        'confirmations': tx['confirmations'],
-                        'block_height': tx['height'],
-                        'block_hash': tx['blockhash'],
-                        'fee': tx['fee'],
-                        'size': 0,
-                        'inputs': [],
-                        'outputs': [],
-                        'input_total': 0,
-                        'output_total': 0,
-                        'raw': '',
-                        'network': self.network,
-                        'status': status,
-                        'tmp_input_values':
-                            [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0],
-                    })
+                    if tx['id'] not in tx_ids:
+                        tx_ids.append(tx['id'])
                 total = res['total']
                 skip = res['start'] + res['count']
                 if skip > 2000:
                     _logger.warning("BitGoClient: Transactions list has been truncated, list is incomplete")
                     break
-        for tx in txs:
-            rawtx = self.getrawtransaction(tx['hash'])
-            t = Transaction.import_raw(rawtx)
-            input_total = 0
-            for i in t.inputs:
-                value = [x[1] for x in tx['tmp_input_values'] if x[0] == i.address]
-                if len(value) != 1:
-                    _logger.warning("BitGoClient: Address %s input value should be found 1 times in value list")
-                i.value = value[0]
-                input_total += value[0]
-            tx['inputs'] = [i.dict() for i in t.inputs]
-            tx['outputs'] = [o.dict() for o in t.outputs]
-            tx['input_total'] = input_total
-            tx['output_total'] = input_total - tx['fee']
-            tx['raw'] = t.raw()
-            tx['size'] = len(tx['raw'])
-            del(tx['tmp_input_values'])
+        for tx_id in tx_ids:
+            txs.append(self.gettransaction(tx_id))
         return txs
 
-    def gettransaction(self, txid):
-        tx = self.compose_request('tx', txid)
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('tx', tx_id)
         t = Transaction.import_raw(tx['hex'])
         if tx['confirmations']:
             t.status = 'confirmed'
-        t.hash = txid
+        t.hash = tx_id
         t.date = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
         t.confirmations = tx['confirmations']
         if 'height' in tx:

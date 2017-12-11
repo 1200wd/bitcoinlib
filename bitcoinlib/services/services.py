@@ -156,27 +156,27 @@ class Service(object):
             addresslist = addresslist[20:]
         return utxos
 
-    def gettransactions(self, addresslist):
-        if not addresslist:
+    def gettransactions(self, address_list):
+        if not address_list:
             return []
-        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
-            addresslist = [addresslist]
+        if isinstance(address_list, (str, unicode if sys.version < '3' else str)):
+            address_list = [address_list]
 
         transactions = []
         addresses_per_request = 5
-        while addresslist:
-            res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
+        while address_list:
+            res = self._provider_execute('gettransactions', address_list[:addresses_per_request])
             if res is False:
                 break
             for new_t in res:
-                if new_t['hash'] not in [t['hash'] for t in transactions]:
+                if new_t.hash not in [t.hash for t in transactions]:
                     transactions.append(new_t)
-                elif new_t['status'] == 'incomplete':
-                    for inp in new_t['inputs']:
-                        next((item for item in transactions if item['hash'] == new_t['hash']))['inputs'].append(inp)
-                    for out in new_t['outputs']:
-                        next((item for item in transactions if item['hash'] == new_t['hash']))['outputs'].append(out)
-            addresslist = addresslist[addresses_per_request:]
+                elif new_t.status == 'incomplete':
+                    for inp in new_t.inputs:
+                        next((item for item in transactions if item.hash == new_t.hash)).inputs.append(inp)
+                    for out in new_t.outputs:
+                        next((item for item in transactions if item.hash == new_t.hash)).outputs.append(out)
+                address_list = address_list[addresses_per_request:]
         return transactions
 
     def gettransaction(self, txid):
