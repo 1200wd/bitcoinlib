@@ -109,7 +109,7 @@ class BitGoClient(BaseClient):
             t.block_hash = tx['blockhash']
         t.fee = tx['fee']
         t.rawtx = tx['hex']
-        t.size = len(t.raw())
+        t.size = len(tx['hex']) // 2
         t.network_name = self.network
         input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
         t.input_total = 0
@@ -119,6 +119,8 @@ class BitGoClient(BaseClient):
                 _logger.warning("BitGoClient: Address %s input value should be found exactly 1 times in value list")
             i.value = value[0]
             t.input_total += value[0]
+        for o in t.outputs:
+            o.spent = None
         return t
 
     def getrawtransaction(self, txid):
