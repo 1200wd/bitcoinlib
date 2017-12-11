@@ -435,7 +435,7 @@ class Input:
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, network=DEFAULT_NETWORK):
+                 value=0, double_spend=False, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -507,8 +507,7 @@ class Input:
                 sigs_required = 1
         self.sigs_required = sigs_required
         self.script_type = script_type
-        self.value = 0
-        self.double_spend = False
+        self.double_spend = double_spend
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
@@ -614,8 +613,8 @@ class Output:
     Contains the amount and destination of a transaction. 
     
     """
-    def __init__(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', output_n=0,
-                 network=DEFAULT_NETWORK):
+    def __init__(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,
+                 output_n=0, network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -653,7 +652,7 @@ class Output:
         self.k = None
         self.versionbyte = self.network.prefix_address
         self.script_type = 'p2pkh'
-        self.spent = False
+        self.spent = spent
         self.output_n = output_n
 
         if self.public_key:
@@ -1021,7 +1020,8 @@ class Transaction:
         return n_signs - n_sigs_to_insert
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
-                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False):
+                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False, index_n=None,
+                  value=None, double_spend=False):
         """
         Add input to this transaction
         
@@ -1049,21 +1049,23 @@ class Transaction:
         :return int: Transaction index 
         """
 
-        new_id = len(self.inputs)
+        if index_n is None:
+            index_n = len(self.inputs)
         self.inputs.append(
-            Input(prev_hash, output_n, keys, unlocking_script, script_type=script_type,
-                  network=self.network.network_name, sequence=sequence, compressed=compressed,
-                  sigs_required=sigs_required, sort=sort, index_n=new_id))
-        return new_id
+            Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
+                  script_type=script_type, network=self.network.network_name, sequence=sequence, compressed=compressed,
+                  sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend))
+        return index_n
 
-    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
+    def add_output(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,
+                   output_n=None):
         """
         Add an output to this transaction
         
         Wrapper for the append method of the Output class.
         
-        :param amount: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
-        :type amount: int
+        :param value: Value of output in smallest denominator of currency, for example satoshi's for bitcoins
+        :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
         :type address: str
         :param public_key_hash: Hash of public key
@@ -1080,11 +1082,12 @@ class Transaction:
             to = public_key
         else:
             to = public_key_hash
-        if not float(amount).is_integer():
+        if not float(value).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
-        if amount < 0:
+        if value < 0:
             raise TransactionError("Output to %s must be more then zero" % to)
-        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
+        self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
+                                   public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    network=self.network.network_name))
 
     def estimate_fee(self):

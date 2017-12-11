@@ -85,9 +85,9 @@ class BlockchainInfoClient(BaseClient):
             txs.append(t)
         return txs
 
-    def gettransaction(self, txid):
-        tx = self.compose_request('rawtx', txid)
-        raw_tx = self.getrawtransaction(txid)
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('rawtx', tx_id)
+        raw_tx = self.getrawtransaction(tx_id)
         t = Transaction.import_raw(raw_tx)
         input_total = 0
         for n, i in enumerate(t.inputs):
@@ -99,7 +99,7 @@ class BlockchainInfoClient(BaseClient):
             t.status = 'unconfirmed'
         else:
             t.status = 'confirmed'
-        t.hash = txid
+        t.hash = tx_id
         t.date = datetime.fromtimestamp(tx['time'])
         t.block_height = tx['block_height']
         t.rawtx = raw_tx
@@ -111,7 +111,6 @@ class BlockchainInfoClient(BaseClient):
         t.fee = t.input_total - t.output_total
         return t
 
-    def getrawtransaction(self, txid):
-        res = self.compose_request('rawtx', txid, {'format': 'hex'})
-        return res
+    def getrawtransaction(self, tx_id):
+        return self.compose_request('rawtx', tx_id, {'format': 'hex'})
 

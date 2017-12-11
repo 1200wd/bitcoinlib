@@ -141,10 +141,10 @@ class BlockCypher(BaseClient):
                     #     })
         return txs
 
-    def gettransaction(self, txid):
-        tx = self.compose_request('txs', txid, variables={'includeHex': 'true'})
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
         t = Transaction.import_raw(tx['hex'])
-        t.hash = txid
+        t.hash = tx_id
         if tx['confirmations']:
             t.status = 'confirmed'
         else:
@@ -166,9 +166,8 @@ class BlockCypher(BaseClient):
                 o.spent = True
         return t
 
-    def getrawtransaction(self, txid):
-        res = self.compose_request('txs', txid, variables={'includeHex': 'true'})
-        return res['hex']
+    def getrawtransaction(self, tx_id):
+        return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
 
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
