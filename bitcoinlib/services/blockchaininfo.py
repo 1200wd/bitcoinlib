@@ -72,58 +72,17 @@ class BlockchainInfoClient(BaseClient):
     def gettransactions(self, addresslist):
         addresses = "|".join(addresslist)
         txs = []
+        tx_ids = []
         variables = {'active': addresses, 'limit': 100}
         res = self.compose_request('multiaddr', variables=variables)
         latest_block = res['info']['latest_block']['height']
         for tx in res['txs']:
-            inputs = []
-            outputs = []
-            input_total = 0
-            output_total = 0
-            for index_n, ti in enumerate(tx['inputs']):
-                value = int(round(ti['prev_out']['value'] * self.units, 0))
-                inputs.append({
-                    'index_n': index_n,
-                    'prev_hash': '',
-                    'output_n': ti['prev_out']['n'],
-                    'address': ti['prev_out']['addr'],
-                    'value': value,
-                    'double_spend': tx['double_spend'],
-                    'script': ti['script'],
-                    'script_type': '',
-                })
-                input_total += value
-            for to in tx['out']:
-                value = int(round(float(to['value']) * self.units, 0))
-                outputs.append({
-                    'address': to['addr'],
-                    'output_n': to['n'],
-                    'value': value,
-                    'spent': to['spent'],
-                    'script': to['script'],
-                    'script_type': '',
-                })
-                output_total += value
-            status = 'unconfirmed'
-            confirmations = latest_block - tx['block_height']
-            if confirmations:
-                status = 'confirmed'
-            txs.append({
-                'hash': tx['hash'],
-                'date': datetime.fromtimestamp(tx['time']),
-                'confirmations': confirmations,
-                'block_height': tx['block_height'],
-                'block_hash': '',
-                'fee': int(round(float(tx['fee']) * self.units, 0)),
-                'size': tx['size'],
-                'inputs': inputs,
-                'outputs': outputs,
-                'input_total': input_total,
-                'output_total': output_total,
-                'raw': '',
-                'network': self.network,
-                'status': status
-            })
+            if tx['id'] not in tx_ids:
+                tx_ids.append(tx['id'])
+        for tx_id in tx_ids:
+            t = self.gettransaction(tx_id)
+            t.confirmations = latest_block - t.block_height
+            txs.append(t)
         return txs
 
     def gettransaction(self, txid):

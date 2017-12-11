@@ -1950,7 +1950,7 @@ class HDWallet:
                 tx_input.key_id = key_id
                 if ti.prev_hash:
                     tx_input.prev_hash = ti.prev_hash
-                if ti.script:
+                if ti.unlocking_script:
                     tx_input.script = ti.unlocking_script
 
             self._session.commit()
@@ -1975,7 +1975,7 @@ class HDWallet:
             elif key_id:
                 tx_output.key_id = key_id
             self._session.commit()
-            
+
         return tx_id
             
     def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
@@ -2016,6 +2016,7 @@ class HDWallet:
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
+        # TODO: Always update utxo's to avoid too much extra code and complexity ???
         no_spent_info = False
         # key_ids = set()
         for t in txs:
