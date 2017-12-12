@@ -113,32 +113,6 @@ class BlockCypher(BaseClient):
                         for n, i in enumerate(t.inputs):
                             print(n, i)
                         txs.append(t)
-
-                    # if tx['tx_input_n'] != -1:
-                    #     inputs = next((item for item in txs if item['hash'] == tx['tx_hash']))['inputs']
-                    #     if inputs:
-                    #         index_n = sorted([i['index_n'] for i in inputs])[0] - 1
-                    #     else:
-                    #         index_n = -1
-                    #     next((item for item in txs if item['hash'] == tx['tx_hash']))['inputs'].append({
-                    #         'index_n': index_n,
-                    #         'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
-                    #         'output_n': tx['tx_input_n'],
-                    #         'address': address,
-                    #         'value': int(round(tx['value'] * self.units, 0)),
-                    #         'double_spend': tx['double_spend'],
-                    #         'script': '',
-                    #         'script_type': ''
-                    #     })
-                    # else:
-                    #     next((item for item in txs if item['hash'] == tx['tx_hash']))['outputs'].append({
-                    #         'address': address,
-                    #         'output_n': tx['tx_output_n'],
-                    #         'value': int(round(tx['value'] * self.units, 0)),
-                    #         'spent': None if 'spent' not in tx else tx['spent'],
-                    #         'script': '',
-                    #         'script_type': ''
-                    #     })
         return txs
 
     def gettransaction(self, tx_id):
