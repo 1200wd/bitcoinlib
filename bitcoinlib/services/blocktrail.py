@@ -142,6 +142,11 @@ class BlockTrail(BaseClient):
             _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
         return txs
 
+    def gettransaction(self, tx_id):
+        res = self.compose_request('transaction', tx_id)
+
+        return res
+
     def estimatefee(self, blocks):
         res = self.compose_request('fee-per-kb', '')
         if blocks <= 10:
