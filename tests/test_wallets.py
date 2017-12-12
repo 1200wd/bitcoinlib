@@ -234,7 +234,7 @@ class TestWalletKeys(unittest.TestCase):
                                     databasefile=DATABASEFILE_UNITTESTS)
         wlt.utxos_update()
         transaction = wlt.transaction_create([('21DQCyZTNRoAccG1TWz9YaffDUKzZf6JWii', 90000000)])
-        transaction = wlt.transaction_sign(transaction)
+        transaction.sign()
         self.assertTrue(transaction.verify())
 
 
@@ -428,9 +428,9 @@ class TestWalletMultisig(unittest.TestCase):
         # Sign, verify and send transaction
         wl.utxos_update()  # In bitcoinlib_test network this generates new UTXO's
         t = wl.transaction_create([('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 100000)])
-        t = wl.transaction_sign(t)
+        t.sign()
         self.assertTrue(t.verify())
-        self.assertEqual(wl.transaction_send(t), 'succesfull_test_sendrawtransaction')
+        self.assertEqual(t.send(), 'succesfull_test_sendrawtransaction')
 
     def test_wallet_multisig_2of2(self):
         """
@@ -462,9 +462,9 @@ class TestWalletMultisig(unittest.TestCase):
         output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = msw1.transaction_create(output_arr, input_arr, transaction_fee=50000)
-        t = msw1.transaction_sign(t)
+        t.sign()
         t2 = msw2.transaction_import(t.raw())
-        t2 = msw2.transaction_sign(t2)
+        t2.sign()
         self.assertTrue(t2.verify())
 
     def test_wallet_multisig_2of2_different_database(self):
@@ -498,10 +498,10 @@ class TestWalletMultisig(unittest.TestCase):
         output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = msw1.transaction_create(output_arr, input_arr, transaction_fee=50000)
-        t = msw1.transaction_sign(t)
+        t.sign()
         t2 = msw2.transaction_import(t.raw())
-        t2 = msw2.transaction_sign(t2)
-        self.assertEqual(msw2.transaction_send(t2), 'succesfull_test_sendrawtransaction')
+        t2.sign()
+        self.assertEqual(t2.send(), 'succesfull_test_sendrawtransaction')
 
     @staticmethod
     def _multisig_test(sigs_required, number_of_sigs, sort_keys, network):
@@ -540,14 +540,14 @@ class TestWalletMultisig(unittest.TestCase):
         output_arr = [(random_output_address, utxos[0]['value'] - transaction_fee)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = wlt.transaction_create(output_arr, input_arr, transaction_fee=transaction_fee)
-        t = wlt.transaction_sign(t)
+        t.sign()
         n_signs = 1
 
         # Sign transaction with other wallets until required number of signatures is reached
         while wallet_ids and n_signs < sigs_required:
             wallet_id = wallet_ids.pop()
             t = wallet_dict[wallet_id].transaction_import(t.raw())
-            t = wallet_dict[wallet_id].transaction_sign(t)
+            t.sign()
             n_signs += 1
         return t
 
@@ -597,8 +597,8 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertEqual(key_names_active, ['Multisig Key 12/7'])
 
         t = wl.transaction_create([(HDKey(network='bitcoinlib_test').key.address(), 6400000)], min_confirms=0)
-        t = wl.transaction_sign(t, keys[1])
-        self.assertEqual(wl.transaction_send(t), 'succesfull_test_sendrawtransaction')
+        t.sign(keys[1])
+        self.assertEqual(t.send(), 'succesfull_test_sendrawtransaction')
 
     def test_wallet_multisig_sorted_keys(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -644,7 +644,7 @@ class TestWalletMultisig(unittest.TestCase):
         t = res['transaction'].raw_hex()
         t2 = wallet.transaction_import(t)
         self.assertFalse(t2.verify())
-        t2 = wallet.transaction_sign(t2, hdkey)
+        t2.sign(hdkey)
         self.assertTrue(t2.verify())
 
 
@@ -730,7 +730,7 @@ class TestWalletTransaction(unittest.TestCase):
         }]
         wlt.utxos_update(utxos=utxos)
         t = wlt.transaction_create([('n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN', 100)], transaction_fee=5000)
-        t = wlt.transaction_sign(t)
+        t.sign()
         self.assertTrue(t.verify())
 
     def test_wallet_scan(self):
