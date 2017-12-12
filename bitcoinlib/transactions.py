@@ -1082,6 +1082,8 @@ class Transaction:
             to = public_key
         else:
             to = public_key_hash
+        if output_n is None:
+            output_n = len(self.inputs)
         if not float(value).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
         if value < 0:

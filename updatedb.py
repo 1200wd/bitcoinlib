@@ -25,7 +25,7 @@ DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib.backup-%s.sqlite
 print("Wallet and Key data will be copied to new database. Transaction data will NOT be copied")
 print("Old database will be backed up to %s" % DATABASE_BACKUP)
 
-if input("Type 'y' or 'Y' to continue or any other key to cancel: ") in ['y', 'Y']:
+if input("Type 'y' or 'Y' to continue or any other key to cancel: ") not in ['y', 'Y']:
     print("Aborted by user")
     sys.exit()
 

@@ -467,6 +467,56 @@ class HDWalletTransaction(Transaction):
             super(HDWalletTransaction, self).sign(priv_key_list, ti.index_n, hash_type)
         return True
 
+    def send(self, offline=False):
+        """
+        Verify and push transaction to network. Update UTXO's in database after successfull send
+
+        :param transaction: A signed transaction
+        :type transaction: Transaction
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :type offline: bool
+
+        :return str, dict: Transaction ID if successfull or dict with results otherwise
+
+        """
+        # Verify transaction
+        if not self.verify():
+            return {
+                'error': "Cannot verify transaction. Create transaction failed",
+                'transaction': self
+            }
+
+        if offline:
+            return {
+                'transaction': self
+            }
+
+        # Push it to the network
+        srv = Service(network=self.network.network_name)
+        res = srv.sendrawtransaction(self.raw_hex())
+        if not res:
+            # raise WalletError("Could not send transaction: %s" % srv.errors)
+            return {
+                'error': "Cannot send transaction. %s" % srv.errors,
+                'transaction': self
+            }
+        _logger.info("Successfully pushed transaction, result: %s" % res)
+
+        # Update db: Update spent UTXO's, add transaction to database
+        for inp in self.inputs:
+            tx_hash = to_hexstring(inp.prev_hash)
+            utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
+                filter(DbTransaction.hash == tx_hash,
+                       DbTransactionOutput.output_n == inp.output_n_int).all()
+            for u in utxos:
+                u.spent = True
+
+        self.hdwallet._session.commit()
+        if 'txid' in res:
+            return res['txid']
+        else:
+            return res
+
 
 class HDWallet:
     """
@@ -2306,97 +2356,6 @@ class HDWallet:
         """
         t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
         return self.transaction_create(t_import.outputs, t_import.inputs, transaction_fee=False)
-
-    def transaction_sign(self, transaction, private_keys=None):
-        """
-        Sign transaction with private keys available in this wallet or extra private_keys specified.
-        Return a signed transaction
-
-        :param transaction: A transaction object
-        :type transaction: Transaction
-        :param private_keys: Extra private keys
-        :type private_keys: list, HDKey, bytes, str
-
-        :return Transaction: A transaction with one or more signed keys
-        """
-        priv_key_list_arg = []
-        if private_keys:
-            if not isinstance(private_keys, list):
-                private_keys = [private_keys]
-            for priv_key in private_keys:
-                if isinstance(priv_key, HDKey):
-                    priv_key_list_arg.append(priv_key)
-                else:
-                    priv_key_list_arg.append(HDKey(priv_key))
-        for ti in transaction.inputs:
-            priv_key_list = deepcopy(priv_key_list_arg)
-            for k in ti.keys:
-                if k.isprivate:
-                    if isinstance(k, HDKey):
-                        hdkey = k
-                    else:
-                        hdkey = HDKey(k)
-                    if hdkey not in priv_key_list:
-                        priv_key_list.append(k)
-                elif self.cosigner:
-                    # Check if private key is available in wallet
-                    cosign_wallet_ids = [w.wallet_id for w in self.cosigner]
-                    db_pk = self._session.query(DbKey).filter_by(public=k.public_hex, is_private=True).\
-                        filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.wallet_id])).first()
-                    if db_pk:
-                        priv_key_list.append(HDKey(db_pk.wif))
-            transaction.sign(priv_key_list, ti.index_n)
-        return transaction
-
-    def transaction_send(self, transaction, offline=False):
-        """
-        Verify and push transaction to network. Update UTXO's in database after successfull send
-
-        :param transaction: A signed transaction
-        :type transaction: Transaction
-        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
-        :type offline: bool
-
-        :return str, dict: Transaction ID if successfull or dict with results otherwise
-
-        """
-        # Verify transaction
-        if not transaction.verify():
-            return {
-                'error': "Cannot verify transaction. Create transaction failed",
-                'transaction': transaction
-            }
-
-        if offline:
-            return {
-                'transaction': transaction
-            }
-
-        # Push it to the network
-        srv = Service(network=transaction.network.network_name)
-        res = srv.sendrawtransaction(transaction.raw_hex())
-        if not res:
-            # raise WalletError("Could not send transaction: %s" % srv.errors)
-            return {
-                'error': "Cannot send transaction. %s" % srv.errors,
-                'transaction': transaction
-            }
-        _logger.info("Successfully pushed transaction, result: %s" % res)
-
-        # Update db: Update spent UTXO's, add transaction to database
-        for inp in transaction.inputs:
-            tx_hash = to_hexstring(inp.prev_hash)
-            utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.hash == tx_hash,
-                       DbTransactionOutput.output_n == inp.output_n_int).all()
-            for u in utxos:
-                u.spent = True
-
-        self._session.commit()
-        if 'txid' in res:
-            return res['txid']
-        else:
-            return res
 
     def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4,
              priv_keys=None, max_utxos=None, offline=False):
