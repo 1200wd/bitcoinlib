@@ -27,7 +27,7 @@ from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubk
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
-from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input
+from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, SIGHASH_ALL
 
 _logger = logging.getLogger(__name__)
 
@@ -432,8 +432,40 @@ class HDWalletKey:
 
 class HDWalletTransaction(Transaction):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, hdwallet, *args, **kwargs):
+        assert isinstance(hdwallet, HDWallet)
+        self.hdwallet = hdwallet
         super(HDWalletTransaction, self).__init__(*args, **kwargs)
+
+    def sign(self, keys=None, index_n=0, hash_type=SIGHASH_ALL):
+        priv_key_list_arg = []
+        if keys:
+            if not isinstance(keys, list):
+                private_keys = [keys]
+            for priv_key in keys:
+                if isinstance(priv_key, HDKey):
+                    priv_key_list_arg.append(priv_key)
+                else:
+                    priv_key_list_arg.append(HDKey(priv_key))
+        for ti in self.inputs:
+            priv_key_list = deepcopy(priv_key_list_arg)
+            for k in ti.keys:
+                if k.isprivate:
+                    if isinstance(k, HDKey):
+                        hdkey = k
+                    else:
+                        hdkey = HDKey(k)
+                    if hdkey not in priv_key_list:
+                        priv_key_list.append(k)
+                elif self.hdwallet.cosigner:
+                    # Check if private key is available in wallet
+                    cosign_wallet_ids = [w.wallet_id for w in self.hdwallet.cosigner]
+                    db_pk = self.hdwallet._session.query(DbKey).filter_by(public=k.public_hex, is_private=True). \
+                        filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.hdwallet.wallet_id])).first()
+                    if db_pk:
+                        priv_key_list.append(HDKey(db_pk.wif))
+            super(HDWalletTransaction, self).sign(priv_key_list, ti.index_n, hash_type)
+        return True
 
 
 class HDWallet:
@@ -2144,7 +2176,7 @@ class HDWallet:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
         # Create transaction and add outputs
-        transaction = HDWalletTransaction(network=network)
+        transaction = HDWalletTransaction(hdwallet=self, network=network)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
