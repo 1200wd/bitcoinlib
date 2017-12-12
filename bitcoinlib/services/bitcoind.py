@@ -31,7 +31,7 @@ _logger = logging.getLogger(__name__)
 class ConfigError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.error(msg)
+        _logger.warning(msg)
 
     def __str__(self):
         return self.msg

@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Transaction Class examples
 #
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -20,7 +20,7 @@ print("(Based on http://bitcoin.stackexchange.com/questions/3374/how-to-redeem-a
 t = Transaction()
 prev_tx = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
 ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-t.add_input(prev_hash=prev_tx, output_index=1, keys=ki.public_hex, compressed=False)
+t.add_input(prev_hash=prev_tx, output_n=1, keys=ki.public_hex, compressed=False)
 t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
 t.sign(ki.private_byte)
 pprint(t.dict())
@@ -32,9 +32,9 @@ print("\n=== Create and sign transaction with transactions Input and Output obje
 print("(Based on http://www.righto.com/2014/02/bitcoins-hard-way-using-raw-bitcoin.html)")
 ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
 txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-transaction_input = Input(prev_hash=txid, output_index=0, keys=ki.public_byte, compressed=ki.compressed)
+transaction_input = Input(prev_hash=txid, output_n=0, keys=ki.public_byte, compressed=ki.compressed)
 pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
-transaction_output = Output(amount=91234, public_key_hash=pkh)
+transaction_output = Output(value=91234, public_key_hash=pkh)
 t = Transaction([transaction_input], [transaction_output])
 t.sign(ki.private_byte)
 print("Raw:", binascii.hexlify(t.raw()))
@@ -45,7 +45,7 @@ print("\n=== Create and sign Testnet Transaction with Multiple OUTPUTS using key
       "'TestNetWallet' example"
       "\nSee txid f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618 ===")
 ki = Key('cRMjy1LLMPsVU4uaAt3br8Ft5vdJLx6prY4Sx7WjPARrpYAnVEkV', network='testnet')  # Private key for import
-transaction_input = Input(prev_hash='adee8bdd011f60e52949b65b069ff9f19fc220815fdc1a6034613ed1f6b775f1', output_index=1,
+transaction_input = Input(prev_hash='adee8bdd011f60e52949b65b069ff9f19fc220815fdc1a6034613ed1f6b775f1', output_n=1,
                           keys=ki.public(), network='testnet')
 amount_per_address = 27172943
 output_addresses = ['mn6xJw1Cp2gLcSSQAYPnX4G2M6GARGyX5j', 'n3pdL33MgTA316odzeydhNrcKXdu6jy8ry',
@@ -79,7 +79,7 @@ transaction_inputs = [
 ]
 for ti in transaction_inputs:
     ki = Key(ti[2], network='testnet')
-    t.add_input(prev_hash=ti[0], output_index=ti[1], keys=ki.public(), sequence=b'\xff\xff\xff\xff')
+    t.add_input(prev_hash=ti[0], output_n=ti[1], keys=ki.public(), sequence=b'\xff\xff\xff\xff')
 icount = 0
 for ti in transaction_inputs:
     ki = Key(ti[2], network='testnet')
@@ -100,7 +100,7 @@ pk2 = HDKey()
 pk3 = HDKey()
 t = Transaction()
 test_tx_hash = 'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618'
-t.add_input(prev_hash=test_tx_hash, output_index=0,
+t.add_input(prev_hash=test_tx_hash, output_n=0,
             keys=[pk1.public_byte, pk2.public_byte, pk3.public_byte],
             script_type='p2sh_multisig', sigs_required=2)
 t.add_output(100000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
@@ -156,7 +156,7 @@ rawtx = '0100000001eccf7e3034189b851985d871f91384b8ee357cd47c3024736e5676eb2debb
         '3582895e102add2e189188b9ab3779b20ae9535f5444196b150489c022042b1db0a2a76a75985264c0eb967af849a22e2af79c3' \
         '8048457dbc6c3d97c3e801210250863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b2352ffffffff01605' \
         'af405000000001976a914097072524438d003d23a2f23edb65aae1bb3e46988ac00000000'
-pprint(transaction_deserialize(rawtx))
+pprint(Transaction.import_raw(rawtx).dict())
 
 print("\nDeserialize Multisig Transaction")
 rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d9f300000000fdfd0000473044022026c' \
@@ -166,4 +166,4 @@ rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d
         '8a12658c75763feb3d8f3cf7be2236f231cd157e932103c0007ae565abf62a9005801b0dad123e307ab3826b7ad7511f113db9c' \
         '8bae26a2102d132eab76542dfaae8e824ec553f20a8f11c10960203cd581428f66e2b4a98f853aeffffffff01a0860100000000' \
         '001976a91413d215d212cd5188ae02c5635faabdc4d7d4ec9188ac00000000'
-pprint(transaction_deserialize(rawtx))
+pprint(Transaction.import_raw(rawtx).dict())

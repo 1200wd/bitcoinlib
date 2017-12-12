@@ -32,7 +32,7 @@ class EstimateFeeClient(BaseClient):
     def compose_request(self, cmd, parameter, method='get'):
         url_path = cmd + '/' + parameter
         res = self.request(url_path, method=method)
-        return float(res) * self.units
+        return int(float(res) * self.units)
 
     def estimatefee(self, blocks):
         return self.compose_request('n', str(blocks))

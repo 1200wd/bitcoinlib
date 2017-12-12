@@ -21,6 +21,7 @@
 import logging
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
 
 _logger = logging.getLogger(__name__)
 
@@ -74,74 +75,53 @@ class BitGoClient(BaseClient):
                     break
         return utxos
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, address_list):
         txs = []
-        for address in addresslist:
+        tx_ids = []
+        for address in address_list:
             skip = 0
             total = 1
             while total > skip:
                 variables = {'limit': 100, 'skip': skip}
                 res = self.compose_request('address', address, 'tx', variables)
                 for tx in res['transactions']:
-                    if tx['id'] in [t['hash'] for t in txs]:
-                        break
-                    inputs = []
-                    outputs = []
-                    input_total = 0
-                    output_total = 0
-                    # FIXME: Assumes entries are in same order as inputs
-                    input_entries = [ie for ie in tx['entries'] if ie['value'] < 0][::-1]
-                    index_n = 0
-                    for i in tx['inputs']:
-                        ti = input_entries.pop()
-                        value = int(round(-ti['value'] * self.units, 0))
-                        inputs.append({
-                            'index_n': index_n,
-                            'prev_hash': i['previousHash'],
-                            'output_n': i['previousOutputIndex'],
-                            'address': ti['account'],
-                            'value': value,
-                            'double_spend': None,
-                            'script': '',
-                            'script_type': ''
-                        })
-                        index_n += 1
-                        input_total += value
-                    for to in tx['outputs']:
-                        value = int(round(to['value'] * self.units, 0))
-                        outputs.append({
-                            'output_n': to['vout'],
-                            'address': to['account'],
-                            'value': value,
-                            'spent': None,
-                            'script': '',
-                            'script_type': ''
-                        })
-                        output_total += value
-                    status = 'unconfirmed'
-                    if tx['confirmations']:
-                        status = 'confirmed'
-                    txs.append({
-                        'hash': tx['id'],
-                        'date': datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
-                        'confirmations': tx['confirmations'],
-                        'block_height': tx['height'],
-                        'fee': tx['fee'],
-                        'size': 0,
-                        'inputs': inputs,
-                        'outputs': outputs,
-                        'input_total': input_total,
-                        'output_total': output_total,
-                        'raw': '',
-                        'network': self.network,
-                        'status': status
-                    })
+                    if tx['id'] not in tx_ids:
+                        tx_ids.append(tx['id'])
                 total = res['total']
                 skip = res['start'] + res['count']
                 if skip > 2000:
                     _logger.warning("BitGoClient: Transactions list has been truncated, list is incomplete")
                     break
+        for tx_id in tx_ids:
+            txs.append(self.gettransaction(tx_id))
         return txs
+
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('tx', tx_id)
+        t = Transaction.import_raw(tx['hex'])
+        if tx['confirmations']:
+            t.status = 'confirmed'
+        t.hash = tx_id
+        t.date = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+        t.confirmations = tx['confirmations']
+        if 'height' in tx:
+            t.block_height = tx['height']
+            t.block_hash = tx['blockhash']
+        t.fee = tx['fee']
+        t.rawtx = tx['hex']
+        t.size = len(tx['hex']) // 2
+        t.network_name = self.network
+        input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
+        t.input_total = 0
+        for i in t.inputs:
+            value = [x[1] for x in input_values if x[0] == i.address]
+            if len(value) != 1:
+                _logger.warning("BitGoClient: Address %s input value should be found exactly 1 times in value list")
+            i.value = value[0]
+            t.input_total += value[0]
+        for o in t.outputs:
+            o.spent = None
+        return t
 
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', txid)

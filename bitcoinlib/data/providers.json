@@ -93,7 +93,7 @@
     "provider": "coinfees",
     "network": "bitcoin",
     "client_class": "CoinfeesClient",
-    "url": "https://bitcoinfees.21.co/api/v1/",
+    "url": "https://bitcoinfees.earn.com/api/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 1

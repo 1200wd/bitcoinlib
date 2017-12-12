@@ -19,8 +19,11 @@
 #
 
 import logging
+import struct
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
+
 
 PROVIDERNAME = 'blockchaininfo'
 
@@ -69,60 +72,45 @@ class BlockchainInfoClient(BaseClient):
     def gettransactions(self, addresslist):
         addresses = "|".join(addresslist)
         txs = []
+        tx_ids = []
         variables = {'active': addresses, 'limit': 100}
         res = self.compose_request('multiaddr', variables=variables)
         latest_block = res['info']['latest_block']['height']
         for tx in res['txs']:
-            inputs = []
-            outputs = []
-            input_total = 0
-            output_total = 0
-            for ti in tx['inputs']:
-                value = int(round(ti['prev_out']['value'] * self.units, 0))
-                inputs.append({
-                    'prev_hash': '',
-                    'output_n': ti['prev_out']['n'],
-                    'address': ti['prev_out']['addr'],
-                    'value': value,
-                    'double_spend': tx['double_spend'],
-                    'script': ti['prev_out']['script'],
-                    'script_type': '',
-                })
-                input_total += value
-            for to in tx['out']:
-                value = int(round(float(to['value']) * self.units, 0))
-                outputs.append({
-                    'address': to['addr'],
-                    'output_n': to['n'],
-                    'value': value,
-                    'spent': to['spent'],
-                    'script': to['script'],
-                    'script_type': '',
-                })
-                output_total += value
-            status = 'unconfirmed'
-            confirmations = latest_block - tx['block_height']
-            if confirmations:
-                status = 'confirmed'
-            txs.append({
-                'hash': tx['hash'],
-                'date': datetime.fromtimestamp(tx['time']),
-                'confirmations': confirmations,
-                'block_height': tx['block_height'],
-                'fee': int(round(float(tx['fee']) * self.units, 0)),
-                'size': tx['size'],
-                'inputs': inputs,
-                'outputs': outputs,
-                'input_total': input_total,
-                'output_total': output_total,
-                'raw': '',
-                'network': self.network,
-                'status': status
-            })
-
+            if tx['id'] not in tx_ids:
+                tx_ids.append(tx['id'])
+        for tx_id in tx_ids:
+            t = self.gettransaction(tx_id)
+            t.confirmations = latest_block - t.block_height
+            txs.append(t)
         return txs
 
-    def getrawtransaction(self, txid):
-        res = self.compose_request('rawtx', txid, {'format': 'hex'})
-        return res
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('rawtx', tx_id)
+        raw_tx = self.getrawtransaction(tx_id)
+        t = Transaction.import_raw(raw_tx)
+        input_total = 0
+        for n, i in enumerate(t.inputs):
+            i.value = tx['inputs'][n]['prev_out']['value']
+            input_total += i.value
+        for n, o in enumerate(t.outputs):
+            o.spent = tx['out'][n]['spent']
+        if tx['relayed_by'] == '0.0.0.0':
+            t.status = 'unconfirmed'
+        else:
+            t.status = 'confirmed'
+        t.hash = tx_id
+        t.date = datetime.fromtimestamp(tx['time'])
+        t.block_height = tx['block_height']
+        t.rawtx = raw_tx
+        t.size = tx['size']
+        t.network_name = self.network
+        t.locktime = tx['lock_time']
+        t.version = struct.pack('>L', tx['ver'])
+        t.input_total = input_total
+        t.fee = t.input_total - t.output_total
+        return t
+
+    def getrawtransaction(self, tx_id):
+        return self.compose_request('rawtx', tx_id, {'format': 'hex'})
 

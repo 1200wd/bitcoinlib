@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2017 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -236,7 +236,7 @@ class HDWalletKey:
     """
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='',account_id=0, network=None, change=0,
+    def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0,
                  purpose=44, parent_id=0, path='m', key_type=None):
         """
         Create HDWalletKey from a HDKey object or key
@@ -404,31 +404,6 @@ class HDWalletKey:
         p.append(str(address_index))
         return p[:max_depth]
 
-    # def info(self):
-    #     """
-    #     Output current key information to standard output
-    #
-    #     """
-    #
-    #     print("--- Key ---")
-    #     print(" ID                             %s" % self.key_id)
-    #     print(" Key Type                       %s" % self.key_type)
-    #     print(" Is Private                     %s" % self.is_private)
-    #     print(" Name                           %s" % self.name)
-    #     if self.is_private:
-    #         print(" Private Key                    %s" % self.key_private)
-    #     print(" Public Key                     %s" % self.key_public)
-    #     print(" Key WIF                        %s" % self.wif)
-    #     print(" Account ID                     %s" % self.account_id)
-    #     print(" Parent ID                      %s" % self.parent_id)
-    #     print(" Depth                          %s" % self.depth)
-    #     print(" Change                         %s" % self.change)
-    #     print(" Address Index                  %s" % self.address_index)
-    #     print(" Address                        %s" % self.address)
-    #     print(" Path                           %s" % self.path)
-    #     print(" Balance                        %s" % self.balance(fmt='string'))
-    #     print("\n")
-
     def dict(self):
         """
         Return current key information as dictionary
@@ -453,6 +428,12 @@ class HDWalletKey:
             'balance': self.balance(),
             'balance_str': self.balance(fmt='string')
         }
+
+
+class HDWalletTransaction(Transaction):
+
+    def __init__(self, *args, **kwargs):
+        super(HDWalletTransaction, self).__init__(*args, **kwargs)
 
 
 class HDWallet:
@@ -1890,7 +1871,95 @@ class HDWallet:
             res.append(u)
         return res
 
-    def transactions_update(self, account_id=None, used=False, network=None, key_id=None, depth=None, change=None):
+    def transaction_add(self, tx):
+        # If tx_hash is unknown add it to database, else update
+        db_tx_query = self._session.query(DbTransaction). \
+            filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx.hash)
+        db_tx = db_tx_query.scalar()
+        if not db_tx:
+            db_tx_query = self._session.query(DbTransaction). \
+                filter(DbTransaction.wallet_id.is_(None), DbTransaction.hash == tx.hash)
+            db_tx = db_tx_query.scalar()
+            if db_tx:
+                db_tx.wallet_id = self.wallet_id
+        if db_tx and db_tx.status == 'incomplete' and tx.status != 'incomplete':
+            # Delete old transaction and insert again
+            self._session.query(DbTransaction).filter_by(id=db_tx.id).delete()
+            self._session.query(DbTransactionInput).filter_by(transaction_id=db_tx.id).delete()
+            self._session.query(DbTransactionOutput).filter_by(transaction_id=db_tx.id).delete()
+            self._session.commit()
+            db_tx = None
+        if not db_tx:
+            new_tx = DbTransaction(
+                wallet_id=self.wallet_id, hash=tx.hash, block_height=tx.block_height, size=tx.size,
+                confirmations=tx.confirmations, date=tx.date, fee=tx.fee, status=tx.status,
+                input_total=tx.input_total, output_total=tx.output_total, network_name=tx.network.network_name,
+                raw=tx.raw_hex(), block_hash=tx.block_hash
+            )
+            self._session.add(new_tx)
+            self._session.commit()
+            tx_id = new_tx.id
+        else:
+            tx_id = db_tx.id
+
+        assert tx_id
+        for ti in tx.inputs:
+            tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=ti.address).scalar()
+            key_id = None
+            if tx_key:
+                key_id = tx_key.id
+                # key_ids.add(key_id)
+                tx_key.used = True
+                # key_ids.add(key_id)
+            tx_input = self._session.query(DbTransactionInput). \
+                filter_by(transaction_id=tx_id, output_n=ti.output_n).scalar()
+            if not tx_input:
+                index_n = ti.index_n
+                if index_n is None:
+                    last_index_n = self._session.query(DbTransactionInput.index_n).filter_by(transaction_id=tx_id). \
+                        order_by(DbTransactionInput.index_n.desc()).first()
+                    index_n = 0
+                    if last_index_n:
+                        index_n = last_index_n[0] + 1
+
+                new_tx_item = DbTransactionInput(
+                    transaction_id=tx_id, output_n=ti.output_n, key_id=key_id, value=ti.value,
+                    prev_hash=ti.prev_hash, index_n=index_n, double_spend=ti.double_spend,
+                    script=ti.unlocking_script, script_type=ti.script_type)
+                self._session.add(new_tx_item)
+            elif key_id:
+                tx_input.key_id = key_id
+                if ti.prev_hash:
+                    tx_input.prev_hash = ti.prev_hash
+                if ti.unlocking_script:
+                    tx_input.script = ti.unlocking_script
+
+            self._session.commit()
+        for to in tx.outputs:
+            tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=to.address).scalar()
+            key_id = None
+            if tx_key:
+                key_id = tx_key.id
+                # key_ids.add(key_id)
+                tx_key.used = True
+                # key_ids.add(key_id)
+            spent = to.spent
+            if spent is None:
+                no_spent_info = True
+            tx_output = self._session.query(DbTransactionOutput). \
+                filter_by(transaction_id=tx_id, output_n=to.output_n).scalar()
+            if not tx_output:
+                new_tx_item = DbTransactionOutput(
+                    transaction_id=tx_id, output_n=to.output_n, key_id=key_id, value=to.value, spent=spent,
+                    script=to.lock_script, script_type=to.script_type)
+                self._session.add(new_tx_item)
+            elif key_id:
+                tx_output.key_id = key_id
+            self._session.commit()
+
+        return tx_id
+            
+    def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet.
         The balances and unspent outputs (UTXO's) are updated as well, but for large wallets use the utxo_update
@@ -1902,7 +1971,7 @@ class HDWallet:
 
         :param account_id: Account ID
         :type account_id: int
-        :param used: Only update used or unused keys, specify None to update both. Default is False
+        :param used: Only update used or unused keys, specify None to update both. Default is None
         :type used: bool, None
         :param network: Network name. Leave empty for default network
         :type network: str
@@ -1928,93 +1997,13 @@ class HDWallet:
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
+        # TODO: Always update utxo's to avoid too much extra code and complexity ???
         no_spent_info = False
-        key_ids = set()
-        for tx in txs:
-            # If tx_hash is unknown add it to database, else update
-            db_tx_query = self._session.query(DbTransaction).\
-                filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash'])
-            db_tx = db_tx_query.scalar()
-            if not db_tx:
-                db_tx_query = self._session.query(DbTransaction).\
-                    filter(DbTransaction.wallet_id.is_(None), DbTransaction.hash == tx['hash'])
-                db_tx = db_tx_query.scalar()
-                if db_tx:
-                    db_tx.wallet_id = self.wallet_id
-            if db_tx and db_tx.status == 'incomplete' and tx['status'] != 'incomplete':
-                # Delete old transaction and insert again
-                self._session.query(DbTransaction). \
-                    filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.hash == tx['hash']).delete()
-                #TODO: also delete inputs/outputs
-                self._session.commit()
-                db_tx = None
-            if not db_tx:
-                new_tx = DbTransaction(
-                    wallet_id=self.wallet_id, hash=tx['hash'], block_height=tx['block_height'], size=tx['size'],
-                    confirmations=tx['confirmations'], date=tx['date'], fee=tx['fee'], status=tx['status'])
-                self._session.add(new_tx)
-                self._session.commit()
-                tx_id = new_tx.id
-            else:
-                tx_id = db_tx.id
-
-            assert tx_id
-            for ti in tx['inputs']:
-                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,  address=ti['address']).scalar()
-                key_id = None
-                if tx_key:
-                    key_id = tx_key.id
-                    key_ids.add(key_id)
-                    tx_key.used = True
-                    key_ids.add(key_id)
-                tx_input = self._session.query(DbTransactionInput).\
-                    filter_by(transaction_id=tx_id, output_n=ti['output_n']).scalar()
-                if not tx_input:
-                    index_n = ti['index_n']
-                    if index_n is None:
-                        last_index_n = self._session.query(DbTransactionInput.index_n).filter_by(transaction_id=tx_id).\
-                            order_by(DbTransactionInput.index_n.desc()).first()
-                        index_n = 0
-                        if last_index_n:
-                            index_n = last_index_n[0] + 1
-
-                    new_tx_item = DbTransactionInput(
-                        transaction_id=tx_id, output_n=ti['output_n'], key_id=key_id, value=ti['value'],
-                        prev_hash=ti['prev_hash'], index_n=index_n, double_spend=ti['double_spend'],
-                        script=ti['script'], script_type=ti['script_type'])
-                    self._session.add(new_tx_item)
-                elif key_id:
-                    tx_input.key_id = key_id
-                    if ti['prev_hash']:
-                        tx_input.prev_hash = ti['prev_hash']
-                    if ti['script']:
-                        tx_input.script = ti['script']
-
-                self._session.commit()
-            for to in tx['outputs']:
-                tx_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,  address=to['address']).scalar()
-                key_id = None
-                if tx_key:
-                    key_id = tx_key.id
-                    key_ids.add(key_id)
-                    tx_key.used = True
-                    key_ids.add(key_id)
-                spent = to['spent']
-                if spent is None:
-                    no_spent_info = True
-                tx_output = self._session.query(DbTransactionOutput). \
-                    filter_by(transaction_id=tx_id, output_n=to['output_n']).scalar()
-                if not tx_output:
-                    new_tx_item = DbTransactionOutput(
-                        transaction_id=tx_id, output_n=to['output_n'], key_id=key_id,  value=to['value'], spent=spent,
-                        script=to['script'], script_type=to['script_type'])
-                    self._session.add(new_tx_item)
-                elif key_id:
-                    tx_output.key_id = key_id
-
-                self._session.commit()
-        if no_spent_info:
-            self._utxos_update_from_transactions(list(key_ids))
+        # key_ids = set()
+        for t in txs:
+            self.transaction_add(t)
+        # if no_spent_info:
+        #     self._utxos_update_from_transactions(list(key_ids))
         return True
 
     def transactions(self, account_id=None, network=None, key_id=None):
@@ -2155,14 +2144,14 @@ class HDWallet:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
         # Create transaction and add outputs
-        transaction = Transaction(network=network)
+        transaction = HDWalletTransaction(network=network)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
         for o in output_arr:
             if isinstance(o, Output):
                 transaction.outputs.append(o)
-                amount_total_output += o.amount
+                amount_total_output += o.value
             else:
                 amount_total_output += o[1]
                 transaction.add_output(o[1], o[0])
@@ -2205,7 +2194,7 @@ class HDWallet:
             for i, inp in enumerate(input_arr):
                 # FIXME: Dirty stuff, please rewrite...
                 if isinstance(inp, Input):
-                    inp = (inp.prev_hash, inp.output_index, None, 0, inp.signatures, inp.unlocking_script)
+                    inp = (inp.prev_hash, inp.output_n, None, 0, inp.signatures, inp.unlocking_script)
                 # Get key_ids, value from Db if not specified
                 if not (inp[2] or inp[3]):
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
@@ -2324,7 +2313,7 @@ class HDWallet:
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.wallet_id])).first()
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif))
-            transaction.sign(priv_key_list, ti.tid)
+            transaction.sign(priv_key_list, ti.index_n)
         return transaction
 
     def transaction_send(self, transaction, offline=False):
@@ -2367,7 +2356,7 @@ class HDWallet:
             tx_hash = to_hexstring(inp.prev_hash)
             utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == tx_hash,
-                       DbTransactionOutput.output_n == inp.output_index_int).all()
+                       DbTransactionOutput.output_n == inp.output_n_int).all()
             for u in utxos:
                 u.spent = True
 

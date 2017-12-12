@@ -21,6 +21,7 @@
 import logging
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'blockcypher'
 
@@ -53,10 +54,36 @@ class BlockCypher(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
-        return self.gettransactions(addresslist, unspent_only=True)
+        return self._address_transactions(addresslist, unspent_only=True)
+
+    def _address_transactions(self, addresslist, unspent_only=False):
+        addresses = ';'.join(addresslist)
+        res = self.compose_request('addrs', addresses, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
+        transactions = []
+        if not isinstance(res, list):
+            res = [res]
+        for a in res:
+            address = a['address']
+            if 'txrefs' not in a:
+                continue
+            if len(a['txrefs']) > 500:
+                _logger.warning("BlockCypher: Large number of transactions for address %s, "
+                                "Transaction list may be incomplete" % address)
+            for tx in a['txrefs']:
+                transactions.append({
+                    'address': address,
+                    'tx_hash': tx['tx_hash'],
+                    'confirmations': tx['confirmations'],
+                    'output_n': tx['tx_output_n'],
+                    'index': 0,
+                    'value': int(round(tx['value'] * self.units, 0)),
+                    'script': '',
+                })
+        return transactions
 
     def gettransactions(self, addresslist, unspent_only=False):
         txs = []
+        tx_ids = []
         for address in addresslist:
             res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
             if not isinstance(res, list):
@@ -69,43 +96,78 @@ class BlockCypher(BaseClient):
                     _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                     "Transaction list may be incomplete" % address)
                 for tx in a['txrefs']:
-                    if a['txrefs'] not in [t['hash'] for t in txs]:
-                        txs.append({
-                            'hash': tx['tx_hash'],
-                            'date': datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ"),
-                            'confirmations': tx['confirmations'],
-                            'block_height': tx['block_height'],
-                            'fee': None,
-                            'size': 0,
-                            'inputs': [],
-                            'outputs': [],
-                            'input_total': 0,
-                            'output_total': 0,
-                            'raw': '',
-                            'network': self.network,
-                            'status': 'incomplete',
-                        })
-                    if tx['tx_input_n'] != -1:
-                        next((item for item in txs if item['hash'] == tx['tx_hash']))['inputs'].append({
-                            'index_n': None,
-                            'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
-                            'output_n': tx['tx_input_n'],
-                            'address': address,
-                            'value': int(round(tx['value'] * self.units, 0)),
-                            'double_spend': tx['double_spend'],
-                            'script': '',
-                            'script_type': ''
-                        })
-                    else:
-                        next((item for item in txs if item['hash'] == tx['tx_hash']))['outputs'].append({
-                            'address': address,
-                            'output_n': tx['tx_output_n'],
-                            'value': int(round(tx['value'] * self.units, 0)),
-                            'spent': None if 'spent' not in tx else tx['spent'],
-                            'script': '',
-                            'script_type': ''
-                        })
+                    if tx['tx_hash'] not in [t.hash for t in txs]:
+                        rawtx = self.getrawtransaction(tx['tx_hash'])
+                        t = Transaction.import_raw(rawtx)
+                        t.hash = tx['tx_hash']
+                        if tx['confirmations']:
+                            t.status = 'confirmed'
+                        else:
+                            t.status = 'unconfirmed'
+                        t.date = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+                        t.confirmations = tx['confirmations']
+                        t.block_height = tx['block_height'],
+                        t.rawtx = rawtx
+                        t.size = len(rawtx) // 2
+                        t.network_name = self.network
+                        for n, i in enumerate(t.inputs):
+                            print(n, i)
+                        txs.append(t)
+
+                    # if tx['tx_input_n'] != -1:
+                    #     inputs = next((item for item in txs if item['hash'] == tx['tx_hash']))['inputs']
+                    #     if inputs:
+                    #         index_n = sorted([i['index_n'] for i in inputs])[0] - 1
+                    #     else:
+                    #         index_n = -1
+                    #     next((item for item in txs if item['hash'] == tx['tx_hash']))['inputs'].append({
+                    #         'index_n': index_n,
+                    #         'prev_hash': '' if 'spent_by' not in tx else tx['spent_by'],
+                    #         'output_n': tx['tx_input_n'],
+                    #         'address': address,
+                    #         'value': int(round(tx['value'] * self.units, 0)),
+                    #         'double_spend': tx['double_spend'],
+                    #         'script': '',
+                    #         'script_type': ''
+                    #     })
+                    # else:
+                    #     next((item for item in txs if item['hash'] == tx['tx_hash']))['outputs'].append({
+                    #         'address': address,
+                    #         'output_n': tx['tx_output_n'],
+                    #         'value': int(round(tx['value'] * self.units, 0)),
+                    #         'spent': None if 'spent' not in tx else tx['spent'],
+                    #         'script': '',
+                    #         'script_type': ''
+                    #     })
         return txs
+
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
+        t = Transaction.import_raw(tx['hex'])
+        t.hash = tx_id
+        if tx['confirmations']:
+            t.status = 'confirmed'
+        else:
+            t.status = 'unconfirmed'
+        t.date = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+        t.confirmations = tx['confirmations']
+        t.block_height = tx['block_height'],
+        t.block_hash = tx['block_hash']
+        t.fee = tx['fees']
+        t.rawtx = tx['hex']
+        t.size = tx['size']
+        t.network_name = self.network
+        t.input_total = 0
+        for n, i in enumerate(t.inputs):
+            i.value = tx['inputs'][n]['output_value']
+            t.input_total += i.value
+        for n, o in enumerate(t.outputs):
+            if 'spent_by' in tx['outputs'][n]:
+                o.spent = True
+        return t
+
+    def getrawtransaction(self, tx_id):
+        return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
 
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')

@@ -208,12 +208,17 @@ class DbTransaction(Base):
     coinbase = Column(Boolean, default=False)
     confirmations = Column(Integer, default=0)
     block_height = Column(Integer, index=True)
+    block_hash = Column(String(64), index=True)
     size = Column(Integer)
     fee = Column(Integer)
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
     status = Column(String, default='new')
-    # TODO: Add network field (?)
+    input_total = Column(Integer, default=0)
+    output_total = Column(Integer, default=0)
+    network_name = Column(String, ForeignKey('networks.name'))
+    network = relationship("DbNetwork")
+    raw = Column(String)
 
     __table_args__ = (
         UniqueConstraint('wallet_id', 'hash', name='constraint_wallet_transaction_hash_unique'),
@@ -235,7 +240,7 @@ class DbTransactionInput(Base):
     __tablename__ = 'transaction_inputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='inputs')
-    index_n = Column(Integer, default=0, primary_key=True)
+    index_n = Column(Integer, primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_inputs")
     prev_hash = Column(String(64))
@@ -246,7 +251,8 @@ class DbTransactionInput(Base):
     value = Column(Integer, default=0)
     double_spend = Column(Boolean, default=False)
 
-    __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh', 'multisig', 'p2sh']),
+    __table_args__ = (CheckConstraint(script_type.in_(['', 'sig_pubkey', 'p2pkh', 'p2sh_multisig', 'multisig', 'p2sh',
+                                                       'pubkey', 'nulldata']),
                                       name='constraint_script_types_allowed'),)
 
 
@@ -271,7 +277,8 @@ class DbTransactionOutput(Base):
     spent = Column(Boolean(), default=False)
 
     # TODO: sig_pubkey ?
-    __table_args__ = (CheckConstraint(script_type.in_(['', 'pubkey', 'nulldata', 'multisig', 'p2sh_multisig']),
+    __table_args__ = (CheckConstraint(script_type.in_(['', 'sig_pubkey', 'p2pkh', 'p2sh_multisig', 'multisig', 'p2sh',
+                                                       'pubkey', 'nulldata']),
                                       name='constraint_script_types_allowed'),)
 
 

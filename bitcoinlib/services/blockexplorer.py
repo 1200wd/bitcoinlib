@@ -20,6 +20,7 @@
 
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'blockexplorer'
 
@@ -50,60 +51,39 @@ class BlockExplorerClient(BaseClient):
             })
         return txs
 
+    def _convert_to_transaction(self, tx):
+        if tx['confirmations']:
+            status = 'confirmed'
+        else:
+            status = 'unconfirmed'
+        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
+                        fee=int(round(float(tx['fees']) * self.units, 0)), size=tx['size'], hash=tx['txid'],
+                        date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
+                        block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
+                        input_total=int(round(float(tx['valueIn']) * self.units, 0)),
+                        output_total=int(round(float(tx['valueOut']) * self.units, 0)))
+        for ti in tx['vin']:
+            value = int(round(float(ti['value']) * self.units, 0))
+            t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
+                        index_n=ti['n'], value=value,
+                        double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
+        for to in tx['vout']:
+            value = int(round(float(to['value']) * self.units, 0))
+            t.add_output(value=value, address=to['scriptPubKey']['addresses'][0], lock_script=to['scriptPubKey']['hex'],
+                         spent=True if to['spentTxId'] else False, output_n=to['n'])
+        return t
+
     def gettransactions(self, addresslist):
         addresses = ','.join(addresslist)
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
         for tx in res['items']:
-            inputs = []
-            outputs = []
-            input_total = 0
-            output_total = 0
-            for ti in tx['vin']:
-                value = int(round(ti['value'] * self.units, 0))
-                inputs.append({
-                    'index_n': ti['vout'],
-                    'prev_hash': ti['txid'],
-                    'output_n': ti['n'],
-                    'address': ti['addr'],
-                    'value': value,
-                    'double_spend': False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'],
-                    'script': ti['scriptSig']['hex'],
-                    'script_type': '',
-                })
-                input_total += value
-            for to in tx['vout']:
-                # FIXME: What about multisig addresses...
-                int(round(float(to['value']) * self.units, 0))
-                outputs.append({
-                    'address': to['scriptPubKey']['addresses'][0],
-                    'output_n': to['n'],
-                    'value': value,
-                    'spent': True if to['spentTxId'] else False,
-                    'script': to['scriptPubKey']['hex'],
-                    'script_type': '',
-                })
-                output_total += value
-            status = 'unconfirmed'
-            if tx['confirmations']:
-                status = 'confirmed'
-            txs.append({
-                'hash': tx['txid'],
-                'date': datetime.fromtimestamp(tx['blocktime']),
-                'confirmations': tx['confirmations'],
-                'block_height': tx['blockheight'],
-                'fee': int(round(float(tx['fees']) * self.units, 0)),
-                'size': tx['size'],
-                'inputs': inputs,
-                'outputs': outputs,
-                'input_total': input_total,
-                'output_total': output_total,
-                'raw': '',
-                'network': self.network,
-                'status': status
-            })
-
+            txs.append(self._convert_to_transaction(tx))
         return txs
+
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('tx', tx_id)
+        return self._convert_to_transaction(tx)
 
     def getbalance(self, addresslist):
         utxos = self.getutxos(addresslist)

@@ -92,9 +92,10 @@ class BlockTrail(BaseClient):
                         break
                     inputs = []
                     outputs = []
+                    index_n = 0
                     for ti in tx['inputs']:
                         inputs.append({
-                            'index_n': 0,
+                            'index_n': index_n,
                             'prev_hash': ti['output_hash'],
                             'output_n': ti['output_index'],
                             'address': ti['address'],
@@ -104,6 +105,7 @@ class BlockTrail(BaseClient):
                             'script_type': ''
                             # TODO: Add 'script_type': ti['type']
                         })
+                        index_n += 1
                     for to in tx['outputs']:
                         outputs.append({
                             'output_n': to['index'],
@@ -121,6 +123,7 @@ class BlockTrail(BaseClient):
                         'date': datetime.strptime(tx['time'], "%Y-%m-%dT%H:%M:%S+%f"),
                         'confirmations': tx['confirmations'],
                         'block_height': tx['block_height'],
+                        'block_hash': tx['block_hash'],
                         'fee': tx['total_fee'],
                         'size': 0,
                         'inputs': inputs,
@@ -138,6 +141,11 @@ class BlockTrail(BaseClient):
         if len(txs) >= 2000:
             _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
         return txs
+
+    def gettransaction(self, tx_id):
+        res = self.compose_request('transaction', tx_id)
+
+        return res
 
     def estimatefee(self, blocks):
         res = self.compose_request('fee-per-kb', '')
