@@ -22,6 +22,7 @@ import logging
 import time
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient, ClientError
+from bitcoinlib.transactions import Transaction
 
 
 _logger = logging.getLogger(__name__)
@@ -100,118 +101,45 @@ class ChainSo(BaseClient):
         res = self.compose_request('get_tx', txid)
         return res['data']['tx_hex']
 
-    def gettransaction(self, txid):
-        res = self.compose_request('get_tx', txid)
+    def gettransaction(self, tx_id):
+        res = self.compose_request('get_tx', tx_id)
         tx = res['data']
-        inputs = []
-        outputs = []
+        raw_tx = tx['tx_hex']
+        t = Transaction.import_raw(raw_tx)
         input_total = 0
         output_total = 0
-        for ti in tx['inputs']:
-            value = int(round(float(ti['value']) * self.units, 0))
-            inputs.append({
-                'index_n': ti['input_no'],
-                'prev_hash': ti['from_output']['txid'],
-                'output_n': ti['from_output']['output_no'],
-                'address': ti['address'],
-                'value': value,
-                'double_spend': None,
-                'script': '',
-                'script_type': ''
-            })
-            input_total += value
-        for to in tx['outputs']:
-            value = int(round(float(to['value']) * self.units, 0))
-            outputs.append({
-                'address': to['address'],
-                'output_n': to['output_no'],
-                'value': value,
-                'spent': None,
-                'script': '',
-                'script_type': ''
-            })
-            output_total += value
-        status = 'unconfirmed'
-        fee = input_total - output_total
+        for n, i in enumerate(t.inputs):
+            i.value = int(round(float(tx['inputs'][n]['value']) * self.units, 0))
+            input_total += i.value
+        for o in t.outputs:
+            o.spent = None
+            output_total += o.value
+        t.hash = tx_id
+        t.block_hash = tx['blockhash']
+        t.date = datetime.fromtimestamp(tx['time'])
+        t.rawtx = raw_tx
+        t.size = tx['size']
+        t.network_name = self.network
+        t.locktime = tx['locktime']
+        t.input_total = input_total
+        t.output_total = output_total
+        t.fee = t.input_total - t.output_total
         if tx['confirmations']:
-            status = 'confirmed'
-        return {
-            'hash': txid,
-            'date': datetime.fromtimestamp(tx['time']),
-            'confirmations': tx['confirmations'],
-            'block_height': None,
-            'block_hash': tx['blockhash'],
-            'fee': fee,
-            'size': tx['size'],
-            'inputs': inputs,
-            'outputs': outputs,
-            'input_total': input_total,
-            'output_total': output_total,
-            'raw': tx['tx_hex'],
-            'network': self.network,
-            'status': status,
-        }
+            t.status = 'confirmed'
+        else:
+            t.status = 'unconfirmed'
+        return t
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, address_list):
         txs = []
         tx_ids = []
-        for address in addresslist:
+        for address in address_list:
             res = self.compose_request('address', address)
             if res['status'] != 'success':
                 pass
             for tx in res['data']['txs']:
                 if tx['txid'] not in tx_ids:
                     tx_ids.append(tx['txid'])
-
-        for tx_hash in tx_ids:
-            res = self.compose_request('get_tx', tx_hash)
-            tx = res['data']
-            inputs = []
-            outputs = []
-            input_total = 0
-            output_total = 0
-            for ti in tx['inputs']:
-                value = int(round(float(ti['value']) * self.units, 0))
-                inputs.append({
-                    'index_n': ti['input_no'],
-                    'prev_hash': ti['from_output']['txid'],
-                    'output_n': ti['from_output']['output_no'],
-                    'address': ti['address'],
-                    'value': value,
-                    'double_spend': None,
-                    'script': '',
-                    'script_type': ''
-                })
-                input_total += value
-            for to in tx['outputs']:
-                value = int(round(float(to['value']) * self.units, 0))
-                outputs.append({
-                    'address': to['address'],
-                    'output_n': to['output_no'],
-                    'value': value,
-                    'spent': None,
-                    'script': '',
-                    'script_type': ''
-                })
-                output_total += value
-            status = 'unconfirmed'
-            fee = input_total - output_total
-            if tx['confirmations']:
-                status = 'confirmed'
-            txs.append({
-                'hash': tx_hash,
-                'date': datetime.fromtimestamp(tx['time']),
-                'confirmations': tx['confirmations'],
-                'block_height': None,
-                'block_hash': tx['blockhash'],
-                'fee': fee,
-                'size': tx['size'],
-                'inputs': inputs,
-                'outputs': outputs,
-                'input_total': input_total,
-                'output_total': output_total,
-                'raw': tx['tx_hex'],
-                'network': self.network,
-                'status': status,
-            })
+        for tx_id in tx_ids:
+            txs.append(self.gettransaction(tx_id))
         return txs

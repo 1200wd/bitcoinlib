@@ -92,8 +92,8 @@ class BlockExplorerClient(BaseClient):
             balance += utxo['value']
         return balance
 
-    def getrawtransaction(self, txid):
-        res = self.compose_request('rawtx', txid)
+    def getrawtransaction(self, tx_id):
+        res = self.compose_request('rawtx', tx_id)
         return res['rawtx']
 
     def sendrawtransaction(self, rawtx):
