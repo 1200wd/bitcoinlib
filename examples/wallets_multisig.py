@@ -51,14 +51,14 @@ input_arr = [(utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value'])]
 t = wl1.transaction_create(output_arr, input_arr, transaction_fee=transaction_fee)
 
 # Now sign transaction with first wallet, should not verify yet
-t = wl1.transaction_sign(t)
+t.sign()
 pprint(t.dict())
 print("Verified: ", t.verify())
 
 # Import transaction (with first signature) in 3rd wallet and sign with wallet's private key
 wl3.utxos_update()
 t2 = wl3.transaction_import(t.raw())
-t2 = wl3.transaction_sign(t2)
+t2.sign()
 print("Verified: ", t2.verify())
 
 
@@ -92,9 +92,9 @@ else:
     assert 'transaction' in res
     wl2.utxos_update()
     t2 = wl2.transaction_import(res['transaction'].raw())
-    t2 = wl2.transaction_sign(t2)
+    t2.sign()
     print("Verified: ", t2.verify())
-    print("Push transaction result: ", wl2.transaction_send(t2))
+    print("Push transaction result: ", t2.send())
 
 
 #
@@ -119,8 +119,8 @@ wl2.utxos_update()
 
 # Create transaction and sign with both wallets, return address should be the same
 t = wl2.transaction_create([('23Gd1mfrqgaYiPGkMm5n5UDRkCxruDAA8wo', 5000000)])
-t = wl2.transaction_sign(t)
+t.sign()
 t2 = wl1.transaction_import(t.raw())
-t2 = wl1.transaction_sign(t2)
+t2.sign()
 print("%s == %s: %s" % (t.outputs[1].address, t2.outputs[1].address, t.outputs[1].address == t2.outputs[1].address))
 print("Verified: ", t2.verify())

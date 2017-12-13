@@ -67,3 +67,8 @@ pprint(srv.results)
 # results = srv.results
 # for res in results:
 #     print(res, len(results[res]))
+
+# Get transactions by hash
+srv = Service()
+res = srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
+pprint(res)
