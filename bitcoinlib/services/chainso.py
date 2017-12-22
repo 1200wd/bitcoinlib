@@ -124,6 +124,7 @@ class ChainSo(BaseClient):
         t.input_total = input_total
         t.output_total = output_total
         t.fee = t.input_total - t.output_total
+        t.confirmations = tx['confirmations']
         if tx['confirmations']:
             t.status = 'confirmed'
         else:
