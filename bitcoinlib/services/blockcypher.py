@@ -125,7 +125,7 @@ class BlockCypher(BaseClient):
             t.status = 'unconfirmed'
         t.date = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
         t.confirmations = tx['confirmations']
-        t.block_height = tx['block_height'],
+        t.block_height = tx['block_height']
         t.block_hash = tx['block_hash']
         t.fee = tx['fees']
         t.rawtx = tx['hex']
