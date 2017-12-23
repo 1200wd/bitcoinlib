@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Service Class
-#    © 2017 March - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -19,6 +19,7 @@
 #
 
 import unittest
+import datetime
 from bitcoinlib.services.services import *
 
 
@@ -26,7 +27,43 @@ MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 1.00  # Maximum difference from average estim
 # Use value above >0, and 1 for 100%
 
 
-class TestService(unittest.TestCase):
+class CustomAssertions:
+
+    def assertDictEqualExt(self, result_dict, expected_dict, none_allowed=None):
+        """
+        Compare dictionaries, skip items not found in expected dictionary.
+
+        Lists and recursion's in dictionaries are allowed.
+
+        :param result_dict: First dictionary with results
+        :type result_dict: dict
+        :param expected_dict: Second dictionary with expected values
+        :type expected_dict: dict
+        :param none_allowed: List of fields for which None value in result_dict is allowed
+        :type none_allowed: list
+
+        :return bool: Dictionaries are identical?
+        """
+        if none_allowed is None:
+            none_allowed = []
+        expected_keys = expected_dict.keys()
+        for k in result_dict:
+            if k not in expected_keys:
+                continue
+            if isinstance(result_dict[k], dict):
+                self.assertDictEqualExt(result_dict[k], expected_dict[k], none_allowed)
+            elif isinstance(result_dict[k], list):
+                for i in range(len(result_dict[k])):
+                    self.assertDictEqualExt(result_dict[k][i], expected_dict[k][i], none_allowed)
+            elif result_dict[k] != expected_dict[k]:
+                if isinstance(result_dict[k], datetime.datetime):
+                    if result_dict[k].date() == expected_dict[k].date():
+                        continue
+                if result_dict[k] is not None or k not in none_allowed:
+                    raise AssertionError("Different value for '%s': %s != %s" % (k, result_dict[k], expected_dict[k]))
+
+
+class TestService(unittest.TestCase, CustomAssertions):
 
     def test_transaction_bitcoin_testnet_get_raw(self):
         tx_id = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
@@ -158,3 +195,102 @@ class TestService(unittest.TestCase):
                 r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
+
+    def test_gettransaction(self):
+        expected_dict = {
+            'block_hash': '000000000000000000f3ae4004e9bcc39b3d4dc0f342b76a1830ee8607b7f00a',
+            'inputs': [
+                {
+                    'value': 299889,
+                    'output_n': 51,
+                    'prev_hash': 'fa7b29d0e1cf62c79749c977dd9b3fedcfa348e696600f2240206eedaccbb309',
+                    'double_spend': False,
+                    'index_n': 0,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                },
+                {
+                    'value': 1000022,
+                    'output_n': 0,
+                    'prev_hash': '512f4363ccb28d04d47edd684840cc074f2a3b625838909a6074d277883b9f83',
+                    'double_spend': False,
+                    'index_n': 1,
+                    'script_type': 'p2pkh',
+                    'address': '1Hw3ZTxMqVK3jgmJSod4LF5XFbDVYc3EZP'
+                },
+                {
+                    'value': 219439,
+                    'output_n': 55,
+                    'prev_hash': '0ccd49e93261c9dd2bee124d90849677e93f789d2dc83013bfb0643beb962733',
+                    'double_spend': False,
+                    'index_n': 2,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                },
+                {
+                    'value': 219436,
+                    'output_n': 56,
+                    'prev_hash': '1b110073aed6637f9a492ceaac45d2b978b75f0139df0401032ad68c0944d38c',
+                    'double_spend': False,
+                    'index_n': 3,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                },
+                {
+                    'value': 110996,
+                    'output_n': 50,
+                    'prev_hash': 'a2d613e5a649102672462aa6a09e3e833769f5a85a65a8844acc723c07a8991d',
+                    'double_spend': False,
+                    'index_n': 4,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                },
+                {
+                    'value': 602,
+                    'output_n': 2434,
+                    'prev_hash': 'd8505b78a4cddbd058372443bbce9ea74a313c27c586b7bbe8bc3825b7c7cbd7',
+                    'double_spend': False,
+                    'index_n': 5,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                }
+            ],
+            'locktime': 478952,
+            'input_total': 1850384,
+            'network': 'bitcoin',
+            'status': 'confirmed',
+            'version': b'\x00\x00\x00\x02',
+            'outputs':
+                [
+                    {
+                        'spent': True,
+                        'value': 1000032,
+                        'script_type': 'p2pkh',
+                        'address': '15witRoAeoSKgBLVA27oj1F2KQ1Sg1bjNz',
+                        'output_n': 0
+                    },
+                    {
+                        'spent': True,
+                        'value': 845308,
+                        'script_type': 'p2pkh',
+                        'address': '1PTJHj3jzbfcRg6LauAAV6Qirs5VUe8M6C',
+                        'output_n': 1,
+                    }
+                ],
+            'fee': 5044,
+            'block_height': 478953,
+            'output_total': 1845340,
+            'size': 964,
+            'hash': '2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700',
+            'date': datetime.datetime(2017, 8, 4)
+        }
+
+        srv = Service(network='bitcoin', min_providers=10)
+
+        # Get transactions by hash
+        srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700').dict()
+
+        for provider in srv.results:
+            print("Comparing provider %s" % provider)
+            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+                                    ['block_hash', 'block_height', 'spent', 'value'])

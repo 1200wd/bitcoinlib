@@ -95,10 +95,11 @@ class BlockchainInfoClient(BaseClient):
             input_total += i.value
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
-        if tx['relayed_by'] == '0.0.0.0':
-            t.status = 'unconfirmed'
-        else:
+        # if tx['relayed_by'] == '0.0.0.0':
+        if tx['block_height']:
             t.status = 'confirmed'
+        else:
+            t.status = 'unconfirmed'
         t.hash = tx_id
         t.date = datetime.fromtimestamp(tx['time'])
         t.block_height = tx['block_height']

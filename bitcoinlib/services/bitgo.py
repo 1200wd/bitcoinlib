@@ -112,13 +112,17 @@ class BitGoClient(BaseClient):
         t.size = len(tx['hex']) // 2
         t.network_name = self.network
         input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
-        t.input_total = 0
+        t.input_total = sum([x[1] for x in input_values])
         for i in t.inputs:
+            if len(t.inputs) != len(input_values):
+                i.value = None
+                continue
             value = [x[1] for x in input_values if x[0] == i.address]
             if len(value) != 1:
                 _logger.warning("BitGoClient: Address %s input value should be found exactly 1 times in value list")
-            i.value = value[0]
-            t.input_total += value[0]
+                i.value = None
+            else:
+                i.value = value[0]
         for o in t.outputs:
             o.spent = None
         return t
