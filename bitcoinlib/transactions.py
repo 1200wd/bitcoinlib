@@ -78,6 +78,11 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     n_inputs, size = varbyteint_to_int(rawtx[4:13])
     cursor = 4 + size
     inputs = []
+    coinbase = False
+    if not n_inputs:
+        coinbase = True
+        cursor += 2
+        n_inputs = 1
     for n in range(0, n_inputs):
         inp_hash = rawtx[cursor:cursor + 32][::-1]
         if not len(inp_hash):
@@ -93,7 +98,9 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         cursor += 4
         inputs.append(Input(prev_hash=inp_hash, output_n=output_n, unlocking_script=unlocking_script,
                             sequence=sequence_number, index_n=n, network=network))
-    if len(inputs) != n_inputs:
+    if coinbase:
+        n_inputs = 0
+    elif len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
 
     outputs = []
@@ -114,7 +121,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
-                       rawtx=to_hexstring(rawtx))
+                       coinbase=coinbase, rawtx=to_hexstring(rawtx))
 
 
 def script_deserialize(script, script_types=None):
@@ -478,7 +485,10 @@ class Input:
             keys = [keys]
         self.unlocking_script = to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b''
-        self.script_type = script_type
+        if self.prev_hash == 32 * b'\0':
+            self.script_type = 'coinbase'
+        else:
+            self.script_type = script_type
         self.sequence = to_bytes(sequence)
         self.compressed = compressed
         self.network = Network(network)
@@ -513,7 +523,7 @@ class Input:
             self.script_type = 'coinbase'
 
         # If unlocking script is specified extract keys, signatures, type from script
-        if unlocking_script:
+        if unlocking_script and self.script_type != 'coinbase':
             us_dict = script_deserialize(unlocking_script)
             if not us_dict or us_dict['script_type'] in ['unknown', 'empty']:
                 raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))
@@ -753,7 +763,8 @@ class Transaction:
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, change=None, hash='', date=None, confirmations=None,
-                 block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new'):
+                 block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
+                 coinbase=False):
         """
         Create a new transaction class with provided inputs and outputs. 
         
@@ -788,6 +799,7 @@ class Transaction:
             self.version = version
         self.locktime = locktime
         self.network = Network(network)
+        self.coinbase = coinbase
         self.fee = fee
         self.fee_per_kb = fee_per_kb
         self.size = size
@@ -822,6 +834,7 @@ class Transaction:
             'hash': self.hash,
             'date': self.date,
             'network': self.network.network_name,
+            'coinbase': self.coinbase,
             'confirmations': self.confirmations,
             'block_height': self.block_height,
             'block_hash': self.block_hash,

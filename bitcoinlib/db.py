@@ -251,8 +251,8 @@ class DbTransactionInput(Base):
     value = Column(Integer, default=0)
     double_spend = Column(Boolean, default=False)
 
-    __table_args__ = (CheckConstraint(script_type.in_(['', 'sig_pubkey', 'p2pkh', 'p2sh_multisig', 'multisig', 'p2sh',
-                                                       'pubkey', 'nulldata']),
+    __table_args__ = (CheckConstraint(script_type.in_(['', 'coinbase', 'sig_pubkey', 'p2pkh', 'p2sh_multisig',
+                                                       'multisig', 'p2sh', 'pubkey', 'nulldata']),
                                       name='constraint_script_types_allowed'),)
 
 
