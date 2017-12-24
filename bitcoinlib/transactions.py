@@ -75,18 +75,23 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     """
     rawtx = to_bytes(rawtx)
     version = rawtx[0:4][::-1]
-    n_inputs, size = varbyteint_to_int(rawtx[4:13])
-    cursor = 4 + size
-    inputs = []
     coinbase = False
-    if not n_inputs:
-        coinbase = True
-        cursor += 2
-        n_inputs = 1
+    flag = None
+    cursor = 4
+    if rawtx[4:5] == b'\0':
+        cursor += 1
+        flag = rawtx[cursor:cursor+1]
+        cursor += 1
+    n_inputs, size = varbyteint_to_int(rawtx[cursor:cursor+9])
+    cursor += size
+    inputs = []
+
     for n in range(0, n_inputs):
         inp_hash = rawtx[cursor:cursor + 32][::-1]
         if not len(inp_hash):
             raise TransactionError("Input transaction hash not found. Probably malformed raw transaction")
+        if inp_hash == 32 * b'\0':
+            coinbase = True
         output_n = rawtx[cursor + 32:cursor + 36][::-1]
         cursor += 36
 
@@ -98,9 +103,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         cursor += 4
         inputs.append(Input(prev_hash=inp_hash, output_n=output_n, unlocking_script=unlocking_script,
                             sequence=sequence_number, index_n=n, network=network))
-    if coinbase:
-        n_inputs = 0
-    elif len(inputs) != n_inputs:
+    if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
 
     outputs = []
@@ -121,7 +124,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
-                       coinbase=coinbase, rawtx=to_hexstring(rawtx))
+                       coinbase=coinbase, flag=flag, rawtx=to_hexstring(rawtx))
 
 
 def script_deserialize(script, script_types=None):
@@ -764,7 +767,7 @@ class Transaction:
     def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, change=None, hash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
-                 coinbase=False):
+                 coinbase=False, flag=None):
         """
         Create a new transaction class with provided inputs and outputs. 
         
@@ -800,6 +803,7 @@ class Transaction:
         self.locktime = locktime
         self.network = Network(network)
         self.coinbase = coinbase
+        self.flag = flag
         self.fee = fee
         self.fee_per_kb = fee_per_kb
         self.size = size
@@ -835,6 +839,7 @@ class Transaction:
             'date': self.date,
             'network': self.network.network_name,
             'coinbase': self.coinbase,
+            'flag': self.flag,
             'confirmations': self.confirmations,
             'block_height': self.block_height,
             'block_hash': self.block_hash,
