@@ -91,8 +91,9 @@ class BlockchainInfoClient(BaseClient):
         t = Transaction.import_raw(raw_tx)
         input_total = 0
         for n, i in enumerate(t.inputs):
-            i.value = tx['inputs'][n]['prev_out']['value']
-            input_total += i.value
+            if 'prev_out' in tx['inputs'][n]:
+                i.value = tx['inputs'][n]['prev_out']['value']
+                input_total += i.value
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
         # if tx['relayed_by'] == '0.0.0.0':

@@ -56,20 +56,27 @@ class BlockExplorerClient(BaseClient):
             status = 'confirmed'
         else:
             status = 'unconfirmed'
+        fees = None if 'fees' not in tx else int(round(float(tx['fees']) * self.units, 0))
+        value_in = None if 'valueOut' not in tx else tx['valueOut']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=int(round(float(tx['fees']) * self.units, 0)), size=tx['size'], hash=tx['txid'],
+                        fee=fees, size=tx['size'], hash=tx['txid'],
                         date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
                         block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
-                        input_total=int(round(float(tx['valueIn']) * self.units, 0)),
+                        input_total=int(round(float(value_in) * self.units, 0)), coinbase=tx['isCoinBase'],
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
         for ti in tx['vin']:
-            value = int(round(float(ti['value']) * self.units, 0))
-            t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
-                        index_n=ti['n'], value=value,
-                        double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
+            if tx['isCoinBase']:
+                t.add_input(prev_hash=32 * b'\0', output_n=0, unlocking_script=ti['coinbase'], index_n=ti['n'],
+                            script_type='coinbase', sequence=ti['sequence'])
+            else:
+                value = int(round(float(ti['value']) * self.units, 0))
+                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
+                            index_n=ti['n'], value=value, sequence=ti['sequence'],
+                            double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
-            t.add_output(value=value, address=to['scriptPubKey']['addresses'][0], lock_script=to['scriptPubKey']['hex'],
+            address = '' if 'addresses' not in to else to['scriptPubKey']['addresses'][0]
+            t.add_output(value=value, address=address, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
