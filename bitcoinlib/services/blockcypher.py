@@ -123,7 +123,7 @@ class BlockCypher(BaseClient):
             t.status = 'confirmed'
         else:
             t.status = 'unconfirmed'
-        t.date = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+        t.date = datetime.strptime(tx['confirmed'][:19], "%Y-%m-%dT%H:%M:%S")
         t.confirmations = tx['confirmations']
         t.block_height = tx['block_height']
         t.block_hash = tx['block_hash']
@@ -133,8 +133,9 @@ class BlockCypher(BaseClient):
         t.network_name = self.network
         t.input_total = 0
         for n, i in enumerate(t.inputs):
-            i.value = tx['inputs'][n]['output_value']
-            t.input_total += i.value
+            if 'output_value' in tx['inputs'][n]:
+                i.value = tx['inputs'][n]['output_value']
+                t.input_total += i.value
         for n, o in enumerate(t.outputs):
             if 'spent_by' in tx['outputs'][n]:
                 o.spent = True
