@@ -610,7 +610,7 @@ class Input:
             'double_spend': self.double_spend,
             'script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
-            'sequence': self.sequence,
+            'sequence': to_hexstring(self.sequence),
             'signatures': [to_hexstring(s['signature']) for s in self.signatures],
         }
 

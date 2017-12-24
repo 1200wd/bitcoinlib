@@ -19,6 +19,7 @@
 #
 
 from datetime import datetime
+import struct
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
@@ -65,13 +66,14 @@ class BlockExplorerClient(BaseClient):
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=tx['isCoinBase'],
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
         for ti in tx['vin']:
+            sequence = struct.pack('<L', ti['sequence'])
             if tx['isCoinBase']:
                 t.add_input(prev_hash=32 * b'\0', output_n=0, unlocking_script=ti['coinbase'], index_n=ti['n'],
-                            script_type='coinbase', sequence=ti['sequence'])
+                            script_type='coinbase', sequence=sequence)
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
-                            index_n=ti['n'], value=value, sequence=ti['sequence'],
+                            index_n=ti['n'], value=value, sequence=sequence,
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
