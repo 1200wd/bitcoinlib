@@ -89,11 +89,11 @@ class BlockchainInfoClient(BaseClient):
         tx = self.compose_request('rawtx', tx_id)
         raw_tx = self.getrawtransaction(tx_id)
         t = Transaction.import_raw(raw_tx)
-        input_total = 0
+        input_total = None
         for n, i in enumerate(t.inputs):
             if 'prev_out' in tx['inputs'][n]:
                 i.value = tx['inputs'][n]['prev_out']['value']
-                input_total += i.value
+                input_total = input_total + i.value if input_total is not None else i.value
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
         # if tx['relayed_by'] == '0.0.0.0':

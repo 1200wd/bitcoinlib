@@ -68,7 +68,7 @@ class BlockExplorerClient(BaseClient):
         for ti in tx['vin']:
             sequence = struct.pack('<L', ti['sequence'])
             if tx['isCoinBase']:
-                t.add_input(prev_hash=32 * b'\0', output_n=0, unlocking_script=ti['coinbase'], index_n=ti['n'],
+                t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
                             script_type='coinbase', sequence=sequence)
             else:
                 value = int(round(float(ti['value']) * self.units, 0))

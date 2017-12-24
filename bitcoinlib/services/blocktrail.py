@@ -127,6 +127,8 @@ class BlockTrail(BaseClient):
         else:
             t.status = 'unconfirmed'
         t.input_total = tx['total_input_value']
+        if t.coinbase:
+            t.input_total = t.output_total
         t.output_total = tx['total_output_value']
         t.fee = tx['total_fee']
         t.hash = tx['hash']
