@@ -121,6 +121,14 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         output_total += value
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
+    if flag:
+        n_witnesses, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+        cursor += size
+        for n in range(0, n_witnesses):
+            witness_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+            cursor += size
+            witness_hash = rawtx[cursor:cursor + witness_size][::-1]
+            cursor += witness_size
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
