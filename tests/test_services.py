@@ -346,4 +346,4 @@ class TestService(unittest.TestCase, CustomAssertions):
         for provider in srv.results:
             print("Comparing provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
-                                    ['block_hash', 'spent', 'value', 'flag'])
+                                    ['block_hash', 'block_height', 'spent', 'value', 'flag'])

@@ -132,6 +132,8 @@ class BlockCypher(BaseClient):
         t.size = tx['size']
         t.network_name = self.network
         t.input_total = 0
+        if t.coinbase:
+            t.input_total = t.output_total
         for n, i in enumerate(t.inputs):
             if 'output_value' in tx['inputs'][n]:
                 i.value = tx['inputs'][n]['output_value']
