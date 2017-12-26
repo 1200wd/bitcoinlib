@@ -111,8 +111,12 @@ class BitGoClient(BaseClient):
         t.rawtx = tx['hex']
         t.size = len(tx['hex']) // 2
         t.network_name = self.network
-        input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
-        t.input_total = sum([x[1] for x in input_values])
+        if t.coinbase:
+            input_values = []
+            t.input_total = t.output_total
+        else:
+            input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
+            t.input_total = sum([x[1] for x in input_values])
         for i in t.inputs:
             if len(t.inputs) != len(input_values):
                 i.value = None

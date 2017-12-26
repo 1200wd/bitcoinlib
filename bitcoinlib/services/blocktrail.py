@@ -126,9 +126,11 @@ class BlockTrail(BaseClient):
             t.status = 'confirmed'
         else:
             t.status = 'unconfirmed'
-        t.input_total = tx['total_input_value']
+
         if t.coinbase:
             t.input_total = t.output_total
+        else:
+            t.input_total = tx['total_input_value']
         t.output_total = tx['total_output_value']
         t.fee = tx['total_fee']
         t.hash = tx['hash']
@@ -140,7 +142,9 @@ class BlockTrail(BaseClient):
         for n, i in enumerate(t.inputs):
             i.value = tx['inputs'][n]['value']
         for n, o in enumerate(t.outputs):
-            o.spent = True if 'spent_hash' in tx['outputs'][n] else False
+            if tx['outputs'][n]['address']:
+                o.spent = True if 'spent_hash' in tx['outputs'][n] else False
+
         return t
 
     def estimatefee(self, blocks):
