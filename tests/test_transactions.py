@@ -55,7 +55,7 @@ class TestTransactionInputs(unittest.TestCase):
             'script': '47304402206ca28f7bafdd65bdfc0fbd88f5a5b003699127caf0fff6e65535d7f131152c0302201617'
                       '303f638e08947f18697edcb3a7a53ae66df94f2629db98dc0cc5076b34b7012102309a196919cff1d1'
                       '8754271be7ee54d1b37f414cbb292b55d7ed1f0dc8209d13',
-            'sequence': 'ffffffff',
+            'sequence': 4294967295,
             'prev_hash': 'e33ebd17938bc013c62895892aac54df3f5bce96e44b8949949275741b1427e5',
             'index_n': 0,
             'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
@@ -160,9 +160,9 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_serialize_raw(self):
         for r in self.rawtxs:
-            print("Serialize %s" % r[0])
             t = Transaction.import_raw(r[1], r[4])
-            self.assertEqual(binascii.hexlify(t.raw()).decode(), r[1])
+            self.assertEqual(binascii.hexlify(t.raw()).decode(), r[1], "Deserialize / serialize error in transaction "
+                                                                       "%s" % r[0])
 
     def test_transactions_sign_1(self):
         pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import

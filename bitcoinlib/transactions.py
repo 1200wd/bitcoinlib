@@ -452,7 +452,7 @@ class Input:
     """
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
-                 sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False, index_n=0,
+                 sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
@@ -470,7 +470,7 @@ class Input:
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param sequence: Sequence part of input, you normally do not have to touch this
-        :type sequence: bytes
+        :type sequence: bytes, int
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
         :type compressed: bool
         :param sigs_required: Number of signatures required for a p2sh_multisig unlocking script
@@ -500,7 +500,10 @@ class Input:
             self.script_type = 'coinbase'
         else:
             self.script_type = script_type
-        self.sequence = to_bytes(sequence)
+        if isinstance(sequence, numbers.Number):
+            self.sequence = sequence
+        else:
+            self.sequence = struct.unpack('<I', sequence)[0]
         self.compressed = compressed
         self.network = Network(network)
         self.index_n = index_n
@@ -620,7 +623,7 @@ class Input:
             'double_spend': self.double_spend,
             'script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
-            'sequence': to_hexstring(self.sequence),
+            'sequence': self.sequence,
             'signatures': [to_hexstring(s['signature']) for s in self.signatures],
         }
 
@@ -774,7 +777,7 @@ class Transaction:
         rawtx = to_bytes(rawtx)
         return _transaction_deserialize(rawtx, network=network)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, change=None, hash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
                  coinbase=False, flag=None):
@@ -890,7 +893,7 @@ class Transaction:
                 r += int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
             else:
                 r += b'\0'
-            r += i.sequence
+            r += struct.pack('<L', i.sequence)
 
         r += int_to_varbyteint(len(self.outputs))
         for o in self.outputs:
@@ -1048,7 +1051,7 @@ class Transaction:
         return n_signs - n_sigs_to_insert
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
-                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False, index_n=None,
+                  sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False):
         """
         Add input to this transaction
@@ -1066,7 +1069,7 @@ class Transaction:
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param sequence: Sequence part of input, you normally do not have to touch this
-        :type sequence: bytes
+        :type sequence: int, bytes
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
         :type compressed: bool
         :param sigs_required: Number of signatures required for a p2sh_multisig unlocking script
