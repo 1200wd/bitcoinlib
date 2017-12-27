@@ -552,8 +552,9 @@ class Input:
                 kobj = key
             if kobj not in self.keys:
                 if kobj.compressed != self.compressed:
-                    raise TransactionError("Key compressed is %s but Input class compressed argument is %s " %
-                                           (kobj.compressed, self.compressed))
+                    self.compressed = kobj.compressed
+                    _logger.warning("Key compressed is %s but Input class compressed argument is %s " %
+                                    (kobj.compressed, self.compressed))
                 self.keys.append(kobj)
 
         for sig in signatures:
