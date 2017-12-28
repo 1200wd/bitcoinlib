@@ -171,11 +171,6 @@ class Service(object):
             for new_t in res:
                 if new_t.hash not in [t.hash for t in transactions]:
                     transactions.append(new_t)
-                elif new_t.status == 'incomplete':
-                    for inp in new_t.inputs:
-                        next((item for item in transactions if item.hash == new_t.hash)).inputs.append(inp)
-                    for out in new_t.outputs:
-                        next((item for item in transactions if item.hash == new_t.hash)).outputs.append(out)
                 address_list = address_list[addresses_per_request:]
         return transactions
 

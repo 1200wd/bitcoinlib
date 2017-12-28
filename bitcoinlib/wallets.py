@@ -437,6 +437,14 @@ class HDWalletTransaction(Transaction):
         self.hdwallet = hdwallet
         super(HDWalletTransaction, self).__init__(*args, **kwargs)
 
+    @classmethod
+    def from_transaction(cls, hdwallet, t):
+        return cls(hdwallet=hdwallet, inputs=t.inputs, outputs=t.outputs, locktime=t.locktime, version=t.version,
+                   network=t.network.network_name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size, change=t.change,
+                   hash=t.hash, date=t.date, confirmations=t.confirmations, block_height=t.block_height,
+                   block_hash=t.block_hash, input_total=t.input_total, output_total=t.output_total,
+                   rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, flag=t.flag)
+
     def sign(self, keys=None, index_n=0, hash_type=SIGHASH_ALL):
         priv_key_list_arg = []
         if keys:
@@ -471,8 +479,6 @@ class HDWalletTransaction(Transaction):
         """
         Verify and push transaction to network. Update UTXO's in database after successfull send
 
-        :param transaction: A signed transaction
-        :type transaction: Transaction
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
@@ -546,8 +552,7 @@ class HDWalletTransaction(Transaction):
 
         assert tx_id
         for ti in self.inputs:
-            tx_key = sess.query(DbKey).filter_by(wallet_id=self.hdwallet.wallet_id,
-                                                                   address=ti.address).scalar()
+            tx_key = sess.query(DbKey).filter_by(wallet_id=self.hdwallet.wallet_id, address=ti.address).scalar()
             key_id = None
             if tx_key:
                 key_id = tx_key.id
@@ -2045,10 +2050,6 @@ class HDWallet:
         The balances and unspent outputs (UTXO's) are updated as well, but for large wallets use the utxo_update
         method if possible.
 
-        Depending on the service provider used, complete transactions with all inputs and outputs might be added to
-        the database or just partial transactions with only items from this wallets keys. If an incomplete transaction
-        is returned the transaction status is set to 'incomplete'
-
         :param account_id: Account ID
         :type account_id: int
         :param used: Only update used or unused keys, specify None to update both. Default is None
@@ -2073,7 +2074,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['blockcypher'])
+        srv = Service(network=network)
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -2081,7 +2082,9 @@ class HDWallet:
         no_spent_info = False
         # key_ids = set()
         for t in txs:
-            self.transaction_add(t)
+            wt = HDWalletTransaction.from_transaction(self, t)
+            wt.save()
+            # self.transaction_add(t)
         # if no_spent_info:
         #     self._utxos_update_from_transactions(list(key_ids))
         return True
