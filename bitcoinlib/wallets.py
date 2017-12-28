@@ -1234,9 +1234,9 @@ class HDWallet:
 
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
-    def scan(self, scan_depth=10, account_id=None, change=None, network=None, _recursion_depth=0):
+    def scan(self, scan_depth=10, account_id=None, change=None, network=None, _keys_ignore=None, _recursion_depth=0):
         """
-        Generate new keys for this wallet and scan for UTXO's
+        Generate new keys for this wallet and scan for UTXO's.
 
         :param scan_depth: Amount of new keys and change keys (addresses) created for this wallet
         :type scan_depth: int
@@ -1247,6 +1247,9 @@ class HDWallet:
 
         :return:
         """
+
+        if _keys_ignore is None:
+            _keys_ignore = []
 
         if _recursion_depth > 10:
             raise WalletError("UTXO scanning has reached a recursion depth of more then 10")
@@ -1260,16 +1263,20 @@ class HDWallet:
             # TODO: Allow list of keys in utxos_update
             for new_key_id in new_key_ids:
                 nr_new_utxos += self.utxos_update(change=0, key_id=new_key_id)
+            _keys_ignore += new_key_ids
             if nr_new_utxos:
-                self.scan(scan_depth, account_id, change=0, network=network, _recursion_depth=_recursion_depth)
+                self.scan(scan_depth, account_id, change=0, network=network, _keys_ignore=_keys_ignore,
+                          _recursion_depth=_recursion_depth)
         if change != 0:
             scanned_keys_change = self.get_key(account_id, network, change=1, number_of_keys=scan_depth)
             new_key_ids = [k.key_id for k in scanned_keys_change]
             nr_new_utxos = 0
             for new_key_id in new_key_ids:
                 nr_new_utxos += self.utxos_update(change=1, key_id=new_key_id)
+            _keys_ignore += new_key_ids
             if nr_new_utxos:
-                self.scan(scan_depth, account_id, change=1, network=network, _recursion_depth=_recursion_depth)
+                self.scan(scan_depth, account_id, change=1, network=network, _keys_ignore=_keys_ignore,
+                          _recursion_depth=_recursion_depth)
 
     def get_key(self, account_id=None, network=None, number_of_keys=1, change=0, depth_of_keys=5):
         """
