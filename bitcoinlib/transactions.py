@@ -778,7 +778,7 @@ class Transaction:
         return _transaction_deserialize(rawtx, network=network)
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
-                 fee=None, fee_per_kb=None, size=None, change=None, hash='', date=None, confirmations=None,
+                 fee=None, fee_per_kb=None, size=None, hash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
                  coinbase=False, flag=None):
         """
@@ -799,6 +799,32 @@ class Transaction:
         :type version: bytes, int
         :param network: Network, leave empty for default network
         :type network: str
+        :param fee: Fee in smallest denominator (ie Satoshi) for complete transaction
+        :type fee: int
+        :param fee_per_kb: Fee in smallest denominator per kilobyte. Specify when exact transaction size is not known.
+        :type fee_per_kb: int
+        :param size; Transaction size in bytes
+        :type size: int
+        :param date: Confirmation date of transaction
+        :type date: datetime
+        :param confirmations: Number of confirmations
+        :type confirmations: int
+        :param block_height: Block number which includes transaction
+        :type block_height: int
+        :param block_hash: Hash of block for this transaction
+        :type block_hash: str
+        :param input_total: Total value of inputs
+        :type input_total: int
+        :param output_total: Total value of outputs
+        :type output_total: int
+        :param rawtx: Raw hexstring of complete transaction
+        :type rawtx: str
+        :param status: Transaction status, for example: 'new', 'incomplete', 'unconfirmed', 'confirmed'
+        :type status: str
+        :param coinbase: Coinbase transaction or not?
+        :type coinbase: bool
+        :param flag: Transaction flag to indicate version, for example for SegWit
+        :type flag: bytes, str
         """
         if inputs is None:
             self.inputs = []
@@ -820,7 +846,7 @@ class Transaction:
         self.fee = fee
         self.fee_per_kb = fee_per_kb
         self.size = size
-        self.change = change
+        # self.change = change
         self.hash = hash
         self.date = date
         self.confirmations = confirmations
@@ -906,13 +932,18 @@ class Transaction:
             r += struct.pack('<L', hash_type)
         return r
 
-    def raw_hex(self, sign_id=None):
+    def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
         Wrapper for raw method. Return current raw transaction hex
-        
+
+        :param sign_id: Create raw transaction which can be signed by transaction with this input ID
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
         :return hexstring: 
         """
-        return to_hexstring(self.raw(sign_id))
+        return to_hexstring(self.raw(sign_id, hash_type=hash_type))
 
     def verify(self):
         """
@@ -1076,8 +1107,14 @@ class Transaction:
         :param sigs_required: int
         :param sort: Sort public keys according to BIP0045 standard. Default is False to avoid unexpected change of key order.
         :type sort: boolean
+        :param index_n: Index number of position in transaction, leave empty to add input to end of inputs list
+        :type index_n: int
+        :param value: Value of input
+        :type value: int
+        :param double_spend: True if double spend is detected, depends on which service provider is selected
+        :type double_spend: bool
 
-        :return int: Transaction index 
+        :return int: Transaction index number (index_n)
         """
 
         if index_n is None:
@@ -1105,6 +1142,12 @@ class Transaction:
         :type public_key: bytes, str
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
         :type lock_script: bytes, str
+        :param spent: Has output been spent in new transaction?
+        :type spent: bool
+        :param output_n: Index number of output in transaction
+        :type output_n: int
+
+        :return int: Transaction output number (output_n)
         
         """
         if address:
@@ -1122,6 +1165,7 @@ class Transaction:
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    network=self.network.network_name))
+        return output_n
 
     def estimate_fee(self):
         """

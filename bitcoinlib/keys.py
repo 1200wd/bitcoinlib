@@ -641,6 +641,8 @@ class HDKey:
 
         :param import_seed: Private key seed as bytes or hexstring
         :type import_seed: str, bytes
+        :param key_type: Specify type of key, default is BIP32
+        :type key_type: str
         :param network: Network to use
         :type network: str
         
@@ -893,7 +895,9 @@ class HDKey:
 
         :param path: BIP0044 key path
         :type path: str
-        
+        :param network: Network name.
+        :type network: str
+
         :return HDKey: HD Key class object of subkey
         """
 
@@ -989,7 +993,9 @@ class HDKey:
         :type index: int
         :param hardened: Specify if key must be hardened (True) or normal (False)
         :type hardened: bool
-        
+        :param network: Network name.
+        :type network: str
+
         :return HDKey: HD Key class object
         """
         if network is None:
@@ -1020,7 +1026,9 @@ class HDKey:
 
         :param index: Key index number
         :type index: int
-        
+        :param network: Network name.
+        :type network: str
+
         :return HDKey: HD Key class object
         """
         if network is None:

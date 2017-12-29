@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Helper methods for encoding and conversion
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -43,6 +43,7 @@ class EncodingError(Exception):
 
     def __str__(self):
         return self.msg
+
 
 bytesascii = b''
 for x in range(256):
@@ -109,7 +110,7 @@ def normalize_var(var, base=256):
         return var
 
 
-def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, output_as_list=None):
+def change_base(chars, base_from, base_to, min_length=0, output_even=None, output_as_list=None):
     """
     Convert input chars from one base to another.
 
@@ -125,8 +126,8 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
     :type base_from: int
     :param base_to: Base number for output
     :type base_to: int
-    :param min_lenght: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
-    :type min_lenght: int
+    :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
+    :type min_length: int
     :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
     :type output_even: bool
     :param output_as_list: Always output as list instead of string.
@@ -134,7 +135,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
 
     :return str, list: Base converted input as string or list.
     """
-    if base_from == 10 and not min_lenght:
+    if base_from == 10 and not min_length:
         raise EncodingError("For a decimal input a minimum output lenght is required!")
 
     code_str = _get_code_string(base_to)
@@ -150,7 +151,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
     inp = normalize_var(chars, base_from)
 
     # Use binascii and int for standard conversions to speedup things
-    if not min_lenght:
+    if not min_length:
         if base_from == 256 and base_to == 16:
             return to_hexstring(binascii.hexlify(inp))
         elif base_from == 16 and base_to == 256:
@@ -213,7 +214,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
             output = [code_str[0]] + output
 
         # Add leading zero's
-        while len(output) < min_lenght:
+        while len(output) < min_length:
             output = [code_str[0]] + output
 
     if not output_as_list and isinstance(output, list):
@@ -242,11 +243,11 @@ def varbyteint_to_int(byteint):
 
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
-    :param byteint: 1-9 byte representation as integer
+    :param byteint: 1-9 byte representation
+    ;type byteint: int, list, bytearray
 
     :return: normal integer
     """
-    # byteint = to_bytearray(byteint)
     if not isinstance(byteint, (bytes, list, bytearray)):
         raise EncodingError("Byteint be a list or defined as bytes")
     if PY3 or isinstance(byteint, (list, bytearray)):
@@ -291,7 +292,7 @@ def varstr(s):
     """
     Convert string to bytestring preceeded with length byte
 
-    :param s: bytestring
+    :param s: String value to convert
     :type s: bytes
 
     :return bytes: varstring
@@ -329,7 +330,7 @@ def addr_to_pubkeyhash(address, as_hex=False):
     """
     Convert address to public key hash
 
-    :param address: Cryptocurrency address in base-58 format
+    :param address: Crypto currency address in base-58 format
     :type address: str
     :param as_hex: Output as hexstring
     :type as_hex: bool
@@ -384,6 +385,7 @@ def to_bytearray(s):
     """
     Convert String, Unicode or Bytes to Python 2 and 3 compatible ByteArray
     :param s: String, Unicode, Bytes or ByteArray
+
     :return: ByteArray
     """
     if isinstance(s, (str, unicode if not PY3 else str)):
@@ -397,8 +399,12 @@ def to_bytearray(s):
 def to_bytes(s, unhexlify=True):
     """
     Convert String, Unicode or ByteArray to Bytes
-    :param s: String, Unicode, Bytes or ByteArray
+
+    :param s: String to convert
+    :type s: str, unicode, bytes, bytearray
     :param unhexlify: Try to unhexlify hexstring
+    :type unhexlify: bool
+
     :return: Bytes var
     """
     s = normalize_var(s)
@@ -413,9 +419,12 @@ def to_bytes(s, unhexlify=True):
 
 def to_hexstring(var):
     """
-    Convert Bytes or ByteArray to printable string
-    :param var: Bytes, ByteArray or other input variable
-    :return:
+    Convert Bytes or ByteArray to hexadecimal string
+
+    :param var: Variable to convert to hex string
+    :type var: bytes, bytearray, str
+
+    :return: hexstring
     """
     var = normalize_var(var)
 

@@ -263,6 +263,7 @@ class HDWalletKey:
         :type path: str
         :param key_type: Type of key, single or BIP44 type
         :type key_type: str
+
         :return HDWalletKey: HDWalletKey object
         """
 
