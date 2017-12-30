@@ -775,6 +775,8 @@ class HDWallet:
         :type purpose: int
         :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
         :type sort_keys: bool
+        :param multisig_compressed: Use compressed multisig keys for this wallet. Default is True
+        :type multisig_compressed: bool
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
 
@@ -909,6 +911,8 @@ class HDWallet:
         :type wallet: int, str
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
+        :param session: Sqlalchemy session
+        :type session: sqlalchemy.orm.session.Session
         :param main_key_object: Pass main key object to save time
         :type main_key_object: HDKey
         """
@@ -1064,6 +1068,16 @@ class HDWallet:
         return wallet_key
 
     def import_master_key(self, hdkey, name='Masterkey (imported)'):
+        """
+        Import (another) masterkey in this wallet
+
+        :param hdkey: Private key
+        :type hdkey: HDKey, str
+        :param name: Key name of masterkey
+        :type name: str
+
+        :return HDKey: Main key as HDKey object
+        """
         network, account_id, acckey = self._get_account_defaults()
 
         if not isinstance(hdkey, HDKey):
@@ -1331,6 +1345,8 @@ class HDWallet:
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
+        :param number_of_keys: Number of keys to return. Default is 1
+        :type number_of_keys: int
         :param change: Payment (0) or change key (1). Default is 0
         :type change: int
         :param depth_of_keys: Depth of account keys. Default is 5 according to BIP44 standards
@@ -1712,6 +1728,7 @@ class HDWallet:
         :type used: bool, None
         :param network: Network name filter
         :type network: str
+        :param change: Only include change addresses or not. Default is None which returns both
         :param depth: Filter by key depth
         :type depth: int
         :param key_id: Key ID to get address of just 1 key
@@ -2431,6 +2448,8 @@ class HDWallet:
         :type priv_keys: HDKey, list
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :type offline: bool
 
         :return str, list: Transaction ID or result array
         """
@@ -2474,6 +2493,8 @@ class HDWallet:
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :type offline: bool
 
         :return str, list: Transaction ID or result array 
         """
@@ -2502,7 +2523,9 @@ class HDWallet:
         :type min_confirms: int
         :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider.
         :type fee_per_kb: int
-        
+        :param offline: Just return the transaction object and do not send it when offline = True. Default is False
+        :type offline: bool
+
         :return str, list: Transaction ID or result array
         """
 
