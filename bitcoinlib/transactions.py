@@ -1148,7 +1148,7 @@ class Transaction:
         :type output_n: int
 
         :return int: Transaction output number (output_n)
-        
+
         """
         if address:
             to = address

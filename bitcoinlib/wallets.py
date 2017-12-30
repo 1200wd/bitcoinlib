@@ -432,14 +432,40 @@ class HDWalletKey:
 
 
 class HDWalletTransaction(Transaction):
+    """
+    Normally only used as attribute of HDWallet class. Child of Transaction object with extra reference to
+    wallet and database object.
+
+    All HDWalletTransaction items are stored in a database
+    """
 
     def __init__(self, hdwallet, *args, **kwargs):
+        """
+        Initialize HDWalletTransaction object with reference to a HDWallet object
+
+        :param hdwallet: HDWallet object, wallet name or ID
+        :type hdWallet: HDwallet, str, int
+        :param args: Arguments for HDWallet parent class
+        :type args: args
+        :param kwargs: Keyword arguments for HDWallet parent class
+        :type kwargs: kwargs
+        """
         assert isinstance(hdwallet, HDWallet)
         self.hdwallet = hdwallet
         super(HDWalletTransaction, self).__init__(*args, **kwargs)
 
     @classmethod
     def from_transaction(cls, hdwallet, t):
+        """
+        Create HDWalletTransaction object from Transaction object
+
+        :param hdwallet: HDWallet object, wallet name or ID
+        :type hdWallet: HDwallet, str, int
+        :param t: Specify Transaction object
+        :type t: Transaction
+
+        :return HDWalletClass:
+        """
         return cls(hdwallet=hdwallet, inputs=t.inputs, outputs=t.outputs, locktime=t.locktime, version=t.version,
                    network=t.network.network_name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size, change=t.change,
                    hash=t.hash, date=t.date, confirmations=t.confirmations, block_height=t.block_height,
@@ -447,6 +473,18 @@ class HDWalletTransaction(Transaction):
                    rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, flag=t.flag)
 
     def sign(self, keys=None, index_n=0, hash_type=SIGHASH_ALL):
+        """
+        Sign this transaction. Use existing keys from wallet or use keys argument for extra keys.
+
+        :param keys: Extra private keys to sign the transaction
+        :type keys: HDKey, str
+        :param index_n: Transaction index_n to sign
+        :type index_n: int
+        :param hash_type: Hashtype to use, default is SIGHASH_ALL
+        :type hash_type: int
+
+        :return bool: True is successfully signed
+        """
         priv_key_list_arg = []
         if keys:
             if not isinstance(keys, list):
@@ -527,6 +565,11 @@ class HDWalletTransaction(Transaction):
             return res
 
     def save(self):
+        """
+        Save this transaction to database
+
+        :return int: Transaction ID
+        """
         sess = self.hdwallet._session
         # If tx_hash is unknown add it to database, else update
         db_tx_query = sess.query(DbTransaction). \
