@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Helper methods for encoding and conversion
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2018 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -56,6 +56,7 @@ code_strings = {
     32: b'abcdefghijklmnopqrstuvwxyz234567',
     58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     256: b''.join([bytes(bytearray((x,))) for x in range(256)]),
+    'bech32': b'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 }
 
 
@@ -121,10 +122,10 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
 
     :param chars: Input string
     :type chars: any
-    :param base_from: Base number from input string
-    :type base_from: int
-    :param base_to: Base number for output
-    :type base_to: int
+    :param base_from: Base number or name from input
+    :type base_from: int, str
+    :param base_to: Base number or name for output
+    :type base_to: int, str
     :param min_lenght: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_lenght: int
     :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
@@ -138,7 +139,10 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
         raise EncodingError("For a decimal input a minimum output lenght is required!")
 
     code_str = _get_code_string(base_to)
-    if int(base_to) not in code_strings:
+
+    if not isinstance(base_to, int):
+        base_to = len(code_str)
+    elif int(base_to) not in code_strings:
         output_as_list = True
 
     code_str_from = _get_code_string(base_from)
