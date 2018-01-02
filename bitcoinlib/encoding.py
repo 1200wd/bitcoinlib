@@ -372,11 +372,11 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     return change_base(addr256, 256, 58)
 
 
-def pubkeyhash_to_addr_bech32(pkh, versionbyte=b'\x00\x14\x20'):
+def pubkeyhash_to_addr_bech32(pkh, hrp='bc'):
     pkh = to_bytearray(pkh)
     # bpkh = versionbyte + pkh
     # addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
-    return change_base(pkh, 256, 'bech32')
+    return hrp + '1' + change_base(pkh, 256, 'bech32')
 
 
 def script_to_pubkeyhash(script):
