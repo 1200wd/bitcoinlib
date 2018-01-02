@@ -192,9 +192,10 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
                     firstchar = code_str_from[0]
                 else:
                     firstchar = chr(code_str_from[0]).encode('utf-8')
-                if (len(inp) and isinstance(inp, list) and inp[0] == code_str_from[0]) \
-                        or (isinstance(inp, (str, bytes, bytearray)) and not len(inp.strip(firstchar))) \
-                        or isinstance(inp, list):
+                if isinstance(inp, list):
+                    if len([x for x in inp if x != firstchar]):
+                        addzeros += 1
+                elif not len(inp.strip(firstchar)):
                     addzeros += 1
             factor *= base_from
     else:
