@@ -21,6 +21,7 @@
 import sys
 import math
 import numbers
+from copy import deepcopy
 import ecdsa
 import struct
 import hashlib
@@ -44,6 +45,7 @@ class EncodingError(Exception):
     def __str__(self):
         return self.msg
 
+
 bytesascii = b''
 for x in range(256):
     bytesascii += bytes(bytearray((x,)))
@@ -53,7 +55,7 @@ code_strings = {
     3: b' ,.',
     10: b'0123456789',
     16: b'0123456789abcdef',
-    32: b'abcdefghijklmnopqrstuvwxyz234567',
+    'base32': b'abcdefghijklmnopqrstuvwxyz234567',
     58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     256: b''.join([bytes(bytearray((x,))) for x in range(256)]),
     'bech32': b'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
@@ -106,6 +108,8 @@ def normalize_var(var, base=256):
 
     if base == 10:
         return int(var)
+    elif isinstance(var, list):
+        return deepcopy(var)
     else:
         return var
 
@@ -372,11 +376,15 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     return change_base(addr256, 256, 58)
 
 
-def pubkeyhash_to_addr_bech32(pkh, hrp='bc'):
-    pkh = to_bytearray(pkh)
+def pubkeyhash_to_addr_bech32(witprog, hrp='bc', witver=0):
+    witprog = to_bytes(witprog)
+    pkh = bytes([witver + 0x50 if witver else 0, len(witprog)]) + witprog
+    # pkh = to_bytearray(pkh)
+
     # bpkh = versionbyte + pkh
     # addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
-    return hrp + '1' + change_base(pkh, 256, 'bech32')
+    # return hrp + '1' + change_base(pkh, 256, 'bech32')
+    return change_base(pkh, 256, 'bech32')
 
 
 def script_to_pubkeyhash(script):
