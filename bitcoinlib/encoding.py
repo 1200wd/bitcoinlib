@@ -394,7 +394,8 @@ def pubkeyhash_to_addr_bech32(witprog, hrp='bc', witver=b'\0', seperator='1'):
 
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
-    polymod = _bech32_polymod(hrp_expanded + [0, 0, 0, 0, 0, 0]) ^ 1
+    data_base32 = change_base(data, 256, 32)
+    polymod = _bech32_polymod(hrp_expanded + data_base32 + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
     return hrp + seperator + change_base(data, 256, 'bech32') + change_base(checksum, 32, 'bech32')
