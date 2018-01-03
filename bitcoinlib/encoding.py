@@ -389,16 +389,18 @@ def _bech32_polymod(values):
     return chk
 
 
-def pubkeyhash_to_addr_bech32(witprog, hrp='bc', witver=b'\0', seperator='1'):
-    data = witver + to_bytes(witprog)
-
+def pubkeyhash_to_addr_bech32(public_key_hash, hrp='bc', witver=0, seperator='1'):
+    # Convert to base32
+    base_from = 16
+    if isinstance(public_key_hash, bytes):
+        base_from = 256
+    data = [witver] + change_base(public_key_hash, base_from, 32, output_as_list=True)
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
-    data_base32 = change_base(data, 256, 32)
-    polymod = _bech32_polymod(hrp_expanded + data_base32 + [0, 0, 0, 0, 0, 0]) ^ 1
+    polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
-
-    return hrp + seperator + change_base(data, 256, 'bech32') + change_base(checksum, 32, 'bech32')
+    # Return bech32 address
+    return hrp + seperator + change_base(data, 32, 'bech32') + change_base(checksum, 32, 'bech32')
 
 
 def script_to_pubkeyhash(script):
