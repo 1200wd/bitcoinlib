@@ -193,7 +193,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
                 else:
                     firstchar = chr(code_str_from[0]).encode('utf-8')
                 if isinstance(inp, list):
-                    if len([x for x in inp if x != firstchar]):
+                    if not len([x for x in inp if x != firstchar]):
                         addzeros += 1
                 elif not len(inp.strip(firstchar)):
                     addzeros += 1
@@ -377,15 +377,27 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     return change_base(addr256, 256, 58)
 
 
-def pubkeyhash_to_addr_bech32(witprog, hrp='bc', witver=0):
-    witprog = to_bytes(witprog)
-    pkh = bytes([witver + 0x50 if witver else 0, len(witprog)]) + witprog
-    # pkh = to_bytearray(pkh)
+def _bech32_polymod(values):
+    """Internal function that computes the Bech32 checksum."""
+    generator = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
+    chk = 1
+    for value in values:
+        top = chk >> 25
+        chk = (chk & 0x1ffffff) << 5 ^ value
+        for i in range(5):
+            chk ^= generator[i] if ((top >> i) & 1) else 0
+    return chk
 
-    # bpkh = versionbyte + pkh
-    # addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
-    # return hrp + '1' + change_base(pkh, 256, 'bech32')
-    return change_base(pkh, 256, 'bech32')
+
+def pubkeyhash_to_addr_bech32(witprog, hrp='bc', witver=b'\0', seperator='1'):
+    data = witver + to_bytes(witprog)
+
+    # Expand the HRP into values for checksum computation
+    hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+    polymod = _bech32_polymod(hrp_expanded + [0, 0, 0, 0, 0, 0]) ^ 1
+    checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+
+    return hrp + seperator + change_base(data, 256, 'bech32') + change_base(checksum, 32, 'bech32')
 
 
 def script_to_pubkeyhash(script):
