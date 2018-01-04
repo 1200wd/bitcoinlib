@@ -150,6 +150,8 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
         output_as_list = True
 
     code_str_from = _get_code_string(base_from)
+    if not isinstance(base_from, int):
+        base_from = len(code_str)
     if not isinstance(code_str_from, (bytes, list)):
         raise EncodingError("Code strings must be a list or defined as bytes")
     output = []
@@ -389,18 +391,42 @@ def _bech32_polymod(values):
     return chk
 
 
-def pubkeyhash_to_addr_bech32(public_key_hash, hrp='bc', witver=0, seperator='1'):
+def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     # Convert to base32
     base_from = 16
-    if isinstance(public_key_hash, bytes):
+    if isinstance(pubkeyhash, bytes):
         base_from = 256
-    data = [witver] + change_base(public_key_hash, base_from, 32, output_as_list=True)
+    data = [witver] + change_base(pubkeyhash, base_from, 32, output_as_list=True)
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
     # Return bech32 address
     return hrp + seperator + change_base(data, 32, 'bech32') + change_base(checksum, 32, 'bech32')
+
+
+def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False):
+    """Validate a Bech32 string, and determine HRP and data."""
+    if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
+            (bech.lower() != bech and bech.upper() != bech)):
+        return (None, None)
+    bech = bech.lower()
+    pos = bech.rfind('1')
+    if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
+        return (None, None)
+    # if not all(x in CHARSET for x in bech[pos+1:]):
+    #     return (None, None)
+    if hrp != bech[:pos]:
+        raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
+    # data = [CHARSET.find(x) for x in bech[pos+1:]]
+    data = change_base(bech[pos+1:], 'bech32', 32)
+    hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+    if not _bech32_polymod(hrp_expanded + data) == 1:
+        return (None, None)
+    base_to = 256
+    if as_hex:
+        base_to = 16
+    return change_base(data[:-6], 32, base_to)
 
 
 def script_to_pubkeyhash(script):
