@@ -426,7 +426,19 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False):
     base_to = 256
     if as_hex:
         base_to = 16
-    return change_base(data[:-6], 32, base_to)
+    data = data[:-6]
+    decoded = change_base(data[1:], 32, base_to)
+    if decoded is None or len(decoded) < 2 or len(decoded) > 40:
+        return (None, None)
+    if data[0] > 16:
+        return (None, None)
+    if data[0] == 0 and \
+            (
+                (as_hex and len(decoded) != 40 and len(decoded) != 64) or
+                (not as_hex and len(decoded) != 20 and len(decoded) != 32)
+            ):
+        return (None, None)
+    return (data[0], decoded)
 
 
 def script_to_pubkeyhash(script):
