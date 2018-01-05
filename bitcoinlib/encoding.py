@@ -241,7 +241,7 @@ def change_base(chars, base_from, base_to, min_lenght=0, output_even=None, outpu
             output = ''.join(output)
     if base_to == 10:
         return int(0) or (output != '' and int(output))
-    if PY3 and base_to == 256:
+    if PY3 and base_to == 256 and not output_as_list:
         return output.encode('ISO-8859-1')
     else:
         return output
@@ -424,33 +424,28 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
         return False
     # if not all(x in CHARSET for x in bech[pos+1:]):
     #     return False
+    if hrp != bech[:pos]:
         raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
     # data = [CHARSET.find(x) for x in bech[pos+1:]]
     data = change_base(bech[pos+1:], 'bech32', 32)
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
         return False
-    base_to = 256
-    expected_key_len = [20, 32]
-    if as_hex:
-        base_to = 16
-        expected_key_len = [40, 64]
     data = data[:-6]
-    decoded = change_base(data[1:], 32, base_to)
+    decoded = change_base(data[1:], 32, 256)
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
         return False
     if data[0] > 16:
         return False
-    if data[0] == 0 and len(decoded) not in expected_key_len:
+    if data[0] == 0 and len(decoded) not in [20, 32]:
         return False
+    prefix = b''
     if include_witver:
         datalen = len(decoded)
-        datalen //= 2 if as_hex else 1
         prefix = bytes([data[0] + 0x50 if data[0] else 0, datalen])
-        return change_base(prefix, 256, base_to) + decoded
-        # print(bytes([witver + 0x50 if witver else 0, len(witprog)] + witprog))
-    else:
-        return decoded
+    if as_hex:
+        return change_base(prefix + decoded, 256, 16)
+    return prefix + decoded
 
 
 def script_to_pubkeyhash(script):
