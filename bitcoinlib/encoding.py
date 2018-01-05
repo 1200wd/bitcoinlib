@@ -405,7 +405,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     return hrp + seperator + change_base(data, 32, 'bech32') + change_base(checksum, 32, 'bech32')
 
 
-def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False):
+def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False):
     """Validate a Bech32 string, and determine HRP and data."""
     if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
             (bech.lower() != bech and bech.upper() != bech)):
@@ -438,7 +438,14 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False):
                 (not as_hex and len(decoded) != 20 and len(decoded) != 32)
             ):
         return (None, None)
-    return (data[0], decoded)
+    if include_witver:
+        datalen = len(decoded)
+        datalen //= 2 if as_hex else 1
+        prefix = bytes([data[0] + 0x50 if data[0] else 0, datalen])
+        return change_base(prefix, 256, base_to) + decoded
+        # print(bytes([witver + 0x50 if witver else 0, len(witprog)] + witprog))
+    else:
+        return decoded
 
 
 def script_to_pubkeyhash(script):
