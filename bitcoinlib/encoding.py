@@ -394,8 +394,16 @@ def _bech32_polymod(values):
 def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     # Convert to base32
     base_from = 16
+    expected_key_len = [40, 64]
     if isinstance(pubkeyhash, bytes):
         base_from = 256
+        expected_key_len = [20, 32]
+
+    if len(pubkeyhash) not in expected_key_len:
+        if base_from == 16:
+            pubkeyhash = pubkeyhash[4:]
+        else:
+            pubkeyhash = pubkeyhash[2:]
     data = [witver] + change_base(pubkeyhash, base_from, 32, output_as_list=True)
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
