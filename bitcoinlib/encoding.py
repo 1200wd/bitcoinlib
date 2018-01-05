@@ -417,35 +417,32 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
     """Validate a Bech32 string, and determine HRP and data."""
     if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
             (bech.lower() != bech and bech.upper() != bech)):
-        return (None, None)
+        return False
     bech = bech.lower()
     pos = bech.rfind('1')
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
-        return (None, None)
+        return False
     # if not all(x in CHARSET for x in bech[pos+1:]):
-    #     return (None, None)
-    if hrp != bech[:pos]:
+    #     return False
         raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
     # data = [CHARSET.find(x) for x in bech[pos+1:]]
     data = change_base(bech[pos+1:], 'bech32', 32)
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
-        return (None, None)
+        return False
     base_to = 256
+    expected_key_len = [20, 32]
     if as_hex:
         base_to = 16
+        expected_key_len = [40, 64]
     data = data[:-6]
     decoded = change_base(data[1:], 32, base_to)
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
-        return (None, None)
+        return False
     if data[0] > 16:
-        return (None, None)
-    if data[0] == 0 and \
-            (
-                (as_hex and len(decoded) != 40 and len(decoded) != 64) or
-                (not as_hex and len(decoded) != 20 and len(decoded) != 32)
-            ):
-        return (None, None)
+        return False
+    if data[0] == 0 and len(decoded) not in expected_key_len:
+        return False
     if include_witver:
         datalen = len(decoded)
         datalen //= 2 if as_hex else 1
