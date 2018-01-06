@@ -391,20 +391,38 @@ def _bech32_polymod(values):
     return chk
 
 
+def convertbits(data, frombits, tobits, pad=True):
+    """General power-of-2 base conversion."""
+    acc = 0
+    bits = 0
+    ret = []
+    maxv = (1 << tobits) - 1
+    max_acc = (1 << (frombits + tobits - 1)) - 1
+    for value in data:
+        if value < 0 or (value >> frombits):
+            return None
+        acc = ((acc << frombits) | value) & max_acc
+        bits += frombits
+        while bits >= tobits:
+            bits -= tobits
+            ret.append((acc >> bits) & maxv)
+    if pad:
+        if bits:
+            ret.append((acc << (tobits - bits)) & maxv)
+    elif bits >= frombits or ((acc << (tobits - bits)) & maxv):
+        return None
+    return ret
+
+
 def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     # Convert to base32
-    base_from = 16
-    expected_key_len = [40, 64]
-    if isinstance(pubkeyhash, bytes):
-        base_from = 256
-        expected_key_len = [20, 32]
+    if not isinstance(pubkeyhash, bytes):
+        pubkeyhash = to_bytes(pubkeyhash)
 
-    if len(pubkeyhash) not in expected_key_len:
-        if base_from == 16:
-            pubkeyhash = pubkeyhash[4:]
-        else:
-            pubkeyhash = pubkeyhash[2:]
-    data = [witver] + change_base(pubkeyhash, base_from, 32, output_as_list=True)
+    if len(pubkeyhash) not in [20, 32]:
+        pubkeyhash = pubkeyhash[2:]
+    # data = [witver] + change_base(pubkeyhash, base_from, 32, output_as_list=True)
+    data = [witver] + convertbits(pubkeyhash, 8, 5, pad=False)
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
