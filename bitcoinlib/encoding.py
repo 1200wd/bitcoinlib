@@ -414,23 +414,28 @@ def convertbits(data, frombits, tobits, pad=True):
     return ret
 
 
+# Encode Public key hash
 def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     # Convert to base32
     if not isinstance(pubkeyhash, bytes):
         pubkeyhash = to_bytes(pubkeyhash)
 
     if len(pubkeyhash) not in [20, 32]:
+        if pubkeyhash[0] != 0:
+            witver = pubkeyhash[0] - 0x50
         pubkeyhash = pubkeyhash[2:]
     # data = [witver] + change_base(pubkeyhash, base_from, 32, output_as_list=True)
-    data = [witver] + convertbits(pubkeyhash, 8, 5, pad=False)
+    data = [witver] + convertbits(pubkeyhash, 8, 5)
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
     # Return bech32 address
-    return hrp + seperator + change_base(data, 32, 'bech32') + change_base(checksum, 32, 'bech32')
+    return hrp + seperator + change_base(data, 32, 'bech32', min_lenght=len(data)) + \
+           change_base(checksum, 32, 'bech32', min_lenght=len(checksum))
 
 
+# Decode public key hash
 def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False):
     """Validate a Bech32 string, and determine HRP and data."""
     if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
@@ -450,13 +455,14 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
     if not _bech32_polymod(hrp_expanded + data) == 1:
         return False
     data = data[:-6]
-    decoded = change_base(data[1:], 32, 256)
-    if decoded is None or len(decoded) < 2 or len(decoded) > 40:
-        return False
-    if data[0] > 16:
-        return False
-    if data[0] == 0 and len(decoded) not in [20, 32]:
-        return False
+    # decoded = change_base(data[1:], 32, 256)
+    decoded = bytearray(convertbits(data[1:], 5, 8, pad=False))
+    # if decoded is None or len(decoded) < 2 or len(decoded) > 40:
+    #     return False
+    # if data[0] > 16:
+    #     return False
+    # if data[0] == 0 and len(decoded) not in [20, 32]:
+    #     return False
     prefix = b''
     if include_witver:
         datalen = len(decoded)
