@@ -78,6 +78,16 @@ def _in_code_string_check(inp, code_str_from):
         return inp.lower()
 
 
+def array_to_codestring(array, base):
+    codebase = code_strings[base]
+    var = ""
+    for i in array:
+        if i < 0 or i > len(codebase):
+            raise EncodingError("Index %i out of range for codebase %s" % (i, codebase))
+        var += chr(codebase[i])
+    return var
+
+
 def normalize_var(var, base=256):
     """
     For Python 2 convert variabele to string
@@ -431,8 +441,9 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
     # Return bech32 address
-    return hrp + seperator + change_base(data, 32, 'bech32', min_lenght=len(data)) + \
-           change_base(checksum, 32, 'bech32', min_lenght=len(checksum))
+    # return hrp + seperator + change_base(data, 32, 'bech32', min_lenght=len(data)) + \
+    #        change_base(checksum, 32, 'bech32', min_lenght=len(checksum))
+    return hrp + seperator + array_to_codestring(data, 'bech32') + array_to_codestring(checksum, 'bech32')
 
 
 # Decode public key hash
@@ -450,6 +461,7 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
     if hrp != bech[:pos]:
         raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
     # data = [CHARSET.find(x) for x in bech[pos+1:]]
+    # data = change_base(bech[pos+1:], 'bech32', 32)
     data = change_base(bech[pos+1:], 'bech32', 32)
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
@@ -475,6 +487,7 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
 def script_to_pubkeyhash(script):
     """
     Creates a RIPEMD-160 hash of a locking, unlocking, redeemscript, etc
+
 
     :param script: Script
     :type script: bytes
