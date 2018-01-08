@@ -80,12 +80,24 @@ def _in_code_string_check(inp, code_str_from):
 
 def array_to_codestring(array, base):
     codebase = code_strings[base]
-    var = ""
+    codestring = ""
     for i in array:
         if i < 0 or i > len(codebase):
-            raise EncodingError("Index %i out of range for codebase %s" % (i, codebase))
-        var += chr(codebase[i])
-    return var
+            raise EncodingError("Index %i out of range for codebase" % i)
+        codestring += chr(codebase[i])
+    return codestring
+
+
+def codestring_to_array(codestring, base):
+    codestring = to_bytes(codestring)
+    codebase = code_strings[base]
+    array = []
+    for s in codestring:
+        try:
+            array.append(codebase.index(s))
+        except ValueError:
+            raise EncodingError("Character '%s' not found in codebase" % chr(s))
+    return array
 
 
 def normalize_var(var, base=256):
@@ -462,7 +474,7 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
         raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
     # data = [CHARSET.find(x) for x in bech[pos+1:]]
     # data = change_base(bech[pos+1:], 'bech32', 32)
-    data = change_base(bech[pos+1:], 'bech32', 32)
+    data = codestring_to_array(bech[pos+1:], 'bech32')
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
         return False
