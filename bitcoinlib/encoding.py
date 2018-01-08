@@ -55,7 +55,7 @@ code_strings = {
     3: b' ,.',
     10: b'0123456789',
     16: b'0123456789abcdef',
-    'base32': b'abcdefghijklmnopqrstuvwxyz234567',
+    32: b'abcdefghijklmnopqrstuvwxyz234567',
     58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     256: b''.join([bytes(bytearray((x,))) for x in range(256)]),
     'bech32': b'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
@@ -325,7 +325,7 @@ def varstr(s):
     Convert string to bytestring preceeded with length byte
 
     :param s: bytestring
-    :type s: bytes
+    :type s: bytes, str
 
     :return bytes: varstring
     """
