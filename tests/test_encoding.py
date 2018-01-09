@@ -237,6 +237,27 @@ VALID_ADDRESS = [
      "0020000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"],
 ]
 
+INVALID_ADDRESS = [
+    "tc1qw508d6qejxtdg4y5r3zarvary0c5xw7kg3g4ty",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5",
+    "BC13W508D6QEJXTDG4Y5R3ZARVARY0C5XW7KN40WF2",
+    "bc1rw5uspcuh",
+    "bc10w508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kw5rljs90",
+    "BC1QR508D6QEJXTDG4Y5R3ZARVARYV98GJ9P",
+    "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sL5k7",
+    "bc1zw508d6qejxtdg4y5r3zarvaryvqyzf3du",
+    "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3pjxtptv",
+    "bc1gmk9yu",
+]
+
+INVALID_ADDRESS_ENC = [
+    ("BC", 0, 20),
+    ("bc", 0, 21),
+    ("bc", 17, 32),
+    ("bc", 1, 1),
+    ("bc", 16, 41),
+]
+
 
 class TestEncodingBech32SegwitAddresses(unittest.TestCase):
     """
@@ -261,6 +282,17 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             except EncodingError:
                 continue
 
+    def test_invalid_checksum(self):
+        """Test validation of invalid checksums."""
+        for test in INVALID_CHECKSUM:
+            try:
+                pos = test.rfind('1')
+                hrp = test[:pos]
+                pkh = addr_bech32_to_pubkeyhash(test, hrp)
+                self.assertFalse(pkh)
+            except EncodingError as e:
+                self.assertIn("not found in codebase", e.msg)
+
     def test_valid_address(self):
         """Test whether valid addresses decode to the correct output."""
         for (address, hexscript) in VALID_ADDRESS:
@@ -272,6 +304,16 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             addr = pubkeyhash_to_addr_bech32(scriptpubkey, address[:2].lower())
             self.assertEqual(address.lower(), addr)
 
+    def test_invalid_address(self):
+        """Test whether invalid addresses fail to decode."""
+        for test in INVALID_ADDRESS:
+            self.assertFalse(addr_bech32_to_pubkeyhash("bc", test))
+            self.assertFalse(addr_bech32_to_pubkeyhash("tb", test))
+
+    def test_invalid_address_enc(self):
+        """Test whether address encoding fails on invalid input."""
+        for hrp, version, length in INVALID_ADDRESS_ENC:
+            self.assertFalse(addr_bech32_to_pubkeyhash(hrp, version, [0] * length))
 
 if __name__ == '__main__':
     unittest.main()
