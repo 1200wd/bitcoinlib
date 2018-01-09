@@ -21,6 +21,7 @@
 import unittest
 
 from bitcoinlib.encoding import *
+from bitcoinlib.encoding import _bech32_polymod
 
 
 class TestEncodingMethodsChangeBase(unittest.TestCase):
@@ -205,6 +206,25 @@ class TestEncodingMethodsStructures(unittest.TestCase):
                          to_hexstring(bytearray([6, 7, 60, 70, 0, 255, 32, 32, 32, 200, 27])))
 
 
+VALID_CHECKSUM = [
+    "A12UEL5L",
+    "an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1tt5tgs",
+    "abcdef1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw",
+    "11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j",
+    "split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w",
+]
+
+INVALID_CHECKSUM = [
+    " 1nwldj5",
+    "\x7F" + "1axkwrx",
+    "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
+    "pzry9x0s0muk",
+    "1pzry9x0s0muk",
+    "x1b4n0q5v",
+    "li1dgmt3",
+    "de1lg7wt\xff",
+]
+
 VALID_ADDRESS = [
     ["BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4", "0014751e76e8199196d454941c45d1b3a323f1433bd6"],
     ["tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7",
@@ -225,6 +245,21 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
     Copyright (c) 2017 Pieter Wuille
     Source: https://github.com/sipa/bech32/tree/master/ref/python
     """
+
+    def test_valid_checksum(self):
+        """Test checksum creation and validation."""
+        for test in VALID_CHECKSUM:
+            pos = test.rfind('1')
+            test = test.lower()
+            hrp = test[:pos]
+            data = codestring_to_array(test[pos + 1:], 'bech32')
+            hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+            self.assertEqual(_bech32_polymod(hrp_expanded + data), 1, msg="Invalid checksum for address %s" % test)
+            test = test[:pos+1] + chr(ord(test[pos + 1]) ^ 1) + test[pos+2:]
+            try:
+                self.assertFalse(addr_bech32_to_pubkeyhash(test, hrp))
+            except EncodingError:
+                continue
 
     def test_valid_address(self):
         """Test whether valid addresses decode to the correct output."""
