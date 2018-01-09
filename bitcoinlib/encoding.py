@@ -402,7 +402,9 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
 
 
 def _bech32_polymod(values):
-    """Internal function that computes the Bech32 checksum."""
+    """
+    Internal function that computes the Bech32 checksum
+    """
     generator = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
     chk = 1
     for value in values:
@@ -414,7 +416,22 @@ def _bech32_polymod(values):
 
 
 def convertbits(data, frombits, tobits, pad=True):
-    """General power-of-2 base conversion."""
+    """
+    'General power-of-2 base conversion'
+
+    Source: https://github.com/sipa/bech32/tree/master/ref/python
+
+    :param data: Data values to convert
+    :type data: list
+    :param frombits: Number of bits in source data
+    :type frombits: int
+    :param tobits: Number of bits in result data
+    :type tobits: int
+    :param pad: Use padding zero's or not. Default is True
+    :type pad: bool
+
+    :return list: Converted values
+    """
     acc = 0
     bits = 0
     ret = []
@@ -436,31 +453,61 @@ def convertbits(data, frombits, tobits, pad=True):
     return ret
 
 
-# Encode Public key hash
 def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
-    # Convert to base32
+    """
+    Encode public key hash as bech32 segwit address
+
+    Format of address is prefix/hrp + seperator + bech32 address + checksum
+
+    For more information see BIP173 proposal at https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+
+    :param pubkeyhash: Public key hash
+    :type pubkeyhash: str, bytes
+    :param hrp: Address prefix called Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
+    :type hrp: str
+    :param witver: Witness version between 0 and 16
+    :type witver: int
+    :param seperator: Seperator char between hrp and data, should always be left to '1' otherwise its not standard.
+    :type seperator: str
+
+    :return str: Bech32 encoded address
+    """
+
     if not isinstance(pubkeyhash, bytes):
         pubkeyhash = to_bytes(pubkeyhash)
-
     if len(pubkeyhash) not in [20, 32]:
         if pubkeyhash[0] != 0:
             witver = pubkeyhash[0] - 0x50
         pubkeyhash = pubkeyhash[2:]
-    # data = [witver] + change_base(pubkeyhash, base_from, 32, output_as_list=True)
+
     data = [witver] + convertbits(pubkeyhash, 8, 5)
+
     # Expand the HRP into values for checksum computation
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
-    # Return bech32 address
-    # return hrp + seperator + change_base(data, 32, 'bech32', min_lenght=len(data)) + \
-    #        change_base(checksum, 32, 'bech32', min_lenght=len(checksum))
+
     return hrp + seperator + array_to_codestring(data, 'bech32') + array_to_codestring(checksum, 'bech32')
 
 
-# Decode public key hash
 def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False):
-    """Validate a Bech32 string, and determine HRP and data."""
+    """
+    Decode bech32 / segwit address to public key hash
+
+    Validate the Bech32 string, and determine HRP and data
+
+    :param bech: Bech32 address to convert
+    :type bech: str
+    :param hrp: Address prefix called Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
+    :type hrp: str
+    :param as_hex: Output public key hash as hex or bytes. Default is False
+    :type as_hex: bool
+    :param include_witver: Include witness version in output? Default is False
+    :type include_witver: bool
+
+    :return str: Public Key Hash
+     
+    """
     if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
             (bech.lower() != bech and bech.upper() != bech)):
         return False
@@ -468,25 +515,20 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
     pos = bech.rfind('1')
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
         return False
-    # if not all(x in CHARSET for x in bech[pos+1:]):
-    #     return False
     if hrp != bech[:pos]:
         raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
-    # data = [CHARSET.find(x) for x in bech[pos+1:]]
-    # data = change_base(bech[pos+1:], 'bech32', 32)
     data = codestring_to_array(bech[pos+1:], 'bech32')
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
         return False
     data = data[:-6]
-    # decoded = change_base(data[1:], 32, 256)
     decoded = bytearray(convertbits(data[1:], 5, 8, pad=False))
-    # if decoded is None or len(decoded) < 2 or len(decoded) > 40:
-    #     return False
-    # if data[0] > 16:
-    #     return False
-    # if data[0] == 0 and len(decoded) not in [20, 32]:
-    #     return False
+    if decoded is None or len(decoded) < 2 or len(decoded) > 40:
+        return False
+    if data[0] > 16:
+        return False
+    if data[0] == 0 and len(decoded) not in [20, 32]:
+        return False
     prefix = b''
     if include_witver:
         datalen = len(decoded)
