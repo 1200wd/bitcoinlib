@@ -65,6 +65,9 @@ def wallets_list(databasefile=DEFAULT_DATABASE):
             'owner': w.owner,
             'network': w.network_name,
             'purpose': w.purpose,
+            'scheme': w.scheme,
+            'main_key_id': w.main_key_id,
+            'parent_id': w.parent_id,
         })
     session.close()
     return wlst
@@ -505,6 +508,8 @@ class HDWallet:
             raise WalletError("Wallet with name '%s' already exists" % name)
         else:
             _logger.info("Create new wallet '%s'" % name)
+        if name.isdigit():
+            raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
         if isinstance(key, HDKey):
             network = key.network.network_name
         elif key:
