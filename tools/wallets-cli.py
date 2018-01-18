@@ -7,9 +7,12 @@
 #    © 2018 January - 1200 Web Development <http://1200wd.com/>
 #
 
+import sys
 import argparse
-from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists
+import binascii
+from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError
 from bitcoinlib.mnemonic import Mnemonic
+from bitcoinlib.networks import Network
 from bitcoinlib.keys import HDKey
 from bitcoinlib.services.services import Service, ServiceError
 try:
@@ -18,63 +21,73 @@ try:
 except:
     QRCODES_AVAILABLE = False
 
-DEFAULT_WALLET_NAME = 'MyWallet'
 DEFAULT_NETWORK = 'bitcoin'
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='BitcoinLib CLI')
-    parser.add_argument('--wallet-name', '-w', default=DEFAULT_WALLET_NAME,
+    parser.add_argument('--wallet-name', '-w',
                         help="Name of wallet to create or open. Used to store your all your wallet keys "
                              "and will be printed on each paper wallet")
     parser.add_argument('--network', '-n', help="Specify 'bitcoin', 'testnet' or other supported network",
                         default=DEFAULT_NETWORK)
     parser.add_argument('--wallet-remove',
-                        help="Name of wallet to remove, all keys and related information will be deleted")
+                        help="Name or ID of wallet to remove, all keys and related information will be deleted")
     parser.add_argument('--list-wallets', '-l', action='store_true',
                         help="List all known wallets in bitcoinlib database")
     parser.add_argument('--wallet-info', '-i', action='store_true',
                         help="Show wallet information")
-    parser.add_argument('--recover-wallet-passphrase',
-                        help="Passphrase - sequence of words - to recover and regenerate a previous wallet")
+    parser.add_argument('--passphrase', nargs="*", default=None,
+                        help="Passphrase to recover or create a wallet")
+    parser.add_argument('--passphrase-strength', type=int, default=128,
+                        help="Number of bits for passphrase key")
     parser.add_argument('--fee-per-kb', '-k', type=int,
                         help="Fee in Satoshi's per kilobyte")
 
     pa = parser.parse_args()
-    if pa.outputs_repeat and pa.outputs is None:
-        parser.error("--output_repeat requires --outputs")
-    if not pa.wallet_remove and not pa.list_wallets and not pa.wallet_info and not pa.recover_wallet_passphrase \
-            and not pa.test_pdf and not (pa.outputs or pa.outputs_import):
-        parser.error("Either --outputs or --outputs-import should be specified")
+    if len(sys.argv) == 1:
+        pa.list_wallets = True
+    if pa.wallet_name and len(sys.argv) == 3:
+        pa.wallet_info = True
     return pa
+
+
+def create_wallet(wallet_name, args):
+    print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
+    if args.passphrase is None:
+        passphrase = Mnemonic('english').generate(args.passphrase_strength)
+        print("\nYour mnemonic private key sentence is: %s" % passphrase)
+        print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
+        inp = input("\nType 'yes' if you understood and wrote down your key: ")
+        if inp not in ['yes', 'Yes', 'YES']:
+            print("Exiting...")
+            sys.exit()
+    elif not args.passphrase:
+        passphrase = input("Enter Passphrase: ")
+    else:
+        if len(args.passphrase) == 1:
+            args.passphrase = args.passphrase.split(' ')
+        if len(args.passphrase) < 12:
+            raise ValueError("Please specify passphrase with 12 words or more")
+        passphrase = ' '.join(args.passphrase)
+    seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+    hdkey = HDKey().from_seed(seed, network=args.network)
+    return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif())
 
 
 if __name__ == '__main__':
     # --- Parse commandline arguments ---
     args = parse_args()
-
-    wallet_name = args.wallet_name
-    network = args.network
-    network_obj = Network(network)
-    style_file = args.style
-    template_file = args.template
+    # network_obj = Network(args.network)
 
     # List wallets, then exit
     if args.list_wallets:
         print("\nBitcoinlib wallets:")
         for w in wallets_list():
-            print(w['name'])
+            if 'parent_id' in w and w['parent_id']:
+                continue
+            print("[%d] %s (%s) %s" % (w['id'], w['name'], w['network'], w['owner']))
         print("\n")
-        sys.exit()
-
-    if args.wallet_info:
-        print("Wallet info for %s" % args.wallet_name)
-        if wallet_exists(args.wallet_name):
-            wallet = BulkPaperWallet(args.wallet_name)
-            # wallet.utxos_update()
-            wallet.info()
-        else:
-            raise ValueError("Wallet '%s' not found" % args.wallet_name)
         sys.exit()
 
     # Delete specified wallet, then exit
@@ -91,70 +104,93 @@ if __name__ == '__main__':
                 print("\nError when deleting wallet")
             sys.exit()
 
-    # --- Create or open wallet ---
-    if wallet_exists(wallet_name):
-        if args.recover_wallet_passphrase:
-            print("\nWallet %s already exists. Please specify (not existing) wallet name for wallet to recover" %
-                  wallet_name)
-            sys.exit()
-        wallet = BulkPaperWallet(wallet_name)
-        if wallet.network.network_name != args.network:
-            print("\nNetwork setting (%s) ignored. Using network from defined wallet instead: %s" %
-                  (args.network, wallet.network.network_name))
-            network = wallet.network.network_name
-            network_obj = Network(network)
-        print("\nOpen wallet '%s' (%s network)" % (wallet_name, network))
+    wlt = None
+    if not args.wallet_name:
+        print("Please specify wallet name to perform an action")
+    elif not args.wallet_name.isdigit() and not wallet_exists(args.wallet_name):
+        if input("Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() == 'y':
+            wlt = create_wallet(args.wallet_name, args)
+            args.wallet_info = True
     else:
-        print("\nCREATE wallet '%s' (%s network)" % (wallet_name, network))
-        if not args.recover_wallet_passphrase:
-            words = Mnemonic('english').generate(args.passphrase_strength)
-            print("\nYour mnemonic private key sentence is: %s" % words)
-            print("\nPlease write down on paper and backup. With this key you can restore all paper wallets if "
-                  "something goes wrong during this process. You can / have to throw away this private key after "
-                  "the paper wallets are distributed.")
-            inp = input("\nType 'yes' if you understood and wrote down your key: ")
-            if inp not in ['yes', 'Yes', 'YES']:
-                print("Exiting...")
-                sys.exit()
-        else:
-            words = args.recover_wallet_passphrase
-
-        seed = binascii.hexlify(Mnemonic().to_seed(words))
-        hdkey = HDKey().from_seed(seed, network=network)
-        wallet = BulkPaperWallet.create(name=wallet_name, network=network, key=hdkey.wif())
-        wallet.new_key("Input")
-        wallet.new_account("Outputs", account_id=OUTPUT_ACCOUNT_ID)
-
-    if args.recover_wallet_passphrase:
-        print("Wallet recovered, now updating keys and balances...")
-        stuff_updated = True
-        while stuff_updated:
-            for kn in range(0, 10):
-                wallet.new_key(account_id=OUTPUT_ACCOUNT_ID)
-                wallet.new_key_change(account_id=OUTPUT_ACCOUNT_ID)
-            stuff_updated = wallet.utxos_update()
-        wallet.info()
+        try:
+            wlt = HDWallet(args.wallet_name)
+            if args.passphrase is not None:
+                print("WARNING: Using passphrase option for existing wallet ignored")
+                args.wallet_info = True
+        except WalletError as e:
+            print("Could nog open wallet %s. %s" % (args.wallet_name, e.msg))
+    if wlt is None:
         sys.exit()
 
-    # --- Estimate transaction fees ---
-    srv = Service(network=network)
-    if args.fee_per_kb:
-        fee_per_kb = args.fee_per_kb
-    else:
-        fee_per_kb = srv.estimatefee()
-        if not srv.results:
-            raise IOError("No response from services, could not determine estimated transaction fees. "
-                          "You can use --fee-per-kb option to determine fee manually and avoid this error.")
-    tr_size = 100 + (1 * 150) + (len(outputs_arr) * 50)
-    estimated_fee = int((tr_size / 1024) * fee_per_kb)
-    if estimated_fee < 0:
-        raise IOError("No valid response from any service provider, could not determine estimated transaction fees. "
-                      "You can use --fee-per-kb option to determine fee manually and avoid this error.")
-    print("Estimated fee is for this transaction is %s (%d satoshis/kb)" %
-          (network_obj.print_value(estimated_fee), fee_per_kb))
-    print("Total value of outputs is %s" % network_obj.print_value(total_amount))
-    total_transaction = total_amount + estimated_fee
+    if args.wallet_info:
+        print("Wallet info for %s" % wlt.name)
+        wlt.info()
+        sys.exit()
 
+    # # --- Create or open wallet ---
+    # if wallet_exists(wallet_name):
+    #     if args.recover_wallet_passphrase:
+    #         print("\nWallet %s already exists. Please specify (not existing) wallet name for wallet to recover" %
+    #               wallet_name)
+    #         sys.exit()
+    #     wallet = HDWallet(wallet_name)
+    #     if wallet.network.network_name != args.network:
+    #         print("\nNetwork setting (%s) ignored. Using network from defined wallet instead: %s" %
+    #               (args.network, wallet.network.network_name))
+    #         network = wallet.network.network_name
+    #         network_obj = Network(network)
+    #     print("\nOpen wallet '%s' (%s network)" % (wallet_name, network))
+    # else:
+    #     print("\nCREATE wallet '%s' (%s network)" % (wallet_name, network))
+    #     if not args.recover_wallet_passphrase:
+    #         words = Mnemonic('english').generate(args.passphrase_strength)
+    #         print("\nYour mnemonic private key sentence is: %s" % words)
+    #         print("\nPlease write down on paper and backup. With this key you can restore all paper wallets if "
+    #               "something goes wrong during this process. You can / have to throw away this private key after "
+    #               "the paper wallets are distributed.")
+    #         inp = input("\nType 'yes' if you understood and wrote down your key: ")
+    #         if inp not in ['yes', 'Yes', 'YES']:
+    #             print("Exiting...")
+    #             sys.exit()
+    #     else:
+    #         words = args.recover_wallet_passphrase
+    #
+    #     seed = binascii.hexlify(Mnemonic().to_seed(words))
+    #     hdkey = HDKey().from_seed(seed, network=network)
+    #     wallet = BulkPaperWallet.create(name=wallet_name, network=network, key=hdkey.wif())
+    #     wallet.new_key("Input")
+    #     wallet.new_account("Outputs", account_id=OUTPUT_ACCOUNT_ID)
+    #
+    # if args.recover_wallet_passphrase:
+    #     print("Wallet recovered, now updating keys and balances...")
+    #     stuff_updated = True
+    #     while stuff_updated:
+    #         for kn in range(0, 10):
+    #             wallet.new_key(account_id=OUTPUT_ACCOUNT_ID)
+    #             wallet.new_key_change(account_id=OUTPUT_ACCOUNT_ID)
+    #         stuff_updated = wallet.utxos_update()
+    #     wallet.info()
+    #     sys.exit()
+    #
+    # # --- Estimate transaction fees ---
+    # srv = Service(network=network)
+    # if args.fee_per_kb:
+    #     fee_per_kb = args.fee_per_kb
+    # else:
+    #     fee_per_kb = srv.estimatefee()
+    #     if not srv.results:
+    #         raise IOError("No response from services, could not determine estimated transaction fees. "
+    #                       "You can use --fee-per-kb option to determine fee manually and avoid this error.")
+    # tr_size = 100 + (1 * 150) + (len(outputs_arr) * 50)
+    # estimated_fee = int((tr_size / 1024) * fee_per_kb)
+    # if estimated_fee < 0:
+    #     raise IOError("No valid response from any service provider, could not determine estimated transaction fees. "
+    #                   "You can use --fee-per-kb option to determine fee manually and avoid this error.")
+    # print("Estimated fee is for this transaction is %s (%d satoshis/kb)" %
+    #       (network_obj.print_value(estimated_fee), fee_per_kb))
+    # print("Total value of outputs is %s" % network_obj.print_value(total_amount))
+    # total_transaction = total_amount + estimated_fee
+    #
 
 # wallets_list = wallets_list()
 # print("Welcome to the Bitcoinlib Command line Wallet manager")
