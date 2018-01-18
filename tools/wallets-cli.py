@@ -54,22 +54,26 @@ def parse_args():
 
 def create_wallet(wallet_name, args):
     print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
-    if args.passphrase is None:
-        passphrase = Mnemonic('english').generate(args.passphrase_strength)
-        print("\nYour mnemonic private key sentence is: %s" % passphrase)
-        print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
+    passphrase = args.passphrase
+    if passphrase is None:
+        inp_passphrase = Mnemonic('english').generate(args.passphrase_strength)
+        print("\nYour mnemonic private key sentence is: %s" % inp_passphrase)
+        print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keasys")
+        passphrase = inp_passphrase.split(' ')
         inp = input("\nType 'yes' if you understood and wrote down your key: ")
         if inp not in ['yes', 'Yes', 'YES']:
             print("Exiting...")
             sys.exit()
-    elif not args.passphrase:
+    elif not passphrase:
         passphrase = input("Enter Passphrase: ")
-    else:
-        if len(args.passphrase) == 1:
-            args.passphrase = args.passphrase.split(' ')
-        if len(args.passphrase) < 12:
-            raise ValueError("Please specify passphrase with 12 words or more")
-        passphrase = ' '.join(args.passphrase)
+    if not isinstance(passphrase, list):
+        passphrase = passphrase.split(' ')
+    elif len(passphrase) == 1:
+        passphrase = passphrase[0].split(' ')
+    if len(passphrase) < 12:
+        print("Please specify passphrase with 12 words or more")
+        sys.exit()
+    passphrase = ' '.join(passphrase)
     seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
     hdkey = HDKey().from_seed(seed, network=args.network)
     return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif())
