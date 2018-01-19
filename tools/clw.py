@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- cod   ing: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
@@ -177,11 +177,19 @@ if __name__ == '__main__':
     if args.create_transaction:
         t = create_transaction(wlt, args.create_transaction, args.fee)
         from pprint import pprint
-        pprint(t.dict())
+        td = t.dict()
+        print("Transaction created")
+        print("Inputs")
+        for ti in td['inputs']:
+            print("-", ti['address'], ti['prev_hash'])
+        print("Outputs")
+        for to in td['outputs']:
+            print("-", to['address'], to['amount'])
         if args.push:
-            wlt.send(t)
+            res = wlt.send(t)
+            print("Send transaction result" % res)
         else:
-            print("T")
+            print("Transaction not send yet. Raw transaction to analyse or send online: ", t.raw_hex())
 
 
 # # --- Create or open wallet ---
