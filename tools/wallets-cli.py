@@ -39,12 +39,22 @@ def parse_args():
                         help="Show wallet information")
     parser.add_argument('--passphrase', nargs="*", default=None,
                         help="Passphrase to recover or create a wallet")
-    parser.add_argument('--passphrase-strength', type=int, default=128,
+    parser.add_argument('--passphrase-strength', type=float, default=128,
                         help="Number of bits for passphrase key")
-    parser.add_argument('--fee-per-kb', '-k', type=int,
-                        help="Fee in Satoshi's per kilobyte")
+    parser.add_argument('--receive', '-r', help="Show unused address to receive funds", action='store_true')
+    parser.add_argument('--scan', '-s', action='store_true',
+                        help="Scan and update wallet with all addresses, transactions and balances")
+    group = parser.add_argument_group("Send / Create transaction")
+    group.add_argument('--create-transaction', '-t',
+                       help="Create transaction. Specify address followed by amount", nargs='*')
+    group.add_argument('--fee', '-f', type=str,
+                       help="Transaction fee")
+    group.add_argument('--push', '-p', action='store_true',
+                       help="Push created transaction to the network")
 
     pa = parser.parse_args()
+    if pa.receive and pa.create_transaction:
+        parser.error("Please select receive or create transaction option not both")
     if len(sys.argv) == 1:
         pa.list_wallets = True
     if pa.wallet_name and len(sys.argv) == 3:
@@ -77,6 +87,26 @@ def create_wallet(wallet_name, args):
     seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
     hdkey = HDKey().from_seed(seed, network=args.network)
     return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif())
+
+
+def create_transaction(wlt, send_args, fee):
+    output_arr = []
+    while send_args:
+        if len(send_args) == 1:
+            raise ValueError("Invalid number of transaction input use <address1> <amount1> ... <address_n> <amount_n>")
+        try:
+            amount = int(send_args[1])
+        except:
+            print("Amount must be a numeric value. %s" % send_args[1])
+            sys.exit()
+        output_arr.append((send_args[0], amount))
+        send_args = send_args[2:]
+    try:
+        fee = int(fee)
+    except:
+        print("Fee must be a numeric value. %s" % fee)
+        sys.exit()
+    return wlt.transaction_create(output_arr=output_arr, transaction_fee=fee)
 
 
 if __name__ == '__main__':
@@ -127,11 +157,34 @@ if __name__ == '__main__':
         sys.exit()
 
     if args.wallet_info:
+        print("Updating wallet")
+        wlt.utxos_update()
         print("Wallet info for %s" % wlt.name)
         wlt.info()
         sys.exit()
+    if args.receive:
+        addr = wlt.get_key().address
+        print("\nReceive address is %s" % addr)
+        if QRCODES_AVAILABLE:
+            qrcode = pyqrcode.create(addr)
+            print(qrcode.terminal())
+        else:
+            print("Install qr code module to show QR codes: pip install pyqrcode")
+    if args.scan:
+        print("Scanning wallet: updating addresses, transactions and balances")
+        print("Can take a while")
+        wlt.scan()
+    if args.create_transaction:
+        t = create_transaction(wlt, args.create_transaction, args.fee)
+        from pprint import pprint
+        pprint(t.dict())
+        if args.push:
+            wlt.send(t)
+        else:
+            print("T")
 
-    # # --- Create or open wallet ---
+
+# # --- Create or open wallet ---
     # if wallet_exists(wallet_name):
     #     if args.recover_wallet_passphrase:
     #         print("\nWallet %s already exists. Please specify (not existing) wallet name for wallet to recover" %
