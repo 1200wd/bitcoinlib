@@ -174,7 +174,11 @@ if __name__ == '__main__':
         wlt.info()
         sys.exit()
     if args.create_transaction:
-        t = create_transaction(wlt, args.create_transaction, args.fee)
+        fee = args.fee
+        if not fee:
+            srv = Service(network=args.network)
+            fee = srv.estimatefee()
+        t = create_transaction(wlt, args.create_transaction, fee)
         td = t.dict()
         print("Transaction created")
         print("Inputs")
