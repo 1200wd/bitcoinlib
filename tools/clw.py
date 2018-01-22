@@ -26,7 +26,7 @@ DEFAULT_NETWORK = 'bitcoin'
 
 def parse_args():
     parser = argparse.ArgumentParser(description='BitcoinLib CLI')
-    parser.add_argument('--wallet-name', '-w',
+    parser.add_argument('wallet_name', nargs='?', default='',
                         help="Name of wallet to create or open. Used to store your all your wallet keys "
                              "and will be printed on each paper wallet")
     parser.add_argument('--network', '-n', help="Specify 'bitcoin', 'testnet' or other supported network",
@@ -152,16 +152,11 @@ if __name__ == '__main__':
                 print("WARNING: Using passphrase option for existing wallet ignored")
                 args.wallet_info = True
         except WalletError as e:
-            print("Could nog open wallet %s. %s" % (args.wallet_name, e.msg))
+            print("Error: %s" % e.msg)
     if wlt is None:
+        print("Could not open wallet %s" % args.wallet_name)
         sys.exit()
 
-    if args.wallet_info:
-        print("Updating wallet")
-        wlt.utxos_update()
-        print("Wallet info for %s" % wlt.name)
-        wlt.info()
-        sys.exit()
     if args.receive:
         addr = wlt.get_key().address
         print("\nReceive address is %s" % addr)
@@ -170,10 +165,14 @@ if __name__ == '__main__':
             print(qrcode.terminal())
         else:
             print("Install qr code module to show QR codes: pip install pyqrcode")
+        sys.exit()
     if args.scan:
         print("Scanning wallet: updating addresses, transactions and balances")
         print("Can take a while")
         wlt.scan()
+        print("Scanning complete, show wallet info")
+        wlt.info()
+        sys.exit()
     if args.create_transaction:
         t = create_transaction(wlt, args.create_transaction, args.fee)
         td = t.dict()
@@ -189,3 +188,9 @@ if __name__ == '__main__':
             print("Send transaction result" % res)
         else:
             print("Transaction not send yet. Raw transaction to analyse or send online: ", t.raw_hex())
+        sys.exit()
+
+    print("Updating wallet")
+    wlt.utxos_update()
+    print("Wallet info for %s" % wlt.name)
+    wlt.info()
