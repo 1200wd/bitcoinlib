@@ -72,8 +72,7 @@ def create_wallet(wallet_name, args):
         passphrase = inp_passphrase.split(' ')
         inp = input("\nType 'yes' if you understood and wrote down your key: ")
         if inp not in ['yes', 'Yes', 'YES']:
-            print("Exiting...")
-            sys.exit()
+            clw_exit("Exiting...")
     elif not passphrase:
         passphrase = input("Enter Passphrase: ")
     if not isinstance(passphrase, list):
@@ -81,8 +80,7 @@ def create_wallet(wallet_name, args):
     elif len(passphrase) == 1:
         passphrase = passphrase[0].split(' ')
     if len(passphrase) < 12:
-        print("Please specify passphrase with 12 words or more")
-        sys.exit()
+        clw_exit("Please specify passphrase with 12 words or more")
     passphrase = ' '.join(passphrase)
     seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
     hdkey = HDKey().from_seed(seed, network=args.network)
@@ -97,51 +95,51 @@ def create_transaction(wlt, send_args, fee):
         try:
             amount = int(send_args[1])
         except:
-            print("Amount must be a numeric value. %s" % send_args[1])
-            sys.exit()
+            clw_exit("Amount must be a numeric value. %s" % send_args[1])
         output_arr.append((send_args[0], amount))
         send_args = send_args[2:]
     try:
         fee = int(fee)
     except:
-        print("Fee must be a numeric value. %s" % fee)
-        sys.exit()
+        clw_exit("Fee must be a numeric value. %s" % fee)
     return wlt.transaction_create(output_arr=output_arr, transaction_fee=fee)
 
 
+def clw_exit(msg=None):
+    if msg:
+        print(msg)
+    sys.exit()
+
+
 if __name__ == '__main__':
+    print("Command Line Wallet for BitcoinLib\n")
     # --- Parse commandline arguments ---
     args = parse_args()
     # network_obj = Network(args.network)
 
     # List wallets, then exit
     if args.list_wallets:
-        print("\nBitcoinlib wallets:")
+        print("Bitcoinlib wallets:")
         for w in wallets_list():
             if 'parent_id' in w and w['parent_id']:
                 continue
             print("[%d] %s (%s) %s" % (w['id'], w['name'], w['network'], w['owner']))
-        print("\n")
-        sys.exit()
+        clw_exit()
 
     # Delete specified wallet, then exit
     if args.wallet_remove:
         if not wallet_exists(args.wallet_remove):
-            print("Wallet '%s' not found" % args.wallet_remove)
-            sys.exit()
+            clw_exit("Wallet '%s' not found" % args.wallet_remove)
         inp = input("\nWallet '%s' with all keys and will be removed, without private key it cannot be restored."
                     "\nPlease retype exact name of wallet to proceed: " % args.wallet_remove)
         if inp == args.wallet_remove:
             if wallet_delete(args.wallet_remove, force=True):
-                print("\nWallet %s has been removed" % args.wallet_remove)
+                clw_exit("\nWallet %s has been removed" % args.wallet_remove)
             else:
-                print("\nError when deleting wallet")
-            sys.exit()
+                clw_exit("\nError when deleting wallet")
 
     wlt = None
-    if not args.wallet_name:
-        print("Please specify wallet name to perform an action")
-    elif not args.wallet_name.isdigit() and not wallet_exists(args.wallet_name):
+    if args.wallet_name and not args.wallet_name.isdigit() and not wallet_exists(args.wallet_name):
         if input("Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() == 'y':
             wlt = create_wallet(args.wallet_name, args)
             args.wallet_info = True
@@ -150,29 +148,27 @@ if __name__ == '__main__':
             wlt = HDWallet(args.wallet_name)
             if args.passphrase is not None:
                 print("WARNING: Using passphrase option for existing wallet ignored")
-                args.wallet_info = True
         except WalletError as e:
-            print("Error: %s" % e.msg)
+            clw_exit("Error: %s" % e.msg)
     if wlt is None:
-        print("Could not open wallet %s" % args.wallet_name)
-        sys.exit()
+        clw_exit("Could not open wallet %s" % args.wallet_name)
 
     if args.receive:
         addr = wlt.get_key().address
-        print("\nReceive address is %s" % addr)
+        print("Receive address is %s" % addr)
         if QRCODES_AVAILABLE:
             qrcode = pyqrcode.create(addr)
             print(qrcode.terminal())
         else:
             print("Install qr code module to show QR codes: pip install pyqrcode")
-        sys.exit()
+        clw_exit()
     if args.scan:
         print("Scanning wallet: updating addresses, transactions and balances")
         print("Can take a while")
         wlt.scan()
         print("Scanning complete, show wallet info")
         wlt.info()
-        sys.exit()
+        clw_exit()
     if args.create_transaction:
         fee = args.fee
         if not fee:
@@ -192,7 +188,7 @@ if __name__ == '__main__':
             print("Send transaction result" % res)
         else:
             print("Transaction not send yet. Raw transaction to analyse or send online: ", t.raw_hex())
-        sys.exit()
+        clw_exit()
 
     print("Updating wallet")
     wlt.utxos_update()
