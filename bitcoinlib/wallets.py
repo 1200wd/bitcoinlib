@@ -520,6 +520,9 @@ class HDWallet:
             #     raise WalletError("Key already found in wallet %s" % searchkey.wallet.name)
         elif network is None:
             network = DEFAULT_NETWORK
+        if not name:
+            raise WalletError("Please enter wallet name")
+
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, parent_id=parent_id)
         session.add(new_wallet)
