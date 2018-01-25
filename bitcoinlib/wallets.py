@@ -1728,7 +1728,7 @@ class HDWallet:
         _logger.info("Got balance for %d key(s)" % len(key_values))
         return self._balance
 
-    def utxos_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None, utxos=None):
+    def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None, utxos=None):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1748,8 +1748,8 @@ class HDWallet:
         :type account_id: int
         :param used: Only check for UTXO for used or unused keys. Default is both
         :type used: bool
-        :param network: Network name. Leave empty for default network
-        :type network: str
+        :param networks: Network name filter as string or list of strings. Leave empty to update all used networks in wallet
+        :type networks: str, list
         :param key_id: Key ID to just update 1 key
         :type key_id: int
         :param depth: Only update keys with this depth, default is depth 5 according to BIP0048 standard. Set depth to None to update all keys of this wallet.
@@ -1762,86 +1762,92 @@ class HDWallet:
         :return int: Number of new UTXO's added 
         """
 
-        network, account_id, acckey = self._get_account_defaults(network, account_id)
-        # TODO: implement bip45/67/electrum/?
-        schemes_key_depth = {
-            'bip44': 5,
-            'single': 0,
-            'electrum': 4,
-            'multisig': 0
-        }
-        if depth is None:
-            if self.scheme == 'bip44':
-                depth = 5
-            else:
-                depth = 0
+        if networks is None:
+            networks = self.network_list()
+        elif not isinstance(networks, list):
+            networks = [networks]
 
-        if utxos is None:
-            # Get all UTXO's for this wallet from default Service object
-            addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
-                                           change=change, depth=depth)
-            utxos = Service(network=network).getutxos(addresslist)
-            if utxos is False:
-                raise WalletError("No response from any service provider, could not update UTXO's")
         count_utxos = 0
-
-        # Get current UTXO's from database to compare with Service objects UTXO's
-        current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
-
-        # Update spend UTXO's (not found in list) and mark key as used
-        utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
-        for current_utxo in current_utxos:
-            if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
-                utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction). \
-                    filter(DbTransaction.hash == current_utxo['tx_hash'],
-                           DbTransactionOutput.output_n == current_utxo['output_n'])
-                for utxo_record in utxo_in_db.all():
-                    utxo_record.spend = True
-            self._session.commit()
-
-        # If UTXO is new, add to database otherwise update depth (confirmation count)
-        for utxo in utxos:
-            key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
-            if key and not key.used:
-                key.used = True
-
-            # Update confirmations in db if utxo was already imported
-            # TODO: Add network filter (?)
-            transaction_in_db = self._session.query(DbTransaction).filter_by(wallet_id=self.wallet_id,
-                                                                             hash=utxo['tx_hash'])
-            utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.wallet_id == self.wallet_id,
-                       DbTransaction.hash == utxo['tx_hash'],
-                       DbTransactionOutput.output_n == utxo['output_n'])
-            if utxo_in_db.count():
-                utxo_record = utxo_in_db.scalar()
-                if not utxo_record.key_id:
-                    count_utxos += 1
-                utxo_record.key_id = key.id
-                utxo_record.spend = False
-                transaction_record = transaction_in_db.scalar()
-                transaction_record.confirmations = utxo['confirmations']
-            else:
-                # Add transaction if not exist and then add output
-                if not transaction_in_db.count():
-                    new_tx = DbTransaction(wallet_id=self.wallet_id, hash=utxo['tx_hash'],
-                                           confirmations=utxo['confirmations'])
-                    self._session.add(new_tx)
-                    self._session.commit()
-                    tid = new_tx.id
+        for network in networks:
+            _, account_id, acckey = self._get_account_defaults(network, account_id)
+            # TODO: implement bip45/67/electrum/?
+            schemes_key_depth = {
+                'bip44': 5,
+                'single': 0,
+                'electrum': 4,
+                'multisig': 0
+            }
+            if depth is None:
+                if self.scheme == 'bip44':
+                    depth = 5
                 else:
-                    tid = transaction_in_db.scalar().id
+                    depth = 0
 
-                new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'], value=utxo['value'],
-                                               key_id=key.id, script=utxo['script'], spend=False)
-                self._session.add(new_utxo)
-                count_utxos += 1
-            # TODO: Removing this gives errors??
+            if utxos is None:
+                # Get all UTXO's for this wallet from default Service object
+                addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
+                                               change=change, depth=depth)
+                utxos = Service(network=network).getutxos(addresslist)
+                if utxos is False:
+                    raise WalletError("No response from any service provider, could not update UTXO's")
+
+            # Get current UTXO's from database to compare with Service objects UTXO's
+            current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
+
+            # Update spend UTXO's (not found in list) and mark key as used
+            utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
+            for current_utxo in current_utxos:
+                if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
+                    utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction). \
+                        filter(DbTransaction.hash == current_utxo['tx_hash'],
+                               DbTransactionOutput.output_n == current_utxo['output_n'])
+                    for utxo_record in utxo_in_db.all():
+                        utxo_record.spend = True
+                self._session.commit()
+
+            # If UTXO is new, add to database otherwise update depth (confirmation count)
+            for utxo in utxos:
+                key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
+                if key and not key.used:
+                    key.used = True
+
+                # Update confirmations in db if utxo was already imported
+                # TODO: Add network filter (?)
+                transaction_in_db = self._session.query(DbTransaction).filter_by(wallet_id=self.wallet_id,
+                                                                                 hash=utxo['tx_hash'])
+                utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
+                    filter(DbTransaction.wallet_id == self.wallet_id,
+                           DbTransaction.hash == utxo['tx_hash'],
+                           DbTransactionOutput.output_n == utxo['output_n'])
+                if utxo_in_db.count():
+                    utxo_record = utxo_in_db.scalar()
+                    if not utxo_record.key_id:
+                        count_utxos += 1
+                    utxo_record.key_id = key.id
+                    utxo_record.spend = False
+                    transaction_record = transaction_in_db.scalar()
+                    transaction_record.confirmations = utxo['confirmations']
+                else:
+                    # Add transaction if not exist and then add output
+                    if not transaction_in_db.count():
+                        new_tx = DbTransaction(wallet_id=self.wallet_id, hash=utxo['tx_hash'],
+                                               confirmations=utxo['confirmations'])
+                        self._session.add(new_tx)
+                        self._session.commit()
+                        tid = new_tx.id
+                    else:
+                        tid = transaction_in_db.scalar().id
+
+                    new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'], value=utxo['value'],
+                                                   key_id=key.id, script=utxo['script'], spend=False)
+                    self._session.add(new_utxo)
+                    count_utxos += 1
+                # TODO: Removing this gives errors??
+                self._session.commit()
+
+            _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
             self._session.commit()
-
-        _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
-        self._session.commit()
-        self.balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
+            self.balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
         return count_utxos
 
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
