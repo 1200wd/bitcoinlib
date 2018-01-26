@@ -1766,6 +1766,8 @@ class HDWallet:
             networks = self.network_list()
         elif not isinstance(networks, list):
             networks = [networks]
+        elif len(networks) != 1 and utxos is not None:
+            raise WalletError("Please specify maximum 1 network when passing utxo's")
 
         count_utxos = 0
         for network in networks:
@@ -1848,6 +1850,7 @@ class HDWallet:
             _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
             self._session.commit()
             self.balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
+            utxos = None
         return count_utxos
 
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
