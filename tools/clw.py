@@ -10,11 +10,11 @@
 import sys
 import argparse
 import binascii
+from bitcoinlib.db import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.networks import Network
 from bitcoinlib.keys import HDKey
-from bitcoinlib.services.services import Service, ServiceError
+from bitcoinlib.services.services import Service
 try:
     import pyqrcode
     QRCODES_AVAILABLE = True
@@ -29,8 +29,10 @@ def parse_args():
     parser.add_argument('wallet_name', nargs='?', default='',
                         help="Name of wallet to create or open. Used to store your all your wallet keys "
                              "and will be printed on each paper wallet")
-    parser.add_argument('--network', '-n', help="Specify 'bitcoin', 'testnet' or other supported network",
-                        default=DEFAULT_NETWORK)
+    parser.add_argument('--network', '-n', default=DEFAULT_NETWORK,
+                        help="Specify 'bitcoin', 'testnet' or other supported network")
+    parser.add_argument('--database', '-d',
+                        help="Name of specific database file to use",)
     parser.add_argument('--wallet-remove',
                         help="Name or ID of wallet to remove, all keys and related information will be deleted")
     parser.add_argument('--list-wallets', '-l', action='store_true',
@@ -55,20 +57,20 @@ def parse_args():
     pa = parser.parse_args()
     if pa.receive and pa.create_transaction:
         parser.error("Please select receive or create transaction option not both")
-    if len(sys.argv) == 1:
+    if not pa.wallet_name:
         pa.list_wallets = True
-    if pa.wallet_name and len(sys.argv) == 3:
+    else:
         pa.wallet_info = True
     return pa
 
 
-def create_wallet(wallet_name, args):
+def create_wallet(wallet_name, args, databasefile):
     print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
     passphrase = args.passphrase
     if passphrase is None:
         inp_passphrase = Mnemonic('english').generate(args.passphrase_strength)
         print("\nYour mnemonic private key sentence is: %s" % inp_passphrase)
-        print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keasys")
+        print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
         passphrase = inp_passphrase.split(' ')
         inp = input("\nType 'yes' if you understood and wrote down your key: ")
         if inp not in ['yes', 'Yes', 'YES']:
@@ -84,7 +86,7 @@ def create_wallet(wallet_name, args):
     passphrase = ' '.join(passphrase)
     seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
     hdkey = HDKey().from_seed(seed, network=args.network)
-    return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif())
+    return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif(), databasefile=databasefile)
 
 
 def create_transaction(wlt, send_args, fee):
@@ -117,10 +119,14 @@ if __name__ == '__main__':
     args = parse_args()
     # network_obj = Network(args.network)
 
+    databasefile = DEFAULT_DATABASE
+    if args.database:
+        databasefile = DEFAULT_DATABASEDIR + args.database
+
     # List wallets, then exit
     if args.list_wallets:
         print("Bitcoinlib wallets:")
-        for w in wallets_list():
+        for w in wallets_list(databasefile=databasefile):
             if 'parent_id' in w and w['parent_id']:
                 continue
             print("[%d] %s (%s) %s" % (w['id'], w['name'], w['network'], w['owner']))
@@ -128,12 +134,12 @@ if __name__ == '__main__':
 
     # Delete specified wallet, then exit
     if args.wallet_remove:
-        if not wallet_exists(args.wallet_remove):
+        if not wallet_exists(args.wallet_remove, databasefile=databasefile):
             clw_exit("Wallet '%s' not found" % args.wallet_remove)
         inp = input("\nWallet '%s' with all keys and will be removed, without private key it cannot be restored."
                     "\nPlease retype exact name of wallet to proceed: " % args.wallet_remove)
         if inp == args.wallet_remove:
-            if wallet_delete(args.wallet_remove, force=True):
+            if wallet_delete(args.wallet_remove, force=True, databasefile=databasefile):
                 clw_exit("\nWallet %s has been removed" % args.wallet_remove)
             else:
                 clw_exit("\nError when deleting wallet")
@@ -141,11 +147,11 @@ if __name__ == '__main__':
     wlt = None
     if args.wallet_name and not args.wallet_name.isdigit() and not wallet_exists(args.wallet_name):
         if input("Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() == 'y':
-            wlt = create_wallet(args.wallet_name, args)
+            wlt = create_wallet(args.wallet_name, args, databasefile)
             args.wallet_info = True
     else:
         try:
-            wlt = HDWallet(args.wallet_name)
+            wlt = HDWallet(args.wallet_name, databasefile=databasefile)
             if args.passphrase is not None:
                 print("WARNING: Using passphrase option for existing wallet ignored")
         except WalletError as e:
