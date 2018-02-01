@@ -33,7 +33,7 @@ def parse_args():
                         help="Specify 'bitcoin', 'testnet' or other supported network")
     parser.add_argument('--database', '-d',
                         help="Name of specific database file to use",)
-    parser.add_argument('--wallet-remove',
+    parser.add_argument('--wallet-remove', action='store_true',
                         help="Name or ID of wallet to remove, all keys and related information will be deleted")
     parser.add_argument('--list-wallets', '-l', action='store_true',
                         help="List all known wallets in bitcoinlib database")
@@ -134,15 +134,17 @@ if __name__ == '__main__':
 
     # Delete specified wallet, then exit
     if args.wallet_remove:
-        if not wallet_exists(args.wallet_remove, databasefile=databasefile):
+        if not wallet_exists(args.wallet_name, databasefile=databasefile):
             clw_exit("Wallet '%s' not found" % args.wallet_remove)
         inp = input("\nWallet '%s' with all keys and will be removed, without private key it cannot be restored."
-                    "\nPlease retype exact name of wallet to proceed: " % args.wallet_remove)
-        if inp == args.wallet_remove:
-            if wallet_delete(args.wallet_remove, force=True, databasefile=databasefile):
-                clw_exit("\nWallet %s has been removed" % args.wallet_remove)
+                    "\nPlease retype exact name of wallet to proceed: " % args.wallet_name)
+        if inp == args.wallet_name:
+            if wallet_delete(args.wallet_name, force=True, databasefile=databasefile):
+                clw_exit("\nWallet %s has been removed" % args.wallet_name)
             else:
                 clw_exit("\nError when deleting wallet")
+        else:
+            clw_exit("\nSpecified wallet name incorrect")
 
     wlt = None
     if args.wallet_name and not args.wallet_name.isdigit() and not wallet_exists(args.wallet_name):
