@@ -57,10 +57,10 @@ def parse_args():
     pa = parser.parse_args()
     if pa.receive and pa.create_transaction:
         parser.error("Please select receive or create transaction option not both")
-    if not pa.wallet_name:
-        pa.list_wallets = True
-    else:
+    if pa.wallet_name:
         pa.wallet_info = True
+    else:
+        pa.list_wallets = True
     return pa
 
 
