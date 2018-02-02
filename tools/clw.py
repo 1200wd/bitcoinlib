@@ -147,7 +147,8 @@ if __name__ == '__main__':
             clw_exit("\nSpecified wallet name incorrect")
 
     wlt = None
-    if args.wallet_name and not args.wallet_name.isdigit() and not wallet_exists(args.wallet_name):
+    if args.wallet_name and not args.wallet_name.isdigit() and \
+            not wallet_exists(args.wallet_name, databasefile=databasefile):
         if input("Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() == 'y':
             wlt = create_wallet(args.wallet_name, args, databasefile)
             args.wallet_info = True
