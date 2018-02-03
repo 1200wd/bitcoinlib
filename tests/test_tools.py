@@ -39,19 +39,16 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_update = "%s %s test2 -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        cmd_wlt_transaction = "%s %s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000" % \
+        cmd_wlt_transaction = "%s %s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "echo test2 | %s %s test2 --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         output_wlt_create = "Receive address is 21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
-        output_wlt_transaction = b'01000000011955e2bca098d8bf17f0982a117ad26a98343378dedda988caf7c4a49693a03d00000000' \
-                                 b'00ffffffff0280f0fa02000000001976a914d96e214c31c0f34f8d4daaf01aa88647bbd6d33388ace0' \
-                                 b'69f902000000001976a9142f825bb62ed9237e98083f841b80657d3df0961b88ac00000000'
+        output_wlt_transaction = b'succesfull_test_sendrawtransaction'
         output_wlt_delete = "Wallet test2 has been removed"
 
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
         check_output(cmd_wlt_update, shell=True)
-        print(check_output(cmd_wlt_transaction, shell=True))
         self.assertIn(output_wlt_transaction, check_output(cmd_wlt_transaction, shell=True))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
 

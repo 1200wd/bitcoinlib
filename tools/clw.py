@@ -184,6 +184,7 @@ if __name__ == '__main__':
             srv = Service(network=args.network)
             fee = srv.estimatefee()
         t = create_transaction(wlt, args.create_transaction, fee)
+        t = wlt.transaction_sign(t)
         td = t.dict()
         print("Transaction created")
         print("Inputs")
@@ -193,8 +194,8 @@ if __name__ == '__main__':
         for to in td['outputs']:
             print("-", to['address'], to['amount'])
         if args.push:
-            res = wlt.send(t)
-            print("Send transaction result" % res)
+            res = wlt.transaction_send(t)
+            print("Send transaction result: %s" % res)
         else:
             print("Transaction not send yet. Raw transaction to analyse or send online: ", t.raw_hex())
         clw_exit()
