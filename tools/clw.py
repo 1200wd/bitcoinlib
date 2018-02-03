@@ -43,6 +43,11 @@ def parse_args():
                         help="Passphrase to recover or create a wallet")
     parser.add_argument('--passphrase-strength', type=float, default=128,
                         help="Number of bits for passphrase key")
+    parser.add_argument('--create-multisig', '-m', nargs='*',
+                        help='Specificy number of signatures required followed by a list of signatures.'
+                             '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2'
+                             'M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF'
+                             '6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
     parser.add_argument('--receive', '-r', help="Show unused address to receive funds", action='store_true')
     parser.add_argument('--scan', '-s', action='store_true',
                         help="Scan and update wallet with all addresses, transactions and balances")
@@ -66,27 +71,40 @@ def parse_args():
 
 def create_wallet(wallet_name, args, databasefile):
     print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
-    passphrase = args.passphrase
-    if passphrase is None:
-        inp_passphrase = Mnemonic('english').generate(args.passphrase_strength)
-        print("\nYour mnemonic private key sentence is: %s" % inp_passphrase)
-        print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
-        passphrase = inp_passphrase.split(' ')
-        inp = input("\nType 'yes' if you understood and wrote down your key: ")
-        if inp not in ['yes', 'Yes', 'YES']:
-            clw_exit("Exiting...")
-    elif not passphrase:
-        passphrase = input("Enter Passphrase: ")
-    if not isinstance(passphrase, list):
-        passphrase = passphrase.split(' ')
-    elif len(passphrase) == 1:
-        passphrase = passphrase[0].split(' ')
-    if len(passphrase) < 12:
-        clw_exit("Please specify passphrase with 12 words or more")
-    passphrase = ' '.join(passphrase)
-    seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
-    hdkey = HDKey().from_seed(seed, network=args.network)
-    return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif(), databasefile=databasefile)
+    if args.create_multisig:
+        if not isinstance(args.create_multisig, list) or len(args.create_multisig) < 3:
+            clw_exit("Please enter multisig creation parameter in the following format: "
+                     "<number-of-signatures-required> <key-0> <key-1> [<key-2> ... <key-n>]")
+        try:
+            sigs_required = int(args.create_multisig[0])
+        except ValueError:
+            clw_exit("Number of signatures required (first argument) must be a numeric value. %s" %
+                     args.create_multisig[0])
+        key_list = args.create_multisig[1:]
+        return HDWallet.create_multisig(name=wallet_name, key_list=key_list, sigs_required=sigs_required,
+                                        network=args.network, databasefile=databasefile)
+    else:
+        passphrase = args.passphrase
+        if passphrase is None:
+            inp_passphrase = Mnemonic('english').generate(args.passphrase_strength)
+            print("\nYour mnemonic private key sentence is: %s" % inp_passphrase)
+            print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
+            passphrase = inp_passphrase.split(' ')
+            inp = input("\nType 'yes' if you understood and wrote down your key: ")
+            if inp not in ['yes', 'Yes', 'YES']:
+                clw_exit("Exiting...")
+        elif not passphrase:
+            passphrase = input("Enter Passphrase: ")
+        if not isinstance(passphrase, list):
+            passphrase = passphrase.split(' ')
+        elif len(passphrase) == 1:
+            passphrase = passphrase[0].split(' ')
+        if len(passphrase) < 12:
+            clw_exit("Please specify passphrase with 12 words or more")
+        passphrase = ' '.join(passphrase)
+        seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+        hdkey = HDKey().from_seed(seed, network=args.network)
+        return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif(), databasefile=databasefile)
 
 
 def create_transaction(wlt, send_args, fee):
@@ -155,8 +173,8 @@ if __name__ == '__main__':
     else:
         try:
             wlt = HDWallet(args.wallet_name, databasefile=databasefile)
-            if args.passphrase is not None:
-                print("WARNING: Using passphrase option for existing wallet ignored")
+            if args.passphrase is not None or args.passphrase_strength is not None:
+                print("WARNING: Using passphrase options for existing wallet ignored")
         except WalletError as e:
             clw_exit("Error: %s" % e.msg)
     if wlt is None:
