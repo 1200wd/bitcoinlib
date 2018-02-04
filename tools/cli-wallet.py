@@ -1,4 +1,4 @@
-# -*- cod   ing: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
