@@ -19,7 +19,8 @@ class TestToolsCommandLineWallet(unittest.TestCase):
 
     def setUp(self):
         self.python_executable = sys.executable
-        self.clw_executable = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../tools/clw.py'))
+        self.clw_executable = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                            '../tools/cli-wallet.py'))
 
     def test_tools_clw_create_wallet(self):
         cmd_wlt_create = "echo y | %s %s test --passphrase 'emotion camp sponsor curious bacon squeeze bean world " \
