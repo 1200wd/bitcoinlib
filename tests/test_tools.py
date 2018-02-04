@@ -42,10 +42,10 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         ]
         cmd_wlt_create = "echo y | %s %s testms -m 2 %s -r -n testnet -d %s" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
-        cmd_wlt_delete = "echo test | %s %s test --wallet-remove -d %s" % \
+        cmd_wlt_delete = "echo testms | %s %s testms --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         output_wlt_create = "Receive address is 2N7QSKcsmWPP9anG7cdZvzBUbgTVrAK2MZ9"
-        output_wlt_delete = "Wallet test has been removed"
+        output_wlt_delete = "Wallet testms has been removed"
 
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
