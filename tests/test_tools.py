@@ -21,7 +21,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         self.python_executable = sys.executable
         self.clw_executable = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../tools/clw.py'))
 
-    def test_tools_create_wallet(self):
+    def test_tools_clw_create_wallet(self):
         cmd_wlt_create = "echo y | %s %s test --passphrase 'emotion camp sponsor curious bacon squeeze bean world " \
                          "actual chicken obscure spray' -r -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
@@ -33,7 +33,24 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
 
-    def test_tools_transaction(self):
+    def test_tools_clw_create_multisig_wallet(self):
+        key_list = [
+            'tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK'
+            '5zNYeiX8',
+            'tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'
+            'MeQHdWDp'
+        ]
+        cmd_wlt_create = "echo y | %s %s testms -m 2 %s -r -n testnet -d %s" % \
+                         (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
+        cmd_wlt_delete = "echo test | %s %s test --wallet-remove -d %s" % \
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        output_wlt_create = "Receive address is 2N7QSKcsmWPP9anG7cdZvzBUbgTVrAK2MZ9"
+        output_wlt_delete = "Wallet test has been removed"
+
+        self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
+        self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
+
+    def test_tools_clw_transaction(self):
         cmd_wlt_create = "echo y | %s %s test2 --passphrase 'emotion camp sponsor curious bacon squeeze bean world " \
                          "actual chicken obscure spray' -r -n bitcoinlib_test -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
