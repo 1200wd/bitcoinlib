@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2018 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -23,3 +23,4 @@ import tests.test_mnemonic
 import tests.test_wallets
 import tests.test_transactions
 import tests.test_services
+import tests.test_tools
