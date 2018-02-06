@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Bitcoinlib'
-copyright = '2017, Lennart Jongeneel (mccwdev)'
+copyright = '2018, Lennart Jongeneel (mccwdev)'
 author = 'Lennart Jongeneel (mccwdev)'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -168,5 +168,6 @@ def run_apidoc(_):
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)
+
 
 autoclass_content = 'both'
