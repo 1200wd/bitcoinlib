@@ -758,10 +758,18 @@ class Transaction:
         :param network: Network, leave empty for default network
         :type network: str
         """
-        if inputs is None:
-            self.inputs = []
-        else:
-            self.inputs = inputs
+        self.inputs = []
+        if inputs is not None:
+            for input in inputs:
+                self.inputs.append(input)
+        tid_list = [i.tid for i in self.inputs]
+        if list(set(tid_list)) != tid_list:
+            _logger.warning("Identical transaction indexes (tid) found in inputs, please specify unique index. "
+                            "Indexes will be automatically recreated")
+            tid = 0
+            for inp in self.inputs:
+                inp.tid = tid
+                tid += 1
         if outputs is None:
             self.outputs = []
         else:
