@@ -21,6 +21,7 @@
 import unittest
 
 from bitcoinlib.encoding import *
+from bitcoinlib.encoding import _bech32_polymod
 
 
 class TestEncodingMethodsChangeBase(unittest.TestCase):
@@ -203,6 +204,116 @@ class TestEncodingMethodsStructures(unittest.TestCase):
     def test_to_hexstring_bytearray(self):
         self.assertEqual('06073c4600ff202020c81b',
                          to_hexstring(bytearray([6, 7, 60, 70, 0, 255, 32, 32, 32, 200, 27])))
+
+
+VALID_CHECKSUM = [
+    "A12UEL5L",
+    "an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1tt5tgs",
+    "abcdef1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw",
+    "11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j",
+    "split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w",
+]
+
+INVALID_CHECKSUM = [
+    " 1nwldj5",
+    "\x7F" + "1axkwrx",
+    "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
+    "pzry9x0s0muk",
+    "1pzry9x0s0muk",
+    "x1b4n0q5v",
+    "li1dgmt3",
+    "de1lg7wt\xff",
+]
+
+VALID_ADDRESS = [
+    ["BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4", "0014751e76e8199196d454941c45d1b3a323f1433bd6"],
+    ["tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7",
+     "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262"],
+    ["bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7k7grplx",
+     "5128751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6"],
+    ["BC1SW50QA3JX3S", "6002751e"],
+    ["bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj", "5210751e76e8199196d454941c45d1b3a323"],
+    ["tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy",
+     "0020000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"],
+]
+
+INVALID_ADDRESS = [
+    "tc1qw508d6qejxtdg4y5r3zarvary0c5xw7kg3g4ty",
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5",
+    "BC13W508D6QEJXTDG4Y5R3ZARVARY0C5XW7KN40WF2",
+    "bc1rw5uspcuh",
+    "bc10w508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kw5rljs90",
+    "BC1QR508D6QEJXTDG4Y5R3ZARVARYV98GJ9P",
+    "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sL5k7",
+    "bc1zw508d6qejxtdg4y5r3zarvaryvqyzf3du",
+    "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3pjxtptv",
+    "bc1gmk9yu",
+]
+
+INVALID_ADDRESS_ENC = [
+    ("BC", 0, 20),
+    ("bc", 0, 21),
+    ("bc", 17, 32),
+    ("bc", 1, 1),
+    ("bc", 16, 41),
+]
+
+
+class TestEncodingBech32SegwitAddresses(unittest.TestCase):
+    """
+    Reference tests for bech32 segwit adresses
+
+    Copyright (c) 2017 Pieter Wuille
+    Source: https://github.com/sipa/bech32/tree/master/ref/python
+    """
+
+    def test_valid_checksum(self):
+        """Test checksum creation and validation."""
+        for test in VALID_CHECKSUM:
+            pos = test.rfind('1')
+            test = test.lower()
+            hrp = test[:pos]
+            data = codestring_to_array(test[pos + 1:], 'bech32')
+            hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+            self.assertEqual(_bech32_polymod(hrp_expanded + data), 1, msg="Invalid checksum for address %s" % test)
+            test = test[:pos+1] + chr(ord(test[pos + 1]) ^ 1) + test[pos+2:]
+            try:
+                self.assertFalse(addr_bech32_to_pubkeyhash(test, hrp))
+            except EncodingError:
+                continue
+
+    def test_invalid_checksum(self):
+        """Test validation of invalid checksums."""
+        for test in INVALID_CHECKSUM:
+            try:
+                pos = test.rfind('1')
+                hrp = test[:pos]
+                pkh = addr_bech32_to_pubkeyhash(test, hrp)
+                self.assertFalse(pkh)
+            except EncodingError as e:
+                self.assertIn("not found in codebase", e.msg)
+
+    def test_valid_address(self):
+        """Test whether valid addresses decode to the correct output."""
+        for (address, hexscript) in VALID_ADDRESS:
+            try:
+                scriptpubkey = addr_bech32_to_pubkeyhash(address, include_witver=True)
+            except EncodingError:
+                scriptpubkey = addr_bech32_to_pubkeyhash(address, hrp='tb', include_witver=True)
+            self.assertEqual(scriptpubkey, binascii.unhexlify(hexscript))
+            addr = pubkeyhash_to_addr_bech32(scriptpubkey, address[:2].lower())
+            self.assertEqual(address.lower(), addr)
+
+    def test_invalid_address(self):
+        """Test whether invalid addresses fail to decode."""
+        for test in INVALID_ADDRESS:
+            self.assertFalse(addr_bech32_to_pubkeyhash("bc", test))
+            self.assertFalse(addr_bech32_to_pubkeyhash("tb", test))
+
+    def test_invalid_address_enc(self):
+        """Test whether address encoding fails on invalid input."""
+        for hrp, version, length in INVALID_ADDRESS_ENC:
+            self.assertFalse(addr_bech32_to_pubkeyhash(hrp, version, [0] * length))
 
 if __name__ == '__main__':
     unittest.main()

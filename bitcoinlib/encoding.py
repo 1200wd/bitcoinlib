@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    ENCODING - Helper methods for encoding and conversion
-#    © 2017 December - 1200 Web Development <http://1200wd.com/>
+#    © 2018 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 import sys
 import math
 import numbers
+from copy import deepcopy
 import ecdsa
 import struct
 import hashlib
@@ -57,6 +58,7 @@ code_strings = {
     32: b'abcdefghijklmnopqrstuvwxyz234567',
     58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     256: b''.join([bytes(bytearray((x,))) for x in range(256)]),
+    'bech32': b'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 }
 
 
@@ -74,6 +76,28 @@ def _in_code_string_check(inp, code_str_from):
         return inp
     else:
         return inp.lower()
+
+
+def array_to_codestring(array, base):
+    codebase = code_strings[base]
+    codestring = ""
+    for i in array:
+        if i < 0 or i > len(codebase):
+            raise EncodingError("Index %i out of range for codebase" % i)
+        codestring += chr(codebase[i])
+    return codestring
+
+
+def codestring_to_array(codestring, base):
+    codestring = to_bytes(codestring)
+    codebase = code_strings[base]
+    array = []
+    for s in codestring:
+        try:
+            array.append(codebase.index(s))
+        except ValueError:
+            raise EncodingError("Character '%s' not found in codebase" % chr(s))
+    return array
 
 
 def normalize_var(var, base=256):
@@ -106,6 +130,8 @@ def normalize_var(var, base=256):
 
     if base == 10:
         return int(var)
+    elif isinstance(var, list):
+        return deepcopy(var)
     else:
         return var
 
@@ -122,12 +148,21 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
 
     :param chars: Input string
     :type chars: any
+<<<<<<< HEAD
     :param base_from: Base number from input string
     :type base_from: int
     :param base_to: Base number for output
     :type base_to: int
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_length: int
+=======
+    :param base_from: Base number or name from input
+    :type base_from: int, str
+    :param base_to: Base number or name for output
+    :type base_to: int, str
+    :param min_lenght: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
+    :type min_lenght: int
+>>>>>>> master
     :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
     :type output_even: bool
     :param output_as_list: Always output as list instead of string.
@@ -139,10 +174,15 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
         raise EncodingError("For a decimal input a minimum output lenght is required!")
 
     code_str = _get_code_string(base_to)
-    if int(base_to) not in code_strings:
+
+    if not isinstance(base_to, int):
+        base_to = len(code_str)
+    elif int(base_to) not in code_strings:
         output_as_list = True
 
     code_str_from = _get_code_string(base_from)
+    if not isinstance(base_from, int):
+        base_from = len(code_str)
     if not isinstance(code_str_from, (bytes, list)):
         raise EncodingError("Code strings must be a list or defined as bytes")
     output = []
@@ -185,9 +225,10 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
                     firstchar = code_str_from[0]
                 else:
                     firstchar = chr(code_str_from[0]).encode('utf-8')
-                if (len(inp) and isinstance(inp, list) and inp[0] == code_str_from[0]) \
-                        or (isinstance(inp, (str, bytes, bytearray)) and not len(inp.strip(firstchar))) \
-                        or isinstance(inp, list):
+                if isinstance(inp, list):
+                    if not len([x for x in inp if x != firstchar]):
+                        addzeros += 1
+                elif not len(inp.strip(firstchar)):
                     addzeros += 1
             factor *= base_from
     else:
@@ -231,7 +272,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             output = ''.join(output)
     if base_to == 10:
         return int(0) or (output != '' and int(output))
-    if PY3 and base_to == 256:
+    if PY3 and base_to == 256 and not output_as_list:
         return output.encode('ISO-8859-1')
     else:
         return output
@@ -292,8 +333,13 @@ def varstr(s):
     """
     Convert string to bytestring preceeded with length byte
 
+<<<<<<< HEAD
     :param s: String value to convert
     :type s: bytes
+=======
+    :param s: bytestring
+    :type s: bytes, str
+>>>>>>> master
 
     :return bytes: varstring
     """
@@ -369,9 +415,147 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     return change_base(addr256, 256, 58)
 
 
+def _bech32_polymod(values):
+    """
+    Internal function that computes the Bech32 checksum
+    """
+    generator = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
+    chk = 1
+    for value in values:
+        top = chk >> 25
+        chk = (chk & 0x1ffffff) << 5 ^ value
+        for i in range(5):
+            chk ^= generator[i] if ((top >> i) & 1) else 0
+    return chk
+
+
+def convertbits(data, frombits, tobits, pad=True):
+    """
+    'General power-of-2 base conversion'
+
+    Source: https://github.com/sipa/bech32/tree/master/ref/python
+
+    :param data: Data values to convert
+    :type data: list
+    :param frombits: Number of bits in source data
+    :type frombits: int
+    :param tobits: Number of bits in result data
+    :type tobits: int
+    :param pad: Use padding zero's or not. Default is True
+    :type pad: bool
+
+    :return list: Converted values
+    """
+    acc = 0
+    bits = 0
+    ret = []
+    maxv = (1 << tobits) - 1
+    max_acc = (1 << (frombits + tobits - 1)) - 1
+    for value in data:
+        if value < 0 or (value >> frombits):
+            return None
+        acc = ((acc << frombits) | value) & max_acc
+        bits += frombits
+        while bits >= tobits:
+            bits -= tobits
+            ret.append((acc >> bits) & maxv)
+    if pad:
+        if bits:
+            ret.append((acc << (tobits - bits)) & maxv)
+    elif bits >= frombits or ((acc << (tobits - bits)) & maxv):
+        return None
+    return ret
+
+
+def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
+    """
+    Encode public key hash as bech32 segwit address
+
+    Format of address is prefix/hrp + seperator + bech32 address + checksum
+
+    For more information see BIP173 proposal at https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+
+    :param pubkeyhash: Public key hash
+    :type pubkeyhash: str, bytes
+    :param hrp: Address prefix called Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
+    :type hrp: str
+    :param witver: Witness version between 0 and 16
+    :type witver: int
+    :param seperator: Seperator char between hrp and data, should always be left to '1' otherwise its not standard.
+    :type seperator: str
+
+    :return str: Bech32 encoded address
+    """
+
+    if not isinstance(pubkeyhash, bytes):
+        pubkeyhash = to_bytes(pubkeyhash)
+    if len(pubkeyhash) not in [20, 32]:
+        if pubkeyhash[0] != 0:
+            witver = pubkeyhash[0] - 0x50
+        pubkeyhash = pubkeyhash[2:]
+
+    data = [witver] + convertbits(pubkeyhash, 8, 5)
+
+    # Expand the HRP into values for checksum computation
+    hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+    polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
+    checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+
+    return hrp + seperator + array_to_codestring(data, 'bech32') + array_to_codestring(checksum, 'bech32')
+
+
+def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False):
+    """
+    Decode bech32 / segwit address to public key hash
+
+    Validate the Bech32 string, and determine HRP and data
+
+    :param bech: Bech32 address to convert
+    :type bech: str
+    :param hrp: Address prefix called Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
+    :type hrp: str
+    :param as_hex: Output public key hash as hex or bytes. Default is False
+    :type as_hex: bool
+    :param include_witver: Include witness version in output? Default is False
+    :type include_witver: bool
+
+    :return str: Public Key Hash
+     
+    """
+    if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
+            (bech.lower() != bech and bech.upper() != bech)):
+        return False
+    bech = bech.lower()
+    pos = bech.rfind('1')
+    if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
+        return False
+    if hrp != bech[:pos]:
+        raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
+    data = codestring_to_array(bech[pos+1:], 'bech32')
+    hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+    if not _bech32_polymod(hrp_expanded + data) == 1:
+        return False
+    data = data[:-6]
+    decoded = bytearray(convertbits(data[1:], 5, 8, pad=False))
+    if decoded is None or len(decoded) < 2 or len(decoded) > 40:
+        return False
+    if data[0] > 16:
+        return False
+    if data[0] == 0 and len(decoded) not in [20, 32]:
+        return False
+    prefix = b''
+    if include_witver:
+        datalen = len(decoded)
+        prefix = bytes([data[0] + 0x50 if data[0] else 0, datalen])
+    if as_hex:
+        return change_base(prefix + decoded, 256, 16)
+    return prefix + decoded
+
+
 def script_to_pubkeyhash(script):
     """
     Creates a RIPEMD-160 hash of a locking, unlocking, redeemscript, etc
+
 
     :param script: Script
     :type script: bytes
