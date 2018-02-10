@@ -40,17 +40,17 @@ class BitcoinLibTestClient(BaseClient):
 
     def getutxos(self, addresslist, utxos_per_address=2):
         utxos = []
-        for _ in range(utxos_per_address):
+        for n in range(utxos_per_address):
             for address in addresslist:
-                rand_pkh = Key().hash160()
+                pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
                 utxos.append(
                     {
                         'address': address,
-                        'tx_hash': hashlib.sha256(rand_pkh).hexdigest(),
+                        'tx_hash': hashlib.sha256(pkh).hexdigest(),
                         'confirmations': 10,
                         'output_n': 0,
                         'index': 0,
-                        'value': 1 * random.randint(1, self.units),
+                        'value': 1 * self.units,
                         'script': '',
                     }
                 )
