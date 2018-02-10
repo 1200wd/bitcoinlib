@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BitcoinLib Test Network for Unit Tests
-#    © 2017 July - 1200 Web Development <http://1200wd.com/>
+#    © 2018 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -20,9 +20,7 @@
 
 import logging
 import hashlib
-import random
 from bitcoinlib.services.baseclient import BaseClient
-from bitcoinlib.keys import Key
 from bitcoinlib.encoding import addr_to_pubkeyhash
 
 _logger = logging.getLogger(__name__)
