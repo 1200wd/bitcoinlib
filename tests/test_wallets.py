@@ -742,3 +742,19 @@ class TestWalletTransaction(unittest.TestCase):
         self.wallet.scan()
         self.assertEqual(len(self.wallet.keys()), 31)
         self.assertEqual(self.wallet.balance(), 60500000)
+
+    def test_wallet_two_utxos_one_key(self):
+        wlt = HDWallet.create('double-utxo-test', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        key = wlt.new_key()
+        wlt.utxos_update()
+        utxos = wlt.utxos()
+
+        inp1 = Input(prev_hash=utxos[0]['tx_hash'], output_index=utxos[0]['output_n'], keys=key.key_public,
+                     network='bitcoinlib_test')
+        inp2 = Input(prev_hash=utxos[1]['tx_hash'], output_index=utxos[1]['output_n'], keys=key.key_public,
+                     network='bitcoinlib_test')
+        out = Output(10000000, address=key.address, network='bitcoinlib_test')
+
+        t = Transaction(inputs=[inp1, inp2], outputs=[out], network='testnet')
+        t.sign(key.key_private)
+        self.assertTrue(t.verify())
