@@ -20,7 +20,9 @@
 
 import logging
 import hashlib
+import random
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.keys import Key
 from bitcoinlib.encoding import addr_to_pubkeyhash
 
 _logger = logging.getLogger(__name__)
@@ -36,20 +38,22 @@ class BitcoinLibTestClient(BaseClient):
     def getbalance(self, addresslist):
         return self.units * len(addresslist)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, utxos_per_address=2):
         utxos = []
-        for address in addresslist:
-            utxos.append(
-                {
-                    'address': address,
-                    'tx_hash': hashlib.sha256(addr_to_pubkeyhash('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo')).hexdigest(),
-                    'confirmations': 10,
-                    'output_n': 0,
-                    'index': 0,
-                    'value': 1 * self.units,
-                    'script': '',
-                }
-            )
+        for _ in range(utxos_per_address):
+            for address in addresslist:
+                rand_pkh = Key().hash160()
+                utxos.append(
+                    {
+                        'address': address,
+                        'tx_hash': hashlib.sha256(rand_pkh).hexdigest(),
+                        'confirmations': 10,
+                        'output_n': 0,
+                        'index': 0,
+                        'value': 1 * random.randint(1, self.units),
+                        'script': '',
+                    }
+                )
         return utxos
 
     def estimatefee(self, blocks):
