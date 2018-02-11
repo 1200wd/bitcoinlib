@@ -209,7 +209,7 @@ def parse_bip44_path(path):
     BIP0043 and BIP0044.
     
     Specify path in this format: m / purpose' / cointype' / account' / change / address_index.
-    Path lenght must be between 1 and 6 (Depth between 0 and 5)
+    Path length must be between 1 and 6 (Depth between 0 and 5)
     
     :param path: BIP0044 path as string, with backslash (/) seperator. 
     :type path: str
@@ -289,7 +289,7 @@ class HDWalletKey:
                 networkcode = nw.bip44_cointype
                 path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
             else:
-                raise WalletError("Key depth of %d does not match path lenght of %d for path %s" %
+                raise WalletError("Key depth of %d does not match path length of %d for path %s" %
                                   (k.depth, len(path.split('/')) - 1, path))
 
         wk = session.query(DbKey).filter(DbKey.wallet_id == wallet_id,

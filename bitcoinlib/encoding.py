@@ -148,21 +148,12 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
 
     :param chars: Input string
     :type chars: any
-<<<<<<< HEAD
-    :param base_from: Base number from input string
-    :type base_from: int
-    :param base_to: Base number for output
-    :type base_to: int
-    :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
-    :type min_length: int
-=======
     :param base_from: Base number or name from input
     :type base_from: int, str
     :param base_to: Base number or name for output
     :type base_to: int, str
-    :param min_lenght: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
-    :type min_lenght: int
->>>>>>> master
+    :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
+    :type min_length: int
     :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
     :type output_even: bool
     :param output_as_list: Always output as list instead of string.
@@ -171,7 +162,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     :return str, list: Base converted input as string or list.
     """
     if base_from == 10 and not min_length:
-        raise EncodingError("For a decimal input a minimum output lenght is required!")
+        raise EncodingError("For a decimal input a minimum output length is required!")
 
     code_str = _get_code_string(base_to)
 
