@@ -2494,7 +2494,14 @@ class HDWallet:
                                                       min_confirms, max_utxos)
                 transaction.sign(priv_keys)
 
-        return transaction.send(offline)
+        res = transaction.send(offline)
+        # TODO: Make transaction.send method output more consequent
+        if 'status' in res and res['status'] == 'success':
+            transaction.hash = res['data']['txid']
+            transaction.status = 'unconfirmed'
+            transaction.confirmations = 0
+            transaction.save()
+        return transaction
 
     def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4,
                 priv_keys=None, offline=False):
