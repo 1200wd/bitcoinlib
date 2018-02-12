@@ -778,7 +778,7 @@ class Transaction:
     def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, hash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
-                 coinbase=False, flag=None):
+                 coinbase=False, verified=False, flag=None):
         """
         Create a new transaction class with provided inputs and outputs. 
         
@@ -821,6 +821,8 @@ class Transaction:
         :type status: str
         :param coinbase: Coinbase transaction or not?
         :type coinbase: bool
+        :param verified: Is transaction succesfully verified? Updated when verified() method is called
+        :type verified: bool
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str
         """
@@ -854,6 +856,7 @@ class Transaction:
         self.output_total = output_total
         self.rawtx = rawtx
         self.status = status
+        self.verified = verified
 
     def __repr__(self):
         return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \
@@ -968,6 +971,8 @@ class Transaction:
         
         :return bool: True if enough signatures provided and if all signatures are valid
         """
+
+        self.verified = False
         for i in self.inputs:
             if i.script_type == 'coinbase':
                 return True
@@ -994,6 +999,7 @@ class Transaction:
                 _logger.info("Not enough valid signatures provided. Found %d signatures but %d needed" %
                              (sig_id, i.sigs_required))
                 return False
+        self.verified = True
         return True
 
     def sign(self, keys, index_n=0, hash_type=SIGHASH_ALL):

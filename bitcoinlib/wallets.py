@@ -464,7 +464,7 @@ class HDWalletTransaction(Transaction):
         Create HDWalletTransaction object from Transaction object
 
         :param hdwallet: HDWallet object, wallet name or ID
-        :type hdWallet: HDwallet, str, int
+        :type hdwallet: HDwallet, str, int
         :param t: Specify Transaction object
         :type t: Transaction
 
@@ -474,7 +474,7 @@ class HDWalletTransaction(Transaction):
                    network=t.network.network_name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size, change=t.change,
                    hash=t.hash, date=t.date, confirmations=t.confirmations, block_height=t.block_height,
                    block_hash=t.block_hash, input_total=t.input_total, output_total=t.output_total,
-                   rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, flag=t.flag)
+                   rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, verified=t.verified, flag=t.flag)
 
     def sign(self, keys=None, index_n=0, hash_type=SIGHASH_ALL):
         """
