@@ -712,12 +712,12 @@ class HDWallet:
             _logger.info("Create new wallet '%s'" % name)
         if name.isdigit():
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
-        # If key consists of several words assume it is a passphrase and convert it to a hdkey
-        if len(key.split(" ")) > 1:
-            key = HDKey().from_seed(Mnemonic().to_seed(key), network='testnet')
         if isinstance(key, HDKey):
             network = key.network.network_name
         elif key:
+            # If key consists of several words assume it is a passphrase and convert it to a hdkey
+            if len(key.split(" ")) > 1:
+                key = HDKey().from_seed(Mnemonic().to_seed(key), network='testnet')
             network = check_network_and_key(key, network)
             key = HDKey(key, network=network)
             # searchkey = session.query(DbKey).filter_by(wif=key).scalar()
@@ -2423,7 +2423,7 @@ class HDWallet:
                 raise WalletError("Input key type %s not supported" % key.key_type)
             inp_id = transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
                                            sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                           compressed=key.compressed)
+                                           compressed=key.compressed, value=inp[3])
             # FIXME: This dirty stuff needs to be rewritten...
             if len(inp) > 4:
                 transaction.inputs[inp_id].signatures += inp[4]

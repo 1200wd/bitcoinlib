@@ -690,7 +690,6 @@ class TestWalletKeyImport(unittest.TestCase):
 class TestWalletTransaction(unittest.TestCase):
 
     def setUp(self):
-        print(DATABASEFILE_UNITTESTS)
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
         account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfq' \

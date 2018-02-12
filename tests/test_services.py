@@ -23,7 +23,7 @@ import datetime
 from bitcoinlib.services.services import *
 
 
-MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 1.00  # Maximum difference from average estimated fee before test_estimatefee fails.
+MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 1.50  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
 
