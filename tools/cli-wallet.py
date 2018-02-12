@@ -201,21 +201,15 @@ if __name__ == '__main__':
         if not fee:
             srv = Service(network=args.network)
             fee = srv.estimatefee()
-        t = create_transaction(wlt, args.create_transaction, fee)
-        t = wlt.transaction_sign(t)
-        td = t.dict()
+        wt = create_transaction(wlt, args.create_transaction, fee)
+        wt.sign()
         print("Transaction created")
-        print("Inputs")
-        for ti in td['inputs']:
-            print("-", ti['address'], ti['prev_hash'])
-        print("Outputs")
-        for to in td['outputs']:
-            print("-", to['address'], to['amount'])
+        wt.info()
         if args.push:
-            res = wlt.transaction_send(t)
-            print("Send transaction result: %s" % res)
+            wt = wt.send()
+            print("Send transaction result: %s" % wt)
         else:
-            print("Transaction not send yet. Raw transaction to analyse or send online: ", t.raw_hex())
+            print("Transaction not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
         clw_exit()
 
     print("Updating wallet")

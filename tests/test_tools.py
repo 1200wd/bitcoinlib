@@ -18,6 +18,8 @@ DATABASEFILE_UNITTESTS = 'bitcoinlib.unittest.sqlite'
 class TestToolsCommandLineWallet(unittest.TestCase):
 
     def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
         self.python_executable = sys.executable
         self.clw_executable = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                             '../tools/cli-wallet.py'))
