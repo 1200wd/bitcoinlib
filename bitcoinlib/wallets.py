@@ -27,6 +27,7 @@ from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubk
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
+from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, SIGHASH_ALL
 
 _logger = logging.getLogger(__name__)
@@ -680,7 +681,7 @@ class HDWallet:
         
         :param name: Unique name of this Wallet
         :type name: str
-        :param key: Masterkey to use for this wallet. Will be automatically created if not specified
+        :param key: Masterkey to use for this wallet. Will be automatically created if not specified. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
         :type key: str, bytes, int, bytearray
         :param owner: Wallet owner for your own reference
         :type owner: str
@@ -711,6 +712,9 @@ class HDWallet:
             _logger.info("Create new wallet '%s'" % name)
         if name.isdigit():
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
+        # If key consists of several words assume it is a passphrase and convert it to a hdkey
+        if len(key.split(" ")) > 1:
+            key = HDKey().from_seed(Mnemonic().to_seed(key), network='testnet')
         if isinstance(key, HDKey):
             network = key.network.network_name
         elif key:
@@ -2021,7 +2025,7 @@ class HDWallet:
             # Get current UTXO's from database to compare with Service objects UTXO's
             current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
 
-            # Update spend UTXO's (not found in list) and mark key as used
+            # Update spent UTXO's (not found in list) and mark key as used
             utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
             for current_utxo in current_utxos:
                 if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
@@ -2029,7 +2033,7 @@ class HDWallet:
                         filter(DbTransaction.hash == current_utxo['tx_hash'],
                                DbTransactionOutput.output_n == current_utxo['output_n'])
                     for utxo_record in utxo_in_db.all():
-                        utxo_record.spend = True
+                        utxo_record.spent = True
                 self._session.commit()
 
             # If UTXO is new, add to database otherwise update depth (confirmation count)
@@ -2051,7 +2055,7 @@ class HDWallet:
                     if not utxo_record.key_id:
                         count_utxos += 1
                     utxo_record.key_id = key.id
-                    utxo_record.spend = False
+                    utxo_record.spent = False
                     transaction_record = transaction_in_db.scalar()
                     transaction_record.confirmations = utxo['confirmations']
                 else:
@@ -2066,7 +2070,7 @@ class HDWallet:
                         tid = transaction_in_db.scalar().id
 
                     new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'], value=utxo['value'],
-                                                   key_id=key.id, script=utxo['script'], spend=False)
+                                                   key_id=key.id, script=utxo['script'], spent=False)
                     self._session.add(new_utxo)
                     count_utxos += 1
 

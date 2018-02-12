@@ -324,13 +324,8 @@ def varstr(s):
     """
     Convert string to bytestring preceeded with length byte
 
-<<<<<<< HEAD
-    :param s: String value to convert
-    :type s: bytes
-=======
     :param s: bytestring
     :type s: bytes, str
->>>>>>> master
 
     :return bytes: varstring
     """
