@@ -893,6 +893,23 @@ class Transaction:
             'status': self.status
         }
 
+    def info(self):
+        """
+        Prints transaction information to standard output
+
+        """
+        print("Transaction %s" % self.hash)
+        print("Date: %s" % self.date)
+        print("Network: %s" % self.network.network_name)
+        print("Status: %s" % self.status)
+        print("Inputs")
+        for ti in self.inputs:
+            print("-", ti.address, ti.value, to_hexstring(ti.prev_hash))
+        print("Outputs")
+        for to in self.outputs:
+            print("-", to.address, to.value)
+        print("Confirmations: %s" % self.confirmations)
+
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
         Get raw transaction 
