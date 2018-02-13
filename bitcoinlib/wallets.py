@@ -2179,7 +2179,7 @@ class HDWallet:
         #     self._utxos_update_from_transactions(list(key_ids))
         return True
 
-    def transactions(self, account_id=None, network=None, key_id=None):
+    def transactions(self, account_id=None, network=None, include_new=False, key_id=None):
         """
         :param account_id: Filter by Account ID
         :type account_id: int
@@ -2201,6 +2201,9 @@ class HDWallet:
                    DbKey.network_name == network)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
+        if not include_new:
+            qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
+
         txs = qr.all()
 
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
@@ -2209,6 +2212,9 @@ class HDWallet:
             filter(DbKey.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
                    DbKey.network_name == network)
+        if not include_new:
+            qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
+
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         txs += qr.all()
