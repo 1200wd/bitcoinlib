@@ -2200,7 +2200,7 @@ class HDWallet:
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         qr = self._session.query(DbTransactionInput, DbKey.address, DbTransaction.confirmations,
-                                 DbTransaction.hash, DbKey.network_name). \
+                                 DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
             join(DbTransaction).join(DbKey). \
             filter(DbKey.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
@@ -2213,7 +2213,7 @@ class HDWallet:
         txs = qr.all()
 
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
-                                 DbTransaction.hash, DbKey.network_name). \
+                                 DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
             join(DbTransaction).join(DbKey). \
             filter(DbKey.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
@@ -2236,6 +2236,7 @@ class HDWallet:
             u['confirmations'] = int(tx[2])
             u['tx_hash'] = tx[3]
             u['network_name'] = tx[4]
+            u['status'] = tx[5]
             if 'index_n' in u:
                 u['value'] = -u['value']
             res.append(u)
@@ -2634,12 +2635,18 @@ class HDWallet:
                                                               Network(key.network_name).print_value(key.balance)))
         print("\n= Transactions =")
         if detail > 2:
-            for t in self.transactions():
+            include_new = False
+            if detail > 3:
+                include_new = True
+            for t in self.transactions(include_new=include_new):
                 spent = ""
                 if 'spent' in t and t['spent'] is False:
                     spent = "U"
-                print("%4d %64s %36s %8d %13d %s" % (t['transaction_id'], t['tx_hash'], t['address'],
-                                                     t['confirmations'], t['value'], spent))
+                status = ""
+                if t['status'] not in ['confirmed', 'unconfirmed']:
+                    status = t['status']
+                print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
+                                                     t['confirmations'], t['value'], spent, status))
 
         print("\n")
 
