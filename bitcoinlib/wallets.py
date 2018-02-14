@@ -2243,7 +2243,7 @@ class HDWallet:
         return res
 
     @staticmethod
-    def _select_inputs(amount, utxo_query=None, max_utxos=None):
+    def _select_inputs(amount, utxo_query=None, max_utxos=None, variance=0):
         """
         Internal method used by create transaction to select best inputs (UTXO's) for a transaction. To get the
         least number of inputs
@@ -2272,7 +2272,16 @@ class HDWallet:
         if not utxo_query:
             return []
 
-        # Try to find one utxo with exact amount or higher
+        # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
+
+        # Try to find one utxo with exact amount
+        one_utxo = utxo_query.\
+            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount,
+                   DbTransactionOutput.value <= amount + variance).first()
+        if one_utxo:
+            return [one_utxo]
+
+        # Try to find one utxo with higher amount
         one_utxo = utxo_query.\
             filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
             order_by(DbTransactionOutput.value).first()
@@ -2371,7 +2380,8 @@ class HDWallet:
             if not utxos:
                 raise WalletError("Create transaction: No unspent transaction outputs found")
             input_arr = []
-            selected_utxos = self._select_inputs(amount_total_output + transaction.fee, utxo_query, max_utxos)
+            selected_utxos = self._select_inputs(amount_total_output + transaction.fee, utxo_query, max_utxos,
+                                                 self.network.dust_amount)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -2409,6 +2419,9 @@ class HDWallet:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         # If change amount is smaller then estimated fee it will cost to send it then skip change
         if fee_per_output and transaction.change < fee_per_output:
+            transaction.change = 0
+        if transaction.change < self.network.dust_amount:
+            transaction.fee += transaction.change
             transaction.change = 0
         ck = None
         if transaction.change:
@@ -2582,7 +2595,7 @@ class HDWallet:
             return False
         for utxo in utxos:
             # Skip dust transactions
-            if utxo['value'] < self.network.dust_ignore_amount:
+            if utxo['value'] < self.network.dust_amount:
                 continue
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']

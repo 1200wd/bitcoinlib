@@ -13,7 +13,7 @@
     "prefix_hdkey_public": "9488B21E",
     "bip44_cointype": 9999999,
     "denominator": 0.00000001,
-    "dust_ignore_amount": 100
+    "dust_amount": 1000
   },
   "bitcoin":
   {
@@ -29,7 +29,7 @@
     "prefix_hdkey_public": "0488B21E",
     "bip44_cointype": 0,
     "denominator": 0.00000001,
-    "dust_ignore_amount": 100
+    "dust_amount": 1000
   },
   "testnet":
   {
@@ -45,7 +45,7 @@
     "prefix_hdkey_public": "043587CF",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
-    "dust_ignore_amount": 100
+    "dust_amount": 1000
   },
   "litecoin":
   {
@@ -61,7 +61,7 @@
     "prefix_hdkey_public": "019DA462",
     "bip44_cointype": 2,
     "denominator": 0.00000001,
-    "dust_ignore_amount": 100
+    "dust_amount": 1000
   },
   "litecoin_testnet":
   {
@@ -77,7 +77,7 @@
     "prefix_hdkey_public": "0436F6E1",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
-    "dust_ignore_amount": 100
+    "dust_amount": 1000
   },
   "dash":
   {
@@ -93,7 +93,7 @@
     "prefix_hdkey_public": "02FE52CC",
     "bip44_cointype": 5,
     "denominator": 0.00000001,
-    "dust_ignore_amount": 100
+    "dust_amount": 1000
   },
   "dash_testnet":
   {
@@ -109,6 +109,6 @@
     "prefix_hdkey_public": "3A805837",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
-    "dust_ignore_amount": 100
+    "dust_amount": 1000
   }
 }

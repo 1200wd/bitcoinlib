@@ -911,6 +911,7 @@ class Transaction:
         print("Outputs")
         for to in self.outputs:
             print("-", to.address, to.value)
+        print("Fee: %d" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
