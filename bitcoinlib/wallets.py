@@ -2417,10 +2417,8 @@ class HDWallet:
 
         if transaction.change < 0:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
-        # If change amount is smaller then estimated fee it will cost to send it then skip change
-        if fee_per_output and transaction.change < fee_per_output:
-            transaction.change = 0
-        if transaction.change < self.network.dust_amount:
+        # Skip change if amount is smaller then the dust limit or estimated fee
+        if (fee_per_output and transaction.change < fee_per_output) or transaction.change < self.network.dust_amount:
             transaction.fee += transaction.change
             transaction.change = 0
         ck = None
