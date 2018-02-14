@@ -456,6 +456,8 @@ class HDWalletTransaction(Transaction):
         """
         assert isinstance(hdwallet, HDWallet)
         self.hdwallet = hdwallet
+        self.pushed = False
+        self.error = None
         super(HDWalletTransaction, self).__init__(*args, **kwargs)
 
     @classmethod
@@ -528,45 +530,39 @@ class HDWalletTransaction(Transaction):
         :return str, dict: Transaction ID if successfull or dict with results otherwise
 
         """
-        # Verify transaction
+
         if not self.verify():
-            return {
-                'error': "Cannot verify transaction. Create transaction failed",
-                'transaction': self
-            }
+            self.error = "Cannot verify transaction. Create transaction failed"
+            return False
 
         if offline:
-            return {
-                'transaction': self
-            }
+            return False
 
-        # Push it to the network
         srv = Service(network=self.network.network_name)
         res = srv.sendrawtransaction(self.raw_hex())
         if not res:
-            # raise WalletError("Could not send transaction: %s" % srv.errors)
-            return {
-                'error': "Cannot send transaction. %s" % srv.errors,
-                'transaction': self
-            }
-        _logger.info("Successfully pushed transaction, result: %s" % res)
-
-        # Update db: Update spent UTXO's, add transaction to database
-        for inp in self.inputs:
-            tx_hash = to_hexstring(inp.prev_hash)
-            utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.hash == tx_hash,
-                       DbTransactionOutput.output_n == inp.output_n_int).all()
-            for u in utxos:
-                u.spent = True
-
-        self.hdwallet._session.commit()
+            self.error = "Cannot send transaction. %s" % srv.errors
+            return False
         if 'txid' in res:
+            _logger.info("Successfully pushed transaction, result: %s" % res)
+
+            # Update db: Update spent UTXO's, add transaction to database
+            for inp in self.inputs:
+                tx_hash = to_hexstring(inp.prev_hash)
+                utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
+                    filter(DbTransaction.hash == tx_hash,
+                           DbTransactionOutput.output_n == inp.output_n_int).all()
+                for u in utxos:
+                    u.spent = True
+
+            self.hdwallet._session.commit()
+
             self.hash = res['txid']
             self.status = 'unconfirmed'
-            return res['txid']
-        else:
-            return res
+            self.confirmations = 0
+            self.pushed = True
+            return True
+        return False
 
     def save(self):
         """
@@ -2520,11 +2516,7 @@ class HDWallet:
                 transaction.sign(priv_keys)
 
         res = transaction.send(offline)
-        # TODO: Make transaction.send method output more consequent
-        if 'status' in res and res['status'] == 'success':
-            transaction.hash = res['data']['txid']
-            transaction.status = 'unconfirmed'
-            transaction.confirmations = 0
+        if res:
             transaction.save()
         return transaction
 
