@@ -21,7 +21,7 @@
 import numbers
 from copy import deepcopy
 import struct
-from sqlalchemy import or_
+from sqlalchemy import or_, update
 from bitcoinlib.db import *
 from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
 from bitcoinlib.keys import HDKey, check_network_and_key
@@ -545,18 +545,6 @@ class HDWalletTransaction(Transaction):
             return False
         if 'txid' in res:
             _logger.info("Successfully pushed transaction, result: %s" % res)
-
-            # Update db: Update spent UTXO's, add transaction to database
-            for inp in self.inputs:
-                tx_hash = to_hexstring(inp.prev_hash)
-                utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
-                    filter(DbTransaction.hash == tx_hash,
-                           DbTransactionOutput.output_n == inp.output_n_int).all()
-                for u in utxos:
-                    u.spent = True
-
-            self.hdwallet._session.commit()
-
             self.hash = res['txid']
             self.status = 'unconfirmed'
             self.confirmations = 0
@@ -2518,6 +2506,17 @@ class HDWallet:
         res = transaction.send(offline)
         if res:
             transaction.save()
+            # Update db: Update spent UTXO's, add transaction to database
+            for inp in transaction.inputs:
+                tx_hash = to_hexstring(inp.prev_hash)
+                utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
+                    filter(DbTransaction.hash == tx_hash,
+                           DbTransactionOutput.output_n == inp.output_n_int).all()
+                for u in utxos:
+                    u.spent = True
+
+            self._session.commit()
+            self._session.flush()
         return transaction
 
     def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4,

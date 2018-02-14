@@ -207,7 +207,7 @@ if __name__ == '__main__':
         wt.info()
         if args.push:
             wt = wt.send()
-            print("Send transaction result: %s" % wt)
+            print("Send transaction result: %s" % wt.hash)
         else:
             print("Transaction not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
         clw_exit()

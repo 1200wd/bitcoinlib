@@ -430,7 +430,8 @@ class TestWalletMultisig(unittest.TestCase):
         t = wl.transaction_create([('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 100000)])
         t.sign()
         self.assertTrue(t.verify())
-        self.assertEqual(t.send(), 'succesfull_test_sendrawtransaction')
+        t.send()
+        self.assertEqual(t.hash, 'succesfull_test_sendrawtransaction')
 
     def test_wallet_multisig_2of2(self):
         """
@@ -501,7 +502,8 @@ class TestWalletMultisig(unittest.TestCase):
         t.sign()
         t2 = msw2.transaction_import(t.raw())
         t2.sign()
-        self.assertEqual(t2.send(), 'succesfull_test_sendrawtransaction')
+        t2.send()
+        self.assertEqual(t2.hash, 'succesfull_test_sendrawtransaction')
 
     @staticmethod
     def _multisig_test(sigs_required, number_of_sigs, sort_keys, network):
@@ -598,7 +600,8 @@ class TestWalletMultisig(unittest.TestCase):
 
         t = wl.transaction_create([(HDKey(network='bitcoinlib_test').key.address(), 6400000)], min_confirms=0)
         t.sign(keys[1])
-        self.assertEqual(t.send(), 'succesfull_test_sendrawtransaction')
+        t.send()
+        self.assertEqual(t.hash, 'succesfull_test_sendrawtransaction')
 
     def test_wallet_multisig_sorted_keys(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
