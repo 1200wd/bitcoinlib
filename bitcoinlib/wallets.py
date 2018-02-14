@@ -2365,7 +2365,8 @@ class HDWallet:
                 filter(DbTransaction.wallet_id == self.wallet_id,
                        DbKey.account_id == account_id,
                        DbTransactionOutput.spent.op("IS")(False),
-                       DbTransaction.confirmations >= min_confirms)
+                       DbTransaction.confirmations >= min_confirms).\
+                order_by(DbTransaction.confirmations.desc())
             utxos = utxo_query.all()
             if not utxos:
                 raise WalletError("Create transaction: No unspent transaction outputs found")
