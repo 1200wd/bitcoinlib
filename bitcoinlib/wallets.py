@@ -2058,6 +2058,10 @@ class HDWallet:
                     utxo_record.spent = False
                     transaction_record = transaction_in_db.scalar()
                     transaction_record.confirmations = utxo['confirmations']
+                    if utxo['confirmations']:
+                        transaction_record.status = 'confirmed'
+                    else:
+                        transaction_record.status = 'unconfirmed'
                 else:
                     # Add transaction if not exist and then add output
                     if not transaction_in_db.count():
@@ -2185,6 +2189,8 @@ class HDWallet:
         :type account_id: int
         :param network: Filter by network name. Leave empty for default network
         :type network: str
+        :param include_new: Also include new and incomplete transactions in list. Default is False
+        :type include_new: bool
         :param key_id: Filter by key ID
         :type key_id: int
 
