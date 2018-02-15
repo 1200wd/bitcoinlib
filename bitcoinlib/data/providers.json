@@ -30,7 +30,7 @@
     "provider": "blockexplorer",
     "network": "bitcoin",
     "client_class": "BlockExplorerClient",
-    "url": "https://blockexplorer.com/api/",
+    "url": "https://bitcoinlegacy.blockexplorer.com/api/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000

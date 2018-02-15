@@ -59,15 +59,18 @@ class BlockExplorerClient(BaseClient):
             status = 'unconfirmed'
         fees = None if 'fees' not in tx else int(round(float(tx['fees']) * self.units, 0))
         value_in = None if 'valueOut' not in tx else tx['valueOut']
+        isCoinbase = False
+        if 'isCoinBase' in tx and tx['isCoinBase']:
+            isCoinbase = True
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],
                         date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
                         block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
-                        input_total=int(round(float(value_in) * self.units, 0)), coinbase=tx['isCoinBase'],
+                        input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
         for ti in tx['vin']:
             sequence = struct.pack('<L', ti['sequence'])
-            if tx['isCoinBase']:
+            if isCoinbase:
                 t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
                             script_type='coinbase', sequence=sequence)
             else:
