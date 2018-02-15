@@ -64,7 +64,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         cmd_wlt_delete = "echo test2 | %s %s test2 --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         output_wlt_create = "Receive address is 21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
-        output_wlt_transaction = b'succesfull_test_sendrawtransaction'
+        output_wlt_transaction = b'Send transaction result: True'
         output_wlt_delete = "Wallet test2 has been removed"
 
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))

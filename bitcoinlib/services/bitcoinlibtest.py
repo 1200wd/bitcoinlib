@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BitcoinLib Test Network for Unit Tests
-#    © 2017 July - 1200 Web Development <http://1200wd.com/>
+#    © 2018 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -36,20 +36,22 @@ class BitcoinLibTestClient(BaseClient):
     def getbalance(self, addresslist):
         return self.units * len(addresslist)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, utxos_per_address=2):
         utxos = []
-        for address in addresslist:
-            utxos.append(
-                {
-                    'address': address,
-                    'tx_hash': hashlib.sha256(addr_to_pubkeyhash('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo')).hexdigest(),
-                    'confirmations': 10,
-                    'output_n': 0,
-                    'index': 0,
-                    'value': 1 * self.units,
-                    'script': '',
-                }
-            )
+        for n in range(utxos_per_address):
+            for address in addresslist:
+                pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
+                utxos.append(
+                    {
+                        'address': address,
+                        'tx_hash': hashlib.sha256(pkh).hexdigest(),
+                        'confirmations': 10,
+                        'output_n': 0,
+                        'index': 0,
+                        'value': 1 * self.units,
+                        'script': '',
+                    }
+                )
         return utxos
 
     def estimatefee(self, blocks):
