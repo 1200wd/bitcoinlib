@@ -58,7 +58,7 @@ class BlockExplorerClient(BaseClient):
         else:
             status = 'unconfirmed'
         fees = None if 'fees' not in tx else int(round(float(tx['fees']) * self.units, 0))
-        value_in = None if 'valueOut' not in tx else tx['valueOut']
+        value_in = 0 if 'valueIn' not in tx else tx['valueIn']
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
             isCoinbase = True
