@@ -1921,7 +1921,7 @@ class HDWallet:
             network = utxo[2]
             new_value = utxo[1]
             if network in network_values:
-                new_value = network_values[network] + utxo[0].value
+                new_value = network_values[network] + utxo[1]
             network_values.update({network: new_value})
 
         # Add keys with no UTXO's with 0 balance
@@ -2065,7 +2065,6 @@ class HDWallet:
                     self._session.add(new_utxo)
                     count_utxos += 1
 
-                # TODO: Removing this gives errors??
                 self._session.commit()
 
             _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))

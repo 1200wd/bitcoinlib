@@ -85,6 +85,13 @@ class TestWalletCreate(unittest.TestCase):
         nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1201")
         self.assertEqual(nkfp.key().wif(), nkfp2.key().wif())
 
+    def test_wallet_create_with_passphrase(self):
+        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
+        wlt = HDWallet.create("wallet-passphrase", key=passphrase, network='testnet',
+                              databasefile=DATABASEFILE_UNITTESTS)
+        key0 = wlt.get_key()
+        self.assertEqual(key0.address, "mqDeXXaFnWKNWhLmAae7zHhZDW4PMsLHPp")
+
 
 class TestWalletImport(unittest.TestCase):
 
@@ -759,3 +766,25 @@ class TestWalletTransaction(unittest.TestCase):
         t = Transaction(inputs=[inp1, inp2], outputs=[out], network='testnet')
         t.sign(key.key_private)
         self.assertTrue(t.verify())
+
+    def test_wallet_balance_update(self):
+        wlt = HDWallet.create('test-balance-update', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        to_key = wlt.get_key()
+        wlt.utxos_update()
+        self.assertEqual(wlt.balance(), 200000000)
+
+        wlt.send_to(to_key.address, 9000)
+        wlt.balance_update()
+        self.assertEqual(wlt.balance(), 100000000)
+
+    def test_wallet_balance_update_multi_network(self):
+        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
+        wlt = HDWallet.create("wallet-passphrase", key=passphrase, network='testnet',
+                              databasefile=DATABASEFILE_UNITTESTS)
+        wlt.get_key()
+        wlt.new_account(network='bitcoinlib_test')
+        wlt.get_key(network='bitcoinlib_test')
+        wlt.utxos_update()
+        self.assertEqual(wlt.balance(), 900)
+        self.assertEqual(wlt.balance(network='testnet'), 900)
+        self.assertEqual(wlt.balance(network='bitcoinlib_test'), 200000000)
