@@ -1291,12 +1291,13 @@ class HDWallet:
 
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
-    def scan(self, scan_depth=10, account_id=None, change=None, network=None, _keys_ignore=None, _recursion_depth=0):
+    def scan(self, scan_gap_limit=10, account_id=None, change=None, network=None, _keys_ignore=None,
+             _recursion_depth=0):
         """
         Generate new keys for this wallet and scan for UTXO's.
 
-        :param scan_depth: Amount of new keys and change keys (addresses) created for this wallet
-        :type scan_depth: int
+        :param scan_gap_limit: Amount of new keys and change keys (addresses) created for this wallet
+        :type scan_gap_limit: int
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -1314,7 +1315,7 @@ class HDWallet:
         if self.scheme != 'bip44' and self.scheme != 'multisig':
             raise WalletError("The wallet scan() method is only available for BIP44 wallets")
         if change != 1:
-            scanned_keys = self.get_key(account_id, network, number_of_keys=scan_depth)
+            scanned_keys = self.get_key(account_id, network, number_of_keys=scan_gap_limit)
             new_key_ids = [k.key_id for k in scanned_keys]
             nr_new_utxos = 0
             # TODO: Allow list of keys in utxos_update
@@ -1322,17 +1323,17 @@ class HDWallet:
                 nr_new_utxos += self.utxos_update(change=0, key_id=new_key_id)
             _keys_ignore += new_key_ids
             if nr_new_utxos:
-                self.scan(scan_depth, account_id, change=0, network=network, _keys_ignore=_keys_ignore,
+                self.scan(scan_gap_limit, account_id, change=0, network=network, _keys_ignore=_keys_ignore,
                           _recursion_depth=_recursion_depth)
         if change != 0:
-            scanned_keys_change = self.get_key(account_id, network, change=1, number_of_keys=scan_depth)
+            scanned_keys_change = self.get_key(account_id, network, change=1, number_of_keys=scan_gap_limit)
             new_key_ids = [k.key_id for k in scanned_keys_change]
             nr_new_utxos = 0
             for new_key_id in new_key_ids:
                 nr_new_utxos += self.utxos_update(change=1, key_id=new_key_id)
             _keys_ignore += new_key_ids
             if nr_new_utxos:
-                self.scan(scan_depth, account_id, change=1, network=network, _keys_ignore=_keys_ignore,
+                self.scan(scan_gap_limit, account_id, change=1, network=network, _keys_ignore=_keys_ignore,
                           _recursion_depth=_recursion_depth)
 
     def get_key(self, account_id=None, network=None, number_of_keys=1, change=0, depth_of_keys=5):
@@ -1944,7 +1945,8 @@ class HDWallet:
         _logger.info("Got balance for %d key(s)" % len(key_values))
         return self._balance
 
-    def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None, utxos=None):
+    def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None,
+                     utxos=None, update_balance=True):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -1974,7 +1976,8 @@ class HDWallet:
         :type change: int
         :param utxos: List of unspent outputs in dictionary format specified in this method DOC header
         :type utxos: list
-        
+        :param update_balance: Option to disable balance update after fetching UTXO's, used when utxos_update method is called several times in a row. Default is True
+        :type update_balance: bool
         :return int: Number of new UTXO's added 
         """
 
@@ -2069,7 +2072,8 @@ class HDWallet:
 
             _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
             self._session.commit()
-            self._balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
+            if update_balance:
+                self._balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
             utxos = None
         return count_utxos
 
