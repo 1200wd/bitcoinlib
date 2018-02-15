@@ -2028,6 +2028,9 @@ class HDWallet:
                 key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
                 if key and not key.used:
                     key.used = True
+                status = 'unconfirmed'
+                if utxo['confirmations']:
+                    status = 'confirmed'
 
                 # Update confirmations in db if utxo was already imported
                 # TODO: Add network filter (?)
@@ -2045,14 +2048,11 @@ class HDWallet:
                     utxo_record.spent = False
                     transaction_record = transaction_in_db.scalar()
                     transaction_record.confirmations = utxo['confirmations']
-                    if utxo['confirmations']:
-                        transaction_record.status = 'confirmed'
-                    else:
-                        transaction_record.status = 'unconfirmed'
+                    transaction_record.status = status
                 else:
                     # Add transaction if not exist and then add output
                     if not transaction_in_db.count():
-                        new_tx = DbTransaction(wallet_id=self.wallet_id, hash=utxo['tx_hash'],
+                        new_tx = DbTransaction(wallet_id=self.wallet_id, hash=utxo['tx_hash'], status=status,
                                                confirmations=utxo['confirmations'])
                         self._session.add(new_tx)
                         self._session.commit()
