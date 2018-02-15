@@ -774,7 +774,6 @@ class TestWalletTransaction(unittest.TestCase):
         self.assertEqual(wlt.balance(), 200000000)
 
         wlt.send_to(to_key.address, 9000)
-        wlt.balance_update()
         self.assertEqual(wlt.balance(), 100000000)
 
     def test_wallet_balance_update_multi_network(self):

@@ -1869,7 +1869,7 @@ class HDWallet:
         """
 
         if self._balance is None:
-            self.balance_update()
+            self._balance_update()
         if network is None:
             network = self.network.network_name
         if network not in self._balances:
@@ -1879,7 +1879,7 @@ class HDWallet:
         else:
             return self._balances[network]
 
-    def balance_update(self, account_id=None, network=None, key_id=None, min_confirms=1):
+    def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=1):
         """
         Update balance from UTXO's in database. To get most recent balance update UTXO's first.
         
@@ -2069,7 +2069,7 @@ class HDWallet:
 
             _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
             self._session.commit()
-            self.balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
+            self._balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
             utxos = None
         return count_utxos
 
@@ -2519,6 +2519,7 @@ class HDWallet:
 
             self._session.commit()
             self._session.flush()
+        self._balance_update(network=network)
         return transaction
 
     def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4,
