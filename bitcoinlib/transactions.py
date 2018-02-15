@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2018 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -758,10 +758,18 @@ class Transaction:
         :param network: Network, leave empty for default network
         :type network: str
         """
-        if inputs is None:
-            self.inputs = []
-        else:
-            self.inputs = inputs
+        self.inputs = []
+        if inputs is not None:
+            for input in inputs:
+                self.inputs.append(input)
+        tid_list = [i.tid for i in self.inputs]
+        if list(set(tid_list)) != tid_list:
+            _logger.warning("Identical transaction indexes (tid) found in inputs, please specify unique index. "
+                            "Indexes will be automatically recreated")
+            tid = 0
+            for inp in self.inputs:
+                inp.tid = tid
+                tid += 1
         if outputs is None:
             self.outputs = []
         else:
@@ -879,7 +887,7 @@ class Transaction:
                 return False
         return True
 
-    def sign(self, keys, tid=0, hash_type=SIGHASH_ALL):
+    def sign(self, keys, tid=None, hash_type=SIGHASH_ALL):
         """
         Sign the transaction input with provided private key
         
@@ -893,90 +901,96 @@ class Transaction:
         :return int: Return int with number of signatures added
         """
 
-        n_signs = 0
-        if not isinstance(keys, list):
-            keys = [keys]
-
-        if self.inputs[tid].script_type == 'coinbase':
-            raise TransactionError("Can not sign coinbase transactions")
-        tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
-
-        pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
-        pub_key_list_uncompressed = [x.public_uncompressed_byte for x in self.inputs[tid].keys]
-        n_total_sigs = len(pub_key_list)
-        sig_domain = [''] * n_total_sigs
-
-        for key in keys:
-            if isinstance(key, (HDKey, Key)):
-                priv_key = key.private_byte
-                pub_key = key.public_byte
-            else:
-                ko = Key(key, compressed=self.inputs[tid].compressed)
-                priv_key = ko.private_byte
-                pub_key = ko.public_byte
-            if not priv_key:
-                raise TransactionError("Please provide a valid private key to sign the transaction. "
-                                       "%s is not a private key" % priv_key)
-            sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
-            while True:
-                sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
-                # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
-                # TODO: Recalc 's' instead, see:
-                #       https://github.com/richardkiss/pycoin/pull/24/files#diff-12d8832e97767321d1f3c40909be8b23
-                signature = convert_der_sig(sig_der)
-                s = int(signature[64:], 16)
-                if s < ecdsa.SECP256k1.order / 2:
-                    break
-            newsig = {
-                    'sig_der': to_bytes(sig_der),
-                    'signature': to_bytes(signature),
-                    'priv_key': priv_key,
-                    'pub_key': pub_key,
-                    'transaction_id': tid
-                }
-
-            # Check if signature signs known key and is not already in list
-            if pub_key not in pub_key_list:
-                raise TransactionError("This key does not sign any known key: %s" % pub_key)
-            if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
-                _logger.warning("Key %s already signed" % pub_key)
-                break
-
-            newsig_pos = pub_key_list.index(pub_key)
-            sig_domain[newsig_pos] = newsig
-            n_signs += 1
-
-        # Add already known signatures on correct position
-        n_sigs_to_insert = len(self.inputs[tid].signatures)
-        for sig in self.inputs[tid].signatures:
-            free_positions = [i for i, s in enumerate(sig_domain) if s == '']
-            for pos in free_positions:
-                if verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
-                    sig_domain[pos] = sig
-                    n_sigs_to_insert -= 1
-                    break
-        if n_sigs_to_insert:
-            _logger.info("Some signatures are replaced with the signatures of the provided keys")
-        self.inputs[tid].signatures = [s for s in sig_domain if s != '']
-
-        if self.inputs[tid].script_type == 'p2pkh':
-            if len(self.inputs[tid].signatures):
-                self.inputs[tid].unlocking_script = \
-                    varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
-                    varstr(self.inputs[tid].keys[0].public_byte)
-        elif self.inputs[tid].script_type == 'p2sh_multisig':
-            n_tag = self.inputs[tid].redeemscript[0]
-            if not isinstance(n_tag, int):
-                n_tag = struct.unpack('B', n_tag)[0]
-            n_required = n_tag - 80
-            signatures = [s['sig_der'] for s in self.inputs[tid].signatures[:n_required]]
-            if b'' in signatures:
-                raise TransactionError("Empty signature found in signature list when signing. "
-                                       "Is DER encoded version of signature defined?")
-            self.inputs[tid].unlocking_script = \
-                _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
+        if tid is None:
+            tids = range(len(self.inputs))
         else:
-            raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
+            tids = [tid]
+
+        for tid in tids:
+            n_signs = 0
+            if not isinstance(keys, list):
+                keys = [keys]
+
+            if self.inputs[tid].script_type == 'coinbase':
+                raise TransactionError("Can not sign coinbase transactions")
+            tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
+
+            pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
+            pub_key_list_uncompressed = [x.public_uncompressed_byte for x in self.inputs[tid].keys]
+            n_total_sigs = len(pub_key_list)
+            sig_domain = [''] * n_total_sigs
+
+            for key in keys:
+                if isinstance(key, (HDKey, Key)):
+                    priv_key = key.private_byte
+                    pub_key = key.public_byte
+                else:
+                    ko = Key(key, compressed=self.inputs[tid].compressed)
+                    priv_key = ko.private_byte
+                    pub_key = ko.public_byte
+                if not priv_key:
+                    raise TransactionError("Please provide a valid private key to sign the transaction. "
+                                           "%s is not a private key" % priv_key)
+                sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
+                while True:
+                    sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
+                    # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
+                    # TODO: Recalc 's' instead, see:
+                    #       https://github.com/richardkiss/pycoin/pull/24/files#diff-12d8832e97767321d1f3c40909be8b23
+                    signature = convert_der_sig(sig_der)
+                    s = int(signature[64:], 16)
+                    if s < ecdsa.SECP256k1.order / 2:
+                        break
+                newsig = {
+                        'sig_der': to_bytes(sig_der),
+                        'signature': to_bytes(signature),
+                        'priv_key': priv_key,
+                        'pub_key': pub_key,
+                        'transaction_id': tid
+                    }
+
+                # Check if signature signs known key and is not already in list
+                if pub_key not in pub_key_list:
+                    raise TransactionError("This key does not sign any known key: %s" % pub_key)
+                if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
+                    _logger.warning("Key %s already signed" % pub_key)
+                    break
+
+                newsig_pos = pub_key_list.index(pub_key)
+                sig_domain[newsig_pos] = newsig
+                n_signs += 1
+
+            # Add already known signatures on correct position
+            n_sigs_to_insert = len(self.inputs[tid].signatures)
+            for sig in self.inputs[tid].signatures:
+                free_positions = [i for i, s in enumerate(sig_domain) if s == '']
+                for pos in free_positions:
+                    if verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
+                        sig_domain[pos] = sig
+                        n_sigs_to_insert -= 1
+                        break
+            if n_sigs_to_insert:
+                _logger.info("Some signatures are replaced with the signatures of the provided keys")
+            self.inputs[tid].signatures = [s for s in sig_domain if s != '']
+
+            if self.inputs[tid].script_type == 'p2pkh':
+                if len(self.inputs[tid].signatures):
+                    self.inputs[tid].unlocking_script = \
+                        varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
+                        varstr(self.inputs[tid].keys[0].public_byte)
+            elif self.inputs[tid].script_type == 'p2sh_multisig':
+                n_tag = self.inputs[tid].redeemscript[0]
+                if not isinstance(n_tag, int):
+                    n_tag = struct.unpack('B', n_tag)[0]
+                n_required = n_tag - 80
+                signatures = [s['sig_der'] for s in self.inputs[tid].signatures[:n_required]]
+                if b'' in signatures:
+                    raise TransactionError("Empty signature found in signature list when signing. "
+                                           "Is DER encoded version of signature defined?")
+                self.inputs[tid].unlocking_script = \
+                    _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
+            else:
+                raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
         return n_signs - n_sigs_to_insert
 
     def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',

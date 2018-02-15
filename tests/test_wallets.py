@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2017 December - 1200 Web Development <http://1200wd.com/>
+#    © 2018 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -328,7 +328,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
         w.new_key()
         w.utxos_update()
-        self.assertEqual(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 50000000),
+        self.assertEqual(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 1),
                          'succesfull_test_sendrawtransaction')
 
     def test_wallet_bitcoinlib_testnet_send_utxos_updated(self):
@@ -341,9 +341,8 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
         w.new_key()
         w.utxos_update()
-        self.assertEqual(len(w.utxos()), 1)
-        w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 50000000)
-        self.assertEqual(w.utxos(), [])
+        self.assertEqual(len(w.utxos()), 2)
+        w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 1)
 
     def test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -371,6 +370,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.utxos_update()
         self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo'),
                          'succesfull_test_sendrawtransaction')
+        self.assertEqual(w.utxos(), [])
 
 
 class TestWalletMultisig(unittest.TestCase):
@@ -593,12 +593,14 @@ class TestWalletMultisig(unittest.TestCase):
         wl.utxos_update()
         key_names = [k.name for k in wl.keys(is_active=False)]
         self.assertListEqual(key_names, ['Multisig Key 8/7', 'Multisig Key 10/7', 'Multisig Key 12/7'])
-        key_names_active = [k.name for k in wl.keys()]
-        self.assertEqual(key_names_active, ['Multisig Key 12/7'])
 
         t = wl.transaction_create([(HDKey(network='bitcoinlib_test').key.address(), 6400000)], min_confirms=0)
         t = wl.transaction_sign(t, keys[1])
         self.assertEqual(wl.transaction_send(t), 'succesfull_test_sendrawtransaction')
+
+        key_names_active = [k.name for k in wl.keys(is_active=False)]
+        self.assertEqual(key_names_active,
+                         ['Multisig Key 8/7', 'Multisig Key 10/7', 'Multisig Key 12/7', 'Multisig Key 14/7'])
 
     def test_wallet_multisig_sorted_keys(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -738,6 +740,21 @@ class TestWalletTransaction(unittest.TestCase):
         self.wallet = wallet_create_or_open('scan-test', key=account_key, network='testnet',
                                             databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.scan()
-        self.wallet.info()
         self.assertEqual(len(self.wallet.keys()), 31)
         self.assertEqual(self.wallet.balance(), 60500000)
+
+    def test_wallet_two_utxos_one_key(self):
+        wlt = HDWallet.create('double-utxo-test', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        key = wlt.new_key()
+        wlt.utxos_update()
+        utxos = wlt.utxos()
+
+        inp1 = Input(prev_hash=utxos[0]['tx_hash'], output_index=utxos[0]['output_n'], keys=key.key_public,
+                     network='bitcoinlib_test')
+        inp2 = Input(prev_hash=utxos[1]['tx_hash'], output_index=utxos[1]['output_n'], keys=key.key_public,
+                     network='bitcoinlib_test')
+        out = Output(10000000, address=key.address, network='bitcoinlib_test')
+
+        t = Transaction(inputs=[inp1, inp2], outputs=[out], network='testnet')
+        t.sign(key.key_private)
+        self.assertTrue(t.verify())
