@@ -701,9 +701,12 @@ class HDWallet:
         elif key:
             # If key consists of several words assume it is a passphrase and convert it to a hdkey
             if len(key.split(" ")) > 1:
-                key = HDKey().from_seed(Mnemonic().to_seed(key), network='testnet')
-            network = check_network_and_key(key, network)
-            key = HDKey(key, network=network)
+                if not network:
+                    raise WalletError("Please specify network when using passphrase to create a key")
+                key = HDKey().from_seed(Mnemonic().to_seed(key), network=network)
+            else:
+                network = check_network_and_key(key, network)
+                key = HDKey(key, network=network)
             # searchkey = session.query(DbKey).filter_by(wif=key).scalar()
             # if searchkey:
             #     raise WalletError("Key already found in wallet %s" % searchkey.wallet.name)
