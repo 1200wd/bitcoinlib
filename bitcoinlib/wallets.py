@@ -569,8 +569,7 @@ class HDWalletTransaction(Transaction):
             db_tx = db_tx_query.first()
             if db_tx:
                 db_tx.wallet_id = self.hdwallet.wallet_id
-                db_tx.network = self.network
-
+                # db_tx.network = self.network.network_name
         if not db_tx:
             new_tx = DbTransaction(
                 wallet_id=self.hdwallet.wallet_id, hash=self.hash, block_height=self.block_height, size=self.size,
@@ -594,7 +593,7 @@ class HDWalletTransaction(Transaction):
                 tx_key.used = True
                 # key_ids.add(key_id)
             tx_input = sess.query(DbTransactionInput). \
-                filter_by(transaction_id=tx_id, output_n=ti.output_n).scalar()
+                filter_by(transaction_id=tx_id, index_n=ti.index_n).scalar()
             if not tx_input:
                 index_n = ti.index_n
                 if index_n is None:
@@ -2527,7 +2526,7 @@ class HDWallet:
                     u.spent = True
 
             self._session.commit()
-            self._session.flush()
+            # self._session.flush()
         self._balance_update(network=network)
         return transaction
 
