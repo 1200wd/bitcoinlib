@@ -61,6 +61,7 @@ class BlockExplorerClient(BaseClient):
         value_in = 0 if 'valueIn' not in tx else tx['valueIn']
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
+            value_in = tx['valueOut']
             isCoinbase = True
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],

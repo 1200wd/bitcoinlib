@@ -821,7 +821,7 @@ class Transaction:
         :type status: str
         :param coinbase: Coinbase transaction or not?
         :type coinbase: bool
-        :param verified: Is transaction succesfully verified? Updated when verified() method is called
+        :param verified: Is transaction successfully verified? Updated when verified() method is called
         :type verified: bool
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str

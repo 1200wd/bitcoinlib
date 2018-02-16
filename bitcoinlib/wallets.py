@@ -473,7 +473,7 @@ class HDWalletTransaction(Transaction):
         :return HDWalletClass:
         """
         return cls(hdwallet=hdwallet, inputs=t.inputs, outputs=t.outputs, locktime=t.locktime, version=t.version,
-                   network=t.network.network_name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size, change=t.change,
+                   network=t.network.network_name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size,
                    hash=t.hash, date=t.date, confirmations=t.confirmations, block_height=t.block_height,
                    block_hash=t.block_hash, input_total=t.input_total, output_total=t.output_total,
                    rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, verified=t.verified, flag=t.flag)
@@ -566,9 +566,11 @@ class HDWalletTransaction(Transaction):
         if not db_tx:
             db_tx_query = sess.query(DbTransaction). \
                 filter(DbTransaction.wallet_id.is_(None), DbTransaction.hash == self.hash)
-            db_tx = db_tx_query.scalar()
+            db_tx = db_tx_query.first()
             if db_tx:
                 db_tx.wallet_id = self.hdwallet.wallet_id
+                db_tx.network = self.network
+
         if not db_tx:
             new_tx = DbTransaction(
                 wallet_id=self.hdwallet.wallet_id, hash=self.hash, block_height=self.block_height, size=self.size,
@@ -1413,7 +1415,7 @@ class HDWallet:
             unusedkeys.append(HDWalletKey(dk.id, session=self._session))
         return unusedkeys
 
-    def get_key_change(self, account_id=None, network=None, depth_of_keys=5):
+    def get_key_change(self, account_id=None, network=None, number_of_keys=1, depth_of_keys=5):
         """
         Get a unused change key or create a new one if there are no unused keys. 
         Wrapper for the get_key method
@@ -1422,13 +1424,16 @@ class HDWallet:
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
+        :param number_of_keys: Number of keys to return. Default is 1
+        :type number_of_keys: int
         :param depth_of_keys: Depth of account keys. Default is 5 according to BIP44 standards
         :type depth_of_keys: int
         
         :return HDWalletKey:  
         """
 
-        return self.get_key(account_id=account_id, network=network, change=1, depth_of_keys=depth_of_keys)
+        return self.get_key(account_id=account_id, network=network, change=1, number_of_keys=number_of_keys,
+                            depth_of_keys=depth_of_keys)
 
     def new_account(self, name='', account_id=None, network=None):
         """
