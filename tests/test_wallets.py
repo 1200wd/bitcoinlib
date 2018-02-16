@@ -787,3 +787,10 @@ class TestWalletTransaction(unittest.TestCase):
         self.assertEqual(wlt.balance(), 900)
         self.assertEqual(wlt.balance(network='testnet'), 900)
         self.assertEqual(wlt.balance(network='bitcoinlib_test'), 200000000)
+
+    def test_wallet_add_dust_to_fee(self):
+        wlt = HDWallet.create('bcltestwlt', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        to_key = wlt.get_key()
+        wlt.utxos_update()
+        t = wlt.send_to(to_key.address, 99999500)
+        self.assertEqual(t.fee, 500)
