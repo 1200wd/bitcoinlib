@@ -803,5 +803,6 @@ class TestWalletTransactions(unittest.TestCase):
         wlt.utxos_update()
         self.assertEqual(wlt.balance(), 1000000000)
         t = wlt.send_to(to_key[0].address, 550000000)
-        self.assertEqual(wlt.balance(), 400000000)
-        self.assertEqual(len(wlt.utxos()), 5)
+        wlt._balance_update(min_confirms=0)
+        self.assertEqual(wlt.balance(), 1000000000-t.fee)
+        self.assertEqual(len(wlt.utxos()), 6)
