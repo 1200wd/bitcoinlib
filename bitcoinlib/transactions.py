@@ -1193,7 +1193,7 @@ class Transaction:
         else:
             to = public_key_hash
         if output_n is None:
-            output_n = len(self.inputs)
+            output_n = len(self.outputs)
         if not float(value).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
         if value < 0:
@@ -1201,7 +1201,7 @@ class Transaction:
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    network=self.network.network_name))
-        return len(self.outputs) - 1
+        return output_n
 
     def estimate_fee(self):
         """
