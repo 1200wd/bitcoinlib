@@ -697,7 +697,7 @@ class TestWalletKeyImport(unittest.TestCase):
         self.assertEqual(wallet.new_key().address, '1P8BTrsBn8DKGQq7nSWPiEiUDgiG8sW1kf')
 
 
-class TestWalletTransaction(unittest.TestCase):
+class TestWalletTransactions(unittest.TestCase):
 
     def setUp(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -789,8 +789,19 @@ class TestWalletTransaction(unittest.TestCase):
         self.assertEqual(wlt.balance(network='bitcoinlib_test'), 200000000)
 
     def test_wallet_add_dust_to_fee(self):
+        # Send bitcoinlib test transaction and check if dust resume amount is added to fee
         wlt = HDWallet.create('bcltestwlt', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
         to_key = wlt.get_key()
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 99999500)
         self.assertEqual(t.fee, 500)
+
+    def test_wallet_transactions_send_update_utxos(self):
+        # Send bitcoinlib test transaction and check if all utxo's are updated after send
+        wlt = HDWallet.create('bcltestwlt2', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        to_key = wlt.get_key(number_of_keys=5)
+        wlt.utxos_update()
+        self.assertEqual(wlt.balance(), 1000000000)
+        t = wlt.send_to(to_key[0].address, 550000000)
+        self.assertEqual(wlt.balance(), 400000000)
+        self.assertEqual(len(wlt.utxos()), 5)
