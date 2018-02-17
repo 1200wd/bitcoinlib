@@ -2419,7 +2419,8 @@ class HDWallet:
         if transaction.change:
             # key_depth = 5
             ck = self.get_key(account_id=account_id, network=network, change=1)
-            transaction.add_output(transaction.change, ck.address)
+            on = transaction.add_output(transaction.change, ck.address)
+            transaction.outputs[on].key_id = ck.key_id
             amount_total_output += transaction.change
 
         # TODO: Extra check for ridiculous fees

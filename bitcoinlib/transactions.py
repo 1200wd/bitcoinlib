@@ -1201,7 +1201,7 @@ class Transaction:
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    network=self.network.network_name))
-        return output_n
+        return len(self.outputs) - 1
 
     def estimate_fee(self):
         """
