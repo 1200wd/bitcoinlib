@@ -1119,7 +1119,7 @@ class Transaction:
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
                   sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=None,
-                  value=None, double_spend=False):
+                  value=None, double_spend=False, signatures=None):
         """
         Add input to this transaction
         
@@ -1158,7 +1158,8 @@ class Transaction:
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
                   script_type=script_type, network=self.network.network_name, sequence=sequence, compressed=compressed,
-                  sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend))
+                  sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
+                  signatures=signatures))
         return index_n
 
     def add_output(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,

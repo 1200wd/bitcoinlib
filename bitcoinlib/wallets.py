@@ -2236,70 +2236,6 @@ class HDWallet:
             res.append(u)
         return res
 
-    @staticmethod
-    def _select_inputs(amount, utxo_query=None, max_utxos=None, variance=0):
-        """
-        Internal method used by create transaction to select best inputs (UTXO's) for a transaction. To get the
-        least number of inputs
-        
-        Example of UTXO query:
-            SELECT transactions.id AS transactions_id, transactions.key_id AS transactions_key_id, 
-            transactions.tx_hash AS transactions_tx_hash, transactions.date AS transactions_date, 
-            transactions.confirmations AS transactions_confirmations, transactions.output_n AS transactions_output_n, 
-            transactions."index" AS transactions_index, transactions.value AS transactions_value, 
-            transactions.script AS transactions_script, transactions.description AS transactions_description, 
-            transactions.spent AS transactions_spent
-            FROM transactions JOIN keys ON keys.id = transactions.key_id 
-            WHERE (transactions.spent IS ?) AND transactions.confirmations >= ? AND
-            keys.account_id = ? AND keys.wallet_id = ?
-        
-        :param amount: Amount to transfer
-        :type amount: int
-        :param utxo_query: List of outputs in SQLalchemy query format. Wallet and Account ID filter must be included already. 
-        :type utxo_query: self._session.query
-        :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
-        :type max_utxos: int
-        
-        :return list: List of selected UTXO 
-        """
-
-        if not utxo_query:
-            return []
-
-        # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
-
-        # Try to find one utxo with exact amount
-        one_utxo = utxo_query.\
-            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount,
-                   DbTransactionOutput.value <= amount + variance).first()
-        if one_utxo:
-            return [one_utxo]
-
-        # Try to find one utxo with higher amount
-        one_utxo = utxo_query.\
-            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
-            order_by(DbTransactionOutput.value).first()
-        if one_utxo:
-            return [one_utxo]
-        elif max_utxos and max_utxos <= 1:
-            _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
-                         "multiple UTXO's")
-            return []
-
-        # Otherwise compose of 2 or more lesser outputs
-        lessers = utxo_query.\
-            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
-            order_by(DbTransactionOutput.value.desc()).all()
-        total_amount = 0
-        selected_utxos = []
-        for utxo in lessers[:max_utxos]:
-            if total_amount < amount:
-                selected_utxos.append(utxo)
-                total_amount += utxo.value
-        if total_amount < amount:
-            return []
-        return selected_utxos
-
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None,
                            min_confirms=1, max_utxos=None):
         """
@@ -2324,6 +2260,65 @@ class HDWallet:
 
             :return Transaction: object
         """
+
+        def _select_inputs(amount, variance=0):
+            utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+                filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
+                       DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms). \
+                order_by(DbTransaction.confirmations.desc())
+            utxos = utxo_query.all()
+            if not utxos:
+                raise WalletError("Create transaction: No unspent transaction outputs found")
+
+            # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
+
+            # Try to find one utxo with exact amount
+            one_utxo = utxo_query.filter(DbTransactionOutput.spent.op("IS")(False),
+                                         DbTransactionOutput.value >= amount,
+                                         DbTransactionOutput.value <= amount + variance).first()
+            if one_utxo:
+                return [one_utxo]
+
+            # Try to find one utxo with higher amount
+            one_utxo = utxo_query. \
+                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
+                order_by(DbTransactionOutput.value).first()
+            if one_utxo:
+                return [one_utxo]
+            elif max_utxos and max_utxos <= 1:
+                _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
+                             "multiple UTXO's")
+                return []
+
+            # Otherwise compose of 2 or more lesser outputs
+            lessers = utxo_query. \
+                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
+                order_by(DbTransactionOutput.value.desc()).all()
+            total_amount = 0
+            selected_utxos = []
+            for utxo in lessers[:max_utxos]:
+                if total_amount < amount:
+                    selected_utxos.append(utxo)
+                    total_amount += utxo.value
+            if total_amount < amount:
+                return []
+            return selected_utxos
+
+        def _objects_by_key_id(key_id):
+            key = self._session.query(DbKey).filter_by(id=key_id).scalar()
+            if not key:
+                raise WalletError("Key '%s' not found in this wallet" % key_id)
+            if key.key_type == 'multisig':
+                inp_keys = []
+                for ck in key.multisig_children:
+                    inp_keys.append(HDKey(ck.child_key.wif).key)
+                script_type = 'p2sh_multisig'
+            elif key.key_type in ['bip32', 'single']:
+                inp_keys = HDKey(key.wif, compressed=key.compressed).key
+                script_type = 'p2pkh'
+            else:
+                raise WalletError("Input key type %s not supported" % key.key_type)
+            return inp_keys, script_type, key
 
         # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
@@ -2364,18 +2359,8 @@ class HDWallet:
         # Add inputs
         amount_total_input = 0
         if input_arr is None:
-            utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey).\
-                filter(DbTransaction.wallet_id == self.wallet_id,
-                       DbKey.account_id == account_id,
-                       DbTransactionOutput.spent.op("IS")(False),
-                       DbTransaction.confirmations >= min_confirms).\
-                order_by(DbTransaction.confirmations.desc())
-            utxos = utxo_query.all()
-            if not utxos:
-                raise WalletError("Create transaction: No unspent transaction outputs found")
             input_arr = []
-            selected_utxos = self._select_inputs(amount_total_output + transaction.fee, utxo_query, max_utxos,
-                                                 self.network.dust_amount)
+            selected_utxos = _select_inputs(amount_total_output + transaction.fee, self.network.dust_amount)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -2403,6 +2388,21 @@ class HDWallet:
                     input_arr[i] += (inp[4],)
                 if len(inp) > 5:
                     input_arr[i] += (inp[5],)
+        # Add inputs
+        for inp in input_arr:
+            inp_keys, script_type, key = _objects_by_key_id(inp[2])
+            # signatures = None if len(inp) <= 4 else inp[4]
+            # unlocking_script = None if len(inp) <=5 else inp[5]
+            inp_id = transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
+                                           sigs_required=self.multisig_n_required, sort=self.sort_keys,
+                                           compressed=key.compressed, value=inp[3])
+            if len(inp) > 4:
+                transaction.inputs[inp_id].signatures += inp[4]
+            if len(inp) > 5:
+                transaction.inputs[inp_id].unlocking_script = inp[5]
+            if transaction.inputs[inp_id].address != key.address:
+                raise WalletError("Created input address is different from address of used key. Possibly wrong key "
+                                  "order in multisig?")
 
         if transaction_fee is False:
             transaction.change = 0
@@ -2426,32 +2426,6 @@ class HDWallet:
         # TODO: Extra check for ridiculous fees
         # if (amount_total_input - amount_total_output) > tr_size * MAXIMUM_FEE_PER_KB
 
-        # Add inputs
-        for inp in input_arr:
-            key = self._session.query(DbKey).filter_by(id=inp[2]).scalar()
-            if not key:
-                raise WalletError("Key '%s' not found in this wallet" % inp[2])
-            if key.key_type == 'multisig':
-                inp_keys = []
-                for ck in key.multisig_children:
-                    inp_keys.append(HDKey(ck.child_key.wif).key)
-                script_type = 'p2sh_multisig'
-            elif key.key_type in ['bip32', 'single']:
-                inp_keys = HDKey(key.wif, compressed=key.compressed).key
-                script_type = 'p2pkh'
-            else:
-                raise WalletError("Input key type %s not supported" % key.key_type)
-            inp_id = transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
-                                           sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                           compressed=key.compressed, value=inp[3])
-            # FIXME: This dirty stuff needs to be rewritten...
-            if len(inp) > 4:
-                transaction.inputs[inp_id].signatures += inp[4]
-            if len(inp) > 5:
-                transaction.inputs[inp_id].unlocking_script = inp[5]
-            if transaction.inputs[inp_id].address != key.address:
-                raise WalletError("Created input address is different from address of used key. Possibly wrong key "
-                                  "order in multisig?")
         return transaction
 
     def transaction_import(self, raw_tx):
