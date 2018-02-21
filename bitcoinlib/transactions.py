@@ -559,27 +559,32 @@ class Input:
                 self.keys.append(kobj)
 
         for sig in signatures:
-            sig_der = ''
-            if sig.startswith(b'\x30'):
-                # If signature ends with Hashtype, remove hashtype and continue
-                # TODO: support for other hashtypes
-                if sig.endswith(b'\x01'):
-                    _, junk = ecdsa.der.remove_sequence(sig)
-                    if junk == b'\x01':
-                        sig_der = sig[:-1]
-                else:
-                    sig_der = sig
-                try:
-                    sig = convert_der_sig(sig[:-1], as_hex=False)
-                except:
-                    pass
-            self.signatures.append(
-                {
-                    'sig_der': sig_der,
-                    'signature': to_bytes(sig),
-                    'priv_key': '',
-                    'pub_key': ''
-                })
+            if isinstance(sig, dict):
+                if sig['sig_der'] not in [x['sig_der'] for x in self.signatures]:
+                    self.signatures.append(sig)
+            else:
+                assert(isinstance(sig, bytes))
+                sig_der = ''
+                if sig.startswith(b'\x30'):
+                    # If signature ends with Hashtype, remove hashtype and continue
+                    # TODO: support for other hashtypes
+                    if sig.endswith(b'\x01'):
+                        _, junk = ecdsa.der.remove_sequence(sig)
+                        if junk == b'\x01':
+                            sig_der = sig[:-1]
+                    else:
+                        sig_der = sig
+                    try:
+                        sig = convert_der_sig(sig[:-1], as_hex=False)
+                    except:
+                        pass
+                self.signatures.append(
+                    {
+                        'sig_der': sig_der,
+                        'signature': to_bytes(sig),
+                        'priv_key': '',
+                        'pub_key': ''
+                    })
 
         if self.script_type == 'sig_pubkey':
             self.script_type = 'p2pkh'

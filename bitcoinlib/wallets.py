@@ -2391,15 +2391,12 @@ class HDWallet:
         # Add inputs
         for inp in input_arr:
             inp_keys, script_type, key = _objects_by_key_id(inp[2])
-            # signatures = None if len(inp) <= 4 else inp[4]
-            # unlocking_script = None if len(inp) <=5 else inp[5]
+            signatures = None if len(inp) <= 4 else inp[4]
+            unlocking_script = None if len(inp) <=5 else inp[5]
             inp_id = transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
                                            sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                           compressed=key.compressed, value=inp[3])
-            if len(inp) > 4:
-                transaction.inputs[inp_id].signatures += inp[4]
-            if len(inp) > 5:
-                transaction.inputs[inp_id].unlocking_script = inp[5]
+                                           compressed=key.compressed, value=inp[3], signatures=signatures,
+                                           unlocking_script=unlocking_script)
             if transaction.inputs[inp_id].address != key.address:
                 raise WalletError("Created input address is different from address of used key. Possibly wrong key "
                                   "order in multisig?")
