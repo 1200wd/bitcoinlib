@@ -1301,6 +1301,7 @@ class HDWallet:
         :type scan_gap_limit: int
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
+        :param change: Filter by change addresses. Set to True to include only change addresses, False to only include regular addresses. None (default) to disable filter and include both
         :param network: Network name. Leave empty for default network
         :type network: str
 
@@ -2415,9 +2416,7 @@ class HDWallet:
         if (fee_per_output and transaction.change < fee_per_output) or transaction.change < self.network.dust_amount:
             transaction.fee += transaction.change
             transaction.change = 0
-        ck = None
         if transaction.change:
-            # key_depth = 5
             ck = self.get_key(account_id=account_id, network=network, change=1)
             on = transaction.add_output(transaction.change, ck.address)
             transaction.outputs[on].key_id = ck.key_id
@@ -2439,7 +2438,6 @@ class HDWallet:
         :return HDWalletTransaction:
 
         """
-        # t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
         return self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee, network=t.network.network_name)
 
     def transaction_import_raw(self, raw_tx):
@@ -2662,8 +2660,6 @@ class HDWallet:
         :return dict:
         """
 
-        # if detail and self.main_key:
-        #     self.main_key.info()
         if detail > 1:
             for nw in self.networks():
                 print("- Network: %s -" % nw['network_name'])

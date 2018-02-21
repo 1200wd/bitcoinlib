@@ -1120,7 +1120,7 @@ class Transaction:
                     _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
             else:
                 raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
-        return n_signs - n_sigs_to_insert
+        return True
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
                   sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=None,
