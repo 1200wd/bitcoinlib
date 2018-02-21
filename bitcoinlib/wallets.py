@@ -2359,47 +2359,50 @@ class HDWallet:
         # Add inputs
         amount_total_input = 0
         if input_arr is None:
-            input_arr = []
             selected_utxos = _select_inputs(amount_total_output + transaction.fee, self.network.dust_amount)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                input_arr.append((utxo.transaction.hash, utxo.output_n, utxo.key_id, utxo.value, []))
+                # TODO: Avoid use of _objects_by_key_id method
+                inp_keys, script_type, key = _objects_by_key_id(utxo.key_id)
+                transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
+                                      sigs_required=self.multisig_n_required, sort=self.sort_keys,
+                                      compressed=key.compressed, value=utxo.value)
         else:
-            for i, inp in enumerate(input_arr):
-                # FIXME: Dirty stuff, please rewrite...
+            for inp in input_arr:
                 if isinstance(inp, Input):
-                    inp = (inp.prev_hash, inp.output_n, None, 0, inp.signatures, inp.unlocking_script)
+                    prev_hash = inp.prev_hash
+                    output_n = inp.output_n
+                    key_id = None
+                    value = 0
+                    signatures = inp.signatures
+                    unlocking_script = inp.unlocking_script
+                else:
+                    prev_hash = inp[0]
+                    output_n = inp[1]
+                    key_id = None if len(inp) <= 2 else inp[2]
+                    value = 0 if len(inp) <= 3 else inp[3]
+                    signatures = None if len(inp) <= 4 else inp[4]
+                    unlocking_script = None if len(inp) <= 5 else inp[5]
                 # Get key_ids, value from Db if not specified
-                if not (inp[2] or inp[3]):
+                if not (key_id or value):
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbTransaction.wallet_id == self.wallet_id,
-                               DbTransaction.hash == to_hexstring(inp[0]),
-                               DbTransactionOutput.output_n == struct.unpack('>I', inp[1])[0]).first()
+                               DbTransaction.hash == to_hexstring(prev_hash),
+                               DbTransactionOutput.output_n == struct.unpack('>I', output_n)[0]).first()
                     if not inp_utxo:
                         raise WalletError("UTXO %s not found in this wallet. Please update UTXO's" %
                                           to_hexstring(inp[0]))
-                    input_arr[i] = (inp[0], inp[1], inp_utxo.key_id, inp_utxo.value)
-                    amount_total_input = inp_utxo.value
-                else:
-                    amount_total_input += inp[3]
-                if len(inp) > 4:
-                    input_arr[i] += (inp[4],)
-                if len(inp) > 5:
-                    input_arr[i] += (inp[5],)
-        # Add inputs
-        for inp in input_arr:
-            inp_keys, script_type, key = _objects_by_key_id(inp[2])
-            signatures = None if len(inp) <= 4 else inp[4]
-            unlocking_script = None if len(inp) <=5 else inp[5]
-            inp_id = transaction.add_input(inp[0], inp[1], keys=inp_keys, script_type=script_type,
-                                           sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                           compressed=key.compressed, value=inp[3], signatures=signatures,
-                                           unlocking_script=unlocking_script)
-            if transaction.inputs[inp_id].address != key.address:
-                raise WalletError("Created input address is different from address of used key. Possibly wrong key "
-                                  "order in multisig?")
+                    key_id = inp_utxo.key_id
+                    value = inp_utxo.value
+                amount_total_input += value
+                # TODO: Avoid use of _objects_by_key_id method
+                inp_keys, script_type, key = _objects_by_key_id(key_id)
+                transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
+                                      sigs_required=self.multisig_n_required, sort=self.sort_keys,
+                                      compressed=key.compressed, value=value, signatures=signatures,
+                                      unlocking_script=unlocking_script)
 
         if transaction_fee is False:
             transaction.change = 0
