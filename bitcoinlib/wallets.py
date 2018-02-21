@@ -2320,13 +2320,14 @@ class HDWallet:
                 raise WalletError("Input key type %s not supported" % key.key_type)
             return inp_keys, script_type, key
 
-        # TODO: Add transaction_id as possible input in input_arr
         amount_total_output = 0
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         if input_arr and max_utxos and len(input_arr) > max_utxos:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
+        if input_arr and not transaction_fee:
+            transaction_fee = False
         # Create transaction and add outputs
         transaction = HDWalletTransaction(hdwallet=self, network=network)
         if not isinstance(output_arr, list):
@@ -2364,7 +2365,6 @@ class HDWallet:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                # TODO: Avoid use of _objects_by_key_id method
                 inp_keys, script_type, key = _objects_by_key_id(utxo.key_id)
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
@@ -2397,7 +2397,6 @@ class HDWallet:
                     key_id = inp_utxo.key_id
                     value = inp_utxo.value
                 amount_total_input += value
-                # TODO: Avoid use of _objects_by_key_id method
                 inp_keys, script_type, key = _objects_by_key_id(key_id)
                 transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
@@ -2406,6 +2405,7 @@ class HDWallet:
 
         if transaction_fee is False:
             transaction.change = 0
+            transaction.fee = int(amount_total_input - amount_total_output)
         else:
             transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
 
@@ -2439,7 +2439,7 @@ class HDWallet:
 
         """
         t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
-        return self.transaction_create(t_import.outputs, t_import.inputs, transaction_fee=False)
+        return self.transaction_create(t_import.outputs, t_import.inputs)
 
     def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4,
              priv_keys=None, max_utxos=None, offline=False):
@@ -2501,7 +2501,6 @@ class HDWallet:
                     u.spent = True
 
             self._session.commit()
-            # self._session.flush()
         self._balance_update(network=network)
         return transaction
 

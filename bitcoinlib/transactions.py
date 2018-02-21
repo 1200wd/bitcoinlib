@@ -859,7 +859,7 @@ class Transaction:
         self.fee = fee
         self.fee_per_kb = fee_per_kb
         self.size = size
-        # self.change = change
+        self.change = 0
         self.hash = hash
         self.date = date
         self.confirmations = confirmations
