@@ -27,6 +27,8 @@ from bitcoinlib.wallets import *
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 from bitcoinlib.networks import Network
+from tests.test_custom import CustomAssertions
+
 
 DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
 DATABASEFILE_UNITTESTS_2 = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest2.sqlite'
@@ -697,7 +699,7 @@ class TestWalletKeyImport(unittest.TestCase):
         self.assertEqual(wallet.new_key().address, '1P8BTrsBn8DKGQq7nSWPiEiUDgiG8sW1kf')
 
 
-class TestWalletTransactions(unittest.TestCase):
+class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 
     def setUp(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -806,3 +808,11 @@ class TestWalletTransactions(unittest.TestCase):
         wlt._balance_update(min_confirms=0)
         self.assertEqual(wlt.balance(), 1000000000-t.fee)
         self.assertEqual(len(wlt.utxos()), 6)
+
+    def test_wallet_transaction_import(self):
+        wlt = HDWallet.create('bcltestwlt3', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        to_key = wlt.get_key()
+        wlt.utxos_update()
+        t = wlt.send_to(to_key.address, 50000000, offline=True)
+        t2 = wlt.transaction_import(t.raw())
+        self.assertDictEqualExt(t.dict(), t2.dict())

@@ -2393,7 +2393,7 @@ class HDWallet:
                                DbTransactionOutput.output_n == struct.unpack('>I', output_n)[0]).first()
                     if not inp_utxo:
                         raise WalletError("UTXO %s not found in this wallet. Please update UTXO's" %
-                                          to_hexstring(inp[0]))
+                                          to_hexstring(prev_hash))
                     key_id = inp_utxo.key_id
                     value = inp_utxo.value
                 amount_total_input += value

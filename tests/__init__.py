@@ -17,6 +17,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import tests.test_custom
 import tests.test_encoding
 import tests.test_keys
 import tests.test_mnemonic
