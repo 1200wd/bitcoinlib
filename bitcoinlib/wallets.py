@@ -2428,14 +2428,28 @@ class HDWallet:
 
         return transaction
 
-    def transaction_import(self, raw_tx):
+    def transaction_import(self, t):
         """
-        Import a raw transaction. Link inputs to wallet keys if possible and return Transaction object
+        Import a Transaction into this wallet. Link inputs to wallet keys if possible and return HDWalletTransaction
+        object. Only import Transaction objects, use transaction_import_raw method to import a raw transaction.
+
+        :param t: A Transaction object
+        :type t: Transaction
+
+        :return HDWalletTransaction:
+
+        """
+        # t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
+        return self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee, network=t.network.network_name)
+
+    def transaction_import_raw(self, raw_tx):
+        """
+        Import a raw transaction. Link inputs to wallet keys if possible and return HDWalletTransaction object
 
         :param raw_tx: Raw transaction
         :type raw_tx: str, bytes
 
-        :return Transaction:
+        :return HDWalletTransaction:
 
         """
         t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
