@@ -535,7 +535,7 @@ class Input:
             self.script_type = 'coinbase'
 
         # If unlocking script is specified extract keys, signatures, type from script
-        if unlocking_script and self.script_type != 'coinbase':
+        if unlocking_script and self.script_type != 'coinbase' and not signatures:
             us_dict = script_deserialize(unlocking_script)
             if not us_dict:  #  or us_dict['script_type'] in ['unknown', 'empty']
                 raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))

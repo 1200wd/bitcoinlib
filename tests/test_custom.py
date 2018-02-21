@@ -28,6 +28,12 @@ class CustomAssertions:
         """
         if none_allowed is None:
             none_allowed = []
+        if not isinstance(expected_dict, dict):
+            if expected_dict == result_dict:
+                print(result_dict, "==", expected_dict)
+                return True
+            else:
+                raise AssertionError("Different value for %s != %s" % (result_dict, expected_dict))
         expected_keys = expected_dict.keys()
         for k in result_dict:
             if k not in expected_keys:
