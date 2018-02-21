@@ -13,7 +13,7 @@ from bitcoinlib.services.services import *
 
 # Tests for specific provider
 srv = Service(network='bitcoin', providers=['estimatefee'])
-print(srv.estimatefee(1000))
+print("Estimated bitcoin transaction fee:", srv.estimatefee(1000))
 
 # Get Balance and UTXO's for given bitcoin testnet3 addresses
 addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']

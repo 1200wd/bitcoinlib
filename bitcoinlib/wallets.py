@@ -2347,6 +2347,7 @@ class HDWallet:
         transaction.fee = transaction_fee
         transaction.fee_per_kb = None
         fee_per_output = None
+        # TODO: Use more accurate estimations
         tr_size = 100 + (1 * 150) + (len(output_arr) + 1 * 50)
         if transaction_fee is None:
             if not input_arr:
@@ -2687,6 +2688,5 @@ class HDWallet:
             'cosigner_wallet_ids': [w.wallet_id for w in self.cosigner],
             'cosigner_mainkey_wifs': [w.main_key.wif for w in self.cosigner],
             'sort_keys': self.sort_keys,
-            # 'main_key': self.main_key.dict(),
             'main_key_id': self.main_key_id
         }

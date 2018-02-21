@@ -148,13 +148,12 @@ for _ in range(10):
 wallet_import.utxos_update(99)
 wallet_import.info(detail=3)
 utxos = wallet_import.utxos(99)
-print("\n= UTXOs =")
-for utxo in utxos:
-    print("%s %s (%d confirms)" %
-          (utxo['address'], wallet_import.network.print_value(utxo['value']), utxo['confirmations']))
-res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 100000, 99)
+res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 1000, 99)
 print("Send transaction result:")
-pprint(res)
+if res.hash:
+    print("Successfully send, tx id:", res.hash)
+else:
+    print("TX not send, result:", res.errors)
 
 #
 # Manage Wallets
