@@ -816,3 +816,11 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = wlt.send_to(to_key.address, 50000000, offline=True)
         t2 = wlt.transaction_import(t)
         self.assertDictEqualExt(t.dict(), t2.dict())
+
+    def test_wallet_transaction_import_raw(self):
+        wlt = HDWallet.create('bcltestwlt4', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        to_key = wlt.get_key()
+        wlt.utxos_update()
+        t = wlt.send_to(to_key.address, 50000000, offline=True)
+        t2 = wlt.transaction_import_raw(t.raw())
+        self.assertDictEqualExt(t.dict(), t2.dict())

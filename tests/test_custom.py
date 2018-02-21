@@ -30,7 +30,6 @@ class CustomAssertions:
             none_allowed = []
         if not isinstance(expected_dict, dict):
             if expected_dict == result_dict:
-                print(result_dict, "==", expected_dict)
                 return True
             else:
                 raise AssertionError("Different value for %s != %s" % (result_dict, expected_dict))
