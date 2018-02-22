@@ -658,7 +658,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
-               sort_keys=False, databasefile=None):
+               sort_keys=False, password=None, databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
@@ -682,6 +682,8 @@ class HDWallet:
         :type parent_id: int
         :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
         :type sort_keys: bool
+        :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
+        :type password: str
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
         
@@ -700,11 +702,11 @@ class HDWallet:
         if isinstance(key, HDKey):
             network = key.network.network_name
         elif key:
-            # If key consists of several words assume it is a passphrase and convert it to a hdkey
+            # If key consists of several words assume it is a passphrase and convert it to a HDKey object
             if len(key.split(" ")) > 1:
                 if not network:
                     raise WalletError("Please specify network when using passphrase to create a key")
-                key = HDKey().from_seed(Mnemonic().to_seed(key), network=network)
+                key = HDKey().from_seed(Mnemonic().to_seed(key, password), network=network)
             else:
                 network = check_network_and_key(key, network)
                 key = HDKey(key, network=network)
