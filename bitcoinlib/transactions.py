@@ -125,7 +125,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         for n in range(0, n_witnesses):
             witness_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
             cursor += size
-            witness_hash = rawtx[cursor:cursor + witness_size][::-1]
+            # witness_hash = rawtx[cursor:cursor + witness_size][::-1]
             cursor += witness_size
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
@@ -148,7 +148,7 @@ def script_deserialize(script, script_types=None):
     def _parse_signatures(scr, max_signatures=None, redeemscript_expected=False):
         scr = to_bytes(scr)
         sigs = []
-        total_length = 0
+        total_lenght = 0
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
             l, sl = varbyteint_to_int(scr[0:9])
             # TODO: Rethink and rewrite this:
@@ -159,9 +159,9 @@ def script_deserialize(script, script_types=None):
             if redeemscript_expected and len(scr[l + 1:]) < 20:
                 break
             sigs.append(scr[1:l + 1])
-            total_length += l + sl
+            total_lenght += l + sl
             scr = scr[l + 1:]
-        return sigs, total_length
+        return sigs, total_lenght
 
     data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b''}
     script = to_bytes(script)
@@ -426,7 +426,7 @@ def verify_signature(transaction_to_sign, signature, public_key):
         if signature.startswith(b'\x30'):
             try:
                 signature = convert_der_sig(signature[:-1], as_hex=False)
-            except Exception as e:
+            except Exception:
                 pass
         ver_key.verify_digest(signature, transaction_to_sign)
     except ecdsa.keys.BadSignatureError:
@@ -537,7 +537,7 @@ class Input:
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
             us_dict = script_deserialize(unlocking_script)
-            if not us_dict:  #  or us_dict['script_type'] in ['unknown', 'empty']
+            if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
                 raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))
             self.script_type = us_dict['script_type']
             if us_dict['script_type'] not in ['unknown', 'empty']:
@@ -576,7 +576,7 @@ class Input:
                         sig_der = sig
                     try:
                         sig = convert_der_sig(sig[:-1], as_hex=False)
-                    except:
+                    except Exception:
                         pass
                 self.signatures.append(
                     {
@@ -833,8 +833,8 @@ class Transaction:
         """
         self.inputs = []
         if inputs is not None:
-            for input in inputs:
-                self.inputs.append(input)
+            for inp in inputs:
+                self.inputs.append(inp)
         id_list = [i.index_n for i in self.inputs]
         if list(set(id_list)) != id_list:
             _logger.warning("Identical transaction indexes (tid) found in inputs, please specify unique index. "
@@ -1022,8 +1022,8 @@ class Transaction:
         
         :param keys: A private key or list of private keys
         :type keys: HDKey, Key, bytes, list
-        :param index_n: Index of transaction input
-        :type index_n: int
+        :param tid: Index of transaction input
+        :type tid: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
 
@@ -1155,6 +1155,8 @@ class Transaction:
         :type value: int
         :param double_spend: True if double spend is detected, depends on which service provider is selected
         :type double_spend: bool
+        :param signatures: Add signatures to input if already known
+        :type signatures: bytes, str
 
         :return int: Transaction index number (index_n)
         """

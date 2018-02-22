@@ -177,8 +177,23 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
 
 
 def wallet_delete_if_exists(wallet, databasefile=DEFAULT_DATABASE, force=False):
+    """
+    Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
+    unless 'force=True' is specified. If wallet wallet does not exist return False
+
+    :param wallet: Wallet ID as integer or Wallet Name as string
+    :type wallet: int, str
+    :param databasefile: Location of Sqlite database. Leave empty to use default
+    :type databasefile: str
+    :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
+    :type force: bool
+
+    :return int: Number of rows deleted, so 1 if succesfull
+    """
+
     if wallet_exists(wallet, databasefile):
         return wallet_delete(wallet, databasefile, force)
+    return False
 
 
 def normalize_path(path):
@@ -2649,7 +2664,7 @@ class HDWallet:
                 if t['status'] not in ['confirmed', 'unconfirmed']:
                     status = t['status']
                 print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
-                                                     t['confirmations'], t['value'], spent, status))
+                                                        t['confirmations'], t['value'], spent, status))
 
         print("\n")
 
