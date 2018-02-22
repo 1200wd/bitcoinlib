@@ -94,7 +94,7 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 
 def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44',
-                          parent_id=None, sort_keys=False, databasefile=DEFAULT_DATABASE):
+                          parent_id=None, sort_keys=False, password='', databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -105,7 +105,7 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
         return HDWallet(name, databasefile=databasefile)
     else:
         return HDWallet.create(name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                               databasefile)
+                               password, databasefile)
 
 
 def wallet_create_or_open_multisig(
@@ -658,7 +658,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
-               sort_keys=False, password=None, databasefile=None):
+               sort_keys=False, password='', databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
