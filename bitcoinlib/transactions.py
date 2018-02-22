@@ -1035,8 +1035,8 @@ class Transaction:
         else:
             tids = [tid]
 
+        n_signs = 0
         for tid in tids:
-            n_signs = 0
             if not isinstance(keys, list):
                 keys = [keys]
 
@@ -1100,6 +1100,7 @@ class Transaction:
                         break
             if n_sigs_to_insert:
                 _logger.info("Some signatures are replaced with the signatures of the provided keys")
+                n_signs -= n_sigs_to_insert
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
 
             if self.inputs[tid].script_type == 'p2pkh':
@@ -1120,7 +1121,7 @@ class Transaction:
                     _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
             else:
                 raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
-        return True
+        return n_signs
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
                   sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=None,
