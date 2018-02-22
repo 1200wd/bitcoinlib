@@ -53,5 +53,6 @@ class TestMnemonics(unittest.TestCase):
 
     # TODO tests for sanitize_mnemonic, detect language etc
 
+
 if __name__ == '__main__':
     unittest.main()
