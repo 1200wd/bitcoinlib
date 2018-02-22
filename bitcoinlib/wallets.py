@@ -473,7 +473,8 @@ class HDWalletTransaction(Transaction):
         self.hdwallet = hdwallet
         self.pushed = False
         self.error = None
-        super(HDWalletTransaction, self).__init__(*args, **kwargs)
+        # super(HDWalletTransaction, self).__init__(*args, **kwargs)
+        Transaction.__init__(self, *args, **kwargs)
 
     @classmethod
     def from_transaction(cls, hdwallet, t):
@@ -532,7 +533,8 @@ class HDWalletTransaction(Transaction):
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.hdwallet.wallet_id])).first()
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif))
-            super(HDWalletTransaction, self).sign(priv_key_list, ti.index_n, hash_type)
+            # super(HDWalletTransaction, self).sign(priv_key_list, ti.index_n, hash_type)
+            Transaction.sign(self, priv_key_list, ti.index_n, hash_type)
         return True
 
     def send(self, offline=False):

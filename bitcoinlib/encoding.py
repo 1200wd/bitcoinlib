@@ -84,7 +84,10 @@ def array_to_codestring(array, base):
     for i in array:
         if i < 0 or i > len(codebase):
             raise EncodingError("Index %i out of range for codebase" % i)
-        codestring += chr(codebase[i])
+        if not PY3:
+            codestring += codebase[i]
+        else:
+            codestring += chr(codebase[i])
     return codestring
 
 
@@ -96,7 +99,7 @@ def codestring_to_array(codestring, base):
         try:
             array.append(codebase.index(s))
         except ValueError:
-            raise EncodingError("Character '%s' not found in codebase" % chr(s))
+            raise EncodingError("Character '%s' not found in codebase" % s)
     return array
 
 
@@ -126,7 +129,10 @@ def normalize_var(var, base=256):
         try:
             var = str(var)
         except UnicodeEncodeError:
-            raise EncodingError("Cannot convert this unicode to string format")
+            try:
+                var = var.encode('utf-8')
+            except ValueError:
+                raise EncodingError("Cannot convert this unicode to string format")
 
     if base == 10:
         return int(var)
@@ -438,6 +444,8 @@ def convertbits(data, frombits, tobits, pad=True):
     maxv = (1 << tobits) - 1
     max_acc = (1 << (frombits + tobits - 1)) - 1
     for value in data:
+        if not PY3 and isinstance(value, str):
+            value = int(value, 16)
         if value < 0 or (value >> frombits):
             return None
         acc = ((acc << frombits) | value) & max_acc
@@ -476,8 +484,8 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     if not isinstance(pubkeyhash, bytes):
         pubkeyhash = to_bytes(pubkeyhash)
     if len(pubkeyhash) not in [20, 32]:
-        if pubkeyhash[0] != 0:
-            witver = pubkeyhash[0] - 0x50
+        if int(pubkeyhash[0]) != 0:
+            witver = int(pubkeyhash[0]) - 0x50
         pubkeyhash = pubkeyhash[2:]
 
     data = [witver] + convertbits(pubkeyhash, 8, 5)
@@ -532,7 +540,7 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
     prefix = b''
     if include_witver:
         datalen = len(decoded)
-        prefix = bytes([data[0] + 0x50 if data[0] else 0, datalen])
+        prefix = bytearray([data[0] + 0x50 if data[0] else 0, datalen])
     if as_hex:
         return change_base(prefix + decoded, 256, 16)
     return prefix + decoded

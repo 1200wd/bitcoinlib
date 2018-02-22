@@ -792,6 +792,7 @@ class Transaction:
         To verify and sign transactions all inputs and outputs need to be included in transaction. Any modification 
         after signing makes the transaction invalid.
         
+        :rtype:
         :param inputs: Array of Input objects. Leave empty to add later
         :type inputs: Input, list
         :param outputs: Array of Output object. Leave empty to add later
