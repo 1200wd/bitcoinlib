@@ -19,7 +19,11 @@
 #
 
 import logging
+import struct
+from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
+
 
 PROVIDERNAME = 'blockchaininfo'
 
@@ -65,11 +69,50 @@ class BlockchainInfoClient(BaseClient):
                 })
         return utxos
 
-    def address_transactions(self, addresslist):
-        # TODO: write this method if possible
-        pass
+    def gettransactions(self, addresslist):
+        addresses = "|".join(addresslist)
+        txs = []
+        tx_ids = []
+        variables = {'active': addresses, 'limit': 100}
+        res = self.compose_request('multiaddr', variables=variables)
+        latest_block = res['info']['latest_block']['height']
+        for tx in res['txs']:
+            if tx['id'] not in tx_ids:
+                tx_ids.append(tx['id'])
+        for tx_id in tx_ids:
+            t = self.gettransaction(tx_id)
+            t.confirmations = latest_block - t.block_height
+            txs.append(t)
+        return txs
 
-    def getrawtransaction(self, txid):
-        res = self.compose_request('rawtx', txid, {'format': 'hex'})
-        return res
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('rawtx', tx_id)
+        raw_tx = self.getrawtransaction(tx_id)
+        t = Transaction.import_raw(raw_tx)
+        input_total = None
+        for n, i in enumerate(t.inputs):
+            if 'prev_out' in tx['inputs'][n]:
+                i.value = tx['inputs'][n]['prev_out']['value']
+                input_total = input_total + i.value if input_total is not None else i.value
+        for n, o in enumerate(t.outputs):
+            o.spent = tx['out'][n]['spent']
+        # if tx['relayed_by'] == '0.0.0.0':
+        if tx['block_height']:
+            t.status = 'confirmed'
+        else:
+            t.status = 'unconfirmed'
+        t.hash = tx_id
+        t.date = datetime.fromtimestamp(tx['time'])
+        t.block_height = tx['block_height']
+        t.rawtx = raw_tx
+        t.size = tx['size']
+        t.network_name = self.network
+        t.locktime = tx['lock_time']
+        t.version = struct.pack('>L', tx['ver'])
+        t.input_total = input_total
+        t.fee = t.input_total - t.output_total
+        return t
+
+    def getrawtransaction(self, tx_id):
+        return self.compose_request('rawtx', tx_id, {'format': 'hex'})
 

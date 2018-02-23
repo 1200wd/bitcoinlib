@@ -19,7 +19,11 @@
 #
 
 import logging
-from bitcoinlib.services.baseclient import BaseClient
+import time
+from datetime import datetime
+from bitcoinlib.services.baseclient import BaseClient, ClientError
+from bitcoinlib.transactions import Transaction
+
 
 _logger = logging.getLogger(__name__)
 
@@ -50,11 +54,9 @@ class ChainSo(BaseClient):
             variables = {}
         if self.api_key:
             variables.update({'api_key': self.api_key})
+        # Sleep for n seconds to avoid 429 errors
+        time.sleep(0.3)
         return self.request(url_path, variables, method)
-
-    def getrawtransaction(self, txid):
-        res = self.compose_request('get_tx', txid)
-        return res['data']['tx_hex']
 
     def sendrawtransaction(self, rawtx):
         return self.compose_request('send_tx', variables={'tx_hex': rawtx}, method='post')
@@ -67,28 +69,78 @@ class ChainSo(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
-        utxos = []
+        txs = []
         for address in addresslist:
-            lastutxo = ''
-            while len(utxos) < 1000:
-                res = self.compose_request('get_tx_unspent', address, lastutxo)
-                for utxo in res['data']['txs']:
-                    utxos.append({
+            lasttx = ''
+            while len(txs) < 1000:
+                res = self.compose_request('get_tx_unspent', address, lasttx)
+                if res['status'] != 'success':
+                    pass
+                for tx in res['data']['txs']:
+                    txs.append({
                         'address': address,
-                        'tx_hash': utxo['txid'],
-                        'confirmations': utxo['confirmations'],
-                        'output_n': utxo['output_no'],
-                        'index': 0,
-                        'value': int(round(float(utxo['value']) * self.units, 0)),
-                        'script': utxo['script_hex'],
+                        'tx_hash': tx['txid'],
+                        'confirmations': tx['confirmations'],
+                        'output_n': -1 if 'output_no' not in tx else tx['output_no'],
+                        'input_n': -1 if 'input_no' not in tx else tx['input_no'],
+                        'block_height': None,
+                        'fee': None,
+                        'size': 0,
+                        'value': int(round(float(tx['value']) * self.units, 0)),
+                        'script': tx['script_hex'],
+                        'date': datetime.fromtimestamp(tx['time']),
                     })
-                    lastutxo = utxo['txid']
+                    lasttx = tx['txid']
                 if len(res['data']['txs']) < 100:
                     break
-        if len(utxos) >= 1000:
-            _logger.warning("ChainSo: UTXO's list has been truncated, UTXO list is incomplete")
-        return utxos
+        if len(txs) >= 1000:
+            _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
+        return txs
 
-    def address_transactions(self, addresslist):
-        # TODO: write this method if possible
-        pass
+    def getrawtransaction(self, txid):
+        res = self.compose_request('get_tx', txid)
+        return res['data']['tx_hex']
+
+    def gettransaction(self, tx_id):
+        res = self.compose_request('get_tx', tx_id)
+        tx = res['data']
+        raw_tx = tx['tx_hex']
+        t = Transaction.import_raw(raw_tx)
+        input_total = 0
+        output_total = 0
+        for n, i in enumerate(t.inputs):
+            i.value = int(round(float(tx['inputs'][n]['value']) * self.units, 0))
+            input_total += i.value
+        for o in t.outputs:
+            o.spent = None
+            output_total += o.value
+        t.hash = tx_id
+        t.block_hash = tx['blockhash']
+        t.date = datetime.fromtimestamp(tx['time'])
+        t.rawtx = raw_tx
+        t.size = tx['size']
+        t.network_name = self.network
+        t.locktime = tx['locktime']
+        t.input_total = input_total
+        t.output_total = output_total
+        t.fee = t.input_total - t.output_total
+        t.confirmations = tx['confirmations']
+        if tx['confirmations']:
+            t.status = 'confirmed'
+        else:
+            t.status = 'unconfirmed'
+        return t
+
+    def gettransactions(self, address_list):
+        txs = []
+        tx_ids = []
+        for address in address_list:
+            res = self.compose_request('address', address)
+            if res['status'] != 'success':
+                pass
+            for tx in res['data']['txs']:
+                if tx['txid'] not in tx_ids:
+                    tx_ids.append(tx['txid'])
+        for tx_id in tx_ids:
+            txs.append(self.gettransaction(tx_id))
+        return txs

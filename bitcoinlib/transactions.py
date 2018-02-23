@@ -18,8 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from itertools import combinations
-from copy import deepcopy
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address
@@ -58,7 +56,7 @@ class TransactionError(Exception):
         return self.msg
 
 
-def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
+def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     """
     Deserialize a raw transaction
     
@@ -71,18 +69,28 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
     :type network: str
 
-    :return dict: json list with inputs, outputs, locktime and version
+    :return Transaction:
     """
     rawtx = to_bytes(rawtx)
     version = rawtx[0:4][::-1]
-    n_inputs, size = varbyteint_to_int(rawtx[4:13])
-    cursor = 4 + size
+    coinbase = False
+    flag = None
+    cursor = 4
+    if rawtx[4:5] == b'\0':
+        cursor += 1
+        flag = rawtx[cursor:cursor+1]
+        cursor += 1
+    n_inputs, size = varbyteint_to_int(rawtx[cursor:cursor+9])
+    cursor += size
     inputs = []
-    for i in range(0, n_inputs):
+
+    for n in range(0, n_inputs):
         inp_hash = rawtx[cursor:cursor + 32][::-1]
         if not len(inp_hash):
             raise TransactionError("Input transaction hash not found. Probably malformed raw transaction")
-        inp_index = rawtx[cursor + 32:cursor + 36][::-1]
+        if inp_hash == 32 * b'\0':
+            coinbase = True
+        output_n = rawtx[cursor + 32:cursor + 36][::-1]
         cursor += 36
 
         unlocking_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
@@ -91,27 +99,38 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         cursor += unlocking_script_size
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
-        inputs.append(Input(prev_hash=inp_hash, output_index=inp_index, unlocking_script=unlocking_script,
-                            sequence=sequence_number, tid=i, network=network))
+        inputs.append(Input(prev_hash=inp_hash, output_n=output_n, unlocking_script=unlocking_script,
+                            sequence=sequence_number, index_n=n, network=network))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
 
     outputs = []
     n_outputs, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
     cursor += size
-    for o in range(0, n_outputs):
-        amount = change_base(rawtx[cursor:cursor + 8][::-1], 256, 10)
+    output_total = 0
+    for n in range(0, n_outputs):
+        value = change_base(rawtx[cursor:cursor + 8][::-1], 256, 10)
         cursor += 8
         lock_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
         lock_script = rawtx[cursor:cursor + lock_script_size]
         cursor += lock_script_size
-        outputs.append(Output(amount=amount, lock_script=lock_script, network=network))
+        outputs.append(Output(value=value, lock_script=lock_script, network=network, output_n=n))
+        output_total += value
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
+    if flag:
+        n_witnesses, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+        cursor += size
+        for n in range(0, n_witnesses):
+            witness_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+            cursor += size
+            # witness_hash = rawtx[cursor:cursor + witness_size][::-1]
+            cursor += witness_size
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
-    return inputs, outputs, locktime, version
+    return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
+                       coinbase=coinbase, flag=flag, rawtx=to_hexstring(rawtx))
 
 
 def script_deserialize(script, script_types=None):
@@ -129,7 +148,7 @@ def script_deserialize(script, script_types=None):
     def _parse_signatures(scr, max_signatures=None, redeemscript_expected=False):
         scr = to_bytes(scr)
         sigs = []
-        total_length = 0
+        total_lenght = 0
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
             l, sl = varbyteint_to_int(scr[0:9])
             # TODO: Rethink and rewrite this:
@@ -140,9 +159,9 @@ def script_deserialize(script, script_types=None):
             if redeemscript_expected and len(scr[l + 1:]) < 20:
                 break
             sigs.append(scr[1:l + 1])
-            total_length += l + sl
+            total_lenght += l + sl
             scr = scr[l + 1:]
-        return sigs, total_length
+        return sigs, total_lenght
 
     data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b''}
     script = to_bytes(script)
@@ -407,7 +426,7 @@ def verify_signature(transaction_to_sign, signature, public_key):
         if signature.startswith(b'\x30'):
             try:
                 signature = convert_der_sig(signature[:-1], as_hex=False)
-            except Exception as e:
+            except Exception:
                 pass
         ver_key.verify_digest(signature, transaction_to_sign)
     except ecdsa.keys.BadSignatureError:
@@ -423,23 +442,23 @@ class Input:
     """
     Transaction Input class, normally part of Transaction class
     
-    An Input contains a reference to an UTXO or Unspent Transaction Output (prev_hash + output_index).
+    An Input contains a reference to an UTXO or Unspent Transaction Output (prev_hash + output_n).
     To spent the UTXO an unlocking script can be included to prove ownership.
     
     Inputs are verified by the Transaction class.
     
     """
 
-    def __init__(self, prev_hash, output_index, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
-                 sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False, network=DEFAULT_NETWORK,
-                 tid=0):
+    def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
+                 sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=0,
+                 value=0, double_spend=False, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
         :param prev_hash: Transaction hash of the UTXO (previous output) which will be spent.
         :type prev_hash: bytes, hexstring
-        :param output_index: Output number in previous transaction.
-        :type output_index: bytes, int
+        :param output_n: Output number in previous transaction.
+        :type output_n: bytes, int
         :param keys: A list of Key objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
         :type keys: list (bytes, str)
         :param signatures: Specify optional signatures
@@ -449,35 +468,44 @@ class Input:
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param sequence: Sequence part of input, you normally do not have to touch this
-        :type sequence: bytes
+        :type sequence: bytes, int
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
         :type compressed: bool
         :param sigs_required: Number of signatures required for a p2sh_multisig unlocking script
-        :param sigs_required: int
+        :type sigs_required: int
         :param sort: Sort public keys according to BIP0045 standard. Default is False to avoid unexpected change of key order.
         :type sort: boolean
+        :param index_n: Index of input in transaction. Used by Transaction class.
+        :type index_n: int
+        :param value: Input value
+        :type value: int
         :param network: Network, leave empty for default
         :type network: str
-        :param tid: Index of input in transaction. Used by Transaction class.
-        :type tid: int
         """
         self.prev_hash = to_bytes(prev_hash)
-        self.output_index = output_index
-        if isinstance(output_index, numbers.Number):
-            self.output_index_int = output_index
-            self.output_index = struct.pack('>I', output_index)
+        self.output_n = output_n
+        if isinstance(output_n, numbers.Number):
+            self.output_n_int = output_n
+            self.output_n = struct.pack('>I', output_n)
         else:
-            self.output_index_int = struct.unpack('I', output_index)[0]
-            self.output_index = output_index
+            self.output_n_int = struct.unpack('>I', output_n)[0]
+            self.output_n = output_n
         if isinstance(keys, (bytes, str)):
             keys = [keys]
         self.unlocking_script = to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b''
-        self.script_type = script_type
-        self.sequence = to_bytes(sequence)
+        if self.prev_hash == 32 * b'\0':
+            self.script_type = 'coinbase'
+        else:
+            self.script_type = script_type
+        if isinstance(sequence, numbers.Number):
+            self.sequence = sequence
+        else:
+            self.sequence = struct.unpack('<I', sequence)[0]
         self.compressed = compressed
         self.network = Network(network)
-        self.tid = tid
+        self.index_n = index_n
+        self.value = value
         if keys is None:
             keys = []
         self.keys = []
@@ -501,21 +529,22 @@ class Input:
                 sigs_required = 1
         self.sigs_required = sigs_required
         self.script_type = script_type
-        self.value = 0
+        self.double_spend = double_spend
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
 
         # If unlocking script is specified extract keys, signatures, type from script
-        if unlocking_script:
+        if unlocking_script and self.script_type != 'coinbase' and not signatures:
             us_dict = script_deserialize(unlocking_script)
-            if not us_dict or us_dict['script_type'] in ['unknown', 'empty']:
+            if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
                 raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))
             self.script_type = us_dict['script_type']
-            self.sigs_required = us_dict['number_of_sigs_n']
-            self.redeemscript = us_dict['redeemscript']
-            signatures += us_dict['signatures']
-            keys += us_dict['keys']
+            if us_dict['script_type'] not in ['unknown', 'empty']:
+                self.sigs_required = us_dict['number_of_sigs_n']
+                self.redeemscript = us_dict['redeemscript']
+                signatures += us_dict['signatures']
+                keys += us_dict['keys']
 
         for key in keys:
             if not isinstance(key, Key):
@@ -524,32 +553,38 @@ class Input:
                 kobj = key
             if kobj not in self.keys:
                 if kobj.compressed != self.compressed:
-                    raise TransactionError("Key compressed is %s but Input class compressed argument is %s " %
-                                           (kobj.compressed, self.compressed))
+                    self.compressed = kobj.compressed
+                    _logger.warning("Key compressed is %s but Input class compressed argument is %s " %
+                                    (kobj.compressed, self.compressed))
                 self.keys.append(kobj)
 
         for sig in signatures:
-            sig_der = ''
-            if sig.startswith(b'\x30'):
-                # If signature ends with Hashtype, remove hashtype and continue
-                # TODO: support for other hashtypes
-                if sig.endswith(b'\x01'):
-                    _, junk = ecdsa.der.remove_sequence(sig)
-                    if junk == b'\x01':
-                        sig_der = sig[:-1]
-                else:
-                    sig_der = sig
-                try:
-                    sig = convert_der_sig(sig[:-1], as_hex=False)
-                except:
-                    pass
-            self.signatures.append(
-                {
-                    'sig_der': sig_der,
-                    'signature': to_bytes(sig),
-                    'priv_key': '',
-                    'pub_key': ''
-                })
+            if isinstance(sig, dict):
+                if sig['sig_der'] not in [x['sig_der'] for x in self.signatures]:
+                    self.signatures.append(sig)
+            else:
+                assert(isinstance(sig, bytes))
+                sig_der = ''
+                if sig.startswith(b'\x30'):
+                    # If signature ends with Hashtype, remove hashtype and continue
+                    # TODO: support for other hashtypes
+                    if sig.endswith(b'\x01'):
+                        _, junk = ecdsa.der.remove_sequence(sig)
+                        if junk == b'\x01':
+                            sig_der = sig[:-1]
+                    else:
+                        sig_der = sig
+                    try:
+                        sig = convert_der_sig(sig[:-1], as_hex=False)
+                    except Exception:
+                        pass
+                self.signatures.append(
+                    {
+                        'sig_der': sig_der,
+                        'signature': to_bytes(sig),
+                        'priv_key': '',
+                        'pub_key': ''
+                    })
 
         if self.script_type == 'sig_pubkey':
             self.script_type = 'p2pkh'
@@ -568,11 +603,11 @@ class Input:
                                               versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
 
-    def json(self):
+    def dict(self):
         """
         Get transaction input information in json format
         
-        :return dict: Json with tid, prev_hash, output_index, type, address, public_key, public_key_hash, unlocking_script and sequence
+        :return dict: Json with output_n, prev_hash, output_n, type, address, public_key, public_key_hash, unlocking_script and sequence
         
         """
         pks = []
@@ -581,20 +616,23 @@ class Input:
         if len(self.keys) == 1:
             pks = pks[0]
         return {
-            'tid': self.tid,
+            'index_n': self.index_n,
             'prev_hash': to_hexstring(self.prev_hash),
-            'output_index': to_hexstring(self.output_index),
+            'output_n': self.output_n_int,
             'script_type': self.script_type,
             'address': self.address,
+            'value': self.value,
             'public_key': pks,
-            'unlocking_script': to_hexstring(self.unlocking_script),
+            'double_spend': self.double_spend,
+            'script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
-            'sequence': to_hexstring(self.sequence),
+            'sequence': self.sequence,
+            'signatures': [to_hexstring(s['signature']) for s in self.signatures],
         }
 
     def __repr__(self):
-        return "<Input (address=%s, tid=%s, index=%s, type=%s)>" % \
-               (self.address, self.tid, struct.unpack('I', self.output_index)[0], self.script_type)
+        return "<Input (address=%s, index_n=%s, prev_hash=%s:%d, type=%s)>" % \
+               (self.address, self.index_n, self.prev_hash, self.output_n_int, self.script_type)
 
 
 class Output:
@@ -604,8 +642,8 @@ class Output:
     Contains the amount and destination of a transaction. 
     
     """
-    def __init__(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b'',
-                 network=DEFAULT_NETWORK):
+    def __init__(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,
+                 output_n=0, network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -616,8 +654,8 @@ class Output:
         public key, public key hash or a locking script. Only one needs to be provided as the they all can be derived 
         from each other, but you can provide as much attributes as you know to improve speed.
         
-        :param amount: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
-        :type amount: int
+        :param value: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
+        :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
         :type address: str
         :param public_key_hash: Hash of public key
@@ -633,7 +671,7 @@ class Output:
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
-        self.amount = amount
+        self.value = value
         self.lock_script = to_bytes(lock_script)
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
@@ -643,6 +681,8 @@ class Output:
         self.k = None
         self.versionbyte = self.network.prefix_address
         self.script_type = 'p2pkh'
+        self.spent = spent
+        self.output_n = output_n
 
         if self.public_key:
             self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
@@ -683,7 +723,7 @@ class Output:
                 raise TransactionError("Unknown output script type %s, please provide own locking script" %
                                        self.script_type)
 
-    def json(self):
+    def dict(self):
         """
         Get transaction output information in json format
 
@@ -691,15 +731,18 @@ class Output:
 
         """
         return {
-            'amount': self.amount,
-            'lock_script': to_hexstring(self.lock_script),
+            'value': self.value,
+            'script': to_hexstring(self.lock_script),
+            'script_type': self.script_type,
             'public_key': to_hexstring(self.public_key),
             'public_key_hash': to_hexstring(self.public_key_hash),
             'address': self.address,
+            'output_n': self.output_n,
+            'spent': self.spent,
         }
 
     def __repr__(self):
-        return "<Output (address=%s, amount=%d, type=%s)>" % (self.address, self.amount, self.script_type)
+        return "<Output (address=%s, value=%d, type=%s)>" % (self.address, self.value, self.script_type)
 
 
 class Transaction:
@@ -723,7 +766,7 @@ class Transaction:
         """
         Import a raw transaction and create a Transaction object
         
-        Uses the transaction_deserialize method to parse the raw transaction and then calls the init method of
+        Uses the _transaction_deserialize method to parse the raw transaction and then calls the init method of
         this transaction class to create the transaction object
         
         :param rawtx: Raw transaction string
@@ -735,10 +778,12 @@ class Transaction:
          
         """
         rawtx = to_bytes(rawtx)
-        inputs, outputs, locktime, version = transaction_deserialize(rawtx, network=network)
-        return Transaction(inputs, outputs, locktime, version, network)
+        return _transaction_deserialize(rawtx, network=network)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK):
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
+                 fee=None, fee_per_kb=None, size=None, hash='', date=None, confirmations=None,
+                 block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
+                 coinbase=False, verified=False, flag=None):
         """
         Create a new transaction class with provided inputs and outputs. 
         
@@ -747,6 +792,7 @@ class Transaction:
         To verify and sign transactions all inputs and outputs need to be included in transaction. Any modification 
         after signing makes the transaction invalid.
         
+        :rtype:
         :param inputs: Array of Input objects. Leave empty to add later
         :type inputs: Input, list
         :param outputs: Array of Output object. Leave empty to add later
@@ -754,34 +800,77 @@ class Transaction:
         :param locktime: Unix timestamp or blocknumber. Default is 0
         :type locktime: int
         :param version: Version rules. Defaults to 1 in bytes 
-        :type version: bytes
+        :type version: bytes, int
         :param network: Network, leave empty for default network
         :type network: str
+        :param fee: Fee in smallest denominator (ie Satoshi) for complete transaction
+        :type fee: int
+        :param fee_per_kb: Fee in smallest denominator per kilobyte. Specify when exact transaction size is not known.
+        :type fee_per_kb: int
+        :param size; Transaction size in bytes
+        :type size: int
+        :param date: Confirmation date of transaction
+        :type date: datetime.datetime
+        :param confirmations: Number of confirmations
+        :type confirmations: int
+        :param block_height: Block number which includes transaction
+        :type block_height: int
+        :param block_hash: Hash of block for this transaction
+        :type block_hash: str
+        :param input_total: Total value of inputs
+        :type input_total: int
+        :param output_total: Total value of outputs
+        :type output_total: int
+        :param rawtx: Raw hexstring of complete transaction
+        :type rawtx: str
+        :param status: Transaction status, for example: 'new', 'incomplete', 'unconfirmed', 'confirmed'
+        :type status: str
+        :param coinbase: Coinbase transaction or not?
+        :type coinbase: bool
+        :param verified: Is transaction successfully verified? Updated when verified() method is called
+        :type verified: bool
+        :param flag: Transaction flag to indicate version, for example for SegWit
+        :type flag: bytes, str
         """
         self.inputs = []
         if inputs is not None:
-            for input in inputs:
-                self.inputs.append(input)
-        tid_list = [i.tid for i in self.inputs]
-        if list(set(tid_list)) != tid_list:
+            for inp in inputs:
+                self.inputs.append(inp)
+        id_list = [i.index_n for i in self.inputs]
+        if list(set(id_list)) != id_list:
             _logger.warning("Identical transaction indexes (tid) found in inputs, please specify unique index. "
                             "Indexes will be automatically recreated")
-            tid = 0
+            index_n = 0
             for inp in self.inputs:
-                inp.tid = tid
-                tid += 1
+                inp.index_n = index_n
+                index_n += 1
         if outputs is None:
             self.outputs = []
         else:
             self.outputs = outputs
 
-        self.version = version
+        if isinstance(version, int):
+            self.version = struct.pack('>L', version)
+        else:
+            self.version = version
         self.locktime = locktime
         self.network = Network(network)
-        self.fee = None
-        self.fee_per_kb = None
-        self.size = None
-        self.change = None
+        self.coinbase = coinbase
+        self.flag = flag
+        self.fee = fee
+        self.fee_per_kb = fee_per_kb
+        self.size = size
+        self.change = 0
+        self.hash = hash
+        self.date = date
+        self.confirmations = confirmations
+        self.block_height = block_height
+        self.block_hash = block_hash
+        self.input_total = input_total
+        self.output_total = output_total
+        self.rawtx = rawtx
+        self.status = status
+        self.verified = verified
 
     def __repr__(self):
         return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \
@@ -796,15 +885,48 @@ class Transaction:
         inputs = []
         outputs = []
         for i in self.inputs:
-            inputs.append(i.json())
+            inputs.append(i.dict())
         for o in self.outputs:
-            outputs.append(o.json())
+            outputs.append(o.dict())
         return {
+            'hash': self.hash,
+            'date': self.date,
+            'network': self.network.network_name,
+            'coinbase': self.coinbase,
+            'flag': self.flag,
+            'confirmations': self.confirmations,
+            'block_height': self.block_height,
+            'block_hash': self.block_hash,
+            'fee': self.fee,
+            'fee_per_kb': self.fee_per_kb,
             'inputs': inputs,
             'outputs': outputs,
+            'input_total': self.input_total,
+            'output_total': self.output_total,
             'version': self.version,
             'locktime': self.locktime,
+            'raw': self.raw_hex(),
+            'size': self.size,
+            'status': self.status
         }
+
+    def info(self):
+        """
+        Prints transaction information to standard output
+
+        """
+        print("Transaction %s" % self.hash)
+        print("Date: %s" % self.date)
+        print("Network: %s" % self.network.network_name)
+        print("Status: %s" % self.status)
+        print("Inputs")
+        for ti in self.inputs:
+            print("-", ti.address, ti.value, to_hexstring(ti.prev_hash))
+        print("Outputs")
+        for to in self.outputs:
+            print("-", to.address, to.value)
+        print("Fee: %d" % self.fee)
+        print("Confirmations: %s" % self.confirmations)
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
@@ -823,33 +945,38 @@ class Transaction:
         r = self.version[::-1]
         r += int_to_varbyteint(len(self.inputs))
         for i in self.inputs:
-            r += i.prev_hash[::-1] + i.output_index[::-1]
+            r += i.prev_hash[::-1] + i.output_n[::-1]
             if sign_id is None:
                 r += int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
-            elif sign_id == i.tid:
+            elif sign_id == i.index_n:
                 r += int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
             else:
                 r += b'\0'
-            r += i.sequence
+            r += struct.pack('<L', i.sequence)
 
         r += int_to_varbyteint(len(self.outputs))
         for o in self.outputs:
-            if o.amount < 0:
-                raise TransactionError("Output amount <0 not allowed")
-            r += struct.pack('<Q', o.amount)
+            if o.value < 0:
+                raise TransactionError("Output value < 0 not allowed")
+            r += struct.pack('<Q', o.value)
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
         return r
 
-    def raw_hex(self, sign_id=None):
+    def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
         Wrapper for raw method. Return current raw transaction hex
-        
+
+        :param sign_id: Create raw transaction which can be signed by transaction with this input ID
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
         :return hexstring: 
         """
-        return to_hexstring(self.raw(sign_id))
+        return to_hexstring(self.raw(sign_id, hash_type=hash_type))
 
     def verify(self):
         """
@@ -859,17 +986,19 @@ class Transaction:
         
         :return bool: True if enough signatures provided and if all signatures are valid
         """
+
+        self.verified = False
         for i in self.inputs:
             if i.script_type == 'coinbase':
                 return True
             if not i.signatures:
-                _logger.info("No signatures found for transaction input %d" % i.tid)
+                _logger.info("No signatures found for transaction input %d" % i.index_n)
                 return False
             if len(i.signatures) < i.sigs_required:
                 _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
                              (len(i.signatures), i.sigs_required))
                 return False
-            t_to_sign = self.raw(i.tid)
+            t_to_sign = self.raw(i.index_n)
             transaction_hash_to_sign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             sig_id = 0
             for key in i.keys:
@@ -885,6 +1014,7 @@ class Transaction:
                 _logger.info("Not enough valid signatures provided. Found %d signatures but %d needed" %
                              (sig_id, i.sigs_required))
                 return False
+        self.verified = True
         return True
 
     def sign(self, keys, tid=None, hash_type=SIGHASH_ALL):
@@ -906,8 +1036,8 @@ class Transaction:
         else:
             tids = [tid]
 
+        n_signs = 0
         for tid in tids:
-            n_signs = 0
             if not isinstance(keys, list):
                 keys = [keys]
 
@@ -971,6 +1101,7 @@ class Transaction:
                         break
             if n_sigs_to_insert:
                 _logger.info("Some signatures are replaced with the signatures of the provided keys")
+                n_signs -= n_sigs_to_insert
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
 
             if self.inputs[tid].script_type == 'p2pkh':
@@ -991,10 +1122,11 @@ class Transaction:
                     _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
             else:
                 raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
-        return n_signs - n_sigs_to_insert
+        return n_signs
 
-    def add_input(self, prev_hash, output_index, keys=None, unlocking_script=b'', script_type='p2pkh',
-                  sequence=b'\xff\xff\xff\xff', compressed=True, sigs_required=None, sort=False):
+    def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
+                  sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=None,
+                  value=None, double_spend=False, signatures=None):
         """
         Add input to this transaction
         
@@ -1002,8 +1134,8 @@ class Transaction:
 
         :param prev_hash: Transaction hash of the UTXO (previous output) which will be spent.
         :type prev_hash: bytes, hexstring
-        :param output_index: Output number in previous transaction.
-        :type output_index: bytes, int
+        :param output_n: Output number in previous transaction.
+        :type output_n: bytes, int
         :param keys: Public keys can be provided to construct an Unlocking script. Optional
         :type keys: bytes, str
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
@@ -1011,32 +1143,43 @@ class Transaction:
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param sequence: Sequence part of input, you normally do not have to touch this
-        :type sequence: bytes
+        :type sequence: int, bytes
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
         :type compressed: bool
         :param sigs_required: Number of signatures required for a p2sh_multisig unlocking script
         :param sigs_required: int
         :param sort: Sort public keys according to BIP0045 standard. Default is False to avoid unexpected change of key order.
         :type sort: boolean
+        :param index_n: Index number of position in transaction, leave empty to add input to end of inputs list
+        :type index_n: int
+        :param value: Value of input
+        :type value: int
+        :param double_spend: True if double spend is detected, depends on which service provider is selected
+        :type double_spend: bool
+        :param signatures: Add signatures to input if already known
+        :type signatures: bytes, str
 
-        :return int: Transaction index 
+        :return int: Transaction index number (index_n)
         """
 
-        new_id = len(self.inputs)
+        if index_n is None:
+            index_n = len(self.inputs)
         self.inputs.append(
-            Input(prev_hash, output_index, keys, unlocking_script, script_type=script_type,
-                  network=self.network.network_name, sequence=sequence, compressed=compressed,
-                  sigs_required=sigs_required, sort=sort, tid=new_id))
-        return new_id
+            Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
+                  script_type=script_type, network=self.network.network_name, sequence=sequence, compressed=compressed,
+                  sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
+                  signatures=signatures))
+        return index_n
 
-    def add_output(self, amount, address='', public_key_hash=b'', public_key=b'', lock_script=b''):
+    def add_output(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,
+                   output_n=None):
         """
         Add an output to this transaction
         
         Wrapper for the append method of the Output class.
         
-        :param amount: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
-        :type amount: int
+        :param value: Value of output in smallest denominator of currency, for example satoshi's for bitcoins
+        :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
         :type address: str
         :param public_key_hash: Hash of public key
@@ -1045,7 +1188,13 @@ class Transaction:
         :type public_key: bytes, str
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
         :type lock_script: bytes, str
-        
+        :param spent: Has output been spent in new transaction?
+        :type spent: bool
+        :param output_n: Index number of output in transaction
+        :type output_n: int
+
+        :return int: Transaction output number (output_n)
+
         """
         if address:
             to = address
@@ -1053,12 +1202,16 @@ class Transaction:
             to = public_key
         else:
             to = public_key_hash
-        if not float(amount).is_integer():
+        if output_n is None:
+            output_n = len(self.outputs)
+        if not float(value).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
-        if amount < 0:
+        if value < 0:
             raise TransactionError("Output to %s must be more then zero" % to)
-        self.outputs.append(Output(int(amount), address, public_key_hash, public_key, lock_script,
-                                   self.network.network_name))
+        self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
+                                   public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
+                                   network=self.network.network_name))
+        return output_n
 
     def estimate_fee(self):
         """

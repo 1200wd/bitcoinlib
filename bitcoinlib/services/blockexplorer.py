@@ -18,7 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from datetime import datetime
+import struct
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'blockexplorer'
 
@@ -35,67 +38,65 @@ class BlockExplorerClient(BaseClient):
     def getutxos(self, addresslist):
         addresses = ','.join(addresslist)
         res = self.compose_request('addrs', addresses, 'utxo')
-        utxos = []
-        for utxo in res:
-            utxos.append({
-                'address': utxo['address'],
-                'tx_hash': utxo['txid'],
-                'confirmations': utxo['confirmations'],
-                'output_n': utxo['vout'],
+        txs = []
+        for tx in res:
+            txs.append({
+                'address': tx['address'],
+                'tx_hash': tx['txid'],
+                'confirmations': tx['confirmations'],
+                'output_n': tx['vout'],
                 'index': 0,
-                'value': int(round(utxo['amount'] * self.units, 0)),
-                'script': utxo['scriptPubKey'],
+                'value': int(round(tx['amount'] * self.units, 0)),
+                'script': tx['scriptPubKey'],
+                'date': 0
             })
-        return utxos
+        return txs
 
-    def address_transactions(self, addresslist):
+    def _convert_to_transaction(self, tx):
+        if tx['confirmations']:
+            status = 'confirmed'
+        else:
+            status = 'unconfirmed'
+        fees = None if 'fees' not in tx else int(round(float(tx['fees']) * self.units, 0))
+        value_in = 0 if 'valueIn' not in tx else tx['valueIn']
+        isCoinbase = False
+        if 'isCoinBase' in tx and tx['isCoinBase']:
+            value_in = tx['valueOut']
+            isCoinbase = True
+        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
+                        fee=fees, size=tx['size'], hash=tx['txid'],
+                        date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
+                        block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
+                        input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
+                        output_total=int(round(float(tx['valueOut']) * self.units, 0)))
+        for ti in tx['vin']:
+            sequence = struct.pack('<L', ti['sequence'])
+            if isCoinbase:
+                t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
+                            script_type='coinbase', sequence=sequence)
+            else:
+                value = int(round(float(ti['value']) * self.units, 0))
+                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
+                            index_n=ti['n'], value=value, sequence=sequence,
+                            double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
+        for to in tx['vout']:
+            value = int(round(float(to['value']) * self.units, 0))
+            address = '' if 'addresses' not in to else to['scriptPubKey']['addresses'][0]
+            t.add_output(value=value, address=address, lock_script=to['scriptPubKey']['hex'],
+                         spent=True if to['spentTxId'] else False, output_n=to['n'])
+        return t
+
+    def gettransactions(self, addresslist):
         addresses = ','.join(addresslist)
-        # TODO: Finish this
-        # res = self.compose_request('addrs', addresses, 'txs')
-        # /api/addrs/2NF2baYuJAkCKo5onjUKEPdARQkZ6SYyKd5,2NAre8sX2povnjy4aeiHKeEh97Qhn97tB1f/txs?from=0&to=20
-        # from pprint import pprint
-        # pprint(res)
-        # {'from': 0,
-        #  'items': [{'blockhash': '00000000000004c...d53cefe26e92fd5cd',
-        #             'blockheight': 1153001,
-        #             'blocktime': 1499977636,
-        #             'confirmations': 28157,
-        #             'fees': 8.15e-06,
-        #             'locktime': 0,
-        #             'size': 226,
-        #             'time': 1499977636,
-        #             'txid': '8bcac07df4a5...0d7cebf9b7d7ee',
-        #             'valueIn': 4.50759446,
-        #             'valueOut': 4.50758631,
-        #             'version': 1,
-        #             'vin': [{'addr': 'msrbEQkm1svA9r9x6Jaypb6cpSX1VepYHf',
-        #                      'doubleSpentTxID': None,
-        #                      'n': 0,
-        #                      'scriptSig': {'asm':
-        #                                        'hex':
-        # 'sequence': 4294967295,
-        #             'txid': '0cf6ad653cde...034abb65b1',
-        # 'value': 4.50759446,
-        # 'valueSat': 450759446,
-        # 'vout': 0}],
-        # 'vout': [{'n': 0,
-        #           'scriptPubKey': {'addresses': ['mxdLD8SAG..MHp8N'],
-        #                            'asm':,
-        #           'hex': '76a914bbaeed8a02f6....88ac',
-        #           'type': 'pubkeyhash'},
-        #          'spentHeight': None,
-        #                         'spentIndex': None,
-        # 'spentTxId': None,
-        # 'value': '0.00100000'},
-        # {'n': 1,
-        #  'scriptPubKey': {'addresses': ['n1JFNC8zMerPuY.53oagzK6'],
-        #                   'asm': ...,
-        #                   'hex': '76a914d8fb5bc...c428a88ac',
-        #                   'type': 'pubkeyhash'},
-        #  'spentHeight': 1153005,
-        #  'spentIndex': 0,
-        #  'spentTxId': 'a5308741fe17d...32e7659f09408c43008d',
-        #  'value': '4.50658631'}]},
+        res = self.compose_request('addrs', addresses, 'txs')
+        txs = []
+        for tx in res['items']:
+            txs.append(self._convert_to_transaction(tx))
+        return txs
+
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('tx', tx_id)
+        return self._convert_to_transaction(tx)
 
     def getbalance(self, addresslist):
         utxos = self.getutxos(addresslist)
@@ -104,8 +105,8 @@ class BlockExplorerClient(BaseClient):
             balance += utxo['value']
         return balance
 
-    def getrawtransaction(self, txid):
-        res = self.compose_request('rawtx', txid)
+    def getrawtransaction(self, tx_id):
+        res = self.compose_request('rawtx', tx_id)
         return res['rawtx']
 
     def sendrawtransaction(self, rawtx):

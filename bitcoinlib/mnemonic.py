@@ -69,23 +69,23 @@ class Mnemonic:
         hash = hashlib.sha256(data).digest()
         return change_base(hash, 256, 2, 256)[:len(data) * 8 // 32]
 
-    def to_seed(self, words, passphrase=''):
+    def to_seed(self, words, password=''):
         """
-        Use Mnemonic words and passphrase to create a PBKDF2 seed (Password-Based Key Derivation Function 2)
+        Use Mnemonic words and password to create a PBKDF2 seed (Password-Based Key Derivation Function 2)
         
         First use 'sanitize_mnemonic' to determine language and validate and check words
 
         :param words: Mnemonic passphrase as string with space seperated words
         :type words: str
-        :param passphrase: A password to protect key, leave empty to disable
-        :type passphrase: str
+        :param password: A password to protect key, leave empty to disable
+        :type password: str
         
         :return bytes: PBKDF2 seed
         """
         words = self.sanitize_mnemonic(words)
         mnemonic = normalize_string(words)
-        passphrase = passphrase.encode()
-        return PBKDF2(mnemonic, b'mnemonic' + passphrase,
+        password = password.encode()
+        return PBKDF2(mnemonic, b'mnemonic' + password,
                       iterations=PBKDF2_ROUNDS,
                       macmodule=hmac,
                       digestmodule=hashlib.sha512).read(64)
@@ -116,7 +116,8 @@ class Mnemonic:
         Uses cryptographically secure os.urandom() function to generate data. Then creates a Mnemonic sentence with
         the 'to_mnemonic' method.
 
-        :param strength: Key strenght in number of bits, default is 128 bits. It advised to specify 128 bits or more, i.e.: 128, 256, 512 or 1024
+        :param strength: Key strength in number of bits, default is 128 bits. It advised to specify 128 bits or more,
+        i.e.: 128, 256, 512 or 1024
         :type strength: int
         :param add_checksum: Included a checksum? Default is True
         :type add_checksum: bool

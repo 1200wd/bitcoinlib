@@ -30,7 +30,7 @@
     "provider": "blockexplorer",
     "network": "bitcoin",
     "client_class": "BlockExplorerClient",
-    "url": "https://blockexplorer.com/api/",
+    "url": "https://bitcoinlegacy.blockexplorer.com/api/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000
@@ -80,11 +80,20 @@
     "priority": 10,
     "denominator": 1
   },
+  "bitgo.testnet": {
+    "provider": "bitgo",
+    "network": "testnet",
+    "client_class": "BitGoClient",
+    "url": "https://testnet.bitgo.com/api/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 1
+  },
   "coinfees": {
     "provider": "coinfees",
     "network": "bitcoin",
     "client_class": "CoinfeesClient",
-    "url": "https://bitcoinfees.21.co/api/v1/",
+    "url": "https://bitcoinfees.earn.com/api/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 1

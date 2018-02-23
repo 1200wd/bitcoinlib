@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Service Class
-#    © 2017 March - 1200 Web Development <http://1200wd.com/>
+#    © 2017 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -19,14 +19,15 @@
 #
 
 import unittest
+import datetime
 from bitcoinlib.services.services import *
-
+from tests.test_custom import CustomAssertions
 
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 2.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
 
-class TestService(unittest.TestCase):
+class TestService(unittest.TestCase, CustomAssertions):
 
     def test_transaction_bitcoin_testnet_get_raw(self):
         tx_id = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
@@ -69,8 +70,8 @@ class TestService(unittest.TestCase):
                 self.assertIn('has already been spent', srv.errors['blockcypher.testnet'])
             elif provider == 'blockexplorer.testnet' or provider == 'bitcoind.testnet':
                 self.assertIn('Missing inputs', srv.errors['blockexplorer.testnet'])
-            elif provider == 'blockr.testnet':
-                self.assertIn('Did you sign your transaction', srv.errors['blockr.testnet'])
+            elif provider == 'chain.so':
+                self.assertIn('are still available to spend', srv.errors['chain.so'])
 
     def test_get_balance(self):
         srv = Service(min_providers=5)
@@ -106,3 +107,207 @@ class TestService(unittest.TestCase):
             if fee_difference_from_average > MAXIMUM_ESTIMATED_FEE_DIFFERENCE:
                 self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
                           (provider, fee_difference_from_average * 100))
+
+    def test_gettransactions(self):
+        tx_hash = '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74'
+        address = '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w'
+        block_height = 300000
+        input_total = 4534802265
+        output_total = 4534776015
+        fee = 26250
+        status = 'confirmed'
+        size = 523
+        input0 = {
+            'address': '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w',
+            'index_n': 0,
+            'output_n': 1,
+            'prev_hash': '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef',
+            'value': 3200955
+        }
+        input2 = {
+            'address': '1E1MxdfLkv1TZWQRkCtszxEVnrxwRBByZP',
+            'index_n': 2,
+            'output_n': 1,
+            'prev_hash': 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52',
+            'value': 4527385460
+        }
+
+        srv = Service(min_providers=5)
+        srv.gettransactions(address)
+        for provider in srv.results:
+            res = srv.results[provider]
+            t = [r for r in res if r.hash == tx_hash][0]
+
+            # Compare transaction
+            if t.block_height:
+                self.assertEqual(t.block_height, block_height,
+                                 msg="Unexpected block height for %s provider" % provider)
+            self.assertEqual(t.input_total, input_total, msg="Unexpected input_total for %s provider" % provider)
+            self.assertEqual(t.output_total, output_total, msg="Unexpected output_total for %s provider" % provider)
+            self.assertEqual(t.fee, fee, msg="Unexpected fee for %s provider" % provider)
+            self.assertEqual(t.status, status, msg="Unexpected status for %s provider" % provider)
+            if t.size:
+                self.assertEqual(t.size, size, msg="Unexpected transaction size for %s provider" % provider)
+
+            # Remove extra field from input dict and compare inputs and outputs
+            r_inputs = [
+                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
+                for inp in [i.dict() for i in t.inputs]
+            ]
+            if provider == 'blockchaininfo':  # Blockchain.info does not provide previous hashes
+                r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
+                r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
+            self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
+            self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
+
+    def test_gettransaction(self):
+        expected_dict = {
+            'block_hash': '000000000000000000f3ae4004e9bcc39b3d4dc0f342b76a1830ee8607b7f00a',
+            'inputs': [
+                {
+                    'value': 299889,
+                    'output_n': 51,
+                    'prev_hash': 'fa7b29d0e1cf62c79749c977dd9b3fedcfa348e696600f2240206eedaccbb309',
+                    'double_spend': False,
+                    'index_n': 0,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                },
+                {
+                    'value': 1000022,
+                    'output_n': 0,
+                    'prev_hash': '512f4363ccb28d04d47edd684840cc074f2a3b625838909a6074d277883b9f83',
+                    'double_spend': False,
+                    'index_n': 1,
+                    'script_type': 'p2pkh',
+                    'address': '1Hw3ZTxMqVK3jgmJSod4LF5XFbDVYc3EZP'
+                },
+                {
+                    'value': 219439,
+                    'output_n': 55,
+                    'prev_hash': '0ccd49e93261c9dd2bee124d90849677e93f789d2dc83013bfb0643beb962733',
+                    'double_spend': False,
+                    'index_n': 2,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                },
+                {
+                    'value': 219436,
+                    'output_n': 56,
+                    'prev_hash': '1b110073aed6637f9a492ceaac45d2b978b75f0139df0401032ad68c0944d38c',
+                    'double_spend': False,
+                    'index_n': 3,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                },
+                {
+                    'value': 110996,
+                    'output_n': 50,
+                    'prev_hash': 'a2d613e5a649102672462aa6a09e3e833769f5a85a65a8844acc723c07a8991d',
+                    'double_spend': False,
+                    'index_n': 4,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                },
+                {
+                    'value': 602,
+                    'output_n': 2434,
+                    'prev_hash': 'd8505b78a4cddbd058372443bbce9ea74a313c27c586b7bbe8bc3825b7c7cbd7',
+                    'double_spend': False,
+                    'index_n': 5,
+                    'script_type': 'p2pkh',
+                    'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
+                }
+            ],
+            'locktime': 478952,
+            'input_total': 1850384,
+            'network': 'bitcoin',
+            'status': 'confirmed',
+            'version': b'\x00\x00\x00\x02',
+            'outputs':
+                [
+                    {
+                        'spent': True,
+                        'value': 1000032,
+                        'script_type': 'p2pkh',
+                        'address': '15witRoAeoSKgBLVA27oj1F2KQ1Sg1bjNz',
+                        'output_n': 0
+                    },
+                    {
+                        'spent': True,
+                        'value': 845308,
+                        'script_type': 'p2pkh',
+                        'address': '1PTJHj3jzbfcRg6LauAAV6Qirs5VUe8M6C',
+                        'output_n': 1,
+                    }
+                ],
+            'fee': 5044,
+            'block_height': 478953,
+            'output_total': 1845340,
+            'size': 964,
+            'hash': '2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700',
+            'date': datetime.datetime(2017, 8, 4)
+        }
+
+        srv = Service(network='bitcoin', min_providers=10)
+
+        # Get transactions by hash
+        srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700').dict()
+
+        for provider in srv.results:
+            print("Comparing provider %s" % provider)
+            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+                                    ['block_hash', 'block_height', 'spent', 'value'])
+
+    def test_gettransaction_coinbase(self):
+        expected_dict = {
+            'block_hash': '0000000000000000002d966c99d68245b20468dc9c2a7a776a836add03362199',
+            'block_height': 500834,
+            'coinbase': True,
+            'date': datetime.datetime(2017, 12, 24, 14, 16, 30),
+            'flag': b'\1',
+            'hash': '68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13',
+            'input_total': 1717718311,
+            'inputs': [
+                {'address': '',
+                 'index_n': 0,
+                 'output_n': 4294967295,
+                 'prev_hash': '0000000000000000000000000000000000000000000000000000000000000000',
+                 'public_key': [],
+                 'script': '0362a4071c2f5669614254432f4d696e656420627920676c6f62616c686173682f2cfabe6d6d2c31604d43cac8b0f5c819c1d2b6f9051349d7633df07fc664be73533e64ccf9010000000000000010c147e903973b4143d99de6b376ca0200',
+                 'script_type': 'coinbase',
+                 'sequence': 4294967295,
+                 }
+            ],
+            'locktime': 0,
+            'network': 'bitcoin',
+            'output_total': 1717718311,
+            'outputs': [
+                {'address': '18cBEMRxXHqzWWCxZNtU91F5sbUNKhL5PX',
+                 'output_n': 0,
+                 'public_key_hash': '536ffa992491508dca0354e52f32a3a7a679a53a',
+                 'script': '76a914536ffa992491508dca0354e52f32a3a7a679a53a88ac',
+                 'script_type': 'p2pkh',
+                 'value': 1717718311
+                 },
+                {'address': '',
+                 'output_n': 1,
+                 'public_key_hash': '',
+                 'script': '6a24aa21a9ed8e77dfd1d42865e64f1d5ef40f74eeb2ad21c8c40c71f6e615a7c1fcb7701629',
+                 'script_type': 'nulldata',
+                 'spent': False,
+                 'value': 0
+                 },
+            ],
+            'status': 'confirmed',
+            'version': b'\x00\x00\x00\x01'
+        }
+        srv = Service(network='bitcoin', min_providers=10)
+
+        # Get transactions by hash
+        srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13').dict()
+
+        for provider in srv.results:
+            print("Comparing provider %s" % provider)
+            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+                                    ['block_hash', 'block_height', 'spent', 'value', 'flag'])

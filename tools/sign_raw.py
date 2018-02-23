@@ -8,6 +8,10 @@
 #
 
 from bitcoinlib.wallets import HDWallet
+try:
+    input = raw_input
+except NameError:
+    pass
 
 WALLET_NAME = "Multisig_3of5"
 
@@ -25,8 +29,8 @@ raw_tx = ''
 if not raw_tx:
     raw_tx = input("Paste raw transaction hex: ")
 
-t = wlt.transaction_import(raw_tx)
-t_signed = wlt.transaction_sign(t)
+t = wlt.transaction_import_raw(raw_tx)
+t.sign()
 
 print("Raw signed transaction: ")
-print(t_signed.raw_hex())
+print(t.raw_hex())

@@ -641,6 +641,8 @@ class HDKey:
 
         :param import_seed: Private key seed as bytes or hexstring
         :type import_seed: str, bytes
+        :param key_type: Specify type of key, default is BIP32
+        :type key_type: str
         :param network: Network to use
         :type network: str
         
@@ -662,9 +664,9 @@ class HDKey:
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
         :type import_key: str, bytes, int, bytearray
-        :param key: Private or public key (lenght 32)
+        :param key: Private or public key (length 32)
         :type key: bytes
-        :param chain: A chain code (lenght 32)
+        :param chain: A chain code (length 32)
         :type chain: bytes
         :param depth: Level of depth in BIP32 key path
         :type depth: int
@@ -738,7 +740,7 @@ class HDKey:
                         raise BKeyError("[BKeyError] %s" % e)
 
         if not isinstance(key, (bytes, bytearray)) or not(len(key) == 32 or len(key) == 33):
-            raise KeyError("Invalid key specified must be in bytes with lenght 32. You can use "
+            raise KeyError("Invalid key specified must be in bytes with length 32. You can use "
                            "'import_key' attribute to import keys in other formats")
         self.chain = chain
         if self.key is None:
@@ -893,7 +895,9 @@ class HDKey:
 
         :param path: BIP0044 key path
         :type path: str
-        
+        :param network: Network name.
+        :type network: str
+
         :return HDKey: HD Key class object of subkey
         """
 
@@ -989,7 +993,9 @@ class HDKey:
         :type index: int
         :param hardened: Specify if key must be hardened (True) or normal (False)
         :type hardened: bool
-        
+        :param network: Network name.
+        :type network: str
+
         :return HDKey: HD Key class object
         """
         if network is None:
@@ -1020,7 +1026,9 @@ class HDKey:
 
         :param index: Key index number
         :type index: int
-        
+        :param network: Network name.
+        :type network: str
+
         :return HDKey: HD Key class object
         """
         if network is None:

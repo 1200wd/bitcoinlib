@@ -15,8 +15,8 @@ from bitcoinlib.encoding import to_hexstring
 # Mnemonic examples
 #
 
-# Convert hexadecimal to mnemonic and back again to hex
-print("\nConvert hexadecimal to mnemonic and back again to hex")
+# Convert hexadecimal to Mnemonic and back again to hex
+print("\nConvert hexadecimal to Mnemonic and back again to hex")
 pk = '7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f'
 words = Mnemonic().to_mnemonic(pk)
 print("Hex                %s" % pk)
@@ -36,8 +36,8 @@ hdk = HDKey().from_seed(seed)
 print("Seed for HD Key    %s" % to_hexstring(seed))
 print("HD Key WIF is      %s" % hdk.wif())
 
-# Generate a key from a Mnemonic sentence
-print("\nGenerate a key from a Mnemonic sentence")
+# Generate a key from a Mnemonic passphrase
+print("\nGenerate a key from a Mnemonic passphrase")
 words = "type fossil omit food supply enlist move perfect direct grape clean diamond"
 print("Your Mnemonic is   %s" % words)
 seed = Mnemonic().to_seed(words)
@@ -46,7 +46,7 @@ print("Seed for HD Key    %s" % to_hexstring(seed))
 print("HD Key WIF is      %s" % hdk.wif())
 
 # Let's talk Spanish
-print("\nGenerate a key from a Spanish Mnemonic sentence")
+print("\nGenerate a key from a Spanish Mnemonic passphrase")
 words = "laguna afirmar talón resto peldaño deuda guerra dorado catorce avance oasis barniz"
 print("Your Mnemonic is   %s" % words)
 seed = Mnemonic().to_seed(words)
@@ -55,7 +55,7 @@ print("Seed for HD Key    %s" % to_hexstring(seed))
 print("HD Key WIF is      %s" % hdk.wif())
 
 # Want some Chinese?
-print("\nGenerate a key from a Chinese Mnemonic sentence")
+print("\nGenerate a key from a Chinese Mnemonic passphrase")
 words = "信 收 曉 捐 炭 祖 瘋 原 強 則 岩 蓄"
 print("Your Mnemonic is   %s" % words)
 seed = Mnemonic().to_seed(words)
@@ -64,7 +64,7 @@ print("Seed for HD Key    %s" % to_hexstring(seed))
 print("HD Key WIF is      %s" % hdk.wif())
 
 # Spanish Unicode mnemonic sentence
-print("\nGenerate a key from a Spanish UNICODE Mnemonic sentence")
+print("\nGenerate a key from a Spanish UNICODE Mnemonic passphrase")
 words = u"guion cruz envío papel otoño percha hazaña salir joya gorra íntimo actriz"
 print("Your Mnemonic is   %s" % words)
 seed = Mnemonic().to_seed(words, '1200 web development')
@@ -73,7 +73,7 @@ print("Seed for HD Key    %s" % to_hexstring(seed))
 print("HD Key WIF is      %s" % hdk.wif())
 
 # And Japanese
-print("\nGenerate a key from a Japanese UNICODE Mnemonic sentence")
+print("\nGenerate a key from a Japanese UNICODE Mnemonic passphrase")
 words = "あじわう　ちしき　たわむれる　おくさま　しゃそう　うんこう　ひてい　みほん　たいほ　てのひら　りこう　わかれる　かいすいよく　こもん　ねもと"
 print("Your Mnemonic is   %s" % words)
 seed = Mnemonic().to_seed(words, '1200 web development')
