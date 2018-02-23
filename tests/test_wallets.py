@@ -815,6 +815,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 50000000, offline=True)
         t2 = wlt.transaction_import(t)
+        t.fee_per_kb = None
         self.assertDictEqualExt(t.dict(), t2.dict())
 
     def test_wallet_transaction_import_raw(self):
@@ -823,4 +824,5 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 50000000, offline=True)
         t2 = wlt.transaction_import_raw(t.raw())
+        t.fee_per_kb = None
         self.assertDictEqualExt(t.dict(), t2.dict())

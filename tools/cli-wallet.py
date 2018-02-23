@@ -18,8 +18,12 @@ from bitcoinlib.services.services import Service
 try:
     import pyqrcode
     QRCODES_AVAILABLE = True
-except:
+except ImportError:
     QRCODES_AVAILABLE = False
+try:
+    input = raw_input
+except NameError:
+    pass
 
 DEFAULT_NETWORK = 'bitcoin'
 

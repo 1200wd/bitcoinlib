@@ -622,9 +622,9 @@ class HDWalletTransaction(Transaction):
                         index_n = last_index_n[0] + 1
 
                 new_tx_item = DbTransactionInput(
-                    transaction_id=tx_id, output_n=ti.output_n, key_id=key_id, value=ti.value,
-                    prev_hash=ti.prev_hash, index_n=index_n, double_spend=ti.double_spend,
-                    script=ti.unlocking_script, script_type=ti.script_type)
+                    transaction_id=tx_id, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
+                    prev_hash=to_hexstring(ti.prev_hash), index_n=index_n, double_spend=ti.double_spend,
+                    script=to_hexstring(ti.unlocking_script), script_type=ti.script_type)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_input.key_id = key_id
@@ -651,7 +651,7 @@ class HDWalletTransaction(Transaction):
             if not tx_output:
                 new_tx_item = DbTransactionOutput(
                     transaction_id=tx_id, output_n=to.output_n, key_id=key_id, value=to.value, spent=spent,
-                    script=to.lock_script, script_type=to.script_type)
+                    script=to_hexstring(to.lock_script), script_type=to.script_type)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_output.key_id = key_id
