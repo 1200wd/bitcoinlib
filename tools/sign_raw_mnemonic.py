@@ -10,7 +10,10 @@
 from bitcoinlib.wallets import HDWallet
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
-
+try:
+    input = raw_input
+except NameError:
+    pass
 
 WALLET_NAME = "Multisig_3of5"
 

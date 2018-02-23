@@ -8,6 +8,10 @@
 #
 
 from bitcoinlib.wallets import HDWallet
+try:
+    input = raw_input
+except NameError:
+    pass
 
 WALLET_NAME = "Multisig_3of5"
 

@@ -11,6 +11,10 @@ import os
 from pprint import pprint
 from bitcoinlib.wallets import HDWallet, DEFAULT_DATABASEDIR
 from bitcoinlib.mnemonic import Mnemonic
+try:
+    input = raw_input
+except NameError:
+    pass
 
 #
 # Create Wallets

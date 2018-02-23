@@ -17,7 +17,10 @@ from sqlalchemy.orm import sessionmaker
 from shutil import move
 from bitcoinlib.main import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
 from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren
-
+try:
+    input = raw_input
+except NameError:
+    pass
 
 DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib.backup-%s.sqlite" %
                                datetime.now().strftime("%Y%m%d-%I:%M"))
