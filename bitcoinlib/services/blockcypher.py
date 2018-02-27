@@ -144,7 +144,7 @@ class BlockCypher(BaseClient):
         return t
 
     def getrawtransaction(self, tx_id):
-        return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
+        return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})['hex']
 
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
