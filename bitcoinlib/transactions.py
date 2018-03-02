@@ -871,6 +871,8 @@ class Transaction:
         self.rawtx = rawtx
         self.status = status
         self.verified = verified
+        if not self.hash and rawtx:
+            self.hash = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
 
     def __repr__(self):
         return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \

@@ -83,7 +83,6 @@ class BlockCypher(BaseClient):
 
     def gettransactions(self, addresslist, unspent_only=False):
         txs = []
-        tx_ids = []
         for address in addresslist:
             res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
             if not isinstance(res, list):
@@ -97,21 +96,7 @@ class BlockCypher(BaseClient):
                                     "Transaction list may be incomplete" % address)
                 for tx in a['txrefs']:
                     if tx['tx_hash'] not in [t.hash for t in txs]:
-                        rawtx = self.getrawtransaction(tx['tx_hash'])
-                        t = Transaction.import_raw(rawtx)
-                        t.hash = tx['tx_hash']
-                        if tx['confirmations']:
-                            t.status = 'confirmed'
-                        else:
-                            t.status = 'unconfirmed'
-                        t.date = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
-                        t.confirmations = tx['confirmations']
-                        t.block_height = tx['block_height']
-                        t.rawtx = rawtx
-                        t.size = len(rawtx) // 2
-                        t.network_name = self.network
-                        for n, i in enumerate(t.inputs):
-                            print(n, i)
+                        t = self.gettransaction(tx['tx_hash'])
                         txs.append(t)
         return txs
 

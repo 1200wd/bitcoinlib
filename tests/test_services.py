@@ -142,9 +142,12 @@ class TestService(unittest.TestCase, CustomAssertions):
             if t.block_height:
                 self.assertEqual(t.block_height, block_height,
                                  msg="Unexpected block height for %s provider" % provider)
-            self.assertEqual(t.input_total, input_total, msg="Unexpected input_total for %s provider" % provider)
-            self.assertEqual(t.output_total, output_total, msg="Unexpected output_total for %s provider" % provider)
+            self.assertEqual(t.input_total, input_total, msg="Unexpected input_total %d for %s provider" % (
+                t.input_total, provider))
             self.assertEqual(t.fee, fee, msg="Unexpected fee for %s provider" % provider)
+            self.assertEqual(t.output_total, output_total, msg="Unexpected output_total %d for %s provider" % (
+                t.output_total, provider))
+
             self.assertEqual(t.status, status, msg="Unexpected status for %s provider" % provider)
             if t.size:
                 self.assertEqual(t.size, size, msg="Unexpected transaction size for %s provider" % provider)
@@ -154,7 +157,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
                 for inp in [i.dict() for i in t.inputs]
             ]
-            if provider == 'blockchaininfo':  # Blockchain.info does not provide previous hashes
+            if provider in ['blockchaininfo']:  # Some providers do not provide previous hashes
                 r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
                 r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)

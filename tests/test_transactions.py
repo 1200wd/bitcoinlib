@@ -892,6 +892,23 @@ class TestTransactions(unittest.TestCase):
         # For now just check if no parsing errors occur when deserializing
         self.assertEqual(len(t.inputs), 1)
 
+    def test_transactions_import_raw_totals(self):
+        raw_tx = "0100000003efdad76b8da190878c1de4c92fd4aaa0a287984171a4398c1140df11663cb84c010000006b483045022065db" \
+                 "71606b84edc291eb2ec55e49ee2fd44afef8b20b4ef88fc2a01c2ba6e963022100dfb24228f2f80574d64a3a2964c5b3d0" \
+                 "54c14f0bf18c409f72345331271b5020012102a1e806a0c19aaf32363eb19e91a901eafdfc513d13f632f4e2a39f3cb894" \
+                 "ad27ffffffff670fa789f11df8b202f380ebc6b4f76fa312f6bfb11494811f00411d7bbb0ae0010000006b483045022100" \
+                 "9b5fe2b2bff2a9801725351ae2a8eb410b10b6fecb44edb442ee750e6825f1a4022038e19b3b0e3a95b4a3952dde87efc0" \
+                 "49d4a72a4424872ab768f7fb3220be4c1e0121032256cb5a8e6d3c9354da72369b939a35febb80d35e6afb50e6f348c20c" \
+                 "6c6c05ffffffff52dd5a0965f2d36850f3d2ddeb1457cd72e1cd5a325656af44a3c6ba9f2d42fa010000006c4930460221" \
+                 "008a9bf9a1ba9b4125ac9b8cf10423447ad8c7ede3414028237c4c0e0b3b3dc4fd0221009f94721c04b7d4eb33bb1aad61" \
+                 "daf98b6ed05dfbf5e3225ae9b3afe24b8924d50121028b04194cb938044761bb93d3917abcce13f910a0500c08e61bdaaf" \
+                 "5ea29b5ca0ffffffff02b0c39203000000001976a9148a81571528050b80099821ed0bc4e48ed33e5e4d88ac1f6db80a01" \
+                 "0000001976a914963f47c50eaafd07c8b0a8a505c825216a4fee6d88ac00000000"
+        t = Transaction.import_raw(raw_tx)
+        self.assertEqual(t.output_total, 4534776015)
+        self.assertEqual(t.size, 523)
+        self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
+
 
 class TestTransactionsScriptType(unittest.TestCase):
     def test_transaction_script_type_p2pkh(self):
