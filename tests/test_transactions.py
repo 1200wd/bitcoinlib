@@ -905,12 +905,10 @@ class TestTransactions(unittest.TestCase):
                  "5ea29b5ca0ffffffff02b0c39203000000001976a9148a81571528050b80099821ed0bc4e48ed33e5e4d88ac1f6db80a01" \
                  "0000001976a914963f47c50eaafd07c8b0a8a505c825216a4fee6d88ac00000000"
         t = Transaction.import_raw(raw_tx)
-        # self.assertEqual(t.input_total, 4534802265)
         self.assertEqual(t.output_total, 4534776015)
-        # self.assertEqual(t.fee, 26250)
-        # self.assertEqual(t.size, 523)
-        # self.assertEqual(t.fee_per_kb, 0)
-        # self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
+        self.assertEqual(t.size, 523)
+        self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
+
 
 class TestTransactionsScriptType(unittest.TestCase):
     def test_transaction_script_type_p2pkh(self):
