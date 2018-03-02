@@ -106,7 +106,7 @@ class BlockCypher(BaseClient):
                             t.status = 'unconfirmed'
                         t.date = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
                         t.confirmations = tx['confirmations']
-                        t.block_height = tx['block_height'],
+                        t.block_height = tx['block_height']
                         t.rawtx = rawtx
                         t.size = len(rawtx) // 2
                         t.network_name = self.network
