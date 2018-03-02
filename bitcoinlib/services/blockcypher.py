@@ -106,7 +106,7 @@ class BlockCypher(BaseClient):
                             t.status = 'unconfirmed'
                         t.date = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
                         t.confirmations = tx['confirmations']
-                        t.block_height = tx['block_height'],
+                        t.block_height = tx['block_height']
                         t.rawtx = rawtx
                         t.size = len(rawtx) // 2
                         t.network_name = self.network
@@ -144,7 +144,7 @@ class BlockCypher(BaseClient):
         return t
 
     def getrawtransaction(self, tx_id):
-        return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
+        return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})['hex']
 
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')

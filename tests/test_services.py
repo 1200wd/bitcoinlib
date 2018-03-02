@@ -142,8 +142,10 @@ class TestService(unittest.TestCase, CustomAssertions):
             if t.block_height:
                 self.assertEqual(t.block_height, block_height,
                                  msg="Unexpected block height for %s provider" % provider)
-            self.assertEqual(t.input_total, input_total, msg="Unexpected input_total for %s provider" % provider)
-            self.assertEqual(t.output_total, output_total, msg="Unexpected output_total for %s provider" % provider)
+            self.assertEqual(t.input_total, input_total, msg="Unexpected input_total %d for %s provider" % (
+                t.input_total, provider))
+            self.assertEqual(t.output_total, output_total, msg="Unexpected output_total %d for %s provider" % (
+                t.output_total, provider))
             self.assertEqual(t.fee, fee, msg="Unexpected fee for %s provider" % provider)
             self.assertEqual(t.status, status, msg="Unexpected status for %s provider" % provider)
             if t.size:
