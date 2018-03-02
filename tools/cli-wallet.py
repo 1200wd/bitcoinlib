@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('wallet_name', nargs='?', default='',
                         help="Name of wallet to create or open. Used to store your all your wallet keys "
                              "and will be printed on each paper wallet")
-    parser.add_argument('--network', '-n', default=DEFAULT_NETWORK,
+    parser.add_argument('--network', '-n',
                         help="Specify 'bitcoin', 'testnet' or other supported network")
     parser.add_argument('--database', '-d',
                         help="Name of specific database file to use",)
@@ -58,6 +58,8 @@ def parse_args():
     group = parser.add_argument_group("Send / Create transaction")
     group.add_argument('--create-transaction', '-t',
                        help="Create transaction. Specify address followed by amount", nargs='*')
+    group.add_argument('--sweep',
+                       help="Sweep wallet, transfer all funds to specified address")
     group.add_argument('--fee', '-f', type=str,
                        help="Transaction fee")
     group.add_argument('--push', '-p', action='store_true',
@@ -74,6 +76,8 @@ def parse_args():
 
 
 def create_wallet(wallet_name, args, databasefile):
+    if args.network is None:
+        args.network = DEFAULT_NETWORK
     print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
     if args.create_multisig:
         if not isinstance(args.create_multisig, list) or len(args.create_multisig) < 3:
@@ -111,22 +115,22 @@ def create_wallet(wallet_name, args, databasefile):
         return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif(), databasefile=databasefile)
 
 
-def create_transaction(wlt, send_args, fee):
+def create_transaction(wlt, send_args, fee, args):
     output_arr = []
     while send_args:
         if len(send_args) == 1:
             raise ValueError("Invalid number of transaction input use <address1> <amount1> ... <address_n> <amount_n>")
         try:
             amount = int(send_args[1])
-        except:
-            clw_exit("Amount must be a numeric value. %s" % send_args[1])
+        except ValueError:
+            clw_exit("Amount must be a integer value: %s" % send_args[1])
         output_arr.append((send_args[0], amount))
         send_args = send_args[2:]
     try:
         fee = int(fee)
-    except:
-        clw_exit("Fee must be a numeric value. %s" % fee)
-    return wlt.transaction_create(output_arr=output_arr, transaction_fee=fee)
+    except ValueError:
+        clw_exit("Fee must be a integer value: %s" % fee)
+    return wlt.transaction_create(output_arr=output_arr, transaction_fee=fee, network=args.network)
 
 
 def clw_exit(msg=None):
@@ -184,6 +188,9 @@ if __name__ == '__main__':
     if wlt is None:
         clw_exit("Could not open wallet %s" % args.wallet_name)
 
+    if args.network is None:
+        args.network = wlt.network.network_name
+
     if args.receive:
         addr = wlt.get_key().address
         print("Receive address is %s" % addr)
@@ -205,15 +212,31 @@ if __name__ == '__main__':
         if not fee:
             srv = Service(network=args.network)
             fee = srv.estimatefee()
-        wt = create_transaction(wlt, args.create_transaction, fee)
+        wt = create_transaction(wlt, args.create_transaction, fee, args)
         wt.sign()
         print("Transaction created")
         wt.info()
         if args.push:
             wt = wt.send()
-            print("Send transaction result: %s" % wt)
+            print("Send transaction result: %s" % wt.status)
         else:
-            print("Transaction not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
+            print("Transaction created but not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
+        clw_exit()
+    if args.sweep:
+        if args.fee:
+            clw_exit("Fee option not allowed with --sweep")
+        offline = True
+        print("Sweep wallet. Send all funds to %s" % args.sweep)
+        if args.push:
+            offline = False
+        wt = wlt.sweep(args.sweep, offline=offline, network=args.network)
+        if not wt:
+            clw_exit("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)
+        wt.info()
+        if args.push:
+            print("Send transaction result: %s" % wt.status)
+        else:
+            print("Transaction created but not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
         clw_exit()
 
     print("Updating wallet")
