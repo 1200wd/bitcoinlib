@@ -217,8 +217,11 @@ if __name__ == '__main__':
         print("Transaction created")
         wt.info()
         if args.push:
-            wt = wt.send()
-            print("Send transaction result: %s" % wt if isinstance(wt, bool) else wt.status)
+            res = wt.send()
+            if res:
+                print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
+            else:
+                print("Error creating transaction: %s" % wt.error)
         else:
             print("Transaction created but not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
         clw_exit()
@@ -234,7 +237,12 @@ if __name__ == '__main__':
             clw_exit("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)
         wt.info()
         if args.push:
-            print("Send transaction result: %s" % wt.status)
+            if wt and wt.pushed:
+                print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
+            elif not wt:
+                print("Cannot sweep wallet, are UTXO's updated and available?")
+            else:
+                print("Error sweeping wallet: %s" % wt.error)
         else:
             print("Transaction created but not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
         clw_exit()
