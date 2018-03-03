@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument('--wallet-info', '-i', action='store_true',
                         help="Show wallet information")
     parser.add_argument('--passphrase', nargs="*", default=None,
-                        help="Passphrase to recover or create a wallet")
+                        help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
     parser.add_argument('--passphrase-strength', type=float, default=128,
                         help="Number of bits for passphrase key")
     parser.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
@@ -213,7 +213,10 @@ if __name__ == '__main__':
         if not fee:
             srv = Service(network=args.network)
             fee = srv.estimatefee()
-        wt = create_transaction(wlt, args.create_transaction, fee, args)
+        try:
+            wt = create_transaction(wlt, args.create_transaction, fee, args)
+        except WalletError as e:
+            clw_exit("Cannot create transaction: %s" % e.msg)
         wt.sign()
         print("Transaction created")
         wt.info()
