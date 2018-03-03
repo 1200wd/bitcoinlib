@@ -549,7 +549,7 @@ class HDWalletTransaction(Transaction):
         """
 
         if not self.verify():
-            self.error = "Cannot verify transaction. Create transaction failed"
+            self.error = "Cannot verify transaction. Send transaction failed"
             return False
 
         if offline:
