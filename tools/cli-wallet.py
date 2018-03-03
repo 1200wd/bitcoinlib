@@ -131,7 +131,7 @@ def create_transaction(wlt, send_args, fee, args):
         fee = int(fee)
     except ValueError:
         clw_exit("Fee must be a integer value: %s" % fee)
-    return wlt.transaction_create(output_arr=output_arr, transaction_fee=fee, network=args.network)
+    return wlt.transaction_create(output_arr=output_arr, transaction_fee=fee, network=args.network, min_confirms=0)
 
 
 def clw_exit(msg=None):
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     else:
         try:
             wlt = HDWallet(args.wallet_name, databasefile=databasefile)
-            if args.passphrase is not None or args.passphrase_strength is not None:
+            if args.passphrase is not None:
                 print("WARNING: Using passphrase options for existing wallet ignored")
         except WalletError as e:
             clw_exit("Error: %s" % e.msg)
@@ -236,7 +236,7 @@ if __name__ == '__main__':
         print("Sweep wallet. Send all funds to %s" % args.sweep)
         if args.push:
             offline = False
-        wt = wlt.sweep(args.sweep, offline=offline, network=args.network)
+        wt = wlt.sweep(args.sweep, offline=offline, network=args.network, min_confirms=0)
         if not wt:
             clw_exit("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)
         wt.info()
