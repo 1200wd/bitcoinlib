@@ -47,7 +47,7 @@ def parse_args():
                         help="Passphrase to recover or create a wallet")
     parser.add_argument('--passphrase-strength', type=float, default=128,
                         help="Number of bits for passphrase key")
-    parser.add_argument('--create-multisig', '-m', nargs='*',
+    parser.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
                         help='Specificy number of signatures required followed by a list of signatures.'
                              '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2'
                              'M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF'
@@ -56,9 +56,10 @@ def parse_args():
     parser.add_argument('--scan', '-s', action='store_true',
                         help="Scan and update wallet with all addresses, transactions and balances")
     group = parser.add_argument_group("Send / Create transaction")
-    group.add_argument('--create-transaction', '-t',
-                       help="Create transaction. Specify address followed by amount", nargs='*')
-    group.add_argument('--sweep',
+    group.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
+                       help="Create transaction. Specify address followed by amount. Repeat for multiple outputs",
+                       nargs='*')
+    group.add_argument('--sweep', metavar="ADDRESS",
                        help="Sweep wallet, transfer all funds to specified address")
     group.add_argument('--fee', '-f', type=str,
                        help="Transaction fee")
