@@ -492,7 +492,9 @@ class Input:
             self.output_n = output_n
         if isinstance(keys, (bytes, str)):
             keys = [keys]
-        self.unlocking_script = to_bytes(unlocking_script)
+        if unlocking_script is None:
+            unlocking_script = b''
+        self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b''
         if self.prev_hash == 32 * b'\0':
             self.script_type = 'coinbase'
@@ -672,7 +674,7 @@ class Output:
                                    "creating output")
 
         self.value = value
-        self.lock_script = to_bytes(lock_script)
+        self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
         self.public_key = to_bytes(public_key)

@@ -2405,7 +2405,7 @@ class HDWallet:
                     key_id = None if len(inp) <= 2 else inp[2]
                     value = 0 if len(inp) <= 3 else inp[3]
                     signatures = None if len(inp) <= 4 else inp[4]
-                    unlocking_script = None if len(inp) <= 5 else inp[5]
+                    unlocking_script = b'' if len(inp) <= 5 else inp[5]
                 # Get key_ids, value from Db if not specified
                 if not (key_id or value):
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
