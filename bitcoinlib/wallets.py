@@ -587,18 +587,26 @@ class HDWalletTransaction(Transaction):
             if db_tx:
                 db_tx.wallet_id = self.hdwallet.wallet_id
                 # db_tx.network = self.network.network_name
+
         if not db_tx:
             new_tx = DbTransaction(
-                wallet_id=self.hdwallet.wallet_id, hash=self.hash, block_height=self.block_height, size=self.size,
-                confirmations=self.confirmations, date=self.date, fee=self.fee, status=self.status,
+                wallet_id=self.hdwallet.wallet_id, hash=self.hash, block_height=self.block_height,
+                size=self.size, confirmations=self.confirmations, date=self.date, fee=self.fee, status=self.status,
                 input_total=self.input_total, output_total=self.output_total, network_name=self.network.network_name,
-                raw=self.raw_hex(), block_hash=self.block_hash
-            )
+                raw=self.raw_hex(), block_hash=self.block_hash)
             sess.add(new_tx)
             sess.commit()
             tx_id = new_tx.id
         else:
             tx_id = db_tx.id
+            db_tx.block_height = self.block_height if self.block_height else db_tx.block_height
+            db_tx.confirmations = self.confirmations if self.confirmations else db_tx.confirmations
+            db_tx.date = self.date if self.date else db_tx.date
+            db_tx.fee = self.fee if self.fee else db_tx.fee
+            db_tx.status = self.status if self.status else db_tx.status
+            db_tx.input_total = self.input_total if self.input_total else db_tx.input_total
+            db_tx.output_total = self.output_total if self.output_total else db_tx.output_total
+            sess.commit()
 
         assert tx_id
         for ti in self.inputs:
@@ -628,6 +636,8 @@ class HDWalletTransaction(Transaction):
                 sess.add(new_tx_item)
             elif key_id:
                 tx_input.key_id = key_id
+                if ti.value:
+                    tx_input.value = ti.value
                 if ti.prev_hash:
                     tx_input.prev_hash = to_hexstring(ti.prev_hash)
                 if ti.unlocking_script:
@@ -2182,7 +2192,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['bitgo'])
+        srv = Service(network=network, providers=['blockcypher'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
