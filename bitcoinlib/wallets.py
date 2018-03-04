@@ -2257,7 +2257,7 @@ class HDWallet:
         return res
 
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None,
-                           min_confirms=1, max_utxos=None):
+                           min_confirms=0, max_utxos=None):
         """
             Create new transaction with specified outputs. 
             Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -2273,7 +2273,7 @@ class HDWallet:
             :type network: str
             :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
             :type transaction_fee: int
-            :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
+            :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
             :type min_confirms: int
             :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
             :type max_utxos: int
@@ -2473,7 +2473,7 @@ class HDWallet:
         t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
         return self.transaction_create(t_import.outputs, t_import.inputs)
 
-    def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=4,
+    def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=0,
              priv_keys=None, max_utxos=None, offline=False):
         """
         Create new transaction with specified outputs and push it to the network. 
@@ -2490,7 +2490,7 @@ class HDWallet:
         :type network: str
         :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
         :type transaction_fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
@@ -2536,7 +2536,7 @@ class HDWallet:
         self._balance_update(network=network)
         return transaction
 
-    def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=4,
+    def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=0,
                 priv_keys=None, offline=False):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
@@ -2551,7 +2551,7 @@ class HDWallet:
         :type network: str
         :param transaction_fee: Fee to use for this transaction. Leave empty to automatically estimate.
         :type transaction_fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 4. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
@@ -2565,7 +2565,7 @@ class HDWallet:
         return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
                          min_confirms=min_confirms, priv_keys=priv_keys, offline=offline)
 
-    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
+    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
               fee_per_kb=None, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 

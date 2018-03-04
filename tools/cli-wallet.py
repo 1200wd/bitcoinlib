@@ -236,7 +236,7 @@ if __name__ == '__main__':
         print("Sweep wallet. Send all funds to %s" % args.sweep)
         if args.push:
             offline = False
-        wt = wlt.sweep(args.sweep, offline=offline, network=args.network, min_confirms=0)
+        wt = wlt.sweep(args.sweep, offline=offline, network=args.network)
         if not wt:
             clw_exit("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)
         wt.info()
