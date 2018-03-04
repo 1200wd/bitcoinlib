@@ -252,6 +252,7 @@ if __name__ == '__main__':
         clw_exit()
 
     print("Updating wallet")
-    wlt.utxos_update()
+    # wlt.utxos_update()
+    wlt.transactions_update()
     print("Wallet info for %s" % wlt.name)
     wlt.info()

@@ -68,7 +68,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         output_wlt_delete = "Wallet test2 has been removed"
 
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
-        check_output(cmd_wlt_update, shell=True)
+        print(check_output(cmd_wlt_update, shell=True))
         self.assertIn(output_wlt_transaction, check_output(cmd_wlt_transaction, shell=True))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
 

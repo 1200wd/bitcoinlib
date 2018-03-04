@@ -629,9 +629,9 @@ class HDWalletTransaction(Transaction):
             elif key_id:
                 tx_input.key_id = key_id
                 if ti.prev_hash:
-                    tx_input.prev_hash = ti.prev_hash
+                    tx_input.prev_hash = to_hexstring(ti.prev_hash)
                 if ti.unlocking_script:
-                    tx_input.script = ti.unlocking_script
+                    tx_input.script = to_hexstring(ti.unlocking_script)
 
             sess.commit()
         for to in self.outputs:
@@ -2182,7 +2182,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network)
+        srv = Service(network=network, providers=['bitgo'])
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")

@@ -102,7 +102,7 @@ class BlockCypher(BaseClient):
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
-        t = Transaction.import_raw(tx['hex'])
+        t = Transaction.import_raw(tx['hex'], network=self.network)
         t.hash = tx_id
         if tx['confirmations']:
             t.status = 'confirmed'
