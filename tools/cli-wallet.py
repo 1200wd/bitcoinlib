@@ -208,6 +208,8 @@ if __name__ == '__main__':
         print("Scanning complete, show wallet info")
         wlt.info()
         clw_exit()
+    if args.create_transaction == []:
+        clw_exit("Missing arguments for --create-transaction/-t option")
     if args.create_transaction:
         fee = args.fee
         if not fee:
@@ -253,6 +255,5 @@ if __name__ == '__main__':
 
     print("Updating wallet")
     wlt.utxos_update()
-    wlt.transactions_update()
     print("Wallet info for %s" % wlt.name)
     wlt.info()
