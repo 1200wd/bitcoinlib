@@ -1,15 +1,21 @@
-
-
-# TODO: cleanup
-
-
+# -*- coding: utf-8 -*-
 #
-# === TRANSACTIONS AND BITCOIND EXAMPLES
+#    BitcoinLib - Python Cryptocurrency Library
+#
+#    EXAMPLES - Bitcoin Client Service
+#
+#    © 2018 March - 1200 Web Development <http://1200wd.com/>
 #
 
+from pprint import pprint
+from bitcoinlib.transactions import *
 from bitcoinlib.services.bitcoind import BitcoindClient
 
-bdc = BitcoindClient.from_config()
+# Provide a connection URL to your bitcoind instance, or leave empty to search service on localhost
+# Connection URL Example:
+#   http://user:password@server_url:8332 (use port 18332 for testport)
+base_url = ''
+bdc = BitcoindClient(base_url=base_url)
 
 # Deserialize and verify a transaction
 txid = '73652b5f704b0a112b8bc68d063dac6238eb3e2861074a7a12ce24e2a332bd45'

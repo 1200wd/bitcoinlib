@@ -71,7 +71,7 @@ class BitcoindClient(BaseClient):
         else:
             raise ConfigError("Network %s not supported by BitcoindClient" % network)
         try:
-            server = config.get('rpc', 'server')
+            server = config.get('rpc', 'bind')
         except:
             server = '127.0.0.1'
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
