@@ -88,7 +88,7 @@ class BlockchainInfoClient(BaseClient):
     def gettransaction(self, tx_id):
         tx = self.compose_request('rawtx', tx_id)
         raw_tx = self.getrawtransaction(tx_id)
-        t = Transaction.import_raw(raw_tx)
+        t = Transaction.import_raw(raw_tx, self.network)
         input_total = None
         for n, i in enumerate(t.inputs):
             if 'prev_out' in tx['inputs'][n]:

@@ -64,11 +64,11 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         cmd_wlt_delete = "echo test2 | %s %s test2 --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         output_wlt_create = "Receive address is 21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
-        output_wlt_transaction = b'Send transaction result: True'
+        output_wlt_transaction = b'Transaction pushed to network'
         output_wlt_delete = "Wallet test2 has been removed"
 
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
-        check_output(cmd_wlt_update, shell=True)
+        print(check_output(cmd_wlt_update, shell=True))
         self.assertIn(output_wlt_transaction, check_output(cmd_wlt_transaction, shell=True))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
 
