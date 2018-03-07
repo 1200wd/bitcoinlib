@@ -2656,7 +2656,8 @@ class HDWallet:
             self.main_key.dict()
         if detail > 1:
             for nw in self.networks():
-                print("\n- Network: %s -" % nw['network_name'])
+                print("\n- NETWORK: %s -" % nw['network_name'])
+                print("- Keys")
                 if detail < 3:
                     ds = [0, 3, 5]
                 else:
@@ -2668,20 +2669,21 @@ class HDWallet:
                     for key in self.keys(depth=d, network=nw['network_name'], is_active=is_active):
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
                                                               Network(key.network_name).print_value(key.balance)))
-        print("\n= Transactions =")
-        if detail > 2:
-            include_new = False
-            if detail > 3:
-                include_new = True
-            for t in self.transactions(include_new=include_new):
-                spent = ""
-                if 'spent' in t and t['spent'] is False:
-                    spent = "U"
-                status = ""
-                if t['status'] not in ['confirmed', 'unconfirmed']:
-                    status = t['status']
-                print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
-                                                        t['confirmations'], t['value'], spent, status))
+
+                if detail > 2:
+                    print("\n- Transactions")
+                    include_new = False
+                    if detail > 3:
+                        include_new = True
+                    for t in self.transactions(include_new=include_new, network=nw['network_name']):
+                        spent = ""
+                        if 'spent' in t and t['spent'] is False:
+                            spent = "U"
+                        status = ""
+                        if t['status'] not in ['confirmed', 'unconfirmed']:
+                            status = t['status']
+                        print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
+                                                                t['confirmations'], t['value'], spent, status))
 
         print("\n")
 
