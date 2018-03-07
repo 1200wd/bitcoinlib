@@ -21,7 +21,7 @@
 import logging
 import hashlib
 from bitcoinlib.services.baseclient import BaseClient
-from bitcoinlib.encoding import addr_to_pubkeyhash
+from bitcoinlib.encoding import addr_to_pubkeyhash, to_hexstring, to_bytes
 
 _logger = logging.getLogger(__name__)
 
@@ -58,4 +58,5 @@ class BitcoinLibTestClient(BaseClient):
         return int(1000 / blocks)
 
     def sendrawtransaction(self, rawtx):
-        return {'txid': 'succesfull_test_sendrawtransaction'}
+        txid = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
+        return {'txid': txid}

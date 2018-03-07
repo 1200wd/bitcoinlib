@@ -236,7 +236,7 @@ class TestWalletKeys(unittest.TestCase):
                                     network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
         wlt.get_key()
         wlt.utxos_update()
-        self.assertEqual(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY').hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY').error)
 
     def test_wallet_single_key(self):
         wlt = wallet_create_or_open('single_key', scheme='single', network='bitcoinlib_test',
@@ -337,8 +337,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
         w.new_key()
         w.utxos_update()
-        self.assertEqual(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 5000000).hash,
-                         'succesfull_test_sendrawtransaction')
+        self.assertIsNone(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 5000000).error)
 
     def test_wallet_bitcoinlib_testnet_send_utxos_updated(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -377,8 +376,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.new_key()
         w.utxos_update()
-        self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo').hash,
-                         'succesfull_test_sendrawtransaction')
+        self.assertIsNone(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo').error)
         self.assertEqual(w.utxos(), [])
 
 
@@ -440,7 +438,7 @@ class TestWalletMultisig(unittest.TestCase):
         t.sign()
         self.assertTrue(t.verify())
         t.send()
-        self.assertEqual(t.hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(t.error)
 
     def test_wallet_multisig_2of2(self):
         """
@@ -512,7 +510,7 @@ class TestWalletMultisig(unittest.TestCase):
         t2 = msw2.transaction_import(t)
         t2.sign()
         t2.send()
-        self.assertEqual(t2.hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(t2.error)
 
     @staticmethod
     def _multisig_test(sigs_required, number_of_sigs, sort_keys, network):
@@ -608,7 +606,7 @@ class TestWalletMultisig(unittest.TestCase):
         t = wl.transaction_create([(HDKey(network='bitcoinlib_test').key.address(), 6400000)], min_confirms=0)
         t.sign(keys[1])
         t.send()
-        self.assertEqual(t.hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(t.error)
 
         key_names_active = [k.name for k in wl.keys(is_active=False)]
         self.assertEqual(key_names_active,
@@ -682,7 +680,7 @@ class TestWalletKeyImport(unittest.TestCase):
         wallet.utxos_update()
         wallet.import_key(hdkey)
         wt = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
-        self.assertEqual(wt.hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(wt.error)
 
     def test_wallet_import_private_for_known_public(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):

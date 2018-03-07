@@ -2026,6 +2026,8 @@ class HDWallet:
         for network in networks:
             if account_id is None:
                 accounts = [k['account_id'] for k in self.accounts(network=network)]
+                if not accounts:
+                    accounts = [self.default_account_id]
             else:
                 accounts = [account_id]
             for account_id in accounts:
