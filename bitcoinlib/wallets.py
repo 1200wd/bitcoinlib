@@ -544,7 +544,7 @@ class HDWalletTransaction(Transaction):
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
-        :return str, dict: Transaction ID if successfull or dict with results otherwise
+        :return bool: Returns True if succesfully pushed to the network
 
         """
 
@@ -2214,7 +2214,7 @@ class HDWallet:
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None):
         """
-        :param account_id: Filter by Account ID
+        :param account_id: Filter by Account ID. Leave empty for default account_id
         :type account_id: int
         :param network: Filter by network name. Leave empty for default network
         :type network: str
@@ -2657,7 +2657,7 @@ class HDWallet:
         if detail > 1:
             for nw in self.networks():
                 print("\n- NETWORK: %s -" % nw['network_name'])
-                print("- Keys")
+                print("- - Keys")
                 if detail < 3:
                     ds = [0, 3, 5]
                 else:
@@ -2671,19 +2671,21 @@ class HDWallet:
                                                               Network(key.network_name).print_value(key.balance)))
 
                 if detail > 2:
-                    print("\n- Transactions")
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    for t in self.transactions(include_new=include_new, network=nw['network_name']):
-                        spent = ""
-                        if 'spent' in t and t['spent'] is False:
-                            spent = "U"
-                        status = ""
-                        if t['status'] not in ['confirmed', 'unconfirmed']:
-                            status = t['status']
-                        print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
-                                                                t['confirmations'], t['value'], spent, status))
+                    for account_id in [a['account_id'] for a in self.accounts(network=nw['network_name'])]:
+                        print("- - Transactions (Account ID %d)" % account_id)
+                        for t in self.transactions(include_new=include_new, account_id=account_id,
+                                                   network=nw['network_name']):
+                            spent = ""
+                            if 'spent' in t and t['spent'] is False:
+                                spent = "U"
+                            status = ""
+                            if t['status'] not in ['confirmed', 'unconfirmed']:
+                                status = t['status']
+                            print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
+                                                                    t['confirmations'], t['value'], spent, status))
 
         print("\n")
 
