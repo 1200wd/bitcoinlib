@@ -325,6 +325,47 @@ class TestWalletMultiCurrency(unittest.TestCase):
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
 
 
+class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        self.pk = 'tobacco defy swarm leaf flat pyramid velvet pen minor twist maximum extend'
+        self.wallet = HDWallet.create(
+            key=self.pk, network='bitcoin',
+            name='test_wallet_multi_network_multi_account',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+        self.wallet.new_key()
+        acc = self.wallet.new_account('BCL test home', network='bitcoinlib_test')
+        acc2 = self.wallet.new_account('BCL test office', network='bitcoinlib_test')
+        self.wallet.new_key(account_id=acc2.account_id, network='bitcoinlib_test')
+        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        self.wallet.utxos_update(networks='bitcoinlib_test')
+        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        self.wallet.get_key(network='litecoin_testnet', number_of_keys=2)
+        self.wallet.get_key(network='litecoin_testnet', change=1)
+        self.wallet.utxos_update(networks='litecoin_testnet')
+        self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 400000000)
+        # self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
+        # self.assertEqual(self.wallet.balance(network='litecoin_testnet'), 200000)
+        ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
+                          'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
+        self.assertListEqual(self.wallet.addresslist(network='litecoin_testnet'), ltct_addresses)
+        # self.assertEqual(self.wallet.balance(network='litecoin_testnet'), 400000000)
+
+    def test_wallet_multi_networks_send_transaction(self):
+        t = self.wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
+                                network='bitcoinlib_test', transaction_fee=1000, offline=False)
+        self.assertIsNone(t.error)
+        self.assertTrue(t.verified)
+        self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 389999000)
+        self.assertEqual(len(self.wallet.transactions(account_id=0, network='bitcoinlib_test')), 2)
+        self.assertEqual(len(self.wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
+        self.wallet.info()
+
+
 class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
     def test_wallet_bitcoinlib_testnet_sendto(self):

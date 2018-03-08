@@ -669,6 +669,10 @@ class HDWalletTransaction(Transaction):
         return tx_id
 
     def info(self):
+        """
+        Print Wallet transaction information to standard output. Include send information.
+
+        """
         Transaction.info(self)
         print("Pushed to network: %s" % self.pushed)
         print("Wallet: %s" % self.hdwallet.name)
@@ -1929,7 +1933,7 @@ class HDWallet:
         else:
             return self._balances[network]
 
-    def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=1):
+    def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=0):
         """
         Update balance from UTXO's in database. To get most recent balance update UTXO's first.
         
@@ -2316,6 +2320,7 @@ class HDWallet:
         def _select_inputs(amount, variance=0):
             utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                 filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
+                       DbKey.network_name == network,
                        DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms). \
                 order_by(DbTransaction.confirmations.desc())
             utxos = utxo_query.all()
