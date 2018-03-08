@@ -911,6 +911,7 @@ class Transaction:
             'locktime': self.locktime,
             'raw': self.raw_hex(),
             'size': self.size,
+            'verified': self.verified,
             'status': self.status
         }
 
@@ -923,6 +924,7 @@ class Transaction:
         print("Date: %s" % self.date)
         print("Network: %s" % self.network.network_name)
         print("Status: %s" % self.status)
+        print("Verified: %s" % self.verified)
         print("Inputs")
         for ti in self.inputs:
             print("-", ti.address, ti.value, to_hexstring(ti.prev_hash))

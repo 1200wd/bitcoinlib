@@ -668,6 +668,14 @@ class HDWalletTransaction(Transaction):
             sess.commit()
         return tx_id
 
+    def info(self):
+        Transaction.info(self)
+        print("Pushed to network: %s" % self.pushed)
+        print("Wallet: %s" % self.hdwallet.name)
+        self.pushed = False
+        if self.error:
+            print("Send errors: %s" % self.error)
+
 
 class HDWallet:
     """
