@@ -1231,6 +1231,8 @@ class HDWallet:
                     filter_by(wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
                               depth=3, network_name=network).scalar()
             if not acckey:
+                if account_id is None:
+                    account_id = 0
                 hk = self.new_account(account_id=account_id, network=network)
                 if hk:
                     acckey = hk._dbkey
@@ -1512,10 +1514,11 @@ class HDWallet:
                 duplicate_cointypes = [Network(x).network_name for x in self.network_list() if
                                        Network(x).bip44_cointype == bip44_cointype]
                 if duplicate_cointypes:
-                    raise WalletError("Can not create new account with same BIP44 cointype: %s" % duplicate_cointypes)
+                    raise WalletError("Can not create new account for network %s with same BIP44 cointype: %s" %
+                                      (network, duplicate_cointypes))
                 accrootkey_obj = self._create_keys_from_path(
-                    purposekey, ["%s'" % str(bip44_cointype)], name=network, wallet_id=self.wallet_id, account_id=account_id,
-                    network=network, purpose=self.purpose, basepath=purposekey.path,
+                    purposekey, ["%s'" % str(bip44_cointype)], name=network, wallet_id=self.wallet_id,
+                    account_id=account_id, network=network, purpose=self.purpose, basepath=purposekey.path,
                     session=self._session)
             except IndexError:
                 raise WalletError("No key found for this wallet_id and purpose. Can not create new"
