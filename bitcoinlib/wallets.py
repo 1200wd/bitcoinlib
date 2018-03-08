@@ -2495,7 +2495,9 @@ class HDWallet:
         :return HDWalletTransaction:
 
         """
-        return self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee, network=t.network.network_name)
+        rt = self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee, network=t.network.network_name)
+        rt.verify()
+        return rt
 
     def transaction_import_raw(self, raw_tx):
         """
@@ -2508,7 +2510,9 @@ class HDWallet:
 
         """
         t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
-        return self.transaction_create(t_import.outputs, t_import.inputs)
+        rt = self.transaction_create(t_import.outputs, t_import.inputs)
+        rt.verify()
+        return rt
 
     def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=0,
              priv_keys=None, max_utxos=None, offline=False):

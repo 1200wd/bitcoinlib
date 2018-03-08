@@ -814,8 +814,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         self.assertEqual(wlt.balance(), 200000000)
 
-        wlt.send_to(to_key.address, 9000)
-        self.assertEqual(wlt.balance(), 100000000)
+        t = wlt.send_to(to_key.address, 9000)
+        self.assertEqual(wlt.balance(), 200000000 - t.fee)
 
     def test_wallet_balance_update_multi_network(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
