@@ -344,16 +344,16 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.wallet.utxos_update(networks='bitcoinlib_test')
         self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
         self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
-        self.wallet.get_key(network='litecoin_testnet', number_of_keys=2)
-        self.wallet.get_key(network='litecoin_testnet', change=1)
-        self.wallet.utxos_update(networks='litecoin_testnet')
+        self.wallet.get_key(network='testnet', number_of_keys=2)
+        self.wallet.get_key(network='testnet', change=1)
+        self.wallet.utxos_update(networks='testnet')
         self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 400000000)
+        # TODO: Split balance per account
         # self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
-        # self.assertEqual(self.wallet.balance(network='litecoin_testnet'), 200000)
+        self.assertEqual(self.wallet.balance(network='testnet'), 1500000)
         ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
                           'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
-        self.assertListEqual(self.wallet.addresslist(network='litecoin_testnet'), ltct_addresses)
-        # self.assertEqual(self.wallet.balance(network='litecoin_testnet'), 400000000)
+        self.assertListEqual(self.wallet.addresslist(network='testnet'), ltct_addresses)
 
     def test_wallet_multi_networks_send_transaction(self):
         t = self.wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
