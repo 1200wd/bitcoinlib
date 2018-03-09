@@ -1910,10 +1910,12 @@ class HDWallet:
         self._dbwallet.balance = balance
         self._session.commit()
 
-    def balance(self, network=None, as_string=False):
+    def balance(self, account_id=None, network=None, as_string=False):
         """
         Get total of unspent outputs
 
+        :param account_id: Account ID filter
+        :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
         :param as_string: Set True to return a string in currency format. Default returns float.
@@ -1923,7 +1925,7 @@ class HDWallet:
         """
 
         if self._balance is None:
-            self._balance_update()
+            self._balance_update(account_id, network)
         if network is None:
             network = self.network.network_name
         if network not in self._balances:
@@ -1952,7 +1954,8 @@ class HDWallet:
         :return: Updated balance
         """
 
-        qr = self._session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbKey.network_name).\
+        qr = self._session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbKey.network_name,
+                                 DbKey.account_id).\
             join(DbTransaction).join(DbKey). \
             filter(DbTransactionOutput.spent.op("IS")(False),
                    DbTransaction.wallet_id == self.wallet_id,
@@ -1970,6 +1973,7 @@ class HDWallet:
         for utxo in utxos:
             key_values.append({
                 'id': utxo[0].key_id,
+                'account_id': utxo[3],
                 'balance': utxo[1]
             })
             network = utxo[2]
@@ -1983,6 +1987,7 @@ class HDWallet:
             if key.id not in [utxo[0].key_id for utxo in utxos]:
                 key_values.append({
                     'id': key.id,
+                    'account_id': key.account_id,
                     'balance': 0
                 })
 
