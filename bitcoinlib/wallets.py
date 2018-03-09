@@ -22,6 +22,8 @@ import numbers
 from copy import deepcopy
 import struct
 from sqlalchemy import or_, update
+from itertools import groupby
+from operator import itemgetter
 from bitcoinlib.db import *
 from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
 from bitcoinlib.keys import HDKey, check_network_and_key
@@ -1967,20 +1969,23 @@ class HDWallet:
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
         utxos = qr.group_by(DbTransactionOutput.key_id).all()
-        key_values = []
-        network_values = {}
 
-        for utxo in utxos:
-            key_values.append({
+        key_values = [
+            {
                 'id': utxo[0].key_id,
+                'network': utxo[2],
                 'account_id': utxo[3],
                 'balance': utxo[1]
-            })
-            network = utxo[2]
-            new_value = utxo[1]
-            if network in network_values:
-                new_value = network_values[network] + utxo[1]
-            network_values.update({network: new_value})
+            }
+            for utxo in utxos
+        ]
+
+        grouper = itemgetter("network", "account_id")
+        balance_list = []
+        for key, grp in groupby(sorted(key_values, key=grouper), grouper):
+            nw_acc_dict = dict(zip(["network", "account_id"], key))
+            nw_acc_dict["balance"] = sum(item["balance"] for item in grp)
+            balance_list.append(nw_acc_dict)
 
         # Add keys with no UTXO's with 0 balance
         for key in self.keys(account_id=account_id, network=network, key_id=key_id):
@@ -1991,17 +1996,15 @@ class HDWallet:
                     'balance': 0
                 })
 
-        if not (key_id or account_id):
-            self._balances.update(network_values)
-            if self.network.network_name in network_values:
-                self._balance = network_values[self.network.network_name]
-        # TODO: else...
+        if not key_id:
+            self._balances = balance_list
+        self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.network_name])
 
         # Bulk update database
         self._session.bulk_update_mappings(DbKey, key_values)
         self._session.commit()
         _logger.info("Got balance for %d key(s)" % len(key_values))
-        return self._balance
+        return self._balances
 
     def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None,
                      utxos=None, update_balance=True):
