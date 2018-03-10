@@ -977,7 +977,7 @@ class HDWallet:
             self.purpose = w.purpose
             self.scheme = w.scheme
             self._balance = None
-            self._balances = {}
+            self._balances = []
             self.main_key_id = w.main_key_id
             self.main_key = None
             self.default_account_id = 0
@@ -1999,8 +1999,15 @@ class HDWallet:
                 })
 
         if not key_id:
-            # TODO: Update instead of overwrite balances
-            self._balances = balance_list
+            for bl in balance_list:
+                bl_item = [b for b in self._balances if
+                           b['network'] == bl['network'] and b['account_id'] == bl['account_id']]
+                if not bl_item:
+                    self._balances.append(bl)
+                    continue
+                lx = self._balances.index(bl_item)
+                self._balances[lx].update(bl)
+
         self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.network_name])
 
         # Bulk update database
