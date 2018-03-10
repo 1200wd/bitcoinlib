@@ -1928,14 +1928,16 @@ class HDWallet:
 
         if self._balance is None:
             self._balance_update(account_id, network)
-        if network is None:
-            network = self.network.network_name
-        if network not in self._balances:
-            return 0
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+
+        balance = 0
+        b_res = [b['balance'] for b in self._balances if b['account_id'] == account_id and b['network'] == network]
+        if len(b_res):
+            balance = b_res[0]
         if as_string:
-            return Network(network).print_value(self._balances[network])
+            return Network(network).print_value(balance)
         else:
-            return self._balances[network]
+            return balance
 
     def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=0):
         """
@@ -1997,6 +1999,7 @@ class HDWallet:
                 })
 
         if not key_id:
+            # TODO: Update instead of overwrite balances
             self._balances = balance_list
         self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.network_name])
 

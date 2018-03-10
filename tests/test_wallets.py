@@ -347,6 +347,8 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.wallet.get_key(network='testnet', number_of_keys=2)
         self.wallet.get_key(network='testnet', change=1)
         self.wallet.utxos_update(networks='testnet')
+        print(self.wallet.balance())
+        self.wallet.info()
         self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 400000000)
         # TODO: Split balance per account
         # self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
