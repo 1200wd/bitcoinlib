@@ -1926,8 +1926,8 @@ class HDWallet:
         :return float, str: Key balance
         """
 
-        if self._balance is None:
-            self._balance_update(account_id, network)
+        # if self._balance is None:
+        self._balance_update(account_id, network)
         network, account_id, _ = self._get_account_defaults(network, account_id)
 
         balance = 0

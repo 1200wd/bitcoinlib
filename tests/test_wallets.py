@@ -349,9 +349,8 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.wallet.utxos_update(networks='testnet')
         print(self.wallet.balance())
         self.wallet.info()
-        self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 400000000)
-        # TODO: Split balance per account
-        # self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
+        self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 200000000)
+        self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
         self.assertEqual(self.wallet.balance(network='testnet'), 1500000)
         ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
                           'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
@@ -362,7 +361,7 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
                                 network='bitcoinlib_test', transaction_fee=1000, offline=False)
         self.assertIsNone(t.error)
         self.assertTrue(t.verified)
-        self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 389999000)
+        self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 189999000)
         self.assertEqual(len(self.wallet.transactions(account_id=0, network='bitcoinlib_test')), 2)
         self.assertEqual(len(self.wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
         self.wallet.info()
