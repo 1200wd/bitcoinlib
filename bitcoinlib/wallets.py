@@ -2005,7 +2005,7 @@ class HDWallet:
                 if not bl_item:
                     self._balances.append(bl)
                     continue
-                lx = self._balances.index(bl_item)
+                lx = self._balances.index(bl_item[0])
                 self._balances[lx].update(bl)
 
         self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.network_name])
@@ -2688,16 +2688,18 @@ class HDWallet:
         if self.scheme == 'multisig':
             print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
         print(" Main network                   %s" % self.network.network_name)
-        print(" Balance                        %s\n" % self.balance(as_string=True))
 
         if self.scheme == 'multisig':
-            print("= Multisig main keys =")
-            for mk_wif in [w.main_key.wif for w in self.cosigner]:
-                print(mk_wif)
+            print("\n= Multisig main keys =")
+            for mk in [w.main_key for w in self.cosigner]:
+                print("%5s %-28s %-45s %-25s" % (mk.key_id, mk.path, mk.address, mk.name))
 
         if detail and self.main_key:
-            print("\n= Main key =")
-            self.main_key.dict()
+            print("\n= Wallet Master Key =")
+            print(" ID                             %s" % self.main_key_id)
+            print(" Private                        %s" % self.main_key.is_private)
+            print(" Depth                          %s" % self.main_key.depth)
+
         if detail > 1:
             for nw in self.networks():
                 print("\n- NETWORK: %s -" % nw['network_name'])
@@ -2730,7 +2732,11 @@ class HDWallet:
                                 status = t['status']
                             print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
                                                                     t['confirmations'], t['value'], spent, status))
-
+        balances = self._balance_update()
+        print("\n= Balance Totals =")
+        for na_balance in balances:
+            print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
+                  Network(na_balance['network']).print_value(na_balance['balance'])))
         print("\n")
 
     def dict(self, detail=3):
