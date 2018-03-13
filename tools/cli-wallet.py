@@ -52,7 +52,8 @@ def parse_args():
                              '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2'
                              'M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF'
                              '6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
-    parser.add_argument('--receive', '-r', help="Show unused address to receive funds", action='store_true')
+    parser.add_argument('--receive', '-r', help="Show unused address to receive funds", nargs='?', type=int, const=1,
+                        metavar=('NUMBER_OF_ADDRESSES'))
     parser.add_argument('--scan', '-s', action='store_true',
                         help="Scan and update wallet with all addresses, transactions and balances")
     group = parser.add_argument_group("Send / Create transaction")
@@ -61,8 +62,10 @@ def parse_args():
                        nargs='*')
     group.add_argument('--sweep', metavar="ADDRESS",
                        help="Sweep wallet, transfer all funds to specified address")
-    group.add_argument('--fee', '-f', type=str,
+    group.add_argument('--fee', '-f', type=int,
                        help="Transaction fee")
+    group.add_argument('--fee-per-kb', type=int, help="Transaction fee in sathosis (or smallest denominator) per "
+                                                      "kilobyte")
     group.add_argument('--push', '-p', action='store_true',
                        help="Push created transaction to the network")
 
@@ -127,11 +130,7 @@ def create_transaction(wlt, send_args, fee, args):
             clw_exit("Amount must be a integer value: %s" % send_args[1])
         output_arr.append((send_args[0], amount))
         send_args = send_args[2:]
-    try:
-        fee = int(fee)
-    except ValueError:
-        clw_exit("Fee must be a integer value: %s" % fee)
-    return wlt.transaction_create(output_arr=output_arr, transaction_fee=fee, network=args.network, min_confirms=0)
+    return wlt.transaction_create(output_arr=output_arr, transaction_fee=args.fee, network=args.network, min_confirms=0)
 
 
 def clw_exit(msg=None):
@@ -193,12 +192,16 @@ if __name__ == '__main__':
         args.network = wlt.network.network_name
 
     if args.receive:
-        addr = wlt.get_key().address
-        print("Receive address is %s" % addr)
-        if QRCODES_AVAILABLE:
-            qrcode = pyqrcode.create(addr)
-            print(qrcode.terminal())
-        else:
+        keys = wlt.get_key(network=args.network, number_of_keys=args.receive)
+        keys = [keys] if not isinstance(keys, list) else keys
+        print("Receive address(es):")
+        for key in keys:
+            addr = key.address
+            print(addr)
+            if QRCODES_AVAILABLE:
+                qrcode = pyqrcode.create(addr)
+                print(qrcode.terminal())
+        if not QRCODES_AVAILABLE:
             print("Install qr code module to show QR codes: pip install pyqrcode")
         clw_exit()
     if args.scan:
@@ -238,7 +241,7 @@ if __name__ == '__main__':
         print("Sweep wallet. Send all funds to %s" % args.sweep)
         if args.push:
             offline = False
-        wt = wlt.sweep(args.sweep, offline=offline, network=args.network)
+        wt = wlt.sweep(args.sweep, offline=offline, network=args.network, fee_per_kb=args.fee_per_kb)
         if not wt:
             clw_exit("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)
         wt.info()
