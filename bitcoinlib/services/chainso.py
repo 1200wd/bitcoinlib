@@ -59,7 +59,11 @@ class ChainSo(BaseClient):
         return self.request(url_path, variables, method)
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('send_tx', variables={'tx_hex': rawtx}, method='post')
+        res = self.compose_request('send_tx', variables={'tx_hex': rawtx}, method='post')
+        return {
+            'status': res['status'],
+            'txid': '' if 'data' not in res else res['data']['txid']
+        }
 
     def getbalance(self, addresslist):
         balance = 0.0

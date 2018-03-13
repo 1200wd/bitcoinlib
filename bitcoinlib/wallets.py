@@ -550,6 +550,8 @@ class HDWalletTransaction(Transaction):
 
         """
 
+        if not self.verified:
+            self.sign()
         if not self.verify():
             self.error = "Cannot verify transaction. Send transaction failed"
             return False
@@ -2105,9 +2107,11 @@ class HDWallet:
 
                 # If UTXO is new, add to database otherwise update depth (confirmation count)
                 for utxo in utxos:
-                    key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
-                    if key and not key.used:
-                        key.used = True
+                    key = self._session.query(DbKey).\
+                        filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
+                    if not key:
+                        raise WalletError("Key with address %s not found in this wallet" % utxo['address'])
+                    key.used = True
                     status = 'unconfirmed'
                     if utxo['confirmations']:
                         status = 'confirmed'
