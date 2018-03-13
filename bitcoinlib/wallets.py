@@ -2470,11 +2470,19 @@ class HDWallet:
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == to_hexstring(prev_hash),
                                DbTransactionOutput.output_n == struct.unpack('>I', output_n)[0]).first()
-                    if not inp_utxo:
-                        raise WalletError("UTXO %s not found in this wallet. Please update UTXO's" %
-                                          to_hexstring(prev_hash))
-                    key_id = inp_utxo.key_id
-                    value = inp_utxo.value
+                    if inp_utxo:
+                        key_id = inp_utxo.key_id
+                        value = inp_utxo.value
+                    else:
+                        _logger.info("UTXO %s not found in this wallet. Please update UTXO's if this is not an "
+                                     "offline wallet" % to_hexstring(prev_hash))
+                        key_id = self._session.query(DbKey.id).\
+                            filter(DbKey.wallet_id == self.wallet_id, DbKey.address == inp.address).scalar()
+                        if not key_id:
+                            raise WalletError("UTXO %s and key with address %s not found in this wallet" % (
+                                to_hexstring(prev_hash), inp.address))
+                        value = inp.value
+
                 amount_total_input += value
                 inp_keys, script_type, key = _objects_by_key_id(key_id)
                 transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
