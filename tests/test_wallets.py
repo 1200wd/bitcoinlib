@@ -699,6 +699,37 @@ class TestWalletMultisig(unittest.TestCase):
         wt.sign(hdkey)
         self.assertTrue(wt.verify())
 
+    def test_wallet_multisig_reopen_wallet(self):
+
+        def _open_all_wallets():
+            wl1 = wallet_create_or_open_multisig('multisigmulticur1_tst', sigs_required=2, network=NETWORK,
+                databasefile=DATABASEFILE_UNITTESTS,
+                key_list=[pk1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
+            wl2 = wallet_create_or_open_multisig('multisigmulticur2_tst', sigs_required=2, network=NETWORK,
+                databasefile=DATABASEFILE_UNITTESTS,
+                key_list=[pk1.account_multisig_key().wif_public(), pk2, pk3.account_multisig_key().wif_public()])
+            wl3 = wallet_create_or_open_multisig('multisigmulticur3_tst', sigs_required=2, network=NETWORK,
+                databasefile=DATABASEFILE_UNITTESTS,
+                key_list=[pk1.account_multisig_key().wif_public(), pk2.account_multisig_key().wif_public(), pk3])
+            return wl1, wl2, wl3
+
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        NETWORK = 'litecoin'
+        phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
+        phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
+        phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
+        pk1 = HDKey.from_passphrase(phrase1, network=NETWORK)
+        pk2 = HDKey.from_passphrase(phrase2, network=NETWORK)
+        pk3 = HDKey.from_passphrase(phrase3, network=NETWORK)
+        wallets = _open_all_wallets()
+        for wlt in wallets:
+            self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
+        del wallets
+        wallets2 = _open_all_wallets()
+        for wlt in wallets2:
+            self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
+
 
 class TestWalletKeyImport(unittest.TestCase):
 
