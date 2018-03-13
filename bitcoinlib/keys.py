@@ -801,7 +801,7 @@ class HDKey:
             print("")
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
-        print(" Public Key Hash160          %s" % self.key.hash160())
+        print(" Public Key Hash160          %s" % change_base(self.key.hash160(), 256, 16))
         print(" Address (b58)               %s" % self.key.address())
         print(" Fingerprint (hex)           %s" % change_base(self.fingerprint(), 256, 16))
         point_x, point_y = self.key.public_point()

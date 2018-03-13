@@ -965,31 +965,31 @@ class HDWallet:
         else:
             self._session = DbInit(databasefile=databasefile).session
         if isinstance(wallet, int) or wallet.isdigit():
-            w = self._session.query(DbWallet).filter_by(id=wallet).scalar()
+            db_wlt = self._session.query(DbWallet).filter_by(id=wallet).scalar()
         else:
-            w = self._session.query(DbWallet).filter_by(name=wallet).scalar()
-        if w:
-            self._dbwallet = w
-            self.wallet_id = w.id
-            self._name = w.name
-            self._owner = w.owner
-            self.network = Network(w.network_name)
-            self.purpose = w.purpose
-            self.scheme = w.scheme
+            db_wlt = self._session.query(DbWallet).filter_by(name=wallet).scalar()
+        if db_wlt:
+            self._dbwallet = db_wlt
+            self.wallet_id = db_wlt.id
+            self._name = db_wlt.name
+            self._owner = db_wlt.owner
+            self.network = Network(db_wlt.network_name)
+            self.purpose = db_wlt.purpose
+            self.scheme = db_wlt.scheme
             self._balance = None
             self._balances = []
-            self.main_key_id = w.main_key_id
+            self.main_key_id = db_wlt.main_key_id
             self.main_key = None
             self.default_account_id = 0
-            self.multisig_n_required = w.multisig_n_required
+            self.multisig_n_required = db_wlt.multisig_n_required
             self.multisig_compressed = None
             co_sign_wallets = self._session.query(DbWallet).\
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
-            self.cosigner = [HDWallet(w.id) for w in co_sign_wallets]
-            self.sort_keys = w.sort_keys
+            self.cosigner = [HDWallet(w.id, databasefile=databasefile) for w in co_sign_wallets]
+            self.sort_keys = db_wlt.sort_keys
             if main_key_object:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
-            elif w.main_key_id:
+            elif db_wlt.main_key_id:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session)
             if self.main_key:
                 self.default_account_id = self.main_key.account_id
@@ -1281,7 +1281,6 @@ class HDWallet:
         elif self.scheme == 'multisig':
             if self.network.network_name != network:
                 raise WalletError("Multiple networks is currently not supported for multisig")
-                # TODO: Should be quite easy to support this...
             if not self.multisig_n_required:
                 raise WalletError("Multisig_n_required not set, cannot create new key")
             co_sign_wallets = self._session.query(DbWallet).\
