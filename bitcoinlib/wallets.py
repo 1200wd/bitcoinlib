@@ -1370,8 +1370,9 @@ class HDWallet:
             new_key_ids = [k.key_id for k in scanned_keys]
             nr_new_utxos = 0
             # TODO: Allow list of keys in utxos_update
+            new_key_ids = list(set(new_key_ids) - set(_keys_ignore))
             for new_key_id in new_key_ids:
-                nr_new_utxos += self.utxos_update(change=0, key_id=new_key_id)
+                nr_new_utxos += self.transactions_update(change=0, key_id=new_key_id)
             _keys_ignore += new_key_ids
             if nr_new_utxos:
                 self.scan(scan_gap_limit, account_id, change=0, network=network, _keys_ignore=_keys_ignore,
@@ -1380,8 +1381,9 @@ class HDWallet:
             scanned_keys_change = self.get_key(account_id, network, change=1, number_of_keys=scan_gap_limit)
             new_key_ids = [k.key_id for k in scanned_keys_change]
             nr_new_utxos = 0
+            new_key_ids = list(set(new_key_ids) - set(_keys_ignore))
             for new_key_id in new_key_ids:
-                nr_new_utxos += self.utxos_update(change=1, key_id=new_key_id)
+                nr_new_utxos += self.transactions_update(change=1, key_id=new_key_id)
             _keys_ignore += new_key_ids
             if nr_new_utxos:
                 self.scan(scan_gap_limit, account_id, change=1, network=network, _keys_ignore=_keys_ignore,
@@ -2236,13 +2238,13 @@ class HDWallet:
         """
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         if depth is None:
-            if self.scheme == 'bip44':
+            if self.scheme == 'bip44' or self.scheme == 'multisig':
                 depth = 5
             else:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['blockcypher'])
+        srv = Service(network=network)
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -2255,7 +2257,7 @@ class HDWallet:
             # self.transaction_add(t)
         # if no_spent_info:
         #     self._utxos_update_from_transactions(list(key_ids))
-        return True
+        return len(txs)
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None):
         """
@@ -2734,7 +2736,10 @@ class HDWallet:
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    for account_id in [a['account_id'] for a in self.accounts(network=nw['network_name'])]:
+                    account_ids = [a['account_id'] for a in self.accounts(network=nw['network_name'])]
+                    if not account_ids:
+                        account_ids = [0]
+                    for account_id in account_ids:
                         print("- - Transactions (Account ID %d)" % account_id)
                         for t in self.transactions(include_new=include_new, account_id=account_id,
                                                    network=nw['network_name']):
