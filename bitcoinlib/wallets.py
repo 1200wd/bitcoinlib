@@ -1305,7 +1305,7 @@ class HDWallet:
             public_key_list = [x['public_key'] for x in public_keys]
             public_key_ids = [str(x['key_id']) for x in public_keys]
             depths = [x['depth'] for x in public_keys]
-            depth = 0 if len(set(depths)) != 1 else depths[0]
+            depth = 5 if len(set(depths)) != 1 else depths[0]
 
             # Calculate redeemscript and address and add multisig key to database
             redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
@@ -1411,8 +1411,6 @@ class HDWallet:
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
         keys_depth = depth_of_keys
-        if self.scheme == 'multisig':
-            keys_depth = 0
         last_used_qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
                       used=True, change=change, depth=keys_depth).\
@@ -2084,7 +2082,7 @@ class HDWallet:
                     'multisig': 0
                 }
                 if depth is None:
-                    if self.scheme == 'bip44':
+                    if self.scheme == 'bip44' or self.scheme == 'multisig':
                         depth = 5
                     else:
                         depth = 0
