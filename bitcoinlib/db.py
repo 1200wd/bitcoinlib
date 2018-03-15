@@ -44,15 +44,15 @@ class DbInit:
 
     """
     def __init__(self, databasefile=DEFAULT_DATABASE):
-        engine = create_engine('sqlite:///%s' % databasefile)
-        Session = sessionmaker(bind=engine)
+        self.engine = create_engine('sqlite:///%s' % databasefile)
+        Session = sessionmaker(bind=self.engine)
 
         if not os.path.exists(databasefile):
             if not os.path.exists(DEFAULT_DATABASEDIR):
                 os.makedirs(DEFAULT_DATABASEDIR)
             if not os.path.exists(DEFAULT_SETTINGSDIR):
                 os.makedirs(DEFAULT_SETTINGSDIR)
-            Base.metadata.create_all(engine)
+            Base.metadata.create_all(self.engine)
             self._import_config_data(Session)
 
         self.session = Session()

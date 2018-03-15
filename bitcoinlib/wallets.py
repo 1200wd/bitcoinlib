@@ -965,7 +965,9 @@ class HDWallet:
         if session:
             self._session = session
         else:
-            self._session = DbInit(databasefile=databasefile).session
+            dbinit = DbInit(databasefile=databasefile)
+            self._session = dbinit.session
+            self._engine = dbinit.engine
         if isinstance(wallet, int) or wallet.isdigit():
             db_wlt = self._session.query(DbWallet).filter_by(id=wallet).scalar()
         else:
@@ -1368,24 +1370,23 @@ class HDWallet:
         if change != 1:
             scanned_keys = self.get_key(account_id, network, number_of_keys=scan_gap_limit)
             new_key_ids = [k.key_id for k in scanned_keys]
-            nr_new_utxos = 0
-            # TODO: Allow list of keys in utxos_update
+            nr_new_txs = 0
             new_key_ids = list(set(new_key_ids) - set(_keys_ignore))
             for new_key_id in new_key_ids:
-                nr_new_utxos += self.transactions_update(change=0, key_id=new_key_id)
+                nr_new_txs += self.transactions_update(change=0, key_id=new_key_id)
             _keys_ignore += new_key_ids
-            if nr_new_utxos:
+            if nr_new_txs:
                 self.scan(scan_gap_limit, account_id, change=0, network=network, _keys_ignore=_keys_ignore,
                           _recursion_depth=_recursion_depth)
         if change != 0:
             scanned_keys_change = self.get_key(account_id, network, change=1, number_of_keys=scan_gap_limit)
             new_key_ids = [k.key_id for k in scanned_keys_change]
-            nr_new_utxos = 0
+            nr_new_txs = 0
             new_key_ids = list(set(new_key_ids) - set(_keys_ignore))
             for new_key_id in new_key_ids:
-                nr_new_utxos += self.transactions_update(change=1, key_id=new_key_id)
+                nr_new_txs += self.transactions_update(change=1, key_id=new_key_id)
             _keys_ignore += new_key_ids
-            if nr_new_utxos:
+            if nr_new_txs:
                 self.scan(scan_gap_limit, account_id, change=1, network=network, _keys_ignore=_keys_ignore,
                           _recursion_depth=_recursion_depth)
 
@@ -2163,16 +2164,6 @@ class HDWallet:
                 utxos = None
         return count_utxos
 
-    def _utxos_update_from_transactions(self, key_ids):
-        for key_id in key_ids:
-            outputs = self._session.query(DbTransactionOutput).filter_by(key_id=key_id).all()
-            for to in outputs:
-                if self._session.query(DbTransactionInput).\
-                        filter_by(key_id=key_id, prev_hash=to.transaction.hash,
-                                  output_n=to.output_n).scalar():
-                    to.spent = True
-        self._session.commit()
-
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
         Get UTXO's (Unspent Outputs) from database. Use utxos_update method first for updated values
@@ -2248,15 +2239,19 @@ class HDWallet:
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
-        # TODO: Always update utxo's to avoid too much extra code and complexity ???
-        no_spent_info = False
-        # key_ids = set()
+        utxo_set = set()
         for t in txs:
             wt = HDWalletTransaction.from_transaction(self, t)
             wt.save()
-            # self.transaction_add(t)
-        # if no_spent_info:
-        #     self._utxos_update_from_transactions(list(key_ids))
+            utxos = [(to_hexstring(ti.prev_hash), ti.output_n_int) for ti in wt.inputs]
+            utxo_set.update(utxos)
+
+        for utxo in list(utxo_set):
+            tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
+                filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1]).all()
+            for u in tos:
+                u.spent = True
+        self._session.commit()
         return len(txs)
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None):
