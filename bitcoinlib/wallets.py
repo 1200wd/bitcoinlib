@@ -2248,7 +2248,8 @@ class HDWallet:
 
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1]).all()
+                filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
+                       DbTransactionOutput.spent.op("IS")(False)).all()
             for u in tos:
                 u.spent = True
         self._session.commit()
@@ -2598,7 +2599,8 @@ class HDWallet:
                 tx_hash = to_hexstring(inp.prev_hash)
                 utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                     filter(DbTransaction.hash == tx_hash,
-                           DbTransactionOutput.output_n == inp.output_n_int).all()
+                           DbTransactionOutput.output_n == inp.output_n_int,
+                           DbTransactionOutput.spent.op("IS")(False)).all()
                 for u in utxos:
                     u.spent = True
 
