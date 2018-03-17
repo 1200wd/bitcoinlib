@@ -1521,7 +1521,9 @@ class HDWallet:
         if not name:
             name = 'Account #%d' % account_id
         if self.keys(account_id=account_id, depth=3, network=network):
-            raise WalletError("Account with ID %d already exists for this wallet")
+            raise WalletError("Account with ID %d already exists for this wallet" % account_id)
+        if name in [k.name for k in self.keys(network=network)]:
+            raise WalletError("Account or key with name %s already exists for this wallet" % name)
 
         # Get root key of new account
         res = self.keys(depth=2, network=network)
@@ -2254,6 +2256,8 @@ class HDWallet:
             for u in tos:
                 u.spent = True
         self._session.commit()
+        self._balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
+
         return len(txs)
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None):
@@ -2574,6 +2578,7 @@ class HDWallet:
         :return str, list: Transaction ID or result array
         """
 
+        network, account_id, _ = self._get_account_defaults(network, account_id)
         if input_arr and max_utxos and len(input_arr) > max_utxos:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
@@ -2714,6 +2719,7 @@ class HDWallet:
             print(" Private                        %s" % self.main_key.is_private)
             print(" Depth                          %s" % self.main_key.depth)
 
+        balances = self._balance_update()
         if detail > 1:
             for nw in self.networks():
                 print("\n- NETWORK: %s -" % nw['network_name'])
@@ -2749,8 +2755,7 @@ class HDWallet:
                                 status = t['status']
                             print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
                                                                     t['confirmations'], t['value'], spent, status))
-        balances = self._balance_update(min_confirms=1)
-        print("\n= Balance Totals (confirmed) =")
+        print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
                   Network(na_balance['network']).print_value(na_balance['balance'])))
