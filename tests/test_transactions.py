@@ -1162,16 +1162,16 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.assertTrue(t.verify())
 
     def test_transaction_multisig_estimate_size(self):
-        NETWORK = 'bitcoinlib_test'
+        network = 'bitcoinlib_test'
         phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
         phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
         phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
         prev_hash = '55d721dffa90208d8ab7ae3411c42db3e7de860f3a76ab18f7c237bf2390a666'
-        pk1 = HDKey.from_passphrase(phrase1, network=NETWORK)
-        pk2 = HDKey.from_passphrase(phrase2, network=NETWORK)
-        pk3 = HDKey.from_passphrase(phrase3, network=NETWORK)
+        pk1 = HDKey.from_passphrase(phrase1, network=network)
+        pk2 = HDKey.from_passphrase(phrase2, network=network)
+        pk3 = HDKey.from_passphrase(phrase3, network=network)
 
-        t = Transaction(network=NETWORK)
+        t = Transaction(network=network)
         t.add_input(prev_hash, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
                     sigs_required=2)
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')

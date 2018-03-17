@@ -404,7 +404,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.utxos_update()
         balance = w.balance()
-        self.assertRaisesRegexp(WalletError, 'Total amount of outputs is greater then total amount of inputs',
+        self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found',
                                 w.send_to, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
 
     def test_wallet_bitcoinlib_testnet_sweep(self):
@@ -679,18 +679,18 @@ class TestWalletMultisig(unittest.TestCase):
     def test_wallet_multisig_sign_with_external_single_key(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        NETWORK = 'bitcoinlib_test'
+        network = 'bitcoinlib_test'
         words = 'square innocent drama'
         seed = Mnemonic().to_seed(words, 'password')
-        hdkey = HDKey.from_seed(seed, network=NETWORK)
+        hdkey = HDKey.from_seed(seed, network=network)
         hdkey.key_type = 'single'
 
         key_list = [
-            HDKey(network=NETWORK).account_multisig_key().public(),
-            HDKey(network=NETWORK),
+            HDKey(network=network).account_multisig_key().public(),
+            HDKey(network=network),
             hdkey.public()
         ]
-        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, network=NETWORK,
+        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, network=network,
                                           databasefile=DATABASEFILE_UNITTESTS)
         wallet.new_key()
         wallet.utxos_update()
@@ -702,26 +702,29 @@ class TestWalletMultisig(unittest.TestCase):
     def test_wallet_multisig_reopen_wallet(self):
 
         def _open_all_wallets():
-            wl1 = wallet_create_or_open_multisig('multisigmulticur1_tst', sigs_required=2, network=NETWORK,
+            wl1 = wallet_create_or_open_multisig(
+                'multisigmulticur1_tst', sigs_required=2, network=network,
                 databasefile=DATABASEFILE_UNITTESTS,
                 key_list=[pk1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
-            wl2 = wallet_create_or_open_multisig('multisigmulticur2_tst', sigs_required=2, network=NETWORK,
+            wl2 = wallet_create_or_open_multisig(
+                'multisigmulticur2_tst', sigs_required=2, network=network,
                 databasefile=DATABASEFILE_UNITTESTS,
                 key_list=[pk1.account_multisig_key().wif_public(), pk2, pk3.account_multisig_key().wif_public()])
-            wl3 = wallet_create_or_open_multisig('multisigmulticur3_tst', sigs_required=2, network=NETWORK,
+            wl3 = wallet_create_or_open_multisig(
+                'multisigmulticur3_tst', sigs_required=2, network=network,
                 databasefile=DATABASEFILE_UNITTESTS,
                 key_list=[pk1.account_multisig_key().wif_public(), pk2.account_multisig_key().wif_public(), pk3])
             return wl1, wl2, wl3
 
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        NETWORK = 'litecoin'
+        network = 'litecoin'
         phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
         phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
         phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
-        pk1 = HDKey.from_passphrase(phrase1, network=NETWORK)
-        pk2 = HDKey.from_passphrase(phrase2, network=NETWORK)
-        pk3 = HDKey.from_passphrase(phrase3, network=NETWORK)
+        pk1 = HDKey.from_passphrase(phrase1, network=network)
+        pk2 = HDKey.from_passphrase(phrase2, network=network)
+        pk3 = HDKey.from_passphrase(phrase3, network=network)
         wallets = _open_all_wallets()
         for wlt in wallets:
             self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
@@ -736,18 +739,18 @@ class TestWalletKeyImport(unittest.TestCase):
     def test_wallet_key_import_and_sign_multisig(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        NETWORK = 'bitcoinlib_test'
+        network = 'bitcoinlib_test'
         words = 'square innocent drama'
         seed = Mnemonic().to_seed(words, 'password')
-        hdkey = HDKey.from_seed(seed, network=NETWORK)
+        hdkey = HDKey.from_seed(seed, network=network)
         hdkey.key_type = 'single'
 
         key_list = [
-            HDKey(network=NETWORK).account_multisig_key().public(),
-            HDKey(network=NETWORK),
+            HDKey(network=network).account_multisig_key().public(),
+            HDKey(network=network),
             hdkey.public()
         ]
-        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=NETWORK,
+        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=network,
                                           databasefile=DATABASEFILE_UNITTESTS)
         wallet.new_key()
         wallet.utxos_update()

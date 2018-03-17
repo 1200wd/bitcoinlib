@@ -21,7 +21,7 @@
 import numbers
 from copy import deepcopy
 import struct
-from sqlalchemy import or_, update
+from sqlalchemy import or_
 from itertools import groupby
 from operator import itemgetter
 from bitcoinlib.db import *
@@ -535,7 +535,6 @@ class HDWalletTransaction(Transaction):
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.hdwallet.wallet_id])).first()
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif))
-            # super(HDWalletTransaction, self).sign(priv_key_list, ti.index_n, hash_type)
             Transaction.sign(self, priv_key_list, ti.index_n, hash_type)
         return True
 
@@ -590,7 +589,6 @@ class HDWalletTransaction(Transaction):
             db_tx = db_tx_query.first()
             if db_tx:
                 db_tx.wallet_id = self.hdwallet.wallet_id
-                # db_tx.network = self.network.network_name
 
         if not db_tx:
             new_tx = DbTransaction(
@@ -618,9 +616,7 @@ class HDWalletTransaction(Transaction):
             key_id = None
             if tx_key:
                 key_id = tx_key.id
-                # key_ids.add(key_id)
                 tx_key.used = True
-                # key_ids.add(key_id)
             tx_input = sess.query(DbTransactionInput). \
                 filter_by(transaction_id=tx_id, index_n=ti.index_n).scalar()
             if not tx_input:
@@ -654,12 +650,8 @@ class HDWalletTransaction(Transaction):
             key_id = None
             if tx_key:
                 key_id = tx_key.id
-                # key_ids.add(key_id)
                 tx_key.used = True
-                # key_ids.add(key_id)
             spent = to.spent
-            if spent is None:
-                no_spent_info = True
             tx_output = sess.query(DbTransactionOutput). \
                 filter_by(transaction_id=tx_id, output_n=to.output_n).scalar()
             if not tx_output:
@@ -753,9 +745,6 @@ class HDWallet:
             else:
                 network = check_network_and_key(key, network)
                 key = HDKey(key, network=network)
-            # searchkey = session.query(DbKey).filter_by(wif=key).scalar()
-            # if searchkey:
-            #     raise WalletError("Key already found in wallet %s" % searchkey.wallet.name)
         elif network is None:
             network = DEFAULT_NETWORK
         if not name:
@@ -1943,7 +1932,6 @@ class HDWallet:
         :return float, str: Key balance
         """
 
-        # if self._balance is None:
         self._balance_update(account_id, network)
         network, account_id, _ = self._get_account_defaults(network, account_id)
 
@@ -2424,6 +2412,7 @@ class HDWallet:
                               (len(input_arr), max_utxos))
         if input_arr and not transaction_fee:
             transaction_fee = False
+
         # Create transaction and add outputs
         transaction = HDWalletTransaction(hdwallet=self, network=network)
         if not isinstance(output_arr, list):
@@ -2437,12 +2426,21 @@ class HDWallet:
                 amount_total_output += o[1]
                 transaction.add_output(o[1], o[0])
 
-        transaction.fee = 0 if transaction_fee is None else transaction_fee
+        srv = Service(network=network)
+        transaction.fee_per_kb = None
+        if transaction_fee is None:
+            if not input_arr:
+                transaction.fee_per_kb = srv.estimatefee()
+                fee_estimate = (transaction.estimate_size() / 1024.0 * transaction.fee_per_kb)
+            else:
+                fee_estimate = 0
+        else:
+            fee_estimate = transaction_fee
 
         # Add inputs
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = _select_inputs(amount_total_output + transaction.fee, self.network.dust_amount)
+            selected_utxos = _select_inputs(amount_total_output + fee_estimate, self.network.dust_amount)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -2494,9 +2492,7 @@ class HDWallet:
                                       unlocking_script=unlocking_script)
 
         # Calculate fees
-        srv = Service(network=network)
         transaction.fee = transaction_fee
-        transaction.fee_per_kb = None
         fee_per_output = None
         tr_size = transaction.estimate_size()
         if transaction_fee is None:

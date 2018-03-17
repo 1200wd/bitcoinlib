@@ -1243,6 +1243,8 @@ class Transaction:
             else:
                 raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
                                        inp.script_type)
+        if not self.inputs:
+            est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
         for outp in self.outputs:
             if outp.script_type in ['p2pkh', 'p2sh']:
                 est_size += 34
