@@ -1671,7 +1671,8 @@ class HDWallet:
             qr = qr.filter(DbKey.name == name)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
-        if used is not None:
+            is_active = False
+        elif used is not None:
             qr = qr.filter(DbKey.used == used)
         if is_private is not None:
             qr = qr.filter(DbKey.is_private == is_private)
@@ -1724,7 +1725,7 @@ class HDWallet:
 
         return self.keys(account_id, depth=3, network=network, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, used=None, network=None, as_dict=False):
+    def keys_addresses(self, account_id=None, used=None, network=None, depth=5, as_dict=False):
         """
         Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -1734,13 +1735,15 @@ class HDWallet:
         :type used: bool
         :param network: Network name filter
         :type network: str
+        :param depth: Filter by key depth. Default for BIP44 and multisig is 5
+        :type depth: int
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
         
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, used=used, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=depth, used=used, network=network, as_dict=as_dict)
 
     def keys_address_payment(self, account_id=None, used=None, network=None, as_dict=False):
         """
@@ -2746,8 +2749,8 @@ class HDWallet:
                                 status = t['status']
                             print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
                                                                     t['confirmations'], t['value'], spent, status))
-        balances = self._balance_update()
-        print("\n= Balance Totals =")
+        balances = self._balance_update(min_confirms=1)
+        print("\n= Balance Totals (confirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
                   Network(na_balance['network']).print_value(na_balance['balance'])))
