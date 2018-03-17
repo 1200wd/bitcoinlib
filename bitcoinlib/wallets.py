@@ -1011,7 +1011,7 @@ class HDWallet:
         return "<HDWallet (id=%d, name=%s, default_network=%s)>" % \
                (self.wallet_id, self.name, self.network.network_name)
 
-    def _get_account_defaults(self, network=None, account_id=None):
+    def _get_account_defaults(self, network=None, account_id=None, key_id=None):
         """
         Check parameter values for network and account ID, return defaults if no network or account ID is specified.
         If a network is specified but no account ID this method returns the first account ID it finds. 
@@ -1020,10 +1020,16 @@ class HDWallet:
         :type network: str
         :param account_id: Account ID, leave emtpy for default
         :type account_id: int
+        :param key_id: Key ID to just update 1 key
+        :type key_id: int
         
         :return: network code, account ID and DbKey instance of account ID key
         """
 
+        if key_id:
+            kobj = self.key(key_id)
+            network = kobj.network_name
+            account_id = kobj.account_id
         if network is None:
             network = self.network.network_name
             if account_id is None:
@@ -1367,6 +1373,7 @@ class HDWallet:
         _recursion_depth += 1
         if self.scheme != 'bip44' and self.scheme != 'multisig':
             raise WalletError("The wallet scan() method is only available for BIP44 wallets")
+
         if change != 1:
             scanned_keys = self.get_key(account_id, network, number_of_keys=scan_gap_limit)
             new_key_ids = [k.key_id for k in scanned_keys]
@@ -2062,6 +2069,10 @@ class HDWallet:
         :return int: Number of new UTXO's added 
         """
 
+        if key_id:
+            kobj = self.key(key_id)
+            networks = [kobj.network_name]
+            account_id = kobj.account_id
         if networks is None:
             networks = self.network_list()
         elif not isinstance(networks, list):
@@ -2078,7 +2089,7 @@ class HDWallet:
             else:
                 accounts = [account_id]
             for account_id in accounts:
-                _, _, acckey = self._get_account_defaults(network, account_id)
+                _, _, acckey = self._get_account_defaults(network, account_id, key_id)
                 # TODO: implement bip45/67/electrum/?
                 schemes_key_depth = {
                     'bip44': 5,
@@ -2183,7 +2194,7 @@ class HDWallet:
         :return list: List of transactions 
         """
 
-        network, account_id, acckey = self._get_account_defaults(network, account_id)
+        network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
 
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash,
                                  DbKey.network_name).\
@@ -2230,7 +2241,8 @@ class HDWallet:
         :return bool: True if all transactions are updated
 
         """
-        network, account_id, acckey = self._get_account_defaults(network, account_id)
+
+        network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
         if depth is None:
             if self.scheme == 'bip44' or self.scheme == 'multisig':
                 depth = 5
@@ -2274,7 +2286,7 @@ class HDWallet:
         :return list: List of transactions as dictionary
         """
 
-        network, account_id, acckey = self._get_account_defaults(network, account_id)
+        network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
 
         qr = self._session.query(DbTransactionInput, DbKey.address, DbTransaction.confirmations,
                                  DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
