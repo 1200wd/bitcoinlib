@@ -931,7 +931,7 @@ class Transaction:
         print("Outputs")
         for to in self.outputs:
             print("-", to.address, to.value)
-        print("Fee: %d" % self.fee)
+        print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
@@ -1223,9 +1223,12 @@ class Transaction:
         """
         Get estimated size in bytes for current transaction based on transaction type and number of inputs and outputs.
 
+        :param add_change_output: Assume an extra change output will be created but has not been created yet.
+        :type add_change_output: bool
+
         :return int: Estimated transaction size
         """
-        est_size = 10 + (len(self.outputs) * 34)
+        est_size = 10
         if add_change_output:
             est_size += 34
         for inp in self.inputs:
@@ -1234,18 +1237,30 @@ class Transaction:
                     est_size += 147
                 else:
                     est_size += 180
+            elif inp.script_type == 'p2sh_multisig':
+                n_sigs = len(inp.keys)
+                est_size += 9 + (n_sigs * 34) + (inp.sigs_required * 72)
             else:
                 raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
                                        inp.script_type)
+        for outp in self.outputs:
+            if outp.script_type in ['p2pkh', 'p2sh']:
+                est_size += 34
+            elif outp.script_type == 'nulldata':
+                est_size += len(outp.lock_script) + 9
+            else:
+                raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
+                                       outp.script_type)
         return est_size
 
     def calculate_fee(self):
         """
-        Get estimated fee for this transaction in smallest denominator (i.e. Satoshi)
+        Get fee for this transaction in smallest denominator (i.e. Satoshi) based on its size and the
+        transaction.fee_per_kb value
 
         :return int: Estimated transaction fee
         """
 
         if not self.fee_per_kb:
-            raise TransactionError("Cannot calculate transaction fees. Transaction.fee_per_kb is not set")
+            raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
         return int(len(self.raw())/1024.0 * self.fee_per_kb)
