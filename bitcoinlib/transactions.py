@@ -1219,10 +1219,33 @@ class Transaction:
                                    network=self.network.network_name))
         return output_n
 
-    def estimate_fee(self):
+    def estimate_size(self, add_change_output=True):
+        """
+        Get estimated size in bytes for current transaction based on transaction type and number of inputs and outputs.
+
+        :return int: Estimated transaction size
+        """
+        est_size = 10 + (len(self.outputs) * 34)
+        if add_change_output:
+            est_size += 34
+        for inp in self.inputs:
+            if inp.script_type in ['p2sh', 'p2pkh']:
+                if inp.compressed:
+                    est_size += 147
+                else:
+                    est_size += 180
+            else:
+                raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
+                                       inp.script_type)
+        return est_size
+
+    def calculate_fee(self):
         """
         Get estimated fee for this transaction in smallest denominator (i.e. Satoshi)
 
         :return int: Estimated transaction fee
         """
-        return int(len(self.raw())/1024 * self.fee_per_kb)
+
+        if not self.fee_per_kb:
+            raise TransactionError("Cannot calculate transaction fees. Transaction.fee_per_kb is not set")
+        return int(len(self.raw())/1024.0 * self.fee_per_kb)

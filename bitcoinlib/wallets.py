@@ -2437,22 +2437,7 @@ class HDWallet:
                 amount_total_output += o[1]
                 transaction.add_output(o[1], o[0])
 
-        # Calculate fees
-        srv = Service(network=network)
-        transaction.fee = transaction_fee
-        transaction.fee_per_kb = None
-        fee_per_output = None
-        # TODO: Use more accurate estimations
-        tr_size = 100 + (1 * 150) + (len(output_arr) + 1 * 50)
-        if transaction_fee is None:
-            if not input_arr:
-                transaction.fee_per_kb = srv.estimatefee()
-                if transaction.fee_per_kb is False:
-                    raise WalletError("Could not estimate transaction fees, please specify fees manually")
-                transaction.fee = int((tr_size / 1024.0) * transaction.fee_per_kb)
-                fee_per_output = int((50 / 1024) * transaction.fee_per_kb)
-            else:
-                transaction.fee = 0
+        transaction.fee = 0 if transaction_fee is None else transaction_fee
 
         # Add inputs
         amount_total_input = 0
@@ -2507,6 +2492,22 @@ class HDWallet:
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
                                       unlocking_script=unlocking_script)
+
+        # Calculate fees
+        srv = Service(network=network)
+        transaction.fee = transaction_fee
+        transaction.fee_per_kb = None
+        fee_per_output = None
+        tr_size = transaction.estimate_size()
+        if transaction_fee is None:
+            if not input_arr:
+                transaction.fee_per_kb = srv.estimatefee()
+                if transaction.fee_per_kb is False:
+                    raise WalletError("Could not estimate transaction fees, please specify fees manually")
+                transaction.fee = int((tr_size / 1024.0) * transaction.fee_per_kb)
+                fee_per_output = int((50 / 1024.0) * transaction.fee_per_kb)
+            else:
+                transaction.fee = 0
 
         if transaction_fee is False:
             transaction.change = 0
@@ -2600,7 +2601,7 @@ class HDWallet:
         transaction.sign(priv_keys)
         # Calculate exact estimated fees and update change output if necessary
         if transaction_fee is None and transaction.fee_per_kb and transaction.change:
-            fee_exact = transaction.estimate_fee()
+            fee_exact = transaction.calculate_fee()
             # Recreate transaction if fee estimation more then 10% off
             if fee_exact and abs((transaction.fee - fee_exact) / float(fee_exact)) > 0.10:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
