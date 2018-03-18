@@ -236,7 +236,7 @@ class TestWalletKeys(unittest.TestCase):
                                     network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
         wlt.get_key()
         wlt.utxos_update()
-        self.assertEqual(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY').hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(wlt.sweep('216xtQvbcG4o7Yz33n7VCGyaQhiytuvoqJY').error)
 
     def test_wallet_single_key(self):
         wlt = wallet_create_or_open('single_key', scheme='single', network='bitcoinlib_test',
@@ -325,6 +325,48 @@ class TestWalletMultiCurrency(unittest.TestCase):
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
 
 
+class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
+
+    def setUp(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        self.pk = 'tobacco defy swarm leaf flat pyramid velvet pen minor twist maximum extend'
+        self.wallet = HDWallet.create(
+            key=self.pk, network='bitcoin',
+            name='test_wallet_multi_network_multi_account',
+            databasefile=DATABASEFILE_UNITTESTS)
+
+        self.wallet.new_key()
+        acc = self.wallet.new_account('BCL test home', network='bitcoinlib_test')
+        acc2 = self.wallet.new_account('BCL test office', network='bitcoinlib_test')
+        self.wallet.new_key(account_id=acc2.account_id, network='bitcoinlib_test')
+        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        self.wallet.utxos_update(networks='bitcoinlib_test')
+        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        self.wallet.get_key(network='testnet', number_of_keys=2)
+        self.wallet.get_key(network='testnet', change=1)
+        self.wallet.utxos_update(networks='testnet')
+        print(self.wallet.balance())
+        self.wallet.info()
+        self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 200000000)
+        self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
+        self.assertEqual(self.wallet.balance(network='testnet'), 1500000)
+        ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
+                          'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
+        self.assertListEqual(self.wallet.addresslist(network='testnet'), ltct_addresses)
+
+    def test_wallet_multi_networks_send_transaction(self):
+        t = self.wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
+                                network='bitcoinlib_test', transaction_fee=1000, offline=False)
+        self.assertIsNone(t.error)
+        self.assertTrue(t.verified)
+        self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 189999000)
+        self.assertEqual(len(self.wallet.transactions(account_id=0, network='bitcoinlib_test')), 2)
+        self.assertEqual(len(self.wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
+        self.wallet.info()
+
+
 class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
     def test_wallet_bitcoinlib_testnet_sendto(self):
@@ -337,8 +379,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
         w.new_key()
         w.utxos_update()
-        self.assertEqual(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 5000000).hash,
-                         'succesfull_test_sendrawtransaction')
+        self.assertIsNone(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 5000000).error)
 
     def test_wallet_bitcoinlib_testnet_send_utxos_updated(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -363,8 +404,8 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.utxos_update()
         balance = w.balance()
-        self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found', w.send_to,
-                                '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
+        self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found',
+                                w.send_to, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
 
     def test_wallet_bitcoinlib_testnet_sweep(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -377,8 +418,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.new_key()
         w.utxos_update()
-        self.assertEqual(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo').hash,
-                         'succesfull_test_sendrawtransaction')
+        self.assertIsNone(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo').error)
         self.assertEqual(w.utxos(), [])
 
 
@@ -440,7 +480,7 @@ class TestWalletMultisig(unittest.TestCase):
         t.sign()
         self.assertTrue(t.verify())
         t.send()
-        self.assertEqual(t.hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(t.error)
 
     def test_wallet_multisig_2of2(self):
         """
@@ -512,7 +552,7 @@ class TestWalletMultisig(unittest.TestCase):
         t2 = msw2.transaction_import(t)
         t2.sign()
         t2.send()
-        self.assertEqual(t2.hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(t2.error)
 
     @staticmethod
     def _multisig_test(sigs_required, number_of_sigs, sort_keys, network):
@@ -608,7 +648,7 @@ class TestWalletMultisig(unittest.TestCase):
         t = wl.transaction_create([(HDKey(network='bitcoinlib_test').key.address(), 6400000)], min_confirms=0)
         t.sign(keys[1])
         t.send()
-        self.assertEqual(t.hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(t.error)
 
         key_names_active = [k.name for k in wl.keys(is_active=False)]
         self.assertEqual(key_names_active,
@@ -639,18 +679,18 @@ class TestWalletMultisig(unittest.TestCase):
     def test_wallet_multisig_sign_with_external_single_key(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        NETWORK = 'bitcoinlib_test'
+        network = 'bitcoinlib_test'
         words = 'square innocent drama'
         seed = Mnemonic().to_seed(words, 'password')
-        hdkey = HDKey.from_seed(seed, network=NETWORK)
+        hdkey = HDKey.from_seed(seed, network=network)
         hdkey.key_type = 'single'
 
         key_list = [
-            HDKey(network=NETWORK).account_multisig_key().public(),
-            HDKey(network=NETWORK),
+            HDKey(network=network).account_multisig_key().public(),
+            HDKey(network=network),
             hdkey.public()
         ]
-        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, network=NETWORK,
+        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, network=network,
                                           databasefile=DATABASEFILE_UNITTESTS)
         wallet.new_key()
         wallet.utxos_update()
@@ -659,30 +699,64 @@ class TestWalletMultisig(unittest.TestCase):
         wt.sign(hdkey)
         self.assertTrue(wt.verify())
 
+    def test_wallet_multisig_reopen_wallet(self):
+
+        def _open_all_wallets():
+            wl1 = wallet_create_or_open_multisig(
+                'multisigmulticur1_tst', sigs_required=2, network=network,
+                databasefile=DATABASEFILE_UNITTESTS,
+                key_list=[pk1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
+            wl2 = wallet_create_or_open_multisig(
+                'multisigmulticur2_tst', sigs_required=2, network=network,
+                databasefile=DATABASEFILE_UNITTESTS,
+                key_list=[pk1.account_multisig_key().wif_public(), pk2, pk3.account_multisig_key().wif_public()])
+            wl3 = wallet_create_or_open_multisig(
+                'multisigmulticur3_tst', sigs_required=2, network=network,
+                databasefile=DATABASEFILE_UNITTESTS,
+                key_list=[pk1.account_multisig_key().wif_public(), pk2.account_multisig_key().wif_public(), pk3])
+            return wl1, wl2, wl3
+
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        network = 'litecoin'
+        phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
+        phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
+        phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
+        pk1 = HDKey.from_passphrase(phrase1, network=network)
+        pk2 = HDKey.from_passphrase(phrase2, network=network)
+        pk3 = HDKey.from_passphrase(phrase3, network=network)
+        wallets = _open_all_wallets()
+        for wlt in wallets:
+            self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
+        del wallets
+        wallets2 = _open_all_wallets()
+        for wlt in wallets2:
+            self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
+
 
 class TestWalletKeyImport(unittest.TestCase):
 
     def test_wallet_key_import_and_sign_multisig(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        NETWORK = 'bitcoinlib_test'
+        network = 'bitcoinlib_test'
         words = 'square innocent drama'
         seed = Mnemonic().to_seed(words, 'password')
-        hdkey = HDKey.from_seed(seed, network=NETWORK)
+        hdkey = HDKey.from_seed(seed, network=network)
         hdkey.key_type = 'single'
 
         key_list = [
-            HDKey(network=NETWORK).account_multisig_key().public(),
-            HDKey(network=NETWORK),
+            HDKey(network=network).account_multisig_key().public(),
+            HDKey(network=network),
             hdkey.public()
         ]
-        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=NETWORK,
+        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=network,
                                           databasefile=DATABASEFILE_UNITTESTS)
         wallet.new_key()
         wallet.utxos_update()
         wallet.import_key(hdkey)
         wt = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
-        self.assertEqual(wt.hash, 'succesfull_test_sendrawtransaction')
+        self.assertIsNone(wt.error)
 
     def test_wallet_import_private_for_known_public(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -750,6 +824,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.wallet = wallet_create_or_open('scan-test', key=account_key, network='testnet',
                                             databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.scan()
+        print(self.wallet.info())
         self.assertEqual(len(self.wallet.keys()), 31)
         self.assertEqual(self.wallet.balance(), 60500000)
 
@@ -775,8 +850,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         self.assertEqual(wlt.balance(), 200000000)
 
-        wlt.send_to(to_key.address, 9000)
-        self.assertEqual(wlt.balance(), 100000000)
+        t = wlt.send_to(to_key.address, 9000)
+        self.assertEqual(wlt.balance(), 200000000 - t.fee)
 
     def test_wallet_balance_update_multi_network(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"

@@ -11,6 +11,7 @@
 
 import os
 import sys
+import argparse
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -22,29 +23,44 @@ try:
 except NameError:
     pass
 
-DATABASE_BACKUP = os.path.join(DEFAULT_DATABASEDIR, "bitcoinlib.backup-%s.sqlite" %
-                               datetime.now().strftime("%Y%m%d-%I:%M"))
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='BitcoinLib Database update script')
+    parser.add_argument('--database', '-d', default=DEFAULT_DATABASE,
+                        help="Name of specific database file to use",)
+    pa = parser.parse_args()
+    return pa
+
+
+args = parse_args()
+database_file = args.database
+if not os.path.isfile(database_file):
+    database_file = os.path.join(DEFAULT_DATABASEDIR, database_file)
+database_backup_file = os.path.join(DEFAULT_DATABASEDIR, "%s.backup-%s" %
+                                    (database_file, datetime.now().strftime("%Y%m%d-%I:%M")))
 
 print("Wallet and Key data will be copied to new database. Transaction data will NOT be copied")
-print("Old database will be backed up to %s" % DATABASE_BACKUP)
+print("Updating database file: %s" % database_file)
+print("Old database will be backed up to %s" % database_backup_file)
 
 if input("Type 'y' or 'Y' to continue or any other key to cancel: ") not in ['y', 'Y']:
     print("Aborted by user")
     sys.exit()
 
+
 # Move old database to temporary database
-move(DEFAULT_DATABASE, DATABASE_BACKUP)
+move(database_file, database_backup_file)
 
 try:
     # Create new database
-    engine = create_engine('sqlite:///%s' % DEFAULT_DATABASE)
+    engine = create_engine('sqlite:///%s' % database_file)
     Base.metadata.create_all(engine)
 
     # Copy wallets and keys to new database
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    engine_backup = create_engine('sqlite:///%s' % DATABASE_BACKUP)
+    engine_backup = create_engine('sqlite:///%s' % database_backup_file)
     Session_backup = sessionmaker(bind=engine_backup)
     session_backup = Session_backup()
 
@@ -84,10 +100,10 @@ try:
     session.commit()
 
     print("Database %s has been updated, backup of old database has been created at %s" %
-          (DEFAULT_DATABASE, DATABASE_BACKUP))
+          (database_file, database_backup_file))
 
 except Exception as e:
     # If ANYTHING goes wrong move back to old database
     print(e)
     print("Errors occured, database not updated")
-    move(DATABASE_BACKUP, DEFAULT_DATABASE)
+    move(database_backup_file, database_file)

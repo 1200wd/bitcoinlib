@@ -492,7 +492,9 @@ class Input:
             self.output_n = output_n
         if isinstance(keys, (bytes, str)):
             keys = [keys]
-        self.unlocking_script = to_bytes(unlocking_script)
+        if unlocking_script is None:
+            unlocking_script = b''
+        self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b''
         if self.prev_hash == 32 * b'\0':
             self.script_type = 'coinbase'
@@ -672,7 +674,7 @@ class Output:
                                    "creating output")
 
         self.value = value
-        self.lock_script = to_bytes(lock_script)
+        self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
         self.public_key = to_bytes(public_key)
@@ -909,6 +911,7 @@ class Transaction:
             'locktime': self.locktime,
             'raw': self.raw_hex(),
             'size': self.size,
+            'verified': self.verified,
             'status': self.status
         }
 
@@ -921,13 +924,14 @@ class Transaction:
         print("Date: %s" % self.date)
         print("Network: %s" % self.network.network_name)
         print("Status: %s" % self.status)
+        print("Verified: %s" % self.verified)
         print("Inputs")
         for ti in self.inputs:
             print("-", ti.address, ti.value, to_hexstring(ti.prev_hash))
         print("Outputs")
         for to in self.outputs:
             print("-", to.address, to.value)
-        print("Fee: %d" % self.fee)
+        print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
@@ -1215,10 +1219,50 @@ class Transaction:
                                    network=self.network.network_name))
         return output_n
 
-    def estimate_fee(self):
+    def estimate_size(self, add_change_output=True):
         """
-        Get estimated fee for this transaction in smallest denominator (i.e. Satoshi)
+        Get estimated size in bytes for current transaction based on transaction type and number of inputs and outputs.
+
+        :param add_change_output: Assume an extra change output will be created but has not been created yet.
+        :type add_change_output: bool
+
+        :return int: Estimated transaction size
+        """
+        est_size = 10
+        if add_change_output:
+            est_size += 34
+        for inp in self.inputs:
+            if inp.script_type in ['p2sh', 'p2pkh']:
+                if inp.compressed:
+                    est_size += 147
+                else:
+                    est_size += 180
+            elif inp.script_type == 'p2sh_multisig':
+                n_sigs = len(inp.keys)
+                est_size += 9 + (n_sigs * 34) + (inp.sigs_required * 72)
+            else:
+                raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
+                                       inp.script_type)
+        if not self.inputs:
+            est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
+        for outp in self.outputs:
+            if outp.script_type in ['p2pkh', 'p2sh']:
+                est_size += 34
+            elif outp.script_type == 'nulldata':
+                est_size += len(outp.lock_script) + 9
+            else:
+                raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
+                                       outp.script_type)
+        return est_size
+
+    def calculate_fee(self):
+        """
+        Get fee for this transaction in smallest denominator (i.e. Satoshi) based on its size and the
+        transaction.fee_per_kb value
 
         :return int: Estimated transaction fee
         """
-        return int(len(self.raw())/1024 * self.fee_per_kb)
+
+        if not self.fee_per_kb:
+            raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
+        return int(len(self.raw())/1024.0 * self.fee_per_kb)

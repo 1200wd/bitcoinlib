@@ -30,7 +30,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "echo test | %s %s test --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "Receive address is 14guS7uQpEbgf1e8TDo1zTEURJW3NGPc9E"
+        output_wlt_create = "Receive address(es):\n14guS7uQpEbgf1e8TDo1zTEURJW3NGPc9E"
         output_wlt_delete = "Wallet test has been removed"
 
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
@@ -47,7 +47,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "echo testms | %s %s testms --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "Receive address is 2N7QSKcsmWPP9anG7cdZvzBUbgTVrAK2MZ9"
+        output_wlt_create = "Receive address(es):\n2N7QSKcsmWPP9anG7cdZvzBUbgTVrAK2MZ9"
         output_wlt_delete = "Wallet testms has been removed"
 
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
@@ -63,12 +63,12 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "echo test2 | %s %s test2 --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "Receive address is 21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
-        output_wlt_transaction = b'Send transaction result: True'
+        output_wlt_create = "Receive address(es):\n21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
+        output_wlt_transaction = b'Transaction pushed to network'
         output_wlt_delete = "Wallet test2 has been removed"
 
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
-        check_output(cmd_wlt_update, shell=True)
+        print(check_output(cmd_wlt_update, shell=True))
         self.assertIn(output_wlt_transaction, check_output(cmd_wlt_transaction, shell=True))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
 

@@ -30,14 +30,22 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     readmetxt = f.read()
 
 kwargs = {}
-install_requires = ['requests', 'ecdsa', 'pbkdf2', 'pycrypto', 'scrypt', 'sqlalchemy']
+
+install_requires = [
+      'requests==2.18.4',
+      'ecdsa==0.13',
+      'pbkdf2==1.3',
+      'pycrypto==2.6.1',
+      'scrypt==0.8.6',
+      'SQLAlchemy==1.2.5'
+]
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
 kwargs['install_requires'] = install_requires
 
 setup(
       name='bitcoinlib',
-      version='0.3.33a0',
+      version='0.3.33a1',
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[

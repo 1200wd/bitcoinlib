@@ -48,9 +48,9 @@ class BitcoindClient(BaseClient):
     def from_config(configfile=None, network='bitcoin'):
         config = configparser.ConfigParser()
         if not configfile:
-            cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/bitcoin.conf')
+            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/bitcoin.conf')
             if not os.path.isfile(cfn):
-                cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/bitcoin.conf')
+                cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/bitcoin.conf')
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
                                   "default. Or place a config file in .bitcoinlib/config/bitcoin.conf to reference to "
@@ -62,24 +62,32 @@ class BitcoindClient(BaseClient):
         with open(cfn, 'r') as f:
             config_string = '[rpc]\n' + f.read()
         config.read_string(config_string)
+        try:
+            if config.get('rpc', 'testnet'):
+                network = 'testnet'
+        except configparser.NoOptionError:
+            pass
         if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
             raise ConfigError("Please update config settings in %s" % cfn)
-        if network == 'bitcoin':
-            port = 8332
-        elif network == 'testnet':
-            port = 18332
-        else:
-            raise ConfigError("Network %s not supported by BitcoindClient" % network)
         try:
-            server = config.get('rpc', 'server')
-        except:
+            port = config.get('rpc', 'port')
+        except configparser.NoOptionError:
+            if network == 'testnet':
+                port = 18332
+            else:
+                port = 8332
+        try:
+            server = config.get('rpc', 'bind')
+        except configparser.NoOptionError:
             server = '127.0.0.1'
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
-        return url
+        return BitcoindClient(network, url)
 
     def __init__(self, network='bitcoin', base_url='', denominator=100000000, api_key=''):
         if not base_url:
-            base_url = self.from_config('', network)
+            bdc = self.from_config('', network)
+            base_url = bdc.base_url
+            network = bdc.network
         if len(base_url.split(':')) != 4:
             raise ConfigError("Bitcoind connection URL must be of format 'http(s)://user:password@host:port,"
                               "current format is %s. Please set url in providers.json file" % base_url)
@@ -98,7 +106,10 @@ class BitcoindClient(BaseClient):
         return self.proxy.sendrawtransaction(rawtx)
     
     def estimatefee(self, blocks):
-        res = self.proxy.estimatesmartfee(blocks)['feerate']
+        try:
+            res = self.proxy.estimatesmartfee(blocks)['feerate']
+        except KeyError:
+            res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
 
@@ -112,7 +123,7 @@ if __name__ == '__main__':
     bdc = BitcoindClient()
 
     print("\n=== SERVERINFO ===")
-    pprint(bdc.proxy.getinfo())
+    pprint(bdc.proxy.getnetworkinfo())
 
     print("\n=== Best Block ===")
     blockhash = bdc.proxy.getbestblockhash()

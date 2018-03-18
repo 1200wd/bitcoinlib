@@ -35,6 +35,7 @@ seed = Mnemonic().to_seed(words)
 hdk = HDKey().from_seed(seed)
 print("Seed for HD Key    %s" % to_hexstring(seed))
 print("HD Key WIF is      %s" % hdk.wif())
+print("HD Key WIF is      %s (method 2)" % HDKey.from_passphrase(words).wif())
 
 # Generate a key from a Mnemonic passphrase
 print("\nGenerate a key from a Mnemonic passphrase")

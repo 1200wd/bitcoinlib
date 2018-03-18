@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Transaction Class
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2018 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -220,6 +220,20 @@ class TestTransactions(unittest.TestCase):
         t.sign(pk1, 0)
         t.sign(pk2.private_byte, 1)
         self.assertTrue(t.verify())
+
+    def test_transactions_estimate_size_p2pkh(self):
+        t = Transaction()
+        t.add_output(2710000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+        t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
+        t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
+        self.assertEqual(t.estimate_size(), 259)
+
+    def test_transactions_estimate_size_nulldata(self):
+        t = Transaction()
+        lock_script = b'j' + varstr(b'Please leave a message after the beep')
+        t.add_output(0, lock_script=lock_script)
+        t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
+        self.assertEqual(t.estimate_size(), 239)
 
     def test_transaction_very_large(self):
         rawtx = \
@@ -1146,3 +1160,19 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.sign(self.pk5)
 
         self.assertTrue(t.verify())
+
+    def test_transaction_multisig_estimate_size(self):
+        network = 'bitcoinlib_test'
+        phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
+        phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
+        phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
+        prev_hash = '55d721dffa90208d8ab7ae3411c42db3e7de860f3a76ab18f7c237bf2390a666'
+        pk1 = HDKey.from_passphrase(phrase1, network=network)
+        pk2 = HDKey.from_passphrase(phrase2, network=network)
+        pk3 = HDKey.from_passphrase(phrase3, network=network)
+
+        t = Transaction(network=network)
+        t.add_input(prev_hash, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
+                    sigs_required=2)
+        t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')
+        self.assertEqual(t.estimate_size(), 333)

@@ -98,7 +98,7 @@ class BitGoClient(BaseClient):
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)
-        t = Transaction.import_raw(tx['hex'])
+        t = Transaction.import_raw(tx['hex'], network=self.network)
         if tx['confirmations']:
             t.status = 'confirmed'
         t.hash = tx_id
@@ -123,7 +123,8 @@ class BitGoClient(BaseClient):
                 continue
             value = [x[1] for x in input_values if x[0] == i.address]
             if len(value) != 1:
-                _logger.warning("BitGoClient: Address %s input value should be found exactly 1 times in value list")
+                _logger.warning("BitGoClient: Address %s input value should be found exactly 1 times in value list" %
+                                i.address)
                 i.value = None
             else:
                 i.value = value[0]

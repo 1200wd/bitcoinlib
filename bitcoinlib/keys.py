@@ -31,10 +31,11 @@ import scrypt
 from Crypto.Cipher import AES
 
 from bitcoinlib.main import *
-from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, network_values_for
+from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError
+from bitcoinlib.mnemonic import Mnemonic
 
 
 _logger = logging.getLogger(__name__)
@@ -654,6 +655,22 @@ class HDKey:
         chain = I[32:]
         return HDKey(key=key, chain=chain, network=network, key_type=key_type)
 
+    @staticmethod
+    def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK):
+        """
+        Create key from Mnemonic passphrase
+
+        :param passphrase: Mnemonic passphrase, list of words as string seperated with a space character
+        :type passphrase: str
+        :param password: Password to protect passphrase
+        :type password: str
+        :param network: Network to use
+        :type network: str
+
+        :return HDKey:
+        """
+        return HDKey().from_seed(Mnemonic().to_seed(passphrase, password), network=network)
+
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, isprivate=True, network=None, key_type='bip32', passphrase='', compressed=True):
         """
@@ -690,13 +707,15 @@ class HDKey:
                            "or use simple Key class instead")
         self.compressed = compressed
         self.key = None
+
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
                 seedbits = random.SystemRandom().getrandbits(512)
                 seed = change_base(str(seedbits), 10, 256, 64)
                 key, chain = self._key_derivation(seed)
-            elif isinstance(import_key, (bytearray, bytes if sys.version > '3' else bytearray)) and len(import_key) == 64:
+            elif isinstance(import_key, (bytearray, bytes if sys.version > '3' else bytearray)) \
+                    and len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
             elif isinstance(import_key, Key):
@@ -782,7 +801,7 @@ class HDKey:
             print("")
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
-        print(" Public Key Hash160          %s" % self.key.hash160())
+        print(" Public Key Hash160          %s" % change_base(self.key.hash160(), 256, 16))
         print(" Address (b58)               %s" % self.key.address())
         print(" Fingerprint (hex)           %s" % change_base(self.fingerprint(), 256, 16))
         point_x, point_y = self.key.public_point()

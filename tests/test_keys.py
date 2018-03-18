@@ -457,8 +457,8 @@ class TestKeysBulk(unittest.TestCase):
             self.skipTest("Skip bulktesting. Bulktestcount == 0")
         for i in range(BULKTESTCOUNT):
             k = HDKey()
-            K = HDKey(k.wif_public())
-            pub_with_pubparent = K.child_public().key.address()
+            pubk = HDKey(k.wif_public())
+            pub_with_pubparent = pubk.child_public().key.address()
             pub_with_privparent = k.child_private().key.address()
             if pub_with_privparent != pub_with_pubparent:
                 print("Error random key: %4d: pub-child %s, priv-child %s" %
