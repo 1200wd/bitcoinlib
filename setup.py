@@ -54,7 +54,6 @@ setup(
             'Intended Audience :: Developers',
             'Intended Audience :: Financial and Insurance Industry',
             'Intended Audience :: Information Technology',
-            'Programming Language :: Python :: 2.6',
             'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3.4',
             'Programming Language :: Python :: 3.5',
