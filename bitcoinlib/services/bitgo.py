@@ -129,6 +129,7 @@ class BitGoClient(BaseClient):
             else:
                 i.value = value[0]
         for o in t.outputs:
+            # TODO: Check if output is spent
             o.spent = None
         return t
 

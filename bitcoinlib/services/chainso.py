@@ -116,6 +116,7 @@ class ChainSo(BaseClient):
             i.value = int(round(float(tx['inputs'][n]['value']) * self.units, 0))
             input_total += i.value
         for o in t.outputs:
+            # TODO: Check if output is spent
             o.spent = None
             output_total += o.value
         t.hash = tx_id
@@ -137,14 +138,32 @@ class ChainSo(BaseClient):
 
     def gettransactions(self, address_list):
         txs = []
-        tx_ids = []
+        addr_txs = []
         for address in address_list:
             res = self.compose_request('address', address)
             if res['status'] != 'success':
                 pass
             for tx in res['data']['txs']:
-                if tx['txid'] not in tx_ids:
-                    tx_ids.append(tx['txid'])
-        for tx_id in tx_ids:
-            txs.append(self.gettransaction(tx_id))
+                if tx['txid'] not in [t[0] for t in addr_txs]:
+                    addr_txs.append(
+                        (
+                            tx['txid'],
+                            [] if 'outgoing' not in tx else tx['outgoing']['outputs'],
+                            # '' if 'incoming' not in tx else tx['incoming'],
+                        )
+                    )
+        for addr_tx in addr_txs:
+            t = self.gettransaction(addr_tx[0])
+            for out in addr_tx[1]:
+                n = out['output_no']
+                if out['address'] == t.outputs[n].address and t.outputs[n].output_n == n:
+                    if t.outputs[n].spent is not None:
+                        continue
+                    if out['spent'] is None:
+                        t.outputs[n].spent = False
+                    else:
+                        t.outputs[n].spent = True
+                else:
+                    raise ValueError("Unexpected output order in gettransaction call")
+            txs.append(t)
         return txs
