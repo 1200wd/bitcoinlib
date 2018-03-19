@@ -578,6 +578,7 @@ class HDWalletTransaction(Transaction):
 
         :return int: Transaction ID
         """
+
         sess = self.hdwallet._session
         # If tx_hash is unknown add it to database, else update
         db_tx_query = sess.query(DbTransaction). \
@@ -608,6 +609,7 @@ class HDWalletTransaction(Transaction):
             db_tx.status = self.status if self.status else db_tx.status
             db_tx.input_total = self.input_total if self.input_total else db_tx.input_total
             db_tx.output_total = self.output_total if self.output_total else db_tx.output_total
+            db_tx.network_name = self.network.network_name if self.network.network_name else db_tx.network_name
             sess.commit()
 
         assert tx_id
@@ -661,6 +663,7 @@ class HDWalletTransaction(Transaction):
                 sess.add(new_tx_item)
             elif key_id:
                 tx_output.key_id = key_id
+                tx_output.spent = spent if spent is not None else tx_output.spent
             sess.commit()
         return tx_id
 
@@ -2238,7 +2241,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network, providers=['chainso'])
+        srv = Service(network=network)
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
