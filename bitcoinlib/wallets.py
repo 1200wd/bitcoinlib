@@ -1038,8 +1038,11 @@ class HDWallet:
         if len(qr.all()) > 1:
             _logger.warning("No account_id specified and more than one account found for this network %s. "
                             "Using a random account" % network)
-        if not account_id and acckey:
-            account_id = acckey.account_id
+        if account_id is None:
+            if acckey:
+                account_id = acckey.account_id
+            else:
+                account_id = 0
         return network, account_id, acckey
 
     @property
@@ -1289,6 +1292,8 @@ class HDWallet:
                 raise WalletError("Multiple networks is currently not supported for multisig")
             if not self.multisig_n_required:
                 raise WalletError("Multisig_n_required not set, cannot create new key")
+            if account_id is None:
+                account_id = 0
             co_sign_wallets = self._session.query(DbWallet).\
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
 
@@ -2255,8 +2260,11 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
         if depth is None:
-            if self.scheme == 'bip44' or self.scheme == 'multisig':
+            if self.scheme == 'bip44':
                 depth = 5
+            elif self.scheme == 'multisig':
+                depth = 5
+                account_id = None
             else:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
