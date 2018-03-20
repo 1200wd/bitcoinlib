@@ -578,6 +578,7 @@ class HDWalletTransaction(Transaction):
 
         :return int: Transaction ID
         """
+
         sess = self.hdwallet._session
         # If tx_hash is unknown add it to database, else update
         db_tx_query = sess.query(DbTransaction). \
@@ -608,6 +609,7 @@ class HDWalletTransaction(Transaction):
             db_tx.status = self.status if self.status else db_tx.status
             db_tx.input_total = self.input_total if self.input_total else db_tx.input_total
             db_tx.output_total = self.output_total if self.output_total else db_tx.output_total
+            db_tx.network_name = self.network.network_name if self.network.network_name else db_tx.network_name
             sess.commit()
 
         assert tx_id
@@ -661,6 +663,7 @@ class HDWalletTransaction(Transaction):
                 sess.add(new_tx_item)
             elif key_id:
                 tx_output.key_id = key_id
+                tx_output.spent = spent if spent is not None else tx_output.spent
             sess.commit()
         return tx_id
 
@@ -788,7 +791,7 @@ class HDWallet:
 
     @classmethod
     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
-                        multisig_compressed=True, sort_keys=False, databasefile=None):
+                        multisig_compressed=True, sort_keys=True, databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
         public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
@@ -841,7 +844,11 @@ class HDWallet:
         hdkey_list = []
         for cokey in key_list:
             if not isinstance(cokey, HDKey):
-                hdkey_list.append(HDKey(cokey))
+                if len(cokey.split(' ')) > 5:
+                    k = HDKey().from_passphrase(cokey, network=network)
+                else:
+                    k = HDKey(cokey)
+                hdkey_list.append(k)
             else:
                 hdkey_list.append(cokey)
         if sort_keys:
@@ -1368,8 +1375,16 @@ class HDWallet:
             new_key_ids = [k.key_id for k in scanned_keys]
             nr_new_txs = 0
             new_key_ids = list(set(new_key_ids) - set(_keys_ignore))
+            n_highest_updated = 0
             for new_key_id in new_key_ids:
-                nr_new_txs += self.transactions_update(change=0, key_id=new_key_id)
+                n_new = self.transactions_update(change=0, key_id=new_key_id)
+                if n_new:
+                    n_highest_updated = new_key_id if n_new and n_highest_updated < new_key_id else n_highest_updated
+                nr_new_txs += n_new
+            for key_id in [key_id for key_id in new_key_ids if key_id < n_highest_updated]:
+                self._session.query(DbKey).filter_by(id=key_id).update({'used': True})
+            self._session.commit()
+
             _keys_ignore += new_key_ids
             if nr_new_txs:
                 self.scan(scan_gap_limit, account_id, change=0, network=network, _keys_ignore=_keys_ignore,
@@ -1379,8 +1394,16 @@ class HDWallet:
             new_key_ids = [k.key_id for k in scanned_keys_change]
             nr_new_txs = 0
             new_key_ids = list(set(new_key_ids) - set(_keys_ignore))
+            n_highest_updated = 0
             for new_key_id in new_key_ids:
-                nr_new_txs += self.transactions_update(change=1, key_id=new_key_id)
+                n_new = self.transactions_update(change=1, key_id=new_key_id)
+                if n_new:
+                    n_highest_updated = new_key_id if n_new and n_highest_updated < new_key_id else n_highest_updated
+                nr_new_txs += n_new
+            for key_id in [key_id for key_id in new_key_ids if key_id < n_highest_updated]:
+                self._session.query(DbKey).filter_by(id=key_id).update({'used': True})
+            self._session.commit()
+
             _keys_ignore += new_key_ids
             if nr_new_txs:
                 self.scan(scan_gap_limit, account_id, change=1, network=network, _keys_ignore=_keys_ignore,
