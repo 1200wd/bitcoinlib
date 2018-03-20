@@ -1106,6 +1106,13 @@ class Transaction:
                         n_sigs_to_insert -= 1
                         break
             if n_sigs_to_insert:
+                for sig in self.inputs[tid].signatures:
+                    free_positions = [i for i, s in enumerate(sig_domain) if s == '']
+                    for pos in free_positions:
+                        sig_domain[pos] = sig
+                        n_sigs_to_insert -= 1
+                        break
+            if n_sigs_to_insert:
                 _logger.info("Some signatures are replaced with the signatures of the provided keys")
                 n_signs -= n_sigs_to_insert
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
