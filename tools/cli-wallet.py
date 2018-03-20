@@ -279,5 +279,7 @@ if __name__ == '__main__':
 
     print("Updating wallet")
     wlt.transactions_update()
+    if args.network == 'bitcoinlib_test':
+        wlt.utxos_update()
     print("Wallet info for %s" % wlt.name)
     wlt.info()
