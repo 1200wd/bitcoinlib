@@ -81,7 +81,11 @@ class BlockExplorerClient(BaseClient):
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
-            address = '' if 'addresses' not in to else to['scriptPubKey']['addresses'][0]
+            address = ''
+            try:
+                address = to['scriptPubKey']['addresses'][0]
+            except ValueError:
+                pass
             t.add_output(value=value, address=address, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t

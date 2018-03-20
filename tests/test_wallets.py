@@ -347,8 +347,6 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.wallet.get_key(network='testnet', number_of_keys=2)
         self.wallet.get_key(network='testnet', change=1)
         self.wallet.utxos_update(networks='testnet')
-        print(self.wallet.balance())
-        self.wallet.info()
         self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 200000000)
         self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
         self.assertEqual(self.wallet.balance(network='testnet'), 1500000)
@@ -364,7 +362,6 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 189999000)
         self.assertEqual(len(self.wallet.transactions(account_id=0, network='bitcoinlib_test')), 2)
         self.assertEqual(len(self.wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
-        self.wallet.info()
 
 
 class TestWalletBitcoinlibTestnet(unittest.TestCase):
@@ -637,7 +634,7 @@ class TestWalletMultisig(unittest.TestCase):
         key_list = [keys[0], keys[1].public()]
 
         wl = HDWallet.create_multisig('multisig_expk2', key_list, sigs_required=2, network='bitcoinlib_test',
-                                      databasefile=DATABASEFILE_UNITTESTS)
+                                      databasefile=DATABASEFILE_UNITTESTS, sort_keys=False)
         wl.new_key()
         wl.new_key()
         wl.new_key_change()
@@ -824,8 +821,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.wallet = wallet_create_or_open('scan-test', key=account_key, network='testnet',
                                             databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.scan()
-        print(self.wallet.info())
-        self.assertEqual(len(self.wallet.keys()), 31)
+        self.assertEqual(len(self.wallet.keys()), 25)
+        self.assertEqual(len(self.wallet.keys(is_active=None)), 31)
         self.assertEqual(self.wallet.balance(), 60500000)
 
     def test_wallet_two_utxos_one_key(self):
