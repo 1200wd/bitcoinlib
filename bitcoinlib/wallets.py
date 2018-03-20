@@ -652,7 +652,8 @@ class HDWalletTransaction(Transaction):
             key_id = None
             if tx_key:
                 key_id = tx_key.id
-                tx_key.used = True
+                if to.spent is not None:
+                    tx_key.used = True
             spent = to.spent
             tx_output = sess.query(DbTransactionOutput). \
                 filter_by(transaction_id=tx_id, output_n=to.output_n).scalar()
@@ -791,7 +792,7 @@ class HDWallet:
 
     @classmethod
     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
-                        multisig_compressed=True, sort_keys=False, databasefile=None):
+                        multisig_compressed=True, sort_keys=True, databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
         public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
@@ -844,7 +845,11 @@ class HDWallet:
         hdkey_list = []
         for cokey in key_list:
             if not isinstance(cokey, HDKey):
-                hdkey_list.append(HDKey(cokey))
+                if len(cokey.split(' ')) > 5:
+                    k = HDKey().from_passphrase(cokey, network=network)
+                else:
+                    k = HDKey(cokey)
+                hdkey_list.append(k)
             else:
                 hdkey_list.append(cokey)
         if sort_keys:

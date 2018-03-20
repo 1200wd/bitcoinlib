@@ -37,7 +37,7 @@ class BitGoClient(BaseClient):
         if data:
             data = '/' + data
         url_path = category + data
-        if cmd:
+        if cmd != '':
             url_path += '/' + cmd
         return self.request(url_path, variables, method=method)
 
@@ -75,10 +75,10 @@ class BitGoClient(BaseClient):
                     break
         return utxos
 
-    def gettransactions(self, address_list):
+    def gettransactions(self, addresslist):
         txs = []
         tx_ids = []
-        for address in address_list:
+        for address in addresslist:
             skip = 0
             total = 1
             while total > skip:
@@ -129,7 +129,6 @@ class BitGoClient(BaseClient):
             else:
                 i.value = value[0]
         for o in t.outputs:
-            # TODO: Check if output is spent
             o.spent = None
         return t
 

@@ -56,6 +56,7 @@ def parse_args():
                         metavar=('NUMBER_OF_ADDRESSES'))
     parser.add_argument('--scan', '-s', action='store_true',
                         help="Scan and update wallet with all addresses, transactions and balances")
+    parser.add_argument('--generate-key', '-k', action='store_true')
     group = parser.add_argument_group("Send / Create transaction")
     group.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
                        help="Create transaction. Specify address followed by amount. Repeat for multiple outputs",
@@ -79,6 +80,17 @@ def parse_args():
     return pa
 
 
+def get_passphrase():
+    inp_passphrase = Mnemonic('english').generate(args.passphrase_strength)
+    print("\nYour mnemonic private key sentence is: %s" % inp_passphrase)
+    print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
+    passphrase = inp_passphrase.split(' ')
+    inp = input("\nType 'yes' if you understood and wrote down your key: ")
+    if inp not in ['yes', 'Yes', 'YES']:
+        clw_exit("Exiting...")
+    return passphrase
+
+
 def create_wallet(wallet_name, args, databasefile):
     if args.network is None:
         args.network = DEFAULT_NETWORK
@@ -94,17 +106,11 @@ def create_wallet(wallet_name, args, databasefile):
                      args.create_multisig[0])
         key_list = args.create_multisig[1:]
         return HDWallet.create_multisig(name=wallet_name, key_list=key_list, sigs_required=sigs_required,
-                                        network=args.network, databasefile=databasefile)
+                                        network=args.network, databasefile=databasefile, sort_keys=True)
     else:
         passphrase = args.passphrase
         if passphrase is None:
-            inp_passphrase = Mnemonic('english').generate(args.passphrase_strength)
-            print("\nYour mnemonic private key sentence is: %s" % inp_passphrase)
-            print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
-            passphrase = inp_passphrase.split(' ')
-            inp = input("\nType 'yes' if you understood and wrote down your key: ")
-            if inp not in ['yes', 'Yes', 'YES']:
-                clw_exit("Exiting...")
+            passphrase = get_passphrase()
         elif not passphrase:
             passphrase = input("Enter Passphrase: ")
         if not isinstance(passphrase, list):
@@ -149,6 +155,18 @@ if __name__ == '__main__':
     if args.database:
         databasefile = DEFAULT_DATABASEDIR + args.database
 
+    if args.generate_key:
+        passphrase = get_passphrase()
+        passphrase = ' '.join(passphrase)
+        seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+        hdkey = HDKey().from_seed(seed, network=args.network)
+        print("Private master key, to create multisig wallet on this machine: %s" %
+              hdkey.wif())
+        print("Public account key, to share with other cosigner multisig wallets: %s" %
+              hdkey.account_multisig_key().wif_public())
+        print("Network: %s" % hdkey.network.network_name)
+        clw_exit()
+
     # List wallets, then exit
     if args.list_wallets:
         print("Bitcoinlib wallets:")
@@ -185,6 +203,7 @@ if __name__ == '__main__':
                 print("WARNING: Using passphrase options for existing wallet ignored")
         except WalletError as e:
             clw_exit("Error: %s" % e.msg)
+
     if wlt is None:
         clw_exit("Could not open wallet %s" % args.wallet_name)
 
@@ -259,6 +278,6 @@ if __name__ == '__main__':
         clw_exit()
 
     print("Updating wallet")
-    wlt.utxos_update()
+    wlt.transactions_update()
     print("Wallet info for %s" % wlt.name)
     wlt.info()
