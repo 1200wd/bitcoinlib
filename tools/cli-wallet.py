@@ -41,7 +41,7 @@ def parse_args():
                         help="Name or ID of wallet to remove, all keys and related information will be deleted")
     parser.add_argument('--list-wallets', '-l', action='store_true',
                         help="List all known wallets in bitcoinlib database")
-    parser.add_argument('--wallet-info', '-i', action='store_true',
+    parser.add_argument('--wallet-info', '-w', action='store_true',
                         help="Show wallet information")
     parser.add_argument('--passphrase', nargs="*", default=None,
                         help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
@@ -56,7 +56,10 @@ def parse_args():
                         metavar=('NUMBER_OF_ADDRESSES'))
     parser.add_argument('--scan', '-s', action='store_true',
                         help="Scan and update wallet with all addresses, transactions and balances")
-    parser.add_argument('--generate-key', '-k', action='store_true')
+    parser.add_argument('--generate-key', '-k', action='store_true',
+                        help="Generate a new masterkey, and show passphrase, WIF and public account key")
+    parser.add_argument('--import-raw', '-i', metavar="RAW_TRANSACTION",
+                        help="Import raw transaction in wallet and sign it with available keys")
     group = parser.add_argument_group("Send / Create transaction")
     group.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
                        help="Create transaction. Specify address followed by amount. Repeat for multiple outputs",
@@ -210,6 +213,12 @@ if __name__ == '__main__':
     if args.network is None:
         args.network = wlt.network.network_name
 
+    if args.import_raw:
+        t = wlt.transaction_import_raw(args.import_raw)
+        t.sign()
+        t.info()
+        print("Raw signed transaction:", t.raw_hex())
+        clw_exit()
     if args.receive:
         keys = wlt.get_key(network=args.network, number_of_keys=args.receive)
         keys = [keys] if not isinstance(keys, list) else keys
