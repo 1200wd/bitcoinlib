@@ -287,7 +287,7 @@ if __name__ == '__main__':
         clw_exit()
 
     print("Updating wallet")
-    wlt.transactions_update()
+    wlt.scan(scan_gap_limit=5)
     if args.network == 'bitcoinlib_test':
         wlt.utxos_update()
     print("Wallet info for %s" % wlt.name)

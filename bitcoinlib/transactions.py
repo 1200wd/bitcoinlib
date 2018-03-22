@@ -927,9 +927,9 @@ class Transaction:
         print("Verified: %s" % self.verified)
         print("Inputs")
         for ti in self.inputs:
-            n_sigs = len(ti.signatures)
             print("-", ti.address, ti.value, to_hexstring(ti.prev_hash))
-            print("  Script type: %s, signatures: %d of %d" % (ti.script_type, n_sigs, ti.sigs_required))
+            print("  Script type: %s, signatures: %d (%d of %d)" %
+                  (ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
         print("Outputs")
         for to in self.outputs:
             print("-", to.address, to.value)

@@ -569,7 +569,22 @@ class HDWalletTransaction(Transaction):
             self.status = 'unconfirmed'
             self.confirmations = 0
             self.pushed = True
+            self.save()
+
+            # Update db: Update spent UTXO's, add transaction to database
+            for inp in self.inputs:
+                tx_hash = to_hexstring(inp.prev_hash)
+                utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
+                    filter(DbTransaction.hash == tx_hash,
+                           DbTransactionOutput.output_n == inp.output_n_int,
+                           DbTransactionOutput.spent.op("IS")(False)).all()
+                for u in utxos:
+                    u.spent = True
+
+            self.hdwallet._session.commit()
+            self.hdwallet._balance_update(network=self.network.network_name)
             return True
+
         return False
 
     def save(self):
@@ -2637,21 +2652,7 @@ class HDWallet:
                                                       min_confirms, max_utxos)
                 transaction.sign(priv_keys)
 
-        res = transaction.send(offline)
-        if res:
-            transaction.save()
-            # Update db: Update spent UTXO's, add transaction to database
-            for inp in transaction.inputs:
-                tx_hash = to_hexstring(inp.prev_hash)
-                utxos = self._session.query(DbTransactionOutput).join(DbTransaction).\
-                    filter(DbTransaction.hash == tx_hash,
-                           DbTransactionOutput.output_n == inp.output_n_int,
-                           DbTransactionOutput.spent.op("IS")(False)).all()
-                for u in utxos:
-                    u.spent = True
-
-            self._session.commit()
-        self._balance_update(network=network)
+        transaction.send(offline)
         return transaction
 
     def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=0,
