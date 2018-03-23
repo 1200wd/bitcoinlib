@@ -128,7 +128,7 @@ def create_wallet(wallet_name, args, databasefile):
         return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif(), databasefile=databasefile)
 
 
-def create_transaction(wlt, send_args, fee, args):
+def create_transaction(wlt, send_args, args):
     output_arr = []
     while send_args:
         if len(send_args) == 1:
@@ -139,7 +139,7 @@ def create_transaction(wlt, send_args, fee, args):
             clw_exit("Amount must be a integer value: %s" % send_args[1])
         output_arr.append((send_args[0], amount))
         send_args = send_args[2:]
-    return wlt.transaction_create(output_arr=output_arr, transaction_fee=fee, network=args.network, min_confirms=0)
+    return wlt.transaction_create(output_arr=output_arr, network=args.network, transaction_fee=args.fee, min_confirms=0)
 
 
 def clw_exit(msg=None):
@@ -244,12 +244,8 @@ if __name__ == '__main__':
     if args.create_transaction:
         if args.fee_per_kb:
             clw_exit("Fee-per-kb option not allowed with --create-transaction")
-        fee = args.fee
-        if not fee:
-            srv = Service(network=args.network)
-            fee = srv.estimatefee()
         try:
-            wt = create_transaction(wlt, args.create_transaction, fee, args)
+            wt = create_transaction(wlt, args.create_transaction, args)
         except WalletError as e:
             clw_exit("Cannot create transaction: %s" % e.msg)
         wt.sign()

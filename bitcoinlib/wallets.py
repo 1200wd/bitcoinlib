@@ -2456,8 +2456,8 @@ class HDWallet:
         if input_arr and max_utxos and len(input_arr) > max_utxos:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
-        if input_arr and not transaction_fee:
-            transaction_fee = False
+        # if input_arr and not transaction_fee:
+        #     transaction_fee = False
 
         # Create transaction and add outputs
         transaction = HDWalletTransaction(hdwallet=self, network=network)
