@@ -711,7 +711,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
-               sort_keys=False, password='', databasefile=None):
+               sort_keys=True, password='', databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
@@ -1320,7 +1320,8 @@ class HDWallet:
                     'key_id': wk.key_id,
                     'public_key_uncompressed': wk.key().key.public_uncompressed(),
                     'public_key': wk.key().key.public(),
-                    'depth': wk.depth
+                    'depth': wk.depth,
+                    'path': wk.path
                 })
             if self.sort_keys:
                 public_keys.sort(key=lambda x: x['public_key'])
@@ -1333,7 +1334,10 @@ class HDWallet:
             redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
             address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
                                          versionbyte=Network(network).prefix_address_p2sh)
-            path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)
+            if len(set([x['path'] for x in public_keys])) == 1:
+                path = public_keys[0]['path']
+            else:
+                path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)
             if not name:
                 name = "Multisig Key " + '/'.join(public_key_ids)
             multisig_key = DbKey(
