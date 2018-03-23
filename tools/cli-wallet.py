@@ -258,7 +258,9 @@ if __name__ == '__main__':
             else:
                 print("Error creating transaction: %s" % wt.error)
         else:
-            print("Transaction created but not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
+            print("Transaction created but not send yet. Raw transaction to analyse or send online: ")
+            from pprint import pprint
+            pprint(wt.dict())
         clw_exit()
     if args.sweep:
         if args.fee:
