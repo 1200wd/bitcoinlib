@@ -2378,7 +2378,7 @@ class HDWallet:
 
             :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
             :type output_arr: list 
-            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script)]
+            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
             :type input_arr: list
             :param account_id: Account ID
             :type account_id: int
@@ -2505,9 +2505,10 @@ class HDWallet:
                     prev_hash = inp.prev_hash
                     output_n = inp.output_n
                     key_id = None
-                    value = 0
+                    value = inp.value
                     signatures = inp.signatures
                     unlocking_script = inp.unlocking_script
+                    address = inp.address
                 else:
                     prev_hash = inp[0]
                     output_n = inp[1]
@@ -2515,27 +2516,29 @@ class HDWallet:
                     value = 0 if len(inp) <= 3 else inp[3]
                     signatures = None if len(inp) <= 4 else inp[4]
                     unlocking_script = b'' if len(inp) <= 5 else inp[5]
+                    address = '' if len(inp) <= 6 else inp[6]
                 # Get key_ids, value from Db if not specified
-                if not (key_id or value):
+                if not (key_id and value):
+                    if not isinstance(output_n, int):
+                        output_n = struct.unpack('>I', output_n)[0]
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == to_hexstring(prev_hash),
-                               DbTransactionOutput.output_n == struct.unpack('>I', output_n)[0]).first()
+                               DbTransactionOutput.output_n == output_n).first()
                     if inp_utxo:
                         key_id = inp_utxo.key_id
                         value = inp_utxo.value
                     else:
-                        _logger.info("UTXO %s not found in this wallet. Please update UTXO's if this is not an "
+                        _logger.info("UTXO %s not found in this wallet. Please update UTXO's if othis is not an "
                                      "offline wallet" % to_hexstring(prev_hash))
                         key_id = self._session.query(DbKey.id).\
-                            filter(DbKey.wallet_id == self.wallet_id, DbKey.address == inp.address).scalar()
+                            filter(DbKey.wallet_id == self.wallet_id, DbKey.address == address).scalar()
                         if not key_id:
                             raise WalletError("UTXO %s and key with address %s not found in this wallet" % (
-                                to_hexstring(prev_hash), inp.address))
-                        if not inp.value:
+                                to_hexstring(prev_hash), address))
+                        if not value:
                             raise WalletError("Input value is zero for address %s. Import or update UTXO's first "
-                                              "or import transaction as Json" % inp.address)
-                        value = inp.value
+                                              "or import transaction as Json" % address)
 
                 amount_total_input += value
                 inp_keys, script_type, key = _objects_by_key_id(key_id)
@@ -2587,12 +2590,28 @@ class HDWallet:
         object. Only import Transaction objects, use transaction_import_raw method to import a raw transaction.
 
         :param t: A Transaction object
-        :type t: Transaction
+        :type t: [REF] Check input value when creating transaction in wallet
 
         :return HDWalletTransaction:
 
         """
-        rt = self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee, network=t.network.network_name)
+        if isinstance(t, Transaction):
+            rt = self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee, network=t.network.network_name)
+        elif isinstance(t, dict):
+            output_arr = []
+            for o in t['outputs']:
+                output_arr.append((o['address'], int(o['value'])))
+            input_arr = []
+            # [(tx_hash, output_n, key_ids, value, signatures, unlocking_script)]
+            from bitcoinlib.encoding import to_bytes
+
+            for i in t['inputs']:
+                signatures = [to_bytes(sig) for sig in i['signatures']]
+                input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, i['script'],
+                                  i['address']))
+            rt = self.transaction_create(output_arr, input_arr, transaction_fee=t['fee'], network=t['network'])
+        else:
+            raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
         return rt
 
