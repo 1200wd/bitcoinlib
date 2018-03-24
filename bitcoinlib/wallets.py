@@ -2532,6 +2532,9 @@ class HDWallet:
                         if not key_id:
                             raise WalletError("UTXO %s and key with address %s not found in this wallet" % (
                                 to_hexstring(prev_hash), inp.address))
+                        if not inp.value:
+                            raise WalletError("Input value is zero for address %s. Import or update UTXO's first "
+                                              "or import transaction as Json" % inp.address)
                         value = inp.value
 
                 amount_total_input += value
