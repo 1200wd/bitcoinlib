@@ -275,7 +275,12 @@ if __name__ == '__main__':
                     {'prev_hash': to_hexstring(i.prev_hash),
                      'output_n': struct.unpack('>I', i.output_n)[0],
                      'address': i.address,
-                     'signatures': [to_hexstring(s['signature']) for s in i.signatures],
+                     'signatures': [
+                         {
+                             'signature': to_hexstring(s['signature']),
+                             'sig_der': to_hexstring(s['sig_der']),
+                             'pub_key': to_hexstring(s['pub_key']),
+                         } for s in i.signatures],
                      'value': i.value} for i in wt.inputs
                 ]
             }

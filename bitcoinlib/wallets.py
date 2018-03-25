@@ -2607,7 +2607,7 @@ class HDWallet:
 
             for i in t['inputs']:
                 signatures = [to_bytes(sig) for sig in i['signatures']]
-                script = '' if 'script' not in i else i['script']
+                script = b'' if 'script' not in i else i['script']
                 address = '' if 'address' not in i else i['address']
                 input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, script,
                                   address))

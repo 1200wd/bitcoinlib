@@ -927,7 +927,7 @@ class Transaction:
         print("Verified: %s" % self.verified)
         print("Inputs")
         for ti in self.inputs:
-            print("-", ti.address, ti.value, to_hexstring(ti.prev_hash))
+            print("-", ti.address, ti.value, to_hexstring(ti.prev_hash), ti.output_n_int)
             print("  Script type: %s, signatures: %d (%d of %d)" %
                   (ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
         print("Outputs")
@@ -1015,9 +1015,9 @@ class Transaction:
                 if sig_id >= len(i.signatures):
                     _logger.info("No valid signatures found")
                     return False
-                verify_signature(transaction_hash_to_sign,
-                                 i.signatures[sig_id]['signature'], key.public_uncompressed_byte[1:])
-                sig_id += 1
+                if verify_signature(transaction_hash_to_sign,
+                                 i.signatures[sig_id]['signature'], key.public_uncompressed_byte[1:]):
+                    sig_id += 1
             if sig_id < i.sigs_required:
                 _logger.info("Not enough valid signatures provided. Found %d signatures but %d needed" %
                              (sig_id, i.sigs_required))
@@ -1104,6 +1104,10 @@ class Transaction:
                 free_positions = [i for i, s in enumerate(sig_domain) if s == '']
                 for pos in free_positions:
                     if verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
+                        if not sig['pub_key']:
+                            sig['pub_key'] = pub_key_list[pos]
+                        if not sig['sig_der']:
+                            raise TransactionError("Missing DER encoded signature in input %d" % tid)
                         sig_domain[pos] = sig
                         n_sigs_to_insert -= 1
                         break
