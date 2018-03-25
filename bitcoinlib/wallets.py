@@ -2607,8 +2607,10 @@ class HDWallet:
 
             for i in t['inputs']:
                 signatures = [to_bytes(sig) for sig in i['signatures']]
-                input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, i['script'],
-                                  i['address']))
+                script = '' if 'script' not in i else i['script']
+                address = '' if 'address' not in i else i['address']
+                input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, script,
+                                  address))
             rt = self.transaction_create(output_arr, input_arr, transaction_fee=t['fee'], network=t['network'])
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")

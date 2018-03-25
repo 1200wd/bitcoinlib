@@ -10,16 +10,20 @@
 import sys
 import argparse
 import binascii
+import struct
+from pprint import pprint
 from bitcoinlib.db import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
-from bitcoinlib.services.services import Service
+from bitcoinlib.encoding import to_hexstring
+
 try:
     import pyqrcode
     QRCODES_AVAILABLE = True
 except ImportError:
     QRCODES_AVAILABLE = False
+
 try:
     input = raw_input
 except NameError:
@@ -258,9 +262,24 @@ if __name__ == '__main__':
             else:
                 print("Error creating transaction: %s" % wt.error)
         else:
-            print("Transaction created but not send yet. Raw transaction to analyse or send online: ")
-            from pprint import pprint
-            pprint(wt.dict())
+            print("\nTransaction created but not send yet. Transaction dictionary for export: ")
+            tx_dict = {
+                'network': wt.network.network_name,
+                'fee': wt.fee,
+                'raw': wt.raw_hex(),
+                'outputs': [
+                    {'address': o.address,
+                     'value': o.value} for o in wt.outputs
+                ],
+                'inputs': [
+                    {'prev_hash': to_hexstring(i.prev_hash),
+                     'output_n': struct.unpack('>I', i.output_n)[0],
+                     'address': i.address,
+                     'signatures': [to_hexstring(s['signature']) for s in i.signatures],
+                     'value': i.value} for i in wt.inputs
+                ]
+            }
+            pprint(tx_dict)
         clw_exit()
     if args.sweep:
         if args.fee:
