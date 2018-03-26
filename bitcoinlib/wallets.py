@@ -25,7 +25,7 @@ from sqlalchemy import or_
 from itertools import groupby
 from operator import itemgetter
 from bitcoinlib.db import *
-from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash
+from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash, to_bytes
 from bitcoinlib.keys import HDKey, check_network_and_key
 from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
@@ -475,7 +475,6 @@ class HDWalletTransaction(Transaction):
         self.hdwallet = hdwallet
         self.pushed = False
         self.error = None
-        # super(HDWalletTransaction, self).__init__(*args, **kwargs)
         Transaction.__init__(self, *args, **kwargs)
 
     @classmethod
@@ -825,10 +824,10 @@ class HDWallet:
         :type account_id: int
         :param purpose: BIP44 purpose field, default is 44
         :type purpose: int
-        :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
-        :type sort_keys: bool
         :param multisig_compressed: Use compressed multisig keys for this wallet. Default is True
         :type multisig_compressed: bool
+        :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
+        :type sort_keys: bool
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
 
@@ -869,7 +868,6 @@ class HDWallet:
         if sort_keys:
             hdkey_list.sort(key=lambda x: x.public_byte)
         # TODO: Allow HDKey objects in Wallet.create (?)
-        # key_wif_list2 = [k.wif() for k in hdkey_list]
         for cokey in hdkey_list:
             if hdpm.network.network_name != cokey.network.network_name:
                 raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
@@ -2460,8 +2458,6 @@ class HDWallet:
         if input_arr and max_utxos and len(input_arr) > max_utxos:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
-        # if input_arr and not transaction_fee:
-        #     transaction_fee = False
 
         # Create transaction and add outputs
         transaction = HDWalletTransaction(hdwallet=self, network=network)
@@ -2538,7 +2534,7 @@ class HDWallet:
                                 to_hexstring(prev_hash), address))
                         if not value:
                             raise WalletError("Input value is zero for address %s. Import or update UTXO's first "
-                                              "or import transaction as Json" % address)
+                                              "or import transaction as dictionary" % address)
 
                 amount_total_input += value
                 inp_keys, script_type, key = _objects_by_key_id(key_id)
@@ -2587,10 +2583,11 @@ class HDWallet:
     def transaction_import(self, t):
         """
         Import a Transaction into this wallet. Link inputs to wallet keys if possible and return HDWalletTransaction
-        object. Only import Transaction objects, use transaction_import_raw method to import a raw transaction.
+        object. Only imports Transaction objects or dictionaries, use transaction_import_raw method to import a
+        raw transaction.
 
-        :param t: A Transaction object
-        :type t: [REF] Check input value when creating transaction in wallet
+        :param t: A Transaction object or dictionary
+        :type t: Transaction, dict
 
         :return HDWalletTransaction:
 
@@ -2602,8 +2599,6 @@ class HDWallet:
             for o in t['outputs']:
                 output_arr.append((o['address'], int(o['value'])))
             input_arr = []
-            # [(tx_hash, output_n, key_ids, value, signatures, unlocking_script)]
-            from bitcoinlib.encoding import to_bytes
 
             for i in t['inputs']:
                 signatures = [to_bytes(sig) for sig in i['signatures']]
@@ -2617,18 +2612,22 @@ class HDWallet:
         rt.verify()
         return rt
 
-    def transaction_import_raw(self, raw_tx):
+    def transaction_import_raw(self, raw_tx, network=None):
         """
         Import a raw transaction. Link inputs to wallet keys if possible and return HDWalletTransaction object
 
         :param raw_tx: Raw transaction
         :type raw_tx: str, bytes
+        :param network: Network name. Leave empty for default network
+        :type network: str
 
         :return HDWalletTransaction:
 
         """
-        t_import = Transaction.import_raw(raw_tx, network=self.network.network_name)
-        rt = self.transaction_create(t_import.outputs, t_import.inputs)
+        if network is None:
+            network = self.network.network_name
+        t_import = Transaction.import_raw(raw_tx, network=network)
+        rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
         rt.verify()
         return rt
 
