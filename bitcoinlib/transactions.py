@@ -838,6 +838,8 @@ class Transaction:
         if inputs is not None:
             for inp in inputs:
                 self.inputs.append(inp)
+            if not input_total:
+                input_total = sum([i.value for i in inputs])
         id_list = [i.index_n for i in self.inputs]
         if list(set(id_list)) != id_list:
             _logger.warning("Identical transaction indexes (tid) found in inputs, please specify unique index. "
@@ -850,6 +852,13 @@ class Transaction:
             self.outputs = []
         else:
             self.outputs = outputs
+            if not output_total:
+                output_total = sum([o.value for o in outputs])
+        if fee is None and output_total and input_total:
+            fee = input_total - output_total
+            if fee <= 0:
+                raise TransactionError("Transaction inputs total value must be greater then total value of "
+                                       "transaction outputs")
 
         if isinstance(version, int):
             self.version = struct.pack('>L', version)
@@ -971,6 +980,8 @@ class Transaction:
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
+        else:
+            self.size = len(r)
         return r
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL):
