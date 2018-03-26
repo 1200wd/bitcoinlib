@@ -423,10 +423,7 @@ class Key:
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
 
     def __repr__(self):
-        if self.secret:
-            return "<Key (%s)>" % self.wif()
-        else:
-            return "<Key (public %s)" % self.public_hex
+        return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.network_name)
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
@@ -786,7 +783,8 @@ class HDKey:
         self.key_type = key_type
 
     def __repr__(self):
-        return "<HDKey (%s)>" % self.wif()
+        return "<HDKey(public_hex=%s, wif_public=%s, network=%s)>" % \
+               (self.public_hex, self.wif_public(), self.network.network_name)
 
     def info(self):
         """

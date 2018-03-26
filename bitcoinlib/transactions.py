@@ -633,8 +633,8 @@ class Input:
         }
 
     def __repr__(self):
-        return "<Input (address=%s, index_n=%s, prev_hash=%s:%d, type=%s)>" % \
-               (self.address, self.index_n, self.prev_hash, self.output_n_int, self.script_type)
+        return "<Input(prev_hash=%s, output_n=%d, address=%s, index_n=%s, type=%s)>" % \
+               (self.prev_hash, self.output_n_int, self.address, self.index_n, self.script_type)
 
 
 class Output:
@@ -744,7 +744,7 @@ class Output:
         }
 
     def __repr__(self):
-        return "<Output (address=%s, value=%d, type=%s)>" % (self.address, self.value, self.script_type)
+        return "<Output(value=%d, address=%s, type=%s)>" % (self.value, self.address, self.script_type)
 
 
 class Transaction:
@@ -877,8 +877,8 @@ class Transaction:
             self.hash = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
 
     def __repr__(self):
-        return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \
-               (len(self.inputs), len(self.outputs), self.network.network_name)
+        return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
+               (len(self.inputs), len(self.outputs), self.status, self.network.network_name)
 
     def dict(self):
         """

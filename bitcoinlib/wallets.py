@@ -368,7 +368,7 @@ class HDWalletKey:
             raise WalletError("Key with id %s not found" % key_id)
 
     def __repr__(self):
-        return "<HDWalletKey (name=%s, wif=%s, path=%s)>" % (self.name, self.wif, self.path)
+        return "<HDWalletKey(key_id=%d, name=%s, wif=%s, path=%s)>" % (self.key_id, self.name, self.wif, self.path)
 
     def key(self):
         """
@@ -476,6 +476,10 @@ class HDWalletTransaction(Transaction):
         self.pushed = False
         self.error = None
         Transaction.__init__(self, *args, **kwargs)
+
+    def __repr__(self):
+        return "<HDWalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
+               (len(self.inputs), len(self.outputs), self.status, self.network.network_name)
 
     @classmethod
     def from_transaction(cls, hdwallet, t):
@@ -977,6 +981,7 @@ class HDWallet:
             dbinit = DbInit(databasefile=databasefile)
             self._session = dbinit.session
             self._engine = dbinit.engine
+        self.databasefile = databasefile
         if isinstance(wallet, int) or wallet.isdigit():
             db_wlt = self._session.query(DbWallet).filter_by(id=wallet).scalar()
         else:
@@ -1017,8 +1022,8 @@ class HDWallet:
         self._session.close()
 
     def __repr__(self):
-        return "<HDWallet (id=%d, name=%s, default_network=%s)>" % \
-               (self.wallet_id, self.name, self.network.network_name)
+        return "<HDWallet(name=%s, databasefile=\"%s\")>" % \
+               (self.name, self.databasefile)
 
     def _get_account_defaults(self, network=None, account_id=None, key_id=None):
         """
