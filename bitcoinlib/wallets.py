@@ -1954,7 +1954,7 @@ class HDWallet:
         Please Note: Does not update UTXO's or the balance per key! For this use the 'updatebalance' method
         instead
         
-        :param account_id: Account ID
+        :param account_id: Account ID. Leave empty for default account
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
@@ -1964,9 +1964,18 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
-        self._balances.update({network: balance})
-        self._dbwallet.balance = balance
-        self._session.commit()
+        new_balance = {
+            'account_id': account_id,
+            'network': network,
+            'balance': balance
+        }
+        old_balance_item = [bi for bi in self._balances if bi['network'] == network and bi['account_id'] == account_id]
+        if old_balance_item:
+            item_n = self._balances.index(old_balance_item[0])
+            self._balances[item_n] = new_balance
+        else:
+            self._balances.append(new_balance)
+        return balance
 
     def balance(self, account_id=None, network=None, as_string=False):
         """
