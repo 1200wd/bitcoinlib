@@ -142,7 +142,6 @@ class Service(object):
         return self._provider_execute('getbalance', addresslist)
 
     def getutxos(self, addresslist):
-        # TODO: This could possible be removed and replaced with gettransactions
         if not addresslist:
             return []
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
