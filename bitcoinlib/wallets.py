@@ -552,6 +552,7 @@ class HDWalletTransaction(Transaction):
 
         """
 
+        self.error = None
         if not self.verified:
             self.sign()
         if not self.verify():
