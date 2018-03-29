@@ -1202,6 +1202,8 @@ class HDWallet:
         :return HDWalletKey: 
         """
 
+        if self.scheme != 'bip44':
+            raise WalletError("Keys can only be imported to a BIP44 type wallet, create a new wallet instead")
         if isinstance(key, HDKey):
             network = key.network.network_name
             hdkey = key
@@ -1214,7 +1216,6 @@ class HDWallet:
 
             hdkey = HDKey(key, network=network, key_type=key_type)
 
-        # TODO: Add multisig BIP45 support
         if self.main_key and self.main_key.depth == 3 and \
                 hdkey.isprivate and hdkey.depth == 0 and self.scheme == 'bip44':
             hdkey.key_type = 'bip32'
@@ -1574,7 +1575,6 @@ class HDWallet:
         res = self.keys(depth=2, network=network)
         if not res:
             try:
-                # TODO: make this better...
                 purposekey = self.key(self.keys(depth=1)[0].id)
                 bip44_cointype = Network(network).bip44_cointype
                 duplicate_cointypes = [Network(x).network_name for x in self.network_list() if

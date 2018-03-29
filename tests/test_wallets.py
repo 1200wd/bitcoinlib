@@ -751,8 +751,9 @@ class TestWalletKeyImport(unittest.TestCase):
                                           databasefile=DATABASEFILE_UNITTESTS)
         wallet.new_key()
         wallet.utxos_update()
-        wallet.import_key(hdkey)
         wt = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
+        wt.sign(hdkey)
+        wt.send()
         self.assertIsNone(wt.error)
 
     def test_wallet_import_private_for_known_public(self):
