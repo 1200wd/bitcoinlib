@@ -871,7 +871,6 @@ class HDWallet:
                 hdkey_list.append(cokey)
         if sort_keys:
             hdkey_list.sort(key=lambda x: x.public_byte)
-        # TODO: Allow HDKey objects in Wallet.create (?)
         for cokey in hdkey_list:
             if hdpm.network.network_name != cokey.network.network_name:
                 raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
@@ -880,7 +879,7 @@ class HDWallet:
             wn = name + '-cosigner-%d' % co_id
             if cokey.key_type == 'single':
                 scheme = 'single'
-            w = cls.create(name=wn, key=cokey.wif(), owner=owner, network=network, account_id=account_id,
+            w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
                            purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile, scheme=scheme)
             hdpm.cosigner.append(w)
             co_id += 1
