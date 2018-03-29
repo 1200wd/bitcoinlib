@@ -1964,17 +1964,18 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
-        new_balance = {
-            'account_id': account_id,
-            'network': network,
-            'balance': balance
-        }
-        old_balance_item = [bi for bi in self._balances if bi['network'] == network and bi['account_id'] == account_id]
-        if old_balance_item:
-            item_n = self._balances.index(old_balance_item[0])
-            self._balances[item_n] = new_balance
-        else:
-            self._balances.append(new_balance)
+        if balance:
+            new_balance = {
+                'account_id': account_id,
+                'network': network,
+                'balance': balance
+            }
+            old_balance_item = [bi for bi in self._balances if bi['network'] == network and bi['account_id'] == account_id]
+            if old_balance_item:
+                item_n = self._balances.index(old_balance_item[0])
+                self._balances[item_n] = new_balance
+            else:
+                self._balances.append(new_balance)
         return balance
 
     def balance(self, account_id=None, network=None, as_string=False):
