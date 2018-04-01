@@ -43,9 +43,22 @@ except ImportError:
 
 
 class BitcoindClient(BaseClient):
+    """
+    Class to interact with bitcoind, the Bitcoin deamon
+    """
 
     @staticmethod
     def from_config(configfile=None, network='bitcoin'):
+        """
+        Read settings from bitcoind config file
+
+        :param configfile: Path to config file. Leave empty to look in default places
+        :type: str
+        :param network: Bitcoin mainnet or testnet. Default is bitcoin mainnet
+        :type: str
+
+        :return BitcoindClient:
+        """
         config = configparser.ConfigParser()
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/bitcoin.conf')
@@ -84,6 +97,18 @@ class BitcoindClient(BaseClient):
         return BitcoindClient(network, url)
 
     def __init__(self, network='bitcoin', base_url='', denominator=100000000, api_key=''):
+        """
+        Open connection to bitcoin node
+
+        :param network: Bitcoin mainnet or testnet. Default is bitcoin mainnet
+        :type: str
+        :param base_url: Connection URL in format http(s)://user:password@host:port.
+        :type: str
+        :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for bitcoin
+        :type: str
+        :param api_key: Leave empty for
+        :type: str
+        """
         if not base_url:
             bdc = self.from_config('', network)
             base_url = bdc.base_url
