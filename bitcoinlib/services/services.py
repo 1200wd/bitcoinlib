@@ -39,8 +39,31 @@ class ServiceError(Exception):
 
 
 class Service(object):
+    """
+    Class to connect to various cryptocurrency service providers. Use to receive network and blockchain information,
+    get specific transaction information, current network fees or push a raw transaction.
+
+    The Service class connects to 1 or more service providers at random to retrieve or send information. When a
+    certain service provider fail it automatically tries another one.
+
+    """
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None):
+        """
+        Open a service object for the specified network. By default the object connect to 1 service provider, but you
+        can specify a list of providers or a minimum or maximum number of providers.
+
+        :param network: Specify network used
+        :type network: str
+        :param min_providers: Minimum number of providers to connect to. Default is 1. Use for instance to receive
+        fee information from a number of providers and calculate the average fee.
+        :type min_providers: int
+        :param max_providers: Maximum number of providers to connect to. Default is 1.
+        :type max_providers: int
+        :param providers: List of providers to connect to. Default is all providers and select a provider at random.
+        :type providers: list
+
+        """
         self.network = network
         if min_providers > max_providers:
             max_providers = min_providers
@@ -134,6 +157,14 @@ class Service(object):
         return list(self.results.values())[0]
 
     def getbalance(self, addresslist):
+        """
+        Get balance for each address in addresslist provided
+
+        :param addresslist: Address or list of addresses
+        :type addresslist: list, str
+
+        :return dict: Balance per address
+        """
         if not addresslist:
             return
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
@@ -142,7 +173,14 @@ class Service(object):
         return self._provider_execute('getbalance', addresslist)
 
     def getutxos(self, addresslist):
-        # TODO: This could possible be removed and replaced with gettransactions
+        """
+        Get list of unspent outputs (UTXO's) per address
+
+        :param addresslist: Address or list of addresses
+        :type addresslist: list, str
+
+        :return dict: UTXO's per address
+        """
         if not addresslist:
             return []
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
@@ -156,35 +194,84 @@ class Service(object):
             addresslist = addresslist[20:]
         return utxos
 
-    def gettransactions(self, address_list):
-        if not address_list:
+    def gettransactions(self, addresslist):
+        """
+        Get all transactions for each address in addresslist
+
+        :param addresslist: Address or list of addresses
+        :type addresslist: list, str
+
+        :return list: List of Transaction objects
+        """
+        if not addresslist:
             return []
-        if isinstance(address_list, (str, unicode if sys.version < '3' else str)):
-            address_list = [address_list]
+        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
+            addresslist = [addresslist]
 
         transactions = []
         addresses_per_request = 5
-        while address_list:
-            res = self._provider_execute('gettransactions', address_list[:addresses_per_request])
+        while addresslist:
+            res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
             if res is False:
                 break
             for new_t in res:
                 if new_t.hash not in [t.hash for t in transactions]:
                     transactions.append(new_t)
-            address_list = address_list[addresses_per_request:]
+                addresslist = addresslist[addresses_per_request:]
         return transactions
 
     def gettransaction(self, txid):
+        """
+        Get a transaction by its transaction hash
+
+        :param txid: Transaction identification hash
+        :type txid: str
+
+        :return Transaction: A single transaction object
+        """
         return self._provider_execute('gettransaction', txid)
 
     def getrawtransaction(self, txid):
+        """
+        Get a raw transaction by its transaction hash
+
+        :param txid: Transaction identification hash
+        :type txid: str
+
+        :return str: Raw transaction as hexstring
+        """
         return self._provider_execute('getrawtransaction', txid)
 
     def sendrawtransaction(self, rawtx):
+        """
+        Push a raw transaction to the network
+
+        :param rawtx: Raw transaction as hexstring
+        :type rawtx: str
+
+        :return dict: Send transaction result
+        """
         return self._provider_execute('sendrawtransaction', rawtx)
 
     def decoderawtransaction(self, rawtx):
+        """
+        Decode raw transaction to dictionary
+
+        :param rawtx: Raw transaction as hexstring
+        :type rawtx: str
+
+        :return dict: Dictionary with specific transaction information
+        """
         return self._provider_execute('decoderawtransaction', rawtx)
 
     def estimatefee(self, blocks=3):
+        """
+        Estimate fee per kilobyte for a transaction for this network with expected confirmation within a certain
+        amount of blocks
+
+        :param blocks: Expection confirmation time in blocks. Default is 3.
+        :type blocks: int
+
+        :return int: Fee in smallest network denominator (satoshi)
+        """
         return self._provider_execute('estimatefee', blocks)
