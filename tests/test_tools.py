@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Bitcoinlib Tools
-#    © 2018 January - 1200 Web Development <http://1200wd.com/>
+#    © 2018 April - 1200 Web Development <http://1200wd.com/>
 #
 
 import os

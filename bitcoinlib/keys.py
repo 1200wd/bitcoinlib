@@ -82,7 +82,11 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
             raise KeyError("Specified key %s is from different network then specified: %s" % (kf_networks, network))
         elif network is None and len(kf_networks) == 1:
             return kf_networks[0]
-        elif network is None and len(kf_networks) > 1 and not default_network:
+        elif network is None and len(kf_networks) > 1:
+            if default_network in kf_networks:
+                return default_network
+            elif 'testnet' in kf_networks:
+                return 'testnet'
             raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf_networks)
     if network is None:
         return default_network
