@@ -539,6 +539,8 @@ class HDWalletTransaction(Transaction):
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif))
             Transaction.sign(self, priv_key_list, ti.index_n, hash_type)
+        self.verify()
+        self.error = ""
         return True
 
     def send(self, offline=False):
@@ -553,10 +555,10 @@ class HDWalletTransaction(Transaction):
         """
 
         self.error = None
-        if not self.verified:
-            self.sign()
-        if not self.verify():
-            self.error = "Cannot verify transaction. Send transaction failed"
+        # if not self.verified:
+        #     self.sign()
+        if not self.verified and not self.verify():
+            self.error = "Cannot verify transaction"
             return False
 
         if offline:
@@ -2759,7 +2761,7 @@ class HDWallet:
         input_arr = []
         total_amount = 0
         if not utxos:
-            return False
+            raise WalletError("Cannot sweep wallet, no UTXO's found")
         for utxo in utxos:
             # Skip dust transactions
             if utxo['value'] < self.network.dust_amount:
