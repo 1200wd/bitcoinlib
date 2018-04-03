@@ -58,7 +58,7 @@ class TestGetKeyFormat(unittest.TestCase):
         key = 'tprv8ZgxMBicQKsPdnMVMhgfNHXF1PkuAoUNECLe71vmEdi7R6yWRm7dcaDwxu9rrb8NoYzjT7uZinv6N34gCNHtyfYCoQy68krxf' \
               '9P3tLd7BLT'
         self.assertEqual('hdkey_private', get_key_format(key)['format'])
-        self.assertListEqual(['litecoin_testnet', 'testnet'], get_key_format(key)['networks'])
+        self.assertCountEqual(['litecoin_testnet', 'testnet'], get_key_format(key)['networks'])
 
     def test_format_wif_compressed_private_dash(self):
         key = 'XH2Yndjv6Ks3XEHGaSMDhUMTAMZTTWv5nEN958Y7VMyQXBCJVQmM'
