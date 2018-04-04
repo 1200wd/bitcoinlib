@@ -2825,12 +2825,15 @@ class HDWallet:
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    account_ids = [k.account_id for k in self.accounts(network=nw['network_name'])]
-                    if not account_ids:
-                        account_ids = [0]
-                    for account_id in account_ids:
-                        print("- - Transactions (Account ID %d)" % account_id)
-                        for t in self.transactions(include_new=include_new, account_id=account_id,
+                    accounts = [
+                        (account.account_id, account.key().wif_public())
+                        for account in self.accounts(network=nw['network_name'])
+                    ]
+                    if not accounts:
+                        accounts = [(0, 'multisig')]
+                    for account in accounts:
+                        print("\n- - Transactions (Account %d, %s)" % (account[0], account[1]))
+                        for t in self.transactions(include_new=include_new, account_id=account[0],
                                                    network=nw['network_name']):
                             spent = ""
                             if 'spent' in t and t['spent'] is False:
