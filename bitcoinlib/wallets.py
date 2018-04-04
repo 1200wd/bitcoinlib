@@ -1916,10 +1916,16 @@ class HDWallet:
         :return list: List of accounts as HDWalletKey objects
         """
 
-        wks = self.keys_accounts(network=network)
         accounts = []
-        for wk in wks:
-            accounts.append(HDWalletKey(wk.id, self._session))
+        if self.scheme == 'multisig':
+            for wlt in self.cosigner:
+                if wlt.main_key.is_private:
+                    accounts.append(HDWalletKey(wlt.main_key.key_id, self._session))
+        else:
+            wks = self.keys_accounts(network=network)
+
+            for wk in wks:
+                accounts.append(HDWalletKey(wk.id, self._session))
         return accounts
 
     def networks(self):
@@ -2825,15 +2831,9 @@ class HDWallet:
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    accounts = [
-                        (account.account_id, account.key().wif_public())
-                        for account in self.accounts(network=nw['network_name'])
-                    ]
-                    if not accounts:
-                        accounts = [(0, 'multisig')]
-                    for account in accounts:
-                        print("\n- - Transactions (Account %d, %s)" % (account[0], account[1]))
-                        for t in self.transactions(include_new=include_new, account_id=account[0],
+                    for account in self.accounts(network=nw['network_name']):
+                        print("\n- - Transactions (Account %d, %s)" % (account.account_id, account.key().wif_public()))
+                        for t in self.transactions(include_new=include_new, account_id=account.account_id,
                                                    network=nw['network_name']):
                             spent = ""
                             if 'spent' in t and t['spent'] is False:
