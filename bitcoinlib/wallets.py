@@ -1913,20 +1913,20 @@ class HDWallet:
         :param network: Network name filter
         :type network: str
                 
-        :return: List of keys as dictionary
+        :return list: List of accounts as HDWalletKey objects
         """
 
-        wks = self.keys_accounts(network=network, as_dict=True)
+        wks = self.keys_accounts(network=network)
+        accounts = []
         for wk in wks:
-            if '_sa_instance_state' in wk:
-                del wk['_sa_instance_state']
-        return wks
+            accounts.append(HDWalletKey(wk.id, self._session))
+        return accounts
 
     def networks(self):
         """
         Get list of networks used by this wallet
         
-        :return: List of keys as dictionary
+        :return: List of networks as dictionary
         """
 
         if self.scheme == 'bip44':
@@ -2133,7 +2133,7 @@ class HDWallet:
         count_utxos = 0
         for network in networks:
             if account_id is None:
-                accounts = [k['account_id'] for k in self.accounts(network=network)]
+                accounts = [k.account_id for k in self.accounts(network=network)]
                 if not accounts:
                     accounts = [self.default_account_id]
             else:
@@ -2825,7 +2825,7 @@ class HDWallet:
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    account_ids = [a['account_id'] for a in self.accounts(network=nw['network_name'])]
+                    account_ids = [k.account_id for k in self.accounts(network=nw['network_name'])]
                     if not account_ids:
                         account_ids = [0]
                     for account_id in account_ids:
