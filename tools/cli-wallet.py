@@ -51,6 +51,8 @@ def parse_args():
                         help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
     parser.add_argument('--passphrase-strength', type=float, default=128,
                         help="Number of bits for passphrase key")
+    parser.add_argument('--create-from-key', '-c', metavar=('KEY'),
+                        help="Create a new wallet from specified key")
     parser.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
                         help='Specificy number of signatures required followed by a list of signatures.'
                              '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2'
@@ -114,6 +116,9 @@ def create_wallet(wallet_name, args, databasefile):
         key_list = args.create_multisig[1:]
         return HDWallet.create_multisig(name=wallet_name, key_list=key_list, sigs_required=sigs_required,
                                         network=args.network, databasefile=databasefile, sort_keys=True)
+    elif args.create_from_key:
+        return HDWallet.create(name=wallet_name, network=args.network, key=args.create_from_key,
+                               databasefile=databasefile)
     else:
         passphrase = args.passphrase
         if passphrase is None:
@@ -156,7 +161,6 @@ if __name__ == '__main__':
     print("Command Line Wallet for BitcoinLib\n")
     # --- Parse commandline arguments ---
     args = parse_args()
-    # network_obj = Network(args.network)
 
     databasefile = DEFAULT_DATABASE
     if args.database:
@@ -200,14 +204,18 @@ if __name__ == '__main__':
     wlt = None
     if args.wallet_name and not args.wallet_name.isdigit() and \
             not wallet_exists(args.wallet_name, databasefile=databasefile):
-        if input("Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() == 'y':
-            wlt = create_wallet(args.wallet_name, args, databasefile)
-            args.wallet_info = True
+        if not args.create_from_key and \
+                        input("Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() != 'y':
+            clw_exit('Aborted')
+        wlt = create_wallet(args.wallet_name, args, databasefile)
+        args.wallet_info = True
     else:
         try:
             wlt = HDWallet(args.wallet_name, databasefile=databasefile)
             if args.passphrase is not None:
-                print("WARNING: Using passphrase options for existing wallet ignored")
+                print("WARNING: Using passphrase option for existing wallet ignored")
+            if args.create_from_key is not None:
+                print("WARNING: Using create_from_key option for existing wallet ignored")
         except WalletError as e:
             clw_exit("Error: %s" % e.msg)
 
