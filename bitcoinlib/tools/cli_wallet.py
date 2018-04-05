@@ -157,7 +157,7 @@ def clw_exit(msg=None):
     sys.exit()
 
 
-if __name__ == '__main__':
+def main():
     print("Command Line Wallet for BitcoinLib\n")
     # --- Parse commandline arguments ---
     args = parse_args()
@@ -171,10 +171,11 @@ if __name__ == '__main__':
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey().from_seed(seed, network=args.network)
-        print("Private master key, to create multisig wallet on this machine: %s" %
-              hdkey.wif())
-        print("Public account key, to share with other cosigner multisig wallets: %s" %
-              hdkey.account_multisig_key().wif_public())
+        print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif())
+        print(
+            "Public account key, to share with other cosigner multisig wallets: %s" % hdkey.account_multisig_key(
+
+            ).wif_public())
         print("Network: %s" % hdkey.network.network_name)
         clw_exit()
 
@@ -202,10 +203,10 @@ if __name__ == '__main__':
             clw_exit("\nSpecified wallet name incorrect")
 
     wlt = None
-    if args.wallet_name and not args.wallet_name.isdigit() and \
-            not wallet_exists(args.wallet_name, databasefile=databasefile):
-        if not args.create_from_key and \
-                        input("Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() != 'y':
+    if args.wallet_name and not args.wallet_name.isdigit() and not wallet_exists(args.wallet_name,
+                                                                                 databasefile=databasefile):
+        if not args.create_from_key and input(
+                    "Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() != 'y':
             clw_exit('Aborted')
         wlt = create_wallet(args.wallet_name, args, databasefile)
         args.wallet_info = True
@@ -272,25 +273,15 @@ if __name__ == '__main__':
         else:
             print("\nTransaction created but not send yet. Transaction dictionary for export: ")
             tx_dict = {
-                'network': wt.network.network_name,
-                'fee': wt.fee,
-                'raw': wt.raw_hex(),
-                'outputs': [
-                    {'address': o.address,
-                     'value': o.value} for o in wt.outputs
-                ],
-                'inputs': [
-                    {'prev_hash': to_hexstring(i.prev_hash),
-                     'output_n': struct.unpack('>I', i.output_n)[0],
-                     'address': i.address,
-                     'signatures': [
-                         {
-                             'signature': to_hexstring(s['signature']),
-                             'sig_der': to_hexstring(s['sig_der']),
-                             'pub_key': to_hexstring(s['pub_key']),
-                         } for s in i.signatures],
-                     'value': i.value} for i in wt.inputs
-                ]
+                'network': wt.network.network_name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
+                    'address': o.address, 'value': o.value
+                } for o in wt.outputs], 'inputs': [{
+                    'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
+                    'address': i.address, 'signatures': [{
+                        'signature': to_hexstring(s['signature']), 'sig_der': to_hexstring(s['sig_der']),
+                        'pub_key': to_hexstring(s['pub_key']),
+                    } for s in i.signatures], 'value': i.value
+                } for i in wt.inputs]
             }
             pprint(tx_dict)
         clw_exit()
@@ -322,3 +313,7 @@ if __name__ == '__main__':
         wlt.utxos_update()
     print("Wallet info for %s" % wlt.name)
     wlt.info()
+
+
+if __name__ == '__main__':
+    main()

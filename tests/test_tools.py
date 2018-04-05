@@ -72,6 +72,10 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         self.assertIn(output_wlt_transaction, check_output(cmd_wlt_transaction, shell=True))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
 
+    # def test_tools_cli_wallet(self):
+    #     from bitcoinlib.tools.cli_wallet import main
+    #     main()
+
 
 if __name__ == '__main__':
     unittest.main()
