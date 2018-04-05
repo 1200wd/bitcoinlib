@@ -13,7 +13,7 @@ import binascii
 import struct
 from pprint import pprint
 from bitcoinlib.db import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
-from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError
+from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 from bitcoinlib.encoding import to_hexstring
@@ -37,23 +37,27 @@ def parse_args():
     parser.add_argument('wallet_name', nargs='?', default='',
                         help="Name of wallet to create or open. Used to store your all your wallet keys "
                              "and will be printed on each paper wallet")
-    parser.add_argument('--network', '-n',
-                        help="Specify 'bitcoin', 'testnet' or other supported network")
-    parser.add_argument('--database', '-d',
-                        help="Name of specific database file to use",)
     parser.add_argument('--wallet-remove', action='store_true',
                         help="Name or ID of wallet to remove, all keys and related information will be deleted")
     parser.add_argument('--list-wallets', '-l', action='store_true',
                         help="List all known wallets in bitcoinlib database")
     parser.add_argument('--wallet-info', '-w', action='store_true',
                         help="Show wallet information")
-    parser.add_argument('--passphrase', nargs="*", default=None,
+    parser.add_argument('--wallet-recreate', '-x', action='store_true',
+                        help="Delete all keys and transactions and recreate wallet. Use when updating fails or other "
+                             "errors occur. Please backup your database and keys first.")
+    group_wallet = parser.add_argument_group("Create or restore a wallet")
+    group_wallet.add_argument('--passphrase', nargs="*", default=None,
                         help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
-    parser.add_argument('--passphrase-strength', type=float, default=128,
+    group_wallet.add_argument('--network', '-n',
+                        help="Specify 'bitcoin', 'testnet' or other supported network")
+    group_wallet.add_argument('--database', '-d',
+                        help="Name of specific database file to use",)
+    group_wallet.add_argument('--passphrase-strength', type=float, default=128,
                         help="Number of bits for passphrase key")
-    parser.add_argument('--create-from-key', '-c', metavar='KEY',
+    group_wallet.add_argument('--create-from-key', '-c', metavar='KEY',
                         help="Create a new wallet from specified key")
-    parser.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
+    group_wallet.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
                         help='Specificy number of signatures required followed by a list of signatures.'
                              '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2'
                              'M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF'
@@ -179,6 +183,11 @@ def main():
         print("Network: %s" % hdkey.network.network_name)
         clw_exit()
 
+    if args.wallet_recreate:
+        if not wallet_exists(args.wallet_name, databasefile=databasefile):
+            clw_exit("Wallet '%s' not found" % args.wallet_name)
+        wallet_empty(args.wallet_name)
+        
     # List wallets, then exit
     if args.list_wallets:
         print("Bitcoinlib wallets:")
