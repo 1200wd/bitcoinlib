@@ -183,11 +183,6 @@ def main():
         print("Network: %s" % hdkey.network.network_name)
         clw_exit()
 
-    if args.wallet_recreate:
-        if not wallet_exists(args.wallet_name, databasefile=databasefile):
-            clw_exit("Wallet '%s' not found" % args.wallet_name)
-        wallet_empty(args.wallet_name)
-        
     # List wallets, then exit
     if args.list_wallets:
         print("Bitcoinlib wallets:")
@@ -228,6 +223,10 @@ def main():
                 print("WARNING: Using create_from_key option for existing wallet ignored")
         except WalletError as e:
             clw_exit("Error: %s" % e.msg)
+
+    if args.wallet_recreate:
+        wallet_empty(args.wallet_name)
+        print("Removed transactions and generated keys from this wallet")
 
     if wlt is None:
         clw_exit("Could not open wallet %s" % args.wallet_name)
