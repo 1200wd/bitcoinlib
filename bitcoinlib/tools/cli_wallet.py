@@ -89,7 +89,7 @@ def parse_args():
     return pa
 
 
-def get_passphrase():
+def get_passphrase(args):
     inp_passphrase = Mnemonic('english').generate(args.passphrase_strength)
     print("\nYour mnemonic private key sentence is: %s" % inp_passphrase)
     print("\nPlease write down on paper and backup. With this key you can restore your wallet and all keys")
@@ -167,7 +167,7 @@ def main():
         databasefile = DEFAULT_DATABASEDIR + args.database
 
     if args.generate_key:
-        passphrase = get_passphrase()
+        passphrase = get_passphrase(args)
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey().from_seed(seed, network=args.network)
