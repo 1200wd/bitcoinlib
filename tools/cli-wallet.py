@@ -4,7 +4,7 @@
 #
 #    Command line wallet manager. Use for testing and very basic (user unfriendly) wallet management
 #
-#    © 2018 January - 1200 Web Development <http://1200wd.com/>
+#    © 2018 April - 1200 Web Development <http://1200wd.com/>
 #
 
 import sys
@@ -51,7 +51,7 @@ def parse_args():
                         help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
     parser.add_argument('--passphrase-strength', type=float, default=128,
                         help="Number of bits for passphrase key")
-    parser.add_argument('--create-from-key', '-c', metavar=('KEY'),
+    parser.add_argument('--create-from-key', '-c', metavar='KEY',
                         help="Create a new wallet from specified key")
     parser.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
                         help='Specificy number of signatures required followed by a list of signatures.'
@@ -59,7 +59,7 @@ def parse_args():
                              'M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF'
                              '6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
     parser.add_argument('--receive', '-r', help="Show unused address to receive funds", nargs='?', type=int, const=1,
-                        metavar=('NUMBER_OF_ADDRESSES'))
+                        metavar='NUMBER_OF_ADDRESSES')
     parser.add_argument('--scan', '-s', action='store_true',
                         help="Scan and update wallet with all addresses, transactions and balances")
     parser.add_argument('--generate-key', '-k', action='store_true',
@@ -247,7 +247,7 @@ if __name__ == '__main__':
     if args.scan:
         print("Scanning wallet: updating addresses, transactions and balances")
         print("Can take a while")
-        wlt.scan()
+        wlt.scan(scan_gap_limit=5)
         print("Scanning complete, show wallet info")
         wlt.info()
         clw_exit()
