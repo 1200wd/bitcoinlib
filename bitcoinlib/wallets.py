@@ -128,8 +128,8 @@ def wallet_create_or_open_multisig(
 
 def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
     """
-    Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
-    unless 'force=True' is specified
+    Delete wallet and associated keys and transactions from the database. If wallet has unspent outputs it raises a
+    WalletError exception unless 'force=True' is specified
     
     :param wallet: Wallet ID as integer or Wallet Name as string
     :type wallet: int, str
@@ -176,6 +176,36 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
     _logger.info("Wallet '%s' deleted" % wallet)
 
     return res
+
+
+def wallet_empty(wallet, databasefile=DEFAULT_DATABASE):
+    session = DbInit(databasefile=databasefile).session
+    if isinstance(wallet, int) or wallet.isdigit():
+        w = session.query(DbWallet).filter_by(id=wallet)
+    else:
+        w = session.query(DbWallet).filter_by(name=wallet)
+    if not w or not w.first():
+        raise WalletError("Wallet '%s' not found" % wallet)
+    wallet_id = w.first().id
+
+    # Delete keys from this wallet and update transactions (remove key_id)
+    ks = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.depth > 3)
+    for k in ks:
+        session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
+        session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
+        session.query(DbKeyMultisigChildren).filter_by(parent_id=k.id).delete()
+        session.query(DbKeyMultisigChildren).filter_by(child_id=k.id).delete()
+    ks.delete()
+
+    # Delete transactions from this wallet (remove wallet_id)
+    session.query(DbTransaction).filter_by(wallet_id=wallet_id).update({DbTransaction.wallet_id: None})
+
+    session.commit()
+    session.close()
+
+    _logger.info("All keys and transactions from wallet '%s' deleted" % wallet)
+
+    return True
 
 
 def wallet_delete_if_exists(wallet, databasefile=DEFAULT_DATABASE, force=False):
@@ -1396,10 +1426,21 @@ class HDWallet:
 
         if _recursion_depth > 10:
             raise WalletError("UTXO scanning has reached a recursion depth of more then 10")
-        _recursion_depth += 1
         if self.scheme != 'bip44' and self.scheme != 'multisig':
             raise WalletError("The wallet scan() method is only available for BIP44 wallets")
 
+        # FIXME: This removes to much UTXO's, used keys are not scanned...
+        # if not _recursion_depth:
+        #     # Mark all UTXO's for this wallet as spend
+        #     utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+        #         filter(DbTransaction.wallet_id == self.wallet_id)
+        #     if account_id is not None:
+        #         utxos.filter(DbKey.account_id == account_id)
+        #     for utxo_record in utxos.all():
+        #         utxo_record.spent = True
+        #     self._session.commit()
+
+        _recursion_depth += 1
         if change != 1:
             scanned_keys = self.get_key(account_id, network, number_of_keys=scan_gap_limit)
             new_key_ids = [k.key_id for k in scanned_keys]
