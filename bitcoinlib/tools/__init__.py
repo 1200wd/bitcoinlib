@@ -17,12 +17,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import bitcoinlib.encoding
-import bitcoinlib.mnemonic
-import bitcoinlib.keys
-import bitcoinlib.transactions
-import bitcoinlib.wallets
-import bitcoinlib.config
-import bitcoinlib.tools
-
-__all__ = ["keys", "transactions", "wallets", "encoding", "mnemonic", "config", "tools"]
+from bitcoinlib.tools import cli_wallet
