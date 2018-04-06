@@ -633,8 +633,8 @@ class Input:
         }
 
     def __repr__(self):
-        return "<Input (address=%s, index_n=%s, prev_hash=%s:%d, type=%s)>" % \
-               (self.address, self.index_n, self.prev_hash, self.output_n_int, self.script_type)
+        return "<Input(prev_hash=%s, output_n=%d, address=%s, index_n=%s, type=%s)>" % \
+               (self.prev_hash, self.output_n_int, self.address, self.index_n, self.script_type)
 
 
 class Output:
@@ -744,7 +744,7 @@ class Output:
         }
 
     def __repr__(self):
-        return "<Output (address=%s, value=%d, type=%s)>" % (self.address, self.value, self.script_type)
+        return "<Output(value=%d, address=%s, type=%s)>" % (self.value, self.address, self.script_type)
 
 
 class Transaction:
@@ -838,6 +838,8 @@ class Transaction:
         if inputs is not None:
             for inp in inputs:
                 self.inputs.append(inp)
+            if not input_total:
+                input_total = sum([i.value for i in inputs])
         id_list = [i.index_n for i in self.inputs]
         if list(set(id_list)) != id_list:
             _logger.warning("Identical transaction indexes (tid) found in inputs, please specify unique index. "
@@ -850,6 +852,13 @@ class Transaction:
             self.outputs = []
         else:
             self.outputs = outputs
+            if not output_total:
+                output_total = sum([o.value for o in outputs])
+        if fee is None and output_total and input_total:
+            fee = input_total - output_total
+            if fee <= 0:
+                raise TransactionError("Transaction inputs total value must be greater then total value of "
+                                       "transaction outputs")
 
         if isinstance(version, int):
             self.version = struct.pack('>L', version)
@@ -877,8 +886,8 @@ class Transaction:
             self.hash = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
 
     def __repr__(self):
-        return "<Transaction (input_count=%d, output_count=%d, network=%s)>" % \
-               (len(self.inputs), len(self.outputs), self.network.network_name)
+        return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
+               (len(self.inputs), len(self.outputs), self.status, self.network.network_name)
 
     def dict(self):
         """
@@ -927,7 +936,9 @@ class Transaction:
         print("Verified: %s" % self.verified)
         print("Inputs")
         for ti in self.inputs:
-            print("-", ti.address, ti.value, to_hexstring(ti.prev_hash))
+            print("-", ti.address, ti.value, to_hexstring(ti.prev_hash), ti.output_n_int)
+            print("  Script type: %s, signatures: %d (%d of %d)" %
+                  (ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
         print("Outputs")
         for to in self.outputs:
             print("-", to.address, to.value)
@@ -969,6 +980,8 @@ class Transaction:
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
+        else:
+            self.size = len(r)
         return r
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL):
@@ -1013,9 +1026,9 @@ class Transaction:
                 if sig_id >= len(i.signatures):
                     _logger.info("No valid signatures found")
                     return False
-                verify_signature(transaction_hash_to_sign,
-                                 i.signatures[sig_id]['signature'], key.public_uncompressed_byte[1:])
-                sig_id += 1
+                if verify_signature(transaction_hash_to_sign,
+                                 i.signatures[sig_id]['signature'], key.public_uncompressed_byte[1:]):
+                    sig_id += 1
             if sig_id < i.sigs_required:
                 _logger.info("Not enough valid signatures provided. Found %d signatures but %d needed" %
                              (sig_id, i.sigs_required))
@@ -1102,6 +1115,17 @@ class Transaction:
                 free_positions = [i for i, s in enumerate(sig_domain) if s == '']
                 for pos in free_positions:
                     if verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
+                        if not sig['pub_key']:
+                            sig['pub_key'] = pub_key_list[pos]
+                        if not sig['sig_der']:
+                            raise TransactionError("Missing DER encoded signature in input %d" % tid)
+                        sig_domain[pos] = sig
+                        n_sigs_to_insert -= 1
+                        break
+            if n_sigs_to_insert:
+                for sig in self.inputs[tid].signatures:
+                    free_positions = [i for i, s in enumerate(sig_domain) if s == '']
+                    for pos in free_positions:
                         sig_domain[pos] = sig
                         n_sigs_to_insert -= 1
                         break

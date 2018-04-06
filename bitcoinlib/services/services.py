@@ -142,7 +142,6 @@ class Service(object):
         return self._provider_execute('getbalance', addresslist)
 
     def getutxos(self, addresslist):
-        # TODO: This could possible be removed and replaced with gettransactions
         if not addresslist:
             return []
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
@@ -187,4 +186,7 @@ class Service(object):
         return self._provider_execute('decoderawtransaction', rawtx)
 
     def estimatefee(self, blocks=3):
-        return self._provider_execute('estimatefee', blocks)
+        fee = self._provider_execute('estimatefee', blocks)
+        if not fee:
+            raise ServiceError("Could not estimate fee. Errors: %s" % self.errors)
+        return fee

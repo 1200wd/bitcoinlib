@@ -71,10 +71,10 @@
     "currency_symbol": "XLT",
     "currency_code": "XLT",
     "prefix_address": "6F",
-    "prefix_address_p2sh": "C4",
+    "prefix_address_p2sh": "3A",
     "prefix_wif": "EF",
-    "prefix_hdkey_private": "0436EF7D",
-    "prefix_hdkey_public": "0436F6E1",
+    "prefix_hdkey_private": "04358394",
+    "prefix_hdkey_public": "043587CF",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
     "dust_amount": 1000

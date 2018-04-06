@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Bitcoinlib Tools
-#    © 2018 January - 1200 Web Development <http://1200wd.com/>
+#    © 2018 April - 1200 Web Development <http://1200wd.com/>
 #
 
 import os
@@ -22,7 +22,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             os.remove(DATABASEFILE_UNITTESTS)
         self.python_executable = sys.executable
         self.clw_executable = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                            '../tools/cli-wallet.py'))
+                                                            '../bitcoinlib/tools/cli_wallet.py'))
 
     def test_tools_clw_create_wallet(self):
         cmd_wlt_create = "echo y | %s %s test --passphrase 'emotion camp sponsor curious bacon squeeze bean world " \
@@ -53,16 +53,17 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         self.assertIn(output_wlt_create, normalize_string(check_output(cmd_wlt_create, shell=True)))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
 
-    def test_tools_clw_transaction(self):
-        cmd_wlt_create = "echo y | %s %s test2 --passphrase 'emotion camp sponsor curious bacon squeeze bean world " \
+    def test_tools_clw_transaction_with_script(self):
+        python_executable = "cli-wallet"
+        cmd_wlt_create = "echo y | %s test2 --passphrase 'emotion camp sponsor curious bacon squeeze bean world " \
                          "actual chicken obscure spray' -r -n bitcoinlib_test -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        cmd_wlt_update = "%s %s test2 -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        cmd_wlt_transaction = "%s %s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        cmd_wlt_delete = "echo test2 | %s %s test2 --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (python_executable, DATABASEFILE_UNITTESTS)
+        cmd_wlt_update = "%s test2 -d %s" % \
+                         (python_executable, DATABASEFILE_UNITTESTS)
+        cmd_wlt_transaction = "%s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
+                         (python_executable, DATABASEFILE_UNITTESTS)
+        cmd_wlt_delete = "echo test2 | %s test2 --wallet-remove -d %s" % \
+                         (python_executable, DATABASEFILE_UNITTESTS)
         output_wlt_create = "Receive address(es):\n21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
         output_wlt_transaction = b'Transaction pushed to network'
         output_wlt_delete = "Wallet test2 has been removed"
@@ -71,6 +72,21 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         print(check_output(cmd_wlt_update, shell=True))
         self.assertIn(output_wlt_transaction, check_output(cmd_wlt_transaction, shell=True))
         self.assertIn(output_wlt_delete, normalize_string(check_output(cmd_wlt_delete, shell=True)))
+
+    # FIXME: Doesn't work on Travis + Also tested with test_tools_clw_transaction_with_script
+    # def test_tools_cli_wallet(self):
+    #     from bitcoinlib.tools.cli_wallet import main
+    #     import io
+    #     from contextlib import redirect_stdout
+    #     f = io.StringIO()
+    #     with redirect_stdout(f):
+    #         try:
+    #             main()
+    #         except SystemExit:
+    #             pass
+    #     out = f.getvalue()
+    #     self.assertIn("Command Line Wallet for BitcoinLib", out)
+
 
 
 if __name__ == '__main__':

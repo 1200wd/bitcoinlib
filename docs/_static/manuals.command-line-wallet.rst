@@ -23,7 +23,7 @@ To create a wallet just specify an unused wallet name:
 
 .. code-block:: none
 
-    $ python cli-wallet.py mywallet
+    $ cli-wallet mywallet
     Command Line Wallet for BitcoinLib
 
     Wallet mywallet does not exist, create new wallet [yN]? y
@@ -46,7 +46,7 @@ codes on the commandline install the pyqrcode module.
 
 .. code-block:: none
 
-    $ python cli-wallet.py mywallet -r
+    $ cli-wallet mywallet -r
     Command Line Wallet for BitcoinLib
 
     Receive address is 1JMKBiiDMdjTx6rfqGumALvcRMX6DQNeG1
@@ -66,7 +66,7 @@ network.
 
 .. code-block:: none
 
-    $ python cli-wallet.py -d dbtest mywallet -t 1FpBBJ2E9w9nqxHUAtQME8X4wGeAKBsKwZ 10000
+    $ cli-wallet -d dbtest mywallet -t 1FpBBJ2E9w9nqxHUAtQME8X4wGeAKBsKwZ 10000
 
 
 Restore wallet with passphrase
@@ -78,8 +78,8 @@ addresses and update unspend outputs.
 
 .. code-block:: none
 
-    $ python cli-wallet.py mywallet --passphrase "mutual run dynamic armed brown meadow height elbow citizen put industry work"
-    $ python cli-wallet.py mywallet -s
+    $ cli-wallet mywallet --passphrase "mutual run dynamic armed brown meadow height elbow citizen put industry work"
+    $ cli-wallet mywallet -s
 
 
 Options Overview
@@ -87,14 +87,17 @@ Options Overview
 
 Command Line Wallet for BitcoinLib
 
-usage: cli-wallet.py [-h] [--network NETWORK] [--database DATABASE]
-                     [--wallet-remove] [--list-wallets] [--wallet-info]
+usage: cli_wallet [-h] [--wallet-remove] [--list-wallets] [--wallet-info]
+                     [--wallet-recreate] [--receive [NUMBER_OF_ADDRESSES]]
+                     [--generate-key]
                      [--passphrase [PASSPHRASE [PASSPHRASE ...]]]
                      [--passphrase-strength PASSPHRASE_STRENGTH]
-                     [--create-multisig [CREATE_MULTISIG [CREATE_MULTISIG ...]]]
-                     [--receive] [--scan]
-                     [--create-transaction [CREATE_TRANSACTION [CREATE_TRANSACTION ...]]]
-                     [--fee FEE] [--push]
+                     [--network NETWORK] [--database DATABASE]
+                     [--create-from-key KEY]
+                     [--create-multisig [NUMBER_OF_SIGNATURES_REQUIRED [KEYS ...]]]
+                     [--create-transaction [ADDRESS_1 [AMOUNT_1 ...]]]
+                     [--sweep ADDRESS] [--fee FEE] [--fee-per-kb FEE_PER_KB]
+                     [--push] [--import-raw RAW_TRANSACTION]
                      [wallet_name]
 
 BitcoinLib CLI
@@ -106,32 +109,56 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+
+Wallet Actions:
+  --wallet-remove       Name or ID of wallet to remove, all keys and
+                        transactions will be deleted
+  --list-wallets, -l    List all known wallets in BitcoinLib database
+  --wallet-info, -w     Show wallet information
+  --wallet-recreate, -x
+                        Delete all keys and transactions and recreate wallet,
+                        except for the masterkey(s). Use when updating fails
+                        or other errors occur. Please backup your database and
+                        masterkeys first.
+  --receive [NUMBER_OF_ADDRESSES], -r [NUMBER_OF_ADDRESSES]
+                        Show unused address to receive funds
+  --generate-key, -k    Generate a new masterkey, and show passphrase, WIF and
+                        public account key. Use to create multisig wallet
+
+Wallet Setup:
+  --passphrase [PASSPHRASE [PASSPHRASE ...]]
+                        Passphrase to recover or create a wallet. Usually 12
+                        or 24 words
+  --passphrase-strength PASSPHRASE_STRENGTH
+                        Number of bits for passphrase key. Default is 128,
+                        lower is not adviced but can be used for testing. Set
+                        to 256 bits for more future proof passphrases
   --network NETWORK, -n NETWORK
-                        Specify 'bitcoin', 'testnet' or other supported
-                        network
+                        Specify 'bitcoin', 'litecoin', 'testnet' or other
+                        supported network
   --database DATABASE, -d DATABASE
                         Name of specific database file to use
-  --wallet-remove       Name or ID of wallet to remove, all keys and related
-                        information will be deleted
-  --list-wallets, -l    List all known wallets in bitcoinlib database
-  --wallet-info, -i     Show wallet information
-  --passphrase [PASSPHRASE [PASSPHRASE ...]]
-                        Passphrase to recover or create a wallet
-  --passphrase-strength PASSPHRASE_STRENGTH
-                        Number of bits for passphrase key
-  --create-multisig [CREATE_MULTISIG [CREATE_MULTISIG ...]], -m [CREATE_MULTISIG [CREATE_MULTISIG ...]]
+  --create-from-key KEY, -c KEY
+                        Create a new wallet from specified key
+  --create-multisig [NUMBER_OF_SIGNATURES_REQUIRED [KEYS ...]], -m [NUMBER_OF_SIGNATURES_REQUIRED [KEYS ...]]
                         Specificy number of signatures required followed by a
                         list of signatures. Example: -m 2 tprv8ZgxMBicQKsPd1Q4
                         4tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2M5M
                         Cj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsP
                         eUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXi
                         zThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp
-  --receive, -r         Show unused address to receive funds
-  --scan, -s            Scan and update wallet with all addresses,
-                        transactions and balances
 
-Send / Create transaction:
-  --create-transaction [CREATE_TRANSACTION [CREATE_TRANSACTION ...]], -t [CREATE_TRANSACTION [CREATE_TRANSACTION ...]]
-                        Create transaction. Specify address followed by amount
+Transaction:
+  --create-transaction [ADDRESS_1 [AMOUNT_1 ...]], -t [ADDRESS_1 [AMOUNT_1 ...]]
+                        Create transaction. Specify address followed by
+                        amount. Repeat for multiple outputs
+  --sweep ADDRESS       Sweep wallet, transfer all funds to specified address
   --fee FEE, -f FEE     Transaction fee
+  --fee-per-kb FEE_PER_KB
+                        Transaction fee in sathosis (or smallest denominator)
+                        per kilobyte
   --push, -p            Push created transaction to the network
+  --import-raw RAW_TRANSACTION, -i RAW_TRANSACTION
+                        Import raw transaction in wallet and sign it with
+                        available keys
+

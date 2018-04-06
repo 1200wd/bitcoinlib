@@ -82,7 +82,11 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
             raise KeyError("Specified key %s is from different network then specified: %s" % (kf_networks, network))
         elif network is None and len(kf_networks) == 1:
             return kf_networks[0]
-        elif network is None and len(kf_networks) > 1 and not default_network:
+        elif network is None and len(kf_networks) > 1:
+            if default_network in kf_networks:
+                return default_network
+            elif 'testnet' in kf_networks:
+                return 'testnet'
             raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf_networks)
     if network is None:
         return default_network
@@ -423,10 +427,7 @@ class Key:
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
 
     def __repr__(self):
-        if self.secret:
-            return "<Key (%s)>" % self.wif()
-        else:
-            return "<Key (public %s)" % self.public_hex
+        return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.network_name)
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
@@ -786,7 +787,8 @@ class HDKey:
         self.key_type = key_type
 
     def __repr__(self):
-        return "<HDKey (%s)>" % self.wif()
+        return "<HDKey(public_hex=%s, wif_public=%s, network=%s)>" % \
+               (self.public_hex, self.wif_public(), self.network.network_name)
 
     def info(self):
         """

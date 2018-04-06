@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2018 April - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -55,10 +55,10 @@ class TestGetKeyFormat(unittest.TestCase):
         self.assertEqual('hdkey_public', get_key_format(key)['format'])
 
     def test_format_hdkey_private_litecoin(self):
-        key = 'ttpv9ATh1zJgV72nBiUqbMz5petg9XzPdsPoqjKesyLGf5kVsTbsYqejKVWxH9W7hv543tbfiw3uXDu4kDN6pgYdtfdSsrpeFghaA' \
-              'H2WGpLyu8B'
+        key = 'tprv8ZgxMBicQKsPdnMVMhgfNHXF1PkuAoUNECLe71vmEdi7R6yWRm7dcaDwxu9rrb8NoYzjT7uZinv6N34gCNHtyfYCoQy68krxf' \
+              '9P3tLd7BLT'
         self.assertEqual('hdkey_private', get_key_format(key)['format'])
-        self.assertEqual(['litecoin_testnet'], get_key_format(key)['networks'])
+        self.assertListEqual(['litecoin_testnet', 'testnet'], sorted(get_key_format(key)['networks']))
 
     def test_format_wif_compressed_private_dash(self):
         key = 'XH2Yndjv6Ks3XEHGaSMDhUMTAMZTTWv5nEN958Y7VMyQXBCJVQmM'

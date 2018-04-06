@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2018 February - 1200 Web Development <http://1200wd.com/>
+#    © 2018 April - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -751,8 +751,9 @@ class TestWalletKeyImport(unittest.TestCase):
                                           databasefile=DATABASEFILE_UNITTESTS)
         wallet.new_key()
         wallet.utxos_update()
-        wallet.import_key(hdkey)
         wt = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
+        wt.sign(hdkey)
+        wt.send()
         self.assertIsNone(wt.error)
 
     def test_wallet_import_private_for_known_public(self):
@@ -821,6 +822,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.wallet = wallet_create_or_open('scan-test', key=account_key, network='testnet',
                                             databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.scan()
+        self.wallet.info()
         self.assertEqual(len(self.wallet.keys()), 25)
         self.assertEqual(len(self.wallet.keys(is_active=None)), 31)
         self.assertEqual(self.wallet.balance(), 60500000)
