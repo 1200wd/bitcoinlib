@@ -37,51 +37,53 @@ def parse_args():
     parser.add_argument('wallet_name', nargs='?', default='',
                         help="Name of wallet to create or open. Used to store your all your wallet keys "
                              "and will be printed on each paper wallet")
-    parser.add_argument('--wallet-remove', action='store_true',
-                        help="Name or ID of wallet to remove, all keys and related information will be deleted")
-    parser.add_argument('--list-wallets', '-l', action='store_true',
-                        help="List all known wallets in bitcoinlib database")
-    parser.add_argument('--wallet-info', '-w', action='store_true',
-                        help="Show wallet information")
-    parser.add_argument('--wallet-recreate', '-x', action='store_true',
-                        help="Delete all keys and transactions and recreate wallet. Use when updating fails or other "
-                             "errors occur. Please backup your database and keys first.")
-    group_wallet = parser.add_argument_group("Create or restore a wallet")
-    group_wallet.add_argument('--passphrase', nargs="*", default=None,
-                        help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
-    group_wallet.add_argument('--network', '-n',
-                        help="Specify 'bitcoin', 'testnet' or other supported network")
-    group_wallet.add_argument('--database', '-d',
-                        help="Name of specific database file to use",)
-    group_wallet.add_argument('--passphrase-strength', type=float, default=128,
-                        help="Number of bits for passphrase key")
-    group_wallet.add_argument('--create-from-key', '-c', metavar='KEY',
-                        help="Create a new wallet from specified key")
-    group_wallet.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
-                        help='Specificy number of signatures required followed by a list of signatures.'
-                             '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2'
-                             'M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF'
-                             '6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
-    parser.add_argument('--receive', '-r', help="Show unused address to receive funds", nargs='?', type=int, const=1,
-                        metavar='NUMBER_OF_ADDRESSES')
-    parser.add_argument('--scan', '-s', action='store_true',
-                        help="Scan and update wallet with all addresses, transactions and balances")
-    parser.add_argument('--generate-key', '-k', action='store_true',
-                        help="Generate a new masterkey, and show passphrase, WIF and public account key")
-    parser.add_argument('--import-raw', '-i', metavar="RAW_TRANSACTION",
-                        help="Import raw transaction in wallet and sign it with available keys")
-    group = parser.add_argument_group("Send / Create transaction")
-    group.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
-                       help="Create transaction. Specify address followed by amount. Repeat for multiple outputs",
-                       nargs='*')
-    group.add_argument('--sweep', metavar="ADDRESS",
-                       help="Sweep wallet, transfer all funds to specified address")
-    group.add_argument('--fee', '-f', type=int,
-                       help="Transaction fee")
-    group.add_argument('--fee-per-kb', type=int, help="Transaction fee in sathosis (or smallest denominator) per "
-                                                      "kilobyte")
-    group.add_argument('--push', '-p', action='store_true',
-                       help="Push created transaction to the network")
+
+    group_wallet = parser.add_argument_group("Wallet Actions")
+    group_wallet.add_argument('--wallet-remove', action='store_true',
+                              help="Name or ID of wallet to remove, all keys and transactions will be deleted")
+    group_wallet.add_argument('--list-wallets', '-l', action='store_true',
+                              help="List all known wallets in BitcoinLib database")
+    group_wallet.add_argument('--wallet-info', '-w', action='store_true',
+                              help="Show wallet information")
+    group_wallet.add_argument('--wallet-recreate', '-x', action='store_true',
+                              help="Delete all keys and transactions and recreate wallet, except for the masterkey(s)."
+                                   " Use when updating fails or other errors occur. Please backup your database and "
+                                   "masterkeys first.")
+    group_wallet.add_argument('--receive', '-r', help="Show unused address to receive funds", nargs='?', type=int,
+                              const=1, metavar='NUMBER_OF_ADDRESSES')
+    group_wallet.add_argument('--generate-key', '-k', action='store_true', help="Generate a new masterkey, and show"
+                              " passphrase, WIF and public account key. Use to create multisig wallet")
+
+    group_wallet2 = parser.add_argument_group("Wallet Setup")
+    group_wallet2.add_argument('--passphrase', nargs="*", default=None,
+                               help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
+    group_wallet2.add_argument('--passphrase-strength', type=float, default=128,
+                               help="Number of bits for passphrase key. Default is 128, lower is not adviced but can "
+                                    "be used for testing. Set to 256 bits for more future proof passphrases")
+    group_wallet2.add_argument('--network', '-n',
+                               help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
+    group_wallet2.add_argument('--database', '-d',
+                               help="Name of specific database file to use",)
+    group_wallet2.add_argument('--create-from-key', '-c', metavar='KEY',
+                               help="Create a new wallet from specified key")
+    group_wallet2.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
+                               help='Specificy number of signatures required followed by a list of signatures.'
+                                    '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
+                                    'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
+                                    'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
+
+    group_transaction = parser.add_argument_group("Transaction")
+    group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
+                                   help="Create transaction. Specify address followed by amount. Repeat for multiple "
+                                   "outputs", nargs='*')
+    group_transaction.add_argument('--sweep', metavar="ADDRESS",
+                                   help="Sweep wallet, transfer all funds to specified address")
+    group_transaction.add_argument('--fee', '-f', type=int, help="Transaction fee")
+    group_transaction.add_argument('--fee-per-kb', type=int,
+                                   help="Transaction fee in sathosis (or smallest denominator) per kilobyte")
+    group_transaction.add_argument('--push', '-p', action='store_true', help="Push created transaction to the network")
+    group_transaction.add_argument('--import-raw', '-i', metavar="RAW_TRANSACTION",
+                                   help="Import raw transaction in wallet and sign it with available keys")
 
     pa = parser.parse_args()
     if pa.receive and pa.create_transaction:
@@ -185,7 +187,7 @@ def main():
 
     # List wallets, then exit
     if args.list_wallets:
-        print("Bitcoinlib wallets:")
+        print("BitcoinLib wallets:")
         for w in wallets_list(databasefile=databasefile):
             if 'parent_id' in w and w['parent_id']:
                 continue
@@ -252,13 +254,6 @@ def main():
                 print(qrcode.terminal())
         if not QRCODES_AVAILABLE:
             print("Install qr code module to show QR codes: pip install pyqrcode")
-        clw_exit()
-    if args.scan:
-        print("Scanning wallet: updating addresses, transactions and balances")
-        print("Can take a while")
-        wlt.scan(scan_gap_limit=5)
-        print("Scanning complete, show wallet info")
-        wlt.info()
         clw_exit()
     if args.create_transaction == []:
         clw_exit("Missing arguments for --create-transaction/-t option")
