@@ -128,7 +128,7 @@ def create_wallet(wallet_name, args, databasefile):
     else:
         passphrase = args.passphrase
         if passphrase is None:
-            passphrase = get_passphrase()
+            passphrase = get_passphrase(args)
         elif not passphrase:
             passphrase = input("Enter Passphrase: ")
         if not isinstance(passphrase, list):
