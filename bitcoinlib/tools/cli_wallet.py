@@ -11,6 +11,7 @@ import sys
 import argparse
 import binascii
 import struct
+import ast
 from pprint import pprint
 from bitcoinlib.db import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
@@ -72,7 +73,7 @@ def parse_args():
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
 
-    group_transaction = parser.add_argument_group("Transaction")
+    group_transaction = parser.add_argument_group("Transactions")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
                                    help="Create transaction. Specify address followed by amount. Repeat for multiple "
                                    "outputs", nargs='*')
@@ -82,8 +83,10 @@ def parse_args():
     group_transaction.add_argument('--fee-per-kb', type=int,
                                    help="Transaction fee in sathosis (or smallest denominator) per kilobyte")
     group_transaction.add_argument('--push', '-p', action='store_true', help="Push created transaction to the network")
-    group_transaction.add_argument('--import-raw', '-i', metavar="RAW_TRANSACTION",
+    group_transaction.add_argument('--import-raw', metavar="RAW_TRANSACTION",
                                    help="Import raw transaction in wallet and sign it with available keys")
+    group_transaction.add_argument('--import-dict', '-i', metavar="TRANSACTION_DICTIONARY",
+                                   help = "Import transaction dictionary wallet and sign it with available key(s)")
 
     pa = parser.parse_args()
     if pa.receive and pa.create_transaction:
@@ -242,6 +245,13 @@ def main():
         t.info()
         print("Raw signed transaction:", t.raw_hex())
         clw_exit()
+    if args.import_dict:
+        td = ast.literal_eval(args.import_dict)
+        t = wlt.transaction_import(td)
+        t.sign()
+        t.info()
+        print("Raw signed transaction:", t.raw_hex())
+        clw_exit()
     if args.receive:
         keys = wlt.get_key(network=args.network, number_of_keys=args.receive)
         keys = [keys] if not isinstance(keys, list) else keys
@@ -276,14 +286,26 @@ def main():
         else:
             print("\nTransaction created but not send yet. Transaction dictionary for export: ")
             tx_dict = {
-                'network': wt.network.network_name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
-                    'address': o.address, 'value': o.value
-                } for o in wt.outputs], 'inputs': [{
-                    'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
-                    'address': i.address, 'signatures': [{
-                        'signature': to_hexstring(s['signature']), 'sig_der': to_hexstring(s['sig_der']),
+                'network': wt.network.network_name,
+                'fee': wt.fee,
+                'raw': wt.raw_hex(),
+                'outputs': [
+                {
+                    'address': o.address,
+                    'value': o.value
+                } for o in wt.outputs],
+                'inputs': [
+                {
+                    'prev_hash': to_hexstring(i.prev_hash),
+                    'output_n': struct.unpack('>I', i.output_n)[0],
+                    'address': i.address,
+                    'signatures': [
+                    {
+                        'signature': to_hexstring(s['signature']),
+                        'sig_der': to_hexstring(s['sig_der']),
                         'pub_key': to_hexstring(s['pub_key']),
-                    } for s in i.signatures], 'value': i.value
+                    } for s in i.signatures],
+                    'value': i.value
                 } for i in wt.inputs]
             }
             pprint(tx_dict)
