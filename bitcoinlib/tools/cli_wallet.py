@@ -162,6 +162,21 @@ def create_transaction(wlt, send_args, args):
     return wlt.transaction_create(output_arr=output_arr, network=args.network, transaction_fee=args.fee, min_confirms=0)
 
 
+def print_transaction(wt):
+    tx_dict = {
+        'network': wt.network.network_name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
+            'address': o.address, 'value': o.value
+        } for o in wt.outputs], 'inputs': [{
+            'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
+            'address': i.address, 'signatures': [{
+                'signature': to_hexstring(s['signature']), 'sig_der': to_hexstring(s['sig_der']),
+                'pub_key': to_hexstring(s['pub_key']),
+            } for s in i.signatures], 'value': i.value
+        } for i in wt.inputs]
+    }
+    pprint(tx_dict)
+
+
 def clw_exit(msg=None):
     if msg:
         print(msg)
@@ -250,7 +265,7 @@ def main():
             clw_exit("File %s not found" % args.import_file)
         tx_import = ast.literal_eval(f.read())
     if args.import_tx:
-        tx_import = ast.literal_eval(args.import_dict)
+        tx_import = ast.literal_eval(args.import_tx)
     if tx_import:
         if isinstance(tx_import, dict):
             t = wlt.transaction_import(tx_import)
@@ -294,30 +309,7 @@ def main():
                 print("Error creating transaction: %s" % wt.error)
         else:
             print("\nTransaction created but not send yet. Transaction dictionary for export: ")
-            tx_dict = {
-                'network': wt.network.network_name,
-                'fee': wt.fee,
-                'raw': wt.raw_hex(),
-                'outputs': [
-                {
-                    'address': o.address,
-                    'value': o.value
-                } for o in wt.outputs],
-                'inputs': [
-                {
-                    'prev_hash': to_hexstring(i.prev_hash),
-                    'output_n': struct.unpack('>I', i.output_n)[0],
-                    'address': i.address,
-                    'signatures': [
-                    {
-                        'signature': to_hexstring(s['signature']),
-                        'sig_der': to_hexstring(s['sig_der']),
-                        'pub_key': to_hexstring(s['pub_key']),
-                    } for s in i.signatures],
-                    'value': i.value
-                } for i in wt.inputs]
-            }
-            pprint(tx_dict)
+            print_transaction(wt)
         clw_exit()
     if args.sweep:
         if args.fee:
@@ -338,7 +330,8 @@ def main():
             else:
                 print("Error sweeping wallet: %s" % wt.error)
         else:
-            print("Transaction created but not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
+            print("\nTransaction created but not send yet. Transaction dictionary for export: ")
+            print_transaction(wt)
         clw_exit()
 
     print("Updating wallet")
