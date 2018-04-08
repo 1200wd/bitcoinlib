@@ -259,13 +259,19 @@ def main():
     tx_import = None
     if args.import_tx_file:
         try:
-            fn = args.import_file
+            fn = args.import_tx_file
             f = open(fn, "r")
         except FileNotFoundError:
-            clw_exit("File %s not found" % args.import_file)
-        tx_import = ast.literal_eval(f.read())
+            clw_exit("File %s not found" % args.import_tx_file)
+        try:
+            tx_import = ast.literal_eval(f.read())
+        except (ValueError, SyntaxError):
+            tx_import = f.read()
     if args.import_tx:
-        tx_import = ast.literal_eval(args.import_tx)
+        try:
+            tx_import = ast.literal_eval(args.import_tx)
+        except (ValueError, SyntaxError):
+            tx_import = args.import_tx
     if tx_import:
         if isinstance(tx_import, dict):
             t = wlt.transaction_import(tx_import)
@@ -273,7 +279,8 @@ def main():
             t = wlt.transaction_import_raw(tx_import)
         t.sign()
         t.info()
-        print("Raw signed transaction:", t.raw_hex())
+        print("Signed transaction:")
+        print_transaction(t)
         clw_exit()
 
     if args.receive:
