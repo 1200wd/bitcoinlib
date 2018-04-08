@@ -83,10 +83,12 @@ def parse_args():
     group_transaction.add_argument('--fee-per-kb', type=int,
                                    help="Transaction fee in sathosis (or smallest denominator) per kilobyte")
     group_transaction.add_argument('--push', '-p', action='store_true', help="Push created transaction to the network")
-    group_transaction.add_argument('--import-raw', metavar="RAW_TRANSACTION",
-                                   help="Import raw transaction in wallet and sign it with available keys")
-    group_transaction.add_argument('--import-dict', '-i', metavar="TRANSACTION_DICTIONARY",
-                                   help = "Import transaction dictionary wallet and sign it with available key(s)")
+    group_transaction.add_argument('--import-tx', '-i', metavar="TRANSACTION",
+                                   help="Import raw transaction hash or transaction dictionary in wallet and sign "
+                                        "it with available key(s)")
+    group_transaction.add_argument('--import-tx-file', '-a', metavar="FILENAME_TRANSACTION",
+                                   help="Import transaction dictionary or raw transaction string from specified "
+                                        "filename and sign it with available key(s)")
 
     pa = parser.parse_args()
     if pa.receive and pa.create_transaction:
@@ -239,19 +241,26 @@ def main():
     if args.network is None:
         args.network = wlt.network.network_name
 
-    if args.import_raw:
-        t = wlt.transaction_import_raw(args.import_raw)
+    tx_import = None
+    if args.import_tx_file:
+        try:
+            fn = args.import_file
+            f = open(fn, "r")
+        except FileNotFoundError:
+            clw_exit("File %s not found" % args.import_file)
+        tx_import = ast.literal_eval(f.read())
+    if args.import_tx:
+        tx_import = ast.literal_eval(args.import_dict)
+    if tx_import:
+        if isinstance(tx_import, dict):
+            t = wlt.transaction_import(tx_import)
+        else:
+            t = wlt.transaction_import_raw(tx_import)
         t.sign()
         t.info()
         print("Raw signed transaction:", t.raw_hex())
         clw_exit()
-    if args.import_dict:
-        td = ast.literal_eval(args.import_dict)
-        t = wlt.transaction_import(td)
-        t.sign()
-        t.info()
-        print("Raw signed transaction:", t.raw_hex())
-        clw_exit()
+
     if args.receive:
         keys = wlt.get_key(network=args.network, number_of_keys=args.receive)
         keys = [keys] if not isinstance(keys, list) else keys
