@@ -2619,7 +2619,10 @@ class HDWallet:
                 transaction.fee = int((tr_size / 1024.0) * transaction.fee_per_kb)
                 fee_per_output = int((50 / 1024.0) * transaction.fee_per_kb)
             else:
-                transaction.fee = 0
+                if amount_total_output and amount_total_input:
+                    transaction_fee = False
+                else:
+                    transaction.fee = 0
 
         if transaction_fee is False:
             transaction.change = 0
