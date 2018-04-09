@@ -11,6 +11,7 @@ import sys
 import argparse
 import binascii
 import struct
+import ast
 from pprint import pprint
 from bitcoinlib.db import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
@@ -45,14 +46,22 @@ def parse_args():
                               help="List all known wallets in BitcoinLib database")
     group_wallet.add_argument('--wallet-info', '-w', action='store_true',
                               help="Show wallet information")
-    group_wallet.add_argument('--wallet-recreate', '-x', action='store_true',
+    group_wallet.add_argument('--update-utxos', '-x', action='store_true',
+                              help="Update unspent transaction outputs (UTXO's) for this wallet")
+    group_wallet.add_argument('--update-transactions', '-u', action='store_true',
+                              help="Update all transactions and UTXO's for this wallet")
+    group_wallet.add_argument('--wallet-recreate', '-z', action='store_true',
                               help="Delete all keys and transactions and recreate wallet, except for the masterkey(s)."
                                    " Use when updating fails or other errors occur. Please backup your database and "
                                    "masterkeys first.")
-    group_wallet.add_argument('--receive', '-r', help="Show unused address to receive funds", nargs='?', type=int,
+    group_wallet.add_argument('--receive', '-r', nargs='?', type=int,
+                              help="Show unused address to receive funds. Generate new payment and"
+                                   "change addresses if no unused addresses are available.",
                               const=1, metavar='NUMBER_OF_ADDRESSES')
     group_wallet.add_argument('--generate-key', '-k', action='store_true', help="Generate a new masterkey, and show"
                               " passphrase, WIF and public account key. Use to create multisig wallet")
+    group_wallet.add_argument('--export-private', '-e', action='store_true',
+                              help="Export private key for this wallet and exit")
 
     group_wallet2 = parser.add_argument_group("Wallet Setup")
     group_wallet2.add_argument('--passphrase', nargs="*", default=None,
@@ -72,7 +81,7 @@ def parse_args():
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
 
-    group_transaction = parser.add_argument_group("Transaction")
+    group_transaction = parser.add_argument_group("Transactions")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
                                    help="Create transaction. Specify address followed by amount. Repeat for multiple "
                                    "outputs", nargs='*')
@@ -82,8 +91,12 @@ def parse_args():
     group_transaction.add_argument('--fee-per-kb', type=int,
                                    help="Transaction fee in sathosis (or smallest denominator) per kilobyte")
     group_transaction.add_argument('--push', '-p', action='store_true', help="Push created transaction to the network")
-    group_transaction.add_argument('--import-raw', '-i', metavar="RAW_TRANSACTION",
-                                   help="Import raw transaction in wallet and sign it with available keys")
+    group_transaction.add_argument('--import-tx', '-i', metavar="TRANSACTION",
+                                   help="Import raw transaction hash or transaction dictionary in wallet and sign "
+                                        "it with available key(s)")
+    group_transaction.add_argument('--import-tx-file', '-a', metavar="FILENAME_TRANSACTION",
+                                   help="Import transaction dictionary or raw transaction string from specified "
+                                        "filename and sign it with available key(s)")
 
     pa = parser.parse_args()
     if pa.receive and pa.create_transaction:
@@ -157,6 +170,21 @@ def create_transaction(wlt, send_args, args):
     return wlt.transaction_create(output_arr=output_arr, network=args.network, transaction_fee=args.fee, min_confirms=0)
 
 
+def print_transaction(wt):
+    tx_dict = {
+        'network': wt.network.network_name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
+            'address': o.address, 'value': o.value
+        } for o in wt.outputs], 'inputs': [{
+            'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
+            'address': i.address, 'signatures': [{
+                'signature': to_hexstring(s['signature']), 'sig_der': to_hexstring(s['sig_der']),
+                'pub_key': to_hexstring(s['pub_key']),
+            } for s in i.signatures], 'value': i.value
+        } for i in wt.inputs]
+    }
+    pprint(tx_dict)
+
+
 def clw_exit(msg=None):
     if msg:
         print(msg)
@@ -226,33 +254,67 @@ def main():
         except WalletError as e:
             clw_exit("Error: %s" % e.msg)
 
+    if wlt is None:
+        clw_exit("Could not open wallet %s" % args.wallet_name)
+
     if args.wallet_recreate:
         wallet_empty(args.wallet_name)
         print("Removed transactions and generated keys from this wallet")
+    if args.update_utxos:
+        wlt.utxos_update()
+    if args.update_transactions:
+        wlt.scan(scan_gap_limit=5)
 
-    if wlt is None:
-        clw_exit("Could not open wallet %s" % args.wallet_name)
+    if args.export_private:
+        if not wlt.main_key or not wlt.main_key.is_private:
+            print("No private key available for this wallet")
+        else:
+            print(wlt.main_key.wif)
+        clw_exit()
 
     if args.network is None:
         args.network = wlt.network.network_name
 
-    if args.import_raw:
-        t = wlt.transaction_import_raw(args.import_raw)
+    tx_import = None
+    if args.import_tx_file:
+        try:
+            fn = args.import_tx_file
+            f = open(fn, "r")
+        except FileNotFoundError:
+            clw_exit("File %s not found" % args.import_tx_file)
+        try:
+            tx_import = ast.literal_eval(f.read())
+        except (ValueError, SyntaxError):
+            tx_import = f.read()
+    if args.import_tx:
+        try:
+            tx_import = ast.literal_eval(args.import_tx)
+        except (ValueError, SyntaxError):
+            tx_import = args.import_tx
+    if tx_import:
+        if isinstance(tx_import, dict):
+            t = wlt.transaction_import(tx_import)
+        else:
+            t = wlt.transaction_import_raw(tx_import)
         t.sign()
         t.info()
-        print("Raw signed transaction:", t.raw_hex())
+        print("Signed transaction:")
+        print_transaction(t)
         clw_exit()
+
     if args.receive:
         keys = wlt.get_key(network=args.network, number_of_keys=args.receive)
+        if args.receive != 1:
+            keys += wlt.get_key_change(network=args.network, number_of_keys=args.receive)
         keys = [keys] if not isinstance(keys, list) else keys
         print("Receive address(es):")
         for key in keys:
             addr = key.address
             print(addr)
-            if QRCODES_AVAILABLE:
+            if QRCODES_AVAILABLE and args.receive == 1:
                 qrcode = pyqrcode.create(addr)
                 print(qrcode.terminal())
-        if not QRCODES_AVAILABLE:
+        if not QRCODES_AVAILABLE and args.receive == 1:
             print("Install qr code module to show QR codes: pip install pyqrcode")
         clw_exit()
     if args.create_transaction == []:
@@ -275,18 +337,7 @@ def main():
                 print("Error creating transaction: %s" % wt.error)
         else:
             print("\nTransaction created but not send yet. Transaction dictionary for export: ")
-            tx_dict = {
-                'network': wt.network.network_name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
-                    'address': o.address, 'value': o.value
-                } for o in wt.outputs], 'inputs': [{
-                    'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
-                    'address': i.address, 'signatures': [{
-                        'signature': to_hexstring(s['signature']), 'sig_der': to_hexstring(s['sig_der']),
-                        'pub_key': to_hexstring(s['pub_key']),
-                    } for s in i.signatures], 'value': i.value
-                } for i in wt.inputs]
-            }
-            pprint(tx_dict)
+            print_transaction(wt)
         clw_exit()
     if args.sweep:
         if args.fee:
@@ -307,11 +358,11 @@ def main():
             else:
                 print("Error sweeping wallet: %s" % wt.error)
         else:
-            print("Transaction created but not send yet. Raw transaction to analyse or send online: ", wt.raw_hex())
+            print("\nTransaction created but not send yet. Transaction dictionary for export: ")
+            print_transaction(wt)
         clw_exit()
 
     print("Updating wallet")
-    wlt.scan(scan_gap_limit=5)
     if args.network == 'bitcoinlib_test':
         wlt.utxos_update()
     print("Wallet info for %s" % wlt.name)
