@@ -46,7 +46,11 @@ def parse_args():
                               help="List all known wallets in BitcoinLib database")
     group_wallet.add_argument('--wallet-info', '-w', action='store_true',
                               help="Show wallet information")
-    group_wallet.add_argument('--wallet-recreate', '-x', action='store_true',
+    group_wallet.add_argument('--update-utxos', '-x', action='store_true',
+                              help="Update unspent transaction outputs (UTXO's) for this wallet")
+    group_wallet.add_argument('--update-transactions', '-u', action='store_true',
+                              help="Update all transactions and UTXO's for this wallet")
+    group_wallet.add_argument('--wallet-recreate', '-z', action='store_true',
                               help="Delete all keys and transactions and recreate wallet, except for the masterkey(s)."
                                    " Use when updating fails or other errors occur. Please backup your database and "
                                    "masterkeys first.")
@@ -246,12 +250,18 @@ def main():
         except WalletError as e:
             clw_exit("Error: %s" % e.msg)
 
+    if wlt is None:
+        clw_exit("Could not open wallet %s" % args.wallet_name)
+
     if args.wallet_recreate:
         wallet_empty(args.wallet_name)
         print("Removed transactions and generated keys from this wallet")
 
-    if wlt is None:
-        clw_exit("Could not open wallet %s" % args.wallet_name)
+    if args.update_utxos:
+        wlt.utxos_update()
+
+    if args.update_transactions:
+        wlt.scan(scan_gap_limit=5)
 
     if args.network is None:
         args.network = wlt.network.network_name
@@ -342,7 +352,6 @@ def main():
         clw_exit()
 
     print("Updating wallet")
-    wlt.scan(scan_gap_limit=5)
     if args.network == 'bitcoinlib_test':
         wlt.utxos_update()
     print("Wallet info for %s" % wlt.name)
