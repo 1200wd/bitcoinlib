@@ -54,7 +54,9 @@ def parse_args():
                               help="Delete all keys and transactions and recreate wallet, except for the masterkey(s)."
                                    " Use when updating fails or other errors occur. Please backup your database and "
                                    "masterkeys first.")
-    group_wallet.add_argument('--receive', '-r', help="Show unused address to receive funds", nargs='?', type=int,
+    group_wallet.add_argument('--receive', '-r', nargs='?', type=int,
+                              help="Show unused address to receive funds. Generate new payment and"
+                                   "change addresses if no unused addresses are available.",
                               const=1, metavar='NUMBER_OF_ADDRESSES')
     group_wallet.add_argument('--generate-key', '-k', action='store_true', help="Generate a new masterkey, and show"
                               " passphrase, WIF and public account key. Use to create multisig wallet")
@@ -258,10 +260,8 @@ def main():
     if args.wallet_recreate:
         wallet_empty(args.wallet_name)
         print("Removed transactions and generated keys from this wallet")
-
     if args.update_utxos:
         wlt.utxos_update()
-
     if args.update_transactions:
         wlt.scan(scan_gap_limit=5)
 
@@ -304,15 +304,17 @@ def main():
 
     if args.receive:
         keys = wlt.get_key(network=args.network, number_of_keys=args.receive)
+        if args.receive != 1:
+            keys += wlt.get_key_change(network=args.network, number_of_keys=args.receive)
         keys = [keys] if not isinstance(keys, list) else keys
         print("Receive address(es):")
         for key in keys:
             addr = key.address
             print(addr)
-            if QRCODES_AVAILABLE:
+            if QRCODES_AVAILABLE and args.receive == 1:
                 qrcode = pyqrcode.create(addr)
                 print(qrcode.terminal())
-        if not QRCODES_AVAILABLE:
+        if not QRCODES_AVAILABLE and args.receive == 1:
             print("Install qr code module to show QR codes: pip install pyqrcode")
         clw_exit()
     if args.create_transaction == []:
