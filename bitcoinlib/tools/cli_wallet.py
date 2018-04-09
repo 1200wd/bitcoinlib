@@ -58,6 +58,8 @@ def parse_args():
                               const=1, metavar='NUMBER_OF_ADDRESSES')
     group_wallet.add_argument('--generate-key', '-k', action='store_true', help="Generate a new masterkey, and show"
                               " passphrase, WIF and public account key. Use to create multisig wallet")
+    group_wallet.add_argument('--export-private', '-e', action='store_true',
+                              help="Export private key for this wallet and exit")
 
     group_wallet2 = parser.add_argument_group("Wallet Setup")
     group_wallet2.add_argument('--passphrase', nargs="*", default=None,
@@ -262,6 +264,13 @@ def main():
 
     if args.update_transactions:
         wlt.scan(scan_gap_limit=5)
+
+    if args.export_private:
+        if not wlt.main_key or not wlt.main_key.is_private:
+            print("No private key available for this wallet")
+        else:
+            print(wlt.main_key.wif)
+        clw_exit()
 
     if args.network is None:
         args.network = wlt.network.network_name
