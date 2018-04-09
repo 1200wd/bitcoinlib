@@ -293,13 +293,19 @@ def main():
             tx_import = args.import_tx
     if tx_import:
         if isinstance(tx_import, dict):
-            t = wlt.transaction_import(tx_import)
+            wt = wlt.transaction_import(tx_import)
         else:
-            t = wlt.transaction_import_raw(tx_import)
-        t.sign()
-        t.info()
+            wt = wlt.transaction_import_raw(tx_import)
+        wt.sign()
+        if args.push:
+            res = wt.send()
+            if res:
+                print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
+            else:
+                print("Error creating transaction: %s" % wt.error)
+        wt.info()
         print("Signed transaction:")
-        print_transaction(t)
+        print_transaction(wt)
         clw_exit()
 
     if args.receive:
