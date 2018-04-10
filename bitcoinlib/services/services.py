@@ -217,7 +217,7 @@ class Service(object):
             for new_t in res:
                 if new_t.hash not in [t.hash for t in transactions]:
                     transactions.append(new_t)
-                addresslist = addresslist[addresses_per_request:]
+            addresslist = addresslist[addresses_per_request:]
         return transactions
 
     def gettransaction(self, txid):
