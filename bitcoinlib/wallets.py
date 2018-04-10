@@ -1511,7 +1511,7 @@ class HDWallet:
         dbkey = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
                       used=False, change=change, depth=keys_depth).filter(DbKey.id > last_used_key_id).\
-            order_by(DbKey.id).all()
+            order_by(DbKey.id.desc()).all()
         key_list = []
         for i in range(number_of_keys):
             if dbkey:
