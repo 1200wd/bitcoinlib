@@ -134,9 +134,6 @@ class BlockCypher(BaseClient):
     def sendrawtransaction(self, rawtx):
         return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
 
-    def decoderawtransaction(self, rawtx):
-        return self.compose_request('txs', 'decode', variables={'tx': rawtx}, method='post')
-
     def estimatefee(self, blocks):
         res = self.compose_request('', '')
         if blocks <= 10:

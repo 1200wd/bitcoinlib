@@ -253,17 +253,6 @@ class Service(object):
         """
         return self._provider_execute('sendrawtransaction', rawtx)
 
-    def decoderawtransaction(self, rawtx):
-        """
-        Decode raw transaction to dictionary
-
-        :param rawtx: Raw transaction as hexstring
-        :type rawtx: str
-
-        :return dict: Dictionary with specific transaction information
-        """
-        return self._provider_execute('decoderawtransaction', rawtx)
-
     def estimatefee(self, blocks=3):
         """
         Estimate fee per kilobyte for a transaction for this network with expected confirmation within a certain
