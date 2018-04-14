@@ -72,7 +72,7 @@ class BaseClient(object):
         if self.resp.status_code == 429:
             raise ClientError("Maximum number of requests reached for %s with url %s, response [%d] %s" %
                               (self.provider, url, self.resp.status_code, resp_text))
-        elif not(self.resp.status_code == 200 and self.resp.status_code == 201):
+        elif not(self.resp.status_code == 200 or self.resp.status_code == 201):
             raise ClientError("Error connecting to %s on url %s, response [%d] %s" %
                               (self.provider, url, self.resp.status_code, resp_text))
         try:
