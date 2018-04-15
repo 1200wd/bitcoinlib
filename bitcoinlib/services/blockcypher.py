@@ -134,7 +134,7 @@ class BlockCypher(BaseClient):
     def sendrawtransaction(self, rawtx):
         res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
         return {
-            'hash': res['tx']['hash'],
+            'txid': res['tx']['txid'],
             'response_dict': res
         }
 

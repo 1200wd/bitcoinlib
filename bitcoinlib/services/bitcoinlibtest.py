@@ -101,4 +101,7 @@ class BitcoinLibTestClient(BaseClient):
         :return str: Transaction hash
         """
         txid = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
-        return {'txid': txid}
+        return {
+            'txid': txid,
+            'response_dict': {}
+        }
