@@ -2416,7 +2416,7 @@ class HDWallet:
             qr = qr.filter(DbKey.id == key_id)
         txs += qr.all()
 
-        txs = sorted(txs, key=lambda k: (k[2], k[3]), reverse=True)
+        txs = sorted(txs, key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True)
 
         res = []
         for tx in txs:
