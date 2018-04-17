@@ -505,6 +505,7 @@ class HDWalletTransaction(Transaction):
         self.hdwallet = hdwallet
         self.pushed = False
         self.error = None
+        self.response_dict = None
         Transaction.__init__(self, *args, **kwargs)
 
     def __repr__(self):
@@ -605,6 +606,7 @@ class HDWalletTransaction(Transaction):
             self.status = 'unconfirmed'
             self.confirmations = 0
             self.pushed = True
+            self.response_dict = srv.results
             self.save()
 
             # Update db: Update spent UTXO's, add transaction to database
