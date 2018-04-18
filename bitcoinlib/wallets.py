@@ -2431,6 +2431,65 @@ class HDWallet:
             res.append(u)
         return res
 
+    def transactions_limited(self, account_id=None, network=None, include_new=False, key_id=None, limit=1000):
+        """
+        :param account_id: Filter by Account ID. Leave empty for default account_id
+        :type account_id: int
+        :param network: Filter by network name. Leave empty for default network
+        :type network: str
+        :param include_new: Also include new and incomplete transactions in list. Default is False
+        :type include_new: bool
+        :param key_id: Filter by key ID
+        :type key_id: int
+
+        :return list: List of transactions as dictionary
+        """
+
+        network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
+
+        qr = self._session.query(DbTransactionInput, DbKey.address, DbTransaction.confirmations,
+                                 DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
+            join(DbTransaction).join(DbKey). \
+            filter(DbKey.account_id == account_id,
+                   DbTransaction.wallet_id == self.wallet_id,
+                   DbKey.network_name == network)
+        if key_id is not None:
+            qr = qr.filter(DbKey.id == key_id)
+        if not include_new:
+            qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
+
+        txs = qr.limit(limit).all()
+
+        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
+                                 DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
+            join(DbTransaction).join(DbKey). \
+            filter(DbKey.account_id == account_id,
+                   DbTransaction.wallet_id == self.wallet_id,
+                   DbKey.network_name == network)
+        if not include_new:
+            qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
+
+        if key_id is not None:
+            qr = qr.filter(DbKey.id == key_id)
+        txs += qr.limit(limit).all()
+
+        txs = sorted(txs, key=lambda k: (k[2], k[3]), reverse=True)
+
+        res = []
+        for tx in txs:
+            u = tx[0].__dict__
+            if '_sa_instance_state' in u:
+                del u['_sa_instance_state']
+            u['address'] = tx[1]
+            u['confirmations'] = int(tx[2])
+            u['tx_hash'] = tx[3]
+            u['network_name'] = tx[4]
+            u['status'] = tx[5]
+            if 'index_n' in u:
+                u['value'] = -u['value']
+            res.append(u)
+        return res
+
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None,
                            min_confirms=0, max_utxos=None):
         """
