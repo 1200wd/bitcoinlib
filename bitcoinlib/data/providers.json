@@ -8,6 +8,15 @@
     "priority": 10,
     "denominator": 100000000
   },
+  "qtumd": {
+    "provider": "qtumd",
+    "network": "qtum",
+    "client_class": "QtumdClient",
+    "url": "",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000
+  },
   "bitcoind": {
     "provider": "bitcoind",
     "network": "bitcoin",

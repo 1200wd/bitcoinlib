@@ -31,6 +31,22 @@
     "denominator": 0.00000001,
     "dust_amount": 1000
   },
+  "qtum":
+  {
+    "description": "Quantum",
+    "currency_name": "qtum",
+    "currency_name_plural": "qtum",
+    "currency_symbol": "Q",
+    "currency_code": "QTUM",
+    "prefix_address": "3A",
+    "prefix_address_p2sh": "32",
+    "prefix_wif": "80",
+    "prefix_hdkey_private": "0488ADE4",
+    "prefix_hdkey_public": "0488B21E",
+    "bip44_cointype": 2301,
+    "denominator": 0.00000001,
+    "dust_amount": 1000
+  },
   "testnet":
   {
     "description": "Bitcoin Test Network 3",
