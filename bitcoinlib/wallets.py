@@ -2431,7 +2431,7 @@ class HDWallet:
             res.append(u)
         return res
 
-    def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None,
+    def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, fee=None,
                            min_confirms=0, max_utxos=None):
         """
             Create new transaction with specified outputs. 
@@ -2446,8 +2446,8 @@ class HDWallet:
             :type account_id: int
             :param network: Network name. Leave empty for default network
             :type network: str
-            :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-            :type transaction_fee: int
+            :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
+            :type fee: int
             :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
             :type min_confirms: int
             :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
@@ -2538,14 +2538,14 @@ class HDWallet:
 
         srv = Service(network=network)
         transaction.fee_per_kb = None
-        if transaction_fee is None:
+        if fee is None:
             if not input_arr:
                 transaction.fee_per_kb = srv.estimatefee()
                 fee_estimate = (transaction.estimate_size() / 1024.0 * transaction.fee_per_kb)
             else:
                 fee_estimate = 0
         else:
-            fee_estimate = transaction_fee
+            fee_estimate = fee
 
         # Add inputs
         amount_total_input = 0
@@ -2608,10 +2608,10 @@ class HDWallet:
                                       unlocking_script=unlocking_script)
 
         # Calculate fees
-        transaction.fee = transaction_fee
+        transaction.fee = fee
         fee_per_output = None
         tr_size = transaction.estimate_size()
-        if transaction_fee is None:
+        if fee is None:
             if not input_arr:
                 transaction.fee_per_kb = srv.estimatefee()
                 if transaction.fee_per_kb is False:
@@ -2620,11 +2620,11 @@ class HDWallet:
                 fee_per_output = int((50 / 1024.0) * transaction.fee_per_kb)
             else:
                 if amount_total_output and amount_total_input:
-                    transaction_fee = False
+                    fee = False
                 else:
                     transaction.fee = 0
 
-        if transaction_fee is False:
+        if fee is False:
             transaction.change = 0
             transaction.fee = int(amount_total_input - amount_total_output)
         else:
@@ -2660,7 +2660,7 @@ class HDWallet:
 
         """
         if isinstance(t, Transaction):
-            rt = self.transaction_create(t.outputs, t.inputs, transaction_fee=t.fee, network=t.network.network_name)
+            rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.network_name)
         elif isinstance(t, dict):
             output_arr = []
             for o in t['outputs']:
@@ -2673,7 +2673,7 @@ class HDWallet:
                 address = '' if 'address' not in i else i['address']
                 input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, script,
                                   address))
-            rt = self.transaction_create(output_arr, input_arr, transaction_fee=t['fee'], network=t['network'])
+            rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
@@ -2698,7 +2698,7 @@ class HDWallet:
         rt.verify()
         return rt
 
-    def send(self, output_arr, input_arr=None, account_id=None, network=None, transaction_fee=None, min_confirms=0,
+    def send(self, output_arr, input_arr=None, account_id=None, network=None, fee=None, min_confirms=0,
              priv_keys=None, max_utxos=None, offline=False):
         """
         Create new transaction with specified outputs and push it to the network. 
@@ -2713,8 +2713,8 @@ class HDWallet:
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param transaction_fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-        :type transaction_fee: int
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
+        :type fee: int
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
@@ -2732,11 +2732,11 @@ class HDWallet:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
 
-        transaction = self.transaction_create(output_arr, input_arr, account_id, network, transaction_fee,
+        transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee,
                                               min_confirms, max_utxos)
         transaction.sign(priv_keys)
         # Calculate exact estimated fees and update change output if necessary
-        if transaction_fee is None and transaction.fee_per_kb and transaction.change:
+        if fee is None and transaction.fee_per_kb and transaction.change:
             fee_exact = transaction.calculate_fee()
             # Recreate transaction if fee estimation more then 10% off
             if fee_exact and abs((transaction.fee - fee_exact) / float(fee_exact)) > 0.10:
@@ -2749,7 +2749,7 @@ class HDWallet:
         transaction.send(offline)
         return transaction
 
-    def send_to(self, to_address, amount, account_id=None, network=None, transaction_fee=None, min_confirms=0,
+    def send_to(self, to_address, amount, account_id=None, network=None, fee=None, min_confirms=0,
                 priv_keys=None, offline=False):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
@@ -2762,8 +2762,8 @@ class HDWallet:
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param transaction_fee: Fee to use for this transaction. Leave empty to automatically estimate.
-        :type transaction_fee: int
+        :param fee: Fee to use for this transaction. Leave empty to automatically estimate.
+        :type fee: int
         :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
@@ -2775,7 +2775,7 @@ class HDWallet:
         """
 
         outputs = [(to_address, amount)]
-        return self.send(outputs, account_id=account_id, network=network, transaction_fee=transaction_fee,
+        return self.send(outputs, account_id=account_id, network=network, fee=fee,
                          min_confirms=min_confirms, priv_keys=priv_keys, offline=offline)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
@@ -2824,7 +2824,7 @@ class HDWallet:
         tr_size = 125 + (len(input_arr) * 125)
         estimated_fee = int((tr_size / 1024.0) * fee_per_kb)
         return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
-                         transaction_fee=estimated_fee, min_confirms=min_confirms, offline=offline)
+                         fee=estimated_fee, min_confirms=min_confirms, offline=offline)
 
     def info(self, detail=3):
         """
