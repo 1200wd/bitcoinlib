@@ -2121,9 +2121,7 @@ class HDWallet:
                     continue
                 lx = self._balances.index(bl_item[0])
                 self._balances[lx].update(bl)
-
         self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.network_name])
-
         # Bulk update database
         self._session.bulk_update_mappings(DbKey, key_values)
         self._session.commit()
@@ -2131,7 +2129,7 @@ class HDWallet:
         return self._balances
 
     def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None,
-                     utxos=None, update_balance=True):
+                     utxos=None, update_balance=True, min_confirms = 3):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -2201,7 +2199,6 @@ class HDWallet:
                         depth = 0
 
                 if utxos is None:
-                    # Get all UTXO's for this wallet from default Service object
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
                     utxos = Service(network=network).getutxos(addresslist)
@@ -2210,7 +2207,6 @@ class HDWallet:
 
                 # Get current UTXO's from database to compare with Service objects UTXO's
                 current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
-
                 # Update spent UTXO's (not found in list) and mark key as used
                 utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
                 for current_utxo in current_utxos:
@@ -2221,8 +2217,8 @@ class HDWallet:
                         for utxo_record in utxo_in_db.all():
                             utxo_record.spent = True
                     self._session.commit()
-
                 # If UTXO is new, add to database otherwise update depth (confirmation count)
+
                 for utxo in utxos:
                     key = self._session.query(DbKey).\
                         filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
@@ -2232,7 +2228,6 @@ class HDWallet:
                     status = 'unconfirmed'
                     if utxo['confirmations']:
                         status = 'confirmed'
-
                     # Update confirmations in db if utxo was already imported
                     # TODO: Add network filter (?)
                     transaction_in_db = self._session.query(DbTransaction).filter_by(wallet_id=self.wallet_id,
@@ -2241,6 +2236,7 @@ class HDWallet:
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == utxo['tx_hash'],
                                DbTransactionOutput.output_n == utxo['output_n'])
+
                     if utxo_in_db.count():
                         utxo_record = utxo_in_db.scalar()
                         if not utxo_record.key_id:
@@ -2271,7 +2267,7 @@ class HDWallet:
                 _logger.info("Got %d new UTXOs for account %s" % (count_utxos, account_id))
                 self._session.commit()
                 if update_balance:
-                    self._balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
+                    self._balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=min_confirms)
                 utxos = None
         return count_utxos
 
@@ -2458,7 +2454,7 @@ class HDWallet:
         if not include_new:
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
 
-        txs = qr.limit(limit).all()
+        txs = qr.limit(limit+1).all()
 
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
                                  DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
@@ -2471,7 +2467,7 @@ class HDWallet:
 
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
-        txs += qr.limit(limit).all()
+        txs += qr.limit(limit+1).all()
 
         txs = sorted(txs, key=lambda k: (k[2], k[3]), reverse=True)
 
