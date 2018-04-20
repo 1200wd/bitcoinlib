@@ -505,6 +505,7 @@ class HDWalletTransaction(Transaction):
         self.hdwallet = hdwallet
         self.pushed = False
         self.error = None
+        self.response_dict = None
         Transaction.__init__(self, *args, **kwargs)
 
     def __repr__(self):
@@ -605,6 +606,7 @@ class HDWalletTransaction(Transaction):
             self.status = 'unconfirmed'
             self.confirmations = 0
             self.pushed = True
+            self.response_dict = srv.results
             self.save()
 
             # Update db: Update spent UTXO's, add transaction to database
@@ -2414,7 +2416,7 @@ class HDWallet:
             qr = qr.filter(DbKey.id == key_id)
         txs += qr.all()
 
-        txs = sorted(txs, key=lambda k: (k[2], k[3]), reverse=True)
+        txs = sorted(txs, key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True)
 
         res = []
         for tx in txs:
@@ -2453,7 +2455,7 @@ class HDWallet:
             :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
             :type max_utxos: int
 
-            :return Transaction: object
+            :return HDWalletTransaction: object
         """
 
         def _select_inputs(amount, variance=0):
@@ -2724,7 +2726,7 @@ class HDWallet:
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
-        :return str, list: Transaction ID or result array
+        :return HDWalletTransaction:
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
@@ -2771,7 +2773,7 @@ class HDWallet:
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
-        :return str, list: Transaction ID or result array 
+        :return HDWalletTransaction:
         """
 
         outputs = [(to_address, amount)]
@@ -2801,7 +2803,7 @@ class HDWallet:
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
-        :return str, list: Transaction ID or result array
+        :return HDWalletTransaction:
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
