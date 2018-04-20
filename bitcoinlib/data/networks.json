@@ -47,6 +47,22 @@
     "denominator": 0.00000001,
     "dust_amount": 1000
   },
+  "qtum_testnet":
+  {
+    "description": "Quantum Testnet",
+    "currency_name": "tqtum",
+    "currency_name_plural": "tqtum",
+    "currency_symbol": "TQ",
+    "currency_code": "TQTUM",
+    "prefix_address": "78",
+    "prefix_address_p2sh": "6E",
+    "prefix_wif": "EF",
+    "prefix_hdkey_private": "04358394",
+    "prefix_hdkey_public": "043587CF",
+    "bip44_cointype": 1,
+    "denominator": 0.00000001,
+    "dust_amount": 1000
+  },
   "testnet":
   {
     "description": "Bitcoin Test Network 3",

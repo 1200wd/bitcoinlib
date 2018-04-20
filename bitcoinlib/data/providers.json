@@ -17,6 +17,15 @@
     "priority": 11,
     "denominator": 100000000
   },
+  "qtumd.testnet": {
+    "provider": "qtumd",
+    "network": "qtum_testnet",
+    "client_class": "QtumdClient",
+    "url": "",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000
+  },
   "bitcoind": {
     "provider": "bitcoind",
     "network": "bitcoin",
