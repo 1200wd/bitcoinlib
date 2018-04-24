@@ -29,3 +29,5 @@ import bitcoinlib.services.blockcypher
 import bitcoinlib.services.blocktrail
 import bitcoinlib.services.chainso
 import bitcoinlib.services.estimatefee
+import bitcoinlib.services.qtumd
+
