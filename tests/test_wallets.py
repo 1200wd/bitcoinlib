@@ -730,6 +730,21 @@ class TestWalletMultisig(unittest.TestCase):
         for wlt in wallets2:
             self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
 
+    def test_wallet_multisig_network_mixups(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        network = 'litecoin_testnet'
+        phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
+        phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
+        phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
+        pk1 = HDKey.from_passphrase(phrase1, network=network)
+        pk2 = HDKey.from_passphrase(phrase2, network=network)
+        pk3 = HDKey.from_passphrase(phrase3, network=network)
+        wlt = wallet_create_or_open_multisig(
+            'multisig_network_mixups', sigs_required=2, network=network, databasefile=DATABASEFILE_UNITTESTS,
+            key_list=[phrase1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
+        self.assertEqual(wlt.get_key().address, 'QeBprfDJNadgqJV4R5d7e9i6duVK8HFgAN')
+
 
 class TestWalletKeyImport(unittest.TestCase):
 

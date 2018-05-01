@@ -898,7 +898,7 @@ class HDWallet:
                 if len(cokey.split(' ')) > 5:
                     k = HDKey().from_passphrase(cokey, network=network)
                 else:
-                    k = HDKey(cokey)
+                    k = HDKey(cokey, network=network)
                 hdkey_list.append(k)
             else:
                 hdkey_list.append(cokey)
