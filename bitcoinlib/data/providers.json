@@ -140,7 +140,7 @@
     "client_class": "ChainSo",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 9,
     "denominator": 100000000
   },
   "chainso": {
@@ -149,7 +149,7 @@
     "client_class": "ChainSo",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 9,
     "denominator": 100000000
   },
     "chainso.testnet": {
@@ -158,7 +158,7 @@
     "client_class": "ChainSo",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 9,
     "denominator": 100000000
   },
     "chainso.litecoin": {
@@ -167,7 +167,7 @@
     "client_class": "ChainSo",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 9,
     "denominator": 100000000
   },
     "chainso.dash": {
@@ -176,7 +176,7 @@
     "client_class": "ChainSo",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 9,
     "denominator": 100000000
   },
     "chainso.dash.testnet": {
@@ -185,7 +185,7 @@
     "client_class": "ChainSo",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 9,
     "denominator": 100000000
   },
   "estimatefee": {

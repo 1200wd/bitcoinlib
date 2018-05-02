@@ -21,6 +21,7 @@
 import numbers
 from copy import deepcopy
 import struct
+import random
 from sqlalchemy import or_
 from itertools import groupby
 from operator import itemgetter
@@ -2204,9 +2205,12 @@ class HDWallet:
                     # Get all UTXO's for this wallet from default Service object
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
-                    utxos = Service(network=network).getutxos(addresslist)
+                    random.shuffle(addresslist)
+                    srv = Service(network=network)
+                    utxos = srv.getutxos(addresslist)
                     if utxos is False:
-                        raise WalletError("No response from any service provider, could not update UTXO's")
+                        raise WalletError("No response from any service provider, could not update UTXO's. "
+                                          "Errors: %s" % srv.errors)
 
                 # Get current UTXO's from database to compare with Service objects UTXO's
                 current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
