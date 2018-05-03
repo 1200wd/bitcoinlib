@@ -744,6 +744,7 @@ class TestWalletMultisig(unittest.TestCase):
             'multisig_network_mixups', sigs_required=2, network=network, databasefile=DATABASEFILE_UNITTESTS,
             key_list=[phrase1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
         self.assertEqual(wlt.get_key().address, 'QeBprfDJNadgqJV4R5d7e9i6duVK8HFgAN')
+        self.assertEqual(wlt.get_key().network.network_name, network)
 
 
 class TestWalletKeyImport(unittest.TestCase):
