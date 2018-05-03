@@ -551,7 +551,7 @@ class HDWalletTransaction(Transaction):
                 if isinstance(priv_key, HDKey):
                     priv_key_list_arg.append(priv_key)
                 else:
-                    priv_key_list_arg.append(HDKey(priv_key))
+                    priv_key_list_arg.append(HDKey(priv_key, network=self.network.network_name))
         for ti in self.inputs:
             priv_key_list = deepcopy(priv_key_list_arg)
             for k in ti.keys:
@@ -559,7 +559,7 @@ class HDWalletTransaction(Transaction):
                     if isinstance(k, HDKey):
                         hdkey = k
                     else:
-                        hdkey = HDKey(k)
+                        hdkey = HDKey(k, network=self.network.network_name)
                     if hdkey not in priv_key_list:
                         priv_key_list.append(k)
                 elif self.hdwallet.cosigner:
@@ -568,7 +568,7 @@ class HDWalletTransaction(Transaction):
                     db_pk = self.hdwallet._session.query(DbKey).filter_by(public=k.public_hex, is_private=True). \
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.hdwallet.wallet_id])).first()
                     if db_pk:
-                        priv_key_list.append(HDKey(db_pk.wif))
+                        priv_key_list.append(HDKey(db_pk.wif, network=self.network.network_name))
             Transaction.sign(self, priv_key_list, ti.index_n, hash_type)
         self.verify()
         self.error = ""
@@ -1161,7 +1161,7 @@ class HDWallet:
         """
         assert isinstance(wallet_key, HDWalletKey)
         if not isinstance(private_key, HDKey):
-            private_key = HDKey(private_key)
+            private_key = HDKey(private_key, network=self.network.network_name)
         wallet_key.is_private = True
         wallet_key.wif = private_key.wif()
         wallet_key.private = private_key.private_hex
@@ -2511,7 +2511,7 @@ class HDWallet:
             if key.key_type == 'multisig':
                 inp_keys = []
                 for ck in key.multisig_children:
-                    inp_keys.append(HDKey(ck.child_key.wif).key)
+                    inp_keys.append(HDKey(ck.child_key.wif).key, network=self.network.network_name)
                 script_type = 'p2sh_multisig'
             elif key.key_type in ['bip32', 'single']:
                 inp_keys = HDKey(key.wif, compressed=key.compressed, network=self.network.network_name).key

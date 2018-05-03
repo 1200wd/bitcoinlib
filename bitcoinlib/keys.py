@@ -771,6 +771,7 @@ class HDKey:
         self.isprivate = isprivate
         if not network:
             network = DEFAULT_NETWORK
+            _logger.warning("No network specified when creating new HDKey, using default network")
         self.network = Network(network)
         self.public_byte = self.key.public_byte
         self.public_hex = self.key.public_hex
