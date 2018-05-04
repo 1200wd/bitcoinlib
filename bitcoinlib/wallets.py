@@ -21,6 +21,7 @@
 import numbers
 from copy import deepcopy
 import struct
+import random
 from sqlalchemy import or_
 from itertools import groupby
 from operator import itemgetter
@@ -550,7 +551,7 @@ class HDWalletTransaction(Transaction):
                 if isinstance(priv_key, HDKey):
                     priv_key_list_arg.append(priv_key)
                 else:
-                    priv_key_list_arg.append(HDKey(priv_key))
+                    priv_key_list_arg.append(HDKey(priv_key, network=self.network.network_name))
         for ti in self.inputs:
             priv_key_list = deepcopy(priv_key_list_arg)
             for k in ti.keys:
@@ -558,7 +559,7 @@ class HDWalletTransaction(Transaction):
                     if isinstance(k, HDKey):
                         hdkey = k
                     else:
-                        hdkey = HDKey(k)
+                        hdkey = HDKey(k, network=self.network.network_name)
                     if hdkey not in priv_key_list:
                         priv_key_list.append(k)
                 elif self.hdwallet.cosigner:
@@ -567,7 +568,7 @@ class HDWalletTransaction(Transaction):
                     db_pk = self.hdwallet._session.query(DbKey).filter_by(public=k.public_hex, is_private=True). \
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.hdwallet.wallet_id])).first()
                     if db_pk:
-                        priv_key_list.append(HDKey(db_pk.wif))
+                        priv_key_list.append(HDKey(db_pk.wif, network=self.network.network_name))
             Transaction.sign(self, priv_key_list, ti.index_n, hash_type)
         self.verify()
         self.error = ""
@@ -898,7 +899,7 @@ class HDWallet:
                 if len(cokey.split(' ')) > 5:
                     k = HDKey().from_passphrase(cokey, network=network)
                 else:
-                    k = HDKey(cokey)
+                    k = HDKey(cokey, network=network)
                 hdkey_list.append(k)
             else:
                 hdkey_list.append(cokey)
@@ -1160,7 +1161,7 @@ class HDWallet:
         """
         assert isinstance(wallet_key, HDWalletKey)
         if not isinstance(private_key, HDKey):
-            private_key = HDKey(private_key)
+            private_key = HDKey(private_key, network=self.network.network_name)
         wallet_key.is_private = True
         wallet_key.wif = private_key.wif()
         wallet_key.private = private_key.private_hex
@@ -2204,9 +2205,12 @@ class HDWallet:
                     # Get all UTXO's for this wallet from default Service object
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
-                    utxos = Service(network=network).getutxos(addresslist)
+                    random.shuffle(addresslist)
+                    srv = Service(network=network)
+                    utxos = srv.getutxos(addresslist)
                     if utxos is False:
-                        raise WalletError("No response from any service provider, could not update UTXO's")
+                        raise WalletError("No response from any service provider, could not update UTXO's. "
+                                          "Errors: %s" % srv.errors)
 
                 # Get current UTXO's from database to compare with Service objects UTXO's
                 current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
@@ -2507,10 +2511,11 @@ class HDWallet:
             if key.key_type == 'multisig':
                 inp_keys = []
                 for ck in key.multisig_children:
-                    inp_keys.append(HDKey(ck.child_key.wif).key)
+                    # TODO:  CHECK THIS
+                    inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
                 script_type = 'p2sh_multisig'
             elif key.key_type in ['bip32', 'single']:
-                inp_keys = HDKey(key.wif, compressed=key.compressed).key
+                inp_keys = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)

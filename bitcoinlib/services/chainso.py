@@ -74,6 +74,7 @@ class ChainSo(BaseClient):
 
     def getutxos(self, addresslist):
         txs = []
+        count = 0
         for address in addresslist:
             lasttx = ''
             while len(txs) < 1000:
@@ -97,6 +98,9 @@ class ChainSo(BaseClient):
                     lasttx = tx['txid']
                 if len(res['data']['txs']) < 100:
                     break
+            count += 1
+            if not count % 10:
+                time.sleep(60)
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
