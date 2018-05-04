@@ -2511,10 +2511,11 @@ class HDWallet:
             if key.key_type == 'multisig':
                 inp_keys = []
                 for ck in key.multisig_children:
-                    inp_keys.append(HDKey(ck.child_key.wif).key, network=self.network.network_name)
+                    # TODO:  CHECK THIS
+                    inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
                 script_type = 'p2sh_multisig'
             elif key.key_type in ['bip32', 'single']:
-                inp_keys = HDKey(key.wif, compressed=key.compressed, network=self.network.network_name).key
+                inp_keys = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
                 script_type = 'p2pkh'
             else:
                 raise WalletError("Input key type %s not supported" % key.key_type)
