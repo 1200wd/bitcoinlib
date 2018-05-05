@@ -75,9 +75,11 @@ def parse_args():
                                help="Name of specific database file to use",)
     group_wallet2.add_argument('--create-from-key', '-c', metavar='KEY',
                                help="Create a new wallet from specified key")
-    group_wallet2.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
-                               help='Specificy number of signatures required followed by a list of signatures.'
-                                    '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
+    group_wallet2.add_argument('--create-multisig', '-m', nargs='*',
+                               metavar=('NUMBER_OF_SIGNATURES', 'NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
+                               help='Specificy number of signatures followed by the number of signatures required and '
+                                    'then a list of signatures.'
+                                    '\nExample: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
 
@@ -124,15 +126,30 @@ def create_wallet(wallet_name, args, databasefile):
         args.network = DEFAULT_NETWORK
     print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
     if args.create_multisig:
-        if not isinstance(args.create_multisig, list) or len(args.create_multisig) < 3:
+        if not isinstance(args.create_multisig, list) or len(args.create_multisig) < 2:
             clw_exit("Please enter multisig creation parameter in the following format: "
-                     "<number-of-signatures-required> <key-0> <key-1> [<key-2> ... <key-n>]")
+                     "<number-of-signatures> <number-of-signatures-required> "
+                     "<key-0> <key-1> [<key-2> ... <key-n>]")
         try:
-            sigs_required = int(args.create_multisig[0])
+            sigs_total = int(args.create_multisig[0])
         except ValueError:
-            clw_exit("Number of signatures required (first argument) must be a numeric value. %s" %
+            clw_exit("Number of total signatures (first argument) must be a numeric value. %s" %
                      args.create_multisig[0])
-        key_list = args.create_multisig[1:]
+        try:
+            sigs_required = int(args.create_multisig[1])
+        except ValueError:
+            clw_exit("Number of signatures required (second argument) must be a numeric value. %s" %
+                     args.create_multisig[1])
+        key_list = args.create_multisig[2:]
+        keys_missing = sigs_total - len(key_list)
+        assert(keys_missing > 0)
+        if keys_missing:
+            print("Not all keys provided, creating %d additional keys" % keys_missing)
+            for _ in range(keys_missing):
+                passphrase = get_passphrase(args)
+                passphrase = ' '.join(passphrase)
+                seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+                key_list.append(HDKey().from_seed(seed, network=args.network))
         return HDWallet.create_multisig(name=wallet_name, key_list=key_list, sigs_required=sigs_required,
                                         network=args.network, databasefile=databasefile, sort_keys=True)
     elif args.create_from_key:
