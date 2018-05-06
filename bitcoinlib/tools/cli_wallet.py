@@ -66,7 +66,7 @@ def parse_args():
     group_wallet2 = parser.add_argument_group("Wallet Setup")
     group_wallet2.add_argument('--passphrase', nargs="*", default=None,
                                help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
-    group_wallet2.add_argument('--passphrase-strength', type=float, default=128,
+    group_wallet2.add_argument('--passphrase-strength', type=int, default=128,
                                help="Number of bits for passphrase key. Default is 128, lower is not adviced but can "
                                     "be used for testing. Set to 256 bits for more future proof passphrases")
     group_wallet2.add_argument('--network', '-n',
@@ -78,8 +78,9 @@ def parse_args():
     group_wallet2.add_argument('--create-multisig', '-m', nargs='*',
                                metavar=('NUMBER_OF_SIGNATURES', 'NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
                                help='Specificy number of signatures followed by the number of signatures required and '
-                                    'then a list of signatures.'
-                                    '\nExample: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
+                                    'then a list of public or private keys for this wallet. Private keys will be '
+                                    'created if not provided in key list.'
+                                    '\nExample, create a 2-of-2 multisig wallet and provide 1 key and create another key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
 
