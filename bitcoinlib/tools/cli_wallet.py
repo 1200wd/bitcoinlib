@@ -142,7 +142,7 @@ def create_wallet(wallet_name, args, databasefile):
                      args.create_multisig[1])
         key_list = args.create_multisig[2:]
         keys_missing = sigs_total - len(key_list)
-        assert(keys_missing > 0)
+        assert(keys_missing >= 0)
         if keys_missing:
             print("Not all keys provided, creating %d additional keys" % keys_missing)
             for _ in range(keys_missing):
