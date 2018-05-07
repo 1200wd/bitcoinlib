@@ -4,7 +4,7 @@
 #
 #    Command line wallet manager. Use for testing and very basic (user unfriendly) wallet management
 #
-#    © 2018 April - 1200 Web Development <http://1200wd.com/>
+#    © 2018 May - 1200 Web Development <http://1200wd.com/>
 #
 
 import sys
@@ -80,7 +80,8 @@ def parse_args():
                                help='Specificy number of signatures followed by the number of signatures required and '
                                     'then a list of public or private keys for this wallet. Private keys will be '
                                     'created if not provided in key list.'
-                                    '\nExample, create a 2-of-2 multisig wallet and provide 1 key and create another key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
+                                    '\nExample, create a 2-of-2 multisig wallet and provide 1 key and create another '
+                                    'key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
 

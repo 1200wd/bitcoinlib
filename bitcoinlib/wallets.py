@@ -2849,9 +2849,9 @@ class HDWallet:
         print(" Main network                   %s" % self.network.network_name)
 
         if self.scheme == 'multisig':
-            print("\n= Multisig main keys =")
+            print("\n= Multisig Public Account Keys =")
             for mk in [w.main_key for w in self.cosigner]:
-                print("%5s %-28s %-45s %-25s" % (mk.key_id, mk.path, mk.address, mk.name))
+                print("%5s %-70s %-25s" % (mk.key_id, mk.key().account_multisig_key().wif_public, mk.name))
 
         if detail and self.main_key:
             print("\n= Wallet Master Key =")
