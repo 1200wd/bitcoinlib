@@ -58,8 +58,8 @@ def parse_args():
                               help="Show unused address to receive funds. Generate new payment and"
                                    "change addresses if no unused addresses are available.",
                               const=1, metavar='NUMBER_OF_ADDRESSES')
-    group_wallet.add_argument('--generate-key', '-k', action='store_true', help="Generate a new masterkey, and show"
-                              " passphrase, WIF and public account key. Use to create multisig wallet")
+    group_wallet.add_argument('--generate-key', '-g', action='store_true', help="Generate a new masterkey, and show"
+                              " passphrase, WIF and public account key. Can be used to create a multisig wallet")
     group_wallet.add_argument('--export-private', '-e', action='store_true',
                               help="Export private key for this wallet and exit")
 
@@ -285,7 +285,11 @@ def main():
         wlt.scan(scan_gap_limit=5)
 
     if args.export_private:
-        if not wlt.main_key or not wlt.main_key.is_private:
+        if wlt.scheme == 'multisig':
+            for w in wlt.cosigner:
+                if w.main_key and w.main_key.is_private:
+                    print(w.main_key.wif)
+        elif not wlt.main_key or not wlt.main_key.is_private:
             print("No private key available for this wallet")
         else:
             print(wlt.main_key.wif)
