@@ -1286,7 +1286,7 @@ class HDWallet:
                                       "%d" % w.main_key.depth)
                         continue
                     _logger.debug("Import new private cosigner key in this multisig wallet: %s" % account_key)
-                    w.import_master_key(hdkey)
+                    return w.import_master_key(hdkey)
 
     def new_key(self, name='', account_id=None, network=None, change=0, max_depth=5):
         """

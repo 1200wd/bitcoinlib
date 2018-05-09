@@ -62,6 +62,8 @@ def parse_args():
                               " passphrase, WIF and public account key. Can be used to create a multisig wallet")
     group_wallet.add_argument('--export-private', '-e', action='store_true',
                               help="Export private key for this wallet and exit")
+    group_wallet.add_argument('--import-private', '-k',
+                              help="Import private key in this wallet")
 
     group_wallet2 = parser.add_argument_group("Wallet Setup")
     group_wallet2.add_argument('--passphrase', nargs="*", default=None,
@@ -275,6 +277,12 @@ def main():
 
     if wlt is None:
         clw_exit("Could not open wallet %s" % args.wallet_name)
+
+    if args.import_private:
+        if wlt.import_key(args.import_private):
+            clw_exit("Private key imported")
+        else:
+            clw_exit("Failed to import key")
 
     if args.wallet_recreate:
         wallet_empty(args.wallet_name)
