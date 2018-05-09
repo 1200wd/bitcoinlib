@@ -1191,7 +1191,7 @@ class HDWallet:
             raise WalletError("Please supply a valid private BIP32 master key with key depth 0")
         if self.main_key.depth != 3 or self.main_key.is_private or self.main_key.key_type != 'bip32':
             raise WalletError("Current main key is not a valid BIP32 public account key")
-        if self.main_key.wif != hdkey.account_key().wif_public():
+        if self.main_key.wif != hdkey.account_key(purpose=self.purpose).wif_public():
             raise WalletError("This key does not correspond to current main account key")
         if not (self.network.network_name == self.main_key.network.network_name == hdkey.network.network_name):
             raise WalletError("Network of Wallet class, main account key and the imported private key must use "
@@ -1236,8 +1236,9 @@ class HDWallet:
         :return HDWalletKey: 
         """
 
-        if self.scheme != 'bip44':
-            raise WalletError("Keys can only be imported to a BIP44 type wallet, create a new wallet instead")
+        if self.scheme != 'bip44' and self.scheme != 'multisig':
+            raise WalletError("Keys can only be imported to a BIP44 or Multisig type wallet, create a new wallet "
+                              "instead")
         if isinstance(key, HDKey):
             network = key.network.network_name
             hdkey = key
@@ -1250,31 +1251,42 @@ class HDWallet:
 
             hdkey = HDKey(key, network=network, key_type=key_type)
 
-        if self.main_key and self.main_key.depth == 3 and \
-                hdkey.isprivate and hdkey.depth == 0 and self.scheme == 'bip44':
-            hdkey.key_type = 'bip32'
-            return self.import_master_key(hdkey, name)
+        if self.scheme == 'bip44':
+            if self.main_key and self.main_key.depth == 3 and \
+                    hdkey.isprivate and hdkey.depth == 0 and self.scheme == 'bip44':
+                hdkey.key_type = 'bip32'
+                return self.import_master_key(hdkey, name)
 
-        if key_type is None:
-            hdkey.key_type = 'single'
-            key_type = 'single'
+            if key_type is None:
+                hdkey.key_type = 'single'
+                key_type = 'single'
 
-        ik_path = 'm'
-        if key_type == 'single':
-            # Create path for unrelated import keys
-            last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
-                order_by(DbKey.path.desc()).first()
-            if last_import_key:
-                ik_path = "import_key_" + str(int(last_import_key.path[-5:]) + 1).zfill(5)
-            else:
-                ik_path = "import_key_00001"
-            if not name:
-                name = ik_path
+            ik_path = 'm'
+            if key_type == 'single':
+                # Create path for unrelated import keys
+                last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
+                    order_by(DbKey.path.desc()).first()
+                if last_import_key:
+                    ik_path = "import_key_" + str(int(last_import_key.path[-5:]) + 1).zfill(5)
+                else:
+                    ik_path = "import_key_00001"
+                if not name:
+                    name = ik_path
 
-        mk = HDWalletKey.from_key(
-            key=hdkey, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
-            account_id=account_id, purpose=purpose, session=self._session, path=ik_path)
-        return mk
+            mk = HDWalletKey.from_key(
+                key=hdkey, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
+                account_id=account_id, purpose=purpose, session=self._session, path=ik_path)
+            return mk
+        else:
+            account_key = hdkey.account_multisig_key().wif_public()
+            for w in self.cosigner:
+                if w.main_key.wif == account_key:
+                    if w.main_key.depth != 3:
+                        _logger.debug("Private key probably already known. Key depth of wallet key must be 3 but is "
+                                      "%d" % w.main_key.depth)
+                        continue
+                    _logger.debug("Import new private cosigner key in this multisig wallet: %s" % account_key)
+                    w.import_master_key(hdkey)
 
     def new_key(self, name='', account_id=None, network=None, change=0, max_depth=5):
         """
