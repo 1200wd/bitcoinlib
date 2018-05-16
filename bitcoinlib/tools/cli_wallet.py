@@ -399,7 +399,7 @@ def main():
             print_transaction(wt)
         clw_exit()
 
-    print("Updating wallet")
+    # print("Updating wallet")
     if args.network == 'bitcoinlib_test':
         wlt.utxos_update()
     print("Wallet info for %s" % wlt.name)
