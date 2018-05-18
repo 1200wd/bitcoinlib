@@ -4,7 +4,7 @@
 #
 #    Command line wallet manager. Use for testing and very basic (user unfriendly) wallet management
 #
-#    © 2018 April - 1200 Web Development <http://1200wd.com/>
+#    © 2018 May - 1200 Web Development <http://1200wd.com/>
 #
 
 import sys
@@ -58,15 +58,17 @@ def parse_args():
                               help="Show unused address to receive funds. Generate new payment and"
                                    "change addresses if no unused addresses are available.",
                               const=1, metavar='NUMBER_OF_ADDRESSES')
-    group_wallet.add_argument('--generate-key', '-k', action='store_true', help="Generate a new masterkey, and show"
-                              " passphrase, WIF and public account key. Use to create multisig wallet")
+    group_wallet.add_argument('--generate-key', '-g', action='store_true', help="Generate a new masterkey, and show"
+                              " passphrase, WIF and public account key. Can be used to create a multisig wallet")
     group_wallet.add_argument('--export-private', '-e', action='store_true',
                               help="Export private key for this wallet and exit")
+    group_wallet.add_argument('--import-private', '-k',
+                              help="Import private key in this wallet")
 
     group_wallet2 = parser.add_argument_group("Wallet Setup")
     group_wallet2.add_argument('--passphrase', nargs="*", default=None,
                                help="Passphrase to recover or create a wallet. Usually 12 or 24 words")
-    group_wallet2.add_argument('--passphrase-strength', type=float, default=128,
+    group_wallet2.add_argument('--passphrase-strength', type=int, default=128,
                                help="Number of bits for passphrase key. Default is 128, lower is not adviced but can "
                                     "be used for testing. Set to 256 bits for more future proof passphrases")
     group_wallet2.add_argument('--network', '-n',
@@ -75,9 +77,13 @@ def parse_args():
                                help="Name of specific database file to use",)
     group_wallet2.add_argument('--create-from-key', '-c', metavar='KEY',
                                help="Create a new wallet from specified key")
-    group_wallet2.add_argument('--create-multisig', '-m', nargs='*', metavar=('NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
-                               help='Specificy number of signatures required followed by a list of signatures.'
-                                    '\nExample: -m 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
+    group_wallet2.add_argument('--create-multisig', '-m', nargs='*',
+                               metavar=('NUMBER_OF_SIGNATURES', 'NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
+                               help='Specificy number of signatures followed by the number of signatures required and '
+                                    'then a list of public or private keys for this wallet. Private keys will be '
+                                    'created if not provided in key list.'
+                                    '\nExample, create a 2-of-2 multisig wallet and provide 1 key and create another '
+                                    'key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
 
@@ -124,15 +130,30 @@ def create_wallet(wallet_name, args, databasefile):
         args.network = DEFAULT_NETWORK
     print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
     if args.create_multisig:
-        if not isinstance(args.create_multisig, list) or len(args.create_multisig) < 3:
+        if not isinstance(args.create_multisig, list) or len(args.create_multisig) < 2:
             clw_exit("Please enter multisig creation parameter in the following format: "
-                     "<number-of-signatures-required> <key-0> <key-1> [<key-2> ... <key-n>]")
+                     "<number-of-signatures> <number-of-signatures-required> "
+                     "<key-0> <key-1> [<key-2> ... <key-n>]")
         try:
-            sigs_required = int(args.create_multisig[0])
+            sigs_total = int(args.create_multisig[0])
         except ValueError:
-            clw_exit("Number of signatures required (first argument) must be a numeric value. %s" %
+            clw_exit("Number of total signatures (first argument) must be a numeric value. %s" %
                      args.create_multisig[0])
-        key_list = args.create_multisig[1:]
+        try:
+            sigs_required = int(args.create_multisig[1])
+        except ValueError:
+            clw_exit("Number of signatures required (second argument) must be a numeric value. %s" %
+                     args.create_multisig[1])
+        key_list = args.create_multisig[2:]
+        keys_missing = sigs_total - len(key_list)
+        assert(keys_missing >= 0)
+        if keys_missing:
+            print("Not all keys provided, creating %d additional keys" % keys_missing)
+            for _ in range(keys_missing):
+                passphrase = get_passphrase(args)
+                passphrase = ' '.join(passphrase)
+                seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+                key_list.append(HDKey().from_seed(seed, network=args.network))
         return HDWallet.create_multisig(name=wallet_name, key_list=key_list, sigs_required=sigs_required,
                                         network=args.network, databasefile=databasefile, sort_keys=True)
     elif args.create_from_key:
@@ -257,6 +278,12 @@ def main():
     if wlt is None:
         clw_exit("Could not open wallet %s" % args.wallet_name)
 
+    if args.import_private:
+        if wlt.import_key(args.import_private):
+            clw_exit("Private key imported")
+        else:
+            clw_exit("Failed to import key")
+
     if args.wallet_recreate:
         wallet_empty(args.wallet_name)
         print("Removed transactions and generated keys from this wallet")
@@ -266,7 +293,11 @@ def main():
         wlt.scan(scan_gap_limit=5)
 
     if args.export_private:
-        if not wlt.main_key or not wlt.main_key.is_private:
+        if wlt.scheme == 'multisig':
+            for w in wlt.cosigner:
+                if w.main_key and w.main_key.is_private:
+                    print(w.main_key.wif)
+        elif not wlt.main_key or not wlt.main_key.is_private:
             print("No private key available for this wallet")
         else:
             print(wlt.main_key.wif)
@@ -368,7 +399,7 @@ def main():
             print_transaction(wt)
         clw_exit()
 
-    print("Updating wallet")
+    # print("Updating wallet")
     if args.network == 'bitcoinlib_test':
         wlt.utxos_update()
     print("Wallet info for %s" % wlt.name)

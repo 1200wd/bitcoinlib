@@ -966,7 +966,9 @@ class HDKey:
         :return HDKey:
 
         """
-        if self.depth != 0:
+        if self.depth == 3:
+            return self
+        elif self.depth != 0:
             raise KeyError("Need a master key to generate account key")
         if set_network:
             self.network_change(set_network)

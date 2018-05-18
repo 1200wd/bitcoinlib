@@ -786,6 +786,24 @@ class TestWalletKeyImport(unittest.TestCase):
         self.assertEqual(wallet.new_account().address, '16m3JAtQjHbmEZd8uYTyKebvrxh2RsFHB')
         self.assertEqual(wallet.new_key().address, '1P8BTrsBn8DKGQq7nSWPiEiUDgiG8sW1kf')
 
+    def test_wallet_import_private_for_known_public_multisig(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+        puk1 = "Ltub2ZjnfUYueMfDXPsdbY8AbXRRwuxfFfYTGtyzyToy1iafjxWr2ikBLQuqKbeGGHsQUzstcUaAJWXi1HmcE4Er3WYX49aduDnE" \
+               "k1okyVP2iNB"
+        puk2 = "Ltub2ZUMUHmKvoN3GjAw6PvmVczc4Sv9pbA98LqMso87cQ7p51JrG6vfhf5poJ2pMXQ78eeRxmuvyVRYWz2kNQKa9MM9sJMQpzo1" \
+               "wH2V1D3Zcft"
+        puk3 = "Ltub2ZtuHm8zDa1gKWq1472ByzgaWQhK1p2TK8xtMSXTVTsxgacofqMbr5fru23ifoXtdYa2nvWGsN4Hm1M6bRZwSHeUrnENL7Gu" \
+               "af1DapFSc2J"
+        prk2 = 'Ltpv71G8qDifUiNesWWsQZZVKVZNjBGHEfDExoAYkUp4SpU9aiWygzq11TgcCA9CJoGmMJjFatECSR9LGBpL5CxtmaHXpwGXFzrL' \
+               'QJGENq739hW'
+        wlt = wallet_create_or_open_multisig("mstest", [puk1, puk2, puk3], 2, network='litecoin',
+                                             databasefile=DATABASEFILE_UNITTESTS)
+        self.assertFalse(wlt.cosigner[1].main_key.is_private)
+        wlt.import_key(prk2)
+        self.assertTrue(wlt.cosigner[1].main_key.is_private)
+
 
 class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 
