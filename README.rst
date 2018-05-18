@@ -131,6 +131,34 @@ And then import the transaction in the second wallet, sign it and push it to the
     t2.info()
 
 
+Command Line Tool
+-----------------
+
+With the command line tool you can create and manage wallet without any Python programming.
+
+To create a new Bitcoin wallet
+
+.. code-block:: bash
+
+    $ cli-wallet NewWallet
+    Command Line Wallet for BitcoinLib
+
+    Wallet newwallet does not exist, create new wallet [yN]? y
+
+    CREATE wallet 'newwallet' (bitcoin network)
+
+    Your mnemonic private key sentence is: force humble chair kiss season ready elbow cool awake divorce famous tunnel
+
+    Please write down on paper and backup. With this key you can restore your wallet and all keys
+
+You can use 'cli-wallet' to create simple or multisig wallets for various networks, manage public and private keys
+and managing transactions.
+
+For the full command line wallet documentation please read
+
+http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.command-line-wallet.html
+
+
 Mnemonic key generation
 -----------------------
 
@@ -184,7 +212,7 @@ Implements the following Bitcoin Improvement Proposals
 
 
 Installation
-------------
+============
 
 Install with pip
 
