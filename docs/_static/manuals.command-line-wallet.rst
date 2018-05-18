@@ -4,10 +4,13 @@ Command Line Wallet
 Manage wallets from commandline. Allows you to
 
 * Show wallets and wallet info
-* Create single and multisig wallets
+* Create single and multi signature wallets
 * Delete wallets
 * Generate receive addresses
-* Create and send transactions
+* Create transactions
+* Import and export transactions
+* Sign transactions with available private keys
+* Broadcast transaction to the network
 
 The Command Line wallet Script can be found in the tools directory. If you call the script without
 arguments it will show all available wallets.
@@ -87,9 +90,10 @@ Options Overview
 
 Command Line Wallet for BitcoinLib
 
-usage: cli_wallet [-h] [--wallet-remove] [--list-wallets] [--wallet-info]
+usage: cli_wallet.py [-h] [--wallet-remove] [--list-wallets] [--wallet-info]
+                     [--update-utxos] [--update-transactions]
                      [--wallet-recreate] [--receive [NUMBER_OF_ADDRESSES]]
-                     [--generate-key]
+                     [--generate-key] [--export-private]
                      [--passphrase [PASSPHRASE [PASSPHRASE ...]]]
                      [--passphrase-strength PASSPHRASE_STRENGTH]
                      [--network NETWORK] [--database DATABASE]
@@ -97,7 +101,8 @@ usage: cli_wallet [-h] [--wallet-remove] [--list-wallets] [--wallet-info]
                      [--create-multisig [NUMBER_OF_SIGNATURES_REQUIRED [KEYS ...]]]
                      [--create-transaction [ADDRESS_1 [AMOUNT_1 ...]]]
                      [--sweep ADDRESS] [--fee FEE] [--fee-per-kb FEE_PER_KB]
-                     [--push] [--import-raw RAW_TRANSACTION]
+                     [--push] [--import-tx TRANSACTION]
+                     [--import-tx-file FILENAME_TRANSACTION]
                      [wallet_name]
 
 BitcoinLib CLI
@@ -115,15 +120,22 @@ Wallet Actions:
                         transactions will be deleted
   --list-wallets, -l    List all known wallets in BitcoinLib database
   --wallet-info, -w     Show wallet information
-  --wallet-recreate, -x
+  --update-utxos, -x    Update unspent transaction outputs (UTXO's) for this
+                        wallet
+  --update-transactions, -u
+                        Update all transactions and UTXO's for this wallet
+  --wallet-recreate, -z
                         Delete all keys and transactions and recreate wallet,
                         except for the masterkey(s). Use when updating fails
                         or other errors occur. Please backup your database and
                         masterkeys first.
   --receive [NUMBER_OF_ADDRESSES], -r [NUMBER_OF_ADDRESSES]
-                        Show unused address to receive funds
+                        Show unused address to receive funds. Generate new
+                        payment andchange addresses if no unused addresses are
+                        available.
   --generate-key, -k    Generate a new masterkey, and show passphrase, WIF and
                         public account key. Use to create multisig wallet
+  --export-private, -e  Export private key for this wallet and exit
 
 Wallet Setup:
   --passphrase [PASSPHRASE [PASSPHRASE ...]]
@@ -148,7 +160,7 @@ Wallet Setup:
                         eUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXi
                         zThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp
 
-Transaction:
+Transactions:
   --create-transaction [ADDRESS_1 [AMOUNT_1 ...]], -t [ADDRESS_1 [AMOUNT_1 ...]]
                         Create transaction. Specify address followed by
                         amount. Repeat for multiple outputs
@@ -158,7 +170,10 @@ Transaction:
                         Transaction fee in sathosis (or smallest denominator)
                         per kilobyte
   --push, -p            Push created transaction to the network
-  --import-raw RAW_TRANSACTION, -i RAW_TRANSACTION
-                        Import raw transaction in wallet and sign it with
-                        available keys
-
+  --import-tx TRANSACTION, -i TRANSACTION
+                        Import raw transaction hash or transaction dictionary
+                        in wallet and sign it with available key(s)
+  --import-tx-file FILENAME_TRANSACTION, -a FILENAME_TRANSACTION
+                        Import transaction dictionary or raw transaction
+                        string from specified filename and sign it with
+                        available key(s)

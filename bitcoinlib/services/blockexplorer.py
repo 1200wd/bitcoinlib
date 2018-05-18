@@ -114,4 +114,8 @@ class BlockExplorerClient(BaseClient):
         return res['rawtx']
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('tx', 'send', variables={'rawtx': rawtx}, method='post')
+        res = self.compose_request('tx', 'send', variables={'rawtx': rawtx}, method='post')
+        return {
+            'txid': res['txid'],
+            'response_dict': res
+        }

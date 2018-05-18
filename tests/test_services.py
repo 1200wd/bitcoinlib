@@ -46,13 +46,6 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '001976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac00000000'
         self.assertEqual(raw_tx, Service().getrawtransaction(tx_id))
 
-    def test_transaction_bitcoin_decode_raw(self):
-        raw_tx = '01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff5d0342fe06244d69' \
-                 '6e656420627920416e74506f6f6c20626a31312f4542312f4144362f432058d192b6fabe6d6defcf958e3cf9814240e00f' \
-                 'a5e36e8cc319cd8141e20890607ccb1954e64843d804000000000000003914000057190200ffffffff013b33b158000000' \
-                 '001976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac00000000'
-        self.assertTrue(Service().decoderawtransaction(raw_tx))
-
     def test_sendrawtransaction(self):
         raw_tx = \
          '010000000108004b4c0394a211d4ec0d344b70bf1e3b1ce1731d11d1d30279ab0c0f6d9fd7000000006c493046022100ab18a72f7' \

@@ -43,12 +43,12 @@ assert nk1.wif == nk2.wif == nk3.wif
 print("Created new multisig address: ", nk1.wif)
 
 # Create a transaction
-transaction_fee = 29348
+fee = 29348
 wl1.utxos_update()  # On bitcoinlib testnet, this automatically creates an UTXO
 utxo = wl1.utxos()[0]
-output_arr = [('23Gd1mfrqgaYiPGkMm5n5UDRkCxruDAA8wo', utxo['value'] - transaction_fee)]
+output_arr = [('23Gd1mfrqgaYiPGkMm5n5UDRkCxruDAA8wo', utxo['value'] - fee)]
 input_arr = [(utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value'])]
-t = wl1.transaction_create(output_arr, input_arr, transaction_fee=transaction_fee)
+t = wl1.transaction_create(output_arr, input_arr, fee=fee)
 
 # Now sign transaction with first wallet, should not verify yet
 t.sign()

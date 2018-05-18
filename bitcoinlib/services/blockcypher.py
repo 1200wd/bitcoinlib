@@ -132,10 +132,11 @@ class BlockCypher(BaseClient):
         return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})['hex']
 
     def sendrawtransaction(self, rawtx):
-        return self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
-
-    def decoderawtransaction(self, rawtx):
-        return self.compose_request('txs', 'decode', variables={'tx': rawtx}, method='post')
+        res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
+        return {
+            'txid': res['tx']['hash'],
+            'response_dict': res
+        }
 
     def estimatefee(self, blocks):
         res = self.compose_request('', '')

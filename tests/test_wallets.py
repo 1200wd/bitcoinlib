@@ -356,7 +356,7 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
 
     def test_wallet_multi_networks_send_transaction(self):
         t = self.wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
-                                network='bitcoinlib_test', transaction_fee=1000, offline=False)
+                                network='bitcoinlib_test', fee=1000, offline=False)
         self.assertIsNone(t.error)
         self.assertTrue(t.verified)
         self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 189999000)
@@ -508,7 +508,7 @@ class TestWalletMultisig(unittest.TestCase):
         utxos = msw1.utxos()
         output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
-        t = msw1.transaction_create(output_arr, input_arr, transaction_fee=50000)
+        t = msw1.transaction_create(output_arr, input_arr, fee=50000)
         t.sign()
         t2 = msw2.transaction_import(t)
         t2.sign()
@@ -544,7 +544,7 @@ class TestWalletMultisig(unittest.TestCase):
         utxos = msw1.utxos()
         output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
-        t = msw1.transaction_create(output_arr, input_arr, transaction_fee=50000)
+        t = msw1.transaction_create(output_arr, input_arr, fee=50000)
         t.sign()
         t2 = msw2.transaction_import(t)
         t2.sign()
@@ -581,13 +581,13 @@ class TestWalletMultisig(unittest.TestCase):
         # Create transaction in one random wallet
         wallet_ids = [i for i in range(0, number_of_sigs)]
         shuffle(wallet_ids)
-        transaction_fee = 50000
+        fee = 50000
         wallet_id = wallet_ids.pop()
         wlt = wallet_dict[wallet_id]
         utxos = wlt.utxos()
-        output_arr = [(random_output_address, utxos[0]['value'] - transaction_fee)]
+        output_arr = [(random_output_address, utxos[0]['value'] - fee)]
         input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
-        t = wlt.transaction_create(output_arr, input_arr, transaction_fee=transaction_fee)
+        t = wlt.transaction_create(output_arr, input_arr, fee=fee)
         t.sign()
         n_signs = 1
 
@@ -828,7 +828,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
             'value': 8970937
         }]
         wlt.utxos_update(utxos=utxos)
-        t = wlt.transaction_create([('n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN', 100)], transaction_fee=5000)
+        t = wlt.transaction_create([('n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN', 100)], fee=5000)
         t.sign()
         self.assertTrue(t.verify())
 

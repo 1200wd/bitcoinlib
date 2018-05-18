@@ -167,7 +167,7 @@ def create_transaction(wlt, send_args, args):
             clw_exit("Amount must be a integer value: %s" % send_args[1])
         output_arr.append((send_args[0], amount))
         send_args = send_args[2:]
-    return wlt.transaction_create(output_arr=output_arr, network=args.network, transaction_fee=args.fee, min_confirms=0)
+    return wlt.transaction_create(output_arr=output_arr, network=args.network, fee=args.fee, min_confirms=0)
 
 
 def print_transaction(wt):

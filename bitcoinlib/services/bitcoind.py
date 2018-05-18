@@ -128,7 +128,11 @@ class BitcoindClient(BaseClient):
         return res
 
     def sendrawtransaction(self, rawtx):
-        return self.proxy.sendrawtransaction(rawtx)
+        res = self.proxy.sendrawtransaction(rawtx)
+        return {
+            'txid': res,
+            'response_dict': res
+        }
     
     def estimatefee(self, blocks):
         try:

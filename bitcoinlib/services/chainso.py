@@ -61,8 +61,8 @@ class ChainSo(BaseClient):
     def sendrawtransaction(self, rawtx):
         res = self.compose_request('send_tx', variables={'tx_hex': rawtx}, method='post')
         return {
-            'status': res['status'],
-            'txid': '' if 'data' not in res else res['data']['txid']
+            'txid': '' if 'data' not in res else res['data']['txid'],
+            'response_dict': res
         }
 
     def getbalance(self, addresslist):

@@ -941,7 +941,10 @@ class Transaction:
                   (ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
         print("Outputs")
         for to in self.outputs:
-            print("-", to.address, to.value)
+            if to.script_type == 'nulldata':
+                print("- NULLDATA ", to.lock_script[2:])
+            else:
+                print("-", to.address, to.value)
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
