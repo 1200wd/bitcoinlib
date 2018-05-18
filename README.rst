@@ -220,7 +220,7 @@ Install with pip
 
 
 Package dependencies
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 Required Python Packages, are automatically installed upon installing bitcoinlib:
 
@@ -233,7 +233,7 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 * enum34 (for older python installations)
 
 Python development packages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 ``sudo apt install python-dev python3-dev``
 
