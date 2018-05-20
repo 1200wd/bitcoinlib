@@ -41,9 +41,10 @@ if not os.path.exists(DEFAULT_LOGDIR):
     os.makedirs(DEFAULT_LOGDIR)
 if not os.path.exists(DEFAULT_SETTINGSDIR):
     os.makedirs(DEFAULT_SETTINGSDIR)
-if locale.getpreferredencoding() != 'UTF-8':
+if os.name != 'nt' and locale.getpreferredencoding() != 'UTF-8':
     raise EnvironmentError("Locale is currently set to '%s'. "
-                           "This library needs the locale set to UTF-8 to function properly")
+                           "This library needs the locale set to UTF-8 to function properly" %
+                           locale.getpreferredencoding())
 
 
 # Copy data and settings to default settings directory if install.log is not found
