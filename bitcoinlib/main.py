@@ -59,7 +59,7 @@ def initialize_lib():
         return
 
     with open(instlogfile, 'w') as f:
-        install_message = "Bitcoinlibrary installed, check further logs in bitcoinlib.log\n\n" \
+        install_message = "BitcoinLib installed, check further logs in bitcoinlib.log\n\n" \
                           "If you remove this file all settings will be copied again from the library. " \
                           "This might be usefull after an update\n"
         f.write(install_message)

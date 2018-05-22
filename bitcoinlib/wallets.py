@@ -1056,6 +1056,9 @@ class HDWallet:
     def __exit__(self, exception_type, exception_value, traceback):
         self._session.close()
 
+    def __del__(self):
+        self._session.close()
+
     def __repr__(self):
         return "<HDWallet(name=%s, databasefile=\"%s\")>" % \
                (self.name, self.databasefile)
