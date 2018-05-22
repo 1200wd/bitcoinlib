@@ -28,7 +28,7 @@ import sys
 
 import ecdsa
 import scrypt
-from Crypto.Cipher import AES
+import pyaes
 
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
@@ -460,7 +460,7 @@ class Key:
         derivedhalf2 = key[32:64]
         encryptedhalf1 = d[0:16]
         encryptedhalf2 = d[16:32]
-        aes = AES.new(derivedhalf2)
+        aes = pyaes.AESModeOfOperationECB(derivedhalf2)
         decryptedhalf2 = aes.decrypt(encryptedhalf2)
         decryptedhalf1 = aes.decrypt(encryptedhalf1)
         priv = decryptedhalf1 + decryptedhalf2
@@ -504,7 +504,7 @@ class Key:
         key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
         derivedhalf1 = key[0:32]
         derivedhalf2 = key[32:64]
-        aes = AES.new(derivedhalf2)
+        aes = pyaes.AESModeOfOperationECB(derivedhalf2)
         encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[0:32], 16) ^
                                                                     int(binascii.hexlify(derivedhalf1[0:16]), 16))))
         encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[32:64], 16) ^

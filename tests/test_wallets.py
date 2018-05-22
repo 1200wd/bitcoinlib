@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2018 April - 1200 Web Development <http://1200wd.com/>
+#    © 2018 May - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -36,12 +36,20 @@ DATABASEFILE_UNITTESTS_2 = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest2.sqlite'
 
 class TestWalletCreate(unittest.TestCase):
 
-    def setUp(self):
+    wallet = None
+
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        self.wallet = HDWallet.create(
+        cls.wallet = HDWallet.create(
             name='test_wallet_create',
             databasefile=DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.wallet._session.close_all()
+        os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_create(self):
         self.assertTrue(isinstance(self.wallet, HDWallet))
@@ -97,7 +105,8 @@ class TestWalletCreate(unittest.TestCase):
 
 class TestWalletImport(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
 
@@ -181,17 +190,25 @@ class TestWalletImport(unittest.TestCase):
 
 class TestWalletKeys(unittest.TestCase):
 
-    def setUp(self):
+    wallet = None
+
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        self.private_wif = 'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF9ySUHZw5qJkk5LCALAhXS' \
+        cls.private_wif = 'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF9ySUHZw5qJkk5LCALAhXS' \
                            'XoCmCSnStRvgwLBtcbGsg1PeKT2en'
-        self.wallet = HDWallet.create(
-            key=self.private_wif,
+        cls.wallet = HDWallet.create(
+            key=cls.private_wif,
             name='test_wallet_keys',
             databasefile=DATABASEFILE_UNITTESTS)
-        self.wallet.new_key()
-        self.wallet.new_key_change()
+        cls.wallet.new_key()
+        cls.wallet.new_key_change()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.wallet._session.close_all()
+        os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_addresslist(self):
         expected_addresslist = ['1B8gTuj778tkrQV1e8qjcesoZt9Cif3VEp', '1LS8zYrkgGpvJdtMmUdU1iU4TUMQh6jjF1',
@@ -249,22 +266,28 @@ class TestWalletKeys(unittest.TestCase):
 
 class TestWalletElectrum(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        self.pk = 'xprv9s21ZrQH143K2fuscnMTwUadsPqEbYdFQVJ1uWPawUYi7C485NHhCiotGy6Kz3Cz7ReVr65oXNwhREZ8ePrz8p7zy' \
+        cls.pk = 'xprv9s21ZrQH143K2fuscnMTwUadsPqEbYdFQVJ1uWPawUYi7C485NHhCiotGy6Kz3Cz7ReVr65oXNwhREZ8ePrz8p7zy' \
                   'Hra82D1EGS7cQQmreK'
-        self.wallet = HDWallet.create(
-            key=self.pk,
+        cls.wallet = HDWallet.create(
+            key=cls.pk,
             name='test_wallet_electrum',
             databasefile=DATABASEFILE_UNITTESTS)
         workdir = os.path.dirname(__file__)
         with open('%s/%s' % (workdir, 'electrum_keys.json'), 'r') as f:
-            self.el_keys = json.load(f)
+            cls.el_keys = json.load(f)
         for i in range(20):
-            self.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i, enable_checks=False)
+            cls.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i, enable_checks=False)
         for i in range(6):
-            self.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i, enable_checks=False)
+            cls.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i, enable_checks=False)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.wallet._session.close_all()
+        os.remove(DATABASEFILE_UNITTESTS)
 
     def test_electrum_keys(self):
         for key in self.wallet.keys():
@@ -276,23 +299,29 @@ class TestWalletElectrum(unittest.TestCase):
 
 class TestWalletMultiCurrency(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        self.pk = 'dHHM83S1ptYryy3ZeV6Q8zQBT9NvqiSjUMJPwf6xg2CdaFLiHbyzsCSeP9FG1wzbsPVY9VtC85VsWoFvU9z1S4GzqwDBh' \
+        cls.pk = 'dHHM83S1ptYryy3ZeV6Q8zQBT9NvqiSjUMJPwf6xg2CdaFLiHbyzsCSeP9FG1wzbsPVY9VtC85VsWoFvU9z1S4GzqwDBh' \
                   'CawMAogXrUh2KgVahL'
-        self.wallet = HDWallet.create(
-            key=self.pk,
+        cls.wallet = HDWallet.create(
+            key=cls.pk,
             name='test_wallet_multicurrency',
             databasefile=DATABASEFILE_UNITTESTS)
 
-        self.wallet.new_account(network='litecoin')
-        self.wallet.new_account(network='bitcoin')
-        self.wallet.new_account(network='testnet')
-        self.wallet.new_account(network='dash')
-        self.wallet.new_key()
-        self.wallet.new_key()
-        self.wallet.new_key(network='bitcoin')
+        cls.wallet.new_account(network='litecoin')
+        cls.wallet.new_account(network='bitcoin')
+        cls.wallet.new_account(network='testnet')
+        cls.wallet.new_account(network='dash')
+        cls.wallet.new_key()
+        cls.wallet.new_key()
+        cls.wallet.new_key(network='bitcoin')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.wallet._session.close_all()
+        os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_multiple_networks_defined(self):
         networks_expected = sorted(['litecoin', 'bitcoin', 'dash', 'testnet'])
@@ -327,51 +356,58 @@ class TestWalletMultiCurrency(unittest.TestCase):
 
 class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
 
-    def setUp(self):
+    def test_wallet_multi_networks_send_transaction(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        self.pk = 'tobacco defy swarm leaf flat pyramid velvet pen minor twist maximum extend'
-        self.wallet = HDWallet.create(
-            key=self.pk, network='bitcoin',
+        pk = 'tobacco defy swarm leaf flat pyramid velvet pen minor twist maximum extend'
+        wallet = HDWallet.create(
+            key=pk, network='bitcoin',
             name='test_wallet_multi_network_multi_account',
             databasefile=DATABASEFILE_UNITTESTS)
 
-        self.wallet.new_key()
-        acc = self.wallet.new_account('BCL test home', network='bitcoinlib_test')
-        acc2 = self.wallet.new_account('BCL test office', network='bitcoinlib_test')
-        self.wallet.new_key(account_id=acc2.account_id, network='bitcoinlib_test')
-        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
-        self.wallet.utxos_update(networks='bitcoinlib_test')
-        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
-        self.wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
-        self.wallet.get_key(network='testnet', number_of_keys=2)
-        self.wallet.get_key(network='testnet', change=1)
-        self.wallet.utxos_update(networks='testnet')
-        self.assertEqual(self.wallet.balance(network='bitcoinlib_test'), 200000000)
-        self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
-        self.assertEqual(self.wallet.balance(network='testnet'), 1500000)
+        wallet.new_key()
+        acc = wallet.new_account('BCL test home', network='bitcoinlib_test')
+        acc2 = wallet.new_account('BCL test office', network='bitcoinlib_test')
+        wallet.new_key(account_id=acc2.account_id, network='bitcoinlib_test')
+        wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        wallet.utxos_update(networks='bitcoinlib_test')
+        wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
+        wallet.get_key(network='testnet', number_of_keys=2)
+        wallet.get_key(network='testnet', change=1)
+        wallet.utxos_update(networks='testnet')
+        
+        self.assertEqual(wallet.balance(network='bitcoinlib_test'), 200000000)
+        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
+        self.assertEqual(wallet.balance(network='testnet'), 1500000)
         ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
                           'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
-        self.assertListEqual(self.wallet.addresslist(network='testnet'), ltct_addresses)
-
-    def test_wallet_multi_networks_send_transaction(self):
-        t = self.wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
+        self.assertListEqual(wallet.addresslist(network='testnet'), ltct_addresses)
+        
+        t = wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
                                 network='bitcoinlib_test', fee=1000, offline=False)
         self.assertIsNone(t.error)
         self.assertTrue(t.verified)
-        self.assertEqual(self.wallet.balance(network='bitcoinlib_test', account_id=1), 189999000)
-        self.assertEqual(len(self.wallet.transactions(account_id=0, network='bitcoinlib_test')), 2)
-        self.assertEqual(len(self.wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
+        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 189999000)
+        self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 2)
+        self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
 
 
 class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
-    def test_wallet_bitcoinlib_testnet_sendto(self):
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(DATABASEFILE_UNITTESTS)
+
+    def test_wallet_bitcoinlib_testnet_sendto(self):
         w = HDWallet.create(
             network='bitcoinlib_test',
-            name='test_wallet_bitcoinlib_testnet',
+            name='test_wallet_bitcoinlib_testnet_sendto',
             databasefile=DATABASEFILE_UNITTESTS)
 
         w.new_key()
@@ -379,11 +415,9 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         self.assertIsNone(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 5000000).error)
 
     def test_wallet_bitcoinlib_testnet_send_utxos_updated(self):
-        if os.path.isfile(DATABASEFILE_UNITTESTS):
-            os.remove(DATABASEFILE_UNITTESTS)
         w = HDWallet.create(
             network='bitcoinlib_test',
-            name='test_wallet_bitcoinlib_testnet',
+            name='test_wallet_bitcoinlib_testnet_send_utxos_updated',
             databasefile=DATABASEFILE_UNITTESTS)
 
         w.new_key()
@@ -392,24 +426,20 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 1)
 
     def test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee(self):
-        if os.path.isfile(DATABASEFILE_UNITTESTS):
-            os.remove(DATABASEFILE_UNITTESTS)
         w = HDWallet.create(
             network='bitcoinlib_test',
-            name='test_wallet_bitcoinlib_testnet',
+            name='test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee',
             databasefile=DATABASEFILE_UNITTESTS)
         w.new_key()
         w.utxos_update()
         balance = w.balance()
         self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found',
-                                w.send_to, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance),
+                                w.send_to, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance)
 
     def test_wallet_bitcoinlib_testnet_sweep(self):
-        if os.path.isfile(DATABASEFILE_UNITTESTS):
-            os.remove(DATABASEFILE_UNITTESTS)
         w = HDWallet.create(
             network='bitcoinlib_test',
-            name='test_wallet_bitcoinlib_testnet',
+            name='test_wallet_bitcoinlib_testnet_sweep',
             databasefile=DATABASEFILE_UNITTESTS)
         w.new_key()
         w.new_key()
@@ -597,6 +627,7 @@ class TestWalletMultisig(unittest.TestCase):
             t = wallet_dict[wallet_id].transaction_import(t)
             t.sign()
             n_signs += 1
+        wlt._session.close()
         return t
 
     def test_wallet_multisig_2of3(self):
@@ -729,6 +760,7 @@ class TestWalletMultisig(unittest.TestCase):
         wallets2 = _open_all_wallets()
         for wlt in wallets2:
             self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
+            wlt._session.close_all()
 
     def test_wallet_multisig_network_mixups(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -737,7 +769,6 @@ class TestWalletMultisig(unittest.TestCase):
         phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
         phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
         phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
-        pk1 = HDKey.from_passphrase(phrase1, network=network)
         pk2 = HDKey.from_passphrase(phrase2, network=network)
         pk3 = HDKey.from_passphrase(phrase3, network=network)
         wlt = wallet_create_or_open_multisig(
@@ -749,9 +780,16 @@ class TestWalletMultisig(unittest.TestCase):
 
 class TestWalletKeyImport(unittest.TestCase):
 
-    def test_wallet_key_import_and_sign_multisig(self):
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(DATABASEFILE_UNITTESTS)
+
+    def test_wallet_key_import_and_sign_multisig(self):
         network = 'bitcoinlib_test'
         words = 'square innocent drama'
         seed = Mnemonic().to_seed(words, 'password')
@@ -763,33 +801,28 @@ class TestWalletKeyImport(unittest.TestCase):
             HDKey(network=network),
             hdkey.public()
         ]
-        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=network,
-                                          databasefile=DATABASEFILE_UNITTESTS)
-        wallet.new_key()
-        wallet.utxos_update()
-        wt = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
-        wt.sign(hdkey)
-        wt.send()
-        self.assertIsNone(wt.error)
+        with HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, sort_keys=True, network=network,
+                                      databasefile=DATABASEFILE_UNITTESTS) as wlt:
+            wlt.new_key()
+            wlt.utxos_update()
+            wt = wlt.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
+            wt.sign(hdkey)
+            wt.send()
+            self.assertIsNone(wt.error)
 
     def test_wallet_import_private_for_known_public(self):
-        if os.path.isfile(DATABASEFILE_UNITTESTS):
-            os.remove(DATABASEFILE_UNITTESTS)
-
         hdkey = HDKey(
             'xprv9s21ZrQH143K2noEZoqGHnaDDLjrnFpis8jm7NWDhkWuNNCqMupGSy7PMYtGL9jvdTY7Nx3GZ6UZ9C52nebwbYXK73imaPUK24'
             'dZJtGZhGd')
-        wallet = HDWallet.create('public-private', hdkey.account_key().public(), databasefile=DATABASEFILE_UNITTESTS)
-        wallet.import_key(hdkey)
+        with HDWallet.create('public-private', hdkey.account_key().public(), databasefile=DATABASEFILE_UNITTESTS) \
+                as wlt:
+            wlt.import_key(hdkey)
 
-        self.assertListEqual([k.path for k in wallet.keys()], ["m/44'/0'/0'", 'm', "m/44'", "m/44'/0'"])
-        self.assertEqual(wallet.new_account().address, '16m3JAtQjHbmEZd8uYTyKebvrxh2RsFHB')
-        self.assertEqual(wallet.new_key().address, '1P8BTrsBn8DKGQq7nSWPiEiUDgiG8sW1kf')
+            self.assertListEqual([k.path for k in wlt.keys()], ["m/44'/0'/0'", 'm', "m/44'", "m/44'/0'"])
+            self.assertEqual(wlt.new_account().address, '16m3JAtQjHbmEZd8uYTyKebvrxh2RsFHB')
+            self.assertEqual(wlt.new_key().address, '1P8BTrsBn8DKGQq7nSWPiEiUDgiG8sW1kf')
 
     def test_wallet_import_private_for_known_public_multisig(self):
-        if os.path.isfile(DATABASEFILE_UNITTESTS):
-            os.remove(DATABASEFILE_UNITTESTS)
-
         puk1 = "Ltub2ZjnfUYueMfDXPsdbY8AbXRRwuxfFfYTGtyzyToy1iafjxWr2ikBLQuqKbeGGHsQUzstcUaAJWXi1HmcE4Er3WYX49aduDnE" \
                "k1okyVP2iNB"
         puk2 = "Ltub2ZUMUHmKvoN3GjAw6PvmVczc4Sv9pbA98LqMso87cQ7p51JrG6vfhf5poJ2pMXQ78eeRxmuvyVRYWz2kNQKa9MM9sJMQpzo1" \
@@ -798,24 +831,32 @@ class TestWalletKeyImport(unittest.TestCase):
                "af1DapFSc2J"
         prk2 = 'Ltpv71G8qDifUiNesWWsQZZVKVZNjBGHEfDExoAYkUp4SpU9aiWygzq11TgcCA9CJoGmMJjFatECSR9LGBpL5CxtmaHXpwGXFzrL' \
                'QJGENq739hW'
-        wlt = wallet_create_or_open_multisig("mstest", [puk1, puk2, puk3], 2, network='litecoin',
-                                             databasefile=DATABASEFILE_UNITTESTS)
-        self.assertFalse(wlt.cosigner[1].main_key.is_private)
-        wlt.import_key(prk2)
-        self.assertTrue(wlt.cosigner[1].main_key.is_private)
+        with wallet_create_or_open_multisig("mstest", [puk1, puk2, puk3], 2, network='litecoin',
+                                            databasefile=DATABASEFILE_UNITTESTS) as wlt:
+            self.assertFalse(wlt.cosigner[1].main_key.is_private)
+            wlt.import_key(prk2)
+            self.assertTrue(wlt.cosigner[1].main_key.is_private)
 
 
 class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 
-    def setUp(self):
+    wallet = None
+
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
         account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfq' \
                       'ZY6DFj6x61Wwbrg8Q'
-        self.wallet = wallet_create_or_open('utxo-test', key=account_key, network='testnet',
-                                            databasefile=DATABASEFILE_UNITTESTS)
-        self.wallet.new_key()
-        self.wallet.utxos_update()
+        cls.wallet = wallet_create_or_open('utxo-test', key=account_key, network='testnet',
+                                           databasefile=DATABASEFILE_UNITTESTS)
+        cls.wallet.new_key()
+        cls.wallet.utxos_update()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.wallet._session.close()
+        os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_import_utxos(self):
         total_value = sum([utxo['value'] for utxo in self.wallet.utxos()])

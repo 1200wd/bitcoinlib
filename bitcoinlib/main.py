@@ -19,6 +19,7 @@
 #
 
 import os
+# import sys
 import locale
 import logging
 from logging.handlers import RotatingFileHandler
@@ -41,9 +42,14 @@ if not os.path.exists(DEFAULT_LOGDIR):
     os.makedirs(DEFAULT_LOGDIR)
 if not os.path.exists(DEFAULT_SETTINGSDIR):
     os.makedirs(DEFAULT_SETTINGSDIR)
-if locale.getpreferredencoding() != 'UTF-8':
+if os.name == 'nt' and locale.getpreferredencoding() != 'UTF-8':
+    # TODO: Find a better windows hack
+    import _locale
+    _locale._getdefaultlocale = (lambda *args: ['en_US', 'utf8'])
+elif locale.getpreferredencoding() != 'UTF-8':
     raise EnvironmentError("Locale is currently set to '%s'. "
-                           "This library needs the locale set to UTF-8 to function properly")
+                           "This library needs the locale set to UTF-8 to function properly" %
+                           locale.getpreferredencoding())
 
 
 # Copy data and settings to default settings directory if install.log is not found
@@ -53,7 +59,7 @@ def initialize_lib():
         return
 
     with open(instlogfile, 'w') as f:
-        install_message = "Bitcoinlibrary installed, check further logs in bitcoinlib.log\n\n" \
+        install_message = "BitcoinLib installed, check further logs in bitcoinlib.log\n\n" \
                           "If you remove this file all settings will be copied again from the library. " \
                           "This might be usefull after an update\n"
         f.write(install_message)
