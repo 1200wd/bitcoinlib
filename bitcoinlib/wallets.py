@@ -925,7 +925,7 @@ class HDWallet:
         session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id).\
             update({DbWallet.multisig_n_required: sigs_required})
         session.commit()
-        session.close()
+        session.close_all()
         return hdpm
 
     def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
@@ -1057,6 +1057,11 @@ class HDWallet:
         self._session.close()
 
     def __del__(self):
+        try:
+            if self._dbwallet.parent_id:
+                return
+        except:
+            pass
         self._session.close()
 
     def __repr__(self):
