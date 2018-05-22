@@ -19,6 +19,7 @@
 #
 
 import os
+# import sys
 import locale
 import logging
 from logging.handlers import RotatingFileHandler
@@ -41,7 +42,11 @@ if not os.path.exists(DEFAULT_LOGDIR):
     os.makedirs(DEFAULT_LOGDIR)
 if not os.path.exists(DEFAULT_SETTINGSDIR):
     os.makedirs(DEFAULT_SETTINGSDIR)
-if os.name != 'nt' and locale.getpreferredencoding() != 'UTF-8':
+if os.name == 'nt' and locale.getpreferredencoding() != 'UTF-8':
+    # TODO: Find a better windows hack
+    import _locale
+    _locale._getdefaultlocale = (lambda *args: ['en_US', 'utf8'])
+elif locale.getpreferredencoding() != 'UTF-8':
     raise EnvironmentError("Locale is currently set to '%s'. "
                            "This library needs the locale set to UTF-8 to function properly" %
                            locale.getpreferredencoding())
