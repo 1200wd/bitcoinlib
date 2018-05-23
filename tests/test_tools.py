@@ -27,12 +27,12 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                                                             '../bitcoinlib/tools/cli_wallet.py'))
 
     def test_tools_clw_create_wallet(self):
-        cmd_wlt_create = "%s %s test --passphrase 'emotion camp sponsor curious bacon squeeze bean world " \
-                         "actual chicken obscure spray' -r -d %s" % \
+        cmd_wlt_create = '%s %s test --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
+                         'actual chicken obscure spray" -r -d %s' % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "%s %s test --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "Receive address(es):\n14guS7uQpEbgf1e8TDo1zTEURJW3NGPc9E"
+        output_wlt_create = "14guS7uQpEbgf1e8TDo1zTEURJW3NGPc9E"
         output_wlt_delete = "Wallet test has been removed"
 
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
@@ -53,7 +53,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "%s %s testms --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "Receive address(es):\n2N7QSKcsmWPP9anG7cdZvzBUbgTVrAK2MZ9"
+        output_wlt_create = "2N7QSKcsmWPP9anG7cdZvzBUbgTVrAK2MZ9"
         output_wlt_delete = "Wallet testms has been removed"
 
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
@@ -92,16 +92,16 @@ class TestToolsCommandLineWallet(unittest.TestCase):
 
     def test_tools_clw_transaction_with_script(self):
         python_executable = "cli-wallet"
-        cmd_wlt_create = "%s test2 --passphrase 'emotion camp sponsor curious bacon squeeze bean world " \
-                         "actual chicken obscure spray' -r -n bitcoinlib_test -d %s" % \
+        cmd_wlt_create = '%s test2 --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
+                         'actual chicken obscure spray" -r -n bitcoinlib_test -d %s' % \
                          (python_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_update = "%s test2 -d %s" % \
                          (python_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_transaction = "%s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
                          (python_executable, DATABASEFILE_UNITTESTS)
-        cmd_wlt_delete = "echo test2 | %s test2 --wallet-remove -d %s" % \
+        cmd_wlt_delete = "%s test2 --wallet-remove -d %s" % \
                          (python_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "Receive address(es):\n21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
+        output_wlt_create = "21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
         output_wlt_transaction = 'Transaction pushed to network'
         output_wlt_delete = "Wallet test2 has been removed"
 
