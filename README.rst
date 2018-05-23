@@ -249,7 +249,7 @@ To install OpenSSL development package on Fedora, CentOS or RHEL
 Other requirements Windows
 --------------------------
 
-
+Tested on Windows 10 with Python 3.6 and pip installed. No special requirements needed.
 
 
 References
