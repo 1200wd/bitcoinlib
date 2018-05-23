@@ -110,6 +110,11 @@ class TestWalletImport(unittest.TestCase):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
 
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
     def test_wallet_import(self):
         keystr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
                  'A7irEvBoe4aAn52'
@@ -266,6 +271,8 @@ class TestWalletKeys(unittest.TestCase):
 
 class TestWalletElectrum(unittest.TestCase):
 
+    wallet = None
+
     @classmethod
     def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -298,6 +305,8 @@ class TestWalletElectrum(unittest.TestCase):
 
 
 class TestWalletMultiCurrency(unittest.TestCase):
+
+    wallet = None
 
     @classmethod
     def setUpClass(cls):
@@ -391,6 +400,7 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 189999000)
         self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 2)
         self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
+        del wallet
 
 
 class TestWalletBitcoinlibTestnet(unittest.TestCase):
@@ -450,6 +460,11 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
 
 class TestWalletMultisig(unittest.TestCase):
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_multisig_2_wallets_private_master_plus_account_public(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -855,8 +870,9 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 
     @classmethod
     def tearDownClass(cls):
-        cls.wallet._session.close()
-        os.remove(DATABASEFILE_UNITTESTS)
+        cls.wallet._session.close_all()
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_import_utxos(self):
         total_value = sum([utxo['value'] for utxo in self.wallet.utxos()])
@@ -890,6 +906,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = wlt.transaction_create([('n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN', 100)], fee=5000)
         t.sign()
         self.assertTrue(t.verify())
+        del wlt
 
     def test_wallet_scan(self):
         account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfq' \
@@ -917,6 +934,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = Transaction(inputs=[inp1, inp2], outputs=[out], network='testnet')
         t.sign(key.key_private)
         self.assertTrue(t.verify())
+        del wlt
 
     def test_wallet_balance_update(self):
         wlt = HDWallet.create('test-balance-update', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
@@ -926,6 +944,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 
         t = wlt.send_to(to_key.address, 9000)
         self.assertEqual(wlt.balance(), 200000000 - t.fee)
+        del wlt
 
     def test_wallet_balance_update_multi_network(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
@@ -938,6 +957,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertEqual(wlt.balance(), 900)
         self.assertEqual(wlt.balance(network='testnet'), 900)
         self.assertEqual(wlt.balance(network='bitcoinlib_test'), 200000000)
+        del wlt
 
     def test_wallet_add_dust_to_fee(self):
         # Send bitcoinlib test transaction and check if dust resume amount is added to fee
@@ -946,6 +966,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 99999500)
         self.assertEqual(t.fee, 500)
+        del wlt
 
     def test_wallet_transactions_send_update_utxos(self):
         # Send bitcoinlib test transaction and check if all utxo's are updated after send
@@ -957,6 +978,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt._balance_update(min_confirms=0)
         self.assertEqual(wlt.balance(), 1000000000-t.fee)
         self.assertEqual(len(wlt.utxos()), 6)
+        del wlt
 
     def test_wallet_transaction_import(self):
         wlt = HDWallet.create('bcltestwlt3', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
@@ -966,6 +988,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t2 = wlt.transaction_import(t)
         t.fee_per_kb = None
         self.assertDictEqualExt(t.dict(), t2.dict())
+        del wlt
 
     def test_wallet_transaction_import_raw(self):
         wlt = HDWallet.create('bcltestwlt4', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
@@ -975,3 +998,4 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t2 = wlt.transaction_import_raw(t.raw())
         t.fee_per_kb = None
         self.assertDictEqualExt(t.dict(), t2.dict())
+        del wlt

@@ -38,7 +38,7 @@ class TestMnemonics(unittest.TestCase):
             else:
                 phrase = v[1]
             seed = change_base(mnemo.to_seed(phrase, v[4]), 256, 16)
-            print("Test %s => %s" % (v[0], phrase))
+            # print("Test %s => %s" % (v[0], phrase))
             self.assertEqual(v[1], phrase)
             self.assertEqual(v[2], seed)
             k = HDKey.from_seed(seed)
