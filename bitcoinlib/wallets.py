@@ -823,9 +823,7 @@ class HDWallet:
 
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
             if mk.depth == 0:
-                nw = Network(network)
-                networkcode = nw.bip44_cointype
-                path = ["%d'" % purpose, "%s'" % networkcode]
+                path = ["%d'" % purpose, "%s'" % Network(network).bip44_cointype]
                 w._create_keys_from_path(mk, path, name=name, wallet_id=new_wallet_id, network=network, session=session,
                                          account_id=account_id, purpose=purpose, basepath="m")
                 w.new_account(account_id=account_id)
