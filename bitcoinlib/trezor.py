@@ -7,7 +7,8 @@
 
 
 from bitcoinlib.main import *
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.keys import HDKey
+from bitcoinlib.networks import DEFAULT_NETWORK
 try:
     from trezorlib import coins
     from trezorlib import messages as proto
@@ -18,6 +19,12 @@ try:
 except:
     TREZORLIB_INSTALLED = False
 
+TREZOR_NETWORKS = {
+    'bitcoin': 'Bitcoin',
+    'testnet': 'Testnet',
+    'litecoin': 'Litecoin',
+    'dash': 'Dash'
+}
 
 _logger = logging.getLogger(__name__)
 
@@ -37,19 +44,31 @@ class TrezorError(Exception):
 
 class Trezor:
 
-    def __init__(self, network_name='Bitcoin'):
+    def __init__(self, network=DEFAULT_NETWORK):
         if not TREZORLIB_INSTALLED:
             raise TrezorError("Please install python-trezor library before using this class")
         transport = get_transport()
         self.client = TrezorClient(transport)
-        self.client.set_tx_api(coins.tx_api[network_name])
+        self.network = network
+        self.network_trezor = TREZOR_NETWORKS[network]
+        self.client.set_tx_api(coins.tx_api[self.network_trezor])
 
     def __del__(self):
         self.client.close()
 
-    def key_for_path(self, path, network='Bitcoin'):
-        self.client.set_tx_api(coins.tx_api[network])
+    def key_for_path(self, path, network=None):
+        if network is None:
+            network = self.network
+            network_trezor = self.network_trezor
+        else:
+            network_trezor = TREZOR_NETWORKS[network]
+        self.client.set_tx_api(coins.tx_api[network_trezor])
         account_key = parse_path(path)
-        node = self.client.get_public_node(account_key).node
-        return to_hexstring(node.public_key)
+        account_node = self.client.get_public_node(account_key)
+        key = HDKey(key=account_node.node.public_key, chain=account_node.node.chain_code, isprivate=False,
+                    depth=account_node.node.depth, child_index=account_node.node.child_num,
+                    parent_fingerprint=account_node.node.fingerprint, network=network)
+        print(key.wif_public())
+        print(account_node.xpub)
+        return key
         # return self.client.get_public_node(account_key).xpub
