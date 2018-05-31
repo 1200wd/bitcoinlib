@@ -32,6 +32,8 @@ from bitcoinlib.networks import Network, DEFAULT_NETWORK
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, SIGHASH_ALL
+from bitcoinlib.trezor import Trezor
+
 
 _logger = logging.getLogger(__name__)
 
@@ -925,6 +927,19 @@ class HDWallet:
         session.commit()
         session.close_all()
         return hdpm
+
+    @classmethod
+    def create_from_trezor(cls, name, owner='', network=None, account_id=0,
+                           parent_id=None, sort_keys=True, password='', databasefile=None):
+        if network is None:
+            network = DEFAULT_NETWORK
+        network = Network(network)
+        path = "44'/%s'/%d'" % (network.bip44_cointype, account_id)
+
+        trezor_client = Trezor(network_name=network.network_name.capitalize())
+        account_key_wif = trezor_client.key_for_path(path, network.network_name.capitalize())
+        return cls.create(name, account_key_wif, owner, network=network.network_name, account_id=account_id, parent_id=parent_id,
+                          sort_keys=sort_keys, password=password, databasefile=databasefile)
 
     def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
                                name='', basepath='', change=0, purpose=44):
