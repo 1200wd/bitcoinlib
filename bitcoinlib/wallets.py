@@ -797,7 +797,7 @@ class HDWallet:
             network = key.network.network_name
         elif key:
             # If key consists of several words assume it is a passphrase and convert it to a HDKey object
-            if len(key.split(" ")) > 1:
+            if not isinstance(key, (bytearray, bytes)) and len(key.split(" ")) > 2:
                 if not network:
                     raise WalletError("Please specify network when using passphrase to create a key")
                 key = HDKey().from_seed(Mnemonic().to_seed(key, password), network=network)
@@ -936,8 +936,8 @@ class HDWallet:
         network = Network(network)
         path = "44'/%s'/%d'" % (network.bip44_cointype, account_id)
 
-        trezor_client = Trezor(network_name=network.network_name.capitalize())
-        account_key_wif = trezor_client.key_for_path(path, network.network_name.capitalize())
+        trezor_client = Trezor(network=network.network_name)
+        account_key_wif = trezor_client.key_for_path(path)
         return cls.create(name, account_key_wif, owner, network=network.network_name, account_id=account_id, parent_id=parent_id,
                           sort_keys=sort_keys, password=password, databasefile=databasefile)
 

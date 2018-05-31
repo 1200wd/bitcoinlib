@@ -7,6 +7,7 @@
 
 
 from bitcoinlib.main import *
+from bitcoinlib.encoding import to_hexstring
 try:
     from trezorlib import coins
     from trezorlib import messages as proto
@@ -50,5 +51,5 @@ class Trezor:
         self.client.set_tx_api(coins.tx_api[network])
         account_key = parse_path(path)
         node = self.client.get_public_node(account_key).node
-        return node.public_key
+        return to_hexstring(node.public_key)
         # return self.client.get_public_node(account_key).xpub

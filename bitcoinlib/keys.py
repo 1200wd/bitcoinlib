@@ -759,13 +759,14 @@ class HDKey:
                     except BKeyError as e:
                         raise BKeyError("[BKeyError] %s" % e)
 
-        if not isinstance(key, (bytes, bytearray)) or not(len(key) == 32 or len(key) == 33):
-            raise KeyError("Invalid key specified must be in bytes with length 32. You can use "
-                           "'import_key' attribute to import keys in other formats")
+        if not (isinstance(key, (bytes, bytearray)) and (len(key) == 32 or len(key) == 33)):
+            raise KeyError("Invalid key. Length of bytes key must be 32 or 33")
         self.chain = chain
         if self.key is None:
             self.key = Key(key, passphrase=passphrase, network=network, compressed=compressed)
         self.depth = depth
+        if isinstance(parent_fingerprint, int):
+            parent_fingerprint = change_base(str(parent_fingerprint), 10, 256, 4)
         self.parent_fingerprint = parent_fingerprint
         self.child_index = child_index
         self.isprivate = isprivate
