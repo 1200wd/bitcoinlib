@@ -110,7 +110,7 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
         return HDWallet(name, databasefile=databasefile)
     else:
         return HDWallet.create(name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                               password, databasefile)
+                               password=password, databasefile=databasefile)
 
 
 def wallet_create_or_open_multisig(
@@ -291,7 +291,7 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m', key_type=None, vendor=None):
+                 purpose=44, parent_id=0, path='m', key_type=None, vendor='bitcoinlib'):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -756,7 +756,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
-               sort_keys=True, password='', vendor=None, databasefile=None):
+               sort_keys=True, password='', vendor='bitcoinlib', databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
