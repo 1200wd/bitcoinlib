@@ -42,3 +42,8 @@ t.info()
 
 print("\n- Successfully send, updated wallet info:")
 wlt.info()
+
+passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
+wlt = HDWallet.create("wallet-passphrase", key=passphrase, network='testnet')
+key0 = wlt.get_key()
+print(key0.address, "==", "mqDeXXaFnWKNWhLmAae7zHhZDW4PMsLHPp")

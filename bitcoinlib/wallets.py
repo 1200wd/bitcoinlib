@@ -803,7 +803,12 @@ class HDWallet:
             network = key.network.network_name
         elif key:
             # If key consists of several words assume it is a passphrase and convert it to a HDKey object
-            if not isinstance(key, (bytearray, bytes)) and len(key.split(" ")) > 2:
+            try:
+                n_words = len(key.split(" "))
+            except:
+                n_words = 0
+                pass
+            if n_words > 2:
                 if not network:
                     raise WalletError("Please specify network when using passphrase to create a key")
                 key = HDKey().from_seed(Mnemonic().to_seed(key, password), network=network)
