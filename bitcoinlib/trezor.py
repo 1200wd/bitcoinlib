@@ -71,4 +71,3 @@ class Trezor:
         print(key.wif_public())
         print(account_node.xpub)
         return key
-        # return self.client.get_public_node(account_key).xpub

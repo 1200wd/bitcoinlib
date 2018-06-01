@@ -139,6 +139,7 @@ class DbKey(Base):
     wif = Column(String(255), index=True)
     compressed = Column(Boolean, default=True)
     key_type = Column(String(10), default='bip32')
+    vendor = Column(String(15), default='bitcoinlib')
     address = Column(String(255), index=True)
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
@@ -159,6 +160,7 @@ class DbKey(Base):
 
     __table_args__ = (
         CheckConstraint(key_type.in_(['single', 'bip32', 'multisig']), name='constraint_key_types_allowed'),
+        CheckConstraint(vendor.in_(['bitcoinlib', 'trezor']), name='constraint_vendors_allowed'),
         UniqueConstraint('wallet_id', 'public', name='constraint_wallet_pubkey_unique'),
         UniqueConstraint('wallet_id', 'private', name='constraint_wallet_privkey_unique'),
         UniqueConstraint('wallet_id', 'wif', name='constraint_wallet_wif_unique'),

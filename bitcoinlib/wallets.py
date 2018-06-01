@@ -291,7 +291,7 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m', key_type=None):
+                 purpose=44, parent_id=0, path='m', key_type=None, vendor=None):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -317,6 +317,8 @@ class HDWalletKey:
         :type path: str
         :param key_type: Type of key, single or BIP44 type
         :type key_type: str
+        :param vendor: Owner of private key, for example bitcoinlib or trezor. Default is bitcoinlib
+        :type vendor: str
 
         :return HDWalletKey: HDWalletKey object
         """
@@ -352,7 +354,7 @@ class HDWalletKey:
         nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    wif=k.wif(), address=k.key.address(), parent_id=parent_id, compressed=k.compressed,
-                   is_private=k.isprivate, path=path, key_type=key_type, network_name=network)
+                   is_private=k.isprivate, path=path, key_type=key_type, vendor=vendor, network_name=network)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -397,6 +399,7 @@ class HDWalletKey:
             self.depth = wk.depth
             self.key_type = wk.key_type
             self.compressed = wk.compressed
+            self.vendor = wk.vendor
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -468,6 +471,7 @@ class HDWalletKey:
         return {
             'id': self.key_id,
             'key_type': self.key_type,
+            'vendor': self.vendor,
             'is_private': self.is_private,
             'name': self.name,
             'key_private': self.key_private,
@@ -752,7 +756,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
-               sort_keys=True, password='', databasefile=None):
+               sort_keys=True, password='', vendor=None, databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
@@ -778,6 +782,8 @@ class HDWallet:
         :type sort_keys: bool
         :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
         :type password: str
+        :param vendor: Owner of private key, for example bitcoinlib or trezor. Default is bitcoinlib
+        :type vendor: str
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
         
@@ -817,7 +823,7 @@ class HDWallet:
 
         if scheme == 'bip44':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
-                                      account_id=account_id, purpose=purpose, key_type='bip32')
+                                      account_id=account_id, purpose=purpose, vendor=vendor, key_type='bip32')
             if mk.depth > 4:
                 raise WalletError("Cannot create new wallet with main key of depth 5 or more")
             new_wallet.main_key_id = mk.key_id
@@ -938,8 +944,9 @@ class HDWallet:
 
         trezor_client = Trezor(network=network.network_name)
         account_key_wif = trezor_client.key_for_path(path)
-        return cls.create(name, account_key_wif, owner, network=network.network_name, account_id=account_id, parent_id=parent_id,
-                          sort_keys=sort_keys, password=password, databasefile=databasefile)
+        return cls.create(name, account_key_wif, owner, network=network.network_name, account_id=account_id,
+                          parent_id=parent_id, sort_keys=sort_keys, password=password, vendor='trezor',
+                          databasefile=databasefile)
 
     def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
                                name='', basepath='', change=0, purpose=44):
@@ -1629,10 +1636,9 @@ class HDWallet:
 
         if self.scheme != 'bip44':
             raise WalletError("We can only create new accounts for a wallet with a BIP44 key scheme")
-        if self.main_key.depth != 0 or self.main_key.is_private is False:
+        if self.main_key.vendor == 'bitcoinlib' and (self.main_key.depth != 0 or self.main_key.is_private is False):
             raise WalletError("A master private key of depth 0 is needed to create new accounts (%s)" %
                               self.main_key.wif)
-
         if network is None:
             network = self.network.network_name
 
@@ -1654,21 +1660,29 @@ class HDWallet:
         # Get root key of new account
         res = self.keys(depth=2, network=network)
         if not res:
-            try:
-                purposekey = self.key(self.keys(depth=1)[0].id)
-                bip44_cointype = Network(network).bip44_cointype
-                duplicate_cointypes = [Network(x).network_name for x in self.network_list() if
-                                       Network(x).bip44_cointype == bip44_cointype]
-                if duplicate_cointypes:
-                    raise WalletError("Can not create new account for network %s with same BIP44 cointype: %s" %
-                                      (network, duplicate_cointypes))
-                accrootkey_obj = self._create_keys_from_path(
-                    purposekey, ["%s'" % str(bip44_cointype)], name=network, wallet_id=self.wallet_id,
-                    account_id=account_id, network=network, purpose=self.purpose, basepath=purposekey.path,
-                    session=self._session)
-            except IndexError:
-                raise WalletError("No key found for this wallet_id and purpose. Can not create new"
-                                  "account for this wallet, is there a master key imported?")
+            bip44_cointype = Network(network).bip44_cointype
+            duplicate_cointypes = [Network(x).network_name for x in self.network_list() if
+                                   Network(x).bip44_cointype == bip44_cointype]
+            if duplicate_cointypes:
+                raise WalletError("Can not create new account for network %s with same BIP44 cointype: %s" %
+                                  (network, duplicate_cointypes))
+            if self.main_key.vendor == 'trezor':
+                network = Network(network)
+                path = "44'/%s'/%d'" % (network.bip44_cointype, account_id)
+
+                trezor_client = Trezor(network=network.network_name)
+                account_key_wif = trezor_client.key_for_path(path)
+                purposekey = HDWalletKey(name, account_key_wif, network=network.network_name, account_id=account_id)
+            else:
+                try:
+                    purposekey = self.key(self.keys(depth=1)[0].id)
+                except IndexError:
+                    raise WalletError("No key found for this wallet_id and purpose. Can not create new"
+                                      "account for this wallet, is there a master key imported?")
+            accrootkey_obj = self._create_keys_from_path(
+                purposekey, ["%s'" % str(bip44_cointype)], name=network, wallet_id=self.wallet_id,
+                account_id=account_id, network=network, purpose=self.purpose, basepath=purposekey.path,
+                session=self._session)
         else:
             accrootkey = res[0]
             accrootkey_obj = self.key(accrootkey.id)
