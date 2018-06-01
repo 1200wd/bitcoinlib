@@ -1667,12 +1667,12 @@ class HDWallet:
                 raise WalletError("Can not create new account for network %s with same BIP44 cointype: %s" %
                                   (network, duplicate_cointypes))
             if self.main_key.vendor == 'trezor':
-                network = Network(network)
-                path = "44'/%s'/%d'" % (network.bip44_cointype, account_id)
+                path = "44'/%s'/%d'" % (Network(network).bip44_cointype, account_id)
 
-                trezor_client = Trezor(network=network.network_name)
+                trezor_client = Trezor(network=network)
                 account_key_wif = trezor_client.key_for_path(path)
-                purposekey = HDWalletKey(name, account_key_wif, network=network.network_name, account_id=account_id)
+                purposekey = HDWalletKey.from_key(name, self.wallet_id, self._session, account_key_wif,
+                                                  network=network, path='m/' + path, vendor='trezor')
             else:
                 try:
                     purposekey = self.key(self.keys(depth=1)[0].id)

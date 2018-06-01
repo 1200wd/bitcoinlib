@@ -54,7 +54,10 @@ class Trezor:
         self.client.set_tx_api(coins.tx_api[self.network_trezor])
 
     def __del__(self):
-        self.client.close()
+        try:
+            self.client.close()
+        except AttributeError:
+            pass
 
     def key_for_path(self, path, network=None):
         if network is None:
