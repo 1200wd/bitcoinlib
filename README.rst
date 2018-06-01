@@ -252,8 +252,15 @@ Other requirements Windows
 Tested on Windows 10 with Python 3.6 and pip installed. No special requirements needed.
 
 
-References
-----------
+Troubleshooting
+===============
 
-* https://pypi.python.org/pypi/bitcoinlib/
-* https://github.com/1200wd/bitcoinlib
+Installation
+------------
+
+If you get a 'ImportError: No module named _scrypt' error, reinstalling the scrypt module might help.
+
+.. code-block:: bash
+
+    pip uninstall scrypt
+    pip install scrypt
