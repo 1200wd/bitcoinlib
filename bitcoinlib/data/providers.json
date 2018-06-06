@@ -196,5 +196,14 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000
+  },
+  "cryptoid.litecoin": {
+    "provider": "cryptoid",
+    "network": "litecoin",
+    "client_class": "CryptoID",
+    "url": "http://chainz.cryptoid.info/ltc/api.dws",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
   }
 }
