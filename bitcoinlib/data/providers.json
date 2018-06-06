@@ -201,6 +201,7 @@
     "provider": "cryptoid",
     "network": "litecoin",
     "client_class": "CryptoID",
+    "provider_coin_id": "ltc",
     "url": "http://chainz.cryptoid.info/ltc/api.dws",
     "url_explorer": "https://chainz.cryptoid.info/explorer/tx.raw.dws",
     "api_key": "",
