@@ -12,7 +12,6 @@ Package dependencies
 Required Python Packages, are automatically installed upon installing bitcoinlib:
 
 * ecdsa
-* pbkdf2
 * pyaes
 * scrypt
 * sqlalchemy
