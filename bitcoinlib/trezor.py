@@ -9,6 +9,7 @@
 from bitcoinlib.main import *
 from bitcoinlib.keys import HDKey
 from bitcoinlib.networks import DEFAULT_NETWORK
+_logger = logging.getLogger(__name__)
 try:
     from trezorlib import coins
     from trezorlib import messages as proto
@@ -16,7 +17,8 @@ try:
     from trezorlib.tools import parse_path
     from trezorlib.transport import get_transport
     TREZORLIB_INSTALLED = True
-except:
+except ImportError as e:
+    _logger.info("Trezorlib not (correctly) installed: ", e)
     TREZORLIB_INSTALLED = False
 
 TREZOR_NETWORKS = {
@@ -25,8 +27,6 @@ TREZOR_NETWORKS = {
     'litecoin': 'Litecoin',
     'dash': 'Dash'
 }
-
-_logger = logging.getLogger(__name__)
 
 
 class TrezorError(Exception):
