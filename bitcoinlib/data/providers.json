@@ -202,9 +202,8 @@
     "network": "litecoin",
     "client_class": "CryptoID",
     "provider_coin_id": "ltc",
-    "url": "http://chainz.cryptoid.info/ltc/api.dws",
-    "url_explorer": "https://chainz.cryptoid.info/explorer/tx.raw.dws",
-    "api_key": "",
+    "url": "https://chainz.cryptoid.info/",
+    "api_key": "35fbf1a5e6dc",
     "priority": 10,
     "request_limit_minute": 6,
     "denominator": 100000000

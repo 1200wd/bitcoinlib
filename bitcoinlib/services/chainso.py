@@ -120,7 +120,7 @@ class ChainSo(BaseClient):
             i.value = int(round(float(tx['inputs'][n]['value']) * self.units, 0))
             input_total += i.value
         for o in t.outputs:
-            # TODO: Check if output is spent
+            # TODO: Check if output is spent (still neccessary?)
             o.spent = None
             output_total += o.value
         t.hash = tx_id

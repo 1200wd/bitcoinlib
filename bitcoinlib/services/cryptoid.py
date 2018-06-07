@@ -19,7 +19,7 @@
 #
 
 import logging
-import time
+import struct
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -33,14 +33,20 @@ PROVIDERNAME = 'cryptoid'
 # Zie https://github.com/PeerAssets/pypeerassets/blob/master/pypeerassets/provider/cryptoid.py
 class CryptoID(BaseClient):
 
-    def __init__(self, network, base_url, denominator, api_key=''):
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+    def __init__(self, network, base_url, denominator, *args):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, func, variables=None, method='get'):
-        url_path = ''
+    def compose_request(self, func=None, path_type='api', variables=None, method='get'):
+        # API path: http://chainz.cryptoid.info/ltc/api.dws
+        # Explorer path for raw tx: https://chainz.cryptoid.info/explorer/tx.raw.dws
         if variables is None:
             variables = {}
-        variables.update({'q': func})
+        if path_type == 'api':
+            url_path = '%s/api.dws' % self.provider_coin_id
+            variables.update({'q': func})
+        else:
+            url_path = 'explorer/tx.raw.dws'
+            variables.update({'coin': self.provider_coin_id})
         if not self.api_key:
             raise ClientError("Request a CryptoID API key before using this provider")
         variables.update({'key': self.api_key})
@@ -89,33 +95,36 @@ class CryptoID(BaseClient):
         return txs
 
     def gettransaction(self, tx_id):
-        variables = {'t': tx_id, 'hex': True}
-        tx = self.compose_request('txinfo', variables=variables)
-        raw_tx = self.getrawtransaction(tx_id)
-        t = Transaction.import_raw(raw_tx, self.network)
-        input_total = None
+        variables = {'id': tx_id, 'hex': None}
+        tx = self.compose_request(path_type='explorer', variables=variables)
+        t = Transaction.import_raw(tx['hex'], self.network)
+        variables = {'t': tx_id}
+        tx_api = self.compose_request('txinfo', path_type='api', variables=variables)
         for n, i in enumerate(t.inputs):
-            if 'prev_out' in tx['inputs'][n]:
-                i.value = tx['inputs'][n]['prev_out']['value']
-                input_total = input_total + i.value if input_total is not None else i.value
+            i.value = tx_api['inputs'][n]['amount']
         for n, o in enumerate(t.outputs):
-            o.spent = tx['out'][n]['spent']
-        # if tx['relayed_by'] == '0.0.0.0':
-        if tx['block_height']:
+            # TODO: Check if output is spent (still neccessary?)
+            o.spent = None
+        if tx['confirmations']:
             t.status = 'confirmed'
         else:
             t.status = 'unconfirmed'
         t.hash = tx_id
         t.date = datetime.fromtimestamp(tx['time'])
-        t.block_height = tx['block_height']
-        t.rawtx = raw_tx
+        t.block_height = tx_api['block']
+        t.block_hash = tx['blockhash']
+        t.confirmations = tx['confirmations']
+        t.rawtx = tx['hex']
         t.size = tx['size']
         t.network_name = self.network
-        t.locktime = tx['lock_time']
-        t.version = struct.pack('>L', tx['ver'])
-        t.input_total = input_total
-        t.fee = t.input_total - t.output_total
+        t.locktime = tx['locktime']
+        t.version = struct.pack('>L', tx['version'])
+        t.input_total = int(round(tx_api['total_input'] * self.units, 0))
+        t.output_total = int(round(tx_api['total_output'] * self.units, 0))
+        t.fee = int(round(tx_api['fees'] * self.units, 0))
         return t
 
     def getrawtransaction(self, tx_id):
-        return self.compose_request('rawtx', tx_id, {'format': 'hex'})
+        variables = {'id': tx_id, 'hex': None}
+        tx = self.compose_request(path_type='explorer', variables=variables)
+        return tx['hex']
