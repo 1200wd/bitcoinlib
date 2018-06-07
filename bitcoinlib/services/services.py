@@ -155,7 +155,7 @@ class Service(object):
             return False
         return list(self.results.values())[0]
 
-    def getbalance(self, addresslist):
+    def getbalance(self, addresslist, addresses_per_request=5):
         """
         Get balance for each address in addresslist provided
 
@@ -169,9 +169,15 @@ class Service(object):
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
             addresslist = [addresslist]
 
-        return self._provider_execute('getbalance', addresslist)
+        tot_balance = 0
+        while addresslist:
+            balance = self._provider_execute('getbalance', addresslist[:addresses_per_request])
+            if balance:
+                tot_balance += balance
+            addresslist = addresslist[addresses_per_request:]
+        return tot_balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, addresses_per_request=5):
         """
         Get list of unspent outputs (UTXO's) per address
 
@@ -187,13 +193,13 @@ class Service(object):
 
         utxos = []
         while addresslist:
-            res = self._provider_execute('getutxos', addresslist[:20])
+            res = self._provider_execute('getutxos', addresslist[:addresses_per_request])
             if res:
                 utxos += res
-            addresslist = addresslist[20:]
+            addresslist = addresslist[addresses_per_request:]
         return utxos
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, addresses_per_request=5):
         """
         Get all transactions for each address in addresslist
 
@@ -208,7 +214,6 @@ class Service(object):
             addresslist = [addresslist]
 
         transactions = []
-        addresses_per_request = 5
         while addresslist:
             res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
             if res is False:

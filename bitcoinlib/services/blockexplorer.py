@@ -45,10 +45,13 @@ class BlockExplorerClient(BaseClient):
                 'tx_hash': tx['txid'],
                 'confirmations': tx['confirmations'],
                 'output_n': tx['vout'],
-                'index': 0,
+                'input_n': 0,
+                'block_height': None,
+                'fee': None,
+                'size': 0,
                 'value': int(round(tx['amount'] * self.units, 0)),
                 'script': tx['scriptPubKey'],
-                'date': 0
+                'date': None
             })
         return txs
 

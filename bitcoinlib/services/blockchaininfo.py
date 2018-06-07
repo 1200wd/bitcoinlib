@@ -63,9 +63,13 @@ class BlockchainInfoClient(BaseClient):
                     'tx_hash': utxo['tx_hash_big_endian'],
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['tx_output_n'],
-                    'index':  utxo['tx_index'],
+                    'input_n':  utxo['tx_index'],
+                    'block_height': None,
+                    'fee': None,
+                    'size': 0,
                     'value': int(round(utxo['value'] * self.units, 0)),
                     'script': utxo['script'],
+                    'date': None
                 })
         return utxos
 

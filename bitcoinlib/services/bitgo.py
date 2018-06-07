@@ -63,9 +63,14 @@ class BitGoClient(BaseClient):
                             'tx_hash': unspent['tx_hash'],
                             'confirmations': unspent['confirmations'],
                             'output_n': unspent['tx_output_n'],
-                            'index': 0,
+                            'input_n': 0,
+                            'block_height': unspent['blockHeight'],
+                            'fee': None,
+                            'size': 0,
                             'value': int(round(unspent['value'] * self.units, 0)),
                             'script': unspent['script'],
+                            'date': datetime.strptime(unspent['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+
                          }
                     )
                 total = res['total']

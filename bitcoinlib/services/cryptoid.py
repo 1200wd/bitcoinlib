@@ -72,8 +72,13 @@ class CryptoID(BaseClient):
                     'tx_hash': utxo['tx_hash'],
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['tx_output_n'] if 'tx_output_n' in utxo else utxo['tx_ouput_n'],
+                    'input_n': 0,
+                    'block_height': None,
+                    'fee': None,
+                    'size': 0,
                     'value': int(utxo['value']),
                     'script': utxo['script'],
+                    'date': None
                 })
         return utxos
 

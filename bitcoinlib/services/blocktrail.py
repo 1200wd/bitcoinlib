@@ -68,9 +68,13 @@ class BlockTrail(BaseClient):
                         'tx_hash': utxo['hash'],
                         'confirmations': utxo['confirmations'],
                         'output_n': utxo['index'],
-                        'index': 0,
+                        'input_n': 0,
+                        'block_height': None,
+                        'fee': None,
+                        'size': 0,
                         'value': int(round(utxo['value'] * self.units, 0)),
-                        'script': '',
+                        'script': utxo['script_hex'],
+                        'date': datetime.strptime(utxo['time'], "%Y-%m-%dT%H:%M:%S+%f")
                     })
                 if current_page*200 > int(res['total']):
                     break
