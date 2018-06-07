@@ -55,7 +55,7 @@ class CryptoID(BaseClient):
     def getbalance(self, addresslist):
         balance = 0.0
         for address in addresslist:
-            res = self.compose_request('getbalance', {'a': address})
+            res = self.compose_request('getbalance', variables={'a': address})
             balance += float(res)
         return int(balance * self.units)
 
@@ -84,13 +84,11 @@ class CryptoID(BaseClient):
         tx_ids = []
         variables = {'active': addresses, 'n': 100}
         res = self.compose_request('multiaddr', variables=variables)
-        latest_block = res['info']['latest_block']['height']
         for tx in res['txs']:
-            if tx['id'] not in tx_ids:
-                tx_ids.append(tx['id'])
+            if tx['hash'] not in tx_ids:
+                tx_ids.append(tx['hash'])
         for tx_id in tx_ids:
             t = self.gettransaction(tx_id)
-            t.confirmations = latest_block - t.block_height
             txs.append(t)
         return txs
 
