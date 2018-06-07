@@ -67,6 +67,38 @@ class MultiexplorerClient(BaseClient):
                     'script': tx['scriptPubKey'],
                     'date': None,
                 })
-        # if len(txs) >= 1000:
-        #     _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
+
+    # def gettransaction(self, tx_id):
+    #     variables = {'txid': tx_id, 'include_raw': 'true'}
+    #     res = self.compose_request('single_transaction', variables=variables)
+    #     tx = res['transaction']
+    #     if tx['confirmations']:
+    #         status = 'confirmed'
+    #     else:
+    #         status = 'unconfirmed'
+    #     isCoinbase = False
+    #     if 'isCoinBase' in tx and tx['isCoinBase']:
+    #         tx['total_in'] = tx['valueOut']
+    #         isCoinbase = True
+    #     blockdate = datetime.strptime(tx['time'], "%Y-%m-%dT%H:%M:%S.%f+00:00")
+    #     t = Transaction(network=self.network, fee=tx['fee'], size=tx['size'], hash=tx['txid'],
+    #                     date=blockdate, confirmations=int(tx['confirmations']),
+    #                     block_height=tx['block_number'], block_hash=tx['block_hash'], status=status,
+    #                     input_total=tx['total_in'], coinbase=isCoinbase)
+    #     for ti in tx['inputs']:
+    #         if isCoinbase:
+    #             t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
+    #                         script_type='coinbase')
+    #         else:
+    #             t.add_input(prev_hash=ti['txid'], missing info ...)
+    #     for to in tx['vout']:
+    #         value = int(round(float(to['value']) * self.units, 0))
+    #         address = ''
+    #         try:
+    #             address = to['scriptPubKey']['addresses'][0]
+    #         except ValueError:
+    #             pass
+    #         t.add_output(value=value, address=address, lock_script=to['scriptPubKey']['hex'],
+    #                      spent=True if to['spentTxId'] else False, output_n=to['n'])
+    #     return t
