@@ -218,5 +218,25 @@
     "api_key": "35fbf1a5e6dc",
     "priority": 10,
     "denominator": 100000000
+  },
+  "cryptoid.dash": {
+    "provider": "cryptoid",
+    "network": "dash",
+    "client_class": "CryptoID",
+    "provider_coin_id": "dash",
+    "url": "https://chainz.cryptoid.info/",
+    "api_key": "35fbf1a5e6dc",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "multiexplorer.litecoin": {
+    "provider": "multiexplorer",
+    "network": "litecoin",
+    "client_class": "MultiexplorerClient",
+    "provider_coin_id": "ltc",
+    "url": "https://multiexplorer.com/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
   }
 }
