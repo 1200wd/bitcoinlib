@@ -30,7 +30,6 @@ _logger = logging.getLogger(__name__)
 PROVIDERNAME = 'cryptoid'
 
 
-# Zie https://github.com/PeerAssets/pypeerassets/blob/master/pypeerassets/provider/cryptoid.py
 class CryptoID(BaseClient):
 
     def __init__(self, network, base_url, denominator, *args):

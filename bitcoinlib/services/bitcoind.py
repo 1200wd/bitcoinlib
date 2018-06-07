@@ -96,7 +96,7 @@ class BitcoindClient(BaseClient):
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return BitcoindClient(network, url)
 
-    def __init__(self, network='bitcoin', base_url='', denominator=100000000, api_key=''):
+    def __init__(self, network='bitcoin', base_url='', denominator=100000000, *args):
         """
         Open connection to bitcoin node
 
@@ -105,8 +105,6 @@ class BitcoindClient(BaseClient):
         :param base_url: Connection URL in format http(s)://user:password@host:port.
         :type: str
         :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for bitcoin
-        :type: str
-        :param api_key: Leave empty for
         :type: str
         """
         if not base_url:
@@ -121,7 +119,7 @@ class BitcoindClient(BaseClient):
                               "Please set password and url in providers.json file")
         _logger.info("Connect to bitcoind on %s" % base_url)
         self.proxy = AuthServiceProxy(base_url)
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def getrawtransaction(self, txid):
         res = self.proxy.getrawtransaction(txid)

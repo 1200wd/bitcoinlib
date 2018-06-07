@@ -32,8 +32,8 @@ _logger = logging.getLogger(__name__)
 
 class BlockchainInfoClient(BaseClient):
 
-    def __init__(self, network, base_url, denominator, api_key=''):
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+    def __init__(self, network, base_url, denominator, *args):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def compose_request(self, cmd, parameter='', variables=None, method='get'):
         url_path = cmd

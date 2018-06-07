@@ -30,10 +30,10 @@ PROVIDERNAME = 'blocktrail'
 
 class BlockTrail(BaseClient):
 
-    def __init__(self, network, base_url, denominator, api_key=''):
+    def __init__(self, network, base_url, denominator, api_key, *args):
         if not api_key:
             raise ValueError("API key is needed to connect to BlockTrail")
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key, *args)
 
     def compose_request(self, function, data, parameter='', variables=None, method='get', page=1):
         url_path = function

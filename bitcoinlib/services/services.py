@@ -82,7 +82,6 @@ class Service(object):
             raise ServiceError(errstr)
         f.close()
 
-        # provider_list = list(self.providers_defined.keys())
         provider_list = list([self.providers_defined[x]['provider'] for x in self.providers_defined])
         if providers is None:
             providers = []
@@ -119,8 +118,7 @@ class Service(object):
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
                 pc_instance = providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
-                                             self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                                             self.providers[sp]['request_limit_minute'])
+                                             self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'])
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
