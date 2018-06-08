@@ -238,5 +238,25 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000
+  },
+  "multiexplorer.bitcoin": {
+    "provider": "multiexplorer",
+    "network": "bitcoin",
+    "client_class": "MultiexplorerClient",
+    "provider_coin_id": "btc",
+    "url": "https://multiexplorer.com/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
+  },
+  "multiexplorer.dash": {
+    "provider": "multiexplorer",
+    "network": "dash",
+    "client_class": "MultiexplorerClient",
+    "provider_coin_id": "dash",
+    "url": "https://multiexplorer.com/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
   }
 }

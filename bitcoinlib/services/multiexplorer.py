@@ -91,7 +91,7 @@ class MultiexplorerClient(BaseClient):
     #             t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
     #                         script_type='coinbase')
     #         else:
-    #             t.add_input(prev_hash=ti['txid'], missing info ...)
+    #             t.add_input(prev_hash=ti['txid'])  #  missing info ...
     #     for to in tx['vout']:
     #         value = int(round(float(to['value']) * self.units, 0))
     #         address = ''
@@ -102,3 +102,19 @@ class MultiexplorerClient(BaseClient):
     #         t.add_output(value=value, address=address, lock_script=to['scriptPubKey']['hex'],
     #                      spent=True if to['spentTxId'] else False, output_n=to['n'])
     #     return t
+
+    # https://multiexplorer.com/api/historical_transactions/fallback/?address=123Nc1QiMbJT7RuvsEwNoopmkYi47M2SDX&extended_fetch=true¤cy=btc&fiat=usd
+    # def gettransactions(self, addresslist):
+    #     txs = []
+    #     input_total = 0
+    #     for address in addresslist:
+    #         variables = {'address': address, 'extended_fetch': True}
+    #         tx = self.compose_request('historical_transactions', variables=variables, service_id='private3')
+    #         t = Transaction.import_raw(tx['hex'])
+    #         for n, i in enumerate(t.inputs):
+    #             i.value = tx['inputs'][n]['amount']
+    #             input_total += i.value
+    #         # for n, o in enumerate(t.outputs):
+    #         #     o.spent = tx['out'][n]['spent']
+    #         txs.append(t)
+    #     return txs
