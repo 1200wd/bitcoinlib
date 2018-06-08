@@ -118,3 +118,12 @@ class MultiexplorerClient(BaseClient):
     #         #     o.spent = tx['out'][n]['spent']
     #         txs.append(t)
     #     return txs
+
+    # https://multiexplorer.com/api/push_tx/[service_id]?currency=[curency_code]
+    def sendrawtransaction(self, rawtx):
+        variables = {'tx': rawtx}
+        res = self.compose_request('push_tx', variables=variables)
+        return {
+            'txid': res['txid'],
+            'response_dict': res
+        }
