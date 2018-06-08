@@ -35,7 +35,10 @@ class MultiexplorerClient(BaseClient):
         url_path = func + '/' + service_id
         if not isinstance(variables, dict):
             raise ClientError("Cannot compose request without variables. Variables must be of type dictionary.")
-        variables.update({'currency': self.provider_coin_id})
+        if method =='get':
+            variables.update({'currency': self.provider_coin_id})
+        else:
+            url_path += '?currency=%s' % self.provider_coin_id
         if include_raw:
             variables.update({'include_raw': None})
         return self.request(url_path, variables, method=method)
@@ -119,11 +122,11 @@ class MultiexplorerClient(BaseClient):
     #         txs.append(t)
     #     return txs
 
-    # https://multiexplorer.com/api/push_tx/[service_id]?currency=[curency_code]
-    def sendrawtransaction(self, rawtx):
-        variables = {'tx': rawtx}
-        res = self.compose_request('push_tx', variables=variables)
-        return {
-            'txid': res['txid'],
-            'response_dict': res
-        }
+    # FIXME: Not working, receive 500 errors
+    # def sendrawtransaction(self, rawtx):
+    #     variables = {'tx': rawtx}
+    #     res = self.compose_request('push_tx', service_id='average4', variables=variables, method='post')
+    #     return {
+    #         'txid': res['txid'],
+    #         'response_dict': res
+    #     }

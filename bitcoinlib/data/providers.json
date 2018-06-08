@@ -258,5 +258,15 @@
     "api_key": "",
     "priority": 10,
     "denominator": 100000000
+  },
+  "litecoreio.litecoin": {
+    "provider": "litecoreio",
+    "network": "litecoin",
+    "client_class": "LitecoreIOClient",
+    "provider_coin_id": "",
+    "url": "https://insight.litecore.io/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000
   }
 }
