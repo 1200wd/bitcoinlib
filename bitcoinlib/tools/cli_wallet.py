@@ -78,8 +78,9 @@ def parse_args():
     group_wallet2.add_argument('--create-from-key', '-c', metavar='KEY',
                                help="Create a new wallet from specified key")
     group_wallet2.add_argument('--create-multisig', '-m', nargs='*',
-                               metavar=('NUMBER_OF_SIGNATURES', 'NUMBER_OF_SIGNATURES_REQUIRED', 'KEYS'),
-                               help='Specificy number of signatures followed by the number of signatures required and '
+                               metavar='.',
+                               help='[NUMBER_OF_SIGNATURES, NUMBER_OF_SIGNATURES_REQUIRED, [KEY1, KEY2, ... KEY3]]'
+                                    'Specificy number of signatures followed by the number of signatures required and '
                                     'then a list of public or private keys for this wallet. Private keys will be '
                                     'created if not provided in key list.'
                                     '\nExample, create a 2-of-2 multisig wallet and provide 1 key and create another '
