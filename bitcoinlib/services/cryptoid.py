@@ -103,7 +103,7 @@ class CryptoID(BaseClient):
         variables = {'t': tx_id}
         tx_api = self.compose_request('txinfo', path_type='api', variables=variables)
         for n, i in enumerate(t.inputs):
-            i.value = tx_api['inputs'][n]['amount']
+            i.value = int(round(tx_api['inputs'][n]['amount'] * self.units, 0))
         for n, o in enumerate(t.outputs):
             # TODO: Check if output is spent (still neccessary?)
             o.spent = None
@@ -123,7 +123,7 @@ class CryptoID(BaseClient):
         t.version = struct.pack('>L', tx['version'])
         t.input_total = int(round(tx_api['total_input'] * self.units, 0))
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
-        t.fee = int(round(tx_api['fees'] * self.units, 0))
+        t.fee = t.input_total - t.output_total
         return t
 
     def getrawtransaction(self, tx_id):
