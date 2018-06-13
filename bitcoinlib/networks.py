@@ -156,10 +156,10 @@ class Network:
         self.currency_name_plural = NETWORK_DEFINITIONS[network_name]['currency_name_plural']
         self.currency_code = NETWORK_DEFINITIONS[network_name]['currency_code']
         self.currency_symbol = NETWORK_DEFINITIONS[network_name]['currency_symbol']
+        self.description = NETWORK_DEFINITIONS[network_name]['description']
         self.prefix_address_p2sh = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address_p2sh'])
         self.prefix_address = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address'])
         self.prefix_hdkey_public = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_public'])
-        self.description = NETWORK_DEFINITIONS[network_name]['description']
         self.prefix_hdkey_private = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_private'])
         self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
         self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']

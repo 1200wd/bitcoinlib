@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -870,7 +870,7 @@ class HDKey:
         """
         return hashlib.new('ripemd160', hashlib.sha256(self.public_byte).digest()).digest()[:4]
 
-    def wif(self, public=None, child_index=None):
+    def wif(self, public=None, child_index=None, prefix=None):
         """
         Get Extended WIF of current key
         
@@ -882,19 +882,23 @@ class HDKey:
         :return str: Base58 encoded WIF key 
         """
         rkey = self.private_byte or self.public_byte
+        if prefix and not isinstance(prefix, (bytes, bytearray)):
+            prefix = binascii.unhexlify(prefix)
         if not self.isprivate and public is False:
             return ''
         if self.isprivate and not public:
-            raw = self.network.prefix_hdkey_private
+            if not prefix:
+                prefix = self.network.prefix_hdkey_private
             typebyte = b'\x00'
         else:
-            raw = self.network.prefix_hdkey_public
+            if not prefix:
+                prefix = self.network.prefix_hdkey_public
             typebyte = b''
             if public:
                 rkey = self.public_byte
         if child_index:
             self.child_index = child_index
-        raw += struct.pack('B', self.depth) + self.parent_fingerprint + \
+        raw = prefix + struct.pack('B', self.depth) + self.parent_fingerprint + \
             struct.pack('>L', self.child_index) + self.chain + typebyte + rkey
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
         ret = raw+chk

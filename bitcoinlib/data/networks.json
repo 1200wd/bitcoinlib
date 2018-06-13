@@ -27,6 +27,8 @@
     "prefix_wif": "80",
     "prefix_hdkey_private": "0488ADE4",
     "prefix_hdkey_public": "0488B21E",
+    "prefix_hdkey_segwit": "04B24746",
+    "prefix_hdkey_segwit_bech": "049D7CB2",
     "bip44_cointype": 0,
     "denominator": 0.00000001,
     "dust_amount": 1000
