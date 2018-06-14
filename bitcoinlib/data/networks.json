@@ -14,6 +14,9 @@
     "bip44_cointype": 9999999,
     "denominator": 0.00000001,
     "dust_amount": 1000
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 1000000
   },
   "bitcoin":
   {
@@ -31,8 +34,8 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": null,
-    "fee_min_kb": 1000,
-    "fee_max_kb": 1000000
+    "fee_min": 1000,
+    "fee_max": 1000000
   },
   "testnet":
   {
@@ -50,8 +53,8 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 10000,
-    "fee_min_kb": 5000,
-    "fee_max_kb": 2000000
+    "fee_min": 5000,
+    "fee_max": 2000000
   },
   "litecoin":
   {
@@ -67,7 +70,10 @@
     "prefix_hdkey_public": "019DA462",
     "bip44_cointype": 2,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 50000,
+    "fee_min": 1000,
+    "fee_max": 1000000
   },
   "litecoin_testnet":
   {
@@ -83,7 +89,10 @@
     "prefix_hdkey_public": "043587CF",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 50000,
+    "fee_min": 1000,
+    "fee_max": 1000000
   },
   "dash":
   {
@@ -99,7 +108,10 @@
     "prefix_hdkey_public": "02FE52CC",
     "bip44_cointype": 5,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 2000,
+    "fee_min": 1000,
+    "fee_max": 50000
   },
   "dash_testnet":
   {
@@ -115,6 +127,9 @@
     "prefix_hdkey_public": "3A805837",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 50000
   }
 }
