@@ -513,18 +513,28 @@ class Key:
         encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
         return change_base(encrypted_privkey, 256, 58)
 
-    def wif(self):
+    def wif(self, prefix=None):
         """
         Get Private Key in Wallet Import Format, steps:
         # Convert to Binary and add 0x80 hex
         # Calculate Double SHA256 and add as checksum to end of key
 
+        :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
+
         :return str: Base58Check encoded Private Key WIF
         """
         if not self.secret:
             raise KeyError("WIF format not supported for public key")
-        version = self.network.prefix_wif
-        key = version + change_base(self.secret, 10, 256, 32)
+        if prefix is None:
+            versionbyte = self.network.prefix_wif
+        else:
+            # TODO: Test bytearray
+            if not isinstance(prefix, (bytes, bytearray)):
+                versionbyte = binascii.unhexlify(prefix)
+            else:
+                versionbyte = prefix
+        key = versionbyte + change_base(self.secret, 10, 256, 32)
         if self.compressed:
             key += b'\1'
         key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
@@ -574,12 +584,14 @@ class Key:
             pb = self.public_uncompressed_byte
         return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
 
-    def address(self, compressed=None):
+    def address(self, compressed=None, prefix=None):
         """
         Get address derived from public key
         
         :param compressed: Always return compressed address
         :type compressed: bool
+        :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
         
         :return str: Base58 encoded address 
         """
@@ -587,18 +599,28 @@ class Key:
             key = self.public_byte
         else:
             key = self.public_uncompressed_byte
-        versionbyte = self.network.prefix_address
+        if prefix is None:
+            versionbyte = self.network.prefix_address
+        else:
+            # TODO: Test bytearray
+            if not isinstance(prefix, (bytes, bytearray)):
+                versionbyte = binascii.unhexlify(prefix)
+            else:
+                versionbyte = prefix
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key + checksum, 256, 58)
 
-    def address_uncompressed(self):
+    def address_uncompressed(self, prefix=None):
         """
         Get uncompressed address from public key
-        
+
+        :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
+
         :return str: Base58 encoded address 
         """
-        return self.address(compressed=False)
+        return self.address(compressed=False, prefix=prefix)
 
     def info(self):
         """
@@ -878,7 +900,9 @@ class HDKey:
         :type public: bool
         :param child_index: Change child index of output WIF key
         :type child_index: int
-        
+        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
+
         :return str: Base58 encoded WIF key 
         """
         rkey = self.private_byte or self.public_byte
@@ -904,13 +928,16 @@ class HDKey:
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
 
-    def wif_public(self):
+    def wif_public(self, prefix=None):
         """
         Get Extended WIF public key
+
+        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
         
         :return str: Base58 encoded WIF key
         """
-        return self.wif(public=True)
+        return self.wif(public=True, prefix=prefix)
 
     def subkey_for_path(self, path, network=None):
         """

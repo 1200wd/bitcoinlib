@@ -13,7 +13,7 @@
     "prefix_hdkey_public": "9488B21E",
     "bip44_cointype": 9999999,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
     "fee_default": 10000,
     "fee_min": 1000,
     "fee_max": 1000000
