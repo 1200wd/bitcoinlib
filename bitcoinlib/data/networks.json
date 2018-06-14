@@ -64,7 +64,7 @@
     "currency_symbol": "LTC",
     "currency_code": "LTC",
     "prefix_address": "30",
-    "prefix_address_p2sh": "05",
+    "prefix_address_p2sh": "32",
     "prefix_wif": "B0",
     "prefix_hdkey_private": "019D9CFE",
     "prefix_hdkey_public": "019DA462",

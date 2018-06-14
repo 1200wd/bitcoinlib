@@ -498,6 +498,13 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     return hrp + seperator + array_to_codestring(data, 'bech32') + array_to_codestring(checksum, 'bech32')
 
 
+def addr_convert(addr, prefix):
+    pkh = addr_to_pubkeyhash(addr)
+    if isinstance(prefix, str):
+        prefix = binascii.unhexlify(prefix)
+    return pubkeyhash_to_addr(pkh, versionbyte=prefix)
+
+
 def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False):
     """
     Decode bech32 / segwit address to public key hash
