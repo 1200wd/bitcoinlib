@@ -40,7 +40,8 @@ class ClientError(Exception):
 
 class BaseClient(object):
 
-    def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id=''):
+    def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
+                 network_overrides=None):
         try:
             self.network = network
             self.provider = provider
@@ -49,6 +50,9 @@ class BaseClient(object):
             self.units = denominator
             self.api_key = api_key
             self.provider_coin_id = provider_coin_id
+            self.network_overrides = {}
+            if network_overrides is not None:
+                self.network_overrides = network_overrides
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 

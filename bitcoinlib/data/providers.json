@@ -117,7 +117,8 @@
     "url": "https://api.blockcypher.com/v1/ltc/main/",
     "api_key": "",
     "priority": 10,
-    "denominator": 1
+    "denominator": 1,
+    "network_overrides": {"prefix_address_p2sh": "05"}
   },
   "blocktrail": {
     "provider": "blocktrail",

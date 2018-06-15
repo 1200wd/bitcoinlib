@@ -118,7 +118,8 @@ class Service(object):
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
                 pc_instance = providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
-                                             self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'])
+                                             self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
+                                             self.providers[sp]['network_overrides'])
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)

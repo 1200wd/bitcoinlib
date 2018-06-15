@@ -85,6 +85,8 @@ class BlockCypher(BaseClient):
     def gettransactions(self, addresslist, unspent_only=False):
         txs = []
         for address in addresslist:
+            from bitcoinlib.keys import deserialize_address
+            dsa = deserialize_address(address)
             res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
             if not isinstance(res, list):
                 res = [res]
