@@ -20,8 +20,9 @@
 
 import logging
 from datetime import datetime
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.encoding import to_hexstring
 
 PROVIDERNAME = 'blockcypher'
 
@@ -119,10 +120,19 @@ class BlockCypher(BaseClient):
         t.input_total = 0
         if t.coinbase:
             t.input_total = t.output_total
+        if len(t.inputs) != len(tx['inputs']):
+            raise ClientError("Invalid number of inputs provided. Raw tx: %d, blockcypher: %d" %
+                              (len(t.inputs), len(tx['inputs'])))
         for n, i in enumerate(t.inputs):
+            if not (tx['inputs'][n]['output_index'] == i.output_n_int and
+                        tx['inputs'][n]['prev_hash'] == to_hexstring(i.prev_hash)):
+                raise ClientError("Transaction inputs do not match raw transaction")
             if 'output_value' in tx['inputs'][n]:
                 i.value = tx['inputs'][n]['output_value']
                 t.input_total += i.value
+        if len(t.outputs) != len(tx['outputs']):
+            raise ClientError("Invalid number of outputs provided. Raw tx: %d, blockcypher: %d" %
+                              (len(t.outputs), len(tx['outputs'])))
         for n, o in enumerate(t.outputs):
             if 'spent_by' in tx['outputs'][n]:
                 o.spent = True
