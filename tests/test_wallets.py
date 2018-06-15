@@ -770,11 +770,11 @@ class TestWalletMultisig(unittest.TestCase):
         pk3 = HDKey.from_passphrase(phrase3, network=network)
         wallets = _open_all_wallets()
         for wlt in wallets:
-            self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
+            self.assertEqual(wlt.get_key().address, 'MBGjshtnbhKfkNhgBDdR1d1sFXyjcfkzPy')
         del wallets
         wallets2 = _open_all_wallets()
         for wlt in wallets2:
-            self.assertEqual(wlt.get_key().address, '354bZpUpeaUEwsRn5Le5BymTvqPHf9jZkS')
+            self.assertEqual(wlt.get_key().address, 'MBGjshtnbhKfkNhgBDdR1d1sFXyjcfkzPy')
             wlt._session.close_all()
 
     def test_wallet_multisig_network_mixups(self):
