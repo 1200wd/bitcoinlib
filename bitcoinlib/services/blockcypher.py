@@ -22,7 +22,7 @@ import logging
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import to_hexstring, addr_convert
 
 PROVIDERNAME = 'blockcypher'
 
@@ -86,7 +86,11 @@ class BlockCypher(BaseClient):
         txs = []
         for address in addresslist:
             from bitcoinlib.keys import deserialize_address
+            from bitcoinlib.networks import Network
             dsa = deserialize_address(address)
+            network = Network(self.network)
+            if 'prefix_address_p2sh' in self.network_overrides and dsa['script_type'] == 'p2sh':
+                address = addr_convert(address, self.network_overrides['prefix_address_p2sh'])
             res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
             if not isinstance(res, list):
                 res = [res]

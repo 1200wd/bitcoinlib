@@ -254,6 +254,7 @@ def deserialize_address(address):
         'address': address,
         'public_key_hash': change_base(public_key_hash, 256, 16),
         'public_key_hash_bytes': public_key_hash,
+        'prefix': address_prefix,
         'network': network,
         'script_type': script_type,
         'networks_p2sh': networks_p2sh,
