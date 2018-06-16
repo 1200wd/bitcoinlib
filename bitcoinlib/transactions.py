@@ -67,7 +67,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     :param rawtx: Raw transaction as String, Byte or Bytearray
     :type rawtx: str, bytes, bytearray
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
-    :type network: str
+    :type network: str, Network
 
     :return Transaction:
     """
@@ -83,7 +83,8 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     n_inputs, size = varbyteint_to_int(rawtx[cursor:cursor+9])
     cursor += size
     inputs = []
-
+    if not isinstance(network, Network):
+        network = Network(network)
     for n in range(0, n_inputs):
         inp_hash = rawtx[cursor:cursor + 32][::-1]
         if not len(inp_hash):
@@ -480,7 +481,7 @@ class Input:
         :param value: Input value
         :type value: int
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
         """
         self.prev_hash = to_bytes(prev_hash)
         self.output_n = output_n
@@ -505,7 +506,9 @@ class Input:
         else:
             self.sequence = struct.unpack('<I', sequence)[0]
         self.compressed = compressed
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.index_n = index_n
         self.value = value
         if keys is None:
@@ -667,7 +670,7 @@ class Output:
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
         :type lock_script: bytes, str
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
         """
         if not (address or public_key_hash or public_key or lock_script):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
@@ -678,7 +681,9 @@ class Output:
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
         self.public_key = to_bytes(public_key)
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address

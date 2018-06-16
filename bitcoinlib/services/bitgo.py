@@ -115,7 +115,7 @@ class BitGoClient(BaseClient):
         t.fee = tx['fee']
         t.rawtx = tx['hex']
         t.size = len(tx['hex']) // 2
-        t.network_name = self.network
+        t.network = self.network
         if t.coinbase:
             input_values = []
             t.input_total = t.output_total

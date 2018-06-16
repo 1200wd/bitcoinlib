@@ -2006,7 +2006,9 @@ class HDWallet:
                     del wk['_sa_instance_state']
             return wks
         else:
-            return [self.network.__dict__]
+            nw_dict = self.network.__dict__
+            nw_dict['network_name'] = nw_dict['name']
+            return [nw_dict]
 
     def network_list(self, field='network_name'):
         """
@@ -2886,7 +2888,7 @@ class HDWallet:
         balances = self._balance_update()
         if detail > 1:
             for nw in self.networks():
-                print("\n- NETWORK: %s -" % nw['network_name'])
+                print("\n- NETWORK: %s -" % nw['name'])
                 print("- - Keys")
                 if detail < 3:
                     ds = [0, 3, 5]
@@ -2896,7 +2898,7 @@ class HDWallet:
                     is_active = True
                     if detail > 3:
                         is_active = False
-                    for key in self.keys(depth=d, network=nw['network_name'], is_active=is_active):
+                    for key in self.keys(depth=d, network=nw['name'], is_active=is_active):
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
                                                               Network(key.network_name).print_value(key.balance)))
 
@@ -2904,10 +2906,10 @@ class HDWallet:
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    for account in self.accounts(network=nw['network_name']):
+                    for account in self.accounts(network=nw['name']):
                         print("\n- - Transactions (Account %d, %s)" % (account.account_id, account.key().wif_public()))
                         for t in self.transactions(include_new=include_new, account_id=account.account_id,
-                                                   network=nw['network_name']):
+                                                   network=nw['name']):
                             spent = ""
                             if 'spent' in t and t['spent'] is False:
                                 spent = "U"
