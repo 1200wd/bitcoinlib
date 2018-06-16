@@ -86,9 +86,7 @@ class BlockCypher(BaseClient):
         txs = []
         for address in addresslist:
             from bitcoinlib.keys import deserialize_address
-            from bitcoinlib.networks import Network
             dsa = deserialize_address(address)
-            network = Network(self.network)
             if 'prefix_address_p2sh' in self.network_overrides and dsa['script_type'] == 'p2sh':
                 address = addr_convert(address, self.network_overrides['prefix_address_p2sh'])
             res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
@@ -122,7 +120,7 @@ class BlockCypher(BaseClient):
         t.fee = tx['fees']
         t.rawtx = tx['hex']
         t.size = tx['size']
-        t.network_name = self.network
+        t.network = self.network
         t.input_total = 0
         if t.coinbase:
             t.input_total = t.output_total

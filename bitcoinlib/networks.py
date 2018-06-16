@@ -150,7 +150,7 @@ class Network:
     def __init__(self, network_name=DEFAULT_NETWORK):
         if network_name not in NETWORK_DEFINITIONS:
             raise NetworkError("Network %s not found in network definitions" % network_name)
-        self.network_name = network_name
+        self.name = network_name
 
         self.currency_name = NETWORK_DEFINITIONS[network_name]['currency_name']
         self.currency_name_plural = NETWORK_DEFINITIONS[network_name]['currency_name_plural']
@@ -174,7 +174,7 @@ class Network:
         #     exec("self.%s = NETWORK_DEFINITIONS[network_name]['%s']" % (f, f))
 
     def __repr__(self):
-        return "<Network: %s>" % self.network_name
+        return "<Network: %s>" % self.name
 
     def print_value(self, value):
         """

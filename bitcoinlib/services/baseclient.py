@@ -25,6 +25,7 @@ except ImportError:
     from urllib import urlencode
 import json
 from bitcoinlib.main import *
+from bitcoinlib.networks import Network
 
 _logger = logging.getLogger(__name__)
 
@@ -44,6 +45,8 @@ class BaseClient(object):
                  network_overrides=None):
         try:
             self.network = network
+            if not isinstance(network, Network):
+                self.network = Network(network)
             self.provider = provider
             self.base_url = base_url
             self.resp = None

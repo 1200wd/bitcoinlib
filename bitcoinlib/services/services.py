@@ -23,7 +23,7 @@ import logging
 import json
 import random
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
-from bitcoinlib.networks import DEFAULT_NETWORK
+from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib import services
 
 _logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ class Service(object):
         can specify a list of providers or a minimum or maximum number of providers.
 
         :param network: Specify network used
-        :type network: str
+        :type network: str, Network
         :param min_providers: Minimum number of providers to connect to. Default is 1. Use for instance to receive
         fee information from a number of providers and calculate the average fee.
         :type min_providers: int
@@ -65,6 +65,8 @@ class Service(object):
 
         """
         self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         if min_providers > max_providers:
             max_providers = min_providers
         try:
@@ -117,9 +119,10 @@ class Service(object):
             try:
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
-                pc_instance = providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
-                                             self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                                             self.providers[sp]['network_overrides'])
+                pc_instance = providerclient(
+                    self.network.name, self.providers[sp]['url'], self.providers[sp]['denominator'],
+                    self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
+                    self.providers[sp]['network_overrides'])
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)

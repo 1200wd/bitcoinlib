@@ -511,7 +511,7 @@ class HDWalletTransaction(Transaction):
 
     def __repr__(self):
         return "<HDWalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
-               (len(self.inputs), len(self.outputs), self.status, self.network.network_name)
+               (len(self.inputs), len(self.outputs), self.status, self.network.network.name)
 
     @classmethod
     def from_transaction(cls, hdwallet, t):
@@ -526,7 +526,7 @@ class HDWalletTransaction(Transaction):
         :return HDWalletClass:
         """
         return cls(hdwallet=hdwallet, inputs=t.inputs, outputs=t.outputs, locktime=t.locktime, version=t.version,
-                   network=t.network.network_name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size,
+                   network=t.network.name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size,
                    hash=t.hash, date=t.date, confirmations=t.confirmations, block_height=t.block_height,
                    block_hash=t.block_hash, input_total=t.input_total, output_total=t.output_total,
                    rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, verified=t.verified, flag=t.flag)
@@ -552,7 +552,7 @@ class HDWalletTransaction(Transaction):
                 if isinstance(priv_key, HDKey):
                     priv_key_list_arg.append(priv_key)
                 else:
-                    priv_key_list_arg.append(HDKey(priv_key, network=self.network.network_name))
+                    priv_key_list_arg.append(HDKey(priv_key, network=self.network.name))
         for ti in self.inputs:
             priv_key_list = deepcopy(priv_key_list_arg)
             for k in ti.keys:
@@ -560,7 +560,7 @@ class HDWalletTransaction(Transaction):
                     if isinstance(k, HDKey):
                         hdkey = k
                     else:
-                        hdkey = HDKey(k, network=self.network.network_name)
+                        hdkey = HDKey(k, network=self.network.name)
                     if hdkey not in priv_key_list:
                         priv_key_list.append(k)
                 elif self.hdwallet.cosigner:
@@ -569,7 +569,7 @@ class HDWalletTransaction(Transaction):
                     db_pk = self.hdwallet._session.query(DbKey).filter_by(public=k.public_hex, is_private=True). \
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.hdwallet.wallet_id])).first()
                     if db_pk:
-                        priv_key_list.append(HDKey(db_pk.wif, network=self.network.network_name))
+                        priv_key_list.append(HDKey(db_pk.wif, network=self.network.name))
             Transaction.sign(self, priv_key_list, ti.index_n, hash_type)
         self.verify()
         self.error = ""
@@ -596,7 +596,7 @@ class HDWalletTransaction(Transaction):
         if offline:
             return False
 
-        srv = Service(network=self.network.network_name)
+        srv = Service(network=self.network.name)
         res = srv.sendrawtransaction(self.raw_hex())
         if not res:
             self.error = "Cannot send transaction. %s" % srv.errors
@@ -621,7 +621,7 @@ class HDWalletTransaction(Transaction):
                     u.spent = True
 
             self.hdwallet._session.commit()
-            self.hdwallet._balance_update(network=self.network.network_name)
+            self.hdwallet._balance_update(network=self.network.name)
             return True
 
         return False
@@ -649,7 +649,7 @@ class HDWalletTransaction(Transaction):
             new_tx = DbTransaction(
                 wallet_id=self.hdwallet.wallet_id, hash=self.hash, block_height=self.block_height,
                 size=self.size, confirmations=self.confirmations, date=self.date, fee=self.fee, status=self.status,
-                input_total=self.input_total, output_total=self.output_total, network_name=self.network.network_name,
+                input_total=self.input_total, output_total=self.output_total, network_name=self.network.name,
                 raw=self.raw_hex(), block_hash=self.block_hash)
             sess.add(new_tx)
             sess.commit()
@@ -663,7 +663,7 @@ class HDWalletTransaction(Transaction):
             db_tx.status = self.status if self.status else db_tx.status
             db_tx.input_total = self.input_total if self.input_total else db_tx.input_total
             db_tx.output_total = self.output_total if self.output_total else db_tx.output_total
-            db_tx.network_name = self.network.network_name if self.network.network_name else db_tx.network_name
+            db_tx.network_name = self.network.name if self.network.name else db_tx.name
             sess.commit()
 
         assert tx_id
@@ -792,7 +792,7 @@ class HDWallet:
         if name.isdigit():
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
         if isinstance(key, HDKey):
-            network = key.network.network_name
+            network = key.network.name
         elif key:
             # If key consists of several words assume it is a passphrase and convert it to a HDKey object
             if len(key.split(" ")) > 1:
@@ -908,9 +908,9 @@ class HDWallet:
         if sort_keys:
             hdkey_list.sort(key=lambda x: x.public_byte)
         for cokey in hdkey_list:
-            if hdpm.network.network_name != cokey.network.network_name:
+            if hdpm.network.name != cokey.network.name:
                 raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
-                                  (cokey.wif(), cokey.network.network_name, network, hdpm.network.network_name))
+                                  (cokey.wif(), cokey.network.name, network, hdpm.network.name))
             scheme = 'bip44'
             wn = name + '-cosigner-%d' % co_id
             if cokey.key_type == 'single':
@@ -1088,7 +1088,7 @@ class HDWallet:
             network = kobj.network_name
             account_id = kobj.account_id
         if network is None:
-            network = self.network.network_name
+            network = self.network.name
             if account_id is None:
                 account_id = self.default_account_id
         qr = self._session.query(DbKey).\
@@ -1171,7 +1171,7 @@ class HDWallet:
         """
         assert isinstance(wallet_key, HDWalletKey)
         if not isinstance(private_key, HDKey):
-            private_key = HDKey(private_key, network=self.network.network_name)
+            private_key = HDKey(private_key, network=self.network.name)
         wallet_key.is_private = True
         wallet_key.wif = private_key.wif()
         wallet_key.private = private_key.private_hex
@@ -1203,7 +1203,7 @@ class HDWallet:
             raise WalletError("Current main key is not a valid BIP32 public account key")
         if self.main_key.wif != hdkey.account_key(purpose=self.purpose).wif_public():
             raise WalletError("This key does not correspond to current main account key")
-        if not (self.network.network_name == self.main_key.network.network_name == hdkey.network.network_name):
+        if not (self.network.name == self.main_key.network.name == hdkey.network.name):
             raise WalletError("Network of Wallet class, main account key and the imported private key must use "
                               "the same network")
 
@@ -1250,11 +1250,11 @@ class HDWallet:
             raise WalletError("Keys can only be imported to a BIP44 or Multisig type wallet, create a new wallet "
                               "instead")
         if isinstance(key, HDKey):
-            network = key.network.network_name
+            network = key.network.name
             hdkey = key
         else:
             if network is None:
-                network = check_network_and_key(key, default_network=self.network.network_name)
+                network = check_network_and_key(key, default_network=self.network.name)
                 if network not in self.network_list():
                     raise WalletError("Network %s not available in this wallet, please create an account for this "
                                       "network first." % network)
@@ -1362,7 +1362,7 @@ class HDWallet:
             )
             return newkey
         elif self.scheme == 'multisig':
-            if self.network.network_name != network:
+            if self.network.name != network:
                 raise WalletError("Multiple networks is currently not supported for multisig")
             if not self.multisig_n_required:
                 raise WalletError("Multisig_n_required not set, cannot create new key")
@@ -1621,7 +1621,7 @@ class HDWallet:
                               self.main_key.wif)
 
         if network is None:
-            network = self.network.network_name
+            network = self.network.name
 
         # Determine account_id and name
         if account_id is None:
@@ -1733,7 +1733,7 @@ class HDWallet:
         newkey = self._create_keys_from_path(
             parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
             account_id=account_id, change=change,
-            network=self.network.network_name, purpose=self.purpose, basepath=basepath, session=self._session)
+            network=self.network.name, purpose=self.purpose, basepath=basepath, session=self._session)
         return newkey
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
@@ -1963,7 +1963,7 @@ class HDWallet:
 
         """
         qr = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.network_name,
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.name,
                       account_id=account_id, depth=3).scalar()
         if not qr:
             raise WalletError("Account with ID %d not found in this wallet" % account_id)
@@ -2145,7 +2145,7 @@ class HDWallet:
                 lx = self._balances.index(bl_item[0])
                 self._balances[lx].update(bl)
 
-        self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.network_name])
+        self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.name])
 
         # Bulk update database
         self._session.bulk_update_mappings(DbKey, key_values)
@@ -2687,7 +2687,7 @@ class HDWallet:
 
         """
         if isinstance(t, Transaction):
-            rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.network_name)
+            rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.name)
         elif isinstance(t, dict):
             output_arr = []
             for o in t['outputs']:
@@ -2719,7 +2719,7 @@ class HDWallet:
 
         """
         if network is None:
-            network = self.network.network_name
+            network = self.network.name
         t_import = Transaction.import_raw(raw_tx, network=network)
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
         rt.verify()
@@ -2868,7 +2868,7 @@ class HDWallet:
         print(" Scheme                         %s" % self.scheme)
         if self.scheme == 'multisig':
             print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
-        print(" Main network                   %s" % self.network.network_name)
+        print(" Main network                   %s" % self.network.name)
 
         if self.scheme == 'multisig':
             print("\n= Multisig Public Account Keys =")
@@ -2949,7 +2949,7 @@ class HDWallet:
             'name': self.name,
             'owner': self._owner,
             'scheme': self.scheme,
-            'main_network': self.network.network_name,
+            'main_network': self.network.name,
             'main_balance': self.balance(),
             'main_balance_str': self.balance(as_string=True),
             'balances': self._balances,

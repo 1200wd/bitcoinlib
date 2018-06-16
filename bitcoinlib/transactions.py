@@ -699,9 +699,9 @@ class Output:
             else:
                 raise TransactionError("Could not determine script type of address %s" % self.address)
             self.public_key_hash = address_dict['public_key_hash_bytes']
-            if address_dict['network'] and self.network.network_name != address_dict['network']:
+            if address_dict['network'] and self.network.name != address_dict['network']:
                 raise TransactionError("Address (%s) is from different network then defined %s" %
-                                       (address_dict['network'], self.network.network_name))
+                                       (address_dict['network'], self.network.name))
         if not self.public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
 
@@ -774,7 +774,7 @@ class Transaction:
         :param rawtx: Raw transaction string
         :type rawtx: bytes, str
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
 
         :return Transaction:
          
@@ -887,7 +887,7 @@ class Transaction:
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
-               (len(self.inputs), len(self.outputs), self.status, self.network.network_name)
+               (len(self.inputs), len(self.outputs), self.status, self.network.name)
 
     def dict(self):
         """
@@ -904,7 +904,7 @@ class Transaction:
         return {
             'hash': self.hash,
             'date': self.date,
-            'network': self.network.network_name,
+            'network': self.network.name,
             'coinbase': self.coinbase,
             'flag': self.flag,
             'confirmations': self.confirmations,
@@ -931,7 +931,7 @@ class Transaction:
         """
         print("Transaction %s" % self.hash)
         print("Date: %s" % self.date)
-        print("Network: %s" % self.network.network_name)
+        print("Network: %s" % self.network.name)
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")
@@ -1199,7 +1199,7 @@ class Transaction:
             index_n = len(self.inputs)
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
-                  script_type=script_type, network=self.network.network_name, sequence=sequence, compressed=compressed,
+                  script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   signatures=signatures))
         return index_n
@@ -1243,7 +1243,7 @@ class Transaction:
             raise TransactionError("Output to %s must be more then zero" % to)
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
-                                   network=self.network.network_name))
+                                   network=self.network.name))
         return output_n
 
     def estimate_size(self, add_change_output=True):
