@@ -870,7 +870,9 @@ class Transaction:
         else:
             self.version = version
         self.locktime = locktime
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.coinbase = coinbase
         self.flag = flag
         self.fee = fee
