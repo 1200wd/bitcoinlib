@@ -30,8 +30,6 @@ SCRIPT_TYPES = {
     'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
     'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
-    'p2sh_p2wpkh': ['OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
-    'p2sh_p2wsh': ['OP_0', 'push_size', 'redeemscript'],
     'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
     'pubkey': ['signature', 'OP_CHECKSIG'],
@@ -184,7 +182,6 @@ def script_deserialize(script, script_types=None):
         data['number_of_sigs_n'] = 1
         data['number_of_sigs_m'] = 1
         found = True
-        push_size = 0
         for ch in ost:
             if cur >= len(script):
                 found = False
@@ -239,14 +236,6 @@ def script_deserialize(script, script_types=None):
                 data['number_of_sigs_m'] = data2['number_of_sigs_m']
                 data['number_of_sigs_n'] = data2['number_of_sigs_n']
                 cur = len(script)
-            elif ch == 'push_size':
-                push_size = int(cur_char)
-                data['redeemscript'] = script[cur + 1:]
-                if len(data['redeemscript']) != push_size:
-                    found = False
-                else:
-                    found = True
-                break
             elif ch == 'op_m':
                 if cur_char in OP_N_CODES:
                     data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
@@ -881,9 +870,7 @@ class Transaction:
         else:
             self.version = version
         self.locktime = locktime
-        self.network = network
-        if not isinstance(network, Network):
-            self.network = Network(network)
+        self.network = Network(network)
         self.coinbase = coinbase
         self.flag = flag
         self.fee = fee
