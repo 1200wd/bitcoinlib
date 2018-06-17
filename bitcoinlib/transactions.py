@@ -30,6 +30,8 @@ SCRIPT_TYPES = {
     'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
     'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
+    'p2sh_p2wpkh': ['script_size', 'OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
+    'p2sh_p2wsh': ['script_size', 'OP_0', 'push_size', 'redeemscript'],
     'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
     'pubkey': ['signature', 'OP_CHECKSIG'],
@@ -67,7 +69,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     :param rawtx: Raw transaction as String, Byte or Bytearray
     :type rawtx: str, bytes, bytearray
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
-    :type network: str
+    :type network: str, Network
 
     :return Transaction:
     """
@@ -83,7 +85,8 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     n_inputs, size = varbyteint_to_int(rawtx[cursor:cursor+9])
     cursor += size
     inputs = []
-
+    if not isinstance(network, Network):
+        network = Network(network)
     for n in range(0, n_inputs):
         inp_hash = rawtx[cursor:cursor + 32][::-1]
         if not len(inp_hash):
@@ -181,6 +184,7 @@ def script_deserialize(script, script_types=None):
         data['number_of_sigs_n'] = 1
         data['number_of_sigs_m'] = 1
         found = True
+        push_size = 0
         for ch in ost:
             if cur >= len(script):
                 found = False
@@ -235,6 +239,21 @@ def script_deserialize(script, script_types=None):
                 data['number_of_sigs_m'] = data2['number_of_sigs_m']
                 data['number_of_sigs_n'] = data2['number_of_sigs_n']
                 cur = len(script)
+            elif ch == 'script_size':
+                # TODO: Check if varbyteint's are used here
+                script_size, size = varbyteint_to_int(script[cur:cur + 9])
+                if script_size != len(script)-1:
+                    found = False
+                else:
+                    cur += size
+                    data['redeemscript'] = script[cur:]
+            elif ch == 'push_size':
+                push_size, size = varbyteint_to_int(script[cur:cur + 9])
+                if len(script[cur:]) - size != push_size:
+                    found = False
+                else:
+                    found = True
+                break
             elif ch == 'op_m':
                 if cur_char in OP_N_CODES:
                     data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
@@ -480,7 +499,7 @@ class Input:
         :param value: Input value
         :type value: int
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
         """
         self.prev_hash = to_bytes(prev_hash)
         self.output_n = output_n
@@ -505,7 +524,9 @@ class Input:
         else:
             self.sequence = struct.unpack('<I', sequence)[0]
         self.compressed = compressed
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.index_n = index_n
         self.value = value
         if keys is None:
@@ -604,6 +625,10 @@ class Input:
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
+        elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+            self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
+                                              versionbyte=self.network.prefix_address_p2sh)
+            print(self.address)
 
     def dict(self):
         """
@@ -667,7 +692,7 @@ class Output:
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
         :type lock_script: bytes, str
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
         """
         if not (address or public_key_hash or public_key or lock_script):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
@@ -678,7 +703,9 @@ class Output:
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
         self.public_key = to_bytes(public_key)
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
@@ -699,9 +726,9 @@ class Output:
             else:
                 raise TransactionError("Could not determine script type of address %s" % self.address)
             self.public_key_hash = address_dict['public_key_hash_bytes']
-            if address_dict['network'] and self.network.network_name != address_dict['network']:
+            if address_dict['network'] and self.network.name != address_dict['network']:
                 raise TransactionError("Address (%s) is from different network then defined %s" %
-                                       (address_dict['network'], self.network.network_name))
+                                       (address_dict['network'], self.network.name))
         if not self.public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
 
@@ -774,7 +801,7 @@ class Transaction:
         :param rawtx: Raw transaction string
         :type rawtx: bytes, str
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
 
         :return Transaction:
          
@@ -865,7 +892,9 @@ class Transaction:
         else:
             self.version = version
         self.locktime = locktime
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.coinbase = coinbase
         self.flag = flag
         self.fee = fee
@@ -887,7 +916,7 @@ class Transaction:
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
-               (len(self.inputs), len(self.outputs), self.status, self.network.network_name)
+               (len(self.inputs), len(self.outputs), self.status, self.network.name)
 
     def dict(self):
         """
@@ -904,7 +933,7 @@ class Transaction:
         return {
             'hash': self.hash,
             'date': self.date,
-            'network': self.network.network_name,
+            'network': self.network.name,
             'coinbase': self.coinbase,
             'flag': self.flag,
             'confirmations': self.confirmations,
@@ -931,7 +960,7 @@ class Transaction:
         """
         print("Transaction %s" % self.hash)
         print("Date: %s" % self.date)
-        print("Network: %s" % self.network.network_name)
+        print("Network: %s" % self.network.name)
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")
@@ -1199,7 +1228,7 @@ class Transaction:
             index_n = len(self.inputs)
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
-                  script_type=script_type, network=self.network.network_name, sequence=sequence, compressed=compressed,
+                  script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   signatures=signatures))
         return index_n
@@ -1243,7 +1272,7 @@ class Transaction:
             raise TransactionError("Output to %s must be more then zero" % to)
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
-                                   network=self.network.network_name))
+                                   network=self.network.name))
         return output_n
 
     def estimate_size(self, add_change_output=True):
