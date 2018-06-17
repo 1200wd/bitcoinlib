@@ -96,7 +96,6 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.fail("Only 1 or less service providers found, nothing to compare")
         for provider in srv.results:
             balance = srv.results[provider]
-            print(balance)
             if prev is not None and balance != prev:
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
             else:

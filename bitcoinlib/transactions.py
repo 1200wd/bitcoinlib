@@ -809,7 +809,7 @@ class Transaction:
         :param version: Version rules. Defaults to 1 in bytes 
         :type version: bytes, int
         :param network: Network, leave empty for default network
-        :type network: str
+        :type network: str, Network
         :param fee: Fee in smallest denominator (ie Satoshi) for complete transaction
         :type fee: int
         :param fee_per_kb: Fee in smallest denominator per kilobyte. Specify when exact transaction size is not known.
@@ -870,7 +870,9 @@ class Transaction:
         else:
             self.version = version
         self.locktime = locktime
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.coinbase = coinbase
         self.flag = flag
         self.fee = fee
