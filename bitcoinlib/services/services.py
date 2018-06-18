@@ -272,6 +272,6 @@ class Service(object):
         :return int: Fee in smallest network denominator (satoshi)
         """
         fee = self._provider_execute('estimatefee', blocks)
-        if not fee:
-            raise ServiceError("Could not estimate fee. Errors: %s" % self.errors)
+        # if not fee:
+        #     raise ServiceError("Could not estimate fee. Errors: %s" % self.errors)
         return fee
