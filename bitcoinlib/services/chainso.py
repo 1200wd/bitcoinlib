@@ -47,7 +47,7 @@ class ChainSo(BaseClient):
 
     def compose_request(self, function, data='', parameter='', variables=None, method='get'):
         url_path = function
-        url_path += '/' + NETWORKCODES[self.network]
+        url_path += '/' + NETWORKCODES[self.network.name]
         if data:
             url_path += '/' + data
         if parameter:
@@ -130,7 +130,7 @@ class ChainSo(BaseClient):
         t.date = datetime.fromtimestamp(tx['time'])
         t.rawtx = raw_tx
         t.size = tx['size']
-        t.network_name = self.network
+        t.network = self.network
         t.locktime = tx['locktime']
         t.input_total = input_total
         t.output_total = output_total

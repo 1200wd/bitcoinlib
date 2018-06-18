@@ -118,7 +118,7 @@ class CryptoID(BaseClient):
         t.confirmations = tx['confirmations']
         t.rawtx = tx['hex']
         t.size = tx['size']
-        t.network_name = self.network
+        t.network = self.network
         t.locktime = tx['locktime']
         t.version = struct.pack('>L', tx['version'])
         t.input_total = int(round(tx_api['total_input'] * self.units, 0))
