@@ -2675,8 +2675,12 @@ class HDWallet:
             transaction.outputs[on].key_id = ck.key_id
             amount_total_output += transaction.change
 
-        # TODO: Extra check for ridiculous fees
-        # if (amount_total_input - amount_total_output) > tr_size * MAXIMUM_FEE_PER_KB
+        if transaction.fee < self.network.fee_min:
+            raise WalletError("Fee of %d is lower then minimal network fee of %d" %
+                              (transaction.fee, self.network.fee_min))
+        elif transaction.fee > self.network.fee_max:
+            raise WalletError("Fee of %d is higher then maximum network fee of %d" %
+                              (transaction.fee, self.network.fee_max))
 
         return transaction
 

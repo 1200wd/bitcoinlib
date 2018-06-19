@@ -57,7 +57,7 @@ class ChainSo(BaseClient):
         if self.api_key:
             variables.update({'api_key': self.api_key})
         # Sleep for n seconds to avoid 429 errors
-        time.sleep(0.3)
+        time.sleep(1)
         return self.request(url_path, variables, method)
 
     def sendrawtransaction(self, rawtx):
