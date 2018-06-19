@@ -964,8 +964,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt = HDWallet.create('bcltestwlt', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        t = wlt.send_to(to_key.address, 99999500)
-        self.assertEqual(t.fee, 500)
+        t = wlt.send_to(to_key.address, 99992000)
+        self.assertEqual(t.fee, 8000)
         del wlt
 
     def test_wallet_transactions_send_update_utxos(self):

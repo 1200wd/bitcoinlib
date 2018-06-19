@@ -86,9 +86,9 @@ class BitcoinLibTestClient(BaseClient):
         :param blocks: Number of blocks
         :type blocks: int
 
-        :return int: Fee as 1000 // number of blocks
+        :return int: Fee as 100000 // number of blocks
         """
-        return 1000 // blocks
+        return 100000 // blocks
 
     def sendrawtransaction(self, rawtx):
         """
