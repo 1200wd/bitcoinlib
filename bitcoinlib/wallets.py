@@ -2663,12 +2663,12 @@ class HDWallet:
         else:
             transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
 
-        if transaction.change < 0:
-            raise WalletError("Total amount of outputs is greater then total amount of inputs")
         # Skip change if amount is smaller then the dust limit or estimated fee
-        if (fee_per_output and transaction.change < fee_per_output) or transaction.change < self.network.dust_amount:
+        if (fee_per_output and transaction.change < fee_per_output) or transaction.change <= self.network.dust_amount:
             transaction.fee += transaction.change
             transaction.change = 0
+        if transaction.change < 0:
+            raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
             ck = self.get_key(account_id=account_id, network=network, change=1)
             on = transaction.add_output(transaction.change, ck.address)
