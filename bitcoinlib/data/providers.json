@@ -295,5 +295,16 @@
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
+  },
+  "litecoreio.litecoin.testnet": {
+    "provider": "litecoreio",
+    "network": "litecoin_testnet",
+    "client_class": "LitecoreIOClient",
+    "provider_coin_id": "",
+    "url": "https://testnet.litecore.io/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
   }
 }
