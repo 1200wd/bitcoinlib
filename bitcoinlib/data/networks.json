@@ -75,6 +75,25 @@
     "fee_min": 1000,
     "fee_max": 1000000
   },
+  "litecoin_legacy":
+  {
+    "description": "Litecoin Legacy Network",
+    "currency_name": "litecoin",
+    "currency_name_plural": "litecoins",
+    "currency_symbol": "LTC",
+    "currency_code": "LTC",
+    "prefix_address": "30",
+    "prefix_address_p2sh": "05",
+    "prefix_wif": "B0",
+    "prefix_hdkey_private": "019D9CFE",
+    "prefix_hdkey_public": "019DA462",
+    "bip44_cointype": 2,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 50000,
+    "fee_min": 1000,
+    "fee_max": 1000000
+  },
   "litecoin_testnet":
   {
     "description": "Litecoin Test Network",
