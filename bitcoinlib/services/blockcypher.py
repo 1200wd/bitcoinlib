@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BlockCypher client
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@ import logging
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring, addr_convert
+from bitcoinlib.encoding import to_hexstring
 
 PROVIDERNAME = 'blockcypher'
 
@@ -85,10 +85,7 @@ class BlockCypher(BaseClient):
     def gettransactions(self, addresslist, unspent_only=False):
         txs = []
         for address in addresslist:
-            from bitcoinlib.keys import deserialize_address
-            dsa = deserialize_address(address)
-            if 'prefix_address_p2sh' in self.network_overrides and dsa['script_type'] == 'p2sh':
-                address = addr_convert(address, self.network_overrides['prefix_address_p2sh'])
+            address = self._address_convert(address)
             res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
             if not isinstance(res, list):
                 res = [res]

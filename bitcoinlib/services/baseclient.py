@@ -26,6 +26,8 @@ except ImportError:
 import json
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network
+from bitcoinlib.keys import deserialize_address
+from bitcoinlib.encoding import addr_convert
 
 _logger = logging.getLogger(__name__)
 
@@ -58,6 +60,12 @@ class BaseClient(object):
                 self.network_overrides = network_overrides
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
+
+    def _address_convert(self, address):
+        dsa = deserialize_address(address)
+        if 'prefix_address_p2sh' in self.network_overrides and dsa['script_type'] == 'p2sh':
+            return addr_convert(address, self.network_overrides['prefix_address_p2sh'])
+        return address
 
     def request(self, url_path, variables=None, method='get'):
         url_vars = ''

@@ -206,7 +206,7 @@
     "api_key": "",
     "priority": 9,
     "denominator": 100000000,
-    "network_overrides": null
+    "network_overrides": {"prefix_address_p2sh": "05"}
   },
     "chainso.dash": {
     "provider": "chainso",
