@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BlockTrail client
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -28,26 +28,16 @@ from bitcoinlib.transactions import Transaction
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'chainso'
-NETWORKCODES = {
-    'bitcoin': 'BTC',
-    'testnet': 'BTCTEST',
-    'dash': 'DASH',
-    'dash_testnet': 'DASHTEST',
-    'litecoin': 'LTC',
-    'litecoin_testnet': 'LTCTEST'
-}
 
 
 class ChainSo(BaseClient):
 
-    # def __init__(self, network, base_url, denominator, api_key=''):
-    #     super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def compose_request(self, function, data='', parameter='', variables=None, method='get'):
         url_path = function
-        url_path += '/' + NETWORKCODES[self.network.name]
+        url_path += '/' + self.provider_coin_id
         if data:
             url_path += '/' + data
         if parameter:

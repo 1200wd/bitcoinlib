@@ -46,7 +46,8 @@ class BlockCypher(BaseClient):
         return self.request(url_path, variables, method)
 
     def getbalance(self, addresslist):
-        addresses = ';'.join(addresslist)
+        addresslist = self._addresslist_convert(addresslist)
+        addresses = ';'.join([a.address_provider for a in addresslist])
         res = self.compose_request('addrs', addresses, 'balance')
         balance = 0.0
         if not isinstance(res, list):
