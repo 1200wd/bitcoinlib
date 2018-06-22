@@ -55,6 +55,7 @@ class BlockCypher(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
+        addresslist = self._addresses_convert(addresslist)
         return self._address_transactions(addresslist, unspent_only=True)
 
     def _address_transactions(self, addresslist, unspent_only=False):

@@ -61,11 +61,16 @@ class BaseClient(object):
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
+    def _addresses_convert(self, address_list):
+        conv_addr_list = []
+        for address in address_list:
+            conv_addr_list.append(self._address_convert(address))
+        return conv_addr_list
+
     def _address_convert(self, address):
         dsa = deserialize_address(address)
         if 'prefix_address_p2sh' in self.network_overrides and dsa['script_type'] == 'p2sh':
             return addr_convert(address, self.network_overrides['prefix_address_p2sh'])
-        return address
 
     def request(self, url_path, variables=None, method='get'):
         url_vars = ''
