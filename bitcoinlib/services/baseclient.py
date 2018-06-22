@@ -91,10 +91,7 @@ class BaseClient(object):
 
     def _addresslist_convert(self, addresslist):
         addresslist_class = []
-        provider_prefix = None
-        if 'prefix_address_p2sh' in self.network_overrides:
-            provider_prefix = self.network_overrides['prefix_address_p2sh']
         for addr in addresslist:
             if not isinstance(addr, Address):
-                addresslist_class.append(Address(addr, provider_prefix))
+                addresslist_class.append(Address(addr, self.network_overrides))
         return addresslist_class

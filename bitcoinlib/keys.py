@@ -267,7 +267,7 @@ class Address:
     Class to store, convert and analyse various address types as representation of public keys
     """
 
-    def __init__(self, address, provider_prefix=None):
+    def __init__(self, address, network_overrides=None):
         addr_dict = deserialize_address(address)
         self.address = address
         self.public_key_hash = addr_dict['public_key_hash']
@@ -278,6 +278,9 @@ class Address:
         self.networks_p2sh = addr_dict['networks_p2sh']
         self.networks_p2pkh = addr_dict['networks_p2pkh']
         self.address_provider = address
+        provider_prefix = None
+        if 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
+            provider_prefix = network_overrides['prefix_address_p2sh']
         if provider_prefix:
             self.address_provider = addr_convert(address, provider_prefix)
 

@@ -321,7 +321,8 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.gettransactions(address)
         for provider in srv.results:
             res = srv.results[provider]
-            t = [r for r in res if r.hash == tx_hash][0]
+            txs = [r for r in res if r.hash == tx_hash]
+            t = txs[0]
 
             # Compare transaction
             if t.block_height:

@@ -1255,9 +1255,9 @@ class HDWallet:
         else:
             if network is None:
                 network = check_network_and_key(key, default_network=self.network.name)
-                if network not in self.network_list():
-                    raise WalletError("Network %s not available in this wallet, please create an account for this "
-                                      "network first." % network)
+            if network not in self.network_list():
+                raise WalletError("Network %s not available in this wallet, please create an account for this "
+                                  "network first." % network)
 
             hdkey = HDKey(key, network=network, key_type=key_type)
 

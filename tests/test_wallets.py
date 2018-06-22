@@ -190,7 +190,7 @@ class TestWalletImport(unittest.TestCase):
         self.assertRaisesRegexp(WalletError,
                                 "Network litecoin not available in this wallet, please create an account "
                                 "for this network first.",
-                                w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
+                                w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp', network='litecoin')
 
 
 class TestWalletKeys(unittest.TestCase):
