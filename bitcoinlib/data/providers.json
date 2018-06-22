@@ -264,6 +264,17 @@
     "denominator": 100000000,
     "network_overrides": null
   },
+  "cryptoid.litecoin.legacy": {
+    "provider": "cryptoid",
+    "network": "litecoin_legacy",
+    "client_class": "CryptoID",
+    "provider_coin_id": "ltc",
+    "url": "https://chainz.cryptoid.info/",
+    "api_key": "35fbf1a5e6dc",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": {"prefix_address_p2sh": "32"}
+  },
   "cryptoid.dash": {
     "provider": "cryptoid",
     "network": "dash",
@@ -318,6 +329,17 @@
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
+  },
+  "litecoreio.litecoin.legacy": {
+    "provider": "litecoreio",
+    "network": "litecoin_legacy",
+    "client_class": "LitecoreIOClient",
+    "provider_coin_id": "",
+    "url": "https://insight.litecore.io/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": {"prefix_address_p2sh": "32"}
   },
   "litecoreio.litecoin.testnet": {
     "provider": "litecoreio",

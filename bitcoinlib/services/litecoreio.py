@@ -36,12 +36,14 @@ class LitecoreIOClient(BaseClient):
         return self.request(url_path, variables, method=method)
 
     def getutxos(self, addresslist):
-        addresses = ','.join(addresslist)
+        addresslist = self._addresslist_convert(addresslist)
+        addresses = ';'.join([a.address_provider for a in addresslist])
         res = self.compose_request('addrs', addresses, 'utxo')
         txs = []
         for tx in res:
+            address = [x.address for x in addresslist if x.address_provider == tx['address']][0]
             txs.append({
-                'address': tx['address'],
+                'address': address,
                 'tx_hash': tx['txid'],
                 'confirmations': tx['confirmations'],
                 'output_n': tx['vout'],
@@ -84,17 +86,18 @@ class LitecoreIOClient(BaseClient):
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
-            address = ''
-            try:
-                address = to['scriptPubKey']['addresses'][0]
-            except ValueError:
-                pass
-            t.add_output(value=value, address=address, lock_script=to['scriptPubKey']['hex'],
+            # address = ''
+            # try:
+            #     address = to['scriptPubKey']['addresses'][0]
+            # except ValueError:
+            #     pass
+            t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
     def gettransactions(self, addresslist):
-        addresses = ','.join(addresslist)
+        addresslist = self._addresslist_convert(addresslist)
+        addresses = ';'.join([a.address_provider for a in addresslist])
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
         for tx in res['items']:
@@ -107,8 +110,9 @@ class LitecoreIOClient(BaseClient):
 
     def getbalance(self, addresslist):
         balance = 0
-        for address in addresslist:
-            res = self.compose_request('addr', address, 'balance')
+        addresslist = self._addresslist_convert(addresslist)
+        for a in addresslist:
+            res = self.compose_request('addr', a.address_provider, 'balance')
             balance += res
         return balance
 

@@ -53,22 +53,24 @@ class CryptoID(BaseClient):
 
     def getbalance(self, addresslist):
         balance = 0.0
-        for address in addresslist:
-            res = self.compose_request('getbalance', variables={'a': address})
+        addresslist = self._addresslist_convert(addresslist)
+        for a in addresslist:
+            res = self.compose_request('getbalance', variables={'a': a.address_provider})
             balance += float(res)
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
         utxos = []
-        for address in addresslist:
-            variables = {'active': address}
+        addresslist = self._addresslist_convert(addresslist)
+        for a in addresslist:
+            variables = {'active': a.address_provider}
             res = self.compose_request('unspent', variables=variables)
             if len(res['unspent_outputs']) > 29:
                 _logger.warning("CryptoID: Large number of outputs for address %s, "
-                                "UTXO list may be incomplete" % address)
+                                "UTXO list may be incomplete" % a.address)
             for utxo in res['unspent_outputs']:
                 utxos.append({
-                    'address': address,
+                    'address': a.address,
                     'tx_hash': utxo['tx_hash'],
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['tx_output_n'] if 'tx_output_n' in utxo else utxo['tx_ouput_n'],
@@ -83,7 +85,8 @@ class CryptoID(BaseClient):
         return utxos
 
     def gettransactions(self, addresslist):
-        addresses = "|".join(addresslist)
+        addresslist = self._addresslist_convert(addresslist)
+        addresses = "|".join([a.address_provider for a in addresslist])
         txs = []
         tx_ids = []
         variables = {'active': addresses, 'n': 100}
