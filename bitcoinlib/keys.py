@@ -279,7 +279,7 @@ class Address:
         self.networks_p2pkh = addr_dict['networks_p2pkh']
         self.address_provider = address
         provider_prefix = None
-        if 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
+        if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
             provider_prefix = network_overrides['prefix_address_p2sh']
         if provider_prefix:
             self.address_provider = addr_convert(address, provider_prefix)

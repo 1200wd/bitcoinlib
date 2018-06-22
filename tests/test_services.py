@@ -402,3 +402,17 @@ class TestService(unittest.TestCase, CustomAssertions):
             print("Comparing provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
+
+    def test_network_litecoin_legacy(self):
+        txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'
+        address = 'LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG'
+        srv = Service(network='litecoin_legacy')
+
+        tx = srv.gettransaction(txid)
+        self.assertEqual(tx.inputs[0].address, '3HbvJBjPxJ1wGYHiUJBkfmZziZohzhQhmy')
+
+        balance = srv.getbalance(address)
+        self.assertEqual(balance, 1080900000)
+
+        utxos = srv.getutxos(address)
+        self.assertIn(txid, [utxo['tx_hash'] for utxo in utxos])

@@ -466,5 +466,18 @@ class TestKeysBulk(unittest.TestCase):
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
 
 
+class TestKeysAddress(unittest.TestCase):
+    """
+    Tests for Address class. Address format, conversion and representation
+
+    """
+
+    def test_keys_address_import_conversion(self):
+        address_legacy = '3LPrWmWj1pYPEs8dGsPtWfmg2E9LhL5BHj'
+        address = 'MSbzpevgxwPp3NQXNkPELK25Lvjng7DcBk'
+        ac = Address(address_legacy, {"prefix_address_p2sh": "32"})
+        self.assertEqual(ac.address_provider, address)
+
+
 if __name__ == '__main__':
     unittest.main()
