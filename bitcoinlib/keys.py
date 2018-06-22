@@ -34,7 +34,7 @@ from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError
+from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -260,6 +260,26 @@ def deserialize_address(address):
         'networks_p2sh': networks_p2sh,
         'networks_p2pkh': networks_p2pkh
     }
+
+
+class Address:
+    """
+    Class to store, convert and analyse various address types as representation of public keys
+    """
+
+    def __init__(self, address, provider_prefix=None):
+        addr_dict = deserialize_address(address)
+        self.address = address
+        self.public_key_hash = addr_dict['public_key_hash']
+        self.public_key_hash_bytes = addr_dict['public_key_hash_bytes']
+        self.address_prefix = addr_dict['prefix']
+        self.network = addr_dict['network']
+        self.script_type = addr_dict['script_type']
+        self.networks_p2sh = addr_dict['networks_p2sh']
+        self.networks_p2pkh = addr_dict['networks_p2pkh']
+        self.address_provider = address
+        if provider_prefix:
+            self.address_provider = addr_convert(address, provider_prefix)
 
 
 class Key:

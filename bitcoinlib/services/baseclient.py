@@ -26,8 +26,7 @@ except ImportError:
 import json
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network
-from bitcoinlib.keys import deserialize_address
-from bitcoinlib.encoding import addr_convert
+from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
 
@@ -61,17 +60,6 @@ class BaseClient(object):
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
-    def _addresses_convert(self, address_list):
-        conv_addr_list = []
-        for address in address_list:
-            conv_addr_list.append(self._address_convert(address))
-        return conv_addr_list
-
-    def _address_convert(self, address):
-        dsa = deserialize_address(address)
-        if 'prefix_address_p2sh' in self.network_overrides and dsa['script_type'] == 'p2sh':
-            return addr_convert(address, self.network_overrides['prefix_address_p2sh'])
-
     def request(self, url_path, variables=None, method='get'):
         url_vars = ''
         url = self.base_url + url_path
@@ -100,3 +88,13 @@ class BaseClient(object):
             return json.loads(self.resp.text)
         except json.decoder.JSONDecodeError:
             return self.resp.text
+
+    def _addresslist_convert(self, addresslist):
+        addresslist_class = []
+        provider_prefix = None
+        if 'prefix_address_p2sh' in self.network_overrides:
+            provider_prefix = self.network_overrides['prefix_address_p2sh']
+        for addr in addresslist:
+            if not isinstance(addr, Address):
+                addresslist_class.append(Address(addr, provider_prefix))
+        return addresslist_class

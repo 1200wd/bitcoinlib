@@ -23,6 +23,7 @@ from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.keys import Address
 
 PROVIDERNAME = 'blockcypher'
 
@@ -55,17 +56,17 @@ class BlockCypher(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
-        addresslist = self._addresses_convert(addresslist)
+        addresslist = self._addresslist_convert(addresslist)
         return self._address_transactions(addresslist, unspent_only=True)
 
     def _address_transactions(self, addresslist, unspent_only=False):
-        addresses = ';'.join(addresslist)
+        addresses = ';'.join([a.address_provider for a in addresslist])
         res = self.compose_request('addrs', addresses, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
         transactions = []
         if not isinstance(res, list):
             res = [res]
         for a in res:
-            address = a['address']
+            address = [x.address for x in addresslist if x.address_provider == a['address']][0]
             if 'txrefs' not in a:
                 continue
             if len(a['txrefs']) > 500:
@@ -85,13 +86,14 @@ class BlockCypher(BaseClient):
 
     def gettransactions(self, addresslist, unspent_only=False):
         txs = []
+        addresslist = self._addresslist_convert(addresslist)
         for address in addresslist:
-            address = self._address_convert(address)
-            res = self.compose_request('addrs', address, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
+            res = self.compose_request('addrs', address.address_provider,
+                                       variables={'unspentOnly': int(unspent_only), 'limit': 2000})
             if not isinstance(res, list):
                 res = [res]
             for a in res:
-                address = a['address']
+                address = [x.address for x in addresslist if x.address_provider == a['address']][0]
                 if 'txrefs' not in a:
                     continue
                 if len(a['txrefs']) > 500:
