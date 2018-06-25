@@ -21,6 +21,7 @@ import bitcoinlib.services.baseclient
 import bitcoinlib.services.authproxy
 import bitcoinlib.services.bitcoinlibtest
 import bitcoinlib.services.bitcoind
+import bitcoinlib.services.litecoind
 import bitcoinlib.services.blockexplorer
 import bitcoinlib.services.bitgo
 import bitcoinlib.services.coinfees
