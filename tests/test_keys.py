@@ -184,6 +184,12 @@ class TestPublicKeyConversion(unittest.TestCase):
         self.assertRaisesRegexp(BKeyError, "Unrecognised key format",
                                 Key, ['064781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5', 'public'])
 
+    def test_litecoin_private_key(self):
+        KC_LTC = Key('0bc295d0b20b0e2ff6ab2c4982583d4f84936a17689aaca031a803dcf4a3b139', network='litecoin')
+        self.assertEqual(KC_LTC.wif(), 'T3SqWmDzttRHnfypMorvRgPpG48UH1ZE7apvoLUGTDidKtf3Ts2u')
+        self.assertEqual(KC_LTC.address(), 'LeA97dLDPrjRsPhwrQJxUWJUPErGo516Ct')
+        self.assertEqual(KC_LTC.public_hex, '02967b4671563ceeab16f22c36605d97fbf254fadba0fa48f75c03f27d11584f92')
+
 
 class TestPublicKeyUncompressed(unittest.TestCase):
 
@@ -368,6 +374,16 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
                         'ZoY5eSJMJ2Vbyvi2hbmQnCuHBujZ2WXGTux1X2k9Krdtq')
         self.assertEqual('xprv9wTErTSu5AWGkDeUPmqBcbZWX1xq85ZNX9iQRQW9DXwygFp7iRGJo79dsVctcsCHsnZ3XU3DhsuaGZbDh8iDkB'
                          'N45k67UKsJUXM1JfRCdn1', str(self.k2.subkey_for_path('3/2H').wif()))
+
+    def test_hdkey_litecoin(self):
+        k = HDKey('Ltpv71G8qDifUiNetj2H4no6Q4oB8o2eUH8tSU2BsJDGyKTyMJ6ejPDXHWtQeTzKQdEeEexxyw3vSAYtxnAz3qYZc'
+                  '59jfTiqHLzjKkwJ9iDJ1uC', network='litecoin')
+        print(k.info())
+        self.assertEqual('LWsiwZnGg74CFHEaLPzfASxktrzDYYSwvM', k.child_public(0).key.address())
+        self.assertEqual('LfH72Fgeikvhu1y5rtMAkQ5SS5aJJUafLX', k.child_public(100).key.address())
+        self.assertEqual('T65a5dNtdayWp9F638f8fokiyixCA4fhyzb7FWFYXjejqjaxKRSc', k.child_private(6).key.wif())
+        self.assertEqual('Ltpv75tiiksDF3fUqK8jkAfwY1h3zDLs3oCFQa5wXDNh981n6LDJZ6juFWUJwwkN3pKbr3diSdMkZfYAhwhkhjP9qG'
+                         'wviSbMXtEJYxoH2m3FbDQ', str(k.subkey_for_path('3H/1').wif()))
 
 
 class TestHDKeys(unittest.TestCase):

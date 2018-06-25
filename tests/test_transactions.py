@@ -1081,7 +1081,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.utxo_prev_tx = 'f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df49453e'
         self.utxo_output_n = 1
 
-    def test_transactions_multisig_signature_redeemscript_mixup(self):
+    def test_transaction_multisig_signature_redeemscript_mixup(self):
         pk1 = HDKey('tprv8ZgxMBicQKsPen95zTdorkDGPi4jHy9xBf4TdVxrB1wTJgSKCZbHpWhmaTGoRXHj2dJRcJQhRkV22Mz3uhg9nThjGLA'
                     'JKzrPuZXPmFUgQ42')
         pk2 = HDKey('tprv8ZgxMBicQKsPdhv4GxyNcfNK1Wka7QEnQ2c8DNdRL5z3hzf7ufUYNW14fgArjFvLtyg5xmPrkpx6oGBo2dquPf5inH6'
@@ -1176,3 +1176,19 @@ class TestTransactionsMultisig(unittest.TestCase):
                     sigs_required=2)
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')
         self.assertEqual(t.estimate_size(), 333)
+
+    def test_transaction_multisig_litecoin(self):
+        pk1 = HDKey(network='litecoin')
+        pk2 = HDKey(network='litecoin')
+        pk3 = HDKey(network='litecoin')
+        t = Transaction(network='litecoin')
+        t.add_input(self.utxo_prev_tx, self.utxo_output_n,
+                    [pk1.public_byte, pk2.public_byte, pk3.public_byte],
+                    script_type='p2sh_multisig', sigs_required=2)
+
+        t.add_output(100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
+
+        t.sign(pk1)
+        self.assertFalse(t.verify())
+        t.sign(pk3)
+        self.assertTrue(t.verify())

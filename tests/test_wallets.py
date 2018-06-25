@@ -102,6 +102,13 @@ class TestWalletCreate(unittest.TestCase):
         key0 = wlt.get_key()
         self.assertEqual(key0.address, "mqDeXXaFnWKNWhLmAae7zHhZDW4PMsLHPp")
 
+    def test_wallet_create_with_passphrase_litecoin(self):
+        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
+        wlt = HDWallet.create("wallet-passphrase", key=passphrase, network='litecoin',
+                              databasefile=DATABASEFILE_UNITTESTS)
+        keys = wlt.get_key(number_of_keys=5)
+        self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
+
 
 class TestWalletImport(unittest.TestCase):
 
@@ -278,7 +285,7 @@ class TestWalletElectrum(unittest.TestCase):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
         cls.pk = 'xprv9s21ZrQH143K2fuscnMTwUadsPqEbYdFQVJ1uWPawUYi7C485NHhCiotGy6Kz3Cz7ReVr65oXNwhREZ8ePrz8p7zy' \
-                  'Hra82D1EGS7cQQmreK'
+                 'Hra82D1EGS7cQQmreK'
         cls.wallet = HDWallet.create(
             key=cls.pk,
             name='test_wallet_electrum',
