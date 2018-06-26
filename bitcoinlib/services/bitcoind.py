@@ -23,6 +23,7 @@ from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'bitcoind'
