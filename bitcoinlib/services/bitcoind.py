@@ -18,9 +18,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from datetime import datetime
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.transactions import Transaction
 
 
 PROVIDERNAME = 'bitcoind'
@@ -124,6 +126,23 @@ class BitcoindClient(BaseClient):
     def getrawtransaction(self, txid):
         res = self.proxy.getrawtransaction(txid)
         return res
+
+    def gettransaction(self, txid):
+        tx = self.proxy.getrawtransaction(txid, 1)
+        t = Transaction.import_raw(tx['hex'])
+        t.confirmations = tx['confirmations']
+        if t.confirmations:
+            t.status = 'confirmed'
+            t.verified = True
+        for i in t.inputs:
+            txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+            value = int(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
+            i.value = value
+        t.block_hash = tx['blockhash']
+        t.version = tx['version']
+        t.date = datetime.fromtimestamp(tx['blocktime'])
+        t.update_totals()
+        return t
 
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
