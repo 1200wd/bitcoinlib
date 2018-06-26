@@ -107,7 +107,7 @@ class DashdClient(BaseClient):
         :type: str
         :param base_url: Connection URL in format http(s)://user:password@host:port.
         :type: str
-        :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for bitcoin
+        :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for Dash
         :type: str
         """
         if not base_url:
@@ -130,7 +130,7 @@ class DashdClient(BaseClient):
 
     def gettransaction(self, txid):
         tx = self.proxy.getrawtransaction(txid, 1)
-        t = Transaction.import_raw(tx['hex'])
+        t = Transaction.import_raw(tx['hex'], network='dash')
         t.confirmations = tx['confirmations']
         if t.confirmations:
             t.status = 'confirmed'
@@ -167,7 +167,8 @@ if __name__ == '__main__':
 
     from pprint import pprint
 
-    bdc = BitcoindClient()
+    base_url = 'http://dashrpcuser:passwd@host:9998'
+    bdc = DashdClient(base_url=base_url)
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getnetworkinfo())
@@ -185,7 +186,7 @@ if __name__ == '__main__':
     print("Mempool Size %d" % len(rmp))
 
     print("\n=== Raw Transaction by txid ===")
-    t = bdc.getrawtransaction('7eb5332699644b753cd3f5afba9562e67612ea71ef119af1ac46559adb69ea0d')
+    t = bdc.getrawtransaction('c3d2a934ef8eb9b2291d113b330b9244c1521ef73df0a4b04c39e851112f01af')
     pprint(t)
 
     print("\n=== Current network fees ===")

@@ -167,7 +167,8 @@ if __name__ == '__main__':
 
     from pprint import pprint
 
-    bdc = LitecoindClient()
+    base_url = 'http://litecoin:passwd@host:9432'
+    bdc = LitecoindClient(base_url=base_url)
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getnetworkinfo())
@@ -185,7 +186,7 @@ if __name__ == '__main__':
     print("Mempool Size %d" % len(rmp))
 
     print("\n=== Raw Transaction by txid ===")
-    t = bdc.getrawtransaction('7eb5332699644b753cd3f5afba9562e67612ea71ef119af1ac46559adb69ea0d')
+    t = bdc.getrawtransaction('a351153c3c87ada887ef7f28d3e3adec0f94a619be4b9f160f0128f977b85262')
     pprint(t)
 
     print("\n=== Current network fees ===")

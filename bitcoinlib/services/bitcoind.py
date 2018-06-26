@@ -167,7 +167,8 @@ if __name__ == '__main__':
 
     from pprint import pprint
 
-    bdc = BitcoindClient()
+    base_url = 'http://bitcoinrpc:passwd@host:8332'
+    bdc = BitcoindClient(base_url=base_url)
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getnetworkinfo())
