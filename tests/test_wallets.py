@@ -104,7 +104,7 @@ class TestWalletCreate(unittest.TestCase):
 
     def test_wallet_create_with_passphrase_litecoin(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("wallet-passphrase", key=passphrase, network='litecoin',
+        wlt = HDWallet.create("wallet-passphrase-litecoin", key=passphrase, network='litecoin',
                               databasefile=DATABASEFILE_UNITTESTS)
         keys = wlt.get_key(number_of_keys=5)
         self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")

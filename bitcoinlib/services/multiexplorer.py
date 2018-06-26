@@ -43,34 +43,35 @@ class MultiexplorerClient(BaseClient):
             variables.update({'include_raw': None})
         return self.request(url_path, variables, method=method)
 
-    def getbalance(self, addresslist):
-        balance = 0
-        for address in addresslist:
-            variables = {'address': address}
-            res = self.compose_request('address_balance', variables=variables)
-            balance += res['balance']
-        return int(balance * self.units)
+    # Disabled: returns different denominated values
+    # def getbalance(self, addresslist):
+    #     balance = 0
+    #     for address in addresslist:
+    #         variables = {'address': address}
+    #         res = self.compose_request('address_balance', variables=variables)
+    #         balance += res['balance']
+    #     return int(balance)
 
-    def getutxos(self, addresslist):
-        txs = []
-        for address in addresslist:
-            variables = {'address': address}
-            res = self.compose_request('unspent_outputs', variables=variables)
-            for tx in res['utxos']:
-                txs.append({
-                    'address': address,
-                    'tx_hash': tx['txid'],
-                    'confirmations': tx['confirmations'],
-                    'output_n': tx['vout'],
-                    'input_n': None,
-                    'block_height': None,
-                    'fee': None,
-                    'size': 0,
-                    'value': tx['amount'],
-                    'script': tx['scriptPubKey'],
-                    'date': None,
-                })
-        return txs
+    # def getutxos(self, addresslist):
+    #     txs = []
+    #     for address in addresslist:
+    #         variables = {'address': address}
+    #         res = self.compose_request('unspent_outputs', variables=variables)
+    #         for tx in res['utxos']:
+    #             txs.append({
+    #                 'address': address,
+    #                 'tx_hash': tx['txid'],
+    #                 'confirmations': tx['confirmations'],
+    #                 'output_n': tx['vout'],
+    #                 'input_n': None,
+    #                 'block_height': None,
+    #                 'fee': None,
+    #                 'size': 0,
+    #                 'value': tx['amount'],
+    #                 'script': tx['scriptPubKey'],
+    #                 'date': None,
+    #             })
+    #     return txs
 
     # def gettransaction(self, tx_id):
     #     variables = {'txid': tx_id, 'include_raw': 'true'}
