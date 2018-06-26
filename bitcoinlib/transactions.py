@@ -1300,3 +1300,14 @@ class Transaction:
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
         return int(len(self.raw())/1024.0 * self.fee_per_kb)
+
+    def update_totals(self):
+        """
+        Update input_total, output_total and fee according to inputs and outputs of this transaction
+
+        :return int:
+        """
+
+        self.input_total = sum([i.value for i in self.inputs])
+        self.output_total = sum([o.value for o in self.outputs])
+        self.fee = self.input_total - self.output_total

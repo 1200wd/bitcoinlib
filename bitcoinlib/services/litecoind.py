@@ -142,9 +142,7 @@ class LitecoindClient(BaseClient):
         t.block_hash = tx['blockhash']
         t.version = tx['version']
         t.date = datetime.fromtimestamp(tx['blocktime'])
-        print(t.info())
-        # from pprint import pprint
-        # pprint(tx)
+        t.update_totals()
         return t
 
     def sendrawtransaction(self, rawtx):
