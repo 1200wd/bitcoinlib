@@ -440,7 +440,8 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.utxos_update()
         self.assertEqual(len(w.utxos()), 2)
-        w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 1)
+        t = w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 10000)
+        self.assertTrue(t.pushed)
 
     def test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee(self):
         w = HDWallet.create(
@@ -910,7 +911,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
             'value': 8970937
         }]
         wlt.utxos_update(utxos=utxos)
-        t = wlt.transaction_create([('n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN', 100)], fee=5000)
+        t = wlt.transaction_create([('n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN', 1000)], fee=5000)
         t.sign()
         self.assertTrue(t.verify())
         del wlt
