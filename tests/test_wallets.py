@@ -1015,3 +1015,11 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
                                 wlt.send_to, to_key.address, 50000000, fee=500)
         self.assertRaisesRegexp(WalletError, 'Fee of 1000001 is higher then maximum network fee of 1000000',
                                 wlt.send_to, to_key.address, 50000000, fee=1000001)
+
+    def test_wallet_transaction_fee_zero_problem(self):
+        wlt = HDWallet.create(name='bcltestwlt6', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        nk = wlt.get_key()
+        wlt.utxos_update()
+        t = wlt.send_to(nk.address, 100000000)
+        self.assertTrue(t.pushed)
+        self.assertNotEqual(t.fee, 0)
