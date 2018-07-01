@@ -862,7 +862,7 @@ class Transaction:
         if fee is None and output_total and input_total:
             fee = input_total - output_total
             if fee <= 0:
-                raise TransactionError("Transaction inputs total value must be greater then total value of "
+                raise TransactionError("Transaction inputs total value must be greater than total value of "
                                        "transaction outputs")
 
         if isinstance(version, int):
@@ -1246,8 +1246,8 @@ class Transaction:
             output_n = len(self.outputs)
         if not float(value).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
-        if value < 0:
-            raise TransactionError("Output to %s must be more then zero" % to)
+        if value < self.network.dust_amount:
+            raise TransactionError("Output to %s must be greater than dust amount %d" % (to, self.network.dust_amount))
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    network=self.network.name))

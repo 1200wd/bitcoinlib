@@ -1103,7 +1103,7 @@ class HDKey:
 
         key = change_base(key, 256, 10)
         if key > secp256k1_n:
-            raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
+            raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
         newkey = (key + self.secret) % secp256k1_n
         if newkey == 0:
             raise BKeyError("Key cannot be zero. Try another index number.")
@@ -1126,12 +1126,12 @@ class HDKey:
         if network is None:
             network = self.network.name
         if index > 0x80000000:
-            raise BKeyError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
+            raise BKeyError("Cannot derive hardened key from public private key. Index must be less than 0x80000000")
         data = self.public_byte + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
         key = change_base(key, 256, 10)
         if key > secp256k1_n:
-            raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
+            raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
         x, y = self.key.public_point()
         Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
