@@ -19,6 +19,7 @@
 #
 
 from datetime import datetime
+import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
@@ -137,10 +138,12 @@ class BitcoindClient(BaseClient):
             t.verified = True
         for i in t.inputs:
             txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            value = int(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
+            value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
             i.value = value
+        for o in t.outputs:
+            o.spent = None
         t.block_hash = tx['blockhash']
-        t.version = tx['version']
+        t.version = struct.pack('>L', tx['version'])
         t.date = datetime.fromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
