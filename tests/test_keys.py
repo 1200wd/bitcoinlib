@@ -506,7 +506,8 @@ class TestKeysDash(unittest.TestCase):
         pk = 'xprv9s21ZrQH143K3cq8ueA8GV9uv7cHqkyQGBQu8YZkAU2EXG5oSKVFeQnYK25zhHEEqqjfyTFEcV5enh6vh4tFA3FvdGuWAqPqvY' \
              'ECNLB78mV'
         k = HDKey(pk, network='dash')
-        self.assertEqual(k.account_key().key.address(), 'XmBERJW5Y5eBK6VzYLBhkMLMataTEKBVnE')
+        self.assertEqual(k.account_key().wif(), 'xprv9ySHTHmm4KdkKa2RV2zuSmVUAPNynEvkrCDVa95Js9StLECY2RjuxNpHKaVfA2h'
+                                                'njob5Zumx1kTg3MhQPsZf7W5h8aEM61AMSqz1zVWjt4Q')
 
 
 if __name__ == '__main__':
