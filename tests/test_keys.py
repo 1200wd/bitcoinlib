@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
-#    © 2018 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2018 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -59,16 +59,6 @@ class TestGetKeyFormat(unittest.TestCase):
               '9P3tLd7BLT'
         self.assertEqual('hdkey_private', get_key_format(key)['format'])
         self.assertListEqual(['litecoin_testnet', 'testnet'], sorted(get_key_format(key)['networks']))
-
-    def test_format_wif_compressed_private_dash(self):
-        key = 'XH2Yndjv6Ks3XEHGaSMDhUMTAMZTTWv5nEN958Y7VMyQXBCJVQmM'
-        self.assertEqual('wif_compressed', get_key_format(key)['format'])
-        self.assertEqual(['dash'], get_key_format(key)['networks'])
-
-    def test_format_wif_private_dash(self):
-        key = '7rrHic4Nzr8iMSfaSFMSXvKgTb7Sw3FHwevGsnD2vYwU5btpXRT'
-        self.assertEqual('wif', get_key_format(key)['format'])
-        self.assertEqual(['dash'], get_key_format(key)['networks'])
 
 
 class TestPrivateKeyConversions(unittest.TestCase):
@@ -493,6 +483,30 @@ class TestKeysAddress(unittest.TestCase):
         address = 'MSbzpevgxwPp3NQXNkPELK25Lvjng7DcBk'
         ac = Address(address_legacy, {"prefix_address_p2sh": "32"})
         self.assertEqual(ac.address_provider, address)
+
+
+class TestKeysDash(unittest.TestCase):
+    def test_format_wif_compressed_private_dash(self):
+        key = 'XH2Yndjv6Ks3XEHGaSMDhUMTAMZTTWv5nEN958Y7VMyQXBCJVQmM'
+        self.assertEqual('wif_compressed', get_key_format(key)['format'])
+        self.assertEqual(['dash'], get_key_format(key)['networks'])
+
+    def test_format_wif_private_dash(self):
+        key = '7rrHic4Nzr8iMSfaSFMSXvKgTb7Sw3FHwevGsnD2vYwU5btpXRT'
+        self.assertEqual('wif', get_key_format(key)['format'])
+        self.assertEqual(['dash'], get_key_format(key)['networks'])
+
+    def test_dash_private_key(self):
+        KC_DASH = Key('000ece5e695793773007ac225a21fd570aa10f64d4da7ba29e6eabb0e34aae6b', network='dash_testnet')
+        self.assertEqual(KC_DASH.wif(), 'cMapAmsnHr2UZ2ZCjZZfRru8dS9PLjYjTVjbnrR7suqducfQNYnX')
+        self.assertEqual(KC_DASH.address(), 'ya3XLrAqfHFTFEZvDno9kv3MHREzHQzQMq')
+        self.assertEqual(KC_DASH.public_hex, '02d092ed110b2d127c160ef1d72dc158fa96a3d32b41b9680ea6ef35e194bbc83e')
+
+    def test_hdkey_bip44_account_dash(self):
+        pk = 'xprv9s21ZrQH143K3cq8ueA8GV9uv7cHqkyQGBQu8YZkAU2EXG5oSKVFeQnYK25zhHEEqqjfyTFEcV5enh6vh4tFA3FvdGuWAqPqvY' \
+             'ECNLB78mV'
+        k = HDKey(pk, network='dash')
+        self.assertEqual(k.account_key().key.address(), 'XmBERJW5Y5eBK6VzYLBhkMLMataTEKBVnE')
 
 
 if __name__ == '__main__':
