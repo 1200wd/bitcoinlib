@@ -58,7 +58,7 @@ class TestGetKeyFormat(unittest.TestCase):
         key = 'tprv8ZgxMBicQKsPdnMVMhgfNHXF1PkuAoUNECLe71vmEdi7R6yWRm7dcaDwxu9rrb8NoYzjT7uZinv6N34gCNHtyfYCoQy68krxf' \
               '9P3tLd7BLT'
         self.assertEqual('hdkey_private', get_key_format(key)['format'])
-        self.assertListEqual(['litecoin_testnet', 'testnet'], sorted(get_key_format(key)['networks']))
+        self.assertIn('litecoin_testnet', get_key_format(key)['networks'])
 
 
 class TestPrivateKeyConversions(unittest.TestCase):
