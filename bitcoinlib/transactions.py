@@ -703,10 +703,15 @@ class Output:
                 self.script_type = address_dict['script_type']
             else:
                 raise TransactionError("Could not determine script type of address %s" % self.address)
-            self.public_key_hash = address_dict['public_key_hash_bytes']
+            network_guesses = address_dict['networks_p2pkh'] + address_dict['networks_p2sh']
             if address_dict['network'] and self.network.name != address_dict['network']:
                 raise TransactionError("Address (%s) is from different network then defined %s" %
                                        (address_dict['network'], self.network.name))
+            elif self.network.name not in network_guesses:
+                raise TransactionError("Network for output address %s is different from transaction network. %s not "
+                                       "in %s" % (self.address, self.network.name, network_guesses))
+            self.public_key_hash = address_dict['public_key_hash_bytes']
+
         if not self.public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
 

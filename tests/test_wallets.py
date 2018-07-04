@@ -364,7 +364,8 @@ class TestWalletMultiCurrency(unittest.TestCase):
         self.assertIn(address_ltc, addresses_ltc_in_wallet)
 
     def test_wallet_multiple_networks_import_error(self):
-        pk_dashtest = 'YXsfembHRwpatrAVUGY8MBUuKwhUDf9EEWeZwGoEfE5appg5rLjSfZ1GwoaNB5DgUZ2aVuU1ezmg7zDefubuWkZ17et5oKoMgKnjvAZ6a4Yn2QZg'
+        pk_dashtest = 'YXsfembHRwpatrAVUGY8MBUuKwhUDf9EEWeZwGoEfE5appg5rLjSfZ1GwoaNB5DgUZ2aVuU1ezmg7zDefubuWkZ17et5o' \
+                      'KoMgKnjvAZ6a4Yn2QZg'
         error_str = "Network bitcoinlib_test not available in this wallet, please create an account for this network " \
                     "first."
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
@@ -745,7 +746,7 @@ class TestWalletMultisig(unittest.TestCase):
                                           databasefile=DATABASEFILE_UNITTESTS)
         wallet.new_key()
         wallet.utxos_update()
-        wt = wallet.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
+        wt = wallet.send_to('21A6yyUPRL9hZZo1Rw4qP5G6h9idVVLUncE', 10000000)
         self.assertFalse(wt.verify())
         wt.sign(hdkey)
         self.assertTrue(wt.verify())
@@ -828,7 +829,7 @@ class TestWalletKeyImport(unittest.TestCase):
                                       databasefile=DATABASEFILE_UNITTESTS) as wlt:
             wlt.new_key()
             wlt.utxos_update()
-            wt = wlt.send_to('n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', 10000000)
+            wt = wlt.send_to('21A6yyUPRL9hZZo1Rw4qP5G6h9idVVLUncE', 10000000)
             wt.sign(hdkey)
             wt.send()
             self.assertIsNone(wt.error)

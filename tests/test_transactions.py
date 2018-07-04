@@ -1015,6 +1015,12 @@ class TestTransactionsScriptType(unittest.TestCase):
         self.assertEqual(
             to_hexstring(ds['keys'][0]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
 
+    def test_transaction_sendto_wrong_address(self):
+        t = Transaction(network='bitcoin')
+        self.assertRaisesRegexp(TransactionError, 'Network for output address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is '
+                                                  'different from transaction network',
+                                t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
@@ -1178,15 +1184,32 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.assertEqual(t.estimate_size(), 333)
 
     def test_transaction_multisig_litecoin(self):
-        pk1 = HDKey(network='litecoin')
-        pk2 = HDKey(network='litecoin')
-        pk3 = HDKey(network='litecoin')
-        t = Transaction(network='litecoin')
+        network = 'litecoin'
+        pk1 = HDKey(network=network)
+        pk2 = HDKey(network=network)
+        pk3 = HDKey(network=network)
+        t = Transaction(network=network)
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [pk1.public_byte, pk2.public_byte, pk3.public_byte],
                     script_type='p2sh_multisig', sigs_required=2)
 
         t.add_output(100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
+
+        t.sign(pk1)
+        self.assertFalse(t.verify())
+        t.sign(pk3)
+        self.assertTrue(t.verify())
+
+    def test_transaction_multisig_dash(self):
+        network = 'dash'
+        pk1 = HDKey(network=network)
+        pk2 = HDKey(network=network)
+        pk3 = HDKey(network=network)
+        t = Transaction(network=network)
+        t.add_input(self.utxo_prev_tx, self.utxo_output_n,
+                    [pk1.public_byte, pk2.public_byte, pk3.public_byte],
+                    script_type='p2sh_multisig', sigs_required=2)
+        t.add_output(100000, 'XwZcTpBnRRURenL7Jh9Z52XGTx1jhvecUt')
 
         t.sign(pk1)
         self.assertFalse(t.verify())
