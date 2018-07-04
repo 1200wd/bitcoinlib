@@ -319,10 +319,10 @@ class TestWalletMultiCurrency(unittest.TestCase):
     def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        cls.pk = 'dHHM83S1ptYryy3ZeV6Q8zQBT9NvqiSjUMJPwf6xg2CdaFLiHbyzsCSeP9FG1wzbsPVY9VtC85VsWoFvU9z1S4GzqwDBh' \
-                  'CawMAogXrUh2KgVahL'
+        cls.pk = 'xprv9s21ZrQH143K4478MENLXpSXSvJSRYsjD2G3sY7s5sxAGubyujDmt9Qzfd1me5s1HokWGGKW9Uft8eB9dqryybAcFZ5JAs' \
+                 'rg84jAVYwKJ8c'
         cls.wallet = HDWallet.create(
-            key=cls.pk,
+            key=cls.pk, network='dash',
             name='test_wallet_multicurrency',
             databasefile=DATABASEFILE_UNITTESTS)
 
@@ -333,6 +333,7 @@ class TestWalletMultiCurrency(unittest.TestCase):
         cls.wallet.new_key()
         cls.wallet.new_key()
         cls.wallet.new_key(network='bitcoin')
+        cls.wallet.info()
 
     @classmethod
     def tearDownClass(cls):
@@ -352,7 +353,7 @@ class TestWalletMultiCurrency(unittest.TestCase):
     def test_wallet_multiple_networks_import_key(self):
         pk_bitcoin = 'xprv9s21ZrQH143K3RBvuNbSwpAHxXuPNWMMPfpjuX6ciwo91HpYq6gDLjZuyrQCPpo4qBDXyvftN7MdX7SBVXeGgHs' \
                      'TijeHZLLgnukZP8dDkjC'
-        res = self.wallet.import_key(pk_bitcoin)
+        res = self.wallet.import_key(pk_bitcoin, network='bitcoin')
         self.assertEqual(res.address, '1Hhyezo3XUC1BYpwLmp2AueWWw26xgXq7B')
 
     def test_wallet_multiple_networks_import_key_network(self):
@@ -363,9 +364,8 @@ class TestWalletMultiCurrency(unittest.TestCase):
         self.assertIn(address_ltc, addresses_ltc_in_wallet)
 
     def test_wallet_multiple_networks_import_error(self):
-        pk_dashtest = 'DRKVrRjogj3bNiLD8V9398hVVqqxi5NzhNJBLX3bfc9UdX77NxaNeMksf3ybsXSUJLh44TC9FCDkQfxAEyX924VJgK' \
-                      'J5xeeM2agqru6DGAXRyMSW'
-        error_str = "Network dash_testnet not available in this wallet, please create an account for this network " \
+        pk_dashtest = 'YXsfembHRwpatrAVUGY8MBUuKwhUDf9EEWeZwGoEfE5appg5rLjSfZ1GwoaNB5DgUZ2aVuU1ezmg7zDefubuWkZ17et5oKoMgKnjvAZ6a4Yn2QZg'
+        error_str = "Network bitcoinlib_test not available in this wallet, please create an account for this network " \
                     "first."
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
 

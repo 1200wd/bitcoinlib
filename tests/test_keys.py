@@ -496,6 +496,12 @@ class TestKeysDash(unittest.TestCase):
         self.assertEqual('wif', get_key_format(key)['format'])
         self.assertEqual(['dash'], get_key_format(key)['networks'])
 
+    def test_format_hdkey_private_dash(self):
+        key = 'xprv9s21ZrQH143K3D4pKs8hj46ixU3T2vPsdmfMsoYjytd15C84SoRRkXebFFb3o4j6R5srg7btramafwcfdiibf2CWqMJLEX6jL2' \
+              'YUrLR7VfS'
+        self.assertEqual('hdkey_private', get_key_format(key)['format'])
+        self.assertIn('dash', get_key_format(key)['networks'])
+
     def test_dash_private_key(self):
         KC_DASH = Key('000ece5e695793773007ac225a21fd570aa10f64d4da7ba29e6eabb0e34aae6b', network='dash_testnet')
         self.assertEqual(KC_DASH.wif(), 'cMapAmsnHr2UZ2ZCjZZfRru8dS9PLjYjTVjbnrR7suqducfQNYnX')
@@ -508,6 +514,15 @@ class TestKeysDash(unittest.TestCase):
         k = HDKey(pk, network='dash')
         self.assertEqual(k.account_key().wif(), 'xprv9ySHTHmm4KdkKa2RV2zuSmVUAPNynEvkrCDVa95Js9StLECY2RjuxNpHKaVfA2h'
                                                 'njob5Zumx1kTg3MhQPsZf7W5h8aEM61AMSqz1zVWjt4Q')
+
+    def test_hdkey_dash(self):
+        k = HDKey('xprv9s21ZrQH143K4EGnYMHVxNp8JgqXCyywC3CGTrSzSudH3iRgC1gPTYgce4xamXMnyDAX8Qv8tvuW1LEgkZSrXiC25LqTJN'
+                  '8RpCKS5ixcQWD', network='dash')
+        self.assertEqual('XkQ9Vudjgq62pvuG9K7pknVbiViZzZjWkJ', k.child_public(0).key.address())
+        self.assertEqual('XtqfKEcdtn1QioGRie41uP79gGC6yPzmnz', k.child_public(100).key.address())
+        self.assertEqual('XEYoxQJvhuXCXMpUFjf9knkJrFeE3mYp9mbFXG6mR3EK2Vvzi8vA', k.child_private(6).key.wif())
+        self.assertEqual('xprv9wZJLyzHEFzD3w3uazhGhbytbsVbrHQ5Spc7qkuwsPqUQo2VTxhpyoYRGD7o1T4AKZkfjGrWHtHrS4GUkBxzUH'
+                         'ozuqu8c2n3d7sjbmyPdFC', str(k.subkey_for_path('3H/1').wif()))
 
 
 if __name__ == '__main__':
