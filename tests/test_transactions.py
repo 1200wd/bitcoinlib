@@ -1192,9 +1192,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_input(self.utxo_prev_tx, self.utxo_output_n,
                     [pk1.public_byte, pk2.public_byte, pk3.public_byte],
                     script_type='p2sh_multisig', sigs_required=2)
-
         t.add_output(100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
-
         t.sign(pk1)
         self.assertFalse(t.verify())
         t.sign(pk3)
@@ -1210,7 +1208,6 @@ class TestTransactionsMultisig(unittest.TestCase):
                     [pk1.public_byte, pk2.public_byte, pk3.public_byte],
                     script_type='p2sh_multisig', sigs_required=2)
         t.add_output(100000, 'XwZcTpBnRRURenL7Jh9Z52XGTx1jhvecUt')
-
         t.sign(pk1)
         self.assertFalse(t.verify())
         t.sign(pk3)

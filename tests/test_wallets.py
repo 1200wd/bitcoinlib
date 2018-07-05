@@ -1025,3 +1025,58 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = wlt.send_to(nk.address, 100000000)
         self.assertTrue(t.pushed)
         self.assertNotEqual(t.fee, 0)
+
+
+class TestWalletDash(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(DATABASEFILE_UNITTESTS)
+
+    def test_wallet_create_with_passphrase_dash(self):
+        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
+        wlt = HDWallet.create("wallet-passphrase-litecoin", key=passphrase, network='dash',
+                              databasefile=DATABASEFILE_UNITTESTS)
+        keys = wlt.get_key(number_of_keys=5)
+        self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
+
+    def test_wallet_import_litecoin(self):
+        accountkey = 'Ltpv71G8qDifUiNet6mn25D7GPAVLZeaFRWzDABxx5xNeigVpFEviHK1ZggPS1kbtegB3U2i8w6ToNfM5sdvEQPW' \
+                     'tov4KWyQ5NxWUd3oDWXQb4C'
+        wallet_import = HDWallet.create(
+            databasefile=DATABASEFILE_UNITTESTS,
+            name='test_wallet_litecoin',
+            key=accountkey,
+            network='litecoin')
+        newkey = wallet_import.new_key()
+        self.assertEqual(wallet_import.main_key.wif, accountkey)
+        self.assertEqual(newkey.address, u'LPkJcpV1cmT8qLFmUApySBtxt7UWavoQmh')
+        self.assertEqual(newkey.path, "m/44'/2'/0'/0/0")
+
+    def test_wallet_multisig_sign_with_external_single_key(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        network = 'bitcoinlib_test'
+        words = 'square innocent drama'
+        seed = Mnemonic().to_seed(words, 'password')
+        hdkey = HDKey.from_seed(seed, network=network)
+        hdkey.key_type = 'single'
+
+        key_list = [
+            HDKey(network=network).account_multisig_key().public(),
+            HDKey(network=network),
+            hdkey.public()
+        ]
+        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, network=network,
+                                          databasefile=DATABASEFILE_UNITTESTS)
+        wallet.new_key()
+        wallet.utxos_update()
+        wt = wallet.send_to('21A6yyUPRL9hZZo1Rw4qP5G6h9idVVLUncE', 10000000)
+        self.assertFalse(wt.verify())
+        wt.sign(hdkey)
+        self.assertTrue(wt.verify())
