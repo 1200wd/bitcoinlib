@@ -1043,7 +1043,7 @@ class TestWalletDash(unittest.TestCase):
         wlt = HDWallet.create("wallet-passphrase-litecoin", key=passphrase, network='dash',
                               databasefile=DATABASEFILE_UNITTESTS)
         keys = wlt.get_key(number_of_keys=5)
-        self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
+        self.assertEqual(keys[4].address, "XhxXcRvTm4yZZzbH4MYz2udkdHWEMMf9GM")
 
     def test_wallet_import_dash(self):
         accountkey = 'xprv9yQgG6Z38AXWuhkxScDCkLzThWWZgDKHKinMHUAPTH1uihrBWQw99sWBsN2HMpzeTze1YEYb8acT1x7sHKhXX8AbT' \
