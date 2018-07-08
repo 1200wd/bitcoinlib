@@ -1045,38 +1045,44 @@ class TestWalletDash(unittest.TestCase):
         keys = wlt.get_key(number_of_keys=5)
         self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
 
-    def test_wallet_import_litecoin(self):
-        accountkey = 'Ltpv71G8qDifUiNet6mn25D7GPAVLZeaFRWzDABxx5xNeigVpFEviHK1ZggPS1kbtegB3U2i8w6ToNfM5sdvEQPW' \
-                     'tov4KWyQ5NxWUd3oDWXQb4C'
-        wallet_import = HDWallet.create(
+    def test_wallet_import_dash(self):
+        accountkey = 'xprv9yQgG6Z38AXWuhkxScDCkLzThWWZgDKHKinMHUAPTH1uihrBWQw99sWBsN2HMpzeTze1YEYb8acT1x7sHKhXX8AbT' \
+                     'GNf8tdbycySUi2fRaa'
+        wallet = HDWallet.create(
             databasefile=DATABASEFILE_UNITTESTS,
-            name='test_wallet_litecoin',
+            name='test_wallet_import_dash',
             key=accountkey,
-            network='litecoin')
-        newkey = wallet_import.new_key()
-        self.assertEqual(wallet_import.main_key.wif, accountkey)
-        self.assertEqual(newkey.address, u'LPkJcpV1cmT8qLFmUApySBtxt7UWavoQmh')
-        self.assertEqual(newkey.path, "m/44'/2'/0'/0/0")
+            network='dash')
+        newkey = wallet.new_key()
+        self.assertEqual(wallet.main_key.wif, accountkey)
+        self.assertEqual(newkey.address, u'XtVa6s1rqo9BNXir1tb6KEXsj5NGogp1QB')
+        self.assertEqual(newkey.path, "m/44'/%d'/0'/0/0" % wallet.network.bip44_cointype)
 
-    def test_wallet_multisig_sign_with_external_single_key(self):
+    def test_wallet_multisig_dash(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
-        network = 'bitcoinlib_test'
-        words = 'square innocent drama'
-        seed = Mnemonic().to_seed(words, 'password')
-        hdkey = HDKey.from_seed(seed, network=network)
-        hdkey.key_type = 'single'
+        network = 'dash'
+        pk1 = HDKey(network=network)
+        pk2 = HDKey(network=network)
+        wl1 = HDWallet.create_multisig('multisig_test_wallet1',
+                                       [pk1.wif(), pk2.subkey_for_path("m/45'/5'/0'").wif_public()],
+                                       sigs_required=2, network=network, databasefile=DATABASEFILE_UNITTESTS)
+        wl2 = HDWallet.create_multisig('multisig_test_wallet2',
+                                       [pk1.subkey_for_path("m/45'/5'/0'").wif_public(), pk2.wif()],
+                                       sigs_required=2, network=network, databasefile=DATABASEFILE_UNITTESTS)
+        wl1_key = wl1.new_key()
+        wl2_key = wl2.new_key()
+        self.assertEqual(wl1_key.address, wl2_key.address)
 
-        key_list = [
-            HDKey(network=network).account_multisig_key().public(),
-            HDKey(network=network),
-            hdkey.public()
-        ]
-        wallet = HDWallet.create_multisig('Multisig-2-of-3-example', key_list, 2, network=network,
-                                          databasefile=DATABASEFILE_UNITTESTS)
-        wallet.new_key()
-        wallet.utxos_update()
-        wt = wallet.send_to('21A6yyUPRL9hZZo1Rw4qP5G6h9idVVLUncE', 10000000)
-        self.assertFalse(wt.verify())
-        wt.sign(hdkey)
-        self.assertTrue(wt.verify())
+    def test_wallet_import_private_for_known_public_multisig_dash(self):
+        network = 'dash'
+        pk1 = HDKey(network=network)
+        pk2 = HDKey(network=network)
+        pk3 = HDKey(network=network)
+        with wallet_create_or_open_multisig("mstest_dash", [pk1.account_multisig_key().public(),
+                                                            pk2.account_multisig_key().public(),
+                                                            pk3.account_multisig_key().public()], 2, network=network,
+                                            databasefile=DATABASEFILE_UNITTESTS) as wlt:
+            self.assertFalse(wlt.cosigner[1].main_key.is_private)
+            wlt.import_key(pk2)
+            self.assertTrue(wlt.cosigner[1].main_key.is_private)
