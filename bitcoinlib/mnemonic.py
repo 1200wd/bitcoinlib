@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MNEMONIC class for BIP0039 Mnemonic Key management
-#    © 2017 May - 1200 Web Development <http://1200wd.com/>
+#    © 2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,12 +21,8 @@
 import os
 import sys
 import hashlib
-import hmac
-from pbkdf2 import PBKDF2
-
 from bitcoinlib.encoding import change_base, normalize_string, to_bytes
 
-PBKDF2_ROUNDS = 2048
 DEFAULT_LANGUAGE = 'english'
 WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
 
@@ -83,12 +79,10 @@ class Mnemonic:
         :return bytes: PBKDF2 seed
         """
         words = self.sanitize_mnemonic(words)
-        mnemonic = normalize_string(words)
-        password = password.encode()
-        return PBKDF2(mnemonic, b'mnemonic' + password,
-                      iterations=PBKDF2_ROUNDS,
-                      macmodule=hmac,
-                      digestmodule=hashlib.sha512).read(64)
+        mnemonic = to_bytes(words)
+        password = to_bytes(password)
+        return hashlib.pbkdf2_hmac(hash_name='sha512', password=mnemonic, salt=b'mnemonic' + password,
+                                   iterations=2048)
 
     def word(self, index):
         """
