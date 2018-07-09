@@ -63,7 +63,7 @@ class BitcoindClient(BaseClient):
 
         :return BitcoindClient:
         """
-        config = configparser.ConfigParser()
+        config = configparser.ConfigParser(strict=False)
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/bitcoin.conf')
             if not os.path.isfile(cfn):
@@ -80,7 +80,7 @@ class BitcoindClient(BaseClient):
             config_string = '[rpc]\n' + f.read()
         config.read_string(config_string)
         try:
-            if config.get('rpc', 'testnet'):
+            if int(config.get('rpc', 'testnet')):
                 network = 'testnet'
         except configparser.NoOptionError:
             pass
@@ -93,10 +93,11 @@ class BitcoindClient(BaseClient):
                 port = 18332
             else:
                 port = 8332
-        try:
+        server = '127.0.0.1'
+        if 'bind' in config['rpc']:
             server = config.get('rpc', 'bind')
-        except configparser.NoOptionError:
-            server = '127.0.0.1'
+        elif 'externalip' in config['rpc']:
+            server = config.get('rpc', 'externalip')
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return BitcoindClient(network, url)
 
@@ -170,8 +171,12 @@ if __name__ == '__main__':
 
     from pprint import pprint
 
-    base_url = 'http://bitcoinrpc:passwd@host:8332'
-    bdc = BitcoindClient(base_url=base_url)
+    # 1. Connect by specifying connection URL
+    # base_url = 'http://bitcoinrpc:passwd@host:8332'
+    # bdc = BitcoindClient(base_url=base_url)
+
+    # 2. Or connect using default settings or settings from config file
+    bdc = BitcoindClient()
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getnetworkinfo())

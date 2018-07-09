@@ -62,7 +62,7 @@ class LitecoindClient(BaseClient):
 
         :return BitcoindClient:
         """
-        config = configparser.ConfigParser()
+        config = configparser.ConfigParser(strict=False)
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/litecoin.conf')
             if not os.path.isfile(cfn):
@@ -79,7 +79,7 @@ class LitecoindClient(BaseClient):
             config_string = '[rpc]\n' + f.read()
         config.read_string(config_string)
         try:
-            if config.get('rpc', 'testnet'):
+            if int(config.get('rpc', 'testnet')):
                 network = 'testnet'
         except configparser.NoOptionError:
             pass
@@ -92,10 +92,11 @@ class LitecoindClient(BaseClient):
                 port = 19432
             else:
                 port = 9432
-        try:
+        server = '127.0.0.1'
+        if 'bind' in config['rpc']:
             server = config.get('rpc', 'bind')
-        except configparser.NoOptionError:
-            server = '127.0.0.1'
+        elif 'externalip' in config['rpc']:
+            server = config.get('rpc', 'externalip')
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return LitecoindClient(network, url)
 
@@ -167,8 +168,12 @@ if __name__ == '__main__':
 
     from pprint import pprint
 
-    base_url = 'http://litecoin:passwd@host:9432'
-    bdc = LitecoindClient(base_url=base_url)
+    # 1. Connect by specifying connection URL
+    # base_url = 'http://litecoin:passwd@host:9432'
+    # bdc = LitecoindClient(base_url=base_url)
+
+    # 2. Or connect using default settings or settings from config file
+    bdc = LitecoindClient()
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getnetworkinfo())
