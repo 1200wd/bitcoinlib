@@ -1,7 +1,7 @@
 Python Bitcoin Library
 ======================
 
-Bitcoin and other crypto currency Library for Python.
+Bitcoin, Litecoin and Dash Crypto Currency Library for Python.
 
 Includes a fully functional wallet, with multi signature, multi currency and multiple accounts.
 You this library at a high level and create and manage wallets for the command line or at a low level
@@ -29,8 +29,7 @@ Disclaimer
 ----------
 
 This library is still in development, please use at your own risk and test sufficiently before using it in a
-production environment. Only bitcoin and litecoin transactions are available at the moment, support for Dash is
-just for a read only wallet, not for creating or sending transactions
+production environment.
 
 
 Features

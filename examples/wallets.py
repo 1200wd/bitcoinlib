@@ -114,6 +114,15 @@ litecoin_wallet.new_key()
 litecoin_wallet.info(detail=3)
 del litecoin_wallet
 
+print("\n=== Create Dash wallet ===")
+dash_wallet = HDWallet.create(
+    databasefile=test_database,
+    name='Dash Wallet',
+    network='dash')
+dash_wallet.new_key()
+dash_wallet.info(detail=3)
+del dash_wallet
+
 print("\n=== Create Litecoin testnet Wallet from Mnemonic Passphrase ===")
 words = 'blind frequent camera goddess pottery repair skull year mistake wrist lonely mix'
 # Or use generate method:
@@ -132,7 +141,7 @@ w = HDWallet.create(
     name='Wallet Error',
     databasefile=test_database)
 try:
-    w.import_key(key='T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp')
+    w.import_key(key='T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp', network='litecoin')
 except WalletError as e:
     print("Import litecoin key in bitcoin wallet gives an EXPECTED error: %s" % e)
 
@@ -147,12 +156,16 @@ for _ in range(10):
 wallet_import.utxos_update(99)
 wallet_import.info(detail=3)
 utxos = wallet_import.utxos(99)
-res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 1000, 99)
-print("Send transaction result:")
-if res.hash:
-    print("Successfully send, tx id:", res.hash)
-else:
-    print("TX not send, result:", res.errors)
+try:
+    res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 1000, 99)
+    print("Send transaction result:")
+    if res.hash:
+        print("Successfully send, tx id:", res.hash)
+    else:
+        print("TX not send, result:", res.errors)
+except WalletError as e:
+    print("TX not send, error: %s" % e.msg)
+    
 
 #
 # Manage Wallets
