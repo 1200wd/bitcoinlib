@@ -43,7 +43,7 @@ k.info()
 
 print("\n=== Import Private Litecoin key (network derived from key) ===")
 pk = 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp'
-k = Key(import_key=pk)
+k = Key(import_key=pk, network='litecoin')
 k.info()
 
 print("\n=== Import uncompressed Private Key and Encrypt with BIP38 ===")
@@ -71,6 +71,10 @@ print("Key type is : %s" % k.key_type)
 
 print("\n=== Generate random Litecoin key ===")
 lk = HDKey(network='litecoin')
+lk.info()
+
+print("\n=== Generate random Dash key ===")
+lk = HDKey(network='dash')
 lk.info()
 
 print("\n=== Import simple private key as HDKey ===")

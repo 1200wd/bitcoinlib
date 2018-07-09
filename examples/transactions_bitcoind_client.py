@@ -18,14 +18,12 @@ base_url = ''
 bdc = BitcoindClient(base_url=base_url)
 
 # Deserialize and verify a transaction
-txid = 'e0cee8955f516d5ed333d081a4e2f55b999debfff91a49e8123d20f7ed647ac5'
+txid = 'd323c517751b118984bb3f709d762cd17e55326f2bcb4e8b82a9145b361a6ff2'
 rt = bdc.getrawtransaction(txid)
 print("Raw: %s" % rt)
 t = Transaction.import_raw(rt)
 pprint(t.dict())
 print("Verified: %s" % t.verify())
-
-sys.exit()
 
 # Deserialize transactions in latest block with bitcoind client
 MAX_TRANSACTIONS_VIEW = 100

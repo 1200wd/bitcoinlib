@@ -754,11 +754,11 @@ class Output:
             elif self.script_type == 'p2sh':
                 self.lock_script = b'\xa9\x14' + self.public_key_hash + b'\x87'
             else:
-                raise TransactionError("Unknown output script type %s, please provide own locking script" %
+                raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
-        if self.script_type != 'nulldata' and value < self.network.dust_amount:
-            raise TransactionError("Output to %s must be more then dust amount %d" %
-                                   (self.address, self.network.dust_amount))
+        # if self.script_type != 'nulldata' and value < self.network.dust_amount:
+        #     raise TransactionError("Output to %s must be more then dust amount %d" %
+        #                            (self.address, self.network.dust_amount))
 
     def dict(self):
         """
@@ -1276,8 +1276,8 @@ class Transaction:
             output_n = len(self.outputs)
         if not float(value).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
-        # if value < self.network.dust_amount:
-        #     raise TransactionError("Output to %s must be more then dust amount %d" % (to, self.network.dust_amount))
+        if value < self.network.dust_amount:
+            raise TransactionError("Output to %s must be more then dust amount %d" % (to, self.network.dust_amount))
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    network=self.network.name))

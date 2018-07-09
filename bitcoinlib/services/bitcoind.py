@@ -138,9 +138,12 @@ class BitcoindClient(BaseClient):
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
+            if i.prev_hash == b'\x00' * 32:
+                i.value = t.output_total
+                i.script_type = 'coinbase'
+                continue
             txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
-            i.value = value
+            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx['blockhash']
