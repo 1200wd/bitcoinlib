@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    bitcoind deamon
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    dashd deamon
+#    © 2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -19,7 +19,6 @@
 #
 
 from datetime import datetime
-import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
@@ -27,7 +26,7 @@ from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
 
 
-PROVIDERNAME = 'bitcoind'
+PROVIDERNAME = 'dashd'
 
 _logger = logging.getLogger(__name__)
 
@@ -46,31 +45,31 @@ except ImportError:
     import ConfigParser as configparser
 
 
-class BitcoindClient(BaseClient):
+class DashdClient(BaseClient):
     """
-    Class to interact with bitcoind, the Bitcoin deamon
+    Class to interact with dashd, the Dash deamon
     """
 
     @staticmethod
-    def from_config(configfile=None, network='bitcoin'):
+    def from_config(configfile=None, network='dash'):
         """
-        Read settings from bitcoind config file
+        Read settings from dashd config file
 
         :param configfile: Path to config file. Leave empty to look in default places
         :type: str
-        :param network: Bitcoin mainnet or testnet. Default is bitcoin mainnet
+        :param network: Dash mainnet or testnet. Default is dash mainnet
         :type: str
 
-        :return BitcoindClient:
+        :return DashdClient:
         """
         config = configparser.ConfigParser(strict=False)
         if not configfile:
-            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/bitcoin.conf')
+            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/dash.conf')
             if not os.path.isfile(cfn):
-                cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/bitcoin.conf')
+                cfn = os.path.join(os.path.expanduser("~"), '.dashcore/dash.conf')
             if not os.path.isfile(cfn):
-                raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
-                                  "default. Or place a config file in .bitcoinlib/config/bitcoin.conf to reference to "
+                raise ConfigError("Please install dash client and specify a path to config file if path is not "
+                                  "default. Or place a config file in .bitcoinlib/config/dash.conf to reference to "
                                   "an external server.")
         else:
             cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
@@ -90,26 +89,26 @@ class BitcoindClient(BaseClient):
             port = config.get('rpc', 'port')
         except configparser.NoOptionError:
             if network == 'testnet':
-                port = 18332
+                port = 19998
             else:
-                port = 8332
+                port = 9998
         server = '127.0.0.1'
         if 'bind' in config['rpc']:
             server = config.get('rpc', 'bind')
         elif 'externalip' in config['rpc']:
             server = config.get('rpc', 'externalip')
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
-        return BitcoindClient(network, url)
+        return DashdClient(network, url)
 
-    def __init__(self, network='bitcoin', base_url='', denominator=100000000, *args):
+    def __init__(self, network='dash', base_url='', denominator=100000000, *args):
         """
-        Open connection to bitcoin node
+        Open connection to dashcore node
 
-        :param network: Bitcoin mainnet or testnet. Default is bitcoin mainnet
+        :param network: Dash mainnet or testnet. Default is dash mainnet
         :type: str
         :param base_url: Connection URL in format http(s)://user:password@host:port.
         :type: str
-        :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for bitcoin
+        :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for Dash
         :type: str
         """
         if not base_url:
@@ -117,12 +116,12 @@ class BitcoindClient(BaseClient):
             base_url = bdc.base_url
             network = bdc.network
         if len(base_url.split(':')) != 4:
-            raise ConfigError("Bitcoind connection URL must be of format 'http(s)://user:password@host:port,"
+            raise ConfigError("Dashd connection URL must be of format 'http(s)://user:password@host:port,"
                               "current format is %s. Please set url in providers.json file" % base_url)
         if 'password' in base_url:
-            raise ConfigError("Invalid password 'password' in bitcoind provider settings. "
+            raise ConfigError("Invalid password 'password' in dashd provider settings. "
                               "Please set password and url in providers.json file")
-        _logger.info("Connect to bitcoind on %s" % base_url)
+        _logger.info("Connect to dashd on %s" % base_url)
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
@@ -132,19 +131,17 @@ class BitcoindClient(BaseClient):
 
     def gettransaction(self, txid):
         tx = self.proxy.getrawtransaction(txid, 1)
-        t = Transaction.import_raw(tx['hex'])
+        t = Transaction.import_raw(tx['hex'], network='dash')
         t.confirmations = tx['confirmations']
         if t.confirmations:
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
             txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+            value = int(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
             i.value = value
-        for o in t.outputs:
-            o.spent = None
         t.block_hash = tx['blockhash']
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version']
         t.date = datetime.fromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
@@ -172,11 +169,11 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # 1. Connect by specifying connection URL
-    # base_url = 'http://bitcoinrpc:passwd@host:8332'
-    # bdc = BitcoindClient(base_url=base_url)
+    # base_url = 'http://dashrpcuser:passwd@host:9998'
+    # bdc = DashdClient(base_url=base_url)
 
     # 2. Or connect using default settings or settings from config file
-    bdc = BitcoindClient()
+    bdc = DashdClient()
 
     print("\n=== SERVERINFO ===")
     pprint(bdc.proxy.getnetworkinfo())
@@ -194,7 +191,7 @@ if __name__ == '__main__':
     print("Mempool Size %d" % len(rmp))
 
     print("\n=== Raw Transaction by txid ===")
-    t = bdc.getrawtransaction('7eb5332699644b753cd3f5afba9562e67612ea71ef119af1ac46559adb69ea0d')
+    t = bdc.getrawtransaction('c3d2a934ef8eb9b2291d113b330b9244c1521ef73df0a4b04c39e851112f01af')
     pprint(t)
 
     print("\n=== Current network fees ===")

@@ -1015,6 +1015,12 @@ class TestTransactionsScriptType(unittest.TestCase):
         self.assertEqual(
             to_hexstring(ds['keys'][0]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
 
+    def test_transaction_sendto_wrong_address(self):
+        t = Transaction(network='bitcoin')
+        self.assertRaisesRegexp(TransactionError, 'Network for output address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is '
+                                                  'different from transaction network',
+                                t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
@@ -1081,7 +1087,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.utxo_prev_tx = 'f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df49453e'
         self.utxo_output_n = 1
 
-    def test_transactions_multisig_signature_redeemscript_mixup(self):
+    def test_transaction_multisig_signature_redeemscript_mixup(self):
         pk1 = HDKey('tprv8ZgxMBicQKsPen95zTdorkDGPi4jHy9xBf4TdVxrB1wTJgSKCZbHpWhmaTGoRXHj2dJRcJQhRkV22Mz3uhg9nThjGLA'
                     'JKzrPuZXPmFUgQ42')
         pk2 = HDKey('tprv8ZgxMBicQKsPdhv4GxyNcfNK1Wka7QEnQ2c8DNdRL5z3hzf7ufUYNW14fgArjFvLtyg5xmPrkpx6oGBo2dquPf5inH6'
@@ -1176,3 +1182,33 @@ class TestTransactionsMultisig(unittest.TestCase):
                     sigs_required=2)
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')
         self.assertEqual(t.estimate_size(), 333)
+
+    def test_transaction_multisig_litecoin(self):
+        network = 'litecoin'
+        pk1 = HDKey(network=network)
+        pk2 = HDKey(network=network)
+        pk3 = HDKey(network=network)
+        t = Transaction(network=network)
+        t.add_input(self.utxo_prev_tx, self.utxo_output_n,
+                    [pk1.public_byte, pk2.public_byte, pk3.public_byte],
+                    script_type='p2sh_multisig', sigs_required=2)
+        t.add_output(100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
+        t.sign(pk1)
+        self.assertFalse(t.verify())
+        t.sign(pk3)
+        self.assertTrue(t.verify())
+
+    def test_transaction_multisig_dash(self):
+        network = 'dash'
+        pk1 = HDKey(network=network)
+        pk2 = HDKey(network=network)
+        pk3 = HDKey(network=network)
+        t = Transaction(network=network)
+        t.add_input(self.utxo_prev_tx, self.utxo_output_n,
+                    [pk1.public_byte, pk2.public_byte, pk3.public_byte],
+                    script_type='p2sh_multisig', sigs_required=2)
+        t.add_output(100000, 'XwZcTpBnRRURenL7Jh9Z52XGTx1jhvecUt')
+        t.sign(pk1)
+        self.assertFalse(t.verify())
+        t.sign(pk3)
+        self.assertTrue(t.verify())

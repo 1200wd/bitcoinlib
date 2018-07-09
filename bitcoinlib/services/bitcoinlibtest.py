@@ -36,8 +36,8 @@ class BitcoinLibTestClient(BaseClient):
 
     """
 
-    def __init__(self, network, base_url, denominator, api_key=''):
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+    def __init__(self, network, base_url, denominator, *args):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def getbalance(self, addresslist):
         """
@@ -86,9 +86,9 @@ class BitcoinLibTestClient(BaseClient):
         :param blocks: Number of blocks
         :type blocks: int
 
-        :return int: Fee as 1000 // number of blocks
+        :return int: Fee as 100000 // number of blocks
         """
-        return 1000 // blocks
+        return 100000 // blocks
 
     def sendrawtransaction(self, rawtx):
         """

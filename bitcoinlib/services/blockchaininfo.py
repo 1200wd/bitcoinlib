@@ -32,8 +32,8 @@ _logger = logging.getLogger(__name__)
 
 class BlockchainInfoClient(BaseClient):
 
-    def __init__(self, network, base_url, denominator, api_key=''):
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+    def __init__(self, network, base_url, denominator, *args):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def compose_request(self, cmd, parameter='', variables=None, method='get'):
         url_path = cmd
@@ -63,9 +63,13 @@ class BlockchainInfoClient(BaseClient):
                     'tx_hash': utxo['tx_hash_big_endian'],
                     'confirmations': utxo['confirmations'],
                     'output_n': utxo['tx_output_n'],
-                    'index':  utxo['tx_index'],
+                    'input_n':  utxo['tx_index'],
+                    'block_height': None,
+                    'fee': None,
+                    'size': 0,
                     'value': int(round(utxo['value'] * self.units, 0)),
                     'script': utxo['script'],
+                    'date': None
                 })
         return utxos
 

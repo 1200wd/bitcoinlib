@@ -150,27 +150,31 @@ class Network:
     def __init__(self, network_name=DEFAULT_NETWORK):
         if network_name not in NETWORK_DEFINITIONS:
             raise NetworkError("Network %s not found in network definitions" % network_name)
-        self.network_name = network_name
-        self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
+        self.name = network_name
+
         self.currency_name = NETWORK_DEFINITIONS[network_name]['currency_name']
         self.currency_name_plural = NETWORK_DEFINITIONS[network_name]['currency_name_plural']
         self.currency_code = NETWORK_DEFINITIONS[network_name]['currency_code']
         self.currency_symbol = NETWORK_DEFINITIONS[network_name]['currency_symbol']
+        self.description = NETWORK_DEFINITIONS[network_name]['description']
         self.prefix_address_p2sh = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address_p2sh'])
         self.prefix_address = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address'])
+        self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
         self.prefix_hdkey_public = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_public'])
-        self.description = NETWORK_DEFINITIONS[network_name]['description']
         self.prefix_hdkey_private = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_private'])
         self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
         self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']
         self.dust_amount = NETWORK_DEFINITIONS[network_name]['dust_amount']
+        self.fee_default = NETWORK_DEFINITIONS[network_name]['fee_default']
+        self.fee_min = NETWORK_DEFINITIONS[network_name]['fee_min']
+        self.fee_max = NETWORK_DEFINITIONS[network_name]['fee_max']
 
         # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
         # for f in list(NETWORK_DEFINITIONS[network_name].keys()):
         #     exec("self.%s = NETWORK_DEFINITIONS[network_name]['%s']" % (f, f))
 
     def __repr__(self):
-        return "<Network: %s>" % self.network_name
+        return "<Network: %s>" % self.name
 
     def print_value(self, value):
         """
