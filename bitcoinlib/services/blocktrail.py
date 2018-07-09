@@ -30,10 +30,10 @@ PROVIDERNAME = 'blocktrail'
 
 class BlockTrail(BaseClient):
 
-    def __init__(self, network, base_url, denominator, api_key=''):
+    def __init__(self, network, base_url, denominator, api_key, *args):
         if not api_key:
             raise ValueError("API key is needed to connect to BlockTrail")
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key, *args)
 
     def compose_request(self, function, data, parameter='', variables=None, method='get', page=1):
         url_path = function
@@ -68,9 +68,13 @@ class BlockTrail(BaseClient):
                         'tx_hash': utxo['hash'],
                         'confirmations': utxo['confirmations'],
                         'output_n': utxo['index'],
-                        'index': 0,
+                        'input_n': 0,
+                        'block_height': None,
+                        'fee': None,
+                        'size': 0,
                         'value': int(round(utxo['value'] * self.units, 0)),
-                        'script': '',
+                        'script': utxo['script_hex'],
+                        'date': datetime.strptime(utxo['time'], "%Y-%m-%dT%H:%M:%S+%f")
                     })
                 if current_page*200 > int(res['total']):
                     break

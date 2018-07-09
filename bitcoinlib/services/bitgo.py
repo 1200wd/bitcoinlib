@@ -30,8 +30,8 @@ PROVIDERNAME = 'bitgo'
 
 class BitGoClient(BaseClient):
 
-    def __init__(self, network, base_url, denominator, api_key=''):
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+    def __init__(self, network, base_url, denominator, *args):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def compose_request(self, category, data, cmd='', variables=None, method='get'):
         if data:
@@ -63,9 +63,14 @@ class BitGoClient(BaseClient):
                             'tx_hash': unspent['tx_hash'],
                             'confirmations': unspent['confirmations'],
                             'output_n': unspent['tx_output_n'],
-                            'index': 0,
+                            'input_n': 0,
+                            'block_height': unspent['blockHeight'],
+                            'fee': None,
+                            'size': 0,
                             'value': int(round(unspent['value'] * self.units, 0)),
                             'script': unspent['script'],
+                            'date': datetime.strptime(unspent['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+
                          }
                     )
                 total = res['total']
@@ -110,7 +115,7 @@ class BitGoClient(BaseClient):
         t.fee = tx['fee']
         t.rawtx = tx['hex']
         t.size = len(tx['hex']) // 2
-        t.network_name = self.network
+        t.network = self.network
         if t.coinbase:
             input_values = []
             t.input_total = t.output_total

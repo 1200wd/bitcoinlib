@@ -194,7 +194,7 @@ def create_transaction(wlt, send_args, args):
 
 def print_transaction(wt):
     tx_dict = {
-        'network': wt.network.network_name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
+        'network': wt.network.name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
             'address': o.address, 'value': o.value
         } for o in wt.outputs], 'inputs': [{
             'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
@@ -232,7 +232,7 @@ def main():
             "Public account key, to share with other cosigner multisig wallets: %s" % hdkey.account_multisig_key(
 
             ).wif_public())
-        print("Network: %s" % hdkey.network.network_name)
+        print("Network: %s" % hdkey.network.name)
         clw_exit()
 
     # List wallets, then exit
@@ -305,7 +305,7 @@ def main():
         clw_exit()
 
     if args.network is None:
-        args.network = wlt.network.network_name
+        args.network = wlt.network.name
 
     tx_import = None
     if args.import_tx_file:

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    Block Explorer Client
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    Litecore.io Client
+#    © 2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -23,10 +23,10 @@ import struct
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
-PROVIDERNAME = 'blockexplorer'
+PROVIDERNAME = 'litecoreio'
 
 
-class BlockExplorerClient(BaseClient):
+class LitecoreIOClient(BaseClient):
 
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
@@ -36,20 +36,22 @@ class BlockExplorerClient(BaseClient):
         return self.request(url_path, variables, method=method)
 
     def getutxos(self, addresslist):
-        addresses = ','.join(addresslist)
+        addresslist = self._addresslist_convert(addresslist)
+        addresses = ';'.join([a.address_provider for a in addresslist])
         res = self.compose_request('addrs', addresses, 'utxo')
         txs = []
         for tx in res:
+            address = [x.address for x in addresslist if x.address_provider == tx['address']][0]
             txs.append({
-                'address': tx['address'],
+                'address': address,
                 'tx_hash': tx['txid'],
                 'confirmations': tx['confirmations'],
                 'output_n': tx['vout'],
                 'input_n': 0,
-                'block_height': None,
+                'block_height': tx['height'],
                 'fee': None,
                 'size': 0,
-                'value': int(round(tx['amount'] * self.units, 0)),
+                'value': tx['satoshis'],
                 'script': tx['scriptPubKey'],
                 'date': None
             })
@@ -84,17 +86,18 @@ class BlockExplorerClient(BaseClient):
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
-            address = ''
-            try:
-                address = to['scriptPubKey']['addresses'][0]
-            except ValueError:
-                pass
-            t.add_output(value=value, address=address, lock_script=to['scriptPubKey']['hex'],
+            # address = ''
+            # try:
+            #     address = to['scriptPubKey']['addresses'][0]
+            # except ValueError:
+            #     pass
+            t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
     def gettransactions(self, addresslist):
-        addresses = ','.join(addresslist)
+        addresslist = self._addresslist_convert(addresslist)
+        addresses = ';'.join([a.address_provider for a in addresslist])
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
         for tx in res['items']:
@@ -106,10 +109,11 @@ class BlockExplorerClient(BaseClient):
         return self._convert_to_transaction(tx)
 
     def getbalance(self, addresslist):
-        utxos = self.getutxos(addresslist)
         balance = 0
-        for utxo in utxos:
-            balance += utxo['value']
+        addresslist = self._addresslist_convert(addresslist)
+        for a in addresslist:
+            res = self.compose_request('addr', a.address_provider, 'balance')
+            balance += res
         return balance
 
     def getrawtransaction(self, tx_id):

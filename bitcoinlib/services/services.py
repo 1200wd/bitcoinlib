@@ -23,7 +23,7 @@ import logging
 import json
 import random
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
-from bitcoinlib.networks import DEFAULT_NETWORK
+from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib import services
 
 _logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ class Service(object):
         can specify a list of providers or a minimum or maximum number of providers.
 
         :param network: Specify network used
-        :type network: str
+        :type network: str, Network
         :param min_providers: Minimum number of providers to connect to. Default is 1. Use for instance to receive
         fee information from a number of providers and calculate the average fee.
         :type min_providers: int
@@ -65,6 +65,8 @@ class Service(object):
 
         """
         self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         if min_providers > max_providers:
             max_providers = min_providers
         try:
@@ -82,7 +84,6 @@ class Service(object):
             raise ServiceError(errstr)
         f.close()
 
-        # provider_list = list(self.providers_defined.keys())
         provider_list = list([self.providers_defined[x]['provider'] for x in self.providers_defined])
         if providers is None:
             providers = []
@@ -118,8 +119,10 @@ class Service(object):
             try:
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
-                pc_instance = providerclient(self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
-                                             self.providers[sp]['api_key'])
+                pc_instance = providerclient(
+                    self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
+                    self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
+                    self.providers[sp]['network_overrides'])
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
@@ -156,7 +159,7 @@ class Service(object):
             return False
         return list(self.results.values())[0]
 
-    def getbalance(self, addresslist):
+    def getbalance(self, addresslist, addresses_per_request=5):
         """
         Get balance for each address in addresslist provided
 
@@ -170,9 +173,15 @@ class Service(object):
         if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
             addresslist = [addresslist]
 
-        return self._provider_execute('getbalance', addresslist)
+        tot_balance = 0
+        while addresslist:
+            balance = self._provider_execute('getbalance', addresslist[:addresses_per_request])
+            if balance:
+                tot_balance += balance
+            addresslist = addresslist[addresses_per_request:]
+        return tot_balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, addresses_per_request=5):
         """
         Get list of unspent outputs (UTXO's) per address
 
@@ -188,13 +197,13 @@ class Service(object):
 
         utxos = []
         while addresslist:
-            res = self._provider_execute('getutxos', addresslist[:20])
+            res = self._provider_execute('getutxos', addresslist[:addresses_per_request])
             if res:
                 utxos += res
-            addresslist = addresslist[20:]
+            addresslist = addresslist[addresses_per_request:]
         return utxos
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, addresses_per_request=5):
         """
         Get all transactions for each address in addresslist
 
@@ -209,7 +218,6 @@ class Service(object):
             addresslist = [addresslist]
 
         transactions = []
-        addresses_per_request = 5
         while addresslist:
             res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
             if res is False:
@@ -265,5 +273,8 @@ class Service(object):
         """
         fee = self._provider_execute('estimatefee', blocks)
         if not fee:
-            raise ServiceError("Could not estimate fee. Errors: %s" % self.errors)
+            if self.network.fee_default:
+                fee = self.network.fee_default
+            else:
+                raise ServiceError("Could not estimate fees, please define default fees in network settings")
         return fee

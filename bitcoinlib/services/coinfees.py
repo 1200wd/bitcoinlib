@@ -26,8 +26,8 @@ PROVIDERNAME = 'coinfees'
 
 class CoinfeesClient(BaseClient):
 
-    def __init__(self, network, base_url, denominator, api_key=''):
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, api_key)
+    def __init__(self, network, base_url, denominator, *args):
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def compose_request(self, category, cmd, method='get'):
         url_path = category
@@ -39,6 +39,6 @@ class CoinfeesClient(BaseClient):
         res = self.compose_request('fees', 'recommended')
         if blocks < 1:
             return res['fastestFee'] * 1024
-        elif blocks <= 3:
+        elif blocks <= 2:
             return res['halfHourFee'] * 1024
         return res['hourFee'] * 1024

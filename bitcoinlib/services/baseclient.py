@@ -25,6 +25,8 @@ except ImportError:
     from urllib import urlencode
 import json
 from bitcoinlib.main import *
+from bitcoinlib.networks import Network
+from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
 
@@ -40,14 +42,21 @@ class ClientError(Exception):
 
 class BaseClient(object):
 
-    def __init__(self, network, provider, base_url, denominator, api_key=''):
+    def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
+                 network_overrides=None):
         try:
             self.network = network
+            if not isinstance(network, Network):
+                self.network = Network(network)
             self.provider = provider
             self.base_url = base_url
             self.resp = None
             self.units = denominator
             self.api_key = api_key
+            self.provider_coin_id = provider_coin_id
+            self.network_overrides = {}
+            if network_overrides is not None:
+                self.network_overrides = network_overrides
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
@@ -79,3 +88,10 @@ class BaseClient(object):
             return json.loads(self.resp.text)
         except json.decoder.JSONDecodeError:
             return self.resp.text
+
+    def _addresslist_convert(self, addresslist):
+        addresslist_class = []
+        for addr in addresslist:
+            if not isinstance(addr, Address):
+                addresslist_class.append(Address(addr, self.network_overrides))
+        return addresslist_class

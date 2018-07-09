@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -34,7 +34,7 @@ from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError
+from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -254,11 +254,35 @@ def deserialize_address(address):
         'address': address,
         'public_key_hash': change_base(public_key_hash, 256, 16),
         'public_key_hash_bytes': public_key_hash,
+        'prefix': address_prefix,
         'network': network,
         'script_type': script_type,
         'networks_p2sh': networks_p2sh,
         'networks_p2pkh': networks_p2pkh
     }
+
+
+class Address:
+    """
+    Class to store, convert and analyse various address types as representation of public keys
+    """
+
+    def __init__(self, address, network_overrides=None):
+        addr_dict = deserialize_address(address)
+        self.address = address
+        self.public_key_hash = addr_dict['public_key_hash']
+        self.public_key_hash_bytes = addr_dict['public_key_hash_bytes']
+        self.address_prefix = addr_dict['prefix']
+        self.network = addr_dict['network']
+        self.script_type = addr_dict['script_type']
+        self.networks_p2sh = addr_dict['networks_p2sh']
+        self.networks_p2pkh = addr_dict['networks_p2pkh']
+        self.address_provider = address
+        provider_prefix = None
+        if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
+            provider_prefix = network_overrides['prefix_address_p2sh']
+        if provider_prefix:
+            self.address_provider = addr_convert(address, provider_prefix)
 
 
 class Key:
@@ -281,7 +305,7 @@ class Key:
         :param import_key: If specified import given private or public key. If not specified a new private key is generated.
         :type import_key: str, int, bytes, bytearray
         :param network: Bitcoin, testnet, litecoin or other network
-        :type network: str
+        :type network: str, Network
         :param compressed: Is key compressed or not, default is True
         :type compressed: bool
         :param passphrase: Optional passphrase if imported key is password protected
@@ -305,7 +329,13 @@ class Key:
             import_key = random.SystemRandom().randint(0, secp256k1_n)
         kf = get_key_format(import_key)
         self.key_format = kf["format"]
-        network = check_network_and_key(import_key, network, kf["networks"])
+        network_name = None
+        if network is not None:
+            self.network = network
+            if not isinstance(network, Network):
+                self.network = Network(network)
+            network_name = self.network.name
+        network = check_network_and_key(import_key, network_name, kf["networks"])
         self.network = Network(network)
         if kf['isprivate']:
             self.isprivate = True
@@ -381,7 +411,7 @@ class Key:
                 found_networks = network_by_value('prefix_wif', key[0:1])
                 if not len(found_networks):
                     raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
-                if self.network.network_name not in found_networks:
+                if self.network.name not in found_networks:
                     if len(found_networks) > 1:
                         raise BKeyError("More then one network found with this versionbyte, please specify network. "
                                         "Networks found: %s" % found_networks)
@@ -427,7 +457,7 @@ class Key:
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
 
     def __repr__(self):
-        return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.network_name)
+        return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.name)
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
@@ -513,18 +543,28 @@ class Key:
         encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
         return change_base(encrypted_privkey, 256, 58)
 
-    def wif(self):
+    def wif(self, prefix=None):
         """
         Get Private Key in Wallet Import Format, steps:
         # Convert to Binary and add 0x80 hex
         # Calculate Double SHA256 and add as checksum to end of key
 
+        :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
+
         :return str: Base58Check encoded Private Key WIF
         """
         if not self.secret:
             raise KeyError("WIF format not supported for public key")
-        version = self.network.prefix_wif
-        key = version + change_base(self.secret, 10, 256, 32)
+        if prefix is None:
+            versionbyte = self.network.prefix_wif
+        else:
+            # TODO: Test bytearray
+            if not isinstance(prefix, (bytes, bytearray)):
+                versionbyte = binascii.unhexlify(prefix)
+            else:
+                versionbyte = prefix
+        key = versionbyte + change_base(self.secret, 10, 256, 32)
         if self.compressed:
             key += b'\1'
         key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
@@ -574,12 +614,14 @@ class Key:
             pb = self.public_uncompressed_byte
         return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
 
-    def address(self, compressed=None):
+    def address(self, compressed=None, prefix=None):
         """
         Get address derived from public key
         
         :param compressed: Always return compressed address
         :type compressed: bool
+        :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
         
         :return str: Base58 encoded address 
         """
@@ -587,18 +629,28 @@ class Key:
             key = self.public_byte
         else:
             key = self.public_uncompressed_byte
-        versionbyte = self.network.prefix_address
+        if prefix is None:
+            versionbyte = self.network.prefix_address
+        else:
+            # TODO: Test bytearray
+            if not isinstance(prefix, (bytes, bytearray)):
+                versionbyte = binascii.unhexlify(prefix)
+            else:
+                versionbyte = prefix
         key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
         checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
         return change_base(key + checksum, 256, 58)
 
-    def address_uncompressed(self):
+    def address_uncompressed(self, prefix=None):
         """
         Get uncompressed address from public key
-        
+
+        :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
+
         :return str: Base58 encoded address 
         """
-        return self.address(compressed=False)
+        return self.address(compressed=False, prefix=prefix)
 
     def info(self):
         """
@@ -646,7 +698,7 @@ class HDKey:
         :param key_type: Specify type of key, default is BIP32
         :type key_type: str
         :param network: Network to use
-        :type network: str
+        :type network: str, Network
         
         :return HDKey: 
         """
@@ -666,7 +718,7 @@ class HDKey:
         :param password: Password to protect passphrase
         :type password: str
         :param network: Network to use
-        :type network: str
+        :type network: str, Network
 
         :return HDKey:
         """
@@ -695,7 +747,7 @@ class HDKey:
         :param isprivate: True for private, False for public key. Default is True
         :type isprivate: bool
         :param network: Network name. Derived from import_key if possible
-        :type network: str
+        :type network: str, Network
         :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
         :type key_type: str
         
@@ -708,6 +760,14 @@ class HDKey:
                            "or use simple Key class instead")
         self.compressed = compressed
         self.key = None
+
+        network_name = None
+        self.network = None
+        if network is not None:
+            self.network = network
+            if not isinstance(network, Network):
+                self.network = Network(network)
+            network_name = self.network.name
 
         if not (key and chain):
             if not import_key:
@@ -730,8 +790,7 @@ class HDKey:
             else:
                 kf = get_key_format(import_key)
                 self.key_format = kf["format"]
-                network = check_network_and_key(import_key, network, kf["networks"])
-                self.network = Network(network)
+                self.network = Network(check_network_and_key(import_key, network_name, kf["networks"]))
                 if self.key_format in ['hdkey_private', 'hdkey_public']:
                     bkey = change_base(import_key, 58, 256)
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
@@ -764,15 +823,15 @@ class HDKey:
                            "'import_key' attribute to import keys in other formats")
         self.chain = chain
         if self.key is None:
-            self.key = Key(key, passphrase=passphrase, network=network, compressed=compressed)
+            self.key = Key(key, passphrase=passphrase, network=self.network, compressed=compressed)
         self.depth = depth
         self.parent_fingerprint = parent_fingerprint
         self.child_index = child_index
         self.isprivate = isprivate
-        if not network:
-            network = DEFAULT_NETWORK
+        if not self.network:
+            self.network = Network(DEFAULT_NETWORK)
             _logger.warning("No network specified when creating new HDKey, using default network")
-        self.network = Network(network)
+        # self.network = Network(network)
         self.public_byte = self.key.public_byte
         self.public_hex = self.key.public_hex
         self.secret = None
@@ -789,7 +848,7 @@ class HDKey:
 
     def __repr__(self):
         return "<HDKey(public_hex=%s, wif_public=%s, network=%s)>" % \
-               (self.public_hex, self.wif_public(), self.network.network_name)
+               (self.public_hex, self.wif_public(), self.network.name)
 
     def info(self):
         """
@@ -870,7 +929,7 @@ class HDKey:
         """
         return hashlib.new('ripemd160', hashlib.sha256(self.public_byte).digest()).digest()[:4]
 
-    def wif(self, public=None, child_index=None):
+    def wif(self, public=None, child_index=None, prefix=None):
         """
         Get Extended WIF of current key
         
@@ -878,35 +937,44 @@ class HDKey:
         :type public: bool
         :param child_index: Change child index of output WIF key
         :type child_index: int
-        
+        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
+
         :return str: Base58 encoded WIF key 
         """
         rkey = self.private_byte or self.public_byte
+        if prefix and not isinstance(prefix, (bytes, bytearray)):
+            prefix = binascii.unhexlify(prefix)
         if not self.isprivate and public is False:
             return ''
         if self.isprivate and not public:
-            raw = self.network.prefix_hdkey_private
+            if not prefix:
+                prefix = self.network.prefix_hdkey_private
             typebyte = b'\x00'
         else:
-            raw = self.network.prefix_hdkey_public
+            if not prefix:
+                prefix = self.network.prefix_hdkey_public
             typebyte = b''
             if public:
                 rkey = self.public_byte
         if child_index:
             self.child_index = child_index
-        raw += struct.pack('B', self.depth) + self.parent_fingerprint + \
+        raw = prefix + struct.pack('B', self.depth) + self.parent_fingerprint + \
             struct.pack('>L', self.child_index) + self.chain + typebyte + rkey
         chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
 
-    def wif_public(self):
+    def wif_public(self, prefix=None):
         """
         Get Extended WIF public key
+
+        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
         
         :return str: Base58 encoded WIF key
         """
-        return self.wif(public=True)
+        return self.wif(public=True, prefix=prefix)
 
     def subkey_for_path(self, path, network=None):
         """
@@ -1023,7 +1091,7 @@ class HDKey:
         :return HDKey: HD Key class object
         """
         if network is None:
-            network = self.network.network_name
+            network = self.network.name
         if not self.isprivate:
             raise BKeyError("Need a private key to create child private key")
         if hardened:
@@ -1035,7 +1103,7 @@ class HDKey:
 
         key = change_base(key, 256, 10)
         if key > secp256k1_n:
-            raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
+            raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
         newkey = (key + self.secret) % secp256k1_n
         if newkey == 0:
             raise BKeyError("Key cannot be zero. Try another index number.")
@@ -1056,14 +1124,14 @@ class HDKey:
         :return HDKey: HD Key class object
         """
         if network is None:
-            network = self.network.network_name
+            network = self.network.name
         if index > 0x80000000:
-            raise BKeyError("Cannot derive hardened key from public private key. Index must be less then 0x80000000")
+            raise BKeyError("Cannot derive hardened key from public private key. Index must be less than 0x80000000")
         data = self.public_byte + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
         key = change_base(key, 256, 10)
         if key > secp256k1_n:
-            raise BKeyError("Key cannot be greater then secp256k1_n. Try another index number.")
+            raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
         x, y = self.key.public_point()
         Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
@@ -1087,4 +1155,4 @@ class HDKey:
 
         #TODO: more clevvvvver
         return HDKey(self.wif_public(), parent_fingerprint=self.parent_fingerprint, isprivate=self.isprivate,
-                     key_type=self.key_type, network=self.network.network_name)
+                     key_type=self.key_type, network=self.network.name)

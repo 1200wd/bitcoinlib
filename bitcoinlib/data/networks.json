@@ -13,7 +13,10 @@
     "prefix_hdkey_public": "9488B21E",
     "bip44_cointype": 9999999,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 1000000
   },
   "bitcoin":
   {
@@ -29,7 +32,10 @@
     "prefix_hdkey_public": "0488B21E",
     "bip44_cointype": 0,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": null,
+    "fee_min": 1000,
+    "fee_max": 1000000
   },
   "testnet":
   {
@@ -45,11 +51,33 @@
     "prefix_hdkey_public": "043587CF",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 5000,
+    "fee_max": 2000000
   },
   "litecoin":
   {
     "description": "Litecoin Network",
+    "currency_name": "litecoin",
+    "currency_name_plural": "litecoins",
+    "currency_symbol": "LTC",
+    "currency_code": "LTC",
+    "prefix_address": "30",
+    "prefix_address_p2sh": "32",
+    "prefix_wif": "B0",
+    "prefix_hdkey_private": "019D9CFE",
+    "prefix_hdkey_public": "019DA462",
+    "bip44_cointype": 2,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 50000,
+    "fee_min": 1000,
+    "fee_max": 1000000
+  },
+  "litecoin_legacy":
+  {
+    "description": "Litecoin Legacy Network",
     "currency_name": "litecoin",
     "currency_name_plural": "litecoins",
     "currency_symbol": "LTC",
@@ -61,7 +89,10 @@
     "prefix_hdkey_public": "019DA462",
     "bip44_cointype": 2,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 50000,
+    "fee_min": 1000,
+    "fee_max": 1000000
   },
   "litecoin_testnet":
   {
@@ -77,7 +108,10 @@
     "prefix_hdkey_public": "043587CF",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 50000,
+    "fee_min": 1000,
+    "fee_max": 1000000
   },
   "dash":
   {
@@ -89,11 +123,14 @@
     "prefix_address": "4C",
     "prefix_address_p2sh": "10",
     "prefix_wif": "CC",
-    "prefix_hdkey_private": "02F252F8",
-    "prefix_hdkey_public": "02FE52CC",
+    "prefix_hdkey_private": "0488ADE4",
+    "prefix_hdkey_public": "0488B21E",
     "bip44_cointype": 5,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 2000,
+    "fee_min": 1000,
+    "fee_max": 50000
   },
   "dash_testnet":
   {
@@ -105,10 +142,13 @@
     "prefix_address": "8C",
     "prefix_address_p2sh": "13",
     "prefix_wif": "EF",
-    "prefix_hdkey_private": "3A8061A0",
-    "prefix_hdkey_public": "3A805837",
+    "prefix_hdkey_private": "04358394",
+    "prefix_hdkey_public": "043587CF",
     "bip44_cointype": 1,
     "denominator": 0.00000001,
-    "dust_amount": 1000
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 50000
   }
 }

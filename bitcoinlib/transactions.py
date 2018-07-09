@@ -67,7 +67,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     :param rawtx: Raw transaction as String, Byte or Bytearray
     :type rawtx: str, bytes, bytearray
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
-    :type network: str
+    :type network: str, Network
 
     :return Transaction:
     """
@@ -83,7 +83,8 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     n_inputs, size = varbyteint_to_int(rawtx[cursor:cursor+9])
     cursor += size
     inputs = []
-
+    if not isinstance(network, Network):
+        network = Network(network)
     for n in range(0, n_inputs):
         inp_hash = rawtx[cursor:cursor + 32][::-1]
         if not len(inp_hash):
@@ -480,7 +481,7 @@ class Input:
         :param value: Input value
         :type value: int
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
         """
         self.prev_hash = to_bytes(prev_hash)
         self.output_n = output_n
@@ -505,7 +506,9 @@ class Input:
         else:
             self.sequence = struct.unpack('<I', sequence)[0]
         self.compressed = compressed
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.index_n = index_n
         self.value = value
         if keys is None:
@@ -667,7 +670,7 @@ class Output:
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
         :type lock_script: bytes, str
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
         """
         if not (address or public_key_hash or public_key or lock_script):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
@@ -678,7 +681,9 @@ class Output:
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
         self.public_key = to_bytes(public_key)
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
@@ -698,10 +703,15 @@ class Output:
                 self.script_type = address_dict['script_type']
             else:
                 raise TransactionError("Could not determine script type of address %s" % self.address)
-            self.public_key_hash = address_dict['public_key_hash_bytes']
-            if address_dict['network'] and self.network.network_name != address_dict['network']:
+            network_guesses = address_dict['networks_p2pkh'] + address_dict['networks_p2sh']
+            if address_dict['network'] and self.network.name != address_dict['network']:
                 raise TransactionError("Address (%s) is from different network then defined %s" %
-                                       (address_dict['network'], self.network.network_name))
+                                       (address_dict['network'], self.network.name))
+            elif self.network.name not in network_guesses:
+                raise TransactionError("Network for output address %s is different from transaction network. %s not "
+                                       "in %s" % (self.address, self.network.name, network_guesses))
+            self.public_key_hash = address_dict['public_key_hash_bytes']
+
         if not self.public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
 
@@ -724,6 +734,9 @@ class Output:
             else:
                 raise TransactionError("Unknown output script type %s, please provide own locking script" %
                                        self.script_type)
+        if self.script_type != 'nulldata' and value < self.network.dust_amount:
+            raise TransactionError("Output to %s must be more then dust amount %d" %
+                                   (self.address, self.network.dust_amount))
 
     def dict(self):
         """
@@ -774,7 +787,7 @@ class Transaction:
         :param rawtx: Raw transaction string
         :type rawtx: bytes, str
         :param network: Network, leave empty for default
-        :type network: str
+        :type network: str, Network
 
         :return Transaction:
          
@@ -804,7 +817,7 @@ class Transaction:
         :param version: Version rules. Defaults to 1 in bytes 
         :type version: bytes, int
         :param network: Network, leave empty for default network
-        :type network: str
+        :type network: str, Network
         :param fee: Fee in smallest denominator (ie Satoshi) for complete transaction
         :type fee: int
         :param fee_per_kb: Fee in smallest denominator per kilobyte. Specify when exact transaction size is not known.
@@ -865,7 +878,9 @@ class Transaction:
         else:
             self.version = version
         self.locktime = locktime
-        self.network = Network(network)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.coinbase = coinbase
         self.flag = flag
         self.fee = fee
@@ -887,7 +902,7 @@ class Transaction:
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
-               (len(self.inputs), len(self.outputs), self.status, self.network.network_name)
+               (len(self.inputs), len(self.outputs), self.status, self.network.name)
 
     def dict(self):
         """
@@ -904,7 +919,7 @@ class Transaction:
         return {
             'hash': self.hash,
             'date': self.date,
-            'network': self.network.network_name,
+            'network': self.network.name,
             'coinbase': self.coinbase,
             'flag': self.flag,
             'confirmations': self.confirmations,
@@ -931,7 +946,7 @@ class Transaction:
         """
         print("Transaction %s" % self.hash)
         print("Date: %s" % self.date)
-        print("Network: %s" % self.network.network_name)
+        print("Network: %s" % self.network.name)
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")
@@ -1199,7 +1214,7 @@ class Transaction:
             index_n = len(self.inputs)
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
-                  script_type=script_type, network=self.network.network_name, sequence=sequence, compressed=compressed,
+                  script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   signatures=signatures))
         return index_n
@@ -1239,11 +1254,11 @@ class Transaction:
             output_n = len(self.outputs)
         if not float(value).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
-        if value < 0:
-            raise TransactionError("Output to %s must be more then zero" % to)
+        # if value < self.network.dust_amount:
+        #     raise TransactionError("Output to %s must be more then dust amount %d" % (to, self.network.dust_amount))
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
-                                   network=self.network.network_name))
+                                   network=self.network.name))
         return output_n
 
     def estimate_size(self, add_change_output=True):
@@ -1293,3 +1308,14 @@ class Transaction:
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
         return int(len(self.raw())/1024.0 * self.fee_per_kb)
+
+    def update_totals(self):
+        """
+        Update input_total, output_total and fee according to inputs and outputs of this transaction
+
+        :return int:
+        """
+
+        self.input_total = sum([i.value for i in self.inputs])
+        self.output_total = sum([o.value for o in self.outputs])
+        self.fee = self.input_total - self.output_total
