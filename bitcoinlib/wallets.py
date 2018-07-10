@@ -2210,7 +2210,7 @@ class HDWallet:
                 accounts = [account_id]
             for account_id in accounts:
                 _, _, acckey = self._get_account_defaults(network, account_id, key_id)
-                # TODO: implement bip45/67/electrum/?
+                # TODO: implement bip45/67/electrum/?  + Move settings to top or main
                 schemes_key_depth = {
                     'bip44': 5,
                     'single': 0,
