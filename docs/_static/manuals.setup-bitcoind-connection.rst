@@ -20,6 +20,7 @@ So your bitcoin.conf file for testnet should look something like this. For mainn
 and remove the 'testnet=1' line.
 
 .. code-block:: none
+
     [rpc]
     rpcuser=bitcoinrpc
     rpcpassword=some_long_secure_password

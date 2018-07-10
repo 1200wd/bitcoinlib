@@ -84,7 +84,7 @@ Example: Get estimated transactionfee in sathosis per Kb for confirmation within
    _static/manuals.install
    _static/manuals.command-line-wallet
    _static/manuals.add-provider
-   _static/manuals.setup-bitcoind
+   _static/manuals.setup-bitcoind-connection
 
 
 

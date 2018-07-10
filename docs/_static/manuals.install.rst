@@ -45,4 +45,4 @@ References
 
 * https://pypi.python.org/pypi/bitcoinlib/
 * https://github.com/1200wd/bitcoinlib
-* `Add Provider <{filename}/manuals.add-provider.rst>`_
+* `Add Provider </manuals.add-provider.html>`_
