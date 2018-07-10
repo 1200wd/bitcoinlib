@@ -417,6 +417,11 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
         del wallet
 
+    def test_wallet_multi_networks_account_bip44_code_error(self):
+        wlt = HDWallet.create("wallet-bip44-code-error", network='testnet', databasefile=DATABASEFILE_UNITTESTS)
+        error_str = "Can not create new account for network litecoin_testnet with same BIP44 cointype"
+        self.assertRaisesRegexp(WalletError, error_str, wlt.new_account, network='litecoin_testnet')
+
 
 class TestWalletBitcoinlibTestnet(unittest.TestCase):
 

@@ -1642,7 +1642,7 @@ class HDWallet:
             try:
                 purposekey = self.key(self.keys(depth=1)[0].id)
                 bip44_cointype = Network(network).bip44_cointype
-                duplicate_cointypes = [Network(x).network_name for x in self.network_list() if
+                duplicate_cointypes = [Network(x).name for x in self.network_list() if
                                        Network(x).bip44_cointype == bip44_cointype]
                 if duplicate_cointypes:
                     raise WalletError("Can not create new account for network %s with same BIP44 cointype: %s" %
