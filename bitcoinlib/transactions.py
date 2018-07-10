@@ -745,9 +745,8 @@ class Output:
             if self.script_type in ['p2pkh', 'p2sh']:
                 self.public_key_hash = ss['signatures'][0]
                 self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
-            else:
+            elif self.script_type != 'nulldata':
                 _logger.warning("Script type %s not supported" % self.script_type)
-
         if self.lock_script == b'':
             if self.script_type == 'p2pkh':
                 self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
@@ -1266,6 +1265,7 @@ class Transaction:
         :return int: Transaction output number (output_n)
 
         """
+        lock_script = to_bytes(lock_script)
         if address:
             to = address
         elif public_key:
@@ -1276,7 +1276,10 @@ class Transaction:
             output_n = len(self.outputs)
         if not float(value).is_integer():
             raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
-        if value < self.network.dust_amount:
+        if lock_script.startswith(b'\x6a'):
+            if value != 0:
+                raise TransactionError("Output value for OP_RETURN script must be 0")
+        elif value < self.network.dust_amount:
             raise TransactionError("Output to %s must be more then dust amount %d" % (to, self.network.dust_amount))
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
