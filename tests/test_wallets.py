@@ -373,9 +373,16 @@ class TestWalletMultiCurrency(unittest.TestCase):
 
 class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
 
-    def test_wallet_multi_networks_send_transaction(self):
+    @classmethod
+    def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(DATABASEFILE_UNITTESTS)
+
+    def test_wallet_multi_networks_send_transaction(self):
         pk = 'tobacco defy swarm leaf flat pyramid velvet pen minor twist maximum extend'
         wallet = HDWallet.create(
             key=pk, network='bitcoin',

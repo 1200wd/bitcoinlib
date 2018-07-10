@@ -21,7 +21,7 @@
 import unittest
 
 from bitcoinlib.encoding import *
-from bitcoinlib.encoding import _bech32_polymod
+from bitcoinlib.encoding import _bech32_polymod, _codestring_to_array
 
 
 class TestEncodingMethodsChangeBase(unittest.TestCase):
@@ -273,7 +273,7 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             pos = test.rfind('1')
             test = test.lower()
             hrp = test[:pos]
-            data = codestring_to_array(test[pos + 1:], 'bech32')
+            data = _codestring_to_array(test[pos + 1:], 'bech32')
             hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
             self.assertEqual(_bech32_polymod(hrp_expanded + data), 1, msg="Invalid checksum for address %s" % test)
             test = test[:pos+1] + chr(ord(test[pos + 1]) ^ 1) + test[pos+2:]

@@ -78,7 +78,7 @@ def _in_code_string_check(inp, code_str_from):
         return inp.lower()
 
 
-def array_to_codestring(array, base):
+def _array_to_codestring(array, base):
     codebase = code_strings[base]
     codestring = ""
     for i in array:
@@ -91,7 +91,7 @@ def array_to_codestring(array, base):
     return codestring
 
 
-def codestring_to_array(codestring, base):
+def _codestring_to_array(codestring, base):
     codestring = to_bytes(codestring)
     codebase = code_strings[base]
     array = []
@@ -282,9 +282,9 @@ def varbyteint_to_int(byteint):
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
     :param byteint: 1-9 byte representation
-    ;type byteint: int, list, bytearray
+    :type byteint: bytes, list, bytearray
 
-    :return: normal integer
+    :return int: normal integer
     """
     if not isinstance(byteint, (bytes, list, bytearray)):
         raise EncodingError("Byteint be a list or defined as bytes")
@@ -495,7 +495,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
-    return hrp + seperator + array_to_codestring(data, 'bech32') + array_to_codestring(checksum, 'bech32')
+    return hrp + seperator + _array_to_codestring(data, 'bech32') + _array_to_codestring(checksum, 'bech32')
 
 
 def addr_convert(addr, prefix):
@@ -532,7 +532,7 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
         return False
     if hrp != bech[:pos]:
         raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
-    data = codestring_to_array(bech[pos+1:], 'bech32')
+    data = _codestring_to_array(bech[pos+1:], 'bech32')
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
         return False
@@ -576,7 +576,7 @@ def to_bytearray(s):
     if isinstance(s, (str, unicode if not PY3 else str)):
         try:
             s = binascii.unhexlify(s)
-        except:
+        except binascii.Error:
             pass
     return bytearray(s)
 
@@ -597,7 +597,7 @@ def to_bytes(s, unhexlify=True):
         try:
             s = binascii.unhexlify(s)
             return s
-        except:
+        except binascii.Error:
             pass
     return s
 
@@ -620,7 +620,7 @@ def to_hexstring(var):
                 return str(var, 'ISO-8859-1')
             else:
                 return var
-        except:
+        except binascii.Error:
             pass
 
     s = binascii.hexlify(var)

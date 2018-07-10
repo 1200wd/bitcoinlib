@@ -587,8 +587,6 @@ class HDWalletTransaction(Transaction):
         """
 
         self.error = None
-        # if not self.verified:
-        #     self.sign()
         if not self.verified and not self.verify():
             self.error = "Cannot verify transaction"
             return False

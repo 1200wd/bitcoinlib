@@ -62,8 +62,8 @@ class Mnemonic:
         if len(data) % 4 > 0:
             raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
                              (len(data), len(data) * 8))
-        hash = hashlib.sha256(data).digest()
-        return change_base(hash, 256, 2, 256)[:len(data) * 8 // 32]
+        tx_hash = hashlib.sha256(data).digest()
+        return change_base(tx_hash, 256, 2, 256)[:len(data) * 8 // 32]
 
     def to_seed(self, words, password=''):
         """

@@ -66,6 +66,7 @@ def read_network_definitions():
     f.close()
     return network_definitions
 
+
 NETWORK_DEFINITIONS = read_network_definitions()
 
 

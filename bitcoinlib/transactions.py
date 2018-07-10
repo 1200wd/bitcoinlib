@@ -184,7 +184,6 @@ def script_deserialize(script, script_types=None):
         data['number_of_sigs_n'] = 1
         data['number_of_sigs_m'] = 1
         found = True
-        push_size = 0
         for ch in ost:
             if cur >= len(script):
                 found = False
@@ -276,7 +275,6 @@ def script_deserialize(script, script_types=None):
                 cur += 1
             elif ch == 'SIGHASH_ALL':
                 pass
-                # cur += 1
             else:
                 try:
                     if cur_char == opcodes[ch]:
