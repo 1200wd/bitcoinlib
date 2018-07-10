@@ -576,7 +576,7 @@ def to_bytearray(s):
     if isinstance(s, (str, unicode if not PY3 else str)):
         try:
             s = binascii.unhexlify(s)
-        except TypeError or binascii.Error:
+        except (TypeError, binascii.Error):
             pass
     return bytearray(s)
 
@@ -597,7 +597,7 @@ def to_bytes(s, unhexlify=True):
         try:
             s = binascii.unhexlify(s)
             return s
-        except TypeError or binascii.Error:
+        except (TypeError, binascii.Error):
             pass
     return s
 
@@ -620,7 +620,7 @@ def to_hexstring(var):
                 return str(var, 'ISO-8859-1')
             else:
                 return var
-        except TypeError or binascii.Error:
+        except (TypeError, binascii.Error):
             pass
 
     s = binascii.hexlify(var)
