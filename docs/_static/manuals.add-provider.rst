@@ -23,10 +23,12 @@ Example:
             "provider": "bitgo",
             "network": "bitcoin",
             "client_class": "BitGo",
+            "provider_coin_id": "",
             "url": "https://www.bitgo.com/api/v1/",
             "api_key": "",
             "priority": 10,
-            "denominator": 1
+            "denominator": 1,
+            "network_overrides": null
         }
     }
 

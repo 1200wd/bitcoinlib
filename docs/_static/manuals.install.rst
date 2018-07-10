@@ -39,8 +39,10 @@ Other requirements Windows
 Tested on Windows 10 with Python 3.6 and pip installed. No special requirements needed.
 
 
+
 References
 ----------
 
 * https://pypi.python.org/pypi/bitcoinlib/
 * https://github.com/1200wd/bitcoinlib
+* `Add Provider <{filename}/manuals.add-provider.rst>`_
