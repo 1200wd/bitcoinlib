@@ -12,6 +12,7 @@
 import os
 import sys
 import argparse
+from copy import deepcopy
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -68,11 +69,18 @@ try:
     for wallet in wallets:
         fields = dict(wallet)
 
-        # Update, rename and delete fields
+        # Update, rename
         try:
             del(fields['balance'])
         except:
             pass
+
+        # Remove unused fields
+        db_field_names = [field[0] for field in DbWallet.__table__.columns.items()]
+        fields_copy = deepcopy(fields)
+        for f in fields_copy:
+            if f not in db_field_names:
+                del(fields[f])
 
         session.add(DbWallet(**fields))
     session.commit()
@@ -81,13 +89,20 @@ try:
     for key in keys:
         fields = dict(key)
 
-        # Update, rename and delete fields
+        # Update for 'key' field
         if 'key' in fields:
             if fields['is_private']:
                 fields['private'] = fields['key']
             else:
                 fields['public'] = fields['key']
             del(fields['key'])
+
+        # Remove unused fields
+        db_field_names = [field[0] for field in DbKey.__table__.columns.items()]
+        fields_copy = deepcopy(fields)
+        for f in fields_copy:
+            if f not in db_field_names:
+                del(fields[f])
 
         fields['used'] = False  # To force rescan of all keys
         session.add(DbKey(**fields))
