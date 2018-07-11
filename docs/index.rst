@@ -90,7 +90,7 @@ Example: Get estimated transactionfee in sathosis per Kb for confirmation within
 
 .. toctree::
    :caption: Reference
-   :maxdepth: 2
+   :maxdepth: 1
 
    source/modules
    source/bitcoinlib.config
