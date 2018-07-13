@@ -34,7 +34,8 @@ from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert
+from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert, \
+    addr_bech32_to_pubkeyhash
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -230,7 +231,10 @@ def deserialize_address(address):
     try:
         address_bytes = change_base(address, 58, 256, 25)
     except EncodingError as err:
-        raise EncodingError("Invalid address %s: %s" % (address, err))
+        try:
+            return addr_bech32_to_pubkeyhash(address)
+        except:
+            raise EncodingError("Invalid address %s: %s" % (address, err))
     check = address_bytes[-4:]
     key_hash = address_bytes[:-4]
     checksum = hashlib.sha256(hashlib.sha256(key_hash).digest()).digest()[0:4]
