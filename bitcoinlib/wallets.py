@@ -1055,12 +1055,10 @@ class HDWallet:
         self._session.close()
 
     def __del__(self):
-        try:
-            if self._dbwallet.parent_id:
-                return
-        except:
-            pass
-        self._session.close()
+        if self._dbwallet and self._dbwallet.parent_id:
+            return
+        if self._session:
+            self._session.close()
 
     def __repr__(self):
         return "<HDWallet(name=%s, databasefile=\"%s\")>" % \
