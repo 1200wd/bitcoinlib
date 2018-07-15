@@ -1192,7 +1192,7 @@ class Transaction:
         return n_signs
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
-                  sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=None,
+                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, signatures=None):
         """
         Add input to this transaction

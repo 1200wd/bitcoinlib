@@ -2456,7 +2456,7 @@ class HDWallet:
         return res
 
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, fee=None,
-                           min_confirms=0, max_utxos=None):
+                           min_confirms=0, max_utxos=None, locktime=0xffffffff):
         """
             Create new transaction with specified outputs. 
             Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -2549,7 +2549,7 @@ class HDWallet:
                               (len(input_arr), max_utxos))
 
         # Create transaction and add outputs
-        transaction = HDWalletTransaction(hdwallet=self, network=network)
+        transaction = HDWalletTransaction(hdwallet=self, network=network, locktime=locktime)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
@@ -2573,6 +2573,9 @@ class HDWallet:
             fee_estimate = fee
 
         # Add inputs
+        sequence = 0xffffffff
+        if transaction.locktime:
+            sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
             selected_utxos = _select_inputs(amount_total_output + fee_estimate, self.network.dust_amount)
@@ -2583,7 +2586,7 @@ class HDWallet:
                 inp_keys, script_type, key = _objects_by_key_id(utxo.key_id)
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                      compressed=key.compressed, value=utxo.value)
+                                      compressed=key.compressed, value=utxo.value, sequence=sequence)
         else:
             for inp in input_arr:
                 if isinstance(inp, Input):
@@ -2630,7 +2633,7 @@ class HDWallet:
                 transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
-                                      unlocking_script=unlocking_script)
+                                      unlocking_script=unlocking_script, sequence=sequence)
 
         # Calculate fees
         transaction.fee = fee
@@ -2726,7 +2729,7 @@ class HDWallet:
         return rt
 
     def send(self, output_arr, input_arr=None, account_id=None, network=None, fee=None, min_confirms=0,
-             priv_keys=None, max_utxos=None, offline=False):
+             priv_keys=None, max_utxos=None, locktime=0xffffffff, offline=False):
         """
         Create new transaction with specified outputs and push it to the network. 
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -2760,7 +2763,7 @@ class HDWallet:
                               (len(input_arr), max_utxos))
 
         transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee,
-                                              min_confirms, max_utxos)
+                                              min_confirms, max_utxos, locktime)
         transaction.sign(priv_keys)
         # Calculate exact estimated fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
@@ -2770,14 +2773,14 @@ class HDWallet:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
                 transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee_exact,
-                                                      min_confirms, max_utxos)
+                                                      min_confirms, max_utxos, locktime)
                 transaction.sign(priv_keys)
 
         transaction.send(offline)
         return transaction
 
     def send_to(self, to_address, amount, account_id=None, network=None, fee=None, min_confirms=0,
-                priv_keys=None, offline=False):
+                priv_keys=None, locktime=0xffffffff, offline=False):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
 
@@ -2803,7 +2806,7 @@ class HDWallet:
 
         outputs = [(to_address, amount)]
         return self.send(outputs, account_id=account_id, network=network, fee=fee,
-                         min_confirms=min_confirms, priv_keys=priv_keys, offline=offline)
+                         min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
               fee_per_kb=None, offline=False):
