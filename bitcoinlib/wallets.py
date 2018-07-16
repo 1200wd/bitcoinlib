@@ -2476,6 +2476,8 @@ class HDWallet:
             :type min_confirms: int
             :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
             :type max_utxos: int
+            :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0xffffffff for transactions without locktime
+            :type locktime: int
 
             :return HDWalletTransaction: object
         """
@@ -2751,6 +2753,8 @@ class HDWallet:
         :type priv_keys: HDKey, list
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0xffffffff for transactions without locktime
+        :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
@@ -2798,6 +2802,8 @@ class HDWallet:
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0xffffffff for transactions without locktime
+        :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
@@ -2809,7 +2815,7 @@ class HDWallet:
                          min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
-              fee_per_kb=None, offline=False):
+              fee_per_kb=None, locktime=0xffffffff, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -2828,6 +2834,8 @@ class HDWallet:
         :type min_confirms: int
         :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider.
         :type fee_per_kb: int
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0xffffffff for transactions without locktime
+        :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
@@ -2854,7 +2862,7 @@ class HDWallet:
         tr_size = 125 + (len(input_arr) * 125)
         estimated_fee = int((tr_size / 1024.0) * fee_per_kb)
         return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
-                         fee=estimated_fee, min_confirms=min_confirms, offline=offline)
+                         fee=estimated_fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
 
     def info(self, detail=3):
         """
