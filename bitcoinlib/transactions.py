@@ -814,7 +814,7 @@ class Transaction:
         rawtx = to_bytes(rawtx)
         return _transaction_deserialize(rawtx, network=network)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0xffffffff, version=1, network=DEFAULT_NETWORK,
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, hash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
                  coinbase=False, verified=False, flag=None):
@@ -831,7 +831,7 @@ class Transaction:
         :type inputs: Input, list
         :param outputs: Array of Output object. Leave empty to add later
         :type outputs: Output, list
-        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0xffffffff for transactions without locktime
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
         :param version: Version rules. Defaults to 1 in bytes 
         :type version: bytes, int
