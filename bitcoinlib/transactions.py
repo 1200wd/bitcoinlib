@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from datetime import datetime
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address
@@ -966,6 +967,11 @@ class Transaction:
         print("Transaction %s" % self.hash)
         print("Date: %s" % self.date)
         print("Network: %s" % self.network.name)
+        if self.locktime and self.locktime != 0xffffffff:
+            if self.locktime < 500000000:
+                print("Locktime: Until block %d" % self.locktime)
+            else:
+                print("Locktime: Until %s UTC" % datetime.utcfromtimestamp(self.locktime))
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")
