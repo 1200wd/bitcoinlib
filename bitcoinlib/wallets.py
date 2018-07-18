@@ -28,10 +28,10 @@ from operator import itemgetter
 from bitcoinlib.db import *
 from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash, to_bytes
 from bitcoinlib.keys import HDKey, check_network_and_key
-from bitcoinlib.networks import Network, DEFAULT_NETWORK
+from bitcoinlib.networks import Network
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, SIGHASH_ALL
+from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input
 
 _logger = logging.getLogger(__name__)
 
@@ -2619,7 +2619,7 @@ class HDWallet:
                         key_id = inp_utxo.key_id
                         value = inp_utxo.value
                     else:
-                        _logger.info("UTXO %s not found in this wallet. Please update UTXO's if othis is not an "
+                        _logger.info("UTXO %s not found in this wallet. Please update UTXO's if this is not an "
                                      "offline wallet" % to_hexstring(prev_hash))
                         key_id = self._session.query(DbKey.id).\
                             filter(DbKey.wallet_id == self.wallet_id, DbKey.address == address).scalar()

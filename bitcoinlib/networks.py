@@ -21,15 +21,11 @@
 import json
 import binascii
 import math
-import logging
-from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
+from bitcoinlib.main import *
 from bitcoinlib.encoding import to_hexstring, normalize_var
 
 
 _logger = logging.getLogger(__name__)
-
-
-DEFAULT_NETWORK = 'bitcoin'
 
 
 class NetworkError(Exception):

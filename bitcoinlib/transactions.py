@@ -22,27 +22,10 @@ from datetime import datetime
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address
-from bitcoinlib.networks import Network, DEFAULT_NETWORK
+from bitcoinlib.networks import Network
 
 
 _logger = logging.getLogger(__name__)
-
-SCRIPT_TYPES = {
-    'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
-    'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
-    'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
-    'p2sh_p2wpkh': ['script_size', 'OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
-    'p2sh_p2wsh': ['script_size', 'OP_0', 'push_size', 'redeemscript'],
-    'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
-    'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
-    'pubkey': ['signature', 'OP_CHECKSIG'],
-    'nulldata': ['OP_RETURN', 'return_data']
-}
-
-SIGHASH_ALL = 1
-SIGHASH_NONE = 2
-SIGHASH_SINGLE = 3
-SIGHASH_ANYONECANPAY = 80
 
 
 class TransactionError(Exception):
@@ -468,7 +451,7 @@ class Input:
     """
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
-                 sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=0,
+                 sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, network=DEFAULT_NETWORK):
         """
         Create a new transaction input

@@ -333,7 +333,6 @@ class TestWalletMultiCurrency(unittest.TestCase):
         cls.wallet.new_key()
         cls.wallet.new_key()
         cls.wallet.new_key(network='bitcoin')
-        cls.wallet.info()
 
     @classmethod
     def tearDownClass(cls):
@@ -935,7 +934,6 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.wallet = wallet_create_or_open('scan-test', key=account_key, network='testnet',
                                             databasefile=DATABASEFILE_UNITTESTS)
         self.wallet.scan()
-        self.wallet.info()
         self.assertEqual(len(self.wallet.keys()), 25)
         self.assertEqual(len(self.wallet.keys(is_active=None)), 31)
         self.assertEqual(self.wallet.balance(), 60500000)

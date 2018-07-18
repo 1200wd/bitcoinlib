@@ -18,13 +18,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
-import sys
 import hashlib
 from bitcoinlib.encoding import change_base, normalize_string, to_bytes
-
-DEFAULT_LANGUAGE = 'english'
-WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
+from bitcoinlib.main import *
 
 
 class Mnemonic:
