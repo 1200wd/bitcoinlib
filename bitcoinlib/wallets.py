@@ -2456,7 +2456,25 @@ class HDWallet:
             res.append(u)
         return res
 
-    def select_inputs(self, amount, variance=None, account_id=None, network=None, min_confirms=0, max_utxos=None):
+    def _objects_by_key_id(self, key_id):
+        key = self._session.query(DbKey).filter_by(id=key_id).scalar()
+        if not key:
+            raise WalletError("Key '%s' not found in this wallet" % key_id)
+        if key.key_type == 'multisig':
+            inp_keys = []
+            for ck in key.multisig_children:
+                # TODO:  CHECK THIS
+                inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
+            script_type = 'p2sh_multisig'
+        elif key.key_type in ['bip32', 'single']:
+            inp_keys = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
+            script_type = 'p2pkh'
+        else:
+            raise WalletError("Input key type %s not supported" % key.key_type)
+        return inp_keys, script_type, key
+
+    def select_inputs(self, amount, variance=None, account_id=None, network=None, min_confirms=0, max_utxos=None,
+                      return_input_obj=True):
         """
 
         :param amount: Total value of inputs to selects
@@ -2492,33 +2510,53 @@ class HDWallet:
         one_utxo = utxo_query.filter(DbTransactionOutput.spent.op("IS")(False),
                                      DbTransactionOutput.value >= amount,
                                      DbTransactionOutput.value <= amount + variance).first()
+        selected_utxos = []
         if one_utxo:
-            return [one_utxo]
-
-        # Try to find one utxo with higher amount
-        one_utxo = utxo_query. \
-            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
-            order_by(DbTransactionOutput.value).first()
-        if one_utxo:
-            return [one_utxo]
-        elif max_utxos and max_utxos <= 1:
-            _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
-                         "multiple UTXO's")
-            return []
+            selected_utxos = [one_utxo]
+        else:
+            # Try to find one utxo with higher amount
+            one_utxo = utxo_query. \
+                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
+                order_by(DbTransactionOutput.value).first()
+            if one_utxo:
+                selected_utxos = [one_utxo]
+            elif max_utxos and max_utxos <= 1:
+                _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
+                             "multiple UTXO's")
+                return []
 
         # Otherwise compose of 2 or more lesser outputs
-        lessers = utxo_query. \
-            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
-            order_by(DbTransactionOutput.value.desc()).all()
-        total_amount = 0
-        selected_utxos = []
-        for utxo in lessers[:max_utxos]:
+        if not selected_utxos:
+            lessers = utxo_query. \
+                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
+                order_by(DbTransactionOutput.value.desc()).all()
+            total_amount = 0
+            selected_utxos = []
+            for utxo in lessers[:max_utxos]:
+                if total_amount < amount:
+                    selected_utxos.append(utxo)
+                    total_amount += utxo.value
             if total_amount < amount:
-                selected_utxos.append(utxo)
-                total_amount += utxo.value
-        if total_amount < amount:
-            return []
-        return selected_utxos
+                return []
+        if not return_input_obj:
+            return selected_utxos
+        else:
+            inputs = []
+            for utxo in selected_utxos:
+                # amount_total_input += utxo.value
+                inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
+                # transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
+                #                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
+                #                       compressed=key.compressed, value=utxo.value, sequence=sequence)
+                # inp = Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
+                #     script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
+                #     sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
+                #     signatures=signatures)
+                inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
+                              sigs_required=self.multisig_n_required, sort=self.sort_keys,
+                              compressed=key.compressed, value=utxo.value))
+            return inputs
+
 
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, fee=None,
                            min_confirms=0, max_utxos=None, locktime=0):
@@ -2546,22 +2584,6 @@ class HDWallet:
 
             :return HDWalletTransaction: object
         """
-        def _objects_by_key_id(key_id):
-            key = self._session.query(DbKey).filter_by(id=key_id).scalar()
-            if not key:
-                raise WalletError("Key '%s' not found in this wallet" % key_id)
-            if key.key_type == 'multisig':
-                inp_keys = []
-                for ck in key.multisig_children:
-                    # TODO:  CHECK THIS
-                    inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
-                script_type = 'p2sh_multisig'
-            elif key.key_type in ['bip32', 'single']:
-                inp_keys = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
-                script_type = 'p2pkh'
-            else:
-                raise WalletError("Input key type %s not supported" % key.key_type)
-            return inp_keys, script_type, key
 
         amount_total_output = 0
         network, account_id, acckey = self._get_account_defaults(network, account_id)
@@ -2601,12 +2623,12 @@ class HDWallet:
         amount_total_input = 0
         if input_arr is None:
             selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount,
-                                                account_id, network, min_confirms, max_utxos)
+                                                account_id, network, min_confirms, max_utxos, False)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                inp_keys, script_type, key = _objects_by_key_id(utxo.key_id)
+                inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=utxo.value, sequence=sequence)
@@ -2661,7 +2683,7 @@ class HDWallet:
                                               "or import transaction as dictionary" % address)
 
                 amount_total_input += value
-                inp_keys, script_type, key = _objects_by_key_id(key_id)
+                inp_keys, script_type, key = self._objects_by_key_id(key_id)
                 transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
