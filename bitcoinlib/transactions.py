@@ -612,6 +612,18 @@ class Input:
                                               versionbyte=self.network.prefix_address_p2sh)
             print(self.address)
 
+    def sequence_timelock_blocks(self, blocks):
+        if blocks > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = blocks
+
+    def sequence_timelock_time(self, seconds):
+        if seconds % 512:
+            raise TransactionError("Seconds must be a multiply of 512")
+        if seconds > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+
     def dict(self):
         """
         Get transaction input information in json format
