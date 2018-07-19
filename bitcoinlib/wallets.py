@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2018 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2018 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -594,7 +594,7 @@ class HDWalletTransaction(Transaction):
         if offline:
             return False
 
-        srv = Service(network=self.network.name)
+        srv = Service(network=self.network.name, providers=self.hdwallet.providers)
         res = srv.sendrawtransaction(self.raw_hex())
         if not res:
             self.error = "Cannot send transaction. %s" % srv.errors
@@ -1048,6 +1048,7 @@ class HDWallet:
             self._key_objects = {
                 self.main_key_id: self.main_key
             }
+            self.providers = None
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -1918,7 +1919,7 @@ class HDWallet:
 
     def key(self, term):
         """
-        Return single key with give ID or name as HDWalletKey object
+        Return single key with given ID or name as HDWalletKey object
 
         :param term: Search term can be key ID, key address, key WIF or key name
         :type term: int, str
@@ -2018,22 +2019,22 @@ class HDWallet:
 
     def balance_update_from_serviceprovider(self, account_id=None, network=None):
         """
-        Update balance of currents account addresses using default Service objects getbalance method. Update total 
-        wallet balance in database. 
-        
+        Update balance of currents account addresses using default Service objects getbalance method. Update total
+        wallet balance in database.
+
         Please Note: Does not update UTXO's or the balance per key! For this use the 'updatebalance' method
         instead
-        
+
         :param account_id: Account ID. Leave empty for default account
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        
-        :return: 
+
+        :return:
         """
 
+        balance = Service(network=network, providers=self.providers).getbalance(self.addresslist(account_id=account_id, network=network))
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
         if balance:
             new_balance = {
                 'account_id': account_id,
@@ -2226,7 +2227,7 @@ class HDWallet:
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
                     random.shuffle(addresslist)
-                    srv = Service(network=network)
+                    srv = Service(network=network, providers=self.providers)
                     utxos = srv.getutxos(addresslist)
                     if utxos is False:
                         raise WalletError("No response from any service provider, could not update UTXO's. "
@@ -2374,7 +2375,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network)
+        srv = Service(network=network, providers=self.providers)
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -2563,7 +2564,7 @@ class HDWallet:
                 amount_total_output += o[1]
                 transaction.add_output(o[1], o[0])
 
-        srv = Service(network=network)
+        srv = Service(network=network, providers=self.providers)
         transaction.fee_per_kb = None
         if fee is None:
             if not input_arr:
@@ -2856,7 +2857,7 @@ class HDWallet:
                 continue
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
-        srv = Service(network=network)
+        srv = Service(network=network, providers=self.providers)
         if fee_per_kb is None:
             fee_per_kb = srv.estimatefee()
         tr_size = 125 + (len(input_arr) * 125)

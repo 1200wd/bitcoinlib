@@ -491,8 +491,8 @@ class Input:
         else:
             self.output_n_int = struct.unpack('>I', output_n)[0]
             self.output_n = output_n
-        if isinstance(keys, (bytes, str)):
-            keys = [keys]
+        # if isinstance(keys, (bytes, str)):
+        #     keys = [keys]
         if unlocking_script is None:
             unlocking_script = b''
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
@@ -955,6 +955,7 @@ class Transaction:
                 print("Locktime: Until block %d" % self.locktime)
             else:
                 print("Locktime: Until %s UTC" % datetime.utcfromtimestamp(self.locktime))
+        print("Version: %d" % self.version)
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")

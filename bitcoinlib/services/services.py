@@ -23,8 +23,8 @@ import logging
 import json
 import random
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
-from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib import services
+from bitcoinlib.networks import DEFAULT_NETWORK, Network
 
 _logger = logging.getLogger(__name__)
 
@@ -87,6 +87,8 @@ class Service(object):
         provider_list = list([self.providers_defined[x]['provider'] for x in self.providers_defined])
         if providers is None:
             providers = []
+        if not isinstance(providers, list):
+            providers = [providers]
         for p in providers:
             if p not in provider_list:
                 raise ServiceError("Provider '%s' not found in provider definitions" % p)
