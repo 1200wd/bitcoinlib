@@ -2456,6 +2456,70 @@ class HDWallet:
             res.append(u)
         return res
 
+    def select_inputs(self, amount, variance=None, account_id=None, network=None, min_confirms=0, max_utxos=None):
+        """
+
+        :param amount: Total value of inputs to selects
+        :type amount: int
+        :param variance: Allowed difference in total input value. Default is dust amount of selected network.
+        :type variance: int
+        :param account_id: Account ID
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
+        :type min_confirms: int
+        :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
+        :type max_utxos: int
+        :return:
+        """
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+        if variance is None:
+            variance = self.network.dust_amount
+
+        utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+            filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
+                   DbKey.network_name == network,
+                   DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms). \
+            order_by(DbTransaction.confirmations.desc())
+        utxos = utxo_query.all()
+        if not utxos:
+            raise WalletError("Create transaction: No unspent transaction outputs found")
+
+        # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
+
+        # Try to find one utxo with exact amount
+        one_utxo = utxo_query.filter(DbTransactionOutput.spent.op("IS")(False),
+                                     DbTransactionOutput.value >= amount,
+                                     DbTransactionOutput.value <= amount + variance).first()
+        if one_utxo:
+            return [one_utxo]
+
+        # Try to find one utxo with higher amount
+        one_utxo = utxo_query. \
+            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
+            order_by(DbTransactionOutput.value).first()
+        if one_utxo:
+            return [one_utxo]
+        elif max_utxos and max_utxos <= 1:
+            _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
+                         "multiple UTXO's")
+            return []
+
+        # Otherwise compose of 2 or more lesser outputs
+        lessers = utxo_query. \
+            filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
+            order_by(DbTransactionOutput.value.desc()).all()
+        total_amount = 0
+        selected_utxos = []
+        for utxo in lessers[:max_utxos]:
+            if total_amount < amount:
+                selected_utxos.append(utxo)
+                total_amount += utxo.value
+        if total_amount < amount:
+            return []
+        return selected_utxos
+
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, fee=None,
                            min_confirms=0, max_utxos=None, locktime=0):
         """
@@ -2482,51 +2546,6 @@ class HDWallet:
 
             :return HDWalletTransaction: object
         """
-
-        def _select_inputs(amount, variance=0):
-            utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
-                filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
-                       DbKey.network_name == network,
-                       DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms). \
-                order_by(DbTransaction.confirmations.desc())
-            utxos = utxo_query.all()
-            if not utxos:
-                raise WalletError("Create transaction: No unspent transaction outputs found")
-
-            # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
-
-            # Try to find one utxo with exact amount
-            one_utxo = utxo_query.filter(DbTransactionOutput.spent.op("IS")(False),
-                                         DbTransactionOutput.value >= amount,
-                                         DbTransactionOutput.value <= amount + variance).first()
-            if one_utxo:
-                return [one_utxo]
-
-            # Try to find one utxo with higher amount
-            one_utxo = utxo_query. \
-                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
-                order_by(DbTransactionOutput.value).first()
-            if one_utxo:
-                return [one_utxo]
-            elif max_utxos and max_utxos <= 1:
-                _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
-                             "multiple UTXO's")
-                return []
-
-            # Otherwise compose of 2 or more lesser outputs
-            lessers = utxo_query. \
-                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
-                order_by(DbTransactionOutput.value.desc()).all()
-            total_amount = 0
-            selected_utxos = []
-            for utxo in lessers[:max_utxos]:
-                if total_amount < amount:
-                    selected_utxos.append(utxo)
-                    total_amount += utxo.value
-            if total_amount < amount:
-                return []
-            return selected_utxos
-
         def _objects_by_key_id(key_id):
             key = self._session.query(DbKey).filter_by(id=key_id).scalar()
             if not key:
@@ -2581,7 +2600,8 @@ class HDWallet:
             sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = _select_inputs(amount_total_output + fee_estimate, self.network.dust_amount)
+            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount,
+                                                account_id, network, min_confirms, max_utxos)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -2601,6 +2621,14 @@ class HDWallet:
                     unlocking_script = inp.unlocking_script
                     address = inp.address
                     sequence = inp.sequence
+                elif isinstance(inp, DbTransactionOutput):
+                    prev_hash = inp.transaction.hash
+                    output_n = inp.output_n
+                    key_id = inp.key_id
+                    value = inp.value
+                    signatures = None
+                    unlocking_script = inp.script
+                    address = inp.key.address
                 else:
                     prev_hash = inp[0]
                     output_n = inp[1]
