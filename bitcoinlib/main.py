@@ -57,6 +57,11 @@ SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
 SIGHASH_ANYONECANPAY = 80
 
+SEQUENCE_LOCKTIME_DISABLE_FLAG = (1 << 31)  # To enable sequence time locks
+SEQUENCE_LOCKTIME_TYPE_FLAG = (1 << 22)  # If set use timestamp based lock otherwise use block height
+SEQUENCE_LOCKTIME_GRANULARITY = 9
+SEQUENCE_LOCKTIME_MASK = 0x0000FFFF
+
 # Mnemonics
 DEFAULT_LANGUAGE = 'english'
 WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')

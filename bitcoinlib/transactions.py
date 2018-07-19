@@ -955,7 +955,7 @@ class Transaction:
                 print("Locktime: Until block %d" % self.locktime)
             else:
                 print("Locktime: Until %s UTC" % datetime.utcfromtimestamp(self.locktime))
-        print("Version: %d" % self.version)
+        print("Version: %d" % struct.unpack('>L', self.version)[0])
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")
@@ -1221,6 +1221,8 @@ class Transaction:
 
         if index_n is None:
             index_n = len(self.inputs)
+        if self.version == b'\x00\x00\x00\x01' and 0 < sequence < SEQUENCE_LOCKTIME_DISABLE_FLAG:
+            self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
                   script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,

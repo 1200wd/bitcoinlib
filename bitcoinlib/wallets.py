@@ -2600,6 +2600,7 @@ class HDWallet:
                     signatures = inp.signatures
                     unlocking_script = inp.unlocking_script
                     address = inp.address
+                    sequence = inp.sequence
                 else:
                     prev_hash = inp[0]
                     output_n = inp[1]
