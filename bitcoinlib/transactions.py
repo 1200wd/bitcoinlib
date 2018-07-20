@@ -971,16 +971,27 @@ class Transaction:
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")
+        replace_by_fee = False
         for ti in self.inputs:
             print("-", ti.address, ti.value, to_hexstring(ti.prev_hash), ti.output_n_int)
             print("  Script type: %s, signatures: %d (%d of %d)" %
                   (ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
+            if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
+                replace_by_fee = True
+            if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
+                if ti.sequence & SEQUENCE_LOCKTIME_TYPE_FLAG:
+                    print("  Relative timelock for %d seconds" % 512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                else:
+                    print("  Relative timelock for %d blocks" % ti.sequence)
+
         print("Outputs")
         for to in self.outputs:
             if to.script_type == 'nulldata':
                 print("- NULLDATA ", to.lock_script[2:])
             else:
                 print("-", to.address, to.value)
+        if replace_by_fee:
+            print("Replace by fee: Enabled")
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
