@@ -159,3 +159,6 @@ class BlockCypher(BaseClient):
             return res['high_fee_per_kb']
         else:
             return res['medium_fee_per_kb']
+
+    def block_count(self):
+        return self.compose_request('', '')['height']

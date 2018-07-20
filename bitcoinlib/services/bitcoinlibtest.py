@@ -105,3 +105,6 @@ class BitcoinLibTestClient(BaseClient):
             'txid': txid,
             'response_dict': {}
         }
+
+    def block_count(self):
+        return 1

@@ -61,7 +61,7 @@ class Service(object):
         :param max_providers: Maximum number of providers to connect to. Default is 1.
         :type max_providers: int
         :param providers: List of providers to connect to. Default is all providers and select a provider at random.
-        :type providers: list
+        :type providers: list, str
 
         """
         self.network = network
@@ -280,3 +280,11 @@ class Service(object):
             else:
                 raise ServiceError("Could not estimate fees, please define default fees in network settings")
         return fee
+
+    def block_count(self):
+        """
+        Get latest block number: The block number of last block in longest chain on the blockchain
+
+        :return int:
+        """
+        return self._provider_execute('block_count')

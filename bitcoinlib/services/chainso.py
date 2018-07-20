@@ -163,3 +163,6 @@ class ChainSo(BaseClient):
                     raise ValueError("Unexpected output order in gettransaction call")
             txs.append(t)
         return txs
+
+    def block_count(self):
+        return self.compose_request('get_info')['data']['blocks']
