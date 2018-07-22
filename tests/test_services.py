@@ -464,3 +464,12 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         utxos = srv.getutxos(address)
         self.assertIn(txid, [utxo['tx_hash'] for utxo in utxos])
+
+    def test_block_count(self):
+        srv = Service(min_providers=10)
+        srv.block_count()
+        n_blocks = None
+        for provider in srv.results:
+            if n_blocks is not None:
+                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=0)
+            n_blocks = srv.results[provider]
