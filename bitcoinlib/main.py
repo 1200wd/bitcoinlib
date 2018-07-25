@@ -23,6 +23,7 @@ import sys
 import locale
 import logging
 from logging.handlers import RotatingFileHandler
+from bitcoinlib.config.opcodes import *
 
 
 # General defaults
