@@ -1022,7 +1022,7 @@ class TestTransactionsScriptType(unittest.TestCase):
                                 t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
     def test_transaction_timelock(self):
-        locktime = 1532291866
+        locktime = 1532291866  # Timestamp
         inputs = [
             Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0)]
         outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
@@ -1031,7 +1031,7 @@ class TestTransactionsScriptType(unittest.TestCase):
         self.assertEqual(t2.locktime, locktime)
 
     def test_transaction_relative_timelock(self):
-        sequence = SEQUENCE_LOCKTIME_TYPE_FLAG + 1532291866
+        sequence = SEQUENCE_LOCKTIME_TYPE_FLAG + 1532291866  # Timestamp
         inputs = [
             Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0, sequence=sequence)]
         outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
