@@ -149,6 +149,126 @@ def script_deserialize(script, script_types=None):
             scr = scr[l + 1:]
         return sigs, total_lenght
 
+    def _parse_script(script):
+        for script_type in script_types:
+            cur = 0
+            ost = SCRIPT_TYPES[script_type]
+            data['script_type'] = script_type
+            data['number_of_sigs_n'] = 1
+            data['number_of_sigs_m'] = 1
+            data['locktime'] = 0
+            found = True
+            for ch in ost:
+                if cur >= len(script):
+                    found = False
+                    break
+                cur_char = script[cur]
+                if sys.version < '3':
+                    cur_char = ord(script[cur])
+                if ch == 'signature':
+                    s, total_length = _parse_signatures(script[cur:], 1)
+                    if not s:
+                        found = False
+                        break
+                    data['signatures'] += s
+                    cur += total_length
+                elif ch == 'public_key':
+                    pk_size, size = varbyteint_to_int(script[cur:cur + 9])
+                    key = script[cur + size:cur + size + pk_size]
+                    if key[0] == '0x30':
+                        data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
+                    else:
+                        data['keys'].append(key)
+                    cur += size + pk_size
+                elif ch == 'OP_RETURN':
+                    if cur_char == opcodes['OP_RETURN'] and cur == 0:
+                        data.update({'op_return': script[cur + 1:]})
+                        found = True
+                        break
+                    else:
+                        found = False
+                        break
+                elif ch == 'multisig':  # one or more signatures
+                    redeemscript_expected = False
+                    if 'redeemscript' in ost:
+                        redeemscript_expected = True
+                    s, total_length = _parse_signatures(script[cur:], redeemscript_expected=redeemscript_expected)
+                    data['signatures'] += s
+                    cur += total_length
+                elif ch == 'redeemscript':
+                    size_byte = 0
+                    if script[cur:cur + 1] == b'\x4c':
+                        size_byte = 1
+                    elif script[cur:cur + 1] == b'\x4d':
+                        size_byte = 2
+                    elif script[cur:cur + 1] == b'\x4e':
+                        size_byte = 3
+                    data['redeemscript'] = script[cur + 1 + size_byte:]
+                    data2 = script_deserialize(data['redeemscript'])
+                    if 'signatures' not in data2:
+                        found = False
+                        break
+                    data['keys'] = data2['signatures']
+                    data['number_of_sigs_m'] = data2['number_of_sigs_m']
+                    data['number_of_sigs_n'] = data2['number_of_sigs_n']
+                    cur = len(script)
+                elif ch == 'script_size':
+                    # TODO: Check if varbyteint's are used here
+                    script_size, size = varbyteint_to_int(script[cur:cur + 9])
+                    if script_size != len(script) - 1:
+                        found = False
+                    else:
+                        cur += size
+                        data['redeemscript'] = script[cur:]
+                elif ch == 'push_size':
+                    push_size, size = varbyteint_to_int(script[cur:cur + 9])
+                    if len(script[cur:]) - size != push_size:
+                        found = False
+                    else:
+                        found = True
+                    break
+                elif ch == 'op_m':
+                    if cur_char in OP_N_CODES:
+                        data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
+                    else:
+                        found = False
+                        break
+                    cur += 1
+                elif ch == 'op_n':
+                    if cur_char in OP_N_CODES:
+                        data['number_of_sigs_n'] = cur_char - opcodes['OP_1'] + 1
+                    else:
+                        raise TransactionError("%s is not an op_n code" % cur_char)
+                    if data['number_of_sigs_m'] > data['number_of_sigs_n']:
+                        raise TransactionError("Number of signatures to sign (%s) is higher then actual "
+                                               "amount of signatures (%s)" %
+                                               (data['number_of_sigs_m'], data['number_of_sigs_n']))
+                    if len(data['signatures']) > int(data['number_of_sigs_n']):
+                        raise TransactionError("%d signatures found, but %s sigs expected" %
+                                               (len(data['signatures']), data['number_of_sigs_n']))
+                    cur += 1
+                elif ch == 'SIGHASH_ALL':
+                    pass
+                elif ch == 'locktime':
+                    if len(script) < 4:
+                        found = False
+                        break
+                    data['locktime'] = struct.unpack('<L', script[cur:cur + 4])[0]
+                    cur += 4
+                else:
+                    try:
+                        if cur_char == opcodes[ch]:
+                            cur += 1
+                        else:
+                            found = False
+                            break
+                    except IndexError:
+                        raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
+            if found:
+                break
+
+        return data, script[cur:]
+
     data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime': 0}
     script = to_bytes(script)
     if not script:
@@ -160,120 +280,15 @@ def script_deserialize(script, script_types=None):
     elif not isinstance(script_types, list):
         script_types = [script_types]
 
-    for script_type in script_types:
-        cur = 0
-        ost = SCRIPT_TYPES[script_type]
-        data['script_type'] = script_type
-        data['number_of_sigs_n'] = 1
-        data['number_of_sigs_m'] = 1
-        data['locktime'] = 0
-        found = True
-        for ch in ost:
-            if cur >= len(script):
-                found = False
-                break
-            cur_char = script[cur]
-            if sys.version < '3':
-                cur_char = ord(script[cur])
-            if ch == 'signature':
-                s, total_length = _parse_signatures(script[cur:], 1)
-                if not s:
-                    found = False
-                    break
-                data['signatures'] += s
-                cur += total_length
-            elif ch == 'public_key':
-                pk_size, size = varbyteint_to_int(script[cur:cur + 9])
-                key = script[cur + size:cur + size + pk_size]
-                if key[0] == '0x30':
-                    data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
-                else:
-                    data['keys'].append(key)
-                cur += size + pk_size
-            elif ch == 'OP_RETURN':
-                if cur_char == opcodes['OP_RETURN'] and cur == 0:
-                    data.update({'op_return': script[cur+1:]})
-                    found = True
-                    break
-                else:
-                    found = False
-                    break
-            elif ch == 'multisig':  # one or more signatures
-                redeemscript_expected = False
-                if 'redeemscript' in ost:
-                    redeemscript_expected = True
-                s, total_length = _parse_signatures(script[cur:], redeemscript_expected=redeemscript_expected)
-                data['signatures'] += s
-                cur += total_length
-            elif ch == 'redeemscript':
-                size_byte = 0
-                if script[cur:cur+1] == b'\x4c':
-                    size_byte = 1
-                elif script[cur:cur + 1] == b'\x4d':
-                    size_byte = 2
-                elif script[cur:cur + 1] == b'\x4e':
-                    size_byte = 3
-                data['redeemscript'] = script[cur+1+size_byte:]
-                data2 = script_deserialize(data['redeemscript'])
-                if 'signatures' not in data2:
-                    found = False
-                    break
-                data['keys'] = data2['signatures']
-                data['number_of_sigs_m'] = data2['number_of_sigs_m']
-                data['number_of_sigs_n'] = data2['number_of_sigs_n']
-                cur = len(script)
-            elif ch == 'script_size':
-                # TODO: Check if varbyteint's are used here
-                script_size, size = varbyteint_to_int(script[cur:cur + 9])
-                if script_size != len(script)-1:
-                    found = False
-                else:
-                    cur += size
-                    data['redeemscript'] = script[cur:]
-            elif ch == 'push_size':
-                push_size, size = varbyteint_to_int(script[cur:cur + 9])
-                if len(script[cur:]) - size != push_size:
-                    found = False
-                else:
-                    found = True
-                break
-            elif ch == 'op_m':
-                if cur_char in OP_N_CODES:
-                    data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
-                else:
-                    found = False
-                    break
-                cur += 1
-            elif ch == 'op_n':
-                if cur_char in OP_N_CODES:
-                    data['number_of_sigs_n'] = cur_char - opcodes['OP_1'] + 1
-                else:
-                    raise TransactionError("%s is not an op_n code" % cur_char)
-                if data['number_of_sigs_m'] > data['number_of_sigs_n']:
-                    raise TransactionError("Number of signatures to sign (%s) is higher then actual "
-                                           "amount of signatures (%s)" %
-                                           (data['number_of_sigs_m'], data['number_of_sigs_n']))
-                if len(data['signatures']) > int(data['number_of_sigs_n']):
-                    raise TransactionError("%d signatures found, but %s sigs expected" %
-                                           (len(data['signatures']), data['number_of_sigs_n']))
-                cur += 1
-            elif ch == 'SIGHASH_ALL':
-                pass
-            elif ch == 'locktime':
-                data['locktime'] = struct.unpack('<L', script[cur:cur+4] )
-                cur += 4
-            else:
-                try:
-                    if cur_char == opcodes[ch]:
-                        cur += 1
-                    else:
-                        found = False
-                        break
-                except IndexError:
-                    raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
+    locktime = 0
+    while len(script):
+        data, script = _parse_script(script)
+        if script and data['script_type'] == 'locktime_cltv':
+            locktime = data['locktime']
+    if data:
+        data['locktime'] = locktime
+        return data
 
-        if found:
-            return data
     _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
     return {'script_type': 'unknown'}
 
