@@ -282,7 +282,10 @@ def script_deserialize(script, script_types=None):
 
     locktime = 0
     while len(script):
+        begin_script = script
         data, script = _parse_script(script)
+        if begin_script == script:
+            break
         if script and data['script_type'] == 'locktime_cltv':
             locktime = data['locktime']
     if data:
