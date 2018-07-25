@@ -149,7 +149,7 @@ def script_deserialize(script, script_types=None):
             scr = scr[l + 1:]
         return sigs, total_lenght
 
-    data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b''}
+    data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime': 0}
     script = to_bytes(script)
     if not script:
         data.update({'script_type': 'empty'})
@@ -166,6 +166,7 @@ def script_deserialize(script, script_types=None):
         data['script_type'] = script_type
         data['number_of_sigs_n'] = 1
         data['number_of_sigs_m'] = 1
+        data['locktime'] = 0
         found = True
         for ch in ost:
             if cur >= len(script):
@@ -258,6 +259,9 @@ def script_deserialize(script, script_types=None):
                 cur += 1
             elif ch == 'SIGHASH_ALL':
                 pass
+            elif ch == 'locktime':
+                data['locktime'] = struct.unpack('<L', script[cur:cur+4] )
+                cur += 4
             else:
                 try:
                     if cur_char == opcodes[ch]:
