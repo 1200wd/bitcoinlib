@@ -2641,6 +2641,8 @@ class HDWallet:
                     value = inp.value
                     signatures = inp.signatures
                     unlocking_script = inp.unlocking_script
+                    if not unlocking_script and inp.unlocking_script_unsigned:
+                        unlocking_script = inp.unlocking_script_unsigned
                     address = inp.address
                     sequence = inp.sequence
                 elif isinstance(inp, DbTransactionOutput):

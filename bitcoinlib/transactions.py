@@ -484,7 +484,7 @@ class Input:
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, network=DEFAULT_NETWORK):
+                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -510,8 +510,14 @@ class Input:
         :type sort: boolean
         :param index_n: Index of input in transaction. Used by Transaction class.
         :type index_n: int
-        :param value: Input value
+        :param value: Value of input in smallest denominator, i.e. sathosis
         :type value: int
+        :param double_spend: Is this input also spend in another transaction
+        :type double_spend: bool
+        :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
+        :type locktime_cltv: int
+        :param locktime_csv: Check Sequency Verify value.
+        :type locktime_csv: int
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -567,6 +573,8 @@ class Input:
         self.sigs_required = sigs_required
         self.script_type = script_type
         self.double_spend = double_spend
+        self.locktime_cltv = locktime_cltv
+        self.locktime_csv = locktime_csv
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
@@ -643,6 +651,18 @@ class Input:
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=self.network.prefix_address_p2sh)
             print(self.address)
+        if self.unlocking_script_unsigned:
+            lockscript = None
+            if locktime_cltv:
+                lockscript = struct.pack('<L', locktime_cltv) + \
+                    int_to_varbyteint(opcodes['OP_CHECKLOCKTIMEVERIFY']) + \
+                    int_to_varbyteint(opcodes['OP_DROP'])
+            elif locktime_csv:
+                lockscript = struct.pack('<L', locktime_csv) + \
+                    int_to_varbyteint(opcodes['OP_CHECKSEQUENCEVERIFY']) + \
+                    int_to_varbyteint(opcodes['OP_DROP'])
+            if lockscript:
+                self.unlocking_script_unsigned = lockscript + self.unlocking_script_unsigned
 
     def sequence_timelock_blocks(self, blocks):
         if blocks > SEQUENCE_LOCKTIME_MASK:
