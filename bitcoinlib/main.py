@@ -51,8 +51,8 @@ SCRIPT_TYPES = {
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
     'pubkey': ['signature', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data'],
-    'locktime_cltv': ['locktime', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
-    'locktime_csv': ['OP_CHECKSEQUENCEVERIFY', 'OP_DROP']
+    'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
+    'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP']
 }
 
 SIGHASH_ALL = 1

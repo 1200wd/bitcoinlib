@@ -156,7 +156,8 @@ def script_deserialize(script, script_types=None):
             data['script_type'] = script_type
             data['number_of_sigs_n'] = 1
             data['number_of_sigs_m'] = 1
-            data['locktime'] = 0
+            data['locktime_cltv'] = 0
+            data['locktime_csv'] = 0
             found = True
             for ch in ost:
                 if cur >= len(script):
@@ -249,11 +250,17 @@ def script_deserialize(script, script_types=None):
                     cur += 1
                 elif ch == 'SIGHASH_ALL':
                     pass
-                elif ch == 'locktime':
+                elif ch == 'locktime_cltv':
                     if len(script) < 4:
                         found = False
                         break
-                    data['locktime'] = struct.unpack('<L', script[cur:cur + 4])[0]
+                    data['locktime_cltv'] = struct.unpack('<L', script[cur:cur + 4])[0]
+                    cur += 4
+                elif ch == 'locktime_csv':
+                    if len(script) < 4:
+                        found = False
+                        break
+                    data['locktime_csv'] = struct.unpack('<L', script[cur:cur + 4])[0]
                     cur += 4
                 else:
                     try:
@@ -269,7 +276,7 @@ def script_deserialize(script, script_types=None):
 
         return data, script[cur:]
 
-    data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime': 0}
+    data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime_cltv': 0, 'locktime_csv': 0}
     script = to_bytes(script)
     if not script:
         data.update({'script_type': 'empty'})
@@ -280,16 +287,20 @@ def script_deserialize(script, script_types=None):
     elif not isinstance(script_types, list):
         script_types = [script_types]
 
-    locktime = 0
+    locktime_cltv = 0
+    locktime_csv = 0
     while len(script):
         begin_script = script
         data, script = _parse_script(script)
         if begin_script == script:
             break
         if script and data['script_type'] == 'locktime_cltv':
-            locktime = data['locktime']
+            locktime_cltv = data['locktime_cltv']
+        if script and data['script_type'] == 'locktime_csv':
+            locktime_csv = data['locktime_csv']
     if data:
-        data['locktime'] = locktime
+        data['locktime_cltv'] = locktime_cltv
+        data['locktime_csv'] = locktime_csv
         return data
 
     _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
