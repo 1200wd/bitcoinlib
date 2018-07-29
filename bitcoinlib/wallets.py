@@ -2557,7 +2557,6 @@ class HDWallet:
                               compressed=key.compressed, value=utxo.value))
             return inputs
 
-
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, fee=None,
                            min_confirms=0, max_utxos=None, locktime=0):
         """
@@ -2634,6 +2633,8 @@ class HDWallet:
                                       compressed=key.compressed, value=utxo.value, sequence=sequence)
         else:
             for inp in input_arr:
+                locktime_cltv = None
+                locktime_csv = None
                 if isinstance(inp, Input):
                     prev_hash = inp.prev_hash
                     output_n = inp.output_n
@@ -2645,6 +2646,8 @@ class HDWallet:
                         unlocking_script = inp.unlocking_script_unsigned
                     address = inp.address
                     sequence = inp.sequence
+                    locktime_cltv = inp.locktime_cltv
+                    locktime_csv = inp.locktime_csv
                 elif isinstance(inp, DbTransactionOutput):
                     prev_hash = inp.transaction.hash
                     output_n = inp.output_n
@@ -2689,7 +2692,8 @@ class HDWallet:
                 transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
-                                      unlocking_script=unlocking_script, sequence=sequence)
+                                      unlocking_script=unlocking_script, sequence=sequence, locktime_cltv=locktime_cltv,
+                                      locktime_csv=locktime_csv)
 
         # Calculate fees
         transaction.fee = fee
