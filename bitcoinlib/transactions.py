@@ -1041,6 +1041,7 @@ class Transaction:
                           512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG))
                 else:
                     print("  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
+            if ti.locktime_csv:
                 if ti.locktime_csv & SEQUENCE_LOCKTIME_TYPE_FLAG:
                     print("  Check Sequence Verify Timelock (CSV) for %d seconds" %
                           512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG))
