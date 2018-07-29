@@ -1035,6 +1035,17 @@ class Transaction:
                     print("  Relative timelock for %d seconds" % 512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG))
                 else:
                     print("  Relative timelock for %d blocks" % ti.sequence)
+            if ti.locktime_cltv:
+                if ti.locktime_cltv & SEQUENCE_LOCKTIME_TYPE_FLAG:
+                    print("  Check Locktime Verify (CLTV) for %d seconds" %
+                          512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                else:
+                    print("  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
+                if ti.locktime_csv & SEQUENCE_LOCKTIME_TYPE_FLAG:
+                    print("  Check Sequence Verify Timelock (CSV) for %d seconds" %
+                          512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                else:
+                    print("  Check Sequence Verify Timelock (CSV) for %d blocks" % ti.locktime_csv)
 
         print("Outputs")
         for to in self.outputs:
