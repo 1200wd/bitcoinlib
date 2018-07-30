@@ -239,7 +239,9 @@ def script_deserialize(script, script_types=None):
                     if cur_char in OP_N_CODES:
                         data['number_of_sigs_n'] = cur_char - opcodes['OP_1'] + 1
                     else:
-                        raise TransactionError("%s is not an op_n code" % cur_char)
+                        found = False
+                        break
+                        # raise TransactionError("%s is not an op_n code" % cur_char)
                     if data['number_of_sigs_m'] > data['number_of_sigs_n']:
                         raise TransactionError("Number of signatures to sign (%s) is higher then actual "
                                                "amount of signatures (%s)" %
@@ -268,6 +270,11 @@ def script_deserialize(script, script_types=None):
                             cur += 1
                         else:
                             found = False
+                            data['script_type'] = ""
+                            data['number_of_sigs_n'] = 1
+                            data['number_of_sigs_m'] = 1
+                            data['locktime_cltv'] = 0
+                            data['locktime_csv'] = 0
                             break
                     except IndexError:
                         raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
