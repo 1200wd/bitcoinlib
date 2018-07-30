@@ -924,8 +924,14 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(t.size, 523)
         self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
 
+    def test_transaction_sendto_wrong_address(self):
+        t = Transaction(network='bitcoin')
+        self.assertRaisesRegexp(TransactionError, 'Network for output address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is '
+                                                  'different from transaction network',
+                                t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
-class TestTransactionsScriptType(unittest.TestCase, CustomAssertions):
+
+class TestTransactionsScripts(unittest.TestCase):
     def test_transaction_script_type_p2pkh(self):
         s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
@@ -1018,30 +1024,6 @@ class TestTransactionsScriptType(unittest.TestCase, CustomAssertions):
                                                '1e0d01')
         self.assertEqual(
             to_hexstring(ds['keys'][0]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
-
-    def test_transaction_sendto_wrong_address(self):
-        t = Transaction(network='bitcoin')
-        self.assertRaisesRegexp(TransactionError, 'Network for output address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is '
-                                                  'different from transaction network',
-                                t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
-
-    def test_transaction_timelock(self):
-        locktime = 1532291866  # Timestamp
-        inputs = [
-            Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0)]
-        outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
-        t = Transaction(inputs, outputs, locktime=locktime)
-        t2 = Transaction.import_raw(t.raw())
-        self.assertEqual(t2.locktime, locktime)
-
-    def test_transaction_relative_timelock(self):
-        sequence = SEQUENCE_LOCKTIME_TYPE_FLAG + 1532291866  # Timestamp
-        inputs = [
-            Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0, sequence=sequence)]
-        outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
-        t = Transaction(inputs, outputs)
-        t2 = Transaction.import_raw(t.raw())
-        self.assertEqual(t2.inputs[0].sequence, sequence)
 
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
@@ -1234,3 +1216,43 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.assertFalse(t.verify())
         t.sign(pk3)
         self.assertTrue(t.verify())
+
+
+class TestTransactionsTimelocks(unittest.TestCase, CustomAssertions):
+
+    def test_transaction_timelock(self):
+        locktime = 1532291866  # Timestamp
+        inputs = [
+            Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0)]
+        outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
+        t = Transaction(inputs, outputs, locktime=locktime)
+        t2 = Transaction.import_raw(t.raw())
+        self.assertEqual(t2.locktime, locktime)
+
+    def test_transaction_relative_timelock(self):
+        sequence = SEQUENCE_LOCKTIME_TYPE_FLAG + 1532291866  # Timestamp
+        inputs = [
+            Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0, sequence=sequence)]
+        outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
+        t = Transaction(inputs, outputs)
+        t2 = Transaction.import_raw(t.raw())
+        self.assertEqual(t2.inputs[0].sequence, sequence)
+
+    def test_transaction_locktime_cltv(self):
+        timelock = 533600
+        inputs = [
+            Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0, locktime_cltv=timelock)]
+        outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
+        t = Transaction(inputs, outputs)
+        # TODO
+        raw_tx = ''
+        print(t.raw_hex())
+        print(t.inputs[0].unlocking_script_unsigned)
+
+    def test_transaction_cltv_error(self):
+        # TODO
+        pass
+
+    def test_transaction_csv(self):
+        # TODO
+        pass
