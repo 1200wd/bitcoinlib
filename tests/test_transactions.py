@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Transaction Class
-#    © 2018 March - 1200 Web Development <http://1200wd.com/>
+#    © 2018 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,6 +22,7 @@ import unittest
 import json
 from bitcoinlib.transactions import *
 from bitcoinlib.keys import HDKey
+from tests.test_custom import CustomAssertions
 
 
 class TestTransactionInputs(unittest.TestCase):
@@ -924,7 +925,7 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
 
 
-class TestTransactionsScriptType(unittest.TestCase):
+class TestTransactionsScriptType(unittest.TestCase, CustomAssertions):
     def test_transaction_script_type_p2pkh(self):
         s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
@@ -973,9 +974,12 @@ class TestTransactionsScriptType(unittest.TestCase):
         self.assertRaisesRegexp(TransactionError, '3 signatures found, but 2 sigs expected',
                                 script_deserialize, s)
 
-    def test_transaction_script_type_multisig_error(self):
+    def test_transaction_script_type_multisig_empty_data(self):
         s = binascii.unhexlify('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
-        self.assertRaisesRegexp(TransactionError, 'is not an op_n code', script_deserialize, s)
+        data = script_deserialize(s)
+        data_expected = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime_cltv': 0,
+                         'locktime_csv': 0, 'number_of_sigs_n': 1, 'number_of_sigs_m': 1}
+        self.assertDictEqualExt(data, data_expected)
 
     def test_transaction_script_type_empty_unknown(self):
         self.assertEqual('empty', script_deserialize(b'')['script_type'])

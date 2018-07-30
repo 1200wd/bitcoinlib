@@ -150,6 +150,8 @@ def script_deserialize(script, script_types=None):
         return sigs, total_lenght
 
     def _parse_script(script):
+        found = False
+        cur = 0
         for script_type in script_types:
             cur = 0
             ost = SCRIPT_TYPES[script_type]
@@ -281,7 +283,9 @@ def script_deserialize(script, script_types=None):
             if found:
                 break
 
-        return data, script[cur:]
+        if found:
+            return data, script[cur:]
+        return data, ''
 
     data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime_cltv': 0, 'locktime_csv': 0}
     script = to_bytes(script)
