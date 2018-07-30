@@ -149,17 +149,19 @@ def script_deserialize(script, script_types=None):
             scr = scr[l + 1:]
         return sigs, total_lenght
 
+    def _get_empty_data():
+        return {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'number_of_sigs_n': 1,
+                'number_of_sigs_m': 1, 'locktime_cltv': 0, 'locktime_csv': 0, 'result': ''}
+
     def _parse_script(script):
         found = False
         cur = 0
+        data = _get_empty_data()
         for script_type in script_types:
             cur = 0
             ost = SCRIPT_TYPES[script_type]
+            data = _get_empty_data()
             data['script_type'] = script_type
-            data['number_of_sigs_n'] = 1
-            data['number_of_sigs_m'] = 1
-            data['locktime_cltv'] = 0
-            data['locktime_csv'] = 0
             found = True
             for ch in ost:
                 if cur >= len(script):
@@ -272,11 +274,7 @@ def script_deserialize(script, script_types=None):
                             cur += 1
                         else:
                             found = False
-                            data['script_type'] = ""
-                            data['number_of_sigs_n'] = 1
-                            data['number_of_sigs_m'] = 1
-                            data['locktime_cltv'] = 0
-                            data['locktime_csv'] = 0
+                            data = _get_empty_data()
                             break
                     except IndexError:
                         raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
@@ -285,12 +283,14 @@ def script_deserialize(script, script_types=None):
 
         if found:
             return data, script[cur:]
+        data = _get_empty_data()
+        data['result'] = 'Script not recognised'
         return data, ''
 
-    data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime_cltv': 0, 'locktime_csv': 0}
+    data = _get_empty_data()
     script = to_bytes(script)
     if not script:
-        data.update({'script_type': 'empty'})
+        data.update({'result': 'Empty script'})
         return data
 
     if script_types is None:
@@ -314,8 +314,9 @@ def script_deserialize(script, script_types=None):
         data['locktime_csv'] = locktime_csv
         return data
 
-    _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
-    return {'script_type': 'unknown'}
+    wrn_msg = "Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script)
+    _logger.warning(wrn_msg)
+    return {'result': wrn_msg}
 
 
 def script_deserialize_sigpk(script):

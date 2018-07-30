@@ -988,7 +988,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertDictEqualExt(data, data_expected)
 
     def test_transaction_script_type_empty_unknown(self):
-        self.assertEqual('empty', script_deserialize(b'')['script_type'])
+        self.assertEqual('Empty script', script_deserialize(b'')['result'])
 
     def test_transaction_script_type_string(self):
         s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
