@@ -931,7 +931,7 @@ class TestTransactions(unittest.TestCase):
                                 t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
 
-class TestTransactionsScripts(unittest.TestCase):
+class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
     def test_transaction_script_type_p2pkh(self):
         s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
@@ -1218,7 +1218,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.assertTrue(t.verify())
 
 
-class TestTransactionsTimelocks(unittest.TestCase, CustomAssertions):
+class TestTransactionsTimelocks(unittest.TestCase):
 
     def test_transaction_timelock(self):
         locktime = 1532291866  # Timestamp
