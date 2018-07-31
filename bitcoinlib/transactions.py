@@ -1289,11 +1289,11 @@ class Transaction:
                 raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
 
             if self.inputs[tid].locktime_cltv:
-                pass
-                # TODO
+                self.inputs[tid].unlocking_script = script_add_locktime_cltv(self.inputs[tid].locktime_cltv,
+                                                                             self.inputs[tid].unlocking_script)
             if self.inputs[tid].locktime_csv:
-                pass
-
+                self.inputs[tid].unlocking_script = script_add_locktime_csv(self.inputs[tid].locktime_csv,
+                                                                            self.inputs[tid].unlocking_script)
         return n_signs
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
