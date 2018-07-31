@@ -445,6 +445,22 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
     return usu
 
 
+def script_add_locktime_cltv(locktime_cltv, script):
+    lockbytes = opcode('OP_CHECKLOCKTIMEVERIFY') + opcode('OP_DROP')
+    if script and len(script) > 6:
+        if script[4:6] == lockbytes:
+            return script
+    return struct.pack('<L', locktime_cltv) + lockbytes + script
+
+
+def script_add_locktime_csv(locktime_csv, script):
+    lockbytes = opcode('OP_CHECKSEQUENCEVERIFY') + opcode('OP_DROP')
+    if script and len(script) > 6:
+        if script[4:6] == lockbytes:
+            return script
+    return struct.pack('<L', locktime_csv) + lockbytes + script
+
+
 def verify_signature(transaction_to_sign, signature, public_key):
     """
     Verify if signatures signs provided transaction hash and corresponds with public key
@@ -662,20 +678,13 @@ class Input:
         elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=self.network.prefix_address_p2sh)
-            print(self.address)
         if self.unlocking_script_unsigned:
-            lockscript = None
             if locktime_cltv:
-                lockscript = struct.pack('<L', locktime_cltv) + \
-                    int_to_varbyteint(opcodes['OP_CHECKLOCKTIMEVERIFY']) + \
-                    int_to_varbyteint(opcodes['OP_DROP'])
+                self.unlocking_script_unsigned = script_add_locktime_cltv(locktime_cltv, self.unlocking_script_unsigned)
             elif locktime_csv:
-                lockscript = struct.pack('<L', locktime_csv) + \
-                    int_to_varbyteint(opcodes['OP_CHECKSEQUENCEVERIFY']) + \
-                    int_to_varbyteint(opcodes['OP_DROP'])
-            if lockscript:
-                self.unlocking_script_unsigned = lockscript + self.unlocking_script_unsigned
+                self.unlocking_script_unsigned = script_add_locktime_csv(locktime_csv, self.unlocking_script_unsigned)
 
+    # TODO: Remove / replace?
     def sequence_timelock_blocks(self, blocks):
         if blocks > SEQUENCE_LOCKTIME_MASK:
             raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
@@ -1278,6 +1287,13 @@ class Transaction:
                     _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
             else:
                 raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
+
+            if self.inputs[tid].locktime_cltv:
+                pass
+                # TODO
+            if self.inputs[tid].locktime_csv:
+                pass
+
         return n_signs
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
