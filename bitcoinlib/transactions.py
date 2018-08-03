@@ -661,6 +661,22 @@ class Input:
 
         if self.script_type == 'sig_pubkey':
             self.script_type = 'p2pkh'
+        self.update_unlocking_script()
+
+    # TODO: Remove / replace?
+    def sequence_timelock_blocks(self, blocks):
+        if blocks > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = blocks
+
+    def sequence_timelock_time(self, seconds):
+        if seconds % 512:
+            raise TransactionError("Seconds must be a multiply of 512")
+        if seconds > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+
+    def update_unlocking_script(self):
         if self.script_type == 'p2pkh':
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
@@ -679,30 +695,17 @@ class Input:
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=self.network.prefix_address_p2sh)
         if self.unlocking_script_unsigned:
-            if locktime_cltv:
-                self.unlocking_script_unsigned = script_add_locktime_cltv(locktime_cltv, self.unlocking_script_unsigned)
-            elif locktime_csv:
-                self.unlocking_script_unsigned = script_add_locktime_csv(locktime_csv, self.unlocking_script_unsigned)
-
-    # TODO: Remove / replace?
-    def sequence_timelock_blocks(self, blocks):
-        if blocks > SEQUENCE_LOCKTIME_MASK:
-            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = blocks
-
-    def sequence_timelock_time(self, seconds):
-        if seconds % 512:
-            raise TransactionError("Seconds must be a multiply of 512")
-        if seconds > SEQUENCE_LOCKTIME_MASK:
-            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+            if self.locktime_cltv:
+                self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
+            elif self.locktime_csv:
+                self.unlocking_script_unsigned = script_add_locktime_csv(self.locktime_csv, self.unlocking_script_unsigned)
 
     def dict(self):
         """
         Get transaction input information in json format
         
         :return dict: Json with output_n, prev_hash, output_n, type, address, public_key, public_key_hash, unlocking_script and sequence
-        
+
         """
         pks = []
         for k in self.keys:
