@@ -511,7 +511,7 @@ class Input:
     """
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
-                 unlocking_script_unsigned=unlocking_script_unsigned, script_type='p2pkh',
+                 unlocking_script_unsigned=None, script_type='p2pkh',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, network=DEFAULT_NETWORK):
         """
