@@ -2635,6 +2635,7 @@ class HDWallet:
             for inp in input_arr:
                 locktime_cltv = None
                 locktime_csv = None
+                unlocking_script_unsigned = None
                 if isinstance(inp, Input):
                     prev_hash = inp.prev_hash
                     output_n = inp.output_n
@@ -2642,8 +2643,7 @@ class HDWallet:
                     value = inp.value
                     signatures = inp.signatures
                     unlocking_script = inp.unlocking_script
-                    if not unlocking_script and inp.unlocking_script_unsigned:
-                        unlocking_script = inp.unlocking_script_unsigned
+                    unlocking_script_unsigned = inp.unlocking_script_unsigned
                     address = inp.address
                     sequence = inp.sequence
                     locktime_cltv = inp.locktime_cltv
@@ -2692,8 +2692,9 @@ class HDWallet:
                 transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
-                                      unlocking_script=unlocking_script, sequence=sequence, locktime_cltv=locktime_cltv,
-                                      locktime_csv=locktime_csv)
+                                      unlocking_script=unlocking_script,
+                                      unlocking_script_unsigned=unlocking_script_unsigned,
+                                      sequence=sequence, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv)
 
         # Calculate fees
         transaction.fee = fee

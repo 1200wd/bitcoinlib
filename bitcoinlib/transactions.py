@@ -510,7 +510,8 @@ class Input:
     
     """
 
-    def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
+    def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
+                 unlocking_script_unsigned=unlocking_script_unsigned, script_type='p2pkh',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, network=DEFAULT_NETWORK):
         """
@@ -562,7 +563,7 @@ class Input:
         if unlocking_script is None:
             unlocking_script = b''
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
-        self.unlocking_script_unsigned = b''
+        self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None else to_bytes(unlocking_script_unsigned)
         if self.prev_hash == 32 * b'\0':
             self.script_type = 'coinbase'
         else:
@@ -1299,9 +1300,10 @@ class Transaction:
                                                                             self.inputs[tid].unlocking_script)
         return n_signs
 
-    def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
-                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
-                  value=None, double_spend=False, locktime_cltv=None, locktime_csv=None, signatures=None):
+    def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', unlocking_script_unsigned=b'',
+                  script_type='p2pkh', sequence=0xffffffff, compressed=True, sigs_required=None, sort=False,
+                  index_n=None, value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
+                  signatures=None):
         """
         Add input to this transaction
         
@@ -1343,6 +1345,7 @@ class Transaction:
             self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
+                  unlocking_script_unsigned=unlocking_script_unsigned,
                   script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   signatures=signatures, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv))
