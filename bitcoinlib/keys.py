@@ -223,7 +223,7 @@ def deserialize_address(address):
 
     If more networks and or script types are found you can find these in 'networks_p2sh' and 'networks_p2pkh'.
 
-    :param address: A base-58 encoded address
+    :param address: A base58 or bech32 encoded address
     :type address: str
 
     :return dict: with information about this address
@@ -232,7 +232,19 @@ def deserialize_address(address):
         address_bytes = change_base(address, 58, 256, 25)
     except EncodingError as err:
         try:
-            return addr_bech32_to_pubkeyhash(address)
+            # TODO: Other prefixes, networks, etc
+            public_key_hash = addr_bech32_to_pubkeyhash(address)
+            return {
+                'address': address,
+                'encoding': 'bech32',
+                'public_key_hash': change_base(public_key_hash, 256, 16),
+                'public_key_hash_bytes': public_key_hash,
+                'prefix': 'bc',
+                'network': 'bitcoin',
+                'script_type': '',
+                'networks_p2sh': '',
+                'networks_p2pkh': ''
+            }
         except:
             raise EncodingError("Invalid address %s: %s" % (address, err))
     check = address_bytes[-4:]
@@ -256,6 +268,7 @@ def deserialize_address(address):
 
     return {
         'address': address,
+        'encoding': 'base58',
         'public_key_hash': change_base(public_key_hash, 256, 16),
         'public_key_hash_bytes': public_key_hash,
         'prefix': address_prefix,
