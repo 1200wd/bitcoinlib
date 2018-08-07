@@ -51,6 +51,8 @@ elif locale.getpreferredencoding() != 'UTF-8':
                            "This library needs the locale set to UTF-8 to function properly" %
                            locale.getpreferredencoding())
 
+SUPPORTED_ADDRESS_ENCODINGS = ['base58', 'bech32']
+
 
 # Copy data and settings to default settings directory if install.log is not found
 def initialize_lib():

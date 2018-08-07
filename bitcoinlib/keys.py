@@ -215,7 +215,7 @@ def ec_point(p):
     return point
 
 
-def deserialize_address(address):
+def deserialize_address(address, encoding=None):
     """
     Deserialize cryptocurrency address. Calculate public key hash and try to determine script type and network.
 
@@ -225,9 +225,15 @@ def deserialize_address(address):
 
     :param address: A base58 or bech32 encoded address
     :type address: str
+    :param encoding: Encoding scheme used for address encoding. Attempts to guess encoding if not specified.
+    :type encoding: str
 
     :return dict: with information about this address
     """
+
+    if encoding not in SUPPORTED_ADDRESS_ENCODINGS:
+        raise KeyError("Encoding '%s' not found in supported address encodings %s" %
+                       (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     try:
         address_bytes = change_base(address, 58, 256, 25)
     except EncodingError as err:
@@ -241,8 +247,8 @@ def deserialize_address(address):
                 'public_key_hash_bytes': public_key_hash,
                 'prefix': 'bc',
                 'network': 'bitcoin',
-                'script_type': '',
-                'networks_p2sh': '',
+                'script_type': 'p2sh',
+                'networks_p2sh': 'bitcoin',
                 'networks_p2pkh': ''
             }
         except:
