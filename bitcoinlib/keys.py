@@ -231,7 +231,7 @@ def deserialize_address(address, encoding=None):
     :return dict: with information about this address
     """
 
-    if encoding not in SUPPORTED_ADDRESS_ENCODINGS:
+    if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
         raise KeyError("Encoding '%s' not found in supported address encodings %s" %
                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     try:
@@ -240,6 +240,8 @@ def deserialize_address(address, encoding=None):
         try:
             # TODO: Other prefixes, networks, etc
             public_key_hash = addr_bech32_to_pubkeyhash(address)
+            if not public_key_hash:
+                raise EncodingError("Invalid bech32 address %s" % address)
             return {
                 'address': address,
                 'encoding': 'bech32',
@@ -251,7 +253,7 @@ def deserialize_address(address, encoding=None):
                 'networks_p2sh': 'bitcoin',
                 'networks_p2pkh': ''
             }
-        except:
+        except EncodingError as err:
             raise EncodingError("Invalid address %s: %s" % (address, err))
     check = address_bytes[-4:]
     key_hash = address_bytes[:-4]

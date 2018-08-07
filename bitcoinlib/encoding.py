@@ -513,7 +513,7 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
 
     :param bech: Bech32 address to convert
     :type bech: str
-    :param hrp: Address prefix called Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
+    :param hrp: Address prefix called Human-readable part. Default is None and tries to derive prefix, for bitcoin specify 'bc' and for bitcoin testnet 'tb'
     :type hrp: str
     :param as_hex: Output public key hash as hex or bytes. Default is False
     :type as_hex: bool
@@ -530,8 +530,10 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
     pos = bech.rfind('1')
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
         return False
-    if hrp != bech[:pos]:
+    if hrp and hrp != bech[:pos]:
         raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
+    else:
+        hrp = bech[:pos]
     data = _codestring_to_array(bech[pos+1:], 'bech32')
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
