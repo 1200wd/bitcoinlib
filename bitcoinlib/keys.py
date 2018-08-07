@@ -234,57 +234,66 @@ def deserialize_address(address, encoding=None):
     if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
         raise KeyError("Encoding '%s' not found in supported address encodings %s" %
                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
-    try:
-        address_bytes = change_base(address, 58, 256, 25)
-    except EncodingError as err:
+    err = None
+    if encoding is None or encoding == 'base58':
         try:
-            # TODO: Other prefixes, networks, etc
+            address_bytes = change_base(address, 58, 256, 25)
+        except EncodingError as err:
+            pass
+        else:
+            check = address_bytes[-4:]
+            key_hash = address_bytes[:-4]
+            checksum = hashlib.sha256(hashlib.sha256(key_hash).digest()).digest()[0:4]
+            assert (check == checksum), "Invalid address, checksum incorrect"
+            address_prefix = key_hash[0:1]
+            networks_p2pkh = network_by_value('prefix_address', address_prefix)
+            networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
+            public_key_hash = key_hash[1:]
+            script_type = ''
+            network = ''
+            if networks_p2pkh and not networks_p2sh:
+                script_type = 'p2pkh'
+                if len(networks_p2pkh) == 1:
+                    network = networks_p2pkh[0]
+            elif networks_p2sh and not networks_p2pkh:
+                script_type = 'p2sh'
+                if len(networks_p2sh) == 1:
+                    network = networks_p2sh[0]
+
+            return {
+                'address': address,
+                'encoding': 'base58',
+                'public_key_hash': change_base(public_key_hash, 256, 16),
+                'public_key_hash_bytes': public_key_hash,
+                'prefix': address_prefix,
+                'network': network,
+                'script_type': script_type,
+                'networks_p2sh': networks_p2sh,
+                'networks_p2pkh': networks_p2pkh
+            }
+
+    if encoding == 'bech32' or encoding is None:
+        try:
             public_key_hash = addr_bech32_to_pubkeyhash(address)
             if not public_key_hash:
                 raise EncodingError("Invalid bech32 address %s" % address)
+            prefix = address[:address.rfind('1')]
+
             return {
                 'address': address,
                 'encoding': 'bech32',
                 'public_key_hash': change_base(public_key_hash, 256, 16),
                 'public_key_hash_bytes': public_key_hash,
-                'prefix': 'bc',
+                'prefix': prefix,
                 'network': 'bitcoin',
-                'script_type': 'p2sh',
+                'script_type': 'p2sh',  # TODO: Use Segwit prefixes
                 'networks_p2sh': 'bitcoin',
                 'networks_p2pkh': ''
             }
         except EncodingError as err:
             raise EncodingError("Invalid address %s: %s" % (address, err))
-    check = address_bytes[-4:]
-    key_hash = address_bytes[:-4]
-    checksum = hashlib.sha256(hashlib.sha256(key_hash).digest()).digest()[0:4]
-    assert (check == checksum), "Invalid address, checksum incorrect"
-    address_prefix = key_hash[0:1]
-    networks_p2pkh = network_by_value('prefix_address', address_prefix)
-    networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
-    public_key_hash = key_hash[1:]
-    script_type = ''
-    network = ''
-    if networks_p2pkh and not networks_p2sh:
-        script_type = 'p2pkh'
-        if len(networks_p2pkh) == 1:
-            network = networks_p2pkh[0]
-    elif networks_p2sh and not networks_p2pkh:
-        script_type = 'p2sh'
-        if len(networks_p2sh) == 1:
-            network = networks_p2sh[0]
-
-    return {
-        'address': address,
-        'encoding': 'base58',
-        'public_key_hash': change_base(public_key_hash, 256, 16),
-        'public_key_hash_bytes': public_key_hash,
-        'prefix': address_prefix,
-        'network': network,
-        'script_type': script_type,
-        'networks_p2sh': networks_p2sh,
-        'networks_p2pkh': networks_p2pkh
-    }
+    else:
+        raise EncodingError("Address %s is not in specified encoding %s" % (address, encoding))
 
 
 class Address:
