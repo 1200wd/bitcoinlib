@@ -286,9 +286,9 @@ def deserialize_address(address, encoding=None):
                 'public_key_hash': change_base(public_key_hash, 256, 16),
                 'public_key_hash_bytes': public_key_hash,
                 'prefix': prefix,
-                'network': 'bitcoin',
+                'network': networks[0],
                 'script_type': 'p2sh',  # TODO: Use Segwit prefixes
-                'networks_p2sh': 'bitcoin',
+                'networks_p2sh': networks,
                 'networks_p2pkh': ''
             }
         except EncodingError as err:
