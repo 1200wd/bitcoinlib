@@ -505,7 +505,7 @@ def addr_convert(addr, prefix):
     return pubkeyhash_to_addr(pkh, versionbyte=prefix)
 
 
-def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False):
+def addr_bech32_to_pubkeyhash(bech, hrp=None, as_hex=False, include_witver=False):
     """
     Decode bech32 / segwit address to public key hash
 

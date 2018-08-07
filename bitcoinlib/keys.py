@@ -278,6 +278,7 @@ def deserialize_address(address, encoding=None):
             if not public_key_hash:
                 raise EncodingError("Invalid bech32 address %s" % address)
             prefix = address[:address.rfind('1')]
+            networks = network_by_value('prefix_bech32', prefix)
 
             return {
                 'address': address,

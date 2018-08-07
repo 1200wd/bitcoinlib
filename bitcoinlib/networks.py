@@ -99,7 +99,7 @@ def network_values_for(field, output_as='default'):
         return r
 
 
-def network_by_value(field, value):
+def network_by_value(field, value, convert_to_hex=False):
     """
     Return all networks for field and (prefix) value.
     
@@ -113,13 +113,16 @@ def network_by_value(field, value):
     :type field: str
     :param value: Value of network prefix
     :type value: str, bytes
+    :param convert_to_hex: Convert value to hexstring, default is False
+    :type convert_to_hex: bool
     
     :return list: Of network name strings 
     """
-    try:
-        value = to_hexstring(value).upper()
-    except:
-        pass
+    if convert_to_hex:
+        try:
+            value = to_hexstring(value).upper()
+        except:
+            pass
     return [nv for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field] == value]
 
 
