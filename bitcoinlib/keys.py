@@ -289,7 +289,7 @@ def deserialize_address(address, encoding=None):
                 'network': networks[0],
                 'script_type': 'p2sh',  # TODO: Use Segwit prefixes
                 'networks_p2sh': networks,
-                'networks_p2pkh': ''
+                'networks_p2pkh': []
             }
         except EncodingError as err:
             raise EncodingError("Invalid address %s: %s" % (address, err))
