@@ -234,11 +234,10 @@ def deserialize_address(address, encoding=None):
     if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
         raise KeyError("Encoding '%s' not found in supported address encodings %s" %
                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
-    err = None
     if encoding is None or encoding == 'base58':
         try:
             address_bytes = change_base(address, 58, 256, 25)
-        except EncodingError as err:
+        except EncodingError:
             pass
         else:
             check = address_bytes[-4:]
@@ -271,7 +270,6 @@ def deserialize_address(address, encoding=None):
                 'networks_p2sh': networks_p2sh,
                 'networks_p2pkh': networks_p2pkh
             }
-
     if encoding == 'bech32' or encoding is None:
         try:
             public_key_hash = addr_bech32_to_pubkeyhash(address)
@@ -279,14 +277,13 @@ def deserialize_address(address, encoding=None):
                 raise EncodingError("Invalid bech32 address %s" % address)
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
-
             return {
                 'address': address,
                 'encoding': 'bech32',
                 'public_key_hash': change_base(public_key_hash, 256, 16),
                 'public_key_hash_bytes': public_key_hash,
                 'prefix': prefix,
-                'network': networks[0],
+                'network': '' if not networks else networks[0],
                 'script_type': 'p2sh',  # TODO: Use Segwit prefixes
                 'networks_p2sh': networks,
                 'networks_p2pkh': []

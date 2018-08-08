@@ -113,20 +113,19 @@ def network_by_value(field, value):
     :type field: str
     :param value: Value of network prefix
     :type value: str, bytes
-    :param convert_to_hex: Convert value to hexstring, default is False
-    :type convert_to_hex: bool
-    
+
     :return list: Of network name strings 
     """
-    nws = [nv for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field] == value]
-    if nws:
-        return nws
-    else:
+    nws = [(nv, NETWORK_DEFINITIONS[nv]['priority'])
+           for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field] == value]
+    if not nws:
         try:
             value = to_hexstring(value).upper()
-        except:
+        except TypeError:
             pass
-        return [nv for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field] == value]
+        nws = [(nv, NETWORK_DEFINITIONS[nv]['priority'])
+               for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field] == value]
+    return [nw[0] for nw in sorted(nws, key=lambda x: x[1], reverse=True)]
 
 
 def network_defined(network):
@@ -176,6 +175,7 @@ class Network:
         self.fee_default = NETWORK_DEFINITIONS[network_name]['fee_default']
         self.fee_min = NETWORK_DEFINITIONS[network_name]['fee_min']
         self.fee_max = NETWORK_DEFINITIONS[network_name]['fee_max']
+        self.priority = NETWORK_DEFINITIONS[network_name]['priority']
 
         # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
         # for f in list(NETWORK_DEFINITIONS[network_name].keys()):
