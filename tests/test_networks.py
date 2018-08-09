@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Bitcoinlib Network Class
-#    © 2018 May - 1200 Web Development <http://1200wd.com/>
+#    © 2018 August - 1200 Web Development <http://1200wd.com/>
 #
 
 import unittest
@@ -27,7 +27,6 @@ class TestNetworks(unittest.TestCase):
     def test_networks_print_value(self):
         network = Network('dash')
         self.assertEqual(network.print_value(10000), '0.00010000 DASH')
-
 
 
 if __name__ == '__main__':

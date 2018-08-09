@@ -97,7 +97,7 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 
 def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44',
-                          parent_id=None, sort_keys=False, password='', databasefile=DEFAULT_DATABASE):
+                          parent_id=None, sort_keys=False, password='', type='standard', databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -108,7 +108,7 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
         return HDWallet(name, databasefile=databasefile)
     else:
         return HDWallet.create(name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                               password, databasefile)
+                               password, type, databasefile)
 
 
 def wallet_create_or_open_multisig(
@@ -748,7 +748,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
-               sort_keys=True, password='', databasefile=None):
+               sort_keys=True, password='', type='standard', databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
@@ -774,6 +774,8 @@ class HDWallet:
         :type sort_keys: bool
         :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
         :type password: str
+        :param type: Specify wallet type, default is standard. Use 'segwit' for segregated witness wallet.
+        :type type: str
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
         
@@ -806,7 +808,7 @@ class HDWallet:
             raise WalletError("Please enter wallet name")
 
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
-                              sort_keys=sort_keys, parent_id=parent_id)
+                              sort_keys=sort_keys, type=type, parent_id=parent_id)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
@@ -843,7 +845,7 @@ class HDWallet:
 
     @classmethod
     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
-                        multisig_compressed=True, sort_keys=True, databasefile=None):
+                        multisig_compressed=True, sort_keys=True, type='standard', databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
         public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
@@ -866,6 +868,8 @@ class HDWallet:
         :type multisig_compressed: bool
         :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
         :type sort_keys: bool
+        :param type: Specify wallet type, default is standard. Use 'segwit' for segregated witness wallet.
+        :type type: str
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
 
@@ -888,8 +892,8 @@ class HDWallet:
         if sigs_required > len(key_list):
             raise WalletError("Number of keys required to sign is greater then number of keys provided")
 
-        hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id,
-                          purpose=purpose, scheme='multisig', sort_keys=sort_keys, databasefile=databasefile)
+        hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id, purpose=purpose,
+                          scheme='multisig', sort_keys=sort_keys, type=type, databasefile=databasefile)
         hdpm.multisig_compressed = multisig_compressed
         co_id = 0
         hdpm.cosigner = []
@@ -913,8 +917,8 @@ class HDWallet:
             wn = name + '-cosigner-%d' % co_id
             if cokey.key_type == 'single':
                 scheme = 'single'
-            w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
-                           purpose=purpose, parent_id=hdpm.wallet_id, databasefile=databasefile, scheme=scheme)
+            w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id, purpose=purpose,
+                           scheme=scheme, parent_id=hdpm.wallet_id, type=type, databasefile=databasefile)
             hdpm.cosigner.append(w)
             co_id += 1
 
