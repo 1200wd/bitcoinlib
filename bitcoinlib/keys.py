@@ -35,7 +35,7 @@ from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert, \
-    addr_bech32_to_pubkeyhash
+    addr_bech32_to_pubkeyhash, pubkeyhash_to_addr_bech32
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -299,22 +299,57 @@ class Address:
     Class to store, convert and analyse various address types as representation of public keys
     """
 
-    def __init__(self, address, network_overrides=None):
-        addr_dict = deserialize_address(address)
-        self.address = address
-        self.public_key_hash = addr_dict['public_key_hash']
-        self.public_key_hash_bytes = addr_dict['public_key_hash_bytes']
-        self.address_prefix = addr_dict['prefix']
-        self.network = addr_dict['network']
-        self.script_type = addr_dict['script_type']
-        self.networks_p2sh = addr_dict['networks_p2sh']
-        self.networks_p2pkh = addr_dict['networks_p2pkh']
-        self.address_provider = address
-        provider_prefix = None
-        if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
-            provider_prefix = network_overrides['prefix_address_p2sh']
-        if provider_prefix:
-            self.address_provider = addr_convert(address, provider_prefix)
+    # @classmethod
+    # def import_address(cls, address, network_overrides=None):
+    #     addr_dict = deserialize_address(address)
+    #     self.address = address
+    #     self.public_key_hash = addr_dict['public_key_hash']
+    #     self.public_key_hash_bytes = addr_dict['public_key_hash_bytes']
+    #     self.address_prefix = addr_dict['prefix']
+    #     self.network = addr_dict['network']
+    #     self.script_type = addr_dict['script_type']
+    #     self.networks_p2sh = addr_dict['networks_p2sh']
+    #     self.networks_p2pkh = addr_dict['networks_p2pkh']
+    #     self.address_provider = address
+    #     provider_prefix = None
+    #     if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
+    #         provider_prefix = network_overrides['prefix_address_p2sh']
+    #     if provider_prefix:
+    #         self.address_provider = addr_convert(address, provider_prefix)
+    #     return Address(cls)
+
+    def __init__(self, data, hash='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
+                 encoding='standard'):
+        if not isinstance(network, Network):
+            network = Network(network)
+        self.data_bytes = to_bytes(data)
+        self.data = to_hexstring(data)
+        self.script_type = script_type
+        self.encoding = encoding
+        self.hash_bytes = to_bytes(hash)
+        if not self.hash_bytes:
+            self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
+        self.hash = to_hexstring(self.hash_bytes)
+
+        if encoding == 'standard':
+            if prefix is None:
+                if script_type == 'p2sh':
+                    self.prefix = network.prefix_address_p2sh
+                else:
+                    self.prefix = network.prefix_address
+            else:
+                # TODO: Test bytearray
+                if not isinstance(prefix, (bytes, bytearray)):
+                    self.prefix = binascii.unhexlify(prefix)
+                else:
+                    self.prefix = prefix
+            addr_bytes = self.prefix + self.hash_bytes
+            self.checksum = hashlib.sha256(hashlib.sha256(addr_bytes).digest()).digest()[:4]
+            self.address = change_base(addr_bytes + self.checksum, 256, 58)
+        elif encoding == 'bech32':
+            self.address = pubkeyhash_to_addr_bech32(self.hash)
+        else:
+            raise KeyError("Encoding %s not supported" % encoding)
 
 
 class Key:
@@ -325,7 +360,7 @@ class Key:
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, network=None, compressed=True, passphrase=''):
+    def __init__(self, import_key=None, network=None, compressed=True, passphrase='', is_private=None):
         """
         Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc.
         If a private key is imported a public key will be derived. If a public is imported the private key data will
@@ -342,6 +377,8 @@ class Key:
         :type compressed: bool
         :param passphrase: Optional passphrase if imported key is password protected
         :type passphrase: str
+        :param is_private: Specify if imported key is private or public. Default is None: derive from provided key
+        :type is_private: bool
         
         :return: Key object
         """
@@ -369,12 +406,14 @@ class Key:
             network_name = self.network.name
         network = check_network_and_key(import_key, network_name, kf["networks"])
         self.network = Network(network)
-        if kf['isprivate']:
-            self.isprivate = True
-        elif kf['isprivate'] is None:
-            raise KeyError("Could not determine if key is private or public")
-        else:
-            self.isprivate = False
+        self.isprivate = is_private
+        if is_private is None:
+            if kf['isprivate']:
+                self.isprivate = True
+            elif kf['isprivate'] is None:
+                raise KeyError("Could not determine if key is private or public")
+            else:
+                self.isprivate = False
 
         if self.key_format == "wif_protected":
             # TODO: return key as byte to make more efficient
