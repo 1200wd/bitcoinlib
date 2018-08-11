@@ -256,7 +256,7 @@ def deserialize_address(address, encoding=None):
                     network = networks_p2pkh[0]
             elif networks_p2sh and not networks_p2pkh:
                 script_type = 'p2sh'
-                if len(networks_p2sh) == 1:
+                if len(networks_p2sh) >= 1:
                     network = networks_p2sh[0]
 
             return {
