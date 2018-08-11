@@ -252,7 +252,7 @@ def deserialize_address(address, encoding=None):
             network = ''
             if networks_p2pkh and not networks_p2sh:
                 script_type = 'p2pkh'
-                if len(networks_p2pkh) == 1:
+                if len(networks_p2pkh) >= 1:
                     network = networks_p2pkh[0]
             elif networks_p2sh and not networks_p2pkh:
                 script_type = 'p2sh'
@@ -300,7 +300,7 @@ class Address:
     """
 
     @classmethod
-    def import_address(cls, address, network_overrides=None):
+    def import_address(cls, address, network_overrides):
         addr_dict = deserialize_address(address)
         # self.address = address
         # self.public_key_hash = addr_dict['public_key_hash']
@@ -310,17 +310,12 @@ class Address:
         script_type = addr_dict['script_type']
         # self.networks_p2sh = addr_dict['networks_p2sh']
         # self.networks_p2pkh = addr_dict['networks_p2pkh']
-        # self.address_provider = address
-        # provider_prefix = None
-        # if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
-        #     provider_prefix = network_overrides['prefix_address_p2sh']
-        # if provider_prefix:
-        #     self.address_provider = addr_convert(address, provider_prefix)
+
         return Address(data='', hash=public_key_hash_bytes, network=network, prefix=prefix, script_type=script_type,
-                       encoding=addr_dict['encoding'])
+                       encoding=addr_dict['encoding'], network_overrides=network_overrides)
 
     def __init__(self, data, hash='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
-                 encoding='base58'):
+                 encoding='base58', network_overrides=None):
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)
@@ -352,6 +347,12 @@ class Address:
             self.address = pubkeyhash_to_addr_bech32(self.hash)
         else:
             raise KeyError("Encoding %s not supported" % encoding)
+        self.address_provider = self.address
+        provider_prefix = None
+        if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
+            provider_prefix = network_overrides['prefix_address_p2sh']
+        if provider_prefix:
+            self.address_provider = addr_convert(self.address, provider_prefix)
 
     def with_prefix(self, prefix):
         return addr_convert(self.address, prefix)

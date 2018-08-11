@@ -93,5 +93,5 @@ class BaseClient(object):
         addresslist_class = []
         for addr in addresslist:
             if not isinstance(addr, Address):
-                addresslist_class.append(Address(addr, self.network_overrides))
+                addresslist_class.append(Address.import_address(addr, self.network_overrides))
         return addresslist_class
