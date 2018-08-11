@@ -1017,8 +1017,8 @@ class TestTransactionsScriptType(unittest.TestCase):
 
     def test_transaction_sendto_wrong_address(self):
         t = Transaction(network='bitcoin')
-        self.assertRaisesRegexp(TransactionError, 'Network for output address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is '
-                                                  'different from transaction network',
+        self.assertRaisesRegexp(TransactionError, "Address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is from litecoin "
+                                                  "network and transaction from bitcoin network",
                                 t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
 
