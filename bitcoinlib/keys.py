@@ -299,29 +299,31 @@ class Address:
     Class to store, convert and analyse various address types as representation of public keys
     """
 
-    # @classmethod
-    # def import_address(cls, address, network_overrides=None):
-    #     addr_dict = deserialize_address(address)
-    #     self.address = address
-    #     self.public_key_hash = addr_dict['public_key_hash']
-    #     self.public_key_hash_bytes = addr_dict['public_key_hash_bytes']
-    #     self.address_prefix = addr_dict['prefix']
-    #     self.network = addr_dict['network']
-    #     self.script_type = addr_dict['script_type']
-    #     self.networks_p2sh = addr_dict['networks_p2sh']
-    #     self.networks_p2pkh = addr_dict['networks_p2pkh']
-    #     self.address_provider = address
-    #     provider_prefix = None
-    #     if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
-    #         provider_prefix = network_overrides['prefix_address_p2sh']
-    #     if provider_prefix:
-    #         self.address_provider = addr_convert(address, provider_prefix)
-    #     return Address(cls)
+    @classmethod
+    def import_address(cls, address, network_overrides=None):
+        addr_dict = deserialize_address(address)
+        # self.address = address
+        # self.public_key_hash = addr_dict['public_key_hash']
+        public_key_hash_bytes = addr_dict['public_key_hash_bytes']
+        prefix = addr_dict['prefix']
+        network = addr_dict['network']
+        script_type = addr_dict['script_type']
+        # self.networks_p2sh = addr_dict['networks_p2sh']
+        # self.networks_p2pkh = addr_dict['networks_p2pkh']
+        # self.address_provider = address
+        # provider_prefix = None
+        # if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
+        #     provider_prefix = network_overrides['prefix_address_p2sh']
+        # if provider_prefix:
+        #     self.address_provider = addr_convert(address, provider_prefix)
+        return Address(data='', hash=public_key_hash_bytes, network=network, prefix=prefix, script_type=script_type,
+                       encoding=addr_dict['encoding'])
 
     def __init__(self, data, hash='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
-                 encoding='standard'):
+                 encoding='base58'):
+        self.network = network
         if not isinstance(network, Network):
-            network = Network(network)
+            self.network = Network(network)
         self.data_bytes = to_bytes(data)
         self.data = to_hexstring(data)
         self.script_type = script_type
@@ -331,12 +333,12 @@ class Address:
             self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
         self.hash = to_hexstring(self.hash_bytes)
 
-        if encoding == 'standard':
+        if encoding == 'base58':
             if prefix is None:
                 if script_type == 'p2sh':
-                    self.prefix = network.prefix_address_p2sh
+                    self.prefix = self.network.prefix_address_p2sh
                 else:
-                    self.prefix = network.prefix_address
+                    self.prefix = self.network.prefix_address
             else:
                 # TODO: Test bytearray
                 if not isinstance(prefix, (bytes, bytearray)):
@@ -351,6 +353,8 @@ class Address:
         else:
             raise KeyError("Encoding %s not supported" % encoding)
 
+    def with_prefix(self, prefix):
+        return addr_convert(self.address, prefix)
 
 class Key:
     """
