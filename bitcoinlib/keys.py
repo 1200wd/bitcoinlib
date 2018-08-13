@@ -300,17 +300,25 @@ class Address:
     """
 
     @classmethod
-    def import_address(cls, address, network_overrides):
+    def import_address(cls, address, network=None, network_overrides=None):
+        """
+        Import an address to the Address class. Specify network if available, otherwise it will be
+        derived form the address.
+
+        :param address:
+        :param network: Bitcoin, testnet, litecoin or other network
+        :type network: str
+        :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
+        :type network_overrides: dict
+
+        :return Address:
+        """
         addr_dict = deserialize_address(address)
-        # self.address = address
-        # self.public_key_hash = addr_dict['public_key_hash']
         public_key_hash_bytes = addr_dict['public_key_hash_bytes']
         prefix = addr_dict['prefix']
-        network = addr_dict['network']
+        if network is None:
+            network = addr_dict['network']
         script_type = addr_dict['script_type']
-        # self.networks_p2sh = addr_dict['networks_p2sh']
-        # self.networks_p2pkh = addr_dict['networks_p2pkh']
-
         return Address(data='', hash=public_key_hash_bytes, network=network, prefix=prefix, script_type=script_type,
                        encoding=addr_dict['encoding'], network_overrides=network_overrides)
 
@@ -327,6 +335,10 @@ class Address:
         if not self.hash_bytes:
             self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
         self.hash = to_hexstring(self.hash_bytes)
+
+        # TODO: Necessary for something?
+        # self.networks_p2sh = addr_dict['networks_p2sh']
+        # self.networks_p2pkh = addr_dict['networks_p2pkh']
 
         if encoding == 'base58':
             if prefix is None:
@@ -356,6 +368,7 @@ class Address:
 
     def with_prefix(self, prefix):
         return addr_convert(self.address, prefix)
+
 
 class Key:
     """
