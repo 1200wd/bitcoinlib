@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2018 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -97,7 +97,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
 
 def get_key_format(key, isprivate=None):
     """
-    Determins the type (private or public), format and network key.
+    Determines the type (private or public), format and network key.
     
     This method does not validate if a key is valid.
 
@@ -203,9 +203,9 @@ def get_key_format(key, isprivate=None):
 
 def ec_point(p):
     """
-    Method for eliptic curve multiplication
+    Method for elliptic curve multiplication
 
-    :param p: A point on the eliptic curve
+    :param p: A point on the elliptic curve
     
     :return Point: Point multiplied by generator G
     """
@@ -217,7 +217,7 @@ def ec_point(p):
 
 def deserialize_address(address, encoding=None):
     """
-    Deserialize cryptocurrency address. Calculate public key hash and try to determine script type and network.
+    Deserialize address. Calculate public key hash and try to determine script type and network.
 
     If one and only one network is found the 'network' dictionary item with contain this network. Same applies for the script type.
 
@@ -372,7 +372,7 @@ class Address:
 
 class Key:
     """
-    Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
+    Class to generate, import and convert public cryptographic key pairs used for bitcoin.
 
     If no key is specified when creating class a cryptographically secure Private Key is
     generated using the os.urandom() function.
@@ -1140,7 +1140,7 @@ class HDKey:
 
     def account_multisig_key(self, account_id=0, purpose=45, set_network=None):
         """
-        Derives a multisig account key according to BIP44/45 definiation.
+        Derives a multisig account key according to BIP44/45 definition.
         Wrapper for the 'account_key' method.
 
         :param account_id: Account ID. Leave empty for account 0

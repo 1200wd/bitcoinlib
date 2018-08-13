@@ -165,6 +165,8 @@ class Service(object):
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
+        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
+        :type addresses_per_request: int
 
         :return dict: Balance per address
         """
@@ -187,6 +189,8 @@ class Service(object):
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
+        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
+        :type addresses_per_request: int
 
         :return dict: UTXO's per address
         """
@@ -209,6 +213,8 @@ class Service(object):
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
+        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
+        :type addresses_per_request: int
 
         :return list: List of Transaction objects
         """
