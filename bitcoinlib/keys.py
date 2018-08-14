@@ -337,8 +337,10 @@ class Address:
             self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
         self.hash = to_hexstring(self.hash_bytes)
         if encoding == 'base58':
+            if self.script_type is None:
+                self.script_type = 'p2pkh'
             if prefix is None:
-                if script_type == 'p2sh':
+                if self.script_type == 'p2sh':
                     self.prefix = self.network.prefix_address_p2sh
                 else:
                     self.prefix = self.network.prefix_address
@@ -352,7 +354,9 @@ class Address:
             self.checksum = hashlib.sha256(hashlib.sha256(addr_bytes).digest()).digest()[:4]
             self.address = change_base(addr_bytes + self.checksum, 256, 58)
         elif encoding == 'bech32':
-            self.address = pubkeyhash_to_addr_bech32(self.hash)
+            if self.script_type is None:
+                self.script_type = 'p2sh'
+            self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash))
         else:
             raise KeyError("Encoding %s not supported" % encoding)
         self.address_orig = None

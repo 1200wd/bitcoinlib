@@ -480,8 +480,8 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     :return str: Bech32 encoded address
     """
 
-    if not isinstance(pubkeyhash, bytes):
-        pubkeyhash = to_bytes(pubkeyhash)
+    # if not isinstance(pubkeyhash, bytes):
+    # pubkeyhash = to_bytes(pubkeyhash)
     if len(pubkeyhash) not in [20, 32]:
         if int(pubkeyhash[0]) != 0:
             witver = int(pubkeyhash[0]) - 0x50
