@@ -47,7 +47,7 @@ class BlockCypher(BaseClient):
 
     def getbalance(self, addresslist):
         addresslist = self._addresslist_convert(addresslist)
-        addresses = ';'.join([a.address_provider for a in addresslist])
+        addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'balance')
         balance = 0.0
         if not isinstance(res, list):
@@ -61,13 +61,13 @@ class BlockCypher(BaseClient):
         return self._address_transactions(addresslist, unspent_only=True)
 
     def _address_transactions(self, addresslist, unspent_only=False):
-        addresses = ';'.join([a.address_provider for a in addresslist])
+        addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
         transactions = []
         if not isinstance(res, list):
             res = [res]
         for a in res:
-            address = [x.address for x in addresslist if x.address_provider == a['address']][0]
+            address = [x.address_orig for x in addresslist if x.address == a['address']][0]
             if 'txrefs' not in a:
                 continue
             if len(a['txrefs']) > 500:
@@ -89,12 +89,12 @@ class BlockCypher(BaseClient):
         txs = []
         addresslist = self._addresslist_convert(addresslist)
         for address in addresslist:
-            res = self.compose_request('addrs', address.address_provider,
+            res = self.compose_request('addrs', address.address,
                                        variables={'unspentOnly': int(unspent_only), 'limit': 2000})
             if not isinstance(res, list):
                 res = [res]
             for a in res:
-                address = [x.address for x in addresslist if x.address_provider == a['address']][0]
+                address = [x.address_orig for x in addresslist if x.address == a['address']][0]
                 if 'txrefs' not in a:
                     continue
                 if len(a['txrefs']) > 500:

@@ -37,11 +37,11 @@ class LitecoreIOClient(BaseClient):
 
     def getutxos(self, addresslist):
         addresslist = self._addresslist_convert(addresslist)
-        addresses = ';'.join([a.address_provider for a in addresslist])
+        addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'utxo')
         txs = []
         for tx in res:
-            address = [x.address for x in addresslist if x.address_provider == tx['address']][0]
+            address = [x.address_orig for x in addresslist if x.address == tx['address']][0]
             txs.append({
                 'address': address,
                 'tx_hash': tx['txid'],
@@ -97,7 +97,7 @@ class LitecoreIOClient(BaseClient):
 
     def gettransactions(self, addresslist):
         addresslist = self._addresslist_convert(addresslist)
-        addresses = ';'.join([a.address_provider for a in addresslist])
+        addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
         for tx in res['items']:
@@ -112,7 +112,7 @@ class LitecoreIOClient(BaseClient):
         balance = 0
         addresslist = self._addresslist_convert(addresslist)
         for a in addresslist:
-            res = self.compose_request('addr', a.address_provider, 'balance')
+            res = self.compose_request('addr', a.address, 'balance')
             balance += res
         return balance
 

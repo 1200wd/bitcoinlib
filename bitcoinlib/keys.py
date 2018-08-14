@@ -359,12 +359,13 @@ class Address:
             self.address = pubkeyhash_to_addr_bech32(self.hash)
         else:
             raise KeyError("Encoding %s not supported" % encoding)
-        self.address_provider = self.address
+        self.address_orig = None
         provider_prefix = None
         if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
             provider_prefix = network_overrides['prefix_address_p2sh']
         if provider_prefix:
-            self.address_provider = addr_convert(self.address, provider_prefix)
+            self.address_orig = self.address
+            self.address = addr_convert(self.address, provider_prefix)
 
     def with_prefix(self, prefix):
         return addr_convert(self.address, prefix)
