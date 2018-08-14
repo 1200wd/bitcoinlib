@@ -297,7 +297,7 @@ def deserialize_address(address, encoding=None):
 
 class Address:
     """
-    Class to store, convert and analyse various address types as representation of public keys
+    Class to store, convert and analyse various address types as representation of public keys or scripts hashes
     """
 
     @classmethod
@@ -325,6 +325,25 @@ class Address:
 
     def __init__(self, data, hash='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
                  encoding='base58', network_overrides=None):
+        """
+        Initialize an Address object. Specify a public key, redeemscript or a hash.
+
+        :param data: Public key, redeem script or other type of script.
+        :type data: str, bytes
+        :param hash: Hash of a public key or script. Will be generated if 'data' parameter is provided
+        :type hash: str, bytes
+        :param network: Bitcoin, testnet, litecoin or other network
+        :type network: str, Network
+        :param prefix: Address prefix
+        :type prefix: str, bytes
+        :param script_type: Type of script, i.e. p2sh or p2pkh.
+        :type script_type: str
+        :param encoding: Address encoding. Default is base58 encoding, for segwit specify bech32 encoding
+        :type encoding: str
+        :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
+        :type network_overrides: dict
+
+        """
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)
@@ -368,6 +387,14 @@ class Address:
             self.address = addr_convert(self.address, provider_prefix)
 
     def with_prefix(self, prefix):
+        """
+        Convert address using another prefix
+
+        :param prefix: Address prefix
+        :type prefix: str, bytes
+
+        :return str: Converted address
+        """
         return addr_convert(self.address, prefix)
 
 
