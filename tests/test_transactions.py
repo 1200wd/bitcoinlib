@@ -112,7 +112,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_deserialize_raw(self):
         for r in self.rawtxs:
-            print("Deserialize %s" % r[0], r[1])
+            # print("Deserialize %s" % r[0], r[1])
             t = Transaction.import_raw(r[1], r[4])
             self.assertEqual(len(t.inputs), r[2], msg="Incorrect numbers of inputs for tx '%s'" % r[0])
             self.assertEqual(len(t.outputs), r[3], msg="Incorrect numbers of outputs for tx '%s'" % r[0])
@@ -153,7 +153,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_verify_signature(self):
         for r in self.rawtxs:
-            print("Verify %s" % r[0])
+            # print("Verify %s" % r[0])
             t = Transaction.import_raw(r[1], r[4])
             if len(t.inputs) < 5:
                 self.assertTrue(t.verify(), msg="Can not verify transaction '%s'" % r[0])

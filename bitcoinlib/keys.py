@@ -221,7 +221,7 @@ def deserialize_address(address, encoding=None):
 
     If one and only one network is found the 'network' dictionary item with contain this network. Same applies for the script type.
 
-    If more networks and or script types are found you can find these in 'networks_p2sh' and 'networks_p2pkh'.
+    If more networks and or script types are found you can find these in the 'networks' field.
 
     :param address: A base58 or bech32 encoded address
     :type address: str
@@ -250,14 +250,17 @@ def deserialize_address(address, encoding=None):
             public_key_hash = key_hash[1:]
             script_type = ''
             network = ''
+            networks = []
             if networks_p2pkh and not networks_p2sh:
                 script_type = 'p2pkh'
                 if len(networks_p2pkh) >= 1:
                     network = networks_p2pkh[0]
-            elif networks_p2sh and not networks_p2pkh:
+                networks = networks_p2pkh
+            elif networks_p2sh:
                 script_type = 'p2sh'
                 if len(networks_p2sh) >= 1:
                     network = networks_p2sh[0]
+                networks = networks_p2sh
 
             return {
                 'address': address,
@@ -267,8 +270,7 @@ def deserialize_address(address, encoding=None):
                 'prefix': address_prefix,
                 'network': network,
                 'script_type': script_type,
-                'networks_p2sh': networks_p2sh,
-                'networks_p2pkh': networks_p2pkh
+                'networks': networks,
             }
     if encoding == 'bech32' or encoding is None:
         try:
@@ -285,8 +287,7 @@ def deserialize_address(address, encoding=None):
                 'prefix': prefix,
                 'network': '' if not networks else networks[0],
                 'script_type': 'p2sh',  # TODO: Use Segwit prefixes
-                'networks_p2sh': networks,
-                'networks_p2pkh': []
+                'networks': networks,
             }
         except EncodingError as err:
             raise EncodingError("Invalid address %s: %s" % (address, err))
@@ -335,11 +336,6 @@ class Address:
         if not self.hash_bytes:
             self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
         self.hash = to_hexstring(self.hash_bytes)
-
-        # TODO: Necessary for something?
-        # self.networks_p2sh = addr_dict['networks_p2sh']
-        # self.networks_p2pkh = addr_dict['networks_p2pkh']
-
         if encoding == 'base58':
             if prefix is None:
                 if script_type == 'p2sh':

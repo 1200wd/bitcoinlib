@@ -723,7 +723,7 @@ class Output:
                 self.script_type = address_dict['script_type']
             else:
                 raise TransactionError("Could not determine script type of address %s" % self.address)
-            network_guesses = address_dict['networks_p2pkh'] + address_dict['networks_p2sh']
+            network_guesses = address_dict['networks']
             if address_dict['network'] and self.network.name != address_dict['network']:
                 raise TransactionError("Address %s is from %s network and transaction from %s network" %
                                        (self.address, address_dict['network'], self.network.name))
