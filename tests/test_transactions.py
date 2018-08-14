@@ -1056,7 +1056,7 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         self.assertEqual(unlocking_script_str['script_type'], 'p2sh_multisig')
         self.assertEqual(len(unlocking_script_str['signatures']), 2)
 
-    def test_transaction_multisig_p2sh_sign_seperate(self):
+    def test_transaction_multisig_p2sh_sign_separate(self):
         t = Transaction()
         t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
         t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,

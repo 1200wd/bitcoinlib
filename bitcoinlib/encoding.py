@@ -460,7 +460,7 @@ def convertbits(data, frombits, tobits, pad=True):
     return ret
 
 
-def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
+def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, separator='1'):
     """
     Encode public key hash as bech32 segwit address
 
@@ -474,14 +474,15 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     :type hrp: str
     :param witver: Witness version between 0 and 16
     :type witver: int
-    :param seperator: Seperator char between hrp and data, should always be left to '1' otherwise its not standard.
-    :type seperator: str
+    :param separator: Separator char between hrp and data, should always be left to '1' otherwise its not standard.
+    :type separator: str
 
     :return str: Bech32 encoded address
     """
 
-    # if not isinstance(pubkeyhash, bytes):
-    # pubkeyhash = to_bytes(pubkeyhash)
+    if not isinstance(pubkeyhash, bytearray):
+        pubkeyhash = bytearray(to_bytes(pubkeyhash))
+
     if len(pubkeyhash) not in [20, 32]:
         if int(pubkeyhash[0]) != 0:
             witver = int(pubkeyhash[0]) - 0x50
@@ -494,7 +495,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
-    return hrp + seperator + _array_to_codestring(data, 'bech32') + _array_to_codestring(checksum, 'bech32')
+    return hrp + separator + _array_to_codestring(data, 'bech32') + _array_to_codestring(checksum, 'bech32')
 
 
 def addr_convert(addr, prefix):

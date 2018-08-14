@@ -356,7 +356,7 @@ class Address:
         elif encoding == 'bech32':
             if self.script_type is None:
                 self.script_type = 'p2sh'
-            self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash))
+            self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), hrp=self.network.prefix_bech32)
         else:
             raise KeyError("Encoding %s not supported" % encoding)
         self.address_orig = None

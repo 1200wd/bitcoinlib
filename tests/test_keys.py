@@ -484,6 +484,15 @@ class TestKeysAddress(unittest.TestCase):
         ac = Address.import_address(address_legacy, network_overrides={"prefix_address_p2sh": "32"})
         self.assertEqual(ac.address, address)
 
+    def test_keys_address_encodings(self):
+        pk = '7cc7ed043b4240945e744387f8943151de86843025682bf40fa94ef086eeb686'
+        a = Address(pk, network='testnet')
+        self.assertEqual(a.address, 'mmAXD1HJtV9pdffPvBJkuT4qQrbFMwb4pR')
+        a = Address(pk, script_type='p2sh', network='testnet')
+        self.assertEqual(a.address, '2MxtnuEcoEpYJ9WWkzqcr87ChujVRk1DFsZ')
+        a = Address(pk, encoding='bech32', network='testnet')
+        self.assertEqual(a.address, 'tb1q8hehumvm039nxnwwtqdjr7qmm46sfxrdw7vc3g')
+
 
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):
