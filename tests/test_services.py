@@ -110,6 +110,12 @@ class TestService(unittest.TestCase, CustomAssertions):
             else:
                 prev = balance
 
+    def test_service_address_conversion(self):
+        srv = Service(min_providers=2, network='litecoin_legacy', providers=['cryptoid', 'litecoreio'])
+        srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
+        exp_dict = {'cryptoid.litecoin.legacy': 95510000, 'litecoreio.litecoin.legacy': 95510000}
+        self.assertEqual(srv.results, exp_dict)
+
     def test_get_utxos(self):
         srv = Service()
         utxos = srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
