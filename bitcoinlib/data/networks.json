@@ -18,7 +18,7 @@
     "fee_default": 10000,
     "fee_min": 1000,
     "fee_max": 1000000,
-    "priority": 6
+    "priority": 2
   },
   "bitcoin":
   {
@@ -123,7 +123,7 @@
     "fee_default": 50000,
     "fee_min": 1000,
     "fee_max": 1000000,
-    "priority": 8
+    "priority": 6
   },
   "dash":
   {
@@ -165,6 +165,6 @@
     "fee_default": 10000,
     "fee_min": 1000,
     "fee_max": 50000,
-    "priority": 8
+    "priority": 6
   }
 }
