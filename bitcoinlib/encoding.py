@@ -401,8 +401,7 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     :return str: Base-58 encoded address
 
     """
-    pkh = to_bytearray(pkh)
-    key = versionbyte + pkh
+    key = to_bytearray(versionbyte) + to_bytearray(pkh)
     addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
     return change_base(addr256, 256, 58)
 
