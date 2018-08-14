@@ -482,7 +482,7 @@ class TestKeysAddress(unittest.TestCase):
         address_legacy = '3LPrWmWj1pYPEs8dGsPtWfmg2E9LhL5BHj'
         address = 'MSbzpevgxwPp3NQXNkPELK25Lvjng7DcBk'
         ac = Address.import_address(address_legacy, network_overrides={"prefix_address_p2sh": "32"})
-        self.assertEqual(ac.address_provider, address)
+        self.assertEqual(ac.address, address)
 
 
 class TestKeysDash(unittest.TestCase):
