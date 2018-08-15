@@ -926,8 +926,8 @@ class TestTransactions(unittest.TestCase):
 
     def test_transaction_sendto_wrong_address(self):
         t = Transaction(network='bitcoin')
-        self.assertRaisesRegexp(TransactionError, 'Network for output address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is '
-                                                  'different from transaction network',
+        self.assertRaisesRegexp(TransactionError, 'Address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is from litecoin '
+                                                  'network and transaction from bitcoin network',
                                 t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
 
@@ -1024,12 +1024,6 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                                                '1e0d01')
         self.assertEqual(
             to_hexstring(ds['keys'][0]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
-
-    def test_transaction_sendto_wrong_address(self):
-        t = Transaction(network='bitcoin')
-        self.assertRaisesRegexp(TransactionError, "Address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is from litecoin "
-                                                  "network and transaction from bitcoin network",
-                                t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
