@@ -823,6 +823,8 @@ class Output:
                 self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
             elif self.script_type == 'p2sh':
                 self.lock_script = b'\xa9\x14' + self.public_key_hash + b'\x87'
+            elif self.script_type == 'p2sh_p2wpkh':
+                self.lock_script = b'\x00\x14' + self.public_key_hash
             else:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
@@ -1424,7 +1426,9 @@ class Transaction:
         if not self.inputs:
             est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
         for outp in self.outputs:
-            if outp.script_type in ['p2pkh', 'p2sh']:
+            if outp.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+                est_size += 20  # TODO: Calculate vsize
+            elif outp.script_type in ['p2pkh', 'p2sh']:
                 est_size += 34
             elif outp.script_type == 'nulldata':
                 est_size += len(outp.lock_script) + 9
