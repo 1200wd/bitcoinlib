@@ -114,7 +114,10 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(min_providers=2, network='litecoin_legacy', providers=['cryptoid', 'litecoreio'])
         srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
         exp_dict = {'cryptoid.litecoin.legacy': 95510000, 'litecoreio.litecoin.legacy': 95510000}
-        self.assertEqual(srv.results, exp_dict)
+        for r in srv.results:
+            if r not in exp_dict:
+                print("WARNING: Provider %s not found in results" % r)
+            self.assertEqual(srv.results[r], exp_dict[r])
 
     def test_get_utxos(self):
         srv = Service()
