@@ -18,6 +18,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+
+import struct
+
 _opcodes = [
     ("OP_0", 0), ("OP_PUSHDATA1", 76), "OP_PUSHDATA2", "OP_PUSHDATA4", "OP_1NEGATE", "OP_RESERVED", "OP_1",
     "OP_2", "OP_3", "OP_4", "OP_5", "OP_6", "OP_7", "OP_8", "OP_9", "OP_10", "OP_11", "OP_12", "OP_13", "OP_14",
@@ -30,8 +33,9 @@ _opcodes = [
     "OP_LSHIFT", "OP_RSHIFT", "OP_BOOLAND", "OP_BOOLOR", "OP_NUMEQUAL", "OP_NUMEQUALVERIFY", "OP_NUMNOTEQUAL",
     "OP_LESSTHAN", "OP_GREATERTHAN", "OP_LESSTHANOREQUAL", "OP_GREATERTHANOREQUAL", "OP_MIN", "OP_MAX", "OP_WITHIN",
     "OP_RIPEMD160", "OP_SHA1", "OP_SHA256", "OP_HASH160", "OP_HASH256", "OP_CODESEPARATOR", "OP_CHECKSIG",
-    "OP_CHECKSIGVERIFY", "OP_CHECKMULTISIG", "OP_CHECKMULTISIGVERIFY", "OP_NOP1", "OP_NOP2", "OP_NOP3", "OP_NOP4",
-    "OP_NOP5", "OP_NOP6", "OP_NOP7", "OP_NOP8", "OP_NOP9", "OP_NOP10", ("OP_INVALIDOPCODE", 0xFF)
+    "OP_CHECKSIGVERIFY", "OP_CHECKMULTISIG", "OP_CHECKMULTISIGVERIFY", "OP_NOP1", "OP_CHECKLOCKTIMEVERIFY",
+    "OP_CHECKSEQUENCEVERIFY", "OP_NOP4", "OP_NOP5", "OP_NOP6", "OP_NOP7", "OP_NOP8", "OP_NOP9", "OP_NOP10",
+    ("OP_INVALIDOPCODE", 0xFF)
 ]
 
 
@@ -48,6 +52,24 @@ def _set_opcodes():
         cds_rev.update({var: count})
         count += 1
     return cds, cds_rev
+
+
+def opcode(name, as_bytes=True):
+    """
+    Get integer or byte character value of OP code by name.
+
+    :param name: Name of OP code as defined in opcodenames
+    :type name: str
+    :param as_bytes: Return as byte or int? Default is bytes
+    :type as_bytes: bool
+
+    :return int, bytes:
+
+    """
+    opcode_int = opcodes[name]
+    if as_bytes:
+        return struct.pack('B', opcode_int)
+    return opcode_int
 
 
 opcodenames, opcodes = _set_opcodes()

@@ -100,5 +100,5 @@ If you use this library in a production environment it is advised to run your ow
 both for privacy and reliability reasons. More setup information:
 `Setup connection to bitcoin node <manuals.setup-bitcoind-connection.html>`_
 
-Some service providers require an API key. You can add this key to the provider settings file in
-.bitcoinlib/config/providers.json
+Some service providers require an API key to function or allow additional requests.
+You can add this key to the provider settings file in .bitcoinlib/config/providers.json

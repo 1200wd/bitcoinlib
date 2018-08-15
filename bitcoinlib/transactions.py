@@ -18,30 +18,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from datetime import datetime
 from bitcoinlib.encoding import *
-from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address
-from bitcoinlib.networks import Network, DEFAULT_NETWORK
+from bitcoinlib.networks import Network
 
 
 _logger = logging.getLogger(__name__)
-
-SCRIPT_TYPES = {
-    'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
-    'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
-    'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
-    'p2sh_p2wpkh': ['script_size', 'OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
-    'p2sh_p2wsh': ['script_size', 'OP_0', 'push_size', 'redeemscript'],
-    'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
-    'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
-    'pubkey': ['signature', 'OP_CHECKSIG'],
-    'nulldata': ['OP_RETURN', 'return_data']
-}
-
-SIGHASH_ALL = 1
-SIGHASH_NONE = 2
-SIGHASH_SINGLE = 3
-SIGHASH_ANYONECANPAY = 80
 
 
 class TransactionError(Exception):
@@ -166,10 +149,148 @@ def script_deserialize(script, script_types=None):
             scr = scr[l + 1:]
         return sigs, total_lenght
 
-    data = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b''}
+    def _get_empty_data():
+        return {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'number_of_sigs_n': 1,
+                'number_of_sigs_m': 1, 'locktime_cltv': 0, 'locktime_csv': 0, 'result': ''}
+
+    def _parse_script(script):
+        found = False
+        cur = 0
+        data = _get_empty_data()
+        for script_type in script_types:
+            cur = 0
+            ost = SCRIPT_TYPES[script_type]
+            data = _get_empty_data()
+            data['script_type'] = script_type
+            found = True
+            for ch in ost:
+                if cur >= len(script):
+                    found = False
+                    break
+                cur_char = script[cur]
+                if sys.version < '3':
+                    cur_char = ord(script[cur])
+                if ch == 'signature':
+                    s, total_length = _parse_signatures(script[cur:], 1)
+                    if not s:
+                        found = False
+                        break
+                    data['signatures'] += s
+                    cur += total_length
+                elif ch == 'public_key':
+                    pk_size, size = varbyteint_to_int(script[cur:cur + 9])
+                    key = script[cur + size:cur + size + pk_size]
+                    if key[0] == '0x30':
+                        data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
+                    else:
+                        data['keys'].append(key)
+                    cur += size + pk_size
+                elif ch == 'OP_RETURN':
+                    if cur_char == opcodes['OP_RETURN'] and cur == 0:
+                        data.update({'op_return': script[cur + 1:]})
+                        found = True
+                        break
+                    else:
+                        found = False
+                        break
+                elif ch == 'multisig':  # one or more signatures
+                    redeemscript_expected = False
+                    if 'redeemscript' in ost:
+                        redeemscript_expected = True
+                    s, total_length = _parse_signatures(script[cur:], redeemscript_expected=redeemscript_expected)
+                    data['signatures'] += s
+                    cur += total_length
+                elif ch == 'redeemscript':
+                    size_byte = 0
+                    if script[cur:cur + 1] == b'\x4c':
+                        size_byte = 1
+                    elif script[cur:cur + 1] == b'\x4d':
+                        size_byte = 2
+                    elif script[cur:cur + 1] == b'\x4e':
+                        size_byte = 3
+                    data['redeemscript'] = script[cur + 1 + size_byte:]
+                    data2 = script_deserialize(data['redeemscript'])
+                    if 'signatures' not in data2:
+                        found = False
+                        break
+                    data['keys'] = data2['signatures']
+                    data['number_of_sigs_m'] = data2['number_of_sigs_m']
+                    data['number_of_sigs_n'] = data2['number_of_sigs_n']
+                    cur = len(script)
+                elif ch == 'script_size':
+                    # TODO: Check if varbyteint's are used here
+                    script_size, size = varbyteint_to_int(script[cur:cur + 9])
+                    if script_size != len(script) - 1:
+                        found = False
+                    else:
+                        cur += size
+                        data['redeemscript'] = script[cur:]
+                elif ch == 'push_size':
+                    push_size, size = varbyteint_to_int(script[cur:cur + 9])
+                    if len(script[cur:]) - size != push_size:
+                        found = False
+                    else:
+                        found = True
+                    break
+                elif ch == 'op_m':
+                    if cur_char in OP_N_CODES:
+                        data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
+                    else:
+                        found = False
+                        break
+                    cur += 1
+                elif ch == 'op_n':
+                    if cur_char in OP_N_CODES:
+                        data['number_of_sigs_n'] = cur_char - opcodes['OP_1'] + 1
+                    else:
+                        found = False
+                        break
+                        # raise TransactionError("%s is not an op_n code" % cur_char)
+                    if data['number_of_sigs_m'] > data['number_of_sigs_n']:
+                        raise TransactionError("Number of signatures to sign (%s) is higher then actual "
+                                               "amount of signatures (%s)" %
+                                               (data['number_of_sigs_m'], data['number_of_sigs_n']))
+                    if len(data['signatures']) > int(data['number_of_sigs_n']):
+                        raise TransactionError("%d signatures found, but %s sigs expected" %
+                                               (len(data['signatures']), data['number_of_sigs_n']))
+                    cur += 1
+                elif ch == 'SIGHASH_ALL':
+                    pass
+                elif ch == 'locktime_cltv':
+                    if len(script) < 4:
+                        found = False
+                        break
+                    data['locktime_cltv'] = struct.unpack('<L', script[cur:cur + 4])[0]
+                    cur += 4
+                elif ch == 'locktime_csv':
+                    if len(script) < 4:
+                        found = False
+                        break
+                    data['locktime_csv'] = struct.unpack('<L', script[cur:cur + 4])[0]
+                    cur += 4
+                else:
+                    try:
+                        if cur_char == opcodes[ch]:
+                            cur += 1
+                        else:
+                            found = False
+                            data = _get_empty_data()
+                            break
+                    except IndexError:
+                        raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
+            if found:
+                break
+
+        if found:
+            return data, script[cur:]
+        data = _get_empty_data()
+        data['result'] = 'Script not recognised'
+        return data, ''
+
+    data = _get_empty_data()
     script = to_bytes(script)
     if not script:
-        data.update({'script_type': 'empty'})
+        data.update({'result': 'Empty script'})
         return data
 
     if script_types is None:
@@ -177,118 +298,25 @@ def script_deserialize(script, script_types=None):
     elif not isinstance(script_types, list):
         script_types = [script_types]
 
-    for script_type in script_types:
-        cur = 0
-        ost = SCRIPT_TYPES[script_type]
-        data['script_type'] = script_type
-        data['number_of_sigs_n'] = 1
-        data['number_of_sigs_m'] = 1
-        found = True
-        for ch in ost:
-            if cur >= len(script):
-                found = False
-                break
-            cur_char = script[cur]
-            if sys.version < '3':
-                cur_char = ord(script[cur])
-            if ch == 'signature':
-                s, total_length = _parse_signatures(script[cur:], 1)
-                if not s:
-                    found = False
-                    break
-                data['signatures'] += s
-                cur += total_length
-            elif ch == 'public_key':
-                pk_size, size = varbyteint_to_int(script[cur:cur + 9])
-                key = script[cur + size:cur + size + pk_size]
-                if key[0] == '0x30':
-                    data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
-                else:
-                    data['keys'].append(key)
-                cur += size + pk_size
-            elif ch == 'OP_RETURN':
-                if cur_char == opcodes['OP_RETURN'] and cur == 0:
-                    data.update({'op_return': script[cur+1:]})
-                    found = True
-                    break
-                else:
-                    found = False
-                    break
-            elif ch == 'multisig':  # one or more signatures
-                redeemscript_expected = False
-                if 'redeemscript' in ost:
-                    redeemscript_expected = True
-                s, total_length = _parse_signatures(script[cur:], redeemscript_expected=redeemscript_expected)
-                data['signatures'] += s
-                cur += total_length
-            elif ch == 'redeemscript':
-                size_byte = 0
-                if script[cur:cur+1] == b'\x4c':
-                    size_byte = 1
-                elif script[cur:cur + 1] == b'\x4d':
-                    size_byte = 2
-                elif script[cur:cur + 1] == b'\x4e':
-                    size_byte = 3
-                data['redeemscript'] = script[cur+1+size_byte:]
-                data2 = script_deserialize(data['redeemscript'])
-                if 'signatures' not in data2:
-                    found = False
-                    break
-                data['keys'] = data2['signatures']
-                data['number_of_sigs_m'] = data2['number_of_sigs_m']
-                data['number_of_sigs_n'] = data2['number_of_sigs_n']
-                cur = len(script)
-            elif ch == 'script_size':
-                # TODO: Check if varbyteint's are used here
-                script_size, size = varbyteint_to_int(script[cur:cur + 9])
-                if script_size != len(script)-1:
-                    found = False
-                else:
-                    cur += size
-                    data['redeemscript'] = script[cur:]
-            elif ch == 'push_size':
-                push_size, size = varbyteint_to_int(script[cur:cur + 9])
-                if len(script[cur:]) - size != push_size:
-                    found = False
-                else:
-                    found = True
-                break
-            elif ch == 'op_m':
-                if cur_char in OP_N_CODES:
-                    data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
-                else:
-                    found = False
-                    break
-                cur += 1
-            elif ch == 'op_n':
-                if cur_char in OP_N_CODES:
-                    data['number_of_sigs_n'] = cur_char - opcodes['OP_1'] + 1
-                else:
-                    raise TransactionError("%s is not an op_n code" % cur_char)
-                if data['number_of_sigs_m'] > data['number_of_sigs_n']:
-                    raise TransactionError("Number of signatures to sign (%s) is higher then actual "
-                                           "amount of signatures (%s)" %
-                                           (data['number_of_sigs_m'], data['number_of_sigs_n']))
-                if len(data['signatures']) > int(data['number_of_sigs_n']):
-                    raise TransactionError("%d signatures found, but %s sigs expected" %
-                                           (len(data['signatures']), data['number_of_sigs_n']))
-                cur += 1
-            elif ch == 'SIGHASH_ALL':
-                pass
-            else:
-                try:
-                    if cur_char == opcodes[ch]:
-                        cur += 1
-                    else:
-                        found = False
-                        break
-                except IndexError:
-                    raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
+    locktime_cltv = 0
+    locktime_csv = 0
+    while len(script):
+        begin_script = script
+        data, script = _parse_script(script)
+        if begin_script == script:
+            break
+        if script and data['script_type'] == 'locktime_cltv':
+            locktime_cltv = data['locktime_cltv']
+        if script and data['script_type'] == 'locktime_csv':
+            locktime_csv = data['locktime_csv']
+    if data:
+        data['locktime_cltv'] = locktime_cltv
+        data['locktime_csv'] = locktime_csv
+        return data
 
-        if found:
-            return data
-    _logger.warning("Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script))
-    return {'script_type': 'unknown'}
+    wrn_msg = "Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script)
+    _logger.warning(wrn_msg)
+    return {'result': wrn_msg}
 
 
 def script_deserialize_sigpk(script):
@@ -417,6 +445,22 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
     return usu
 
 
+def script_add_locktime_cltv(locktime_cltv, script):
+    lockbytes = opcode('OP_CHECKLOCKTIMEVERIFY') + opcode('OP_DROP')
+    if script and len(script) > 6:
+        if script[4:6] == lockbytes:
+            return script
+    return struct.pack('<L', locktime_cltv) + lockbytes + script
+
+
+def script_add_locktime_csv(locktime_csv, script):
+    lockbytes = opcode('OP_CHECKSEQUENCEVERIFY') + opcode('OP_DROP')
+    if script and len(script) > 6:
+        if script[4:6] == lockbytes:
+            return script
+    return struct.pack('<L', locktime_csv) + lockbytes + script
+
+
 def verify_signature(transaction_to_sign, signature, public_key):
     """
     Verify if signatures signs provided transaction hash and corresponds with public key
@@ -466,9 +510,10 @@ class Input:
     
     """
 
-    def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'', script_type='p2pkh',
-                 sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, network=DEFAULT_NETWORK):
+    def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
+                 unlocking_script_unsigned=None, script_type='p2pkh',
+                 sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
+                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -494,8 +539,14 @@ class Input:
         :type sort: boolean
         :param index_n: Index of input in transaction. Used by Transaction class.
         :type index_n: int
-        :param value: Input value
+        :param value: Value of input in smallest denominator, i.e. sathosis
         :type value: int
+        :param double_spend: Is this input also spend in another transaction
+        :type double_spend: bool
+        :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
+        :type locktime_cltv: int
+        :param locktime_csv: Check Sequency Verify value.
+        :type locktime_csv: int
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -507,12 +558,12 @@ class Input:
         else:
             self.output_n_int = struct.unpack('>I', output_n)[0]
             self.output_n = output_n
-        if isinstance(keys, (bytes, str)):
-            keys = [keys]
+        # if isinstance(keys, (bytes, str)):
+        #     keys = [keys]
         if unlocking_script is None:
             unlocking_script = b''
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
-        self.unlocking_script_unsigned = b''
+        self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None else to_bytes(unlocking_script_unsigned)
         if self.prev_hash == 32 * b'\0':
             self.script_type = 'coinbase'
         else:
@@ -551,6 +602,8 @@ class Input:
         self.sigs_required = sigs_required
         self.script_type = script_type
         self.double_spend = double_spend
+        self.locktime_cltv = locktime_cltv
+        self.locktime_csv = locktime_csv
 
         if prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
@@ -609,6 +662,22 @@ class Input:
 
         if self.script_type == 'sig_pubkey':
             self.script_type = 'p2pkh'
+        self.update_unlocking_script()
+
+    # TODO: Remove / replace?
+    def sequence_timelock_blocks(self, blocks):
+        if blocks > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = blocks
+
+    def sequence_timelock_time(self, seconds):
+        if seconds % 512:
+            raise TransactionError("Seconds must be a multiply of 512")
+        if seconds > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+
+    def update_unlocking_script(self):
         if self.script_type == 'p2pkh':
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
@@ -626,14 +695,18 @@ class Input:
         elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
             self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                               versionbyte=self.network.prefix_address_p2sh)
-            print(self.address)
+        if self.unlocking_script_unsigned:
+            if self.locktime_cltv:
+                self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
+            elif self.locktime_csv:
+                self.unlocking_script_unsigned = script_add_locktime_csv(self.locktime_csv, self.unlocking_script_unsigned)
 
     def dict(self):
         """
         Get transaction input information in json format
         
         :return dict: Json with output_n, prev_hash, output_n, type, address, public_key, public_key_hash, unlocking_script and sequence
-        
+
         """
         pks = []
         for k in self.keys:
@@ -831,7 +904,7 @@ class Transaction:
         :type inputs: Input, list
         :param outputs: Array of Output object. Leave empty to add later
         :type outputs: Output, list
-        :param locktime: Unix timestamp or blocknumber. Default is 0
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
         :param version: Version rules. Defaults to 1 in bytes 
         :type version: bytes, int
@@ -966,19 +1039,48 @@ class Transaction:
         print("Transaction %s" % self.hash)
         print("Date: %s" % self.date)
         print("Network: %s" % self.network.name)
+        if self.locktime and self.locktime != 0xffffffff:
+            if self.locktime < 500000000:
+                print("Locktime: Until block %d" % self.locktime)
+            else:
+                print("Locktime: Until %s UTC" % datetime.utcfromtimestamp(self.locktime))
+        print("Version: %d" % struct.unpack('>L', self.version)[0])
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")
+        replace_by_fee = False
         for ti in self.inputs:
             print("-", ti.address, ti.value, to_hexstring(ti.prev_hash), ti.output_n_int)
             print("  Script type: %s, signatures: %d (%d of %d)" %
                   (ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
+            if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
+                replace_by_fee = True
+            if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
+                if ti.sequence & SEQUENCE_LOCKTIME_TYPE_FLAG:
+                    print("  Relative timelock for %d seconds" % 512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                else:
+                    print("  Relative timelock for %d blocks" % ti.sequence)
+            if ti.locktime_cltv:
+                if ti.locktime_cltv & SEQUENCE_LOCKTIME_TYPE_FLAG:
+                    print("  Check Locktime Verify (CLTV) for %d seconds" %
+                          512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                else:
+                    print("  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
+            if ti.locktime_csv:
+                if ti.locktime_csv & SEQUENCE_LOCKTIME_TYPE_FLAG:
+                    print("  Check Sequence Verify Timelock (CSV) for %d seconds" %
+                          512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                else:
+                    print("  Check Sequence Verify Timelock (CSV) for %d blocks" % ti.locktime_csv)
+
         print("Outputs")
         for to in self.outputs:
             if to.script_type == 'nulldata':
                 print("- NULLDATA ", to.lock_script[2:])
             else:
                 print("-", to.address, to.value)
+        if replace_by_fee:
+            print("Replace by fee: Enabled")
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
@@ -1189,11 +1291,19 @@ class Transaction:
                     _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
             else:
                 raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
+
+            if self.inputs[tid].locktime_cltv:
+                self.inputs[tid].unlocking_script = script_add_locktime_cltv(self.inputs[tid].locktime_cltv,
+                                                                             self.inputs[tid].unlocking_script)
+            if self.inputs[tid].locktime_csv:
+                self.inputs[tid].unlocking_script = script_add_locktime_csv(self.inputs[tid].locktime_csv,
+                                                                            self.inputs[tid].unlocking_script)
         return n_signs
 
-    def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', script_type='p2pkh',
-                  sequence=4294967295, compressed=True, sigs_required=None, sort=False, index_n=None,
-                  value=None, double_spend=False, signatures=None):
+    def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', unlocking_script_unsigned=b'',
+                  script_type='p2pkh', sequence=0xffffffff, compressed=True, sigs_required=None, sort=False,
+                  index_n=None, value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
+                  signatures=None):
         """
         Add input to this transaction
         
@@ -1231,11 +1341,14 @@ class Transaction:
 
         if index_n is None:
             index_n = len(self.inputs)
+        if self.version == b'\x00\x00\x00\x01' and 0 < sequence < SEQUENCE_LOCKTIME_DISABLE_FLAG:
+            self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
+                  unlocking_script_unsigned=unlocking_script_unsigned,
                   script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
-                  signatures=signatures))
+                  signatures=signatures, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv))
         return index_n
 
     def add_output(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,

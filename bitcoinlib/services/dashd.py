@@ -160,6 +160,8 @@ class DashdClient(BaseClient):
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
+    def block_count(self):
+        return self.proxy.getblockcount()
 
 if __name__ == '__main__':
     #

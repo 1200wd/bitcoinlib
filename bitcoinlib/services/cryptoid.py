@@ -133,3 +133,7 @@ class CryptoID(BaseClient):
         variables = {'id': tx_id, 'hex': None}
         tx = self.compose_request(path_type='explorer', variables=variables)
         return tx['hex']
+
+    def block_count(self):
+        r = self.compose_request('getblockcount', path_type='api')
+        return r

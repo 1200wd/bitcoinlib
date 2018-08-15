@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for key and transaction management
-#    © 2018 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2018 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -28,10 +28,10 @@ from operator import itemgetter
 from bitcoinlib.db import *
 from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash, to_bytes
 from bitcoinlib.keys import HDKey, check_network_and_key
-from bitcoinlib.networks import Network, DEFAULT_NETWORK
+from bitcoinlib.networks import Network
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, SIGHASH_ALL
+from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input
 
 _logger = logging.getLogger(__name__)
 
@@ -594,7 +594,7 @@ class HDWalletTransaction(Transaction):
         if offline:
             return False
 
-        srv = Service(network=self.network.name)
+        srv = Service(network=self.network.name, providers=self.hdwallet.providers)
         res = srv.sendrawtransaction(self.raw_hex())
         if not res:
             self.error = "Cannot send transaction. %s" % srv.errors
@@ -1052,6 +1052,7 @@ class HDWallet:
             self._key_objects = {
                 self.main_key_id: self.main_key
             }
+            self.providers = None
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -1059,12 +1060,10 @@ class HDWallet:
         self._session.close()
 
     def __del__(self):
-        try:
-            if self._dbwallet.parent_id:
-                return
-        except:
-            pass
-        self._session.close()
+        if self._dbwallet and self._dbwallet.parent_id:
+            return
+        if self._session:
+            self._session.close()
 
     def __repr__(self):
         return "<HDWallet(name=%s, databasefile=\"%s\")>" % \
@@ -1924,7 +1923,7 @@ class HDWallet:
 
     def key(self, term):
         """
-        Return single key with give ID or name as HDWalletKey object
+        Return single key with given ID or name as HDWalletKey object
 
         :param term: Search term can be key ID, key address, key WIF or key name
         :type term: int, str
@@ -2024,22 +2023,22 @@ class HDWallet:
 
     def balance_update_from_serviceprovider(self, account_id=None, network=None):
         """
-        Update balance of currents account addresses using default Service objects getbalance method. Update total 
-        wallet balance in database. 
-        
+        Update balance of currents account addresses using default Service objects getbalance method. Update total
+        wallet balance in database.
+
         Please Note: Does not update UTXO's or the balance per key! For this use the 'updatebalance' method
         instead
-        
+
         :param account_id: Account ID. Leave empty for default account
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        
-        :return: 
+
+        :return:
         """
 
+        balance = Service(network=network, providers=self.providers).getbalance(self.addresslist(account_id=account_id, network=network))
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        balance = Service(network=network).getbalance(self.addresslist(account_id=account_id, network=network))
         if balance:
             new_balance = {
                 'account_id': account_id,
@@ -2232,7 +2231,7 @@ class HDWallet:
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
                     random.shuffle(addresslist)
-                    srv = Service(network=network)
+                    srv = Service(network=network, providers=self.providers)
                     utxos = srv.getutxos(addresslist)
                     if utxos is False:
                         raise WalletError("No response from any service provider, could not update UTXO's. "
@@ -2380,7 +2379,7 @@ class HDWallet:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
-        srv = Service(network=network)
+        srv = Service(network=network, providers=self.providers)
         txs = srv.gettransactions(addresslist)
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
@@ -2461,8 +2460,109 @@ class HDWallet:
             res.append(u)
         return res
 
+    def _objects_by_key_id(self, key_id):
+        key = self._session.query(DbKey).filter_by(id=key_id).scalar()
+        if not key:
+            raise WalletError("Key '%s' not found in this wallet" % key_id)
+        if key.key_type == 'multisig':
+            inp_keys = []
+            for ck in key.multisig_children:
+                # TODO:  CHECK THIS
+                inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
+            script_type = 'p2sh_multisig'
+        elif key.key_type in ['bip32', 'single']:
+            inp_keys = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
+            script_type = 'p2pkh'
+        else:
+            raise WalletError("Input key type %s not supported" % key.key_type)
+        return inp_keys, script_type, key
+
+    def select_inputs(self, amount, variance=None, account_id=None, network=None, min_confirms=0, max_utxos=None,
+                      return_input_obj=True):
+        """
+
+        :param amount: Total value of inputs to selects
+        :type amount: int
+        :param variance: Allowed difference in total input value. Default is dust amount of selected network.
+        :type variance: int
+        :param account_id: Account ID
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
+        :type min_confirms: int
+        :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
+        :type max_utxos: int
+        :return:
+        """
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+        if variance is None:
+            variance = self.network.dust_amount
+
+        utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+            filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
+                   DbKey.network_name == network,
+                   DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms). \
+            order_by(DbTransaction.confirmations.desc())
+        utxos = utxo_query.all()
+        if not utxos:
+            raise WalletError("Create transaction: No unspent transaction outputs found")
+
+        # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
+
+        # Try to find one utxo with exact amount
+        one_utxo = utxo_query.filter(DbTransactionOutput.spent.op("IS")(False),
+                                     DbTransactionOutput.value >= amount,
+                                     DbTransactionOutput.value <= amount + variance).first()
+        selected_utxos = []
+        if one_utxo:
+            selected_utxos = [one_utxo]
+        else:
+            # Try to find one utxo with higher amount
+            one_utxo = utxo_query. \
+                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
+                order_by(DbTransactionOutput.value).first()
+            if one_utxo:
+                selected_utxos = [one_utxo]
+            elif max_utxos and max_utxos <= 1:
+                _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
+                             "multiple UTXO's")
+                return []
+
+        # Otherwise compose of 2 or more lesser outputs
+        if not selected_utxos:
+            lessers = utxo_query. \
+                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
+                order_by(DbTransactionOutput.value.desc()).all()
+            total_amount = 0
+            selected_utxos = []
+            for utxo in lessers[:max_utxos]:
+                if total_amount < amount:
+                    selected_utxos.append(utxo)
+                    total_amount += utxo.value
+            if total_amount < amount:
+                return []
+        if not return_input_obj:
+            return selected_utxos
+        else:
+            inputs = []
+            for utxo in selected_utxos:
+                # amount_total_input += utxo.value
+                inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
+                # transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
+                #                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
+                #                       compressed=key.compressed, value=utxo.value, sequence=sequence)
+                # inp = Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
+                #     script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
+                #     sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
+                #     signatures=signatures)
+                inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
+                              sigs_required=self.multisig_n_required, sort=self.sort_keys,
+                              compressed=key.compressed, value=utxo.value))
+            return inputs
+
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, fee=None,
-                           min_confirms=0, max_utxos=None):
+                           min_confirms=0, max_utxos=None, locktime=0):
         """
             Create new transaction with specified outputs. 
             Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -2482,70 +2582,11 @@ class HDWallet:
             :type min_confirms: int
             :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
             :type max_utxos: int
+            :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
+            :type locktime: int
 
             :return HDWalletTransaction: object
         """
-
-        def _select_inputs(amount, variance=0):
-            utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
-                filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
-                       DbKey.network_name == network,
-                       DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms). \
-                order_by(DbTransaction.confirmations.desc())
-            utxos = utxo_query.all()
-            if not utxos:
-                raise WalletError("Create transaction: No unspent transaction outputs found")
-
-            # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
-
-            # Try to find one utxo with exact amount
-            one_utxo = utxo_query.filter(DbTransactionOutput.spent.op("IS")(False),
-                                         DbTransactionOutput.value >= amount,
-                                         DbTransactionOutput.value <= amount + variance).first()
-            if one_utxo:
-                return [one_utxo]
-
-            # Try to find one utxo with higher amount
-            one_utxo = utxo_query. \
-                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
-                order_by(DbTransactionOutput.value).first()
-            if one_utxo:
-                return [one_utxo]
-            elif max_utxos and max_utxos <= 1:
-                _logger.info("No single UTXO found with requested amount, use higher 'max_utxo' setting to use "
-                             "multiple UTXO's")
-                return []
-
-            # Otherwise compose of 2 or more lesser outputs
-            lessers = utxo_query. \
-                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
-                order_by(DbTransactionOutput.value.desc()).all()
-            total_amount = 0
-            selected_utxos = []
-            for utxo in lessers[:max_utxos]:
-                if total_amount < amount:
-                    selected_utxos.append(utxo)
-                    total_amount += utxo.value
-            if total_amount < amount:
-                return []
-            return selected_utxos
-
-        def _objects_by_key_id(key_id):
-            key = self._session.query(DbKey).filter_by(id=key_id).scalar()
-            if not key:
-                raise WalletError("Key '%s' not found in this wallet" % key_id)
-            if key.key_type == 'multisig':
-                inp_keys = []
-                for ck in key.multisig_children:
-                    # TODO:  CHECK THIS
-                    inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
-                script_type = 'p2sh_multisig'
-            elif key.key_type in ['bip32', 'single']:
-                inp_keys = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
-                script_type = 'p2pkh'
-            else:
-                raise WalletError("Input key type %s not supported" % key.key_type)
-            return inp_keys, script_type, key
 
         amount_total_output = 0
         network, account_id, acckey = self._get_account_defaults(network, account_id)
@@ -2555,7 +2596,7 @@ class HDWallet:
                               (len(input_arr), max_utxos))
 
         # Create transaction and add outputs
-        transaction = HDWalletTransaction(hdwallet=self, network=network)
+        transaction = HDWalletTransaction(hdwallet=self, network=network, locktime=locktime)
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
@@ -2567,7 +2608,7 @@ class HDWallet:
                 amount_total_output += o[1]
                 transaction.add_output(o[1], o[0])
 
-        srv = Service(network=network)
+        srv = Service(network=network, providers=self.providers)
         transaction.fee_per_kb = None
         if fee is None:
             if not input_arr:
@@ -2579,19 +2620,26 @@ class HDWallet:
             fee_estimate = fee
 
         # Add inputs
+        sequence = 0xffffffff
+        if 0 < transaction.locktime < 0xffffffff:
+            sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = _select_inputs(amount_total_output + fee_estimate, self.network.dust_amount)
+            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount,
+                                                account_id, network, min_confirms, max_utxos, False)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                inp_keys, script_type, key = _objects_by_key_id(utxo.key_id)
+                inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                      compressed=key.compressed, value=utxo.value)
+                                      compressed=key.compressed, value=utxo.value, sequence=sequence)
         else:
             for inp in input_arr:
+                locktime_cltv = None
+                locktime_csv = None
+                unlocking_script_unsigned = None
                 if isinstance(inp, Input):
                     prev_hash = inp.prev_hash
                     output_n = inp.output_n
@@ -2599,7 +2647,19 @@ class HDWallet:
                     value = inp.value
                     signatures = inp.signatures
                     unlocking_script = inp.unlocking_script
+                    unlocking_script_unsigned = inp.unlocking_script_unsigned
                     address = inp.address
+                    sequence = inp.sequence
+                    locktime_cltv = inp.locktime_cltv
+                    locktime_csv = inp.locktime_csv
+                elif isinstance(inp, DbTransactionOutput):
+                    prev_hash = inp.transaction.hash
+                    output_n = inp.output_n
+                    key_id = inp.key_id
+                    value = inp.value
+                    signatures = None
+                    unlocking_script = inp.script
+                    address = inp.key.address
                 else:
                     prev_hash = inp[0]
                     output_n = inp[1]
@@ -2620,7 +2680,7 @@ class HDWallet:
                         key_id = inp_utxo.key_id
                         value = inp_utxo.value
                     else:
-                        _logger.info("UTXO %s not found in this wallet. Please update UTXO's if othis is not an "
+                        _logger.info("UTXO %s not found in this wallet. Please update UTXO's if this is not an "
                                      "offline wallet" % to_hexstring(prev_hash))
                         key_id = self._session.query(DbKey.id).\
                             filter(DbKey.wallet_id == self.wallet_id, DbKey.address == address).scalar()
@@ -2632,11 +2692,13 @@ class HDWallet:
                                               "or import transaction as dictionary" % address)
 
                 amount_total_input += value
-                inp_keys, script_type, key = _objects_by_key_id(key_id)
+                inp_keys, script_type, key = self._objects_by_key_id(key_id)
                 transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
-                                      unlocking_script=unlocking_script)
+                                      unlocking_script=unlocking_script,
+                                      unlocking_script_unsigned=unlocking_script_unsigned,
+                                      sequence=sequence, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv)
 
         # Calculate fees
         transaction.fee = fee
@@ -2732,7 +2794,7 @@ class HDWallet:
         return rt
 
     def send(self, output_arr, input_arr=None, account_id=None, network=None, fee=None, min_confirms=0,
-             priv_keys=None, max_utxos=None, offline=False):
+             priv_keys=None, max_utxos=None, locktime=0, offline=False):
         """
         Create new transaction with specified outputs and push it to the network. 
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -2754,6 +2816,8 @@ class HDWallet:
         :type priv_keys: HDKey, list
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
+        :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
@@ -2766,7 +2830,7 @@ class HDWallet:
                               (len(input_arr), max_utxos))
 
         transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee,
-                                              min_confirms, max_utxos)
+                                              min_confirms, max_utxos, locktime)
         transaction.sign(priv_keys)
         # Calculate exact estimated fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
@@ -2776,14 +2840,14 @@ class HDWallet:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
                 transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee_exact,
-                                                      min_confirms, max_utxos)
+                                                      min_confirms, max_utxos, locktime)
                 transaction.sign(priv_keys)
 
         transaction.send(offline)
         return transaction
 
     def send_to(self, to_address, amount, account_id=None, network=None, fee=None, min_confirms=0,
-                priv_keys=None, offline=False):
+                priv_keys=None, locktime=0, offline=False):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
 
@@ -2801,6 +2865,8 @@ class HDWallet:
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
+        :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
@@ -2809,10 +2875,10 @@ class HDWallet:
 
         outputs = [(to_address, amount)]
         return self.send(outputs, account_id=account_id, network=network, fee=fee,
-                         min_confirms=min_confirms, priv_keys=priv_keys, offline=offline)
+                         min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
-              fee_per_kb=None, offline=False):
+              fee_per_kb=None, locktime=0, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -2831,6 +2897,8 @@ class HDWallet:
         :type min_confirms: int
         :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider.
         :type fee_per_kb: int
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
+        :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
@@ -2851,13 +2919,13 @@ class HDWallet:
                 continue
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
-        srv = Service(network=network)
+        srv = Service(network=network, providers=self.providers)
         if fee_per_kb is None:
             fee_per_kb = srv.estimatefee()
         tr_size = 125 + (len(input_arr) * 125)
         estimated_fee = int((tr_size / 1024.0) * fee_per_kb)
         return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
-                         fee=estimated_fee, min_confirms=min_confirms, offline=offline)
+                         fee=estimated_fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
 
     def info(self, detail=3):
         """

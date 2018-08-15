@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
 import math
 import numbers
 from copy import deepcopy
@@ -30,10 +29,6 @@ import unicodedata
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
-
-
-# True if we are running on Python 3.
-PY3 = sys.version_info[0] == 3
 
 
 class EncodingError(Exception):

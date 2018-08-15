@@ -120,3 +120,5 @@ class BlockchainInfoClient(BaseClient):
     def getrawtransaction(self, tx_id):
         return self.compose_request('rawtx', tx_id, {'format': 'hex'})
 
+    def block_count(self):
+        return self.compose_request('latestblock')['height']

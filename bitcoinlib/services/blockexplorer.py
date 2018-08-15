@@ -32,7 +32,9 @@ class BlockExplorerClient(BaseClient):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def compose_request(self, category, data, cmd='', variables=None, method='get'):
-        url_path = category + '/' + data + '/' + cmd
+        url_path = category
+        if data:
+            url_path += '/' + data + '/' + cmd
         return self.request(url_path, variables, method=method)
 
     def getutxos(self, addresslist):
@@ -122,3 +124,7 @@ class BlockExplorerClient(BaseClient):
             'txid': res['txid'],
             'response_dict': res
         }
+
+    def block_count(self):
+        res = self.compose_request('status', '', variables={'q': 'getinfo'})
+        return res['info']['blocks']

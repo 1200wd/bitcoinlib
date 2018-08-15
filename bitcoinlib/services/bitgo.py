@@ -144,3 +144,6 @@ class BitGoClient(BaseClient):
     def estimatefee(self, blocks):
         res = self.compose_request('tx', 'fee', variables={'numBlocks': blocks})
         return res['feePerKb']
+
+    # def block_count(self):
+    #     return self.proxy.getblockcount()

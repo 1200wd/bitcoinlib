@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Transaction Class
-#    © 2018 March - 1200 Web Development <http://1200wd.com/>
+#    © 2018 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,6 +22,7 @@ import unittest
 import json
 from bitcoinlib.transactions import *
 from bitcoinlib.keys import HDKey
+from tests.test_custom import CustomAssertions
 
 
 class TestTransactionInputs(unittest.TestCase):
@@ -923,8 +924,14 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(t.size, 523)
         self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
 
+    def test_transaction_sendto_wrong_address(self):
+        t = Transaction(network='bitcoin')
+        self.assertRaisesRegexp(TransactionError, 'Network for output address LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd is '
+                                                  'different from transaction network',
+                                t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
-class TestTransactionsScriptType(unittest.TestCase):
+
+class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
     def test_transaction_script_type_p2pkh(self):
         s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
@@ -973,12 +980,15 @@ class TestTransactionsScriptType(unittest.TestCase):
         self.assertRaisesRegexp(TransactionError, '3 signatures found, but 2 sigs expected',
                                 script_deserialize, s)
 
-    def test_transaction_script_type_multisig_error(self):
+    def test_transaction_script_type_multisig_empty_data(self):
         s = binascii.unhexlify('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
-        self.assertRaisesRegexp(TransactionError, 'is not an op_n code', script_deserialize, s)
+        data = script_deserialize(s)
+        data_expected = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime_cltv': 0,
+                         'locktime_csv': 0, 'number_of_sigs_n': 1, 'number_of_sigs_m': 1}
+        self.assertDictEqualExt(data, data_expected)
 
     def test_transaction_script_type_empty_unknown(self):
-        self.assertEqual('empty', script_deserialize(b'')['script_type'])
+        self.assertEqual('Empty script', script_deserialize(b'')['result'])
 
     def test_transaction_script_type_string(self):
         s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
@@ -1212,3 +1222,43 @@ class TestTransactionsMultisig(unittest.TestCase):
         self.assertFalse(t.verify())
         t.sign(pk3)
         self.assertTrue(t.verify())
+
+
+class TestTransactionsTimelocks(unittest.TestCase):
+
+    def test_transaction_timelock(self):
+        locktime = 1532291866  # Timestamp
+        inputs = [
+            Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0)]
+        outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
+        t = Transaction(inputs, outputs, locktime=locktime)
+        t2 = Transaction.import_raw(t.raw())
+        self.assertEqual(t2.locktime, locktime)
+
+    def test_transaction_relative_timelock(self):
+        sequence = SEQUENCE_LOCKTIME_TYPE_FLAG + 1532291866  # Timestamp
+        inputs = [
+            Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0, sequence=sequence)]
+        outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
+        t = Transaction(inputs, outputs)
+        t2 = Transaction.import_raw(t.raw())
+        self.assertEqual(t2.inputs[0].sequence, sequence)
+
+    def test_transaction_locktime_cltv(self):
+        timelock = 533600
+        inputs = [
+            Input('0b823fca26c706c838b41749c22d01b8605068a83accac3767eaf74870106d5c', 0, locktime_cltv=timelock)]
+        outputs = [Output(9000, '1NsKdY663CutnDvcMJdeGawMZj4SsRXWgg')]
+        t = Transaction(inputs, outputs)
+        # TODO
+        raw_tx = ''
+        print(t.raw_hex())
+        print(t.inputs[0].unlocking_script_unsigned)
+
+    def test_transaction_cltv_error(self):
+        # TODO
+        pass
+
+    def test_transaction_csv(self):
+        # TODO
+        pass

@@ -19,13 +19,17 @@
 #
 
 import os
-# import sys
+import sys
 import locale
 import logging
 from logging.handlers import RotatingFileHandler
+from bitcoinlib.config.opcodes import *
 
 
-# Default file locations
+# General defaults
+PY3 = sys.version_info[0] == 3
+
+# File locations
 DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
 DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database/')
 DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log/')
@@ -35,6 +39,41 @@ CURRENT_INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
 DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
 TIMEOUT_REQUESTS = 5
+
+# Transactions
+SCRIPT_TYPES = {
+    'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
+    'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
+    'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
+    'p2sh_p2wpkh': ['script_size', 'OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
+    'p2sh_p2wsh': ['script_size', 'OP_0', 'push_size', 'redeemscript'],
+    'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
+    'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
+    'pubkey': ['signature', 'OP_CHECKSIG'],
+    'nulldata': ['OP_RETURN', 'return_data'],
+    'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
+    'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP']
+}
+
+SIGHASH_ALL = 1
+SIGHASH_NONE = 2
+SIGHASH_SINGLE = 3
+SIGHASH_ANYONECANPAY = 80
+
+SEQUENCE_LOCKTIME_DISABLE_FLAG = (1 << 31)  # To enable sequence time locks
+SEQUENCE_LOCKTIME_TYPE_FLAG = (1 << 22)  # If set use timestamp based lock otherwise use block height
+SEQUENCE_LOCKTIME_GRANULARITY = 9
+SEQUENCE_LOCKTIME_MASK = 0x0000FFFF
+SEQUENCE_ENABLE_LOCKTIME = 0xFFFFFFFE
+SEQUENCE_REPLACE_BY_FEE = 0xFFFFFFFD
+
+# Mnemonics
+DEFAULT_LANGUAGE = 'english'
+WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
+
+# Networks
+DEFAULT_NETWORK = 'bitcoin'
+
 
 if not os.path.exists(DEFAULT_DOCDIR):
     os.makedirs(DEFAULT_DOCDIR)
