@@ -114,7 +114,8 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
 
 def wallet_create_or_open_multisig(
         name, key_list, sigs_required=None, owner='', network=None, account_id=0,
-        purpose=45, multisig_compressed=True, sort_keys=False, type='standard', databasefile=DEFAULT_DATABASE):
+        purpose=45, multisig_compressed=True, sort_keys=False, type='standard', encoding=None,
+        databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -125,7 +126,7 @@ def wallet_create_or_open_multisig(
         return HDWallet(name, databasefile=databasefile)
     else:
         return HDWallet.create_multisig(name, key_list, sigs_required, owner, network, account_id, purpose,
-                                        multisig_compressed, sort_keys, type, databasefile)
+                                        multisig_compressed, sort_keys, type, encoding, databasefile=databasefile)
 
 
 def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
