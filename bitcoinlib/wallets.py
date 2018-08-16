@@ -1053,6 +1053,7 @@ class HDWallet:
                 self.main_key_id: self.main_key
             }
             self.providers = None
+            self.type = db_wlt.type
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -2942,6 +2943,7 @@ class HDWallet:
         print(" Scheme                         %s" % self.scheme)
         if self.scheme == 'multisig':
             print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
+        print(" Type                           %s" % self.type)
         print(" Main network                   %s" % self.network.name)
 
         if self.scheme == 'multisig':

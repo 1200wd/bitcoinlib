@@ -144,6 +144,7 @@ class DbKey(Base):
     compressed = Column(Boolean, default=True)
     key_type = Column(String(10), default='bip32')
     address = Column(String(255), index=True)
+    encoding = Column(String(15), default='base58')
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
     path = Column(String(100))
@@ -163,6 +164,7 @@ class DbKey(Base):
 
     __table_args__ = (
         CheckConstraint(key_type.in_(['single', 'bip32', 'multisig']), name='constraint_key_types_allowed'),
+        CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_address_encodings_allowed'),
         UniqueConstraint('wallet_id', 'public', name='constraint_wallet_pubkey_unique'),
         UniqueConstraint('wallet_id', 'private', name='constraint_wallet_privkey_unique'),
         UniqueConstraint('wallet_id', 'wif', name='constraint_wallet_wif_unique'),
