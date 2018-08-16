@@ -91,6 +91,7 @@ class DbWallet(Base):
     purpose = Column(Integer, default=44)
     scheme = Column(String(25))
     type = Column(String(20))
+    encoding = Column(String(15), default='base58', doc="Default encoding to use for address generation")
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
     transactions = relationship("DbTransaction", back_populates="wallet")
@@ -102,8 +103,9 @@ class DbWallet(Base):
     children = relationship("DbWallet", lazy="joined", join_depth=2)
 
     __table_args__ = (
-        CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='constrained_allowed_schemes'),
-        CheckConstraint(type.in_(['standard', 'segwit']), name='constrained_allowed_types'),
+        CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='constraint_allowed_schemes'),
+        CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
+        CheckConstraint(type.in_(['standard', 'segwit']), name='constraint_allowed_types'),
     )
 
     def __repr__(self):

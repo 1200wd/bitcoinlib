@@ -97,7 +97,8 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 
 def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44',
-                          parent_id=None, sort_keys=False, password='', type='standard', databasefile=DEFAULT_DATABASE):
+                          parent_id=None, sort_keys=False, password='', type='standard', encoding=None,
+                          databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -108,7 +109,7 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
         return HDWallet(name, databasefile=databasefile)
     else:
         return HDWallet.create(name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                               password, type, databasefile)
+                               password, type, encoding, databasefile=databasefile)
 
 
 def wallet_create_or_open_multisig(
@@ -289,7 +290,7 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m', key_type=None):
+                 purpose=44, parent_id=0, path='m', key_type=None, encoding='base58'):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -349,8 +350,8 @@ class HDWalletKey:
 
         nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
-                   wif=k.wif(), address=k.key.address(), parent_id=parent_id, compressed=k.compressed,
-                   is_private=k.isprivate, path=path, key_type=key_type, network_name=network)
+                   wif=k.wif(), address=k.key.address(encoding=encoding), parent_id=parent_id, compressed=k.compressed,
+                   is_private=k.isprivate, path=path, key_type=key_type, network_name=network, encoding=encoding)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -395,6 +396,7 @@ class HDWalletKey:
             self.depth = wk.depth
             self.key_type = wk.key_type
             self.compressed = wk.compressed
+            self.encoding = wk.encoding
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -748,7 +750,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
-               sort_keys=True, password='', type='standard', databasefile=None):
+               sort_keys=True, password='', type='standard', encoding=None, databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified. 
         
@@ -806,16 +808,21 @@ class HDWallet:
             network = DEFAULT_NETWORK
         if not name:
             raise WalletError("Please enter wallet name")
+        if encoding is None:
+            if type == 'segwit':
+                encoding = 'bech32'
+            else:
+                encoding = 'base58'
 
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
-                              sort_keys=sort_keys, type=type, parent_id=parent_id)
+                              sort_keys=sort_keys, type=type, parent_id=parent_id, encoding=encoding)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
 
         if scheme == 'bip44':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
-                                      account_id=account_id, purpose=purpose, key_type='bip32')
+                                      account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding)
             if mk.depth > 4:
                 raise WalletError("Cannot create new wallet with main key of depth 5 or more")
             new_wallet.main_key_id = mk.key_id
@@ -833,7 +840,7 @@ class HDWallet:
             w = cls(new_wallet_id, databasefile=databasefile)
         elif scheme == 'single':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
-                                      account_id=account_id, purpose=purpose, key_type='single')
+                                      account_id=account_id, purpose=purpose, key_type='single', encoding=encoding)
             new_wallet.main_key_id = mk.key_id
             session.commit()
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
@@ -845,7 +852,7 @@ class HDWallet:
 
     @classmethod
     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
-                        multisig_compressed=True, sort_keys=True, type='standard', databasefile=None):
+                        multisig_compressed=True, sort_keys=True, type='standard', encoding=None, databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
         public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
@@ -893,7 +900,8 @@ class HDWallet:
             raise WalletError("Number of keys required to sign is greater then number of keys provided")
 
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                          scheme='multisig', sort_keys=sort_keys, type=type, databasefile=databasefile)
+                          scheme='multisig', sort_keys=sort_keys, type=type, encoding=encoding,
+                          databasefile=databasefile)
         hdpm.multisig_compressed = multisig_compressed
         co_id = 0
         hdpm.cosigner = []
@@ -918,7 +926,8 @@ class HDWallet:
             if cokey.key_type == 'single':
                 scheme = 'single'
             w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                           scheme=scheme, parent_id=hdpm.wallet_id, type=type, databasefile=databasefile)
+                           scheme=scheme, parent_id=hdpm.wallet_id, type=type, encoding=encoding,
+                           databasefile=databasefile)
             hdpm.cosigner.append(w)
             co_id += 1
 
@@ -989,7 +998,7 @@ class HDWallet:
             ck = ck.subkey_for_path(path[l], network=network)
             nk = HDWalletKey.from_key(key=ck, name=name, wallet_id=wallet_id, network=network,
                                       account_id=account_id, change=change, purpose=purpose, path=fullpath,
-                                      parent_id=parent_id, session=session)
+                                      parent_id=parent_id, encoding=self.encoding, session=session)
             self._key_objects.update({nk.key_id: nk})
             parent_id = nk.key_id
         _logger.info("New key(s) created for parent_id %d" % parent_id)
@@ -1054,6 +1063,7 @@ class HDWallet:
             }
             self.providers = None
             self.type = db_wlt.type
+            self.encoding = db_wlt.encoding
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
