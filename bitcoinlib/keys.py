@@ -334,7 +334,7 @@ class Address:
         :type hash: str, bytes
         :param network: Bitcoin, testnet, litecoin or other network
         :type network: str, Network
-        :param prefix: Address prefix
+        :param prefix: Address prefix. Use default network / script_type prefix if not provided
         :type prefix: str, bytes
         :param script_type: Type of script, i.e. p2sh or p2pkh.
         :type script_type: str
@@ -731,7 +731,7 @@ class Key:
             pb = self.public_uncompressed_byte
         return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
 
-    def address(self, compressed=None, prefix=None):
+    def address(self, compressed=None, prefix=None, encoding='base58'):
         """
         Get address derived from public key
         
@@ -739,24 +739,18 @@ class Key:
         :type compressed: bool
         :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
+        :param encoding: Address encoding. Default is base58 encoding, for segwit you can specify bech32 encoding
+        :type encoding: str
         
         :return str: Base58 encoded address 
         """
         if (self.compressed and compressed is None) or compressed:
-            key = self.public_byte
+            data = self.public_byte
         else:
-            key = self.public_uncompressed_byte
-        if prefix is None:
-            versionbyte = self.network.prefix_address
-        else:
-            # TODO: Test bytearray
-            if not isinstance(prefix, (bytes, bytearray)):
-                versionbyte = binascii.unhexlify(prefix)
-            else:
-                versionbyte = prefix
-        key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
-        checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
-        return change_base(key + checksum, 256, 58)
+            data = self.public_uncompressed_byte
+        if not self.compressed and encoding == 'bech32':
+            raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
+        return Address(data, prefix=prefix, network=self.network, encoding=encoding).address
 
     def address_uncompressed(self, prefix=None):
         """
