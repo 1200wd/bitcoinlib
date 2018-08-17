@@ -42,17 +42,21 @@ TIMEOUT_REQUESTS = 5
 
 # Transactions
 SCRIPT_TYPES = {
-    'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
-    'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
-    'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
     'p2sh_p2wpkh': ['script_size', 'OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
     'p2sh_p2wsh': ['script_size', 'OP_0', 'push_size', 'redeemscript'],
+    # Unlocking scripts (Input)
     'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
+    'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
+    'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
+    'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
+    # Locking scripts (Output)
+    'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
+    'p2sh': ['OP_HASH160', 'signature', 'OP_EQUAL'],
+    'p2wpkh': ['OP_0', 'signature'],
+    'p2wsh': ['OP_0', 'signature_32'],
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
     'pubkey': ['signature', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data'],
-    'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
-    'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP']
 }
 
 SIGHASH_ALL = 1

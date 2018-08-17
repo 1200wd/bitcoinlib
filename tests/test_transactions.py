@@ -1246,8 +1246,8 @@ class TestTransactionsTimelocks(unittest.TestCase):
         t = Transaction(inputs, outputs)
         # TODO
         raw_tx = ''
-        print(t.raw_hex())
-        print(t.inputs[0].unlocking_script_unsigned)
+        # print(t.raw_hex())
+        # print(t.inputs[0].unlocking_script_unsigned)
 
     def test_transaction_cltv_error(self):
         # TODO

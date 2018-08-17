@@ -140,8 +140,8 @@ def script_deserialize(script, script_types=None):
             # TODO: Rethink and rewrite this:
             if l not in [20, 33, 65, 70, 71, 72, 73]:
                 break
-                if len(scr) < l:
-                    break
+            if len(scr) < l:
+                break
             if redeemscript_expected and len(scr[l + 1:]) < 20:
                 break
             sigs.append(scr[1:l + 1])
