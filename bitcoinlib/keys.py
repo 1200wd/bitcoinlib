@@ -386,6 +386,9 @@ class Address:
             self.address_orig = self.address
             self.address = addr_convert(self.address, provider_prefix)
 
+    def __repr__(self):
+        return "<Address(address=%s)" % self.address
+
     def with_prefix(self, prefix):
         """
         Convert address using another prefix
@@ -572,6 +575,7 @@ class Key:
             self.public_byte = binascii.unhexlify(self.public_hex)
             self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
+        self.address_obj = Address(self.public_byte, network=self.network)
 
     def __repr__(self):
         return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.name)
@@ -750,7 +754,8 @@ class Key:
             data = self.public_uncompressed_byte
         if not self.compressed and encoding == 'bech32':
             raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
-        return Address(data, prefix=prefix, network=self.network, encoding=encoding).address
+        self.address_obj = Address(data, prefix=prefix, network=self.network, encoding=encoding)
+        return self.address_obj.address
 
     def address_uncompressed(self, prefix=None):
         """
