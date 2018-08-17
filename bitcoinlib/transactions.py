@@ -830,6 +830,11 @@ class Output:
             if self.script_type in ['p2pkh', 'p2sh']:
                 self.public_key_hash = ss['signatures'][0]
                 self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
+            elif self.script_type in ['p2wpkh', 'p2wsh']:
+                self.public_key_hash = ss['signatures'][0]
+                self.address_obj = Address(data='', hash=ss['signatures'][0], script_type=self.script_type,
+                                           encoding='bech32')
+                self.address = self.address_obj.address
             elif self.script_type != 'nulldata':
                 _logger.warning("Script type %s not supported" % self.script_type)
         if self.script_type is None:
