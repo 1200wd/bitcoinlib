@@ -198,6 +198,9 @@ def script_deserialize(script, script_types=None):
                     if 'redeemscript' in ost:
                         redeemscript_expected = True
                     s, total_length = _parse_signatures(script[cur:], redeemscript_expected=redeemscript_expected)
+                    if not s:
+                        found = False
+                        break
                     data['signatures'] += s
                     cur += total_length
                 elif ch == 'redeemscript':
@@ -210,7 +213,7 @@ def script_deserialize(script, script_types=None):
                         size_byte = 3
                     data['redeemscript'] = script[cur + 1 + size_byte:]
                     data2 = script_deserialize(data['redeemscript'])
-                    if 'signatures' not in data2:
+                    if 'signatures' not in data2 or not data2['signatures']:
                         found = False
                         break
                     data['keys'] = data2['signatures']
