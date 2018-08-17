@@ -20,7 +20,7 @@
 
 from datetime import datetime
 from bitcoinlib.encoding import *
-from bitcoinlib.keys import HDKey, Key, deserialize_address
+from bitcoinlib.keys import HDKey, Key, deserialize_address, Address
 from bitcoinlib.networks import Network
 
 
@@ -741,7 +741,7 @@ class Output:
     
     """
     def __init__(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                 output_n=0, network=DEFAULT_NETWORK):
+                 output_n=0, script_type=None, encoding='base58', network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -762,6 +762,10 @@ class Output:
         :type public_key: bytes, str
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
         :type lock_script: bytes, str
+        :param spent: Is output already spent? Default is False
+        :type spent: bool
+        :param output_n: Output index number, default is 0. Index number has to be unique per transaction and 0 for first output, 1 for second, etc
+        :type output_n: int
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -773,6 +777,7 @@ class Output:
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_key_hash = to_bytes(public_key_hash)
         self.address = address
+        self.address_obj = None
         self.public_key = to_bytes(public_key)
         self.network = network
         if not isinstance(network, Network):
@@ -780,22 +785,22 @@ class Output:
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
-        self.script_type = 'p2pkh'
+        self.script_type = script_type
+        self.encoding = encoding
         self.spent = spent
         self.output_n = output_n
 
         if self.public_key:
-            self.k = Key(binascii.hexlify(self.public_key).decode('utf-8'), network=network)
-            self.address = self.k.address()
+            self.k = Key(self.public_key, is_private=False, network=network)
             self.compressed = self.k.compressed
-        if self.public_key_hash and not self.address:
-            self.address = pubkeyhash_to_addr(public_key_hash, versionbyte=self.versionbyte)
-        if self.address:
+            self.address = self.k.address(compressed=self.compressed, script_type=script_type, encoding=encoding)
+        elif self.address and (not self.public_key_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self.address)
             if address_dict['script_type']:
                 self.script_type = address_dict['script_type']
             else:
                 raise TransactionError("Could not determine script type of address %s" % self.address)
+            self.encoding = address_dict['encoding']
             network_guesses = address_dict['networks']
             if address_dict['network'] and self.network.name != address_dict['network']:
                 raise TransactionError("Address %s is from %s network and transaction from %s network" %
@@ -804,9 +809,14 @@ class Output:
                 raise TransactionError("Network for output address %s is different from transaction network. %s not "
                                        "in %s" % (self.address, self.network.name, network_guesses))
             self.public_key_hash = address_dict['public_key_hash_bytes']
-
         if not self.public_key_hash and self.k:
             self.public_key_hash = self.k.hash160()
+            self.compressed = self.k.compressed
+        if self.public_key_hash and not self.address:
+            self.address_obj = Address(data='', hash=self.public_key_hash, prefix=self.versionbyte,
+                                       script_type=script_type, encoding=encoding)
+            self.address = self.address_obj.address
+            self.versionbyte = self.address_obj.prefix
 
         if self.lock_script and not self.public_key_hash:
             ss = script_deserialize(self.lock_script)
@@ -818,6 +828,10 @@ class Output:
                 self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
             elif self.script_type != 'nulldata':
                 _logger.warning("Script type %s not supported" % self.script_type)
+        if self.script_type is None:
+            self.script_type = 'p2pkh'
+            if self.encoding == 'bech32':
+                self.script_type = 'p2sh_p2wpkh'
         if self.lock_script == b'':
             if self.script_type == 'p2pkh':
                 self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'

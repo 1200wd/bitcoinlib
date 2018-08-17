@@ -352,13 +352,14 @@ class Address:
         self.script_type = script_type
         self.encoding = encoding
         self.hash_bytes = to_bytes(hash)
+        self.prefix = prefix
         if not self.hash_bytes:
             self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
         self.hash = to_hexstring(self.hash_bytes)
         if encoding == 'base58':
             if self.script_type is None:
                 self.script_type = 'p2pkh'
-            if prefix is None:
+            if self.prefix is None:
                 if self.script_type == 'p2sh':
                     self.prefix = self.network.prefix_address_p2sh
                 else:
@@ -375,7 +376,9 @@ class Address:
         elif encoding == 'bech32':
             if self.script_type is None:
                 self.script_type = 'p2sh_p2wpkh'
-            self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), hrp=self.network.prefix_bech32)
+            if self.prefix is None:
+                self.prefix = self.network.prefix_bech32
+            self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), hrp=self.prefix)
         else:
             raise KeyError("Encoding %s not supported" % encoding)
         self.address_orig = None
@@ -735,7 +738,7 @@ class Key:
             pb = self.public_uncompressed_byte
         return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
 
-    def address(self, compressed=None, prefix=None, encoding='base58'):
+    def address(self, compressed=None, prefix=None, script_type=None, encoding='base58'):
         """
         Get address derived from public key
         
@@ -743,6 +746,8 @@ class Key:
         :type compressed: bool
         :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
+        :param script_type: Type of script, i.e. p2sh or p2pkh.
+        :type script_type: str
         :param encoding: Address encoding. Default is base58 encoding, for segwit you can specify bech32 encoding
         :type encoding: str
         
@@ -755,7 +760,8 @@ class Key:
         if not self.compressed and encoding == 'bech32':
             raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
         if not(self.address_obj and self.address_obj.prefix == prefix and self.address_obj.encoding == encoding):
-            self.address_obj = Address(data, prefix=prefix, network=self.network, encoding=encoding)
+            self.address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
+                                       encoding=encoding)
         return self.address_obj.address
 
     def address_uncompressed(self, prefix=None):
