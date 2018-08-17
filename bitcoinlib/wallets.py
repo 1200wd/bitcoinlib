@@ -480,6 +480,7 @@ class HDWalletKey:
             'change': self.change,
             'address_index': self.address_index,
             'address': self.address,
+            'encoding': self.encoding,
             'path': self.path,
             'balance': self.balance(),
             'balance_str': self.balance(fmt='string')

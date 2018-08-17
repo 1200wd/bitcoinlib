@@ -754,7 +754,8 @@ class Key:
             data = self.public_uncompressed_byte
         if not self.compressed and encoding == 'bech32':
             raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
-        self.address_obj = Address(data, prefix=prefix, network=self.network, encoding=encoding)
+        if not(self.address_obj and self.address_obj.prefix == prefix and self.address_obj.encoding == encoding):
+            self.address_obj = Address(data, prefix=prefix, network=self.network, encoding=encoding)
         return self.address_obj.address
 
     def address_uncompressed(self, prefix=None):
