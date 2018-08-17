@@ -131,15 +131,18 @@ def script_deserialize(script, script_types=None):
     :return list: With this items: [script_type, data, number_of_sigs_n, number_of_sigs_m] 
     """
 
-    def _parse_signatures(scr, max_signatures=None, redeemscript_expected=False):
+    def _parse_signatures(scr, max_signatures=None, redeemscript_expected=False, signature_length=0):
         scr = to_bytes(scr)
         sigs = []
         total_lenght = 0
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
             l, sl = varbyteint_to_int(scr[0:9])
+            if signature_length and l != signature_length:
+                break
             # TODO: Rethink and rewrite this:
             if l not in [20, 33, 65, 70, 71, 72, 73]:
                 break
+            # TODO: Does this have influence?
             if len(scr) < l:
                 break
             if redeemscript_expected and len(scr[l + 1:]) < 20:
@@ -170,8 +173,11 @@ def script_deserialize(script, script_types=None):
                 cur_char = script[cur]
                 if sys.version < '3':
                     cur_char = ord(script[cur])
-                if ch == 'signature':
-                    s, total_length = _parse_signatures(script[cur:], 1)
+                if ch[:9] == 'signature':
+                    signature_length = 0
+                    if len(ch) > 10:
+                        signature_length = int("signature-20".split("-")[1])
+                    s, total_length = _parse_signatures(script[cur:], 1, signature_length=signature_length)
                     if not s:
                         found = False
                         break
