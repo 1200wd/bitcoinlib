@@ -1185,7 +1185,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_input(prev_hash, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
                     sigs_required=2)
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')
-        self.assertEqual(t.estimate_size(), 333)
+        self.assertEqual(t.estimate_size(), 321)
 
     def test_transaction_multisig_litecoin(self):
         network = 'litecoin'
