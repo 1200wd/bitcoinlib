@@ -285,7 +285,8 @@ class DbTransactionOutput(Base):
     spent = Column(Boolean(), default=False)
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'sig_pubkey', 'p2pkh', 'p2sh_multisig', 'multisig', 'p2sh',
-                                                       'pubkey', 'nulldata', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
+                                                       'pubkey', 'nulldata', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh',
+                                                       'p2wpkh', 'p2wsh']),
                                       name='constraint_script_types_allowed'),)
 
 

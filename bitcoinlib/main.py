@@ -42,10 +42,10 @@ TIMEOUT_REQUESTS = 5
 
 # Transactions
 SCRIPT_TYPES = {
-    'p2sh_p2wpkh': ['script_size', 'OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
-    'p2sh_p2wsh': ['script_size', 'OP_0', 'push_size', 'redeemscript'],
     # Unlocking scripts (Input)
     'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
+    'p2sh_p2wpkh': ['script_size', 'OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
+    'p2sh_p2wsh': ['script_size', 'OP_0', 'push_size', 'redeemscript'],
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
     'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],

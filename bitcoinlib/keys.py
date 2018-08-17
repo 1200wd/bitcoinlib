@@ -286,7 +286,7 @@ def deserialize_address(address, encoding=None):
                 'public_key_hash_bytes': public_key_hash,
                 'prefix': prefix,
                 'network': '' if not networks else networks[0],
-                'script_type': 'p2sh_p2wpkh',  # TODO: Use p2sh_p2wsh, et
+                'script_type': 'p2wpkh',  # TODO: Implement p2wsh
                 'networks': networks,
             }
         except EncodingError as err:
@@ -375,7 +375,7 @@ class Address:
             self.address = change_base(addr_bytes + self.checksum, 256, 58)
         elif encoding == 'bech32':
             if self.script_type is None:
-                self.script_type = 'p2sh_p2wpkh'
+                self.script_type = 'p2wpkh'
             if self.prefix is None:
                 self.prefix = self.network.prefix_bech32
             self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), hrp=self.prefix)
