@@ -41,7 +41,7 @@ DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
 TIMEOUT_REQUESTS = 5
 
 # Transactions
-SCRIPT_TYPES = {
+SCRIPT_TYPES_UNLOCKING = {
     # Unlocking scripts (Input)
     'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
     #'p2sh_p2wpkh': ['script_size', 'OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
@@ -49,6 +49,8 @@ SCRIPT_TYPES = {
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
     'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
+}
+SCRIPT_TYPES_LOCKING = {
     # Locking scripts (Output)
     'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature-20', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
     'p2sh': ['OP_HASH160', 'signature-20', 'OP_EQUAL'],

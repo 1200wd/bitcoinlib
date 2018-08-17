@@ -119,7 +119,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                        coinbase=coinbase, flag=flag, rawtx=to_hexstring(rawtx))
 
 
-def script_deserialize(script, script_types=None):
+def script_deserialize(script, script_types=None, locking_script=None):
     """
     Deserialize a script: determine type, number of signatures and script data.
     
@@ -127,6 +127,8 @@ def script_deserialize(script, script_types=None):
     :type script: str, bytes, bytearray
     :param script_types: Limit script type determination to this list. Leave to default None to search in all script types.
     :type script_types: list
+    :param locking_script: Only deserialize locking scripts. Specify False to only deserialize for unlocking scripts. Default is None for both
+    :type locking_script: bool
 
     :return list: With this items: [script_type, data, number_of_sigs_n, number_of_sigs_m] 
     """
@@ -162,7 +164,10 @@ def script_deserialize(script, script_types=None):
         data = _get_empty_data()
         for script_type in script_types:
             cur = 0
-            ost = SCRIPT_TYPES[script_type]
+            try:
+                ost = SCRIPT_TYPES_UNLOCKING[script_type]
+            except KeyError:
+                ost = SCRIPT_TYPES_LOCKING[script_type]
             data = _get_empty_data()
             data['script_type'] = script_type
             found = True
@@ -303,7 +308,12 @@ def script_deserialize(script, script_types=None):
         return data
 
     if script_types is None:
-        script_types = SCRIPT_TYPES
+        if locking_script is None:
+            script_types = dict(SCRIPT_TYPES_UNLOCKING, **SCRIPT_TYPES_LOCKING)
+        elif locking_script:
+            script_types = SCRIPT_TYPES_LOCKING
+        else:
+            script_types = SCRIPT_TYPES_UNLOCKING
     elif not isinstance(script_types, list):
         script_types = [script_types]
 
@@ -363,7 +373,10 @@ def script_to_string(script):
         return ""
     sigs = ' '.join([to_hexstring(i) for i in data['signatures']])
 
-    scriptstr = SCRIPT_TYPES[data['script_type']]
+    try:
+        scriptstr = SCRIPT_TYPES_LOCKING[data['script_type']]
+    except KeyError:
+        scriptstr = SCRIPT_TYPES_UNLOCKING[data['script_type']]
     scriptstr = [sigs if x in ['signature', 'multisig', 'return_data'] else x for x in scriptstr]
     if 'redeemscript' in data and data['redeemscript']:
         redeemscript_str = script_to_string(data['redeemscript'])
@@ -619,7 +632,7 @@ class Input:
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
-            us_dict = script_deserialize(unlocking_script)
+            us_dict = script_deserialize(unlocking_script, locking_script=False)
             if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
                 raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))
             self.script_type = us_dict['script_type']
@@ -829,7 +842,7 @@ class Output:
             self.versionbyte = self.address_obj.prefix
 
         if self.lock_script and not self.public_key_hash:
-            ss = script_deserialize(self.lock_script)
+            ss = script_deserialize(self.lock_script, locking_script=True)
             self.script_type = ss['script_type']
             if self.script_type == 'p2sh':
                 self.versionbyte = self.network.prefix_address_p2sh
