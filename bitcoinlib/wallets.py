@@ -27,7 +27,7 @@ from itertools import groupby
 from operator import itemgetter
 from bitcoinlib.db import *
 from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash, to_bytes
-from bitcoinlib.keys import HDKey, check_network_and_key
+from bitcoinlib.keys import HDKey, check_network_and_key, Address
 from bitcoinlib.networks import Network
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
@@ -1405,8 +1405,9 @@ class HDWallet:
 
             # Calculate redeemscript and address and add multisig key to database
             redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
-            address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
-                                         versionbyte=Network(network).prefix_address_p2sh)
+            address = Address(redeemscript, encoding='bech32', script_type='p2sh').address
+            # address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
+            #                              versionbyte=Network(network).prefix_address_p2sh).address
             if len(set([x['path'] for x in public_keys])) == 1:
                 path = public_keys[0]['path']
             else:
@@ -2963,7 +2964,7 @@ class HDWallet:
             for mk in [w.main_key for w in self.cosigner]:
                 print("%5s %-70s %-10s" % (mk.key_id, mk.key().account_multisig_key().wif_public(),
                                            "main" if mk.is_private else "cosigner"))
-            print("For 'main' keys a private master key is available in this wallet to sign transactions.")
+            print("For main keys a private master key is available in this wallet to sign transactions.")
 
         if detail and self.main_key:
             print("\n= Wallet Master Key =")

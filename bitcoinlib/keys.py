@@ -354,7 +354,10 @@ class Address:
         self.hash_bytes = to_bytes(hash)
         self.prefix = prefix
         if not self.hash_bytes:
-            self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
+            if self.encoding == 'bech32' and script_type in ['p2sh', 'p2wsh', 'p2sh_p2wsh']:
+                self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
+            else:
+                self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
         self.hash = to_hexstring(self.hash_bytes)
         if encoding == 'base58':
             if self.script_type is None:
