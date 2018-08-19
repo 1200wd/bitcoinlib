@@ -2357,6 +2357,33 @@ class HDWallet:
             res.append(u)
         return res
 
+    def utxo_add(self, address, value, tx_hash, output_n, confirmations=0, script=''):
+        """
+        Add a single UTXO to the wallet database. To update all utxo's use utxos_update method.
+
+        Use this method for testing, offline wallets or if you wish to override standard method of retreiving UTXO's
+
+        This method does not check if UTXO exists or is still spendable.
+
+        :param address:
+        :param value:
+        :param tx_hash:
+        :param output_n:
+        :param confirmations:
+        :param script:
+        :return:
+        """
+
+        utxo = {
+            'address': address,
+            'script': script,
+            'confirmations': confirmations,
+            'output_n': output_n,
+            'tx_hash': tx_hash,
+            'value': value
+        }
+        return self.utxos_update(utxos=[utxo])
+
     def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet.
