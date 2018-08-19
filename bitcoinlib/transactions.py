@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2018 February - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -836,7 +836,7 @@ class Output:
             self.public_key_hash = self.k.hash160()
             self.compressed = self.k.compressed
         if self.public_key_hash and not self.address:
-            self.address_obj = Address(data='', hash=self.public_key_hash, prefix=self.versionbyte,
+            self.address_obj = Address(hashed_data=self.public_key_hash, prefix=self.versionbyte,
                                        script_type=script_type, encoding=encoding)
             self.address = self.address_obj.address
             self.versionbyte = self.address_obj.prefix
@@ -851,7 +851,7 @@ class Output:
                 self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
             elif self.script_type in ['p2wpkh', 'p2wsh']:
                 self.public_key_hash = ss['signatures'][0]
-                self.address_obj = Address(data='', hash=ss['signatures'][0], script_type=self.script_type,
+                self.address_obj = Address(hashed_data=ss['signatures'][0], script_type=self.script_type,
                                            encoding='bech32')
                 self.address = self.address_obj.address
             elif self.script_type != 'nulldata':
