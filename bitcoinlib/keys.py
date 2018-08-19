@@ -320,18 +320,18 @@ class Address:
         if network is None:
             network = addr_dict['network']
         script_type = addr_dict['script_type']
-        return Address(data='', hash=public_key_hash_bytes, network=network, prefix=prefix, script_type=script_type,
+        return Address(hashed_data=public_key_hash_bytes, network=network, prefix=prefix, script_type=script_type,
                        encoding=addr_dict['encoding'], network_overrides=network_overrides)
 
-    def __init__(self, data, hash='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
+    def __init__(self, data='', hashed_data='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
                  encoding='base58', network_overrides=None):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
 
         :param data: Public key, redeem script or other type of script.
         :type data: str, bytes
-        :param hash: Hash of a public key or script. Will be generated if 'data' parameter is provided
-        :type hash: str, bytes
+        :param hashed_data: Hash of a public key or script. Will be generated if 'data' parameter is provided
+        :type hashed_data: str, bytes
         :param network: Bitcoin, testnet, litecoin or other network
         :type network: str, Network
         :param prefix: Address prefix. Use default network / script_type prefix if not provided
@@ -345,20 +345,22 @@ class Address:
 
         """
         self.network = network
+        if not (data or hashed_data):
+            raise KeyError("Please specify data (public key or script) or hashed_data argument")
         if not isinstance(network, Network):
             self.network = Network(network)
         self.data_bytes = to_bytes(data)
         self.data = to_hexstring(data)
         self.script_type = script_type
         self.encoding = encoding
-        self.hash_bytes = to_bytes(hash)
+        self.hash_bytes = to_bytes(hashed_data)
         self.prefix = prefix
         if not self.hash_bytes:
             if self.encoding == 'bech32' and script_type in ['p2sh', 'p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
                 self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
-        self.hash = to_hexstring(self.hash_bytes)
+        self.hashed_data = to_hexstring(self.hash_bytes)
         if encoding == 'base58':
             if self.script_type is None:
                 self.script_type = 'p2pkh'

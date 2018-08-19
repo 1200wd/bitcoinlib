@@ -1406,8 +1406,6 @@ class HDWallet:
             # Calculate redeemscript and address and add multisig key to database
             redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
             address = Address(redeemscript, encoding=self.encoding, script_type='p2sh', network=self.network).address
-            # address = pubkeyhash_to_addr(script_to_pubkeyhash(redeemscript),
-            #                              versionbyte=Network(network).prefix_address_p2sh).address
             if len(set([x['path'] for x in public_keys])) == 1:
                 path = public_keys[0]['path']
             else:
