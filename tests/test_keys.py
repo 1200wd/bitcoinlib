@@ -493,6 +493,18 @@ class TestKeysAddress(unittest.TestCase):
         a = Address(pk, encoding='bech32', network='testnet')
         self.assertEqual(a.address, 'tb1q8hehumvm039nxnwwtqdjr7qmm46sfxrdw7vc3g')
 
+    def test_keys_address_deserialize_litecoin(self):
+        address = '3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB'
+        addr_dict = deserialize_address(address, network='litecoin_legacy')
+        self.assertEqual(addr_dict['network'], 'litecoin_legacy')
+
+    def test_keys_address_deserialize_bech32(self):
+        address = 'bc1qk077yl8zf6yty25rgrys8h40j8adun267y3m44'
+        addr_dict = deserialize_address(address)
+        self.assertEqual(addr_dict['public_key_hash'], 'b3fde27ce24e88b22a8340c903deaf91fade4d5a')
+        self.assertEqual(addr_dict['encoding'], 'bech32')
+        self.assertEqual(addr_dict['script_type'], 'p2wpkh')
+
 
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):
