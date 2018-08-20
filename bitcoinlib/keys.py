@@ -215,11 +215,13 @@ def ec_point(p):
     return point
 
 
-def deserialize_address(address, encoding=None):
+def deserialize_address(address, encoding=None, network=None):
     """
     Deserialize address. Calculate public key hash and try to determine script type and network.
 
-    If one and only one network is found the 'network' dictionary item with contain this network. Same applies for the script type.
+    The 'network' dictionary item with contain the network with highest priority if multiple networks are found. Same applies for the script type.
+
+    Specify the network argument if known to avoid unexpected results.
 
     If more networks and or script types are found you can find these in the 'networks' field.
 
@@ -249,19 +251,18 @@ def deserialize_address(address, encoding=None):
             networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
             public_key_hash = key_hash[1:]
             script_type = ''
-            network = ''
             networks = []
             if networks_p2pkh and not networks_p2sh:
                 script_type = 'p2pkh'
-                if len(networks_p2pkh) >= 1:
-                    network = networks_p2pkh[0]
                 networks = networks_p2pkh
             elif networks_p2sh:
                 script_type = 'p2sh'
-                if len(networks_p2sh) >= 1:
-                    network = networks_p2sh[0]
                 networks = networks_p2sh
-
+            if network:
+                if network not in networks:
+                    raise KeyError("Network %s not found in extracted networks: %s" % (network, networks))
+            elif len(networks) >= 1:
+                network = networks_p2sh[0]
             return {
                 'address': address,
                 'encoding': 'base58',

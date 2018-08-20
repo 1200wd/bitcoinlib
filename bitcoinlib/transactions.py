@@ -818,7 +818,7 @@ class Output:
             self.compressed = self.k.compressed
             self.address = self.k.address(compressed=self.compressed, script_type=script_type, encoding=encoding)
         elif self.address and (not self.public_key_hash or not self.script_type or not self.encoding):
-            address_dict = deserialize_address(self.address)
+            address_dict = deserialize_address(self.address, self.encoding, self.network.name)
             if address_dict['script_type']:
                 self.script_type = address_dict['script_type']
             else:

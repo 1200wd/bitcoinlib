@@ -544,6 +544,47 @@ class TestWalletMultisig(unittest.TestCase):
         t.send()
         self.assertIsNone(t.error)
 
+    def test_wallet_multisig_bitcoin_transaction_send_offline(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d')
+        key_list = [
+            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067'),
+            pk2.account_multisig_key().wif_public(),
+            HDKey(
+                '86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6').account_multisig_key().wif_public(),
+        ]
+        wl = HDWallet.create_multisig('multisig_test_bitcoin_send', key_list, sigs_required=2,
+                                      databasefile=DATABASEFILE_UNITTESTS)
+        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
+        t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
+        t.sign(pk2.subkey_for_path("m/45'/0'/0'/0/0"))
+        t.send(offline=True)
+        self.assertTrue(t.verify())
+        self.assertIsNone(t.error)
+
+    def test_wallet_multisig_litecoin_transaction_send_offline(self):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        NETWORK = 'litecoin_legacy'
+        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d', network=NETWORK)
+        key_list = [
+            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067', network=NETWORK),
+            pk2.account_multisig_key().wif_public(),
+            HDKey(
+                '86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6', network=NETWORK).
+                account_multisig_key().wif_public(),
+        ]
+        wl = HDWallet.create_multisig('multisig_test_bitcoin_send', key_list, sigs_required=2, network=NETWORK,
+                                      databasefile=DATABASEFILE_UNITTESTS)
+        wl.get_key(number_of_keys=2); wl.info()
+        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
+        t = wl.transaction_create([('3DrP2R8XmHswUyeK9GeYgHJxvyxTfMNkid', 100000)])
+        t.sign(pk2.subkey_for_path("m/45'/2'/0'/0/0"))
+        t.send(offline=True)
+        self.assertTrue(t.verify())
+        self.assertIsNone(t.error)
+
     def test_wallet_multisig_2of2(self):
         """
         Create 2 cosigner wallets with 1 own private key a public key from other cosigner
