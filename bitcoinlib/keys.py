@@ -262,7 +262,7 @@ def deserialize_address(address, encoding=None, network=None):
                 if network not in networks:
                     raise KeyError("Network %s not found in extracted networks: %s" % (network, networks))
             elif len(networks) >= 1:
-                network = networks_p2sh[0]
+                network = networks[0]
             return {
                 'address': address,
                 'encoding': 'base58',
