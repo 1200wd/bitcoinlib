@@ -733,7 +733,8 @@ class HDWalletTransaction(Transaction):
         print("Wallet: %s" % self.hdwallet.name)
         self.pushed = False
         if self.error:
-            print("Send errors: %s" % self.error)
+            print("Errors: %s" % self.error)
+        print("\n")
 
 
 class HDWallet:
@@ -1073,9 +1074,9 @@ class HDWallet:
         self._session.close()
 
     def __del__(self):
-        if self._dbwallet and self._dbwallet.parent_id:
-            return
         if self._session:
+            if self._dbwallet and self._dbwallet.parent_id:
+                return
             self._session.close()
 
     def __repr__(self):
