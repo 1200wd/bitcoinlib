@@ -1137,3 +1137,32 @@ class TestWalletDash(unittest.TestCase):
             self.assertFalse(wlt.cosigner[1].main_key.is_private)
             wlt.import_key(pk2)
             self.assertTrue(wlt.cosigner[1].main_key.is_private)
+
+
+class TestWalletSegwit(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(DATABASEFILE_UNITTESTS)
+
+    def test_wallet_create_segwit(self):
+        phrase = 'depth child sheriff attack when purpose velvet stay problem lock myself praise'
+        wlt = wallet_create_or_open('thetestwallet-bech32', key=phrase, network='bitcoin', type='segwit',
+                                    databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wlt.get_key().address, 'bc1q9e77qg66squynnz2z03wpkr7s6esr2evfyxh05')
+
+    def test_wallet_create_multisig_segwit(self):
+        phrase1 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
+        phrase2 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
+        pk1 = HDKey.from_passphrase(phrase1)
+        pk2 = HDKey.from_passphrase(phrase2)
+        wallet_delete_if_exists('multisig-segwit')
+        w = HDWallet.create_multisig('multisig-segwit', [pk1, pk2.account_multisig_key().public()], sigs_required=1,
+                                     sort_keys=True, type='segwit', databasefile=DATABASEFILE_UNITTESTS)
+        # TODO: Double-check this:
+        self.assertEqual(w.get_key().address, 'bc1qa2tqpgfqle9u4pr4h2fv908zclmycd6yj34c8zrggmyz6kxwmdgshnueaf')

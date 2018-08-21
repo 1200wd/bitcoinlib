@@ -1396,7 +1396,7 @@ class Transaction:
         return index_n
 
     def add_output(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                   output_n=None):
+                   output_n=None, encoding=None):
         """
         Add an output to this transaction
         
@@ -1438,7 +1438,7 @@ class Transaction:
             raise TransactionError("Output to %s must be more then dust amount %d" % (to, self.network.dust_amount))
         self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
-                                   network=self.network.name))
+                                   encoding=encoding, network=self.network.name))
         return output_n
 
     def estimate_size(self, add_change_output=True):
