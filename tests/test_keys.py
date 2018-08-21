@@ -265,6 +265,19 @@ class TestHDKeysImport(unittest.TestCase):
         except KeyError as e:
             self.assertEqual('WIF format not supported for public key', e.args[0])
 
+    # TODO: Fix key import
+    # def test_keys_import_segwit(self):
+    #     pk_wif = 'LL2vrFaSjfGZpWJeLsT7KLPkyMsgk55K9aR2QMC7poy3LQiveB2y'
+    #     address = '3PrC7FatgbVxHrJGsfs9q4uXTF9FhZSCCd'
+    #     k = Key(pk_wif)
+    #     print(k.address())
+    #
+    # def test_keys_import_bech32(self):
+    #     pk_wif = 'LBTJH6DYZWMRqzHsno4DXAJGivg2ueoaz8ntqtr2LLDL45d8Bqrb'
+    #     address = 'bc1qvy9kqvew7zd6ejssm89zv2gxl8prjps2ve5z0q'
+    #     k = Key(pk_wif)
+    #     print(k.address())
+
 
 class TestHDKeysChildKeyDerivation(unittest.TestCase):
 
@@ -499,6 +512,17 @@ class TestKeysAddress(unittest.TestCase):
         self.assertEqual(addr_dict['network'], 'litecoin_legacy')
 
     def test_keys_address_deserialize_bech32(self):
+        address = 'bc1qk077yl8zf6yty25rgrys8h40j8adun267y3m44'
+        addr_dict = deserialize_address(address)
+        self.assertEqual(addr_dict['public_key_hash'], 'b3fde27ce24e88b22a8340c903deaf91fade4d5a')
+        self.assertEqual(addr_dict['encoding'], 'bech32')
+        self.assertEqual(addr_dict['script_type'], 'p2wpkh')
+
+    def test_keys_address_deserialize_bech32_p2sh(self):
+        p1 = 'defy devote wrist belt else pony universe famous host frown voice casino'
+        pub_key = 'Zpub6y322kmfAJtLeuVw5mDzHdBqRiwiK4zvYaQZgjRYtuktQJoADtdHK6mBTozRfm3v6N1RmZeyZjK8Gk7X6S8CwVfPLZBQzC8ZWz2FeWqNC4A'
+        p2 = ''
+        # TODO
         address = 'bc1qk077yl8zf6yty25rgrys8h40j8adun267y3m44'
         addr_dict = deserialize_address(address)
         self.assertEqual(addr_dict['public_key_hash'], 'b3fde27ce24e88b22a8340c903deaf91fade4d5a')
