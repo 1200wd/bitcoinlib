@@ -2646,7 +2646,7 @@ class HDWallet:
                 amount_total_output += o.value
             else:
                 amount_total_output += o[1]
-                transaction.add_output(o[1], o[0])
+                transaction.add_output(o[1], o[0], encoding=self.encoding)
 
         srv = Service(network=network, providers=self.providers)
         transaction.fee_per_kb = None
@@ -2774,7 +2774,7 @@ class HDWallet:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
             ck = self.get_key(account_id=account_id, network=network, change=1)
-            on = transaction.add_output(transaction.change, ck.address)
+            on = transaction.add_output(transaction.change, ck.address, encoding=self.encoding)
             transaction.outputs[on].key_id = ck.key_id
             amount_total_output += transaction.change
 
