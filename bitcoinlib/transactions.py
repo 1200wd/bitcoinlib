@@ -646,6 +646,8 @@ class Input:
                 elif self.script_type != us_dict['script_type']:
                     raise TransactionError("Address script type %s is different from script type provided %s" %
                                            (us_dict['script_type'], self.script_type))
+        if not self.script_type:
+            self.script_type = 'p2pkh'
 
         for key in keys:
             if not isinstance(key, Key):
@@ -1359,7 +1361,7 @@ class Transaction:
         return n_signs
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', unlocking_script_unsigned=b'',
-                  script_type='p2pkh', sequence=0xffffffff, compressed=True, sigs_required=None, sort=False,
+                  script_type=None, sequence=0xffffffff, compressed=True, sigs_required=None, sort=False,
                   index_n=None, value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
                   address='', signatures=None):
         """
