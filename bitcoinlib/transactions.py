@@ -716,10 +716,18 @@ class Input:
                 self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                                   versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
-        elif self.script_type in ['p2wpkh', 'p2wsh', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
-            # TODO: bech encoding
-            self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
-                                              versionbyte=self.network.prefix_address_p2sh)
+        elif self.script_type in ['p2wpkh', 'p2sh_p2wpkh']:
+            # TODO: segwit stuff
+            # self.address = Address(self.public_)
+            if not self.address:
+                self.address = self.keys[0].address()
+        elif self.script_type in ['p2wsh', 'p2sh_p2wsh']:
+            # TODO: segwit stuff
+            # self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
+            #                                   versionbyte=self.network.prefix_address_p2sh)
+            # self.address = Address(self.redeemscript)
+            if not self.address:
+                self.address = self.keys[0].address()
         if self.unlocking_script_unsigned:
             if self.locktime_cltv:
                 self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
@@ -1349,7 +1357,7 @@ class Transaction:
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', unlocking_script_unsigned=b'',
                   script_type='p2pkh', sequence=0xffffffff, compressed=True, sigs_required=None, sort=False,
                   index_n=None, value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  signatures=None):
+                  address='', signatures=None):
         """
         Add input to this transaction
         
@@ -1391,7 +1399,7 @@ class Transaction:
             self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
-                  unlocking_script_unsigned=unlocking_script_unsigned,
+                  unlocking_script_unsigned=unlocking_script_unsigned, address=address,
                   script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   signatures=signatures, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv))

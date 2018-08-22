@@ -2589,13 +2589,6 @@ class HDWallet:
             for utxo in selected_utxos:
                 # amount_total_input += utxo.value
                 inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
-                # transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
-                #                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                #                       compressed=key.compressed, value=utxo.value, sequence=sequence)
-                # inp = Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
-                #     script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
-                #     sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
-                #     signatures=signatures)
                 inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                               sigs_required=self.multisig_n_required, sort=self.sort_keys,
                               compressed=key.compressed, value=utxo.value))
@@ -2676,7 +2669,7 @@ class HDWallet:
                 inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                      compressed=key.compressed, value=utxo.value, sequence=sequence)
+                                      compressed=key.compressed, value=utxo.value, address=utxo.key.address, sequence=sequence)
         else:
             for inp in input_arr:
                 locktime_cltv = None
