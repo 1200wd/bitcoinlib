@@ -533,9 +533,10 @@ class Input:
     """
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
-                 unlocking_script_unsigned=None, script_type='p2pkh',
+                 unlocking_script_unsigned=None, script_type='p2pkh', address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, network=DEFAULT_NETWORK):
+                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, encoding='base58',
+                 network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -613,7 +614,7 @@ class Input:
         self.sort = sort
         if sort:
             self.keys.sort(key=lambda k: k.public_byte)
-        self.address = ''
+        self.address = address
         self.signatures = []
         self.redeemscript = b''
         if not sigs_required:
@@ -703,16 +704,17 @@ class Input:
         if self.script_type == 'p2pkh':
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
-                self.address = self.keys[0].address()
+                if not self.address:
+                    self.address = self.keys[0].address()
         elif self.script_type == 'p2sh_multisig':
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
             if not self.redeemscript:
                 self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
                                                                     compressed=self.compressed)
-
-            self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
-                                              versionbyte=self.network.prefix_address_p2sh)
+            if not self.address:
+                self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
+                                                  versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
         elif self.script_type in ['p2wpkh', 'p2wsh', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
             # TODO: bech encoding
