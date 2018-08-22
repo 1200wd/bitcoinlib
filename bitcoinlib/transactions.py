@@ -533,7 +533,7 @@ class Input:
     """
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
-                 unlocking_script_unsigned=None, script_type='p2pkh', address='',
+                 unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, encoding='base58',
                  network=DEFAULT_NETWORK):
@@ -587,10 +587,10 @@ class Input:
             unlocking_script = b''
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None else to_bytes(unlocking_script_unsigned)
-        if self.prev_hash == 32 * b'\0':
-            self.script_type = 'coinbase'
-        else:
-            self.script_type = script_type
+        # if self.prev_hash == 32 * b'\0':
+        #     self.script_type = 'coinbase'
+        # else:
+        #     self.script_type = script_type
         if isinstance(sequence, numbers.Number):
             self.sequence = sequence
         else:
@@ -617,19 +617,18 @@ class Input:
         self.address = address
         self.signatures = []
         self.redeemscript = b''
+        self.script_type = script_type
+        if prev_hash == b'\0' * 32:
+            self.script_type = 'coinbase'
         if not sigs_required:
-            if script_type == 'p2sh_multisig':
+            if self.script_type == 'p2sh_multisig':
                 raise TransactionError("Please specify number of signatures required (sigs_required) parameter")
             else:
                 sigs_required = 1
         self.sigs_required = sigs_required
-        self.script_type = script_type
         self.double_spend = double_spend
         self.locktime_cltv = locktime_cltv
         self.locktime_csv = locktime_csv
-
-        if prev_hash == b'\0' * 32:
-            self.script_type = 'coinbase'
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
@@ -642,6 +641,11 @@ class Input:
                 self.redeemscript = us_dict['redeemscript']
                 signatures += us_dict['signatures']
                 keys += us_dict['keys']
+                if not self.script_type:
+                    self.script_type = us_dict['script_type']
+                elif self.script_type != us_dict['script_type']:
+                    raise TransactionError("Address script type %s is different from script type provided %s" %
+                                           (us_dict['script_type'], self.script_type))
 
         for key in keys:
             if not isinstance(key, Key):
