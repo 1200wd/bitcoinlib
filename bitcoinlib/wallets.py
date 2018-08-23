@@ -2303,8 +2303,9 @@ class HDWallet:
                         else:
                             tid = transaction_in_db.scalar().id
 
-                        new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'], value=utxo['value'],
-                                                       key_id=key.id, script=utxo['script'], spent=False)
+                        new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'],
+                                                       value=utxo['value'], key_id=key.id, script=utxo['script'],
+                                                       spent=False)
                         self._session.add(new_utxo)
                         count_utxos += 1
 
@@ -2589,7 +2590,7 @@ class HDWallet:
             for utxo in selected_utxos:
                 # amount_total_input += utxo.value
                 inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
-                inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
+                inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=utxo.script_type,
                               sigs_required=self.multisig_n_required, sort=self.sort_keys,
                               compressed=key.compressed, value=utxo.value))
             return inputs
@@ -2667,9 +2668,10 @@ class HDWallet:
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
                 inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
-                transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
+                transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=utxo.script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                      compressed=key.compressed, value=utxo.value, address=utxo.key.address, sequence=sequence)
+                                      compressed=key.compressed, value=utxo.value, address=utxo.key.address,
+                                      sequence=sequence)
         else:
             for inp in input_arr:
                 locktime_cltv = None

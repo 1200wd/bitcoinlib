@@ -280,7 +280,7 @@ class DbTransactionOutput(Base):
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_outputs")
     script = Column(String)
-    script_type = Column(String, default='pubkey')
+    script_type = Column(String, default='p2pkh')
     value = Column(Integer, default=0)
     spent = Column(Boolean(), default=False)
 
