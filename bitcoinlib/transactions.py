@@ -635,19 +635,19 @@ class Input:
             us_dict = script_deserialize(unlocking_script, locking_script=False)
             if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
                 raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))
-            self.script_type = us_dict['script_type']
             if us_dict['script_type'] not in ['unknown', 'empty']:
                 self.sigs_required = us_dict['number_of_sigs_n']
                 self.redeemscript = us_dict['redeemscript']
                 signatures += us_dict['signatures']
                 keys += us_dict['keys']
-                if not self.script_type:
-                    self.script_type = us_dict['script_type']
-                elif self.script_type != us_dict['script_type']:
-                    raise TransactionError("Address script type %s is different from script type provided %s" %
-                                           (us_dict['script_type'], self.script_type))
+                # Determine locking script type for unlocking script type
+                if not self.script_type and us_dict['script_type'] in ['p2sh', 'p2wsh']:
+                        self.script_type = 'p2sh_multisig'
+                # elif self.script_type != us_dict['script_type']:
+                #     raise TransactionError("Address script type %s is different from script type provided %s" %
+                #                            (us_dict['script_type'], self.script_type))
         if not self.script_type:
-            self.script_type = 'p2pkh'
+            self.script_type = 'sig_pubkey'
 
         for key in keys:
             if not isinstance(key, Key):
@@ -950,7 +950,7 @@ class Transaction:
     def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, hash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
-                 coinbase=False, verified=False, flag=None):
+                 coinbase=False, verified=False, type='standard', flag=None):
         """
         Create a new transaction class with provided inputs and outputs. 
         
@@ -1049,6 +1049,8 @@ class Transaction:
         self.rawtx = rawtx
         self.status = status
         self.verified = verified
+        self.type = type
+
         if not self.hash and rawtx:
             self.hash = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
 
@@ -1105,6 +1107,7 @@ class Transaction:
             else:
                 print("Locktime: Until %s UTC" % datetime.utcfromtimestamp(self.locktime))
         print("Version: %d" % struct.unpack('>L', self.version)[0])
+        print("Type: %s" % self.type)
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
         print("Inputs")
@@ -1159,15 +1162,23 @@ class Transaction:
         
         """
         r = self.version[::-1]
+        if self.type == 'segwit':
+            r += b'\x00'  # marker (BIP 141)
+            r += b'\x01'  # flag (BIP 141)
         r += int_to_varbyteint(len(self.inputs))
+        witness_data = b''
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             if sign_id is None:
-                r += int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
+                unlock_scr = int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.index_n:
-                r += int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
+                unlock_scr = int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
             else:
-                r += b'\0'
+                unlock_scr = b'\0'
+            if self.type == 'segwit':
+                witness_data += unlock_scr
+            else:
+                r += unlock_scr
             r += struct.pack('<L', i.sequence)
 
         r += int_to_varbyteint(len(self.outputs))
@@ -1176,6 +1187,8 @@ class Transaction:
                 raise TransactionError("Output value < 0 not allowed")
             r += struct.pack('<Q', o.value)
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
+        if type == 'segwit':
+            r += witness_data
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
@@ -1470,7 +1483,8 @@ class Transaction:
         if add_change_output:
             est_size += 34
         for inp in self.inputs:
-            if inp.script_type in ['p2sh', 'p2pkh']:
+            # TODO: Check sizes and move values to main.py in dictionary
+            if inp.script_type in ['p2sh', 'p2pkh', 'p2wsh', 'p2wpkh']:
                 if inp.compressed:
                     est_size += 147
                 else:

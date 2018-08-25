@@ -4,7 +4,9 @@ Script types
 Locking scripts
 ---------------
 
-Scripts lock funds in transaction outputs (UTXO's)
+Scripts lock funds in transaction outputs (UTXO's).
+Also called ScriptSig.
+
 
 +-------------+---------------------------+-----------+-------------------+------------+
 | Script type | Name                      | Encoding  | Key type / Script | Prefix BTC |
@@ -29,4 +31,5 @@ Unlocking scripts
 -----------------
 
 Scripts used in transaction inputs to unlock funds from previous outputs.
+Also called ScriptPubKey.
 

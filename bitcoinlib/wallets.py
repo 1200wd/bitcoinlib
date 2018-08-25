@@ -281,6 +281,30 @@ def parse_bip44_path(path):
     }
 
 
+def script_type_default(wallet_type, key_type):
+    """
+    Determine default script type for wallet type and key type combination used in this library.
+
+    :param wallet_type: Type of wallet: standard or segwit
+    :type wallet_type: str
+    :param key_type: Type of keys used in this wallet
+    :type key_type: str
+
+    :return str: Default script type
+    """
+
+    if wallet_type == 'standard' and key_type in ['bip32', 'single']:
+        return 'p2pkh'
+    elif wallet_type == 'standard' and key_type in ['multisig']:
+        return 'p2sh'
+    elif wallet_type == 'segwit' and key_type in ['bip32', 'single']:
+        return 'p2wpkh'
+    elif wallet_type == 'segwit' and key_type in ['multisig']:
+        return 'p2wsh'
+    else:
+        raise WalletError("Wallet and key type combination not supported: %s / %s" % (wallet_type, key_type))
+
+
 class HDWalletKey:
     """
     Normally only used as attribute of HDWallet class. Contains HDKey object and extra information such as path and
@@ -511,6 +535,7 @@ class HDWalletTransaction(Transaction):
         self.pushed = False
         self.error = None
         self.response_dict = None
+        self.type = hdwallet.type
         Transaction.__init__(self, *args, **kwargs)
 
     def __repr__(self):
@@ -2303,9 +2328,10 @@ class HDWallet:
                         else:
                             tid = transaction_in_db.scalar().id
 
+                        script_type = script_type_default(self.type, key.key_type)
                         new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'],
                                                        value=utxo['value'], key_id=key.id, script=utxo['script'],
-                                                       spent=False)
+                                                       script_type=script_type, spent=False)
                         self._session.add(new_utxo)
                         count_utxos += 1
 
@@ -2668,7 +2694,7 @@ class HDWallet:
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
                 inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
-                transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=utxo.script_type,
+                transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=utxo.value, address=utxo.key.address,
                                       sequence=sequence)

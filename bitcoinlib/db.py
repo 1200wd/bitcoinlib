@@ -90,7 +90,7 @@ class DbWallet(Base):
     network = relationship("DbNetwork")
     purpose = Column(Integer, default=44)
     scheme = Column(String(25))
-    type = Column(String(20))
+    type = Column(String(20), default='standard')
     encoding = Column(String(15), default='base58', doc="Default encoding to use for address generation")
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
@@ -210,6 +210,7 @@ class DbTransaction(Base):
     hash = Column(String(64), index=True)
     wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True)
     wallet = relationship("DbWallet", back_populates="transactions")
+    type = Column(String(20), default='standard')
     version = Column(Integer, default=1)
     locktime = Column(Integer, default=0)
     date = Column(DateTime, default=datetime.datetime.utcnow)
@@ -232,6 +233,7 @@ class DbTransaction(Base):
         UniqueConstraint('wallet_id', 'hash', name='constraint_wallet_transaction_hash_unique'),
         CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed']),
                         name='constraint_status_allowed'),
+        CheckConstraint(type.in_(['standard', 'segwit']), name='constraint_allowed_types'),
     )
 
     def __repr__(self):
@@ -254,13 +256,13 @@ class DbTransactionInput(Base):
     prev_hash = Column(String(64))
     output_n = Column(Integer)
     script = Column(String)
-    script_type = Column(String, default='p2pkh')
+    script_type = Column(String, default='sig_pubkey')
     sequence = Column(Integer)
     value = Column(Integer, default=0)
     double_spend = Column(Boolean, default=False)
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'coinbase', 'sig_pubkey', 'p2pkh', 'p2sh_multisig',
-                                                       'multisig', 'p2sh', 'pubkey', 'nulldata', 'unknown']),
+                                                       'multisig', 'p2sh', 'pubkey', 'unknown']),
                                       name='constraint_script_types_allowed'),)
 
 
