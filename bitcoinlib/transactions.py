@@ -1106,8 +1106,8 @@ class Transaction:
         replace_by_fee = False
         for ti in self.inputs:
             print("-", ti.address, ti.value, to_hexstring(ti.prev_hash), ti.output_n_int)
-            print("  Script type: %s, signatures: %d (%d of %d)" %
-                  (ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
+            print("  Script type: %s (%s), signatures: %d (%d of %d)" %
+                  (ti.script_type, ti.type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
             if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
                 replace_by_fee = True
             if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
@@ -1179,7 +1179,7 @@ class Transaction:
                 raise TransactionError("Output value < 0 not allowed")
             r += struct.pack('<Q', o.value)
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
-        if type == 'segwit':
+        if self.type == 'segwit':
             r += witness_data
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
