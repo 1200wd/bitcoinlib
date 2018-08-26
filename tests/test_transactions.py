@@ -60,7 +60,7 @@ class TestTransactionInputs(unittest.TestCase):
             'prev_hash': 'e33ebd17938bc013c62895892aac54df3f5bce96e44b8949949275741b1427e5',
             'index_n': 0,
             'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
-            'script_type': 'p2pkh'
+            'script_type': 'sig_pubkey'
         }
         ti_dict = {key: ti.dict()[key] for key in
                    ['public_key', 'output_n', 'script', 'sequence', 'prev_hash', 'index_n', 'address', 'script_type']}

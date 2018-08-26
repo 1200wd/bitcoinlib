@@ -629,6 +629,7 @@ class Input:
         self.double_spend = double_spend
         self.locktime_cltv = locktime_cltv
         self.locktime_csv = locktime_csv
+        self.type = type
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
@@ -641,7 +642,8 @@ class Input:
                 signatures += us_dict['signatures']
                 keys += us_dict['keys']
                 # Determine locking script type for unlocking script type
-                if not self.script_type and us_dict['script_type'] in ['p2sh', 'p2wsh']:
+                if not self.script_type:
+                    if us_dict['script_type'] in ['p2sh', 'p2wsh', 'p2sh_multisig']:
                         self.script_type = 'p2sh_multisig'
                 # elif self.script_type != us_dict['script_type']:
                 #     raise TransactionError("Address script type %s is different from script type provided %s" %
@@ -689,8 +691,8 @@ class Input:
                         'pub_key': ''
                     })
 
-        if self.script_type == 'sig_pubkey':
-            self.script_type = 'p2pkh'
+        # if self.script_type == 'sig_pubkey':
+        #     self.script_type = 'p2pkh'
         self.update_unlocking_script()
 
     # TODO: Remove / replace?
@@ -707,7 +709,7 @@ class Input:
         self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
 
     def update_unlocking_script(self):
-        if self.script_type == 'p2pkh':
+        if self.script_type == 'sig_pubkey':
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
                 if not self.address:
@@ -722,18 +724,8 @@ class Input:
                 self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                                   versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
-        elif self.script_type in ['p2wpkh', 'p2sh_p2wpkh']:
-            # TODO: segwit stuff
-            # self.address = Address(self.public_)
-            if not self.address:
-                self.address = self.keys[0].address()
-        elif self.script_type in ['p2wsh', 'p2sh_p2wsh']:
-            # TODO: segwit stuff
-            # self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
-            #                                   versionbyte=self.network.prefix_address_p2sh)
-            # self.address = Address(self.redeemscript)
-            if not self.address:
-                self.address = self.keys[0].address()
+        if self.type == 'segwit':
+            self.address = Address(self.keys[0].public_byte, encoding='bech32', script_type=self.script_type).address
         if self.unlocking_script_unsigned:
             if self.locktime_cltv:
                 self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
@@ -1346,7 +1338,7 @@ class Transaction:
                 n_signs -= n_sigs_to_insert
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
 
-            if self.inputs[tid].script_type == 'p2pkh':
+            if self.inputs[tid].script_type == 'sig_pubkey':
                 if len(self.inputs[tid].signatures):
                     self.inputs[tid].unlocking_script = \
                         varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
@@ -1484,7 +1476,7 @@ class Transaction:
             est_size += 34
         for inp in self.inputs:
             # TODO: Check sizes and move values to main.py in dictionary
-            if inp.script_type in ['p2sh', 'p2pkh', 'p2wsh', 'p2wpkh']:
+            if inp.script_type in ['sig_pubkey', 'p2pkh']:
                 if inp.compressed:
                     est_size += 147
                 else:

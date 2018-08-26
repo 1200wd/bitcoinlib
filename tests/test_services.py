@@ -229,7 +229,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': 'fa7b29d0e1cf62c79749c977dd9b3fedcfa348e696600f2240206eedaccbb309',
                     'double_spend': False,
                     'index_n': 0,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 },
                 {
@@ -238,7 +238,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': '512f4363ccb28d04d47edd684840cc074f2a3b625838909a6074d277883b9f83',
                     'double_spend': False,
                     'index_n': 1,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1Hw3ZTxMqVK3jgmJSod4LF5XFbDVYc3EZP'
                 },
                 {
@@ -247,7 +247,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': '0ccd49e93261c9dd2bee124d90849677e93f789d2dc83013bfb0643beb962733',
                     'double_spend': False,
                     'index_n': 2,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 },
                 {
@@ -256,7 +256,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': '1b110073aed6637f9a492ceaac45d2b978b75f0139df0401032ad68c0944d38c',
                     'double_spend': False,
                     'index_n': 3,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 },
                 {
@@ -265,7 +265,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': 'a2d613e5a649102672462aa6a09e3e833769f5a85a65a8844acc723c07a8991d',
                     'double_spend': False,
                     'index_n': 4,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 },
                 {
@@ -274,7 +274,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': 'd8505b78a4cddbd058372443bbce9ea74a313c27c586b7bbe8bc3825b7c7cbd7',
                     'double_spend': False,
                     'index_n': 5,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 }
             ],
@@ -341,7 +341,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                      'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
                      '6067528fffca52292d803b75e53f7dfbf63d'],
                  'public_key': '028bd465d7eb03bbee946c3a277ad1b331f78add78c6723eed00097520edc21ed2', 'index_n': 0,
-                 'script_type': 'p2pkh',
+                 'script_type': 'sig_pubkey',
                  'script': '483045022100e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc'
                            '0f33d036c1c60a7d561de06067528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a'
                            '277ad1b331f78add78c6723eed00097520edc21ed2',

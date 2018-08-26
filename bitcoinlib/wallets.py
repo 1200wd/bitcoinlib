@@ -2693,11 +2693,15 @@ class HDWallet:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
-                transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
-                                      sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                                      compressed=key.compressed, value=utxo.value, address=utxo.key.address,
-                                      sequence=sequence)
+                inp_keys, lock_script_type, key = self._objects_by_key_id(utxo.key_id)
+                if lock_script_type == 'p2sh':
+                    unlock_script_type = 'p2sh_multisig'
+                else:
+                    unlock_script_type = 'sig_pubkey'
+                transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys,
+                                      script_type=unlock_script_type, sigs_required=self.multisig_n_required,
+                                      sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
+                                      address=utxo.key.address, sequence=sequence)
         else:
             for inp in input_arr:
                 locktime_cltv = None
@@ -2755,8 +2759,12 @@ class HDWallet:
                                               "or import transaction as dictionary" % address)
 
                 amount_total_input += value
-                inp_keys, script_type, key = self._objects_by_key_id(key_id)
-                transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=script_type,
+                inp_keys, lock_script_type, key = self._objects_by_key_id(key_id)
+                if lock_script_type == 'p2sh':
+                    unlock_script_type = 'p2sh_multisig'
+                else:
+                    unlock_script_type = 'sig_pubkey'
+                transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=unlock_script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
                                       unlocking_script=unlocking_script,
