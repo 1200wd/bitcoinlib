@@ -1158,7 +1158,7 @@ class Transaction:
             r += b'\x00'  # marker (BIP 141)
             r += b'\x01'  # flag (BIP 141)
         r += int_to_varbyteint(len(self.inputs))
-        witness_data = b''
+        witnesses = []
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             if sign_id is None:
@@ -1168,7 +1168,8 @@ class Transaction:
             else:
                 unlock_scr = b'\0'
             if self.type == 'segwit':
-                witness_data += unlock_scr
+                witnesses.append(unlock_scr)
+                r += b'\0'
             else:
                 r += unlock_scr
             r += struct.pack('<L', i.sequence)
@@ -1180,7 +1181,11 @@ class Transaction:
             r += struct.pack('<Q', o.value)
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
         if self.type == 'segwit':
-            r += witness_data
+            if not witnesses:
+                raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
+            r += int_to_varbyteint(len(witnesses))
+            for witness in witnesses:
+                r += int_to_varbyteint(len(witness)) + witness
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
