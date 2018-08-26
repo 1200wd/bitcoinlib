@@ -535,7 +535,7 @@ class Input:
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, encoding='base58',
+                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, type='standard',
                  network=DEFAULT_NETWORK):
         """
         Create a new transaction input

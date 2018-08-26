@@ -253,6 +253,7 @@ class DbTransactionInput(Base):
     index_n = Column(Integer, primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_inputs")
+    type = Column(String(20), default='standard')
     prev_hash = Column(String(64))
     output_n = Column(Integer)
     script = Column(String)
@@ -263,7 +264,8 @@ class DbTransactionInput(Base):
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'coinbase', 'sig_pubkey', 'p2pkh', 'p2sh_multisig',
                                                        'multisig', 'p2sh', 'pubkey', 'unknown']),
-                                      name='constraint_script_types_allowed'),)
+                                      name='constraint_script_types_allowed'),
+                      CheckConstraint(type.in_(['standard', 'segwit']), name='constraint_allowed_types'),)
 
 
 class DbTransactionOutput(Base):
