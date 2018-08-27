@@ -1162,7 +1162,7 @@ class Transaction:
             int_to_varbyteint(len(script_code)) + script_code + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
-        return hashlib.sha256(hashlib.sha256(ser_tx))
+        return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
@@ -1185,6 +1185,7 @@ class Transaction:
             r += b'\x01'  # flag (BIP 141)
 
         r += int_to_varbyteint(len(self.inputs))
+        witnesses = []
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             # Add unlocking script (ScriptSig)
@@ -1194,6 +1195,12 @@ class Transaction:
                 unlock_scr = int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
             else:
                 unlock_scr = b'\0'
+            if self.type == 'segwit':
+                witnesses.append(unlock_scr)
+                r += b'\0'
+            else:
+                witnesses.append(b'\0')
+                r += unlock_scr
             r += unlock_scr
             r += struct.pack('<L', i.sequence)
 
@@ -1203,6 +1210,15 @@ class Transaction:
                 raise TransactionError("Output value < 0 not allowed")
             r += struct.pack('<Q', o.value)
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
+
+        if self.type == 'segwit':
+            # TODO: check for only b'\0's
+            # if not witnesses:
+            #     raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
+            r += int_to_varbyteint(len(witnesses))
+            for witness in witnesses:
+                r += witness
+
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
@@ -1288,7 +1304,10 @@ class Transaction:
 
             if self.inputs[tid].script_type == 'coinbase':
                 raise TransactionError("Can not sign coinbase transactions")
-            tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
+            if self.inputs[tid].type == 'segwit':
+                tsig = self.signature_hash(tid)
+            else:
+                tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
 
             pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
             pub_key_list_uncompressed = [x.public_uncompressed_byte for x in self.inputs[tid].keys]
