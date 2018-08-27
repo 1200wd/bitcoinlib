@@ -1139,28 +1139,14 @@ class Transaction:
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
-        """
-        Get raw transaction 
-        
-        Return transaction with signed inputs if signatures are available
-        
-        :param sign_id: Create raw transaction which can be signed by transaction with this input ID
-        :type sign_id: int
-        :param hash_type: Specific hash type, default is SIGHASH_ALL
-        :type hash_type: int
-
-        :return bytes:
-        
-        """
+    def raw_segwit(self, sign_id=None, hash_type=SIGHASH_ALL):
         r = self.version[::-1]
-        if self.type == 'segwit':
-            r += b'\x00'  # marker (BIP 141)
-            r += b'\x01'  # flag (BIP 141)
-        r += int_to_varbyteint(len(self.inputs))
+        r += b'\x00'  # marker (BIP 141)
+        r += b'\x01'  # flag (BIP 141)
         witnesses = []
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
+            # Add unlocking script (ScriptSig)
             if sign_id is None:
                 unlock_scr = int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
             elif sign_id == i.index_n:
@@ -1185,7 +1171,51 @@ class Transaction:
                 raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
             r += int_to_varbyteint(len(witnesses))
             for witness in witnesses:
-                r += int_to_varbyteint(len(witness)) + witness
+                r += witness
+        r += struct.pack('<L', self.locktime)
+        if sign_id is not None:
+            r += struct.pack('<L', hash_type)
+        else:
+            self.size = len(r)
+        return r
+
+    def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
+        """
+        Get raw transaction 
+        
+        Return transaction with signed inputs if signatures are available
+        
+        :param sign_id: Create raw transaction which can be signed by transaction with this input ID
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
+        :return bytes:
+        
+        """
+        if self.type == 'segwit':
+            return self.raw_segwit(sign_id, hash_type)
+
+        r = self.version[::-1]
+        r += int_to_varbyteint(len(self.inputs))
+        for i in self.inputs:
+            r += i.prev_hash[::-1] + i.output_n[::-1]
+            # Add unlocking script (ScriptSig)
+            if sign_id is None:
+                unlock_scr = int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
+            elif sign_id == i.index_n:
+                unlock_scr = int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
+            else:
+                unlock_scr = b'\0'
+            r += unlock_scr
+            r += struct.pack('<L', i.sequence)
+
+        r += int_to_varbyteint(len(self.outputs))
+        for o in self.outputs:
+            if o.value < 0:
+                raise TransactionError("Output value < 0 not allowed")
+            r += struct.pack('<Q', o.value)
+            r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
