@@ -725,7 +725,8 @@ class Input:
                                                   versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
         if self.type == 'segwit':
-            self.address = Address(self.keys[0].public_byte, encoding='bech32', script_type=self.script_type).address
+            if self.keys:
+                self.address = Address(self.keys[0].public_byte, encoding='bech32', script_type=self.script_type).address
         if self.unlocking_script_unsigned:
             if self.locktime_cltv:
                 self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
@@ -1139,45 +1140,29 @@ class Transaction:
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def raw_segwit(self, sign_id=None, hash_type=SIGHASH_ALL):
-        r = self.version[::-1]
-        r += b'\x00'  # marker (BIP 141)
-        r += b'\x01'  # flag (BIP 141)
-        witnesses = []
+    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sig_version=SIGNATURE_VERSION_STANDARD):
+        prevouts_serialized = b''
+        sequence_serialized = b''
         for i in self.inputs:
-            r += i.prev_hash[::-1] + i.output_n[::-1]
-            # Add unlocking script (ScriptSig)
-            if sign_id is None:
-                unlock_scr = int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
-            elif sign_id == i.index_n:
-                unlock_scr = int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
-            else:
-                unlock_scr = b'\0'
-            if self.type == 'segwit':
-                witnesses.append(unlock_scr)
-                r += b'\0'
-            else:
-                r += unlock_scr
-            r += struct.pack('<L', i.sequence)
+            prevouts_serialized += i.prev_hash + i.output_n[::-1]
+            sequence_serialized += struct.pack('>L', i.sequence)
+        hash_prevouts = hashlib.sha256(hashlib.sha256(prevouts_serialized).digest()).digest()
+        hash_sequence = hashlib.sha256(hashlib.sha256(sequence_serialized).digest()).digest()
 
-        r += int_to_varbyteint(len(self.outputs))
+        outputs_serialized = b''
         for o in self.outputs:
-            if o.value < 0:
-                raise TransactionError("Output value < 0 not allowed")
-            r += struct.pack('<Q', o.value)
-            r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
-        if self.type == 'segwit':
-            if not witnesses:
-                raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
-            r += int_to_varbyteint(len(witnesses))
-            for witness in witnesses:
-                r += witness
-        r += struct.pack('<L', self.locktime)
-        if sign_id is not None:
-            r += struct.pack('<L', hash_type)
-        else:
-            self.size = len(r)
-        return r
+            outputs_serialized += struct.pack('<Q', o.value)
+            outputs_serialized += o.lock_script
+        hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
+        script_code = self.inputs[sign_id].unlocking_script_unsigned
+
+        ser_tx = \
+            self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash + \
+            self.inputs[sign_id].output_n[::-1] + \
+            int_to_varbyteint(len(script_code)) + script_code + struct.pack('<Q', self.inputs[sign_id].value) + \
+            struct.pack('<L', self.inputs[sign_id].sequence) + \
+            hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
+        return hashlib.sha256(hashlib.sha256(ser_tx))
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
@@ -1193,10 +1178,12 @@ class Transaction:
         :return bytes:
         
         """
-        if self.type == 'segwit':
-            return self.raw_segwit(sign_id, hash_type)
 
         r = self.version[::-1]
+        if self.type == 'segwit':
+            r += b'\x00'  # marker (BIP 141)
+            r += b'\x01'  # flag (BIP 141)
+
         r += int_to_varbyteint(len(self.inputs))
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
