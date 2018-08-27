@@ -1212,9 +1212,8 @@ class Transaction:
             r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
 
         if self.type == 'segwit':
-            # TODO: check for only b'\0's
-            # if not witnesses:
-            #     raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
+            if not len([w for w in witnesses if w != b'\0']):
+                raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
             r += int_to_varbyteint(len(witnesses))
             for witness in witnesses:
                 r += witness
