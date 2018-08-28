@@ -1162,6 +1162,7 @@ class Transaction:
             int_to_varbyteint(len(script_code)) + script_code + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
+        # print(to_hexstring(ser_tx))
         return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
@@ -1201,7 +1202,6 @@ class Transaction:
             else:
                 witnesses.append(b'\0')
                 r += unlock_scr
-            r += unlock_scr
             r += struct.pack('<L', i.sequence)
 
         r += int_to_varbyteint(len(self.outputs))
@@ -1258,8 +1258,11 @@ class Transaction:
                 _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
                              (len(i.signatures), i.sigs_required))
                 return False
-            t_to_sign = self.raw(i.index_n)
-            transaction_hash_to_sign = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
+            if i.type == 'segwit':
+                transaction_hash = self.signature_hash(i.index_n)
+            else:
+                t_to_sign = self.raw(i.index_n)
+                transaction_hash = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             sig_id = 0
             for key in i.keys:
                 if sig_id > i.sigs_required-1:
@@ -1267,8 +1270,8 @@ class Transaction:
                 if sig_id >= len(i.signatures):
                     _logger.info("No valid signatures found")
                     return False
-                if verify_signature(transaction_hash_to_sign,
-                                 i.signatures[sig_id]['signature'], key.public_uncompressed_byte[1:]):
+                if verify_signature(transaction_hash, i.signatures[sig_id]['signature'],
+                                    key.public_uncompressed_byte[1:]):
                     sig_id += 1
             if sig_id < i.sigs_required:
                 _logger.info("Not enough valid signatures provided. Found %d signatures but %d needed" %
