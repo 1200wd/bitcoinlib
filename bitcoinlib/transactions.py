@@ -1192,7 +1192,6 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             # Add unlocking script (ScriptSig)
-            unlock_scr = b'\0'
             if i.type == 'segwit':
                 if i.unlocking_script == b'\0':
                     witnesses.append(i.unlocking_script_unsigned)
@@ -1204,6 +1203,8 @@ class Transaction:
                     r += varstr(i.unlocking_script)
                 elif sign_id == i.index_n:
                     r += varstr(i.unlocking_script_unsigned)
+                else:
+                    r += b'\0'
                 witnesses.append(b'\0')
             r += struct.pack('<L', i.sequence)
 
