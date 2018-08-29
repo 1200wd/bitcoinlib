@@ -397,7 +397,7 @@ def _serialize_multisig_redeemscript(public_key_list, n_required=None):
 
     script = int_to_varbyteint(opcodes['OP_1'] + n_required - 1)
     for key in public_key_list:
-        script += int_to_varbyteint(len(key)) + key
+        script += varstr(key)
     script += int_to_varbyteint(opcodes['OP_1'] + len(public_key_list) - 1)
     script += b'\xae'  # 'OP_CHECKMULTISIG'
 
@@ -453,7 +453,7 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
         s = to_bytes(sig)
         if hash_type:
             s += struct.pack('B', hash_type)
-        usu += int_to_varbyteint(len(s)) + to_bytes(s)
+        usu += varstr(s)
     rs_size = int_to_varbyteint(len(redeemscript))
     if len(redeemscript) >= 76:
         if len(rs_size) == 1:
@@ -1159,7 +1159,7 @@ class Transaction:
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
-            int_to_varbyteint(len(script_code)) + script_code + struct.pack('<Q', self.inputs[sign_id].value) + \
+            varstr(script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         print(to_hexstring(ser_tx))
@@ -1192,20 +1192,17 @@ class Transaction:
             # Add unlocking script (ScriptSig)
             unlock_scr = b'\0'
             if sign_id is None:
-                unlock_scr = int_to_varbyteint(len(i.unlocking_script)) + i.unlocking_script
+                unlock_scr = varstr(i.unlocking_script)
             elif sign_id == i.index_n:
-                unlock_scr = int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
+                unlock_scr = varstr(i.unlocking_script_unsigned)
             if i.type == 'segwit':
                 if unlock_scr == b'\0':
-                    unlock_scr = int_to_varbyteint(len(i.unlocking_script_unsigned)) + i.unlocking_script_unsigned
+                    unlock_scr = varstr(i.unlocking_script_unsigned)
                 witnesses.append(unlock_scr)
                 r += b'\0'
             else:
                 witnesses.append(b'\0')
-                if self.type == 'segwit' and i.signatures:
-                    r += varstr(varstr(i.signatures[0]['sig_der'] + b'\1'))
-                else:
-                    r += unlock_scr[1:]
+                r += unlock_scr
             r += struct.pack('<L', i.sequence)
 
         r += int_to_varbyteint(len(self.outputs))
@@ -1213,7 +1210,7 @@ class Transaction:
             if o.value < 0:
                 raise TransactionError("Output value < 0 not allowed")
             r += struct.pack('<Q', o.value)
-            r += int_to_varbyteint(len(o.lock_script)) + o.lock_script
+            r += varstr(o.lock_script)
 
         if self.type == 'segwit':
             if not len([w for w in witnesses if w != b'\0']):
