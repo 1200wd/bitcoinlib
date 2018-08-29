@@ -60,11 +60,13 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
     version = rawtx[0:4][::-1]
     coinbase = False
     flag = None
+    type = 'standard'
     cursor = 4
     if rawtx[4:5] == b'\0':
-        cursor += 1
-        flag = rawtx[cursor:cursor+1]
-        cursor += 1
+        flag = rawtx[5:6]
+        if flag == b'\1':
+            type = 'segwit'
+        cursor += 2
     n_inputs, size = varbyteint_to_int(rawtx[cursor:cursor+9])
     cursor += size
     inputs = []
@@ -82,10 +84,13 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         unlocking_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
         unlocking_script = rawtx[cursor:cursor + unlocking_script_size]
+        inp_type = 'standard'
+        if type == 'segwit' and not unlocking_script_size:
+            inp_type = 'segwit'
         cursor += unlocking_script_size
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
-        inputs.append(Input(prev_hash=inp_hash, output_n=output_n, unlocking_script=unlocking_script,
+        inputs.append(Input(prev_hash=inp_hash, output_n=output_n, unlocking_script=unlocking_script, type=inp_type,
                             sequence=sequence_number, index_n=n, network=network))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
@@ -105,18 +110,27 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         output_total += value
     if not outputs:
         raise TransactionError("Error no outputs found in this transaction")
-    if flag:
-        n_witnesses, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
-        cursor += size
-        for n in range(0, n_witnesses):
-            witness_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+    if type == 'segwit':
+        for n in range(0, len(inputs)):
+            n_items, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
             cursor += size
-            # witness_hash = rawtx[cursor:cursor + witness_size][::-1]
-            cursor += witness_size
+            witness_str = b''
+            for m in range(0, n_items):
+                item_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
+
+                witness_str += rawtx[cursor:cursor + item_size + size]
+                cursor += size + item_size
+            if witness_str:
+                inputs[n].unlocking_script = witness_str
+                us_dict = script_deserialize(witness_str)
+                inputs[n].keys = us_dict['keys']
+                inputs[n].signatures = us_dict['signatures']
+                # from pprint import pprint
+                # pprint(us_dict)
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
-                       coinbase=coinbase, flag=flag, rawtx=to_hexstring(rawtx))
+                       coinbase=coinbase, flag=flag, type=type, rawtx=to_hexstring(rawtx))
 
 
 def script_deserialize(script, script_types=None, locking_script=None):
@@ -691,8 +705,6 @@ class Input:
                         'pub_key': ''
                     })
 
-        # if self.script_type == 'sig_pubkey':
-        #     self.script_type = 'p2pkh'
         self.update_unlocking_script()
 
     # TODO: Remove / replace?
