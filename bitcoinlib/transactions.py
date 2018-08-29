@@ -1156,6 +1156,8 @@ class Transaction:
         hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
         script_code = self.inputs[sign_id].unlocking_script_unsigned
 
+        if not self.inputs[sign_id].value:
+            raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" % sign_id)
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
@@ -1191,18 +1193,18 @@ class Transaction:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             # Add unlocking script (ScriptSig)
             unlock_scr = b'\0'
-            if sign_id is None:
-                unlock_scr = varstr(i.unlocking_script)
-            elif sign_id == i.index_n:
-                unlock_scr = varstr(i.unlocking_script_unsigned)
             if i.type == 'segwit':
-                if unlock_scr == b'\0':
-                    unlock_scr = varstr(i.unlocking_script_unsigned)
-                witnesses.append(unlock_scr)
+                if i.unlocking_script == b'\0':
+                    witnesses.append(i.unlocking_script_unsigned)
+                else:
+                    witnesses.append(i.unlocking_script)
                 r += b'\0'
             else:
+                if sign_id is None:
+                    r += varstr(i.unlocking_script)
+                elif sign_id == i.index_n:
+                    r += varstr(i.unlocking_script_unsigned)
                 witnesses.append(b'\0')
-                r += unlock_scr
             r += struct.pack('<L', i.sequence)
 
         r += int_to_varbyteint(len(self.outputs))
