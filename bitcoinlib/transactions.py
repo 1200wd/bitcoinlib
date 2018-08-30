@@ -1228,7 +1228,7 @@ class Transaction:
             r += varstr(o.lock_script)
 
         if self.type == 'segwit':
-            if not len([w for w in witnesses if w != b'\0']):
+            if not self.coinbase and not len([w for w in witnesses if w != b'\0']):
                 raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
             for witness in witnesses:
                 if witness != b'\0':

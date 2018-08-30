@@ -453,7 +453,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(network='bitcoin', min_providers=10)
 
         # Get transactions by hash
-        srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13').dict()
+        srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
