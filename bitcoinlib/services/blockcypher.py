@@ -129,7 +129,7 @@ class BlockCypher(BaseClient):
             raise ClientError("Invalid number of inputs provided. Raw tx: %d, blockcypher: %d" %
                               (len(t.inputs), len(tx['inputs'])))
         for n, i in enumerate(t.inputs):
-            if not (tx['inputs'][n]['output_index'] == i.output_n_int and
+            if not t.coinbase and not (tx['inputs'][n]['output_index'] == i.output_n_int and
                         tx['inputs'][n]['prev_hash'] == to_hexstring(i.prev_hash)):
                 raise ClientError("Transaction inputs do not match raw transaction")
             if 'output_value' in tx['inputs'][n]:
