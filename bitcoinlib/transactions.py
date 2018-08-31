@@ -127,8 +127,6 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                     inputs[n].address = Address(us_dict['keys'][0], encoding='bech32').address
                     inputs[n].keys = us_dict['keys']
                 inputs[n].signatures = us_dict['signatures']
-                # from pprint import pprint
-                # pprint(us_dict)
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
@@ -1197,7 +1195,7 @@ class Transaction:
         """
 
         r = self.version[::-1]
-        if self.type == 'segwit':
+        if sign_id is None and self.type == 'segwit':
             r += b'\x00'  # marker (BIP 141)
             r += b'\x01'  # flag (BIP 141)
 
@@ -1207,10 +1205,10 @@ class Transaction:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             # Add unlocking script (ScriptSig)
             if i.type == 'segwit':
-                if i.unlocking_script == b'\0':
-                    witnesses.append(i.unlocking_script_unsigned)
+                if not i.unlocking_script or i.unlocking_script == b'\0':
+                    witnesses.append(b'\1' + varstr(i.unlocking_script_unsigned))
                 else:
-                    witnesses.append(i.unlocking_script)
+                    witnesses.append(b'\2' + i.unlocking_script)
                 r += b'\0'
             else:
                 if sign_id is None:
@@ -1229,12 +1227,12 @@ class Transaction:
             r += struct.pack('<Q', o.value)
             r += varstr(o.lock_script)
 
-        if self.type == 'segwit':
+        if sign_id is None and self.type == 'segwit':
             if not self.coinbase and not len([w for w in witnesses if w != b'\0']):
                 raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
             for witness in witnesses:
-                if witness != b'\0':
-                    r += b'\2'
+                # if witness != b'\0':
+                #     r += b'\2'
                 r += witness
 
         r += struct.pack('<L', self.locktime)
@@ -1293,8 +1291,8 @@ class Transaction:
                                     key.public_uncompressed_byte[1:]):
                     sig_id += 1
             if sig_id < i.sigs_required:
-                _logger.info("Not enough valid signatures provided. Found %d signatures but %d needed" %
-                             (sig_id, i.sigs_required))
+                _logger.info("Not enough valid signatures provided for input %d. Found %d signatures but %d needed" %
+                             (i.index_n, sig_id, i.sigs_required))
                 return False
         self.verified = True
         return True

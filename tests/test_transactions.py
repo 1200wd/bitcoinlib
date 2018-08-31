@@ -1255,3 +1255,39 @@ class TestTransactionsTimelocks(unittest.TestCase):
     def test_transaction_csv(self):
         # TODO
         pass
+
+
+class TestTransactionsSegwit(unittest.TestCase):
+
+    def test_transaction_segwit_p2wpkh(self):
+        pk_input1 = 'bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866'
+        pk_input2 = '619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9'
+        pk1 = Key(pk_input1)
+        pk2 = Key(pk_input2)
+        output1_value_hexle = binascii.unhexlify('202cb20600000000')
+        output2_value_hexle = binascii.unhexlify('9093510d00000000')
+        output1_value = change_base(output1_value_hexle[::-1], 256, 10)
+        output2_value = change_base(output2_value_hexle[::-1], 256, 10)
+
+        inp_prev_tx1 = binascii.unhexlify('fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f')[::-1]
+        inp_prev_tx2 = binascii.unhexlify('ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a')[::-1]
+        inputs = [
+            Input(inp_prev_tx1, 0, sequence=0xffffffee, keys=pk1, value=int(6.25 * 100000000)),
+            Input(inp_prev_tx2, 1, type='segwit', sequence=0xffffffff, keys=pk2, value=int(6 * 100000000)),
+        ]
+        outputs = [
+            Output(output1_value, lock_script='76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac'),
+            Output(output2_value, lock_script='76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac'),
+        ]
+
+        t = Transaction(inputs, outputs, type='segwit', locktime=0x00000011)
+        self.assertEqual(to_hexstring(t.signature_hash(1)),
+                         'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670')
+        # t.sign([pk1], 0)
+        # t.sign([pk2], 1)
+        # self.assertTrue(t.verify())
+        # t.info()
+        # print(t.raw_hex())
+        t2 = Transaction.import_raw(t.raw())
+        # t2.info()
+        self.assertEqual(t, t2)
