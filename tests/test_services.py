@@ -420,9 +420,6 @@ class TestService(unittest.TestCase, CustomAssertions):
                  'output_n': 4294967295,
                  'prev_hash': '0000000000000000000000000000000000000000000000000000000000000000',
                  'public_key': [],
-                 'script': '0362a4071c2f5669614254432f4d696e656420627920676c6f62616c686173682f2cfabe6d6d2c31604d43cac'
-                           '8b0f5c819c1d2b6f9051349d7633df07fc664be73533e64ccf9010000000000000010c147e903973b4143d99d'
-                           'e6b376ca0200',
                  'script_type': 'coinbase',
                  'sequence': 4294967295,
                  }
