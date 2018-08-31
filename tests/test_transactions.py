@@ -1257,7 +1257,7 @@ class TestTransactionsTimelocks(unittest.TestCase):
         pass
 
 
-class TestTransactionsSegwit(unittest.TestCase):
+class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
 
     def test_transaction_segwit_p2wpkh(self):
         pk_input1 = 'bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866'
@@ -1283,11 +1283,9 @@ class TestTransactionsSegwit(unittest.TestCase):
         t = Transaction(inputs, outputs, type='segwit', locktime=0x00000011)
         self.assertEqual(to_hexstring(t.signature_hash(1)),
                          'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670')
-        # t.sign([pk1], 0)
-        # t.sign([pk2], 1)
-        # self.assertTrue(t.verify())
-        # t.info()
-        # print(t.raw_hex())
+        t.sign([pk1], 0)
+        t.sign([pk2], 1)
+        self.assertTrue(t.verify())
         t2 = Transaction.import_raw(t.raw())
-        # t2.info()
-        self.assertEqual(t, t2)
+        self.assertEqual(t2.inputs[0].prev_hash, inp_prev_tx1)
+        self.assertEqual(t2.inputs[1].prev_hash, inp_prev_tx2)
