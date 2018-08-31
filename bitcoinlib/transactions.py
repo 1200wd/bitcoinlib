@@ -1004,6 +1004,7 @@ class Transaction:
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str
         """
+        self.coinbase = coinbase
         self.inputs = []
         if inputs is not None:
             for inp in inputs:
@@ -1026,7 +1027,7 @@ class Transaction:
                 output_total = sum([o.value for o in outputs])
         if fee is None and output_total and input_total:
             fee = input_total - output_total
-            if fee <= 0:
+            if fee < 0 or fee == 0 and not self.coinbase:
                 raise TransactionError("Transaction inputs total value must be greater then total value of "
                                        "transaction outputs")
 
@@ -1038,7 +1039,6 @@ class Transaction:
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)
-        self.coinbase = coinbase
         self.flag = flag
         self.fee = fee
         self.fee_per_kb = fee_per_kb
