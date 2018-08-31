@@ -123,7 +123,9 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
             if witness_str:
                 inputs[n].unlocking_script = witness_str
                 us_dict = script_deserialize(witness_str)
-                inputs[n].keys = us_dict['keys']
+                if us_dict['keys']:
+                    inputs[n].address = Address(us_dict['keys'][0], encoding='bech32').address
+                    inputs[n].keys = us_dict['keys']
                 inputs[n].signatures = us_dict['signatures']
                 # from pprint import pprint
                 # pprint(us_dict)
@@ -1176,7 +1178,7 @@ class Transaction:
             varstr(script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
-        print(to_hexstring(ser_tx))
+        # print(to_hexstring(ser_tx))
         return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
