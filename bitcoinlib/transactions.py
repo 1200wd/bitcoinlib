@@ -117,16 +117,14 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
             witness_str = b''
             for m in range(0, n_items):
                 item_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
-
                 witness_str += rawtx[cursor:cursor + item_size + size]
                 cursor += size + item_size
             if witness_str:
-                inputs[n].unlocking_script = witness_str
-                us_dict = script_deserialize(witness_str)
-                if us_dict['keys']:
-                    inputs[n].address = Address(us_dict['keys'][0], encoding='bech32').address
-                    inputs[n].keys = us_dict['keys']
-                inputs[n].signatures = us_dict['signatures']
+                # Redefine input with witness as unlocking script
+                inputs[n] = Input(prev_hash=inputs[n].prev_hash, output_n=inputs[n].output_n,
+                                  unlocking_script=witness_str, type=inputs[n].type,
+                                  sequence=inputs[n].sequence, index_n=inputs[n].index_n,
+                                  network=inputs[n].network)
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
