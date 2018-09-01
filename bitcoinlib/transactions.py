@@ -593,16 +593,11 @@ class Input:
         else:
             self.output_n_int = struct.unpack('>I', output_n)[0]
             self.output_n = output_n
-        # if isinstance(keys, (bytes, str)):
-        #     keys = [keys]
         if unlocking_script is None:
             unlocking_script = b''
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
-        self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None else to_bytes(unlocking_script_unsigned)
-        # if self.prev_hash == 32 * b'\0':
-        #     self.script_type = 'coinbase'
-        # else:
-        #     self.script_type = script_type
+        self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None \
+            else to_bytes(unlocking_script_unsigned)
         if isinstance(sequence, numbers.Number):
             self.sequence = sequence
         else:
@@ -643,6 +638,10 @@ class Input:
         self.locktime_csv = locktime_csv
         self.type = type
         self.encoding = encoding
+        # TODO: New attributes:
+        # self.valid
+        # self.witness
+        self.valid = None
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
@@ -1118,8 +1117,13 @@ class Transaction:
         replace_by_fee = False
         for ti in self.inputs:
             print("-", ti.address, ti.value, to_hexstring(ti.prev_hash), ti.output_n_int)
-            print("  Script type: %s (%s), signatures: %d (%d of %d)" %
-                  (ti.script_type, ti.type, len(ti.signatures), ti.sigs_required, len(ti.keys)))
+            validstr = "not validated"
+            if ti.valid:
+                validstr = "valid"
+            elif ti.valid is False:
+                validstr = "invalid"
+            print("  Script type: %s (%s), signatures: %d (%d of %d), %s" %
+                  (ti.script_type, ti.type, len(ti.signatures), ti.sigs_required, len(ti.keys), validstr))
             if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
                 replace_by_fee = True
             if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
@@ -1292,6 +1296,9 @@ class Transaction:
                 if verify_signature(transaction_hash, i.signatures[sig_id]['signature'],
                                     key.public_uncompressed_byte[1:]):
                     sig_id += 1
+                    i.valid = True
+                else:
+                    i.valid = False
             if sig_id < i.sigs_required:
                 _logger.info("Not enough valid signatures provided for input %d. Found %d signatures but %d needed" %
                              (i.index_n, sig_id, i.sigs_required))
