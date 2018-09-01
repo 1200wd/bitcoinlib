@@ -1315,4 +1315,3 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t2 = Transaction.import_raw(t.raw())
         t2.inputs[0].value = int(10 * 100000000)
         self.assertTrue(t2.verify())
-        t2.info()

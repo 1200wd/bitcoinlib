@@ -366,7 +366,7 @@ class Address:
             if self.script_type is None:
                 self.script_type = 'p2pkh'
             if self.prefix is None:
-                if self.script_type == 'p2sh':
+                if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
                     self.prefix = self.network.prefix_address_p2sh
                 else:
                     self.prefix = self.network.prefix_address

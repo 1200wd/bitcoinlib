@@ -548,7 +548,7 @@ class Input:
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, type='standard',
-                 network=DEFAULT_NETWORK):
+                 encoding='base58', network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -642,6 +642,7 @@ class Input:
         self.locktime_cltv = locktime_cltv
         self.locktime_csv = locktime_csv
         self.type = type
+        self.encoding = encoding
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
@@ -702,7 +703,6 @@ class Input:
                         'priv_key': '',
                         'pub_key': ''
                     })
-
         self.update_unlocking_script()
 
     # TODO: Remove / replace?
@@ -722,7 +722,7 @@ class Input:
         if self.script_type == 'sig_pubkey':
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
-                if not self.address:
+                if not self.address and self.type != 'segwit':
                     self.address = self.keys[0].address()
         elif self.script_type == 'p2sh_multisig':
             if not self.keys:
@@ -736,7 +736,8 @@ class Input:
             self.unlocking_script_unsigned = self.redeemscript
         if self.type == 'segwit':
             if self.keys:
-                self.address = Address(self.keys[0].public_byte, encoding='bech32', script_type=self.script_type).address
+                self.address = Address(self.keys[0].public_byte, encoding=self.encoding,
+                                       script_type=self.script_type).address
         if self.unlocking_script_unsigned:
             if self.locktime_cltv:
                 self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
@@ -1207,7 +1208,10 @@ class Transaction:
                     witnesses.append(b'\1' + varstr(i.unlocking_script_unsigned))
                 else:
                     witnesses.append(b'\2' + i.unlocking_script)
-                r += b'\0'
+                if i.script_type == 'p2sh_p2wpkh':
+                    r += varstr(varstr(i.unlocking_script))
+                else:
+                    r += b'\0'
             else:
                 if sign_id is None:
                     r += varstr(i.unlocking_script)
@@ -1401,6 +1405,8 @@ class Transaction:
                     self.inputs[tid].unlocking_script = \
                         varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                         varstr(self.inputs[tid].keys[0].public_byte)
+            elif self.inputs[tid].script_type == 'p2sh_p2wpkh':
+                self.inputs[tid].unlocking_script = b'\0' + varstr(self.inputs[tid].keys[0].hash160())
             elif self.inputs[tid].script_type == 'p2sh_multisig':
                 n_tag = self.inputs[tid].redeemscript[0]
                 if not isinstance(n_tag, int):
