@@ -120,7 +120,14 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                 witness_str += rawtx[cursor:cursor + item_size + size]
                 cursor += size + item_size
             if witness_str:
-                # Redefine input with witness as unlocking script
+                wsd = script_deserialize(witness_str)
+                # sig = {
+                #         'sig_der': b'',
+                #         'signature': wsd['signatures'][0],
+                #         'priv_key': b'',
+                #         'pub_key': wsd['keys'][0]
+                #     }
+                # , signatures=wsd['signatures'][0],
                 inputs[n] = Input(prev_hash=inputs[n].prev_hash, output_n=inputs[n].output_n,
                                   unlocking_script=witness_str, type=inputs[n].type,
                                   sequence=inputs[n].sequence, index_n=inputs[n].index_n,
@@ -698,8 +705,8 @@ class Input:
                     {
                         'sig_der': sig_der,
                         'signature': to_bytes(sig),
-                        'priv_key': '',
-                        'pub_key': ''
+                        'priv_key': b'',
+                        'pub_key': b''
                     })
         self.update_unlocking_script()
 
