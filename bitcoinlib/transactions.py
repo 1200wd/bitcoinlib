@@ -535,7 +535,7 @@ def verify_signature(transaction_to_sign, signature, public_key):
 
 class Input:
     """
-    Transaction Input class, normally part of Transaction class
+    Transaction Input class, used by Transaction class
     
     An Input contains a reference to an UTXO or Unspent Transaction Output (prev_hash + output_n).
     To spent the UTXO an unlocking script can be included to prove ownership.
@@ -593,8 +593,8 @@ class Input:
         else:
             self.output_n_int = struct.unpack('>I', output_n)[0]
             self.output_n = output_n
-        if unlocking_script is None:
-            unlocking_script = b''
+        # if unlocking_script is None:
+        #     unlocking_script = b''
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None \
             else to_bytes(unlocking_script_unsigned)
@@ -638,10 +638,8 @@ class Input:
         self.locktime_csv = locktime_csv
         self.type = type
         self.encoding = encoding
-        # TODO: New attributes:
-        # self.valid
-        # self.witness
         self.valid = None
+        self.witness = b'\0'
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
@@ -733,6 +731,10 @@ class Input:
                 self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                                   versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
+        elif self.script_type == 'p2sh_p2wpkh':
+            if self.keys:
+                self.unlocking_script = b''
+                self.witness = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
         if self.type == 'segwit':
             if self.keys:
                 self.address = Address(self.keys[0].public_byte, encoding=self.encoding,
@@ -1169,7 +1171,7 @@ class Transaction:
             outputs_serialized += struct.pack('<Q', o.value)
             outputs_serialized += varstr(o.lock_script)
         hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
-        script_code = self.inputs[sign_id].unlocking_script_unsigned
+        script_code = self.inputs[sign_id].witness
 
         if not self.inputs[sign_id].value:
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" % sign_id)
@@ -1207,23 +1209,26 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             # Add unlocking script (ScriptSig)
-            if i.type == 'segwit':
-                if not i.unlocking_script or i.unlocking_script == b'\0':
-                    witnesses.append(b'\1' + varstr(i.unlocking_script_unsigned))
-                else:
-                    witnesses.append(b'\2' + i.unlocking_script)
-                if i.script_type == 'p2sh_p2wpkh':
-                    r += varstr(varstr(i.unlocking_script))
-                else:
-                    r += b'\0'
+            # if i.type == 'segwit':
+            # if not i.unlocking_script or i.unlocking_script == b'\0':
+            #     witnesses.append(b'\1' + varstr(i.unlocking_script_unsigned))
+            # else:
+            if i.witness:
+                witnesses.append(i.witness)
             else:
-                if sign_id is None:
-                    r += varstr(i.unlocking_script)
-                elif sign_id == i.index_n:
-                    r += varstr(i.unlocking_script_unsigned)
-                else:
-                    r += b'\0'
                 witnesses.append(b'\0')
+            #     if i.script_type == 'p2sh_p2wpkh':
+            #         r += varstr(varstr(i.unlocking_script))
+            #     else:
+            #         r += b'\0'
+            # else:
+            if sign_id is None:
+                r += varstr(i.unlocking_script)
+            elif sign_id == i.index_n:
+                r += varstr(i.unlocking_script_unsigned)
+            else:
+                r += b'\0'
+            # witnesses.append(b'\0')
             r += struct.pack('<L', i.sequence)
 
         r += int_to_varbyteint(len(self.outputs))
@@ -1237,8 +1242,8 @@ class Transaction:
             if not self.coinbase and not len([w for w in witnesses if w != b'\0']):
                 raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
             for witness in witnesses:
-                # if witness != b'\0':
-                #     r += b'\2'
+                if witness != b'\0':
+                    r += b'\2'
                 r += witness
 
         r += struct.pack('<L', self.locktime)
@@ -1413,7 +1418,11 @@ class Transaction:
                         varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                         varstr(self.inputs[tid].keys[0].public_byte)
             elif self.inputs[tid].script_type == 'p2sh_p2wpkh':
-                self.inputs[tid].unlocking_script = b'\0' + varstr(self.inputs[tid].keys[0].hash160())
+                self.inputs[tid].unlocking_script = varstr(b'\0' + varstr(self.inputs[tid].keys[0].hash160()))
+                if len(self.inputs[tid].signatures):
+                    self.inputs[tid].witness = \
+                        varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
+                        varstr(self.inputs[tid].keys[0].public_byte)
             elif self.inputs[tid].script_type == 'p2sh_multisig':
                 n_tag = self.inputs[tid].redeemscript[0]
                 if not isinstance(n_tag, int):
