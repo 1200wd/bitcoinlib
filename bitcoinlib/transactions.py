@@ -640,6 +640,7 @@ class Input:
         self.encoding = encoding
         self.valid = None
         self.witness = b'\0'
+        self.script_code = b'\0'
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
@@ -733,8 +734,7 @@ class Input:
             self.unlocking_script_unsigned = self.redeemscript
         elif self.script_type == 'p2sh_p2wpkh':
             if self.keys:
-                self.unlocking_script = b''
-                self.witness = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
+                self.script_code = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
         if self.type == 'segwit':
             if self.keys:
                 self.address = Address(self.keys[0].public_byte, encoding=self.encoding,
@@ -1171,14 +1171,14 @@ class Transaction:
             outputs_serialized += struct.pack('<Q', o.value)
             outputs_serialized += varstr(o.lock_script)
         hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
-        script_code = self.inputs[sign_id].witness
 
         if not self.inputs[sign_id].value:
-            raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" % sign_id)
+            raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
+                                   sign_id)
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
-            varstr(script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
+            varstr(self.inputs[sign_id].script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
