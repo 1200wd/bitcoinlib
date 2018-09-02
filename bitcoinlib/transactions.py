@@ -127,9 +127,13 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                 #         'priv_key': b'',
                 #         'pub_key': wsd['keys'][0]
                 #     }
-                # , signatures=wsd['signatures'][0],
-                inputs[n] = Input(prev_hash=inputs[n].prev_hash, output_n=inputs[n].output_n,
-                                  unlocking_script=witness_str, type=inputs[n].type,
+                sig = wsd['signatures'][0]
+                key = wsd['keys'][0]
+                script_type = None
+                if wsd['script_type'] == 'sig_pubkey':
+                    script_type = 'p2sh_p2wpkh'
+                inputs[n] = Input(prev_hash=inputs[n].prev_hash, output_n=inputs[n].output_n, keys=key,
+                                  signatures=sig, type='segwit', script_type=script_type,
                                   sequence=inputs[n].sequence, index_n=inputs[n].index_n,
                                   network=inputs[n].network)
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
@@ -627,6 +631,7 @@ class Input:
         # Sort according to BIP45 standard
         self.sort = sort
         if sort:
+            # FIXME: self.keys not filled yet always empty?
             self.keys.sort(key=lambda k: k.public_byte)
         self.address = address
         self.signatures = []
@@ -1188,7 +1193,7 @@ class Transaction:
             varstr(self.inputs[sign_id].script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
-        # print(to_hexstring(ser_tx))
+        print(to_hexstring(ser_tx))
         return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
