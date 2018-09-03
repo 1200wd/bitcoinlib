@@ -1287,9 +1287,13 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t.sign([pk1], 0)
         t.sign([pk2], 1)
         self.assertTrue(t.verify())
-        # t2 = Transaction.import_raw(t.raw())
-        # self.assertEqual(t2.inputs[0].prev_hash, inp_prev_tx1)
-        # self.assertEqual(t2.inputs[1].prev_hash, inp_prev_tx2)
+        t2 = Transaction.import_raw(t.raw())
+        t2.inputs[0].value = int(6.25 * 100000000)
+        t2.inputs[1].value = int(6 * 100000000)
+        self.assertEqual(t2.inputs[0].prev_hash, inp_prev_tx1)
+        self.assertEqual(t2.inputs[1].prev_hash, inp_prev_tx2)
+        self.assertEqual(to_hexstring(t2.signature_hash(1)),
+                         'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670')
 
     def test_transactions_segwit_p2sh_p2wpkh(self):
         pk_input1 = 'eb696a065ef48a2192da5b28b694f87544b30fae8327c4510137a922f32c6dcf'
@@ -1316,8 +1320,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
         t2 = Transaction.import_raw(t.raw())
         t2.inputs[0].value = int(10 * 100000000)
-        # FIXME:
-        # self.assertEqual(to_hexstring(t2.signature_hash(0)),
-        #                  '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
+        self.assertEqual(to_hexstring(t2.signature_hash(0)),
+                         '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t2.sign([pk1], 0)
         self.assertTrue(t2.verify())
