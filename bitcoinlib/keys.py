@@ -452,6 +452,7 @@ class Key:
         self._y = None
         self.secret = None
         self.compressed = compressed
+        self._hash160 = None
         if not import_key:
             import_key = random.SystemRandom().randint(0, secp256k1_n)
         kf = get_key_format(import_key)
@@ -738,11 +739,13 @@ class Key:
         
         :return bytes: Hash160 of public key 
         """
-        if self.compressed:
-            pb = self.public_byte
-        else:
-            pb = self.public_uncompressed_byte
-        return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
+        if not self._hash160:
+            if self.compressed:
+                pb = self.public_byte
+            else:
+                pb = self.public_uncompressed_byte
+            self._hash160 = hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
+        return self._hash160
 
     def address(self, compressed=None, prefix=None, script_type=None, encoding='base58'):
         """
