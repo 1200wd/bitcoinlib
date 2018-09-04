@@ -1260,8 +1260,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         inp_prev_tx2 = binascii.unhexlify('ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a')[::-1]
         inputs = [
             Input(inp_prev_tx1, 0, sequence=0xffffffee, keys=pk1, value=int(6.25 * 100000000)),
-            Input(inp_prev_tx2, 1, type='segwit', script_type='p2sh_p2wpkh', sequence=0xffffffff, keys=pk2,
-                  value=int(6 * 100000000)),
+            Input(inp_prev_tx2, 1, type='segwit', sequence=0xffffffff, keys=pk2, value=int(6 * 100000000)),
         ]
         outputs = [
             Output(output1_value, lock_script='76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac'),
@@ -1293,7 +1292,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         inp_prev_tx1 = binascii.unhexlify('db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477')[::-1]
         inputs = [
             Input(inp_prev_tx1, 1, sequence=0xfffffffe, keys=pk1, value=int(10 * 100000000), type='segwit',
-                  script_type='p2sh_p2wpkh', encoding='base58'),
+                  encoding='base58'),
         ]
         outputs = [
             Output(output1_value, lock_script='76a914a457b684d7f0d539a46a45bbc043f35b59d0d96388ac'),

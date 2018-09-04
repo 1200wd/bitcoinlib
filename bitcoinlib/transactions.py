@@ -622,9 +622,6 @@ class Input:
             signatures = [signatures]
         # Sort according to BIP45 standard
         self.sort = sort
-        if sort:
-            # FIXME: self.keys not filled yet always empty?
-            self.keys.sort(key=lambda k: k.public_byte)
         self.address = address
         self.signatures = []
         self.redeemscript = b''
@@ -643,9 +640,7 @@ class Input:
         self.type = type
         self.encoding = encoding
         self.valid = None
-        # self.witness = b'\0'
         self.witness = b''
-        # self.script_code = b'\0'
         self.script_code = b''
 
         # If unlocking script is specified extract keys, signatures, type from script
@@ -679,7 +674,8 @@ class Input:
                     _logger.warning("Key compressed is %s but Input class compressed argument is %s " %
                                     (kobj.compressed, self.compressed))
                 self.keys.append(kobj)
-
+        if self.sort:
+            self.keys.sort(key=lambda k: k.public_byte)
         for sig in signatures:
             if isinstance(sig, dict):
                 if sig['sig_der'] not in [x['sig_der'] for x in self.signatures]:
@@ -769,15 +765,15 @@ class Input:
                                        "Is DER encoded version of signature defined?")
             self.unlocking_script = \
                 _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
-        elif self.script_type == 'p2sh_p2wpkh':
-            keyhash = self.keys[0].hash160()
-            if self.keys:
-                self.script_code = b'\x76\xa9\x14' + to_bytes(keyhash) + b'\x88\xac'
-            self.unlocking_script = varstr(b'\0' + varstr(keyhash))
-            if len(self.signatures):
-                self.witness = \
-                    varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
-                    varstr(self.keys[0].public_byte)
+        # elif self.script_type == 'p2sh_p2wpkh':
+        #     keyhash = self.keys[0].hash160()
+        #     if self.keys:
+        #         self.script_code = b'\x76\xa9\x14' + to_bytes(keyhash) + b'\x88\xac'
+        #     self.unlocking_script = varstr(b'\0' + varstr(keyhash))
+        #     if len(self.signatures):
+        #         self.witness = \
+        #             varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
+        #             varstr(self.keys[0].public_byte)
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if self.type == 'segwit':
