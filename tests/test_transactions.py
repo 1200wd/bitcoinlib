@@ -1292,7 +1292,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         inp_prev_tx1 = binascii.unhexlify('db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477')[::-1]
         inputs = [
             Input(inp_prev_tx1, 1, sequence=0xfffffffe, keys=pk1, value=int(10 * 100000000), type='segwit',
-                  encoding='base58'),
+                  script_type='p2sh_p2wpkh', encoding='base58'),
         ]
         outputs = [
             Output(output1_value, lock_script='76a914a457b684d7f0d539a46a45bbc043f35b59d0d96388ac'),
@@ -1303,6 +1303,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertEqual(to_hexstring(t.signature_hash(0)),
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t.sign([pk1], 0)
+        t.info()
         self.assertTrue(t.verify())
         t2 = Transaction.import_raw(t.raw())
         t2.inputs[0].value = int(10 * 100000000)
