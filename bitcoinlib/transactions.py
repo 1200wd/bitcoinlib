@@ -651,8 +651,10 @@ class Input:
         self.type = type
         self.encoding = encoding
         self.valid = None
-        self.witness = b'\0'
-        self.script_code = b'\0'
+        # self.witness = b'\0'
+        self.witness = b''
+        # self.script_code = b'\0'
+        self.script_code = b''
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
@@ -738,14 +740,22 @@ class Input:
         :return:
         """
         if self.script_type == 'sig_pubkey':
+            script_code = b''
+            unlock_script = b''
             if self.keys:
-                self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
+                script_code = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
+                self.unlocking_script_unsigned = script_code
                 if not self.address:
                     self.address = self.keys[0].address()
             if len(self.signatures):
-                self.unlocking_script = \
-                    varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
+                unlock_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
+            if self.type == 'segwit':
+                self.script_code = script_code
+                self.witness = unlock_script
+            else:
+                self.unlocking_script = unlock_script
+
         elif self.script_type == 'p2sh_multisig':
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
@@ -768,23 +778,14 @@ class Input:
             self.unlocking_script = \
                 _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
         elif self.script_type == 'p2sh_p2wpkh':
+            keyhash = self.keys[0].hash160()
             if self.keys:
-                self.script_code = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
-            self.unlocking_script = varstr(b'\0' + varstr(self.keys[0].hash160()))
+                self.script_code = b'\x76\xa9\x14' + to_bytes(keyhash) + b'\x88\xac'
+            self.unlocking_script = varstr(b'\0' + varstr(keyhash))
             if len(self.signatures):
                 self.witness = \
                     varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
-            # n_tag = self.redeemscript[0]
-            # if not isinstance(n_tag, int):
-            #     n_tag = struct.unpack('B', n_tag)[0]
-            # n_required = n_tag - 80
-            # signatures = [s['sig_der'] for s in self.signatures[:n_required]]
-            # if b'' in signatures:
-            #     raise TransactionError("Empty signature found in signature list when signing. "
-            #                            "Is DER encoded version of signature defined?")
-            # self.unlocking_script = \
-            #     _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if self.type == 'segwit':
@@ -1229,13 +1230,15 @@ class Transaction:
         if not self.inputs[sign_id].value:
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
                                    sign_id)
+        if not self.inputs[sign_id].script_code or self.inputs[sign_id].script_code == b'\0':
+            raise TransactionError("Script code missing")
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
             varstr(self.inputs[sign_id].script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
-        # print(to_hexstring(ser_tx))
+        print(to_hexstring(ser_tx))
         return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
