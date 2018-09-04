@@ -713,7 +713,7 @@ class Input:
                         'priv_key': b'',
                         'pub_key': b''
                     })
-        self.update_unlocking_script()
+        self.update_scripts()
 
     # TODO: Remove / replace?
     def sequence_timelock_blocks(self, blocks):
@@ -728,12 +728,24 @@ class Input:
             raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
 
-    def update_unlocking_script(self):
+    def update_scripts(self, hash_type=SIGHASH_ALL, recreate_all=False):
+        """
+        Method to update Input scripts.
+
+        Creates or updates unlocking script, witness script for segwit inputs, multisig redeemscripts and
+        locktime scripts. This method is called when initializing a Input class or when signing an input.
+
+        :return:
+        """
         if self.script_type == 'sig_pubkey':
             if self.keys:
                 self.unlocking_script_unsigned = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
-                if not self.address and self.type != 'segwit':
+                if not self.address:
                     self.address = self.keys[0].address()
+            if len(self.signatures):
+                self.unlocking_script = \
+                    varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
+                    varstr(self.keys[0].public_byte)
         elif self.script_type == 'p2sh_multisig':
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
@@ -744,18 +756,48 @@ class Input:
                 self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                                   versionbyte=self.network.prefix_address_p2sh)
             self.unlocking_script_unsigned = self.redeemscript
+
+            n_tag = self.redeemscript[0]
+            if not isinstance(n_tag, int):
+                n_tag = struct.unpack('B', n_tag)[0]
+            n_required = n_tag - 80
+            signatures = [s['sig_der'] for s in self.signatures[:n_required]]
+            if b'' in signatures:
+                raise TransactionError("Empty signature found in signature list when signing. "
+                                       "Is DER encoded version of signature defined?")
+            self.unlocking_script = \
+                _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
         elif self.script_type == 'p2sh_p2wpkh':
             if self.keys:
                 self.script_code = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
+            self.unlocking_script = varstr(b'\0' + varstr(self.keys[0].hash160()))
+            if len(self.signatures):
+                self.witness = \
+                    varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
+                    varstr(self.keys[0].public_byte)
+            # n_tag = self.redeemscript[0]
+            # if not isinstance(n_tag, int):
+            #     n_tag = struct.unpack('B', n_tag)[0]
+            # n_required = n_tag - 80
+            # signatures = [s['sig_der'] for s in self.signatures[:n_required]]
+            # if b'' in signatures:
+            #     raise TransactionError("Empty signature found in signature list when signing. "
+            #                            "Is DER encoded version of signature defined?")
+            # self.unlocking_script = \
+            #     _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
+        elif self.script_type != 'coinbase':
+            raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if self.type == 'segwit':
             if self.keys:
                 self.address = Address(self.keys[0].public_byte, encoding=self.encoding,
                                        script_type=self.script_type).address
-        if self.unlocking_script_unsigned:
-            if self.locktime_cltv:
-                self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
-            elif self.locktime_csv:
-                self.unlocking_script_unsigned = script_add_locktime_csv(self.locktime_csv, self.unlocking_script_unsigned)
+
+        if self.locktime_cltv:
+            self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
+            self.unlocking_script = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script)
+        elif self.locktime_csv:
+            self.unlocking_script_unsigned = script_add_locktime_csv(self.locktime_csv, self.unlocking_script_unsigned)
+            self.unlocking_script = script_add_locktime_csv(self.locktime_csv, self.unlocking_script)
 
     def dict(self):
         """
@@ -1424,37 +1466,7 @@ class Transaction:
                 n_signs -= n_sigs_to_insert
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
 
-            if self.inputs[tid].script_type == 'sig_pubkey':
-                if len(self.inputs[tid].signatures):
-                    self.inputs[tid].unlocking_script = \
-                        varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
-                        varstr(self.inputs[tid].keys[0].public_byte)
-            elif self.inputs[tid].script_type == 'p2sh_p2wpkh':
-                self.inputs[tid].unlocking_script = varstr(b'\0' + varstr(self.inputs[tid].keys[0].hash160()))
-                if len(self.inputs[tid].signatures):
-                    self.inputs[tid].witness = \
-                        varstr(self.inputs[tid].signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
-                        varstr(self.inputs[tid].keys[0].public_byte)
-            elif self.inputs[tid].script_type == 'p2sh_multisig':
-                n_tag = self.inputs[tid].redeemscript[0]
-                if not isinstance(n_tag, int):
-                    n_tag = struct.unpack('B', n_tag)[0]
-                n_required = n_tag - 80
-                signatures = [s['sig_der'] for s in self.inputs[tid].signatures[:n_required]]
-                if b'' in signatures:
-                    raise TransactionError("Empty signature found in signature list when signing. "
-                                           "Is DER encoded version of signature defined?")
-                self.inputs[tid].unlocking_script = \
-                    _p2sh_multisig_unlocking_script(signatures, self.inputs[tid].redeemscript, hash_type)
-            else:
-                raise TransactionError("Script type %s not supported at the moment" % self.inputs[tid].script_type)
-
-            if self.inputs[tid].locktime_cltv:
-                self.inputs[tid].unlocking_script = script_add_locktime_cltv(self.inputs[tid].locktime_cltv,
-                                                                             self.inputs[tid].unlocking_script)
-            if self.inputs[tid].locktime_csv:
-                self.inputs[tid].unlocking_script = script_add_locktime_csv(self.inputs[tid].locktime_csv,
-                                                                            self.inputs[tid].unlocking_script)
+        self.inputs[tid].update_scripts(hash_type)
         return n_signs
 
     def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', unlocking_script_unsigned=b'',
