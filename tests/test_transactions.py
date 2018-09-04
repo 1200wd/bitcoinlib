@@ -894,19 +894,6 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(len(t.inputs), 201)
         self.assertEqual(len(t.outputs), 86)
 
-    def test_transaction_segwit(self):
-        rawtx = '01000000000101dc5f622445ea82789019400fb4bfbab50b7b1003db29dfbde610baee2007cf170300000000ffffffff0200' \
-                'a3e111000000001976a914922b83d018a38c938efe0dbcb7253f8ddc395be088aca8daa71300000000220020701a8d401c84' \
-                'fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d0400473044022031002bcfe3317b3f2f4f78eb0c6e8ec1b6' \
-                '895fd7cb3a42d0ff3f6f0b52895790022033a9b210970c573524bf7d2cf7f43a2e6bdcdfd081649da8dc8ec0a6ac0ef3ff01' \
-                '483045022100fe616504927364c238e6c22e1db3d640c0402e1fe04c6292fce6448772990114022059e773b8c5942610c3de' \
-                '1c41bb02bfd06391be59a04af44ba927ecf3e848bf8d016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea' \
-                '368e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfd' \
-                'd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000'
-        t = Transaction.import_raw(rawtx)
-        # For now just check if no parsing errors occur when deserializing
-        self.assertEqual(len(t.inputs), 1)
-
     def test_transactions_import_raw_totals(self):
         raw_tx = "0100000003efdad76b8da190878c1de4c92fd4aaa0a287984171a4398c1140df11663cb84c010000006b483045022065db" \
                  "71606b84edc291eb2ec55e49ee2fd44afef8b20b4ef88fc2a01c2ba6e963022100dfb24228f2f80574d64a3a2964c5b3d0" \
@@ -1324,3 +1311,17 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t2.sign([pk1], 0)
         self.assertTrue(t2.verify())
+
+
+    # def test_transaction_segwit(self):
+    #     rawtx = '01000000000101dc5f622445ea82789019400fb4bfbab50b7b1003db29dfbde610baee2007cf170300000000ffffffff0200' \
+    #             'a3e111000000001976a914922b83d018a38c938efe0dbcb7253f8ddc395be088aca8daa71300000000220020701a8d401c84' \
+    #             'fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d0400473044022031002bcfe3317b3f2f4f78eb0c6e8ec1b6' \
+    #             '895fd7cb3a42d0ff3f6f0b52895790022033a9b210970c573524bf7d2cf7f43a2e6bdcdfd081649da8dc8ec0a6ac0ef3ff01' \
+    #             '483045022100fe616504927364c238e6c22e1db3d640c0402e1fe04c6292fce6448772990114022059e773b8c5942610c3de' \
+    #             '1c41bb02bfd06391be59a04af44ba927ecf3e848bf8d016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea' \
+    #             '368e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfd' \
+    #             'd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000'
+    #     t = Transaction.import_raw(rawtx)
+    #     # TODO: For now just check if no parsing errors occur when deserializing
+    #     # self.assertEqual(len(t.inputs), 1)
