@@ -141,7 +141,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                        coinbase=coinbase, flag=flag, type=type, rawtx=to_hexstring(rawtx))
 
 
-def script_deserialize(script, script_types=None, locking_script=None):
+def script_deserialize(script, script_types=None, locking_script=None, size_bytes_check=True):
     """
     Deserialize a script: determine type, number of signatures and script data.
     
@@ -329,6 +329,16 @@ def script_deserialize(script, script_types=None, locking_script=None):
         data.update({'result': 'Empty script'})
         return data
 
+    # Check if script starts with size byte
+    if size_bytes_check:
+        script_size, size = varbyteint_to_int(script[0:9])
+        if len(script[1:]) == script_size:
+            script = script[1:]
+            data = script_deserialize(script, script_types, locking_script, size_bytes_check=False)
+            if 'result' in data and data['result'][:22] not in \
+                    ['Script not recognised', 'Empty script', 'Could not parse script']:
+                return data
+
     if script_types is None:
         if locking_script is None:
             script_types = dict(SCRIPT_TYPES_UNLOCKING, **SCRIPT_TYPES_LOCKING)
@@ -355,7 +365,7 @@ def script_deserialize(script, script_types=None, locking_script=None):
         data['locktime_csv'] = locktime_csv
         return data
 
-    wrn_msg = "Could not parse script, unrecognized lock_script. Script: %s" % to_hexstring(script)
+    wrn_msg = "Could not parse script, unrecognized script. Script: %s" % to_hexstring(script)
     _logger.warning(wrn_msg)
     return {'result': wrn_msg}
 

@@ -1011,6 +1011,11 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(
             to_hexstring(ds['keys'][0]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
 
+    def test_transaction_deserialize_script_with_sizebyte(self):
+        script_size_byte = b'\x16\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
+        script = b'\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
+        self.assertDictEqualExt(script_deserialize(script_size_byte), script_deserialize(script))
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
