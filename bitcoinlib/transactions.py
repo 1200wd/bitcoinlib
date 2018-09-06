@@ -123,12 +123,12 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                 wsd = script_deserialize(witness_str)
                 sig = wsd['signatures'][0]
                 key = wsd['keys'][0]
-                script_type = wsd['script_type']
-                if inputs[n].unlocking_script_unsigned:
-                    if script_type == "sig_pubkey":
-                        script_type = 'p2sh_p2wpkh'
-                    else:
-                        script_type = 'p2sh_p2wsh'
+                usd = script_deserialize(inputs[n].unlocking_script)
+                script_type = inputs[n].script_type
+                if usd['script_type'] == "p2wsh" and wsd['script_type'] == 'sig_pubkey':
+                    script_type = 'p2sh_p2wpkh'
+                elif usd['script_type'] == "p2wsh" and wsd['script_type'] == 'p2sh':
+                    script_type = 'p2sh_p2wsh'
                 inputs[n] = Input(prev_hash=inputs[n].prev_hash, output_n=inputs[n].output_n, keys=key,
                                   unlocking_script_unsigned=inputs[n].unlocking_script_unsigned,
                                   unlocking_script=inputs[n].unlocking_script,
@@ -193,6 +193,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             data = _get_empty_data()
             data['script_type'] = script_type
             found = True
+            print(script_type, to_hexstring(script))
             for ch in ost:
                 if cur >= len(script):
                     found = False
@@ -253,20 +254,17 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     data['number_of_sigs_m'] = data2['number_of_sigs_m']
                     data['number_of_sigs_n'] = data2['number_of_sigs_n']
                     cur = len(script)
-                elif ch == 'script_size':
-                    # TODO: Check if varbyteint's are used here
-                    script_size, size = varbyteint_to_int(script[cur:cur + 9])
-                    if script_size != len(script) - 1:
-                        found = False
-                    else:
-                        cur += size
-                        data['redeemscript'] = script[cur:]
+                # elif ch == 'script_size':
+                #     # TODO: Check if varbyteint's are used here
+                #     script_size, size = varbyteint_to_int(script[cur:cur + 9])
+                #     if script_size != len(script) - 1:
+                #         found = False
+                #     else:
+                #         cur += size
+                #         data['redeemscript'] = script[cur:]
                 elif ch == 'push_size':
                     push_size, size = varbyteint_to_int(script[cur:cur + 9])
-                    if len(script[cur:]) - size != push_size:
-                        found = False
-                    else:
-                        found = True
+                    found = bool(len(script[cur:]) - size == push_size)
                     break
                 elif ch == 'op_m':
                     if cur_char in OP_N_CODES:
@@ -330,14 +328,14 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
         return data
 
     # Check if script starts with size byte
-    if size_bytes_check:
-        script_size, size = varbyteint_to_int(script[0:9])
-        if len(script[1:]) == script_size:
-            script = script[1:]
-            data = script_deserialize(script, script_types, locking_script, size_bytes_check=False)
-            if 'result' in data and data['result'][:22] not in \
-                    ['Script not recognised', 'Empty script', 'Could not parse script']:
-                return data
+    # if size_bytes_check:
+    #     script_size, size = varbyteint_to_int(script[0:9])
+    #     if len(script[1:]) == script_size:
+    #         script2 = script[1:]
+    #         data = script_deserialize(script2, script_types, locking_script, size_bytes_check=False)
+    #         if 'result' in data and data['result'][:22] not in \
+    #                 ['Script not recognised', 'Empty script', 'Could not parse script']:
+    #             return data
 
     if script_types is None:
         if locking_script is None:
@@ -758,7 +756,7 @@ class Input:
             if self.type == 'segwit':
                 self.script_code = script_code
                 self.witness = unlock_script
-            else:
+            elif unlock_script != b'':
                 self.unlocking_script = unlock_script
 
         elif self.script_type == 'p2sh_multisig':
