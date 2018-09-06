@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 - 2018 August - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -151,6 +151,8 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     :type script_types: list
     :param locking_script: Only deserialize locking scripts. Specify False to only deserialize for unlocking scripts. Default is None for both
     :type locking_script: bool
+    :param size_bytes_check: Check if script or signature starts with size bytes and remove size bytes before parsing. Default is True
+    :type size_bytes_check: bool
 
     :return list: With this items: [script_type, data, number_of_sigs_n, number_of_sigs_m] 
     """
@@ -592,6 +594,8 @@ class Input:
         :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
+        :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
+        :type encoding: str
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -603,8 +607,6 @@ class Input:
         else:
             self.output_n_int = struct.unpack('>I', output_n)[0]
             self.output_n = output_n
-        # if unlocking_script is None:
-        #     unlocking_script = b''
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None \
             else to_bytes(unlocking_script_unsigned)
@@ -860,6 +862,10 @@ class Output:
         :type spent: bool
         :param output_n: Output index number, default is 0. Index number has to be unique per transaction and 0 for first output, 1 for second, etc
         :type output_n: int
+        :param script_type: Script type of output (p2pkh, p2sh, segwit p2wpkh, etc). Extracted from lock_script if provided.
+        :type script_type: str
+        :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
+        :type encoding: str
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -1208,6 +1214,7 @@ class Transaction:
         print("Confirmations: %s" % self.confirmations)
 
     def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sig_version=SIGNATURE_VERSION_STANDARD):
+        # TODO: Implement sig_version
         prevouts_serialized = b''
         sequence_serialized = b''
         for i in self.inputs:
@@ -1260,27 +1267,16 @@ class Transaction:
         witnesses = []
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
-            # Add unlocking script (ScriptSig)
-            # if i.type == 'segwit':
-            # if not i.unlocking_script or i.unlocking_script == b'\0':
-            #     witnesses.append(b'\1' + varstr(i.unlocking_script_unsigned))
-            # else:
             if i.witness:
                 witnesses.append(i.witness)
             else:
                 witnesses.append(b'\0')
-            #     if i.script_type == 'p2sh_p2wpkh':
-            #         r += varstr(varstr(i.unlocking_script))
-            #     else:
-            #         r += b'\0'
-            # else:
             if sign_id is None:
                 r += varstr(i.unlocking_script)
             elif sign_id == i.index_n:
                 r += varstr(i.unlocking_script_unsigned)
             else:
                 r += b'\0'
-            # witnesses.append(b'\0')
             r += struct.pack('<L', i.sequence)
 
         r += int_to_varbyteint(len(self.outputs))
@@ -1500,6 +1496,12 @@ class Transaction:
         :type value: int
         :param double_spend: True if double spend is detected, depends on which service provider is selected
         :type double_spend: bool
+        :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
+        :type locktime_cltv: int
+        :param locktime_csv: Check Sequency Verify value.
+        :type locktime_csv: int
+        :param address: Specify address of input if known
+        :type address: str
         :param signatures: Add signatures to input if already known
         :type signatures: bytes, str
 
@@ -1539,6 +1541,8 @@ class Transaction:
         :type spent: bool
         :param output_n: Index number of output in transaction
         :type output_n: int
+        :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
+        :type encoding: str
 
         :return int: Transaction output number (output_n)
 
