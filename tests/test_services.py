@@ -77,6 +77,8 @@ class TestService(unittest.TestCase, CustomAssertions):
         except ServiceError:
             pass
         for provider in srv.errors:
+            if isinstance(srv.errors[provider], Exception) or 'response [429]' in srv.errors[provider]:
+                pass
             if provider == 'blockcypher.testnet':
                 self.assertIn('has already been spent', srv.errors['blockcypher.testnet'])
             elif provider == 'blockexplorer.testnet' or provider == 'bitcoind.testnet':
