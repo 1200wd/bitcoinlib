@@ -125,7 +125,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                 key = wsd['keys'][0]
                 usd = script_deserialize(inputs[n].unlocking_script)
                 script_type = inputs[n].script_type
-                if usd['script_type'] == "p2wsh" and wsd['script_type'] == 'sig_pubkey':
+                if usd['script_type'] == "p2wpkh" and wsd['script_type'] == 'sig_pubkey':
                     script_type = 'p2sh_p2wpkh'
                 elif usd['script_type'] == "p2wsh" and wsd['script_type'] == 'p2sh':
                     script_type = 'p2sh_p2wsh'
@@ -158,23 +158,23 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     def _parse_signatures(scr, max_signatures=None, redeemscript_expected=False, signature_length=0):
         scr = to_bytes(scr)
         sigs = []
-        total_lenght = 0
+        total_length = 0
         while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
-            l, sl = varbyteint_to_int(scr[0:9])
-            if signature_length and l != signature_length:
+            siglen, size = varbyteint_to_int(scr[0:9])
+            if signature_length and siglen != signature_length:
                 break
             # TODO: Rethink and rewrite this:
-            if l not in [20, 33, 65, 70, 71, 72, 73]:
+            if siglen not in [20, 33, 65, 70, 71, 72, 73]:
                 break
             # TODO: Does this have influence?
-            if len(scr) < l:
+            if len(scr) < siglen:
                 break
-            if redeemscript_expected and len(scr[l + 1:]) < 20:
+            if redeemscript_expected and len(scr[siglen + 1:]) < 20:
                 break
-            sigs.append(scr[1:l + 1])
-            total_lenght += l + sl
-            scr = scr[l + 1:]
-        return sigs, total_lenght
+            sigs.append(scr[1:siglen + 1])
+            total_length += siglen + size
+            scr = scr[siglen + 1:]
+        return sigs, total_length
 
     def _get_empty_data():
         return {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'number_of_sigs_n': 1,
@@ -193,7 +193,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             data = _get_empty_data()
             data['script_type'] = script_type
             found = True
-            print(script_type, to_hexstring(script))
             for ch in ost:
                 if cur >= len(script):
                     found = False
@@ -204,7 +203,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                 if ch[:9] == 'signature':
                     signature_length = 0
                     if len(ch) > 10:
-                        signature_length = int("signature-20".split("-")[1])
+                        signature_length = int(ch.split("-")[1])
                     s, total_length = _parse_signatures(script[cur:], 1, signature_length=signature_length)
                     if not s:
                         found = False
@@ -254,18 +253,11 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     data['number_of_sigs_m'] = data2['number_of_sigs_m']
                     data['number_of_sigs_n'] = data2['number_of_sigs_n']
                     cur = len(script)
-                # elif ch == 'script_size':
-                #     # TODO: Check if varbyteint's are used here
-                #     script_size, size = varbyteint_to_int(script[cur:cur + 9])
-                #     if script_size != len(script) - 1:
-                #         found = False
-                #     else:
-                #         cur += size
-                #         data['redeemscript'] = script[cur:]
                 elif ch == 'push_size':
                     push_size, size = varbyteint_to_int(script[cur:cur + 9])
                     found = bool(len(script[cur:]) - size == push_size)
-                    break
+                    if not found:
+                        break
                 elif ch == 'op_m':
                     if cur_char in OP_N_CODES:
                         data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
@@ -328,14 +320,14 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
         return data
 
     # Check if script starts with size byte
-    # if size_bytes_check:
-    #     script_size, size = varbyteint_to_int(script[0:9])
-    #     if len(script[1:]) == script_size:
-    #         script2 = script[1:]
-    #         data = script_deserialize(script2, script_types, locking_script, size_bytes_check=False)
-    #         if 'result' in data and data['result'][:22] not in \
-    #                 ['Script not recognised', 'Empty script', 'Could not parse script']:
-    #             return data
+    if size_bytes_check:
+        script_size, size = varbyteint_to_int(script[0:9])
+        if len(script[1:]) == script_size:
+            script2 = script[1:]
+            data = script_deserialize(script2, script_types, locking_script, size_bytes_check=False)
+            if 'result' in data and data['result'][:22] not in \
+                    ['Script not recognised', 'Empty script', 'Could not parse script']:
+                return data
 
     if script_types is None:
         if locking_script is None:
