@@ -120,10 +120,10 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                 witness_str += rawtx[cursor:cursor + item_size + size]
                 cursor += size + item_size
             if witness_str:
-                wsd = script_deserialize(witness_str)
+                wsd = script_deserialize(witness_str, locking_script=False)
                 sig = wsd['signatures'][0]
                 key = wsd['keys'][0]
-                usd = script_deserialize(inputs[n].unlocking_script)
+                usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
                 script_type = inputs[n].script_type
                 if usd['script_type'] == "p2wpkh" and wsd['script_type'] == 'sig_pubkey':
                     script_type = 'p2sh_p2wpkh'
@@ -247,7 +247,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     elif script[cur:cur + 1] == b'\x4e':
                         size_byte = 3
                     data['redeemscript'] = script[cur + 1 + size_byte:]
-                    data2 = script_deserialize(data['redeemscript'])
+                    data2 = script_deserialize(data['redeemscript'], locking_script=True)
                     if 'signatures' not in data2 or not data2['signatures']:
                         found = False
                         break
