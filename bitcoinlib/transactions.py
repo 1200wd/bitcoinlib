@@ -788,13 +788,13 @@ class Input:
         elif self.script_type == 'p2sh_p2wpkh':
             keyhash = self.keys[0].hash160()
             if self.keys:
-                self.script_code = b'\x76\xa9\x14' + to_bytes(keyhash) + b'\x88\xac'
-            self.unlocking_script = varstr(b'\0' + varstr(keyhash))
+                self.script_code = b'\x76\xa9\x14' + keyhash + b'\x88\xac'
+            self.unlocking_script = b'\0' + varstr(keyhash)
             if len(self.signatures):
                 self.witness = \
                     varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
-            addr_data = keyhash
+            addr_data = self.unlocking_script
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:
@@ -1474,10 +1474,12 @@ class Transaction:
         self.inputs[tid].update_scripts(hash_type)
         return n_signs
 
-    def add_input(self, prev_hash, output_n, keys=None, unlocking_script=b'', unlocking_script_unsigned=b'',
-                  script_type=None, sequence=0xffffffff, compressed=True, sigs_required=None, sort=False,
-                  index_n=None, value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  address='', signatures=None):
+
+    def add_input(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
+                  unlocking_script_unsigned=None, script_type=None, address='',
+                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
+                  value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
+                  type='standard', encoding='base58'):
         """
         Add input to this transaction
         
@@ -1524,11 +1526,12 @@ class Transaction:
         if self.version == b'\x00\x00\x00\x01' and 0 < sequence < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
-            Input(prev_hash=prev_hash, output_n=output_n, keys=keys, unlocking_script=unlocking_script,
-                  unlocking_script_unsigned=unlocking_script_unsigned, address=address,
-                  script_type=script_type, network=self.network.name, sequence=sequence, compressed=compressed,
+            Input(prev_hash=prev_hash, output_n=output_n, keys=keys, signatures=signatures,
+                  unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
+                  script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
-                  signatures=signatures, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv))
+                  locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, type=type, encoding=encoding,
+                  network=self.network.name))
         return index_n
 
     def add_output(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,

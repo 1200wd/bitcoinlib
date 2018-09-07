@@ -1318,6 +1318,14 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertTrue(t2.verify())
         self.assertEqual(t2.inputs[0].script_type, 'p2sh_p2wpkh')
 
+    def test_transaction_segwit_addresses(self):
+        pk = 'Ky4o5RNziUHUuDjUaAKuHnfMt2hRsX4y4itaGPGNMPDhR11faGtA'
+        inp = Input('prev', 0, pk, script_type='p2sh_p2wpkh')
+        self.assertEqual(inp.address, '3PkeUdqAddDPfzTniQeKQpeLqeuAMjFM8R')
+
+        pk = 'KzfY4SCg56duLi1UTXbwUzaK1nQEF8gUvGLvwUDi7bYJvhMn3CFV'
+        inp = Input('prev', 0, pk, encoding='bech32')
+        self.assertEqual(inp.address, 'bc1qhzt298pr6tm23hqkd4akzr3cajpyt2wsnz8zr4')
 
     # def test_transaction_segwit(self):
     #     rawtx = '01000000000101dc5f622445ea82789019400fb4bfbab50b7b1003db29dfbde610baee2007cf170300000000ffffffff0200' \

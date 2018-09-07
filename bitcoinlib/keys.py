@@ -339,7 +339,7 @@ class Address:
         :type prefix: str, bytes
         :param script_type: Type of script, i.e. p2sh or p2pkh.
         :type script_type: str
-        :param encoding: Address encoding. Default is base58 encoding, for segwit you can specify bech32 encoding
+        :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding
         :type encoding: str
         :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
         :type network_overrides: dict
