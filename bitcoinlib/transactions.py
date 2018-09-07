@@ -736,14 +736,20 @@ class Input:
 
         :return:
         """
+        addr_data = b''
+        script_code = b''
+        unlock_script = b''
         if self.script_type == 'sig_pubkey':
-            script_code = b''
-            unlock_script = b''
             if self.keys:
                 script_code = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
                 self.unlocking_script_unsigned = script_code
-                if not self.address:
-                    self.address = self.keys[0].address()
+                if self.keys[0].compressed:
+                    addr_data = self.keys[0].public_byte
+                else:
+                    addr_data = self.keys[0].public_uncompressed_byte
+                # addr_data = self.keys[0].public_byte
+                # if not self.address:
+                #     self.address = self.keys[0].address()
             if len(self.signatures):
                 unlock_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
@@ -752,7 +758,6 @@ class Input:
                 self.witness = unlock_script
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
-
         elif self.script_type == 'p2sh_multisig':
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
@@ -762,6 +767,8 @@ class Input:
             if not self.address:
                 self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
                                                   versionbyte=self.network.prefix_address_p2sh)
+            # addr_data = script_to_pubkeyhash(self.redeemscript)
+            addr_data = self.redeemscript
             self.unlocking_script_unsigned = self.redeemscript
 
             n_tag = self.redeemscript[0]
@@ -772,8 +779,12 @@ class Input:
             if b'' in signatures:
                 raise TransactionError("Empty signature found in signature list when signing. "
                                        "Is DER encoded version of signature defined?")
-            self.unlocking_script = \
-                _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
+            unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
+            if self.type == 'segwit':
+                self.script_code = unlock_script
+                self.witness = unlock_script
+            elif unlock_script != b'':
+                self.unlocking_script = unlock_script
         elif self.script_type == 'p2sh_p2wpkh':
             keyhash = self.keys[0].hash160()
             if self.keys:
@@ -783,12 +794,12 @@ class Input:
                 self.witness = \
                     varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
+            addr_data = keyhash
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
-        if self.type == 'segwit':
-            if self.keys:
-                self.address = Address(self.keys[0].public_byte, encoding=self.encoding,
-                                       script_type=self.script_type).address
+        if addr_data:
+            self.address = Address(addr_data, encoding=self.encoding, network=self.network,
+                                   script_type=self.script_type).address
 
         if self.locktime_cltv:
             self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
