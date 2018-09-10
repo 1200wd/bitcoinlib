@@ -20,18 +20,17 @@
 
 import numbers
 from copy import deepcopy
-import struct
 import random
 from sqlalchemy import or_
 from itertools import groupby
 from operator import itemgetter
 from bitcoinlib.db import *
-from bitcoinlib.encoding import pubkeyhash_to_addr, to_hexstring, script_to_pubkeyhash, to_bytes
+from bitcoinlib.encoding import to_hexstring, to_bytes
 from bitcoinlib.keys import HDKey, check_network_and_key, Address
 from bitcoinlib.networks import Network
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input
+from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, get_unlocking_script_type
 
 _logger = logging.getLogger(__name__)
 
@@ -301,6 +300,10 @@ def script_type_default(wallet_type, key_type):
         return 'p2wpkh'
     elif wallet_type == 'segwit' and key_type in ['multisig']:
         return 'p2wsh'
+    elif wallet_type == 'p2sh-segwit' and key_type in ['bip32', 'single']:
+        return 'p2sh_p2wpkh'
+    elif wallet_type == 'p2sh-segwit' and key_type in ['multisig']:
+        return 'p2sh_p2wsh'
     else:
         raise WalletError("Wallet and key type combination not supported: %s / %s" % (wallet_type, key_type))
 
@@ -2550,13 +2553,11 @@ class HDWallet:
             for ck in key.multisig_children:
                 # TODO:  CHECK THIS
                 inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
-            script_type = 'p2sh_multisig'
         elif key.key_type in ['bip32', 'single']:
             inp_keys = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
-            script_type = 'p2pkh'
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
-        return inp_keys, script_type, key
+        return inp_keys, key
 
     def select_inputs(self, amount, variance=None, account_id=None, network=None, min_confirms=0, max_utxos=None,
                       return_input_obj=True):
@@ -2629,8 +2630,9 @@ class HDWallet:
             inputs = []
             for utxo in selected_utxos:
                 # amount_total_input += utxo.value
-                inp_keys, script_type, key = self._objects_by_key_id(utxo.key_id)
-                inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=utxo.script_type,
+                inp_keys, key = self._objects_by_key_id(utxo.key_id)
+                script_type = get_unlocking_script_type(utxo.script_type)
+                inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                               sigs_required=self.multisig_n_required, sort=self.sort_keys,
                               compressed=key.compressed, value=utxo.value))
             return inputs
@@ -2707,11 +2709,8 @@ class HDWallet:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
-                inp_keys, lock_script_type, key = self._objects_by_key_id(utxo.key_id)
-                if lock_script_type == 'p2sh':
-                    unlock_script_type = 'p2sh_multisig'
-                else:
-                    unlock_script_type = 'sig_pubkey'
+                inp_keys, key = self._objects_by_key_id(utxo.key_id)
+                unlock_script_type = get_unlocking_script_type(utxo.script_type)
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys,
                                       script_type=unlock_script_type, sigs_required=self.multisig_n_required,
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
@@ -2721,6 +2720,7 @@ class HDWallet:
                 locktime_cltv = None
                 locktime_csv = None
                 unlocking_script_unsigned = None
+                unlocking_script_type = ''
                 if isinstance(inp, Input):
                     prev_hash = inp.prev_hash
                     output_n = inp.output_n
@@ -2729,6 +2729,7 @@ class HDWallet:
                     signatures = inp.signatures
                     unlocking_script = inp.unlocking_script
                     unlocking_script_unsigned = inp.unlocking_script_unsigned
+                    unlocking_script_type = inp.script_type
                     address = inp.address
                     sequence = inp.sequence
                     locktime_cltv = inp.locktime_cltv
@@ -2739,7 +2740,9 @@ class HDWallet:
                     key_id = inp.key_id
                     value = inp.value
                     signatures = None
+                    # FIXME: This probably not an unlocking_script
                     unlocking_script = inp.script
+                    unlocking_script_type = get_unlocking_script_type(inp.script_type)
                     address = inp.key.address
                 else:
                     prev_hash = inp[0]
@@ -2750,7 +2753,7 @@ class HDWallet:
                     unlocking_script = b'' if len(inp) <= 5 else inp[5]
                     address = '' if len(inp) <= 6 else inp[6]
                 # Get key_ids, value from Db if not specified
-                if not (key_id and value):
+                if not (key_id and value and unlocking_script_type):
                     if not isinstance(output_n, int):
                         output_n = struct.unpack('>I', output_n)[0]
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
@@ -2760,6 +2763,7 @@ class HDWallet:
                     if inp_utxo:
                         key_id = inp_utxo.key_id
                         value = inp_utxo.value
+                        unlocking_script_type = get_unlocking_script_type(inp_utxo.script_type)
                     else:
                         _logger.info("UTXO %s not found in this wallet. Please update UTXO's if this is not an "
                                      "offline wallet" % to_hexstring(prev_hash))
@@ -2773,12 +2777,8 @@ class HDWallet:
                                               "or import transaction as dictionary" % address)
 
                 amount_total_input += value
-                inp_keys, lock_script_type, key = self._objects_by_key_id(key_id)
-                if lock_script_type == 'p2sh':
-                    unlock_script_type = 'p2sh_multisig'
-                else:
-                    unlock_script_type = 'sig_pubkey'
-                transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=unlock_script_type,
+                inp_keys, key = self._objects_by_key_id(key_id)
+                transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=unlocking_script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
                                       unlocking_script=unlocking_script,

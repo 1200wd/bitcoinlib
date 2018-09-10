@@ -507,6 +507,16 @@ def script_add_locktime_csv(locktime_csv, script):
     return struct.pack('<L', locktime_csv) + lockbytes + script
 
 
+def get_unlocking_script_type(locking_script_type):
+    # TODO: Complete and fix this!
+    if locking_script_type == 'p2sh' or locking_script_type == 'p2sh_p2wsh':
+        return 'p2sh_multisig'
+    elif locking_script_type == 'p2sh_p2wpkh':
+        return 'p2sh_p2wpkh'
+    else:
+        return 'sig_pubkey'
+
+
 def verify_signature(transaction_to_sign, signature, public_key):
     """
     Verify if signatures signs provided transaction hash and corresponds with public key
@@ -1475,12 +1485,11 @@ class Transaction:
         self.inputs[tid].update_scripts(hash_type)
         return n_signs
 
-
     def add_input(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  type='standard', encoding='base58'):
+                  type=None, encoding='base58'):
         """
         Add input to this transaction
         
@@ -1602,7 +1611,7 @@ class Transaction:
                     est_size += 147
                 else:
                     est_size += 180
-            elif inp.script_type == 'p2sh_multisig':
+            elif inp.script_type in ['p2sh_multisig', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
                 n_sigs = len(inp.keys)
                 est_size += 9 + (n_sigs * 34) + (inp.sigs_required * 72)
             else:
