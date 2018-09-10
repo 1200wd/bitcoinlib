@@ -570,7 +570,7 @@ class Input:
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, type='standard',
-                 encoding='base58', network=DEFAULT_NETWORK):
+                 encoding=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -657,7 +657,12 @@ class Input:
         self.locktime_cltv = locktime_cltv
         self.locktime_csv = locktime_csv
         self.type = type
-        self.encoding = encoding
+        if encoding is None:
+            self.encoding = 'base58'
+            if self.type == 'segwit':
+                self.encoding = 'bech32'
+        else:
+            self.encoding = encoding
         self.valid = None
         self.witness = b''
         self.script_code = b''
@@ -1490,7 +1495,7 @@ class Transaction:
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  type=None, encoding='base58'):
+                  type=None, encoding=None):
         """
         Add input to this transaction
         

@@ -2681,7 +2681,7 @@ class HDWallet:
                 amount_total_output += o.value
             else:
                 amount_total_output += o[1]
-                transaction.add_output(o[1], o[0], encoding=self.encoding)
+                transaction.add_output(o[1], o[0])
 
         srv = Service(network=network, providers=self.providers)
         transaction.fee_per_kb = None
@@ -2711,7 +2711,8 @@ class HDWallet:
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
                 unlock_script_type = get_unlocking_script_type(utxo.script_type)
                 type = 'standard'
-                if unlock_script_type in ['p2wpkh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2wsh']:
+                if unlock_script_type in ['p2wpkh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2wsh'] or \
+                                utxo.script_type in ['p2wpkh', 'p2wsh']:
                     type = 'segwit'
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys,
                                       script_type=unlock_script_type, sigs_required=self.multisig_n_required,
