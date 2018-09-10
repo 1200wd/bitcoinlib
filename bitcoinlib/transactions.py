@@ -799,7 +799,7 @@ class Input:
             keyhash = self.keys[0].hash160()
             if self.keys:
                 self.script_code = b'\x76\xa9\x14' + keyhash + b'\x88\xac'
-            self.unlocking_script = b'\0' + varstr(keyhash)
+            self.unlocking_script = varstr(b'\0' + varstr(keyhash))
             if len(self.signatures):
                 self.witness = \
                     varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
@@ -813,7 +813,8 @@ class Input:
                                    script_type=self.script_type).address
 
         if self.locktime_cltv:
-            self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script_unsigned)
+            self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv,
+                                                                      self.unlocking_script_unsigned)
             self.unlocking_script = script_add_locktime_cltv(self.locktime_cltv, self.unlocking_script)
         elif self.locktime_csv:
             self.unlocking_script_unsigned = script_add_locktime_csv(self.locktime_csv, self.unlocking_script_unsigned)
@@ -1281,7 +1282,7 @@ class Transaction:
         """
 
         r = self.version[::-1]
-        if sign_id is None and self.type == 'segwit':
+        if sign_id is None and self.type in ['segwit', 'p2sh-segwit']:
             r += b'\x00'  # marker (BIP 141)
             r += b'\x01'  # flag (BIP 141)
 
@@ -1308,7 +1309,7 @@ class Transaction:
             r += struct.pack('<Q', o.value)
             r += varstr(o.lock_script)
 
-        if sign_id is None and self.type == 'segwit':
+        if sign_id is None and self.type in ['segwit', 'p2sh-segwit']:
             if not self.coinbase and not len([w for w in witnesses if w != b'\0']):
                 raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
             for witness in witnesses:
@@ -1407,7 +1408,7 @@ class Transaction:
 
             if self.inputs[tid].script_type == 'coinbase':
                 raise TransactionError("Can not sign coinbase transactions")
-            if self.inputs[tid].type == 'segwit':
+            if self.inputs[tid].type in ['segwit', 'p2sh-segwit']:
                 tsig = self.signature_hash(tid)
             else:
                 tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
