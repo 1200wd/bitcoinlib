@@ -543,8 +543,7 @@ class HDWalletTransaction(Transaction):
         self.pushed = False
         self.error = None
         self.response_dict = None
-        self.type = hdwallet.type
-        Transaction.__init__(self, *args, **kwargs)
+        Transaction.__init__(self, type=hdwallet.type, *args, **kwargs)
 
     def __repr__(self):
         return "<HDWalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -2711,10 +2710,13 @@ class HDWallet:
                 amount_total_input += utxo.value
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
                 unlock_script_type = get_unlocking_script_type(utxo.script_type)
+                type = 'standard'
+                if unlock_script_type in ['p2wpkh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2wsh']:
+                    type = 'segwit'
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys,
                                       script_type=unlock_script_type, sigs_required=self.multisig_n_required,
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
-                                      address=utxo.key.address, sequence=sequence)
+                                      address=utxo.key.address, sequence=sequence, type=type)
         else:
             for inp in input_arr:
                 locktime_cltv = None
