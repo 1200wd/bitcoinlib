@@ -794,7 +794,8 @@ class Input:
                 self.witness = \
                     varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
-            addr_data = self.unlocking_script
+            # addr_data = self.unlocking_script
+            addr_data = self.keys[0].public_byte
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:

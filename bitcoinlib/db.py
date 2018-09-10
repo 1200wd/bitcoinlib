@@ -105,7 +105,7 @@ class DbWallet(Base):
     __table_args__ = (
         CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='constraint_allowed_schemes'),
         CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
-        CheckConstraint(type.in_(['standard', 'segwit']), name='constraint_allowed_types'),
+        CheckConstraint(type.in_(['standard', 'segwit', 'p2sh-segwit']), name='constraint_allowed_types'),
     )
 
     def __repr__(self):

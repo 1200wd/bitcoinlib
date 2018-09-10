@@ -518,6 +518,12 @@ class TestKeysAddress(unittest.TestCase):
         self.assertEqual(addr_dict['encoding'], 'bech32')
         self.assertEqual(addr_dict['script_type'], 'p2wpkh')
 
+    def test_key_address_p2sh_p2wpkh(self):
+        pk = 'd80229e1b5eae5b4f9e11698d73f5468e45631e6d256e500ceb51f4f49d99e78'
+        addr = Address(HDKey(pk).public_byte, script_type='p2sh_p2wpkh')
+        self.assertEqual(addr.redeemscript, b"\x00\x14\x1e\xf4h\x07'\x1bM4RJ\xb9b\x11\xb9X\x81h\xdei:")
+        self.assertEqual(addr.address, '3Disr2CmERuYuuMkkfGrjRUHqDENQvtNep')
+
     def test_keys_address_deserialize_bech32_p2sh(self):
         p1 = 'defy devote wrist belt else pony universe famous host frown voice casino'
         pub_key = 'Zpub6y322kmfAJtLeuVw5mDzHdBqRiwiK4zvYaQZgjRYtuktQJoADtdHK6mBTozRfm3v6N1RmZeyZjK8Gk7X6S8CwVfPLZBQzC8ZWz2FeWqNC4A'

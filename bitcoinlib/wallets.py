@@ -315,7 +315,7 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m', key_type=None, encoding='base58'):
+                 purpose=44, parent_id=0, path='m', key_type=None, encoding='base58', wallet_type=None):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -373,9 +373,14 @@ class HDWalletKey:
         if wk:
             return HDWalletKey(wk.id, session, k)
 
+        script_type = None
+        if wallet_type == 'p2sh-segwit':
+            script_type = 'p2sh_p2wpkh'
+        address = k.key.address(encoding=encoding, script_type=script_type)
+
         nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
-                   wif=k.wif(), address=k.key.address(encoding=encoding), parent_id=parent_id, compressed=k.compressed,
+                   wif=k.wif(), address=address, parent_id=parent_id, compressed=k.compressed,
                    is_private=k.isprivate, path=path, key_type=key_type, network_name=network, encoding=encoding)
         session.add(nk)
         session.commit()
@@ -850,7 +855,8 @@ class HDWallet:
 
         if scheme == 'bip44':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
-                                      account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding)
+                                      account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
+                                      wallet_type=type)
             if mk.depth > 4:
                 raise WalletError("Cannot create new wallet with main key of depth 5 or more")
             new_wallet.main_key_id = mk.key_id
@@ -862,13 +868,14 @@ class HDWallet:
                 networkcode = nw.bip44_cointype
                 path = ["%d'" % purpose, "%s'" % networkcode]
                 w._create_keys_from_path(mk, path, name=name, wallet_id=new_wallet_id, network=network, session=session,
-                                         account_id=account_id, purpose=purpose, basepath="m")
+                                         account_id=account_id, purpose=purpose, basepath="m", wallet_type=type)
                 w.new_account(account_id=account_id)
         elif scheme == 'multisig':
             w = cls(new_wallet_id, databasefile=databasefile)
         elif scheme == 'single':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
-                                      account_id=account_id, purpose=purpose, key_type='single', encoding=encoding)
+                                      account_id=account_id, purpose=purpose, key_type='single', encoding=encoding,
+                                      wallet_type=type)
             new_wallet.main_key_id = mk.key_id
             session.commit()
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
@@ -968,7 +975,7 @@ class HDWallet:
         return hdpm
 
     def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
-                               name='', basepath='', change=0, purpose=44):
+                               name='', basepath='', change=0, purpose=44, wallet_type=None):
         """
         Create all keys for a given path.
         
@@ -1026,7 +1033,8 @@ class HDWallet:
             ck = ck.subkey_for_path(path[l], network=network)
             nk = HDWalletKey.from_key(key=ck, name=name, wallet_id=wallet_id, network=network,
                                       account_id=account_id, change=change, purpose=purpose, path=fullpath,
-                                      parent_id=parent_id, encoding=self.encoding, session=session)
+                                      parent_id=parent_id, encoding=self.encoding, wallet_type=wallet_type,
+                                      session=session)
             self._key_objects.update({nk.key_id: nk})
             parent_id = nk.key_id
         _logger.info("New key(s) created for parent_id %d" % parent_id)
@@ -1099,10 +1107,13 @@ class HDWallet:
         self._session.close()
 
     def __del__(self):
-        if self._session:
-            if self._dbwallet and self._dbwallet.parent_id:
-                return
-            self._session.close()
+        try:
+            if self._session:
+                if self._dbwallet and self._dbwallet.parent_id:
+                    return
+                self._session.close()
+        except Exception:
+            pass
 
     def __repr__(self):
         return "<HDWallet(name=%s, databasefile=\"%s\")>" % \
@@ -1255,7 +1266,7 @@ class HDWallet:
         path = ["%d'" % self.purpose, "%s'" % network_code]
         self._create_keys_from_path(
             self.main_key, path, name=name, wallet_id=self.wallet_id, network=network, session=self._session,
-            account_id=account_id, purpose=self.purpose, basepath="m")
+            account_id=account_id, purpose=self.purpose, basepath="m", wallet_type=self.type)
 
         self._key_objects = {
             self.main_key_id: self.main_key
@@ -1398,7 +1409,8 @@ class HDWallet:
                     name = "Key %d" % address_index
             newkey = self._create_keys_from_path(
                 main_acc_key, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-                change=change, network=network, purpose=self.purpose, basepath=bpath, session=self._session
+                change=change, network=network, purpose=self.purpose, basepath=bpath, session=self._session,
+                wallet_type=self.type
             )
             return newkey
         elif self.scheme == 'multisig':
@@ -1691,7 +1703,7 @@ class HDWallet:
                 accrootkey_obj = self._create_keys_from_path(
                     purposekey, ["%s'" % str(bip44_cointype)], name=network, wallet_id=self.wallet_id,
                     account_id=account_id, network=network, purpose=self.purpose, basepath=purposekey.path,
-                    session=self._session)
+                    session=self._session, wallet_type=self.type)
             except IndexError:
                 raise WalletError("No key found for this wallet_id and purpose. Can not create new"
                                   "account for this wallet, is there a master key imported?")
@@ -1703,14 +1715,15 @@ class HDWallet:
         newpath = [str(account_id) + "'"]
         acckey = self._create_keys_from_path(
             accrootkey_obj, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-            network=network, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session
+            network=network, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session,
+            wallet_type=self.type
         )
         self._create_keys_from_path(
             acckey, ['0'], name=acckey.name + ' Payments', wallet_id=self.wallet_id, account_id=account_id,
-            network=network, purpose=self.purpose, basepath=acckey.path,  session=self._session)
+            network=network, purpose=self.purpose, basepath=acckey.path,  session=self._session, wallet_type=self.type)
         self._create_keys_from_path(
             acckey, ['1'], name=acckey.name + ' Change', wallet_id=self.wallet_id, account_id=account_id,
-            network=network, purpose=self.purpose, basepath=acckey.path, session=self._session)
+            network=network, purpose=self.purpose, basepath=acckey.path, session=self._session, wallet_type=self.type)
         return acckey
 
     def key_for_path(self, path, name='', account_id=0, change=0, enable_checks=True):
@@ -1772,7 +1785,8 @@ class HDWallet:
         newkey = self._create_keys_from_path(
             parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
             account_id=account_id, change=change,
-            network=self.network.name, purpose=self.purpose, basepath=basepath, session=self._session)
+            network=self.network.name, purpose=self.purpose, basepath=basepath, session=self._session,
+            wallet_type=self.type)
         return newkey
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,

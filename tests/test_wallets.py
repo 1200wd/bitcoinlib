@@ -1156,6 +1156,17 @@ class TestWalletSegwit(unittest.TestCase):
                                     databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(wlt.get_key().address, 'bc1q9e77qg66squynnz2z03wpkr7s6esr2evfyxh05')
 
+    def test_wallet_segwit_p2sh_p2wpkh(self):
+        phrase = 'fun brick apology sport museum vague once gospel walnut jump spawn hedgehog'
+        w = wallet_create_or_open('segwit-p2sh-p2wpkh', phrase, purpose=49, type='p2sh-segwit', network='bitcoin',
+                                  databasefile=DATABASEFILE_UNITTESTS)
+
+        k1 = w.get_key()
+        address = '3Disr2CmERuYuuMkkfGrjRUHqDENQvtNep'
+        self.assertEqual(Address(b'\x00\x14' + k1.key().key.hash160(), script_type='p2sh').address, address)
+        self.assertEqual(Address(k1.key().key.public_byte, script_type='p2sh_p2wpkh').address, address)
+        self.assertEqual(k1.address, address)
+
     def test_wallet_create_multisig_segwit(self):
         phrase1 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
         phrase2 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
