@@ -33,3 +33,4 @@ import bitcoinlib.services.chainso
 import bitcoinlib.services.estimatefee
 import bitcoinlib.services.cryptoid
 import bitcoinlib.services.litecoreio
+import bitcoinlib.services.blockchair
