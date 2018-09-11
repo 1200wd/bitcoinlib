@@ -1153,14 +1153,14 @@ class TestWalletSegwit(unittest.TestCase):
 
     def test_wallet_create_segwit(self):
         phrase = 'depth child sheriff attack when purpose velvet stay problem lock myself praise'
-        wlt = wallet_create_or_open('thetestwallet-bech32', key=phrase, network='bitcoin', type='segwit',
+        wlt = wallet_create_or_open('thetestwallet-bech32', key=phrase, network='bitcoin', witness_type='segwit',
                                     databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(wlt.get_key().address, 'bc1q9e77qg66squynnz2z03wpkr7s6esr2evfyxh05')
 
     def test_wallet_segwit_p2sh_p2wpkh(self):
         phrase = 'fun brick apology sport museum vague once gospel walnut jump spawn hedgehog'
-        w = wallet_create_or_open('segwit-p2sh-p2wpkh', phrase, purpose=49, type='p2sh-segwit', network='bitcoin',
-                                  databasefile=DATABASEFILE_UNITTESTS)
+        w = wallet_create_or_open('segwit-p2sh-p2wpkh', phrase, purpose=49, witness_type='p2sh-segwit',
+                                  network='bitcoin', databasefile=DATABASEFILE_UNITTESTS)
 
         k1 = w.get_key()
         address = '3Disr2CmERuYuuMkkfGrjRUHqDENQvtNep'
@@ -1173,8 +1173,7 @@ class TestWalletSegwit(unittest.TestCase):
         phrase2 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
         pk1 = HDKey.from_passphrase(phrase1)
         pk2 = HDKey.from_passphrase(phrase2)
-        wallet_delete_if_exists('multisig-segwit')
         w = HDWallet.create_multisig('multisig-segwit', [pk1, pk2.account_multisig_key().public()], sigs_required=1,
-                                     sort_keys=True, type='segwit', databasefile=DATABASEFILE_UNITTESTS)
+                                     sort_keys=True, witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
         # TODO: Double-check this:
         self.assertEqual(w.get_key().address, 'bc1qa2tqpgfqle9u4pr4h2fv908zclmycd6yj34c8zrggmyz6kxwmdgshnueaf')

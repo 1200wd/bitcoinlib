@@ -1265,14 +1265,14 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         inp_prev_tx2 = binascii.unhexlify('ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a')[::-1]
         inputs = [
             Input(inp_prev_tx1, 0, sequence=0xffffffee, keys=pk1, value=int(6.25 * 100000000)),
-            Input(inp_prev_tx2, 1, type='segwit', sequence=0xffffffff, keys=pk2, value=int(6 * 100000000)),
+            Input(inp_prev_tx2, 1, witness_type='segwit', sequence=0xffffffff, keys=pk2, value=int(6 * 100000000)),
         ]
         outputs = [
             Output(output1_value, lock_script='76a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac'),
             Output(output2_value, lock_script='76a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac'),
         ]
 
-        t = Transaction(inputs, outputs, type='segwit', locktime=0x00000011)
+        t = Transaction(inputs, outputs, witness_type='segwit', locktime=0x00000011)
         self.assertEqual(to_hexstring(t.signature_hash(1)),
                          'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670')
         t.sign([pk1], 0)
@@ -1296,7 +1296,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
 
         inp_prev_tx1 = binascii.unhexlify('db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477')[::-1]
         inputs = [
-            Input(inp_prev_tx1, 1, sequence=0xfffffffe, keys=pk1, value=int(10 * 100000000), type='segwit',
+            Input(inp_prev_tx1, 1, sequence=0xfffffffe, keys=pk1, value=int(10 * 100000000), witness_type='segwit',
                   script_type='p2sh_p2wpkh', encoding='base58'),
         ]
         outputs = [
@@ -1304,7 +1304,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
             Output(output2_value, lock_script='76a914fd270b1ee6abcaea97fea7ad0402e8bd8ad6d77c88ac'),
         ]
 
-        t = Transaction(inputs, outputs, type='segwit', locktime=0x00000492)
+        t = Transaction(inputs, outputs, witness_type='segwit', locktime=0x00000492)
         self.assertEqual(to_hexstring(t.signature_hash(0)),
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t.sign([pk1], 0)
