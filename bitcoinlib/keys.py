@@ -325,7 +325,7 @@ class Address:
                        encoding=addr_dict['encoding'], network_overrides=network_overrides)
 
     def __init__(self, data='', hashed_data='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
-                 encoding='base58', network_overrides=None):
+                 encoding=None, network_overrides=None):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
 
@@ -354,6 +354,11 @@ class Address:
         self.data = to_hexstring(data)
         self.script_type = script_type
         self.encoding = encoding
+        if self.encoding is None:
+            if self.script_type in ['p2wpkh', 'p2wsh']:
+                self.encoding = 'bech32'
+            else:
+                self.encoding = 'base58'
         self.hash_bytes = to_bytes(hashed_data)
         self.prefix = prefix
         self.redeemscript = b''
@@ -364,7 +369,7 @@ class Address:
             else:
                 self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
         self.hashed_data = to_hexstring(self.hash_bytes)
-        if encoding == 'base58':
+        if self.encoding == 'base58':
             if self.script_type is None:
                 self.script_type = 'p2pkh'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
@@ -384,14 +389,14 @@ class Address:
             addr_bytes = self.prefix + self.hash_bytes
             self.checksum = hashlib.sha256(hashlib.sha256(addr_bytes).digest()).digest()[:4]
             self.address = change_base(addr_bytes + self.checksum, 256, 58)
-        elif encoding == 'bech32':
+        elif self.encoding == 'bech32':
             if self.script_type is None:
                 self.script_type = 'p2wpkh'
             if self.prefix is None:
                 self.prefix = self.network.prefix_bech32
             self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), hrp=self.prefix)
         else:
-            raise KeyError("Encoding %s not supported" % encoding)
+            raise KeyError("Encoding %s not supported" % self.encoding)
         self.address_orig = None
         provider_prefix = None
         if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
