@@ -156,9 +156,9 @@ class BlockCypher(BaseClient):
     def estimatefee(self, blocks):
         res = self.compose_request('', '')
         if blocks <= 10:
-            return res['high_fee_per_kb']
-        else:
             return res['medium_fee_per_kb']
+        else:
+            return res['low_fee_per_kb']
 
     def block_count(self):
         return self.compose_request('', '')['height']
