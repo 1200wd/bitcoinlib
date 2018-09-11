@@ -280,6 +280,13 @@ def deserialize_address(address, encoding=None, network=None):
                 raise EncodingError("Invalid bech32 address %s" % address)
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
+            if len(public_key_hash) == 20:
+                script_type = 'p2wpkh'
+            elif len(public_key_hash) == 32:
+                script_type = 'p2wsh'
+            else:
+                raise KeyError("Unknown script type for address %s. Invalid length %d" %
+                               (address, len(public_key_hash)))
             return {
                 'address': address,
                 'encoding': 'bech32',
@@ -287,7 +294,7 @@ def deserialize_address(address, encoding=None, network=None):
                 'public_key_hash_bytes': public_key_hash,
                 'prefix': prefix,
                 'network': '' if not networks else networks[0],
-                'script_type': 'p2wpkh',  # TODO: Implement p2wsh
+                'script_type': script_type,
                 'networks': networks,
             }
         except EncodingError as err:

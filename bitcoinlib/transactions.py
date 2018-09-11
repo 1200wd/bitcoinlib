@@ -659,7 +659,7 @@ class Input:
         self.type = type
         if encoding is None:
             self.encoding = 'base58'
-            if self.type == 'segwit':
+            if self.script_type in ['p2wsh', 'p2wpkh']:
                 self.encoding = 'bech32'
         else:
             self.encoding = encoding
@@ -972,6 +972,8 @@ class Output:
                 self.lock_script = b'\xa9\x14' + self.public_key_hash + b'\x87'
             elif self.script_type == 'p2wpkh':
                 self.lock_script = b'\x00\x14' + self.public_key_hash
+            elif self.script_type == 'p2wsh':
+                self.lock_script = b'\x00\x20' + self.public_key_hash
             else:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
