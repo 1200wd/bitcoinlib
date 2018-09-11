@@ -808,15 +808,15 @@ class TestWalletMultisig(unittest.TestCase):
         def _open_all_wallets():
             wl1 = wallet_create_or_open_multisig(
                 'multisigmulticur1_tst', sigs_required=2, network=network,
-                databasefile=DATABASEFILE_UNITTESTS,
+                databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
                 key_list=[pk1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
             wl2 = wallet_create_or_open_multisig(
                 'multisigmulticur2_tst', sigs_required=2, network=network,
-                databasefile=DATABASEFILE_UNITTESTS,
+                databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
                 key_list=[pk1.account_multisig_key().wif_public(), pk2, pk3.account_multisig_key().wif_public()])
             wl3 = wallet_create_or_open_multisig(
                 'multisigmulticur3_tst', sigs_required=2, network=network,
-                databasefile=DATABASEFILE_UNITTESTS,
+                databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
                 key_list=[pk1.account_multisig_key().wif_public(), pk2.account_multisig_key().wif_public(), pk3])
             return wl1, wl2, wl3
 
