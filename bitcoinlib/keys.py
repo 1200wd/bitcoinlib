@@ -35,7 +35,7 @@ from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert, \
-    addr_bech32_to_pubkeyhash, pubkeyhash_to_addr_bech32
+    addr_bech32_to_pubkeyhash, pubkeyhash_to_addr_bech32, varstr
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -358,7 +358,8 @@ class Address:
         self.prefix = prefix
         self.redeemscript = b''
         if not self.hash_bytes:
-            if self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2wsh', 'p2sh_p2wsh']:
+            if (self.encoding == 'bech32' and self.script_type == 'p2sh') or \
+                            self.script_type in ['p2sh', 'p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
                 self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
@@ -367,7 +368,7 @@ class Address:
             if self.script_type is None:
                 self.script_type = 'p2pkh'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
-                self.redeemscript = b'\0\x14' + self.hash_bytes
+                self.redeemscript = b'\0' + varstr(self.hash_bytes)
                 self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.redeemscript).digest()).digest()
             if self.prefix is None:
                 if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig']:
