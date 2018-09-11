@@ -849,7 +849,8 @@ class TestWalletMultisig(unittest.TestCase):
         pk3 = HDKey.from_passphrase(phrase3, network=network)
         wlt = wallet_create_or_open_multisig(
             'multisig_network_mixups', sigs_required=2, network=network, databasefile=DATABASEFILE_UNITTESTS,
-            key_list=[phrase1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
+            key_list=[phrase1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()],
+            sort_keys=False)
         self.assertEqual(wlt.get_key().address, 'QeBprfDJNadgqJV4R5d7e9i6duVK8HFgAN')
         self.assertEqual(wlt.get_key().network.name, network)
 
@@ -907,7 +908,7 @@ class TestWalletKeyImport(unittest.TestCase):
                "af1DapFSc2J"
         prk2 = 'Ltpv71G8qDifUiNesWWsQZZVKVZNjBGHEfDExoAYkUp4SpU9aiWygzq11TgcCA9CJoGmMJjFatECSR9LGBpL5CxtmaHXpwGXFzrL' \
                'QJGENq739hW'
-        with wallet_create_or_open_multisig("mstest", [puk1, puk2, puk3], 2, network='litecoin',
+        with wallet_create_or_open_multisig("mstest", [puk1, puk2, puk3], 2, network='litecoin', sort_keys=False,
                                             databasefile=DATABASEFILE_UNITTESTS) as wlt:
             self.assertFalse(wlt.cosigner[1].main_key.is_private)
             wlt.import_key(prk2)
@@ -1133,7 +1134,7 @@ class TestWalletDash(unittest.TestCase):
         with wallet_create_or_open_multisig("mstest_dash", [pk1.account_multisig_key().public(),
                                                             pk2.account_multisig_key().public(),
                                                             pk3.account_multisig_key().public()], 2, network=network,
-                                            databasefile=DATABASEFILE_UNITTESTS) as wlt:
+                                            sort_keys=False, databasefile=DATABASEFILE_UNITTESTS) as wlt:
             self.assertFalse(wlt.cosigner[1].main_key.is_private)
             wlt.import_key(pk2)
             self.assertTrue(wlt.cosigner[1].main_key.is_private)

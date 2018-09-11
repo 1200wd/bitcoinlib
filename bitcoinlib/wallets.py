@@ -113,7 +113,7 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
 
 def wallet_create_or_open_multisig(
         name, key_list, sigs_required=None, owner='', network=None, account_id=0,
-        purpose=45, multisig_compressed=True, sort_keys=False, type='standard', encoding=None,
+        purpose=45, multisig_compressed=True, sort_keys=True, type='standard', encoding=None,
         databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
@@ -1445,7 +1445,11 @@ class HDWallet:
 
             # Calculate redeemscript and address and add multisig key to database
             redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
-            address = Address(redeemscript, encoding=self.encoding, script_type='p2sh', network=self.network).address
+            script_type = 'p2sh'
+            if self.type == 'p2sh-segwit':
+                script_type = 'p2sh_p2wsh'
+            address = Address(redeemscript, encoding=self.encoding, script_type=script_type,
+                              network=self.network).address
             if len(set([x['path'] for x in public_keys])) == 1:
                 path = public_keys[0]['path']
             else:

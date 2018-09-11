@@ -359,7 +359,7 @@ class Address:
         self.redeemscript = b''
         if not self.hash_bytes:
             if (self.encoding == 'bech32' and self.script_type == 'p2sh') or \
-                            self.script_type in ['p2sh', 'p2wsh', 'p2sh_p2wsh']:
+                            self.script_type in ['p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
                 self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
