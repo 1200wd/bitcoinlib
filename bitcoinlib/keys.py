@@ -361,6 +361,11 @@ class Address:
         self.data = to_hexstring(data)
         self.script_type = script_type
         self.encoding = encoding
+        if witness_type is None:
+            if self.script_type in ['p2wpkh', 'p2wsh']:
+                witness_type = 'segwit'
+            elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+                witness_type = 'p2sh-segwit'
         self.witness_type = witness_type
         if self.encoding is None:
             if self.script_type in ['p2wpkh', 'p2wsh'] or self.witness_type == 'segwit':
