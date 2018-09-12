@@ -545,7 +545,10 @@ class HDWalletTransaction(Transaction):
         self.pushed = False
         self.error = None
         self.response_dict = None
-        Transaction.__init__(self, witness_type=hdwallet.witness_type, *args, **kwargs)
+        witness_type = 'legacy'
+        if hdwallet.witness_type in ['segwit', 'p2sh-segwit']:
+            witness_type = 'segwit'
+        Transaction.__init__(self, witness_type=witness_type, *args, **kwargs)
 
     def __repr__(self):
         return "<HDWalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
