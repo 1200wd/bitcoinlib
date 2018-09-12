@@ -572,7 +572,7 @@ class Input:
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, witness_type='legacy',
+                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, witness_type=None,
                  encoding=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
@@ -659,6 +659,13 @@ class Input:
         self.double_spend = double_spend
         self.locktime_cltv = locktime_cltv
         self.locktime_csv = locktime_csv
+        if witness_type is None:
+            if self.script_type in ['p2wpkh', 'p2wsh']:
+                witness_type = 'segwit'
+            elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+                witness_type = 'p2sh-segwit'
+            else:
+                witness_type = 'legacy'
         self.witness_type = witness_type
         if encoding is None:
             self.encoding = 'base58'

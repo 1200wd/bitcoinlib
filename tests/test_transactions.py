@@ -1296,7 +1296,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
 
         inp_prev_tx1 = binascii.unhexlify('db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477')[::-1]
         inputs = [
-            Input(inp_prev_tx1, 1, sequence=0xfffffffe, keys=pk1, value=int(10 * 100000000), witness_type='segwit',
+            Input(inp_prev_tx1, 1, sequence=0xfffffffe, keys=pk1, value=int(10 * 100000000),
                   script_type='p2sh_p2wpkh', encoding='base58'),
         ]
         outputs = [
