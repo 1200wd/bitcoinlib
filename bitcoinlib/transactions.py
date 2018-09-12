@@ -120,22 +120,22 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                 witness_str += rawtx[cursor:cursor + item_size + size]
                 cursor += size + item_size
             if witness_str:
-                witness_type = 'segwit'
+                inp_witness_type = 'segwit'
                 wsd = script_deserialize(witness_str, locking_script=False)
                 sig = wsd['signatures'][0]
                 key = wsd['keys'][0]
                 usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
                 script_type = inputs[n].script_type
                 if usd['script_type'] == "p2wpkh" and wsd['script_type'] == 'sig_pubkey':
-                    witness_type = 'p2sh-segwit'
+                    inp_witness_type = 'p2sh-segwit'
                     script_type = 'p2sh_p2wpkh'
                 elif usd['script_type'] == "p2wsh" and wsd['script_type'] == 'p2sh':
-                    witness_type = 'p2sh-segwit'
+                    inp_witness_type = 'p2sh-segwit'
                     script_type = 'p2sh_p2wsh'
                 inputs[n] = Input(prev_hash=inputs[n].prev_hash, output_n=inputs[n].output_n, keys=key,
                                   unlocking_script_unsigned=inputs[n].unlocking_script_unsigned,
                                   unlocking_script=inputs[n].unlocking_script,
-                                  signatures=sig, witness_type=witness_type, script_type=script_type,
+                                  signatures=sig, witness_type=inp_witness_type, script_type=script_type,
                                   sequence=inputs[n].sequence, index_n=inputs[n].index_n,
                                   network=inputs[n].network)
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
@@ -756,9 +756,9 @@ class Input:
         """
         addr_data = b''
         unlock_script = b''
-        if self.script_type == 'sig_pubkey':
+        if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
             if not self.keys:
-                raise TransactionError("Input class needs keys to update transaction scripts")
+                return
             keyhash = self.keys[0].hash160()
             self.script_code = b'\x76\xa9\x14' + keyhash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code  # FIXME: What's this for?
@@ -777,14 +777,14 @@ class Input:
                 self.witness = unlock_script
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
-        elif self.script_type == 'p2sh_multisig':
+        elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
             if not self.keys:
                 raise TransactionError("Please provide keys to append multisig transaction input")
             if not self.redeemscript:
                 self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
                                                                     compressed=self.compressed)
             if not self.address:
-                if self.witness_type == ['segwit', 'p2sh-segwit']:
+                if self.witness_type in ['segwit', 'p2sh-segwit']:
                     addr_data = self.redeemscript
                 else:
                     self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
@@ -803,7 +803,10 @@ class Input:
                                        "Is DER encoded version of signature defined?")
             unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
             if self.witness_type == 'segwit':
-                # TODO: Difference between p2sh_p2wsh and p2wsh?
+                self.script_code = unlock_script
+                self.witness = unlock_script
+            elif self.witness_type == 'p2sh-segwit':
+                self.unlocking_script = self.redeemscript
                 self.script_code = unlock_script
                 self.witness = unlock_script
             elif unlock_script != b'':
@@ -1138,6 +1141,8 @@ class Transaction:
         self.status = status
         self.verified = verified
         self.witness_type = witness_type
+        if self.witness_type not in ['legacy', 'segwit']:
+            raise TransactionError("Please specify a valid witness type: legacy or segwit")
 
         if not self.hash and rawtx:
             self.hash = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
