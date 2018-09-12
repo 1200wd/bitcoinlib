@@ -282,7 +282,7 @@ def parse_bip44_path(path):
     }
 
 
-def script_type_default(witness_type, key_type):
+def script_type_default(witness_type, key_type, locking_script=False):
     """
     Determine default script type for wallet type and key type combination used in this library.
 
@@ -295,17 +295,17 @@ def script_type_default(witness_type, key_type):
     """
 
     if witness_type == 'legacy' and key_type in ['bip32', 'single']:
-        return 'p2pkh'
+        return 'p2pkh' if locking_script else 'sig_pubkey'
     elif witness_type == 'legacy' and key_type in ['multisig']:
-        return 'p2sh'
+        return 'p2sh' if locking_script else 'p2sh_multisig'
     elif witness_type == 'segwit' and key_type in ['bip32', 'single']:
-        return 'p2wpkh'
+        return 'p2wpkh' if locking_script else 'sig_pubkey'
     elif witness_type == 'segwit' and key_type in ['multisig']:
-        return 'p2wsh'
+        return 'p2wsh' if locking_script else 'p2sh_multisig'
     elif witness_type == 'p2sh-segwit' and key_type in ['bip32', 'single']:
-        return 'p2sh_p2wpkh'
+        return 'p2wpkh' if locking_script else 'p2sh_p2wpkh'
     elif witness_type == 'p2sh-segwit' and key_type in ['multisig']:
-        return 'p2sh_p2wsh'
+        return 'p2wsh' if locking_script else 'p2sh_p2wsh'
     else:
         raise WalletError("Wallet and key type combination not supported: %s / %s" % (witness_type, key_type))
 
@@ -2357,7 +2357,7 @@ class HDWallet:
                             tid = transaction_in_db.scalar().id
 
                         # FIXME: Check possible values of key_type
-                        script_type = script_type_default(self.witness_type, key.key_type)
+                        script_type = script_type_default(self.witness_type, key.key_type, locking_script=True)
                         new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'],
                                                        value=utxo['value'], key_id=key.id, script=utxo['script'],
                                                        script_type=script_type, spent=False)

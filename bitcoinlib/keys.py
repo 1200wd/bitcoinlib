@@ -332,7 +332,7 @@ class Address:
                        encoding=addr_dict['encoding'], network_overrides=network_overrides)
 
     def __init__(self, data='', hashed_data='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
-                 encoding=None, network_overrides=None):
+                 encoding=None, witness_type=None, network_overrides=None):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
 
@@ -361,8 +361,9 @@ class Address:
         self.data = to_hexstring(data)
         self.script_type = script_type
         self.encoding = encoding
+        self.witness_type = witness_type
         if self.encoding is None:
-            if self.script_type in ['p2wpkh', 'p2wsh']:
+            if self.script_type in ['p2wpkh', 'p2wsh'] or self.witness_type == 'segwit':
                 self.encoding = 'bech32'
             else:
                 self.encoding = 'base58'
@@ -370,20 +371,21 @@ class Address:
         self.prefix = prefix
         self.redeemscript = b''
         if not self.hash_bytes:
-            if (self.encoding == 'bech32' and self.script_type == 'p2sh') or \
+            if (self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2sh_multisig']) or \
                             self.script_type in ['p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
                 self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
         self.hashed_data = to_hexstring(self.hash_bytes)
         if self.encoding == 'base58':
-            if self.script_type is None:
-                self.script_type = 'p2pkh'
-            elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+            # if self.script_type is None:
+            #     self.script_type = 'p2pkh'
+            if self.witness_type == 'p2sh-segwit':
                 self.redeemscript = b'\0' + varstr(self.hash_bytes)
                 self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.redeemscript).digest()).digest()
             if self.prefix is None:
-                if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig']:
+                if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig'] or \
+                                self.witness_type == 'p2sh-segwit':
                     self.prefix = self.network.prefix_address_p2sh
                 else:
                     self.prefix = self.network.prefix_address

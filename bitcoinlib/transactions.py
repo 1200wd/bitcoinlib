@@ -127,10 +127,10 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                 usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
                 script_type = inputs[n].script_type
                 if usd['script_type'] == "p2wpkh" and wsd['script_type'] == 'sig_pubkey':
-                    witness_type = 'pssh-segwit'
+                    witness_type = 'p2sh-segwit'
                     script_type = 'p2sh_p2wpkh'
                 elif usd['script_type'] == "p2wsh" and wsd['script_type'] == 'p2sh':
-                    witness_type = 'pssh-segwit'
+                    witness_type = 'p2sh-segwit'
                     script_type = 'p2sh_p2wsh'
                 inputs[n] = Input(prev_hash=inputs[n].prev_hash, output_n=inputs[n].output_n, keys=key,
                                   unlocking_script_unsigned=inputs[n].unlocking_script_unsigned,
@@ -682,7 +682,7 @@ class Input:
                 keys += us_dict['keys']
                 # Determine locking script type for unlocking script type
                 if not self.script_type:
-                    if us_dict['script_type'] in ['p2sh', 'p2wsh', 'p2sh_multisig']:
+                    if us_dict['script_type'] in ['p2wsh', 'p2sh_multisig']:
                         self.script_type = 'p2sh_multisig'
                 # elif self.script_type != us_dict['script_type']:
                 #     raise TransactionError("Address script type %s is different from script type provided %s" %
@@ -755,24 +755,25 @@ class Input:
         :return:
         """
         addr_data = b''
-        script_code = b''
         unlock_script = b''
         if self.script_type == 'sig_pubkey':
-            if self.keys:
-                script_code = b'\x76\xa9\x14' + to_bytes(self.keys[0].hash160()) + b'\x88\xac'
-                self.unlocking_script_unsigned = script_code
-                if self.keys[0].compressed:
-                    addr_data = self.keys[0].public_byte
-                else:
-                    addr_data = self.keys[0].public_uncompressed_byte
-                # addr_data = self.keys[0].public_byte
-                # if not self.address:
-                #     self.address = self.keys[0].address()
+            if not self.keys:
+                raise TransactionError("Input class needs keys to update transaction scripts")
+            keyhash = self.keys[0].hash160()
+            self.script_code = b'\x76\xa9\x14' + keyhash + b'\x88\xac'
+            self.unlocking_script_unsigned = self.script_code  # FIXME: What's this for?
+            if self.keys[0].compressed:
+                addr_data = self.keys[0].public_byte
+            else:
+                addr_data = self.keys[0].public_uncompressed_byte
             if len(self.signatures):
                 unlock_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
-            if self.witness_type == 'segwit':
-                self.script_code = script_code
+            if self.witness_type == 'p2sh-segwit':
+                self.unlocking_script = varstr(b'\0' + varstr(keyhash))
+                self.witness = unlock_script
+            elif self.witness_type == 'segwit':
+                self.unlocking_script = b''
                 self.witness = unlock_script
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
@@ -783,8 +784,11 @@ class Input:
                 self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
                                                                     compressed=self.compressed)
             if not self.address:
-                self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
-                                                  versionbyte=self.network.prefix_address_p2sh)
+                if self.witness_type == ['segwit', 'p2sh-segwit']:
+                    addr_data = self.redeemscript
+                else:
+                    self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
+                                                      versionbyte=self.network.prefix_address_p2sh)
             # addr_data = script_to_pubkeyhash(self.redeemscript)
             # addr_data = self.redeemscript
             self.unlocking_script_unsigned = self.redeemscript
@@ -804,22 +808,11 @@ class Input:
                 self.witness = unlock_script
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
-        elif self.script_type == 'p2sh_p2wpkh':
-            keyhash = self.keys[0].hash160()
-            if self.keys:
-                self.script_code = b'\x76\xa9\x14' + keyhash + b'\x88\xac'
-            self.unlocking_script = varstr(b'\0' + varstr(keyhash))
-            if len(self.signatures):
-                self.witness = \
-                    varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
-                    varstr(self.keys[0].public_byte)
-            # addr_data = self.unlocking_script
-            addr_data = self.keys[0].public_byte
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:
             self.address = Address(addr_data, encoding=self.encoding, network=self.network,
-                                   script_type=self.script_type).address
+                                   script_type=self.script_type, witness_type=self.witness_type).address
 
         if self.locktime_cltv:
             self.unlocking_script_unsigned = script_add_locktime_cltv(self.locktime_cltv,
@@ -1214,7 +1207,7 @@ class Transaction:
                 validstr = "valid"
             elif ti.valid is False:
                 validstr = "invalid"
-            print("  Script type: %s (%s), signatures: %d (%d of %d), %s" %
+            print("  Script type: %s (%s), signatures: %d (%d-of-%d), %s" %
                   (ti.script_type, ti.witness_type, len(ti.signatures), ti.sigs_required, len(ti.keys), validstr))
             if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
                 replace_by_fee = True
