@@ -84,7 +84,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         unlocking_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
         unlocking_script = rawtx[cursor:cursor + unlocking_script_size]
-        inp_type = 'standard'
+        inp_type = 'legacy'
         if witness_type == 'segwit' and not unlocking_script_size:
             inp_type = 'segwit'
         cursor += unlocking_script_size
