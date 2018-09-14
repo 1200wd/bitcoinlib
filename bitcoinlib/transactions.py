@@ -808,7 +808,8 @@ class Input:
             if b'' in signatures:
                 raise TransactionError("Empty signature found in signature list when signing. "
                                        "Is DER encoded version of signature defined?")
-            unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
+            if len(signatures):
+                unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
             if self.witness_type == 'segwit':
                 self.script_code = unlock_script
                 self.witness = unlock_script
