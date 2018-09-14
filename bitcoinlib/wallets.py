@@ -552,7 +552,7 @@ class HDWalletTransaction(Transaction):
 
     def __repr__(self):
         return "<HDWalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
-               (len(self.inputs), len(self.outputs), self.status, self.network.network.name)
+               (len(self.inputs), len(self.outputs), self.status, self.network.name)
 
     @classmethod
     def from_transaction(cls, hdwallet, t):
