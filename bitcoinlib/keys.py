@@ -415,8 +415,8 @@ class Address:
         provider_prefix = None
         if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
             provider_prefix = network_overrides['prefix_address_p2sh']
+        self.address_orig = self.address
         if provider_prefix:
-            self.address_orig = self.address
             self.address = addr_convert(self.address, provider_prefix)
 
     def __repr__(self):

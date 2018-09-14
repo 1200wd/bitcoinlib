@@ -511,6 +511,13 @@ class TestKeysAddress(unittest.TestCase):
         addr_dict = deserialize_address(address, network='litecoin_legacy')
         self.assertEqual(addr_dict['network'], 'litecoin_legacy')
 
+    def test_keys_address_litecoin_import(self):
+        address = 'LUPKYv9Z7AvQgxuVkDdqQrBDswsQJMxsN8'
+        a = Address.import_address(address)
+        self.assertEqual(a.hashed_data, '647ea562d9e72daca10fa476297f10576f284ba4')
+        self.assertEqual(a.network.name, 'litecoin')
+        self.assertEqual(a.address_orig, 'LUPKYv9Z7AvQgxuVkDdqQrBDswsQJMxsN8')
+
     def test_keys_address_deserialize_bech32(self):
         address = 'bc1qk077yl8zf6yty25rgrys8h40j8adun267y3m44'
         addr_dict = deserialize_address(address)
