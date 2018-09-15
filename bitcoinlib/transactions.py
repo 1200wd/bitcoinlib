@@ -510,14 +510,24 @@ def script_add_locktime_csv(locktime_csv, script):
     return struct.pack('<L', locktime_csv) + lockbytes + script
 
 
-def get_unlocking_script_type(locking_script_type):
-    # TODO: Complete and fix this!
-    if locking_script_type == 'p2sh' or locking_script_type == 'p2sh_p2wsh' or locking_script_type == 'p2wsh':
-        return 'p2sh_multisig'
-    elif locking_script_type == 'p2sh_p2wpkh':
-        return 'p2sh_p2wpkh'
-    else:
+def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
+    # TODO: Test this!
+    if locking_script_type in ['p2pkh', 'p2wpkh']:
         return 'sig_pubkey'
+    elif locking_script_type == 'p2wsh' or (witness_type == 'legacy' and multisig):
+        return 'p2sh_multisig'
+    elif locking_script_type == 'p2sh':
+        # if witness_type == 'p2sh-segwit':
+        #     if multisig:
+        #         return 'p2wsh'
+        #     else:
+        #         return 'p2wpkh'
+        if not multisig:
+            return 'sig_pubkey'
+        else:
+            return 'p2sh_multisig'
+    else:
+        raise TransactionError("Unknonw locking script type %s" % locking_script_type)
 
 
 def verify_signature(transaction_to_sign, signature, public_key):
@@ -811,7 +821,7 @@ class Input:
             if len(signatures):
                 unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
             if self.witness_type == 'segwit':
-                self.script_code = unlock_script
+                self.script_code = self.redeemscript
                 self.witness = unlock_script
             elif self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = self.redeemscript

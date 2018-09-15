@@ -689,7 +689,7 @@ class HDWalletTransaction(Transaction):
                 wallet_id=self.hdwallet.wallet_id, hash=self.hash, block_height=self.block_height,
                 size=self.size, confirmations=self.confirmations, date=self.date, fee=self.fee, status=self.status,
                 input_total=self.input_total, output_total=self.output_total, network_name=self.network.name,
-                raw=self.raw_hex(), block_hash=self.block_hash)
+                block_hash=self.block_hash)
             sess.add(new_tx)
             sess.commit()
             tx_id = new_tx.id
@@ -2646,7 +2646,8 @@ class HDWallet:
             for utxo in selected_utxos:
                 # amount_total_input += utxo.value
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
-                script_type = get_unlocking_script_type(utxo.script_type)
+                multisig = False if len(inp_keys) < 2 else True
+                script_type = get_unlocking_script_type(utxo.script_type, multisig=multisig)
                 inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
                               sigs_required=self.multisig_n_required, sort=self.sort_keys,
                               compressed=key.compressed, value=utxo.value))
@@ -2725,17 +2726,18 @@ class HDWallet:
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
-                unlock_script_type = get_unlocking_script_type(utxo.script_type)
-                witness_type = 'legacy'
-                if self.witness_type == 'segwit':
-                    if unlock_script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
-                        witness_type = 'p2sh-segwit'
-                    else:
-                        witness_type = 'segwit'
+                multisig = False if len(inp_keys) < 2 else True
+                unlock_script_type = get_unlocking_script_type(utxo.script_type, self.witness_type, multisig=multisig)
+                # witness_type = 'legacy'
+                # if self.witness_type == 'segwit':
+                #     if unlock_script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+                #         witness_type = 'p2sh-segwit'
+                #     else:
+                #         witness_type = 'segwit'
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys,
                                       script_type=unlock_script_type, sigs_required=self.multisig_n_required,
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
-                                      address=utxo.key.address, sequence=sequence, witness_type=witness_type)
+                                      address=utxo.key.address, sequence=sequence, witness_type=self.witness_type)
         else:
             for inp in input_arr:
                 locktime_cltv = None
