@@ -2561,15 +2561,17 @@ class HDWallet:
 
     def _objects_by_key_id(self, key_id):
         key = self._session.query(DbKey).filter_by(id=key_id).scalar()
+        inp_keys = []
         if not key:
             raise WalletError("Key '%s' not found in this wallet" % key_id)
         if key.key_type == 'multisig':
-            inp_keys = []
             for ck in key.multisig_children:
                 # TODO:  CHECK THIS
                 inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
         elif key.key_type in ['bip32', 'single']:
-            inp_keys = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
+            key = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
+            if key:
+                inp_keys = [key]
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
@@ -2726,7 +2728,7 @@ class HDWallet:
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
-                multisig = False if len(inp_keys) < 2 else True
+                multisig = False if isinstance(inp_keys, list) and len(inp_keys) < 2 else True
                 unlock_script_type = get_unlocking_script_type(utxo.script_type, self.witness_type, multisig=multisig)
                 # witness_type = 'legacy'
                 # if self.witness_type == 'segwit':
