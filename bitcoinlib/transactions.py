@@ -1433,6 +1433,7 @@ class Transaction:
         for tid in tids:
             if not isinstance(keys, list):
                 keys = [keys]
+            keys = [k if isinstance(k, (HDKey, Key)) else Key(k, compressed=self.inputs[tid].compressed) for k in keys]
 
             if self.inputs[tid].script_type == 'coinbase':
                 raise TransactionError("Can not sign coinbase transactions")
@@ -1447,17 +1448,9 @@ class Transaction:
             sig_domain = [''] * n_total_sigs
 
             for key in keys:
-                if isinstance(key, (HDKey, Key)):
-                    priv_key = key.private_byte
-                    pub_key = key.public_byte
-                else:
-                    ko = Key(key, compressed=self.inputs[tid].compressed)
-                    priv_key = ko.private_byte
-                    pub_key = ko.public_byte
-                if not priv_key:
-                    raise TransactionError("Please provide a valid private key to sign the transaction. "
-                                           "%s is not a private key" % priv_key)
-                sk = ecdsa.SigningKey.from_string(priv_key, curve=ecdsa.SECP256k1)
+                if not key.private_byte:
+                    raise TransactionError("Please provide a valid private key to sign the transaction")
+                sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
                 while True:
                     sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
                     # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
@@ -1470,19 +1463,20 @@ class Transaction:
                 newsig = {
                         'sig_der': to_bytes(sig_der),
                         'signature': to_bytes(signature),
-                        'priv_key': priv_key,
-                        'pub_key': pub_key,
+                        'priv_key': key.private_byte,
+                        'pub_key': key.public_byte,
                         'transaction_id': tid
                     }
 
                 # Check if signature signs known key and is not already in list
-                if pub_key not in pub_key_list:
-                    raise TransactionError("This key does not sign any known key: %s" % pub_key)
-                if pub_key in [x['pub_key'] for x in self.inputs[tid].signatures]:
-                    _logger.warning("Key %s already signed" % pub_key)
+                # if pub_key not in pub_key_list and pub_key not in pub_key_list_uncompressed:
+                if key.public_byte not in pub_key_list:
+                    raise TransactionError("This key does not sign any known key: %s" % key.public_byte)
+                if key.public_byte in [x['pub_key'] for x in self.inputs[tid].signatures]:
+                    _logger.warning("Key %s already signed" % key.public_byte)
                     break
 
-                newsig_pos = pub_key_list.index(pub_key)
+                newsig_pos = pub_key_list.index(key.public_byte)
                 sig_domain[newsig_pos] = newsig
                 n_signs += 1
 

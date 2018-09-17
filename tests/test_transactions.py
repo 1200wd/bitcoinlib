@@ -1017,6 +1017,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertDictEqualExt(script_deserialize(script_size_byte), script_deserialize(script))
 
 
+
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
     #   http://www.soroushjp.com/2014/12/20/bitcoin-multisig-the-hard-way-understanding-raw-multisignature-bitcoin-transactions/
