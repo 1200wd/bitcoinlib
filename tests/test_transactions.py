@@ -1016,6 +1016,15 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         script = b'\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
         self.assertDictEqualExt(script_deserialize(script_size_byte), script_deserialize(script))
 
+    def test_transaction_sign_uncompressed(self):
+        ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX', network='dash_testnet', compressed=False)
+        prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
+        output_n = 0
+        t = Transaction(network='dash_testnet')
+        t.add_input(prev_hash=prev_tx, output_n=output_n, compressed=False)
+        t.add_output(99900000, 'yUV8W2RmEbKZD8oD7YMeBNiydHWmormCDj')
+        t.sign(ki.private_byte)
+        self.assertTrue(t.verify())
 
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):

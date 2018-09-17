@@ -1435,6 +1435,11 @@ class Transaction:
                 keys = [keys]
             keys = [k if isinstance(k, (HDKey, Key)) else Key(k, compressed=self.inputs[tid].compressed) for k in keys]
 
+            # If input does not contain any keys, try using provided key
+            if not self.inputs[tid].keys:
+                self.inputs[tid].keys = keys
+                self.inputs[tid].update_scripts()
+
             if self.inputs[tid].script_type == 'coinbase':
                 raise TransactionError("Can not sign coinbase transactions")
             if self.inputs[tid].witness_type in ['segwit', 'p2sh-segwit']:
@@ -1461,12 +1466,12 @@ class Transaction:
                     if s < ecdsa.SECP256k1.order / 2:
                         break
                 newsig = {
-                        'sig_der': to_bytes(sig_der),
-                        'signature': to_bytes(signature),
-                        'priv_key': key.private_byte,
-                        'pub_key': key.public_byte,
-                        'transaction_id': tid
-                    }
+                    'sig_der': to_bytes(sig_der),
+                    'signature': to_bytes(signature),
+                    'priv_key': key.private_byte,
+                    'pub_key': key.public_byte,
+                    'transaction_id': tid
+                }
 
                 # Check if signature signs known key and is not already in list
                 # if pub_key not in pub_key_list and pub_key not in pub_key_list_uncompressed:
