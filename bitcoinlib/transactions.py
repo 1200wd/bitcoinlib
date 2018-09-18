@@ -777,14 +777,15 @@ class Input:
         addr_data = b''
         unlock_script = b''
         if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
-            if not self.keys:
+            if not self.keys and not self.public_hash:
                 return
-            self.public_hash = self.keys[0].hash160()
+            if not self.public_hash:
+                self.public_hash = self.keys[0].hash160()
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code  # FIXME: What's this for?
             self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
                                    script_type=self.script_type, witness_type=self.witness_type).address
-            if len(self.signatures):
+            if len(self.signatures) and self.keys:
                 unlock_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
             if self.witness_type == 'p2sh-segwit':
@@ -1510,7 +1511,7 @@ class Transaction:
         self.inputs[tid].update_scripts(hash_type)
         return n_signs
 
-    def add_input(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
+    def add_input(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
@@ -1561,7 +1562,7 @@ class Transaction:
         if self.version == b'\x00\x00\x00\x01' and 0 < sequence < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
-            Input(prev_hash=prev_hash, output_n=output_n, keys=keys, signatures=signatures,
+            Input(prev_hash=prev_hash, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
                   unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
                   script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
