@@ -104,7 +104,7 @@ class TestTransactionOutputs(unittest.TestCase):
                          to.lock_script)
 
     def test_transaction_output_add_public_key_hash(self):
-        to = Output(1000, public_key_hash='010966776006953d5567439e5e39f86a0d273bee')
+        to = Output(1000, public_hash='010966776006953d5567439e5e39f86a0d273bee')
         self.assertEqual(b"v\xa9\x14\x01\tfw`\x06\x95=UgC\x9e^9\xf8j\r';\xee\x88\xac",
                          to.lock_script)
 
@@ -180,7 +180,7 @@ class TestTransactions(unittest.TestCase):
                     keys=pk.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
-        out = Output(880000, public_key_hash=pubkey.hash160(), network='testnet')
+        out = Output(880000, public_hash=pubkey.hash160(), network='testnet')
         t = Transaction([inp], [out], network='testnet')
         t.sign(pk)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")

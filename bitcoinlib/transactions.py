@@ -851,7 +851,7 @@ class Input:
         """
         Get transaction input information in json format
         
-        :return dict: Json with output_n, prev_hash, output_n, type, address, public_key, public_key_hash, unlocking_script and sequence
+        :return dict: Json with output_n, prev_hash, output_n, type, address, public_key, public_hash, unlocking_script and sequence
 
         """
         pks = []
@@ -886,7 +886,7 @@ class Output:
     Contains the amount and destination of a transaction. 
     
     """
-    def __init__(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,
+    def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
                  output_n=0, script_type=None, encoding='base58', network=DEFAULT_NETWORK):
         """
         Create a new transaction output
@@ -902,8 +902,8 @@ class Output:
         :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
         :type address: str
-        :param public_key_hash: Hash of public key
-        :type public_key_hash: bytes, str
+        :param public_hash: Hash of public key or script
+        :type public_hash: bytes, str
         :param public_key: Destination public key
         :type public_key: bytes, str
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
@@ -919,13 +919,13 @@ class Output:
         :param network: Network, leave empty for default
         :type network: str, Network
         """
-        if not (address or public_key_hash or public_key or lock_script):
+        if not (address or public_hash or public_key or lock_script):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
         self.value = value
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
-        self.public_key_hash = to_bytes(public_key_hash)
+        self.public_hash = to_bytes(public_hash)
         self.address = address
         self.address_obj = None
         self.public_key = to_bytes(public_key)
@@ -944,7 +944,7 @@ class Output:
             self.k = Key(self.public_key, is_private=False, network=network)
             self.compressed = self.k.compressed
             self.address = self.k.address(compressed=self.compressed, script_type=script_type, encoding=encoding)
-        elif self.address and (not self.public_key_hash or not self.script_type or not self.encoding):
+        elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self.address, self.encoding, self.network.name)
             if address_dict['script_type']:
                 self.script_type = address_dict['script_type']
@@ -958,26 +958,26 @@ class Output:
             elif self.network.name not in network_guesses:
                 raise TransactionError("Network for output address %s is different from transaction network. %s not "
                                        "in %s" % (self.address, self.network.name, network_guesses))
-            self.public_key_hash = address_dict['public_key_hash_bytes']
-        if not self.public_key_hash and self.k:
-            self.public_key_hash = self.k.hash160()
+            self.public_hash = address_dict['public_key_hash_bytes']
+        if not self.public_hash and self.k:
+            self.public_hash = self.k.hash160()
             self.compressed = self.k.compressed
-        if self.public_key_hash and not self.address:
-            self.address_obj = Address(hashed_data=self.public_key_hash, prefix=self.versionbyte,
+        if self.public_hash and not self.address:
+            self.address_obj = Address(hashed_data=self.public_hash, prefix=self.versionbyte,
                                        script_type=script_type, encoding=encoding)
             self.address = self.address_obj.address
             self.versionbyte = self.address_obj.prefix
 
-        if self.lock_script and not self.public_key_hash:
+        if self.lock_script and not self.public_hash:
             ss = script_deserialize(self.lock_script, locking_script=True)
             self.script_type = ss['script_type']
             if self.script_type == 'p2sh':
                 self.versionbyte = self.network.prefix_address_p2sh
             if self.script_type in ['p2pkh', 'p2sh']:
-                self.public_key_hash = ss['signatures'][0]
-                self.address = pubkeyhash_to_addr(self.public_key_hash, versionbyte=self.versionbyte)
+                self.public_hash = ss['signatures'][0]
+                self.address = pubkeyhash_to_addr(self.public_hash, versionbyte=self.versionbyte)
             elif self.script_type in ['p2wpkh', 'p2wsh']:
-                self.public_key_hash = ss['signatures'][0]
+                self.public_hash = ss['signatures'][0]
                 self.address_obj = Address(hashed_data=ss['signatures'][0], script_type=self.script_type,
                                            encoding='bech32')
                 self.address = self.address_obj.address
@@ -989,13 +989,13 @@ class Output:
                 self.script_type = 'p2wpkh'
         if self.lock_script == b'':
             if self.script_type == 'p2pkh':
-                self.lock_script = b'\x76\xa9\x14' + self.public_key_hash + b'\x88\xac'
+                self.lock_script = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             elif self.script_type == 'p2sh':
-                self.lock_script = b'\xa9\x14' + self.public_key_hash + b'\x87'
+                self.lock_script = b'\xa9\x14' + self.public_hash + b'\x87'
             elif self.script_type == 'p2wpkh':
-                self.lock_script = b'\x00\x14' + self.public_key_hash
+                self.lock_script = b'\x00\x14' + self.public_hash
             elif self.script_type == 'p2wsh':
-                self.lock_script = b'\x00\x20' + self.public_key_hash
+                self.lock_script = b'\x00\x20' + self.public_hash
             else:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
@@ -1015,7 +1015,7 @@ class Output:
             'script': to_hexstring(self.lock_script),
             'script_type': self.script_type,
             'public_key': to_hexstring(self.public_key),
-            'public_key_hash': to_hexstring(self.public_key_hash),
+            'public_hash': to_hexstring(self.public_hash),
             'address': self.address,
             'output_n': self.output_n,
             'spent': self.spent,
@@ -1576,7 +1576,7 @@ class Transaction:
                   network=self.network.name))
         return index_n
 
-    def add_output(self, value, address='', public_key_hash=b'', public_key=b'', lock_script=b'', spent=False,
+    def add_output(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
                    output_n=None, encoding=None):
         """
         Add an output to this transaction
@@ -1587,8 +1587,8 @@ class Transaction:
         :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
         :type address: str
-        :param public_key_hash: Hash of public key
-        :type public_key_hash: bytes, str
+        :param public_hash: Hash of public key or script
+        :type public_hash: bytes, str
         :param public_key: Destination public key
         :type public_key: bytes, str
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
@@ -1604,22 +1604,22 @@ class Transaction:
 
         """
         lock_script = to_bytes(lock_script)
-        if address:
-            to = address
-        elif public_key:
-            to = public_key
-        else:
-            to = public_key_hash
+        # if address:
+        #     to = address
+        # elif public_key:
+        #     to = public_key
+        # else:
+        #     to = public_hash
         if output_n is None:
             output_n = len(self.outputs)
         if not float(value).is_integer():
-            raise TransactionError("Output to %s must be of type integer and contain no decimals" % to)
+            raise TransactionError("Output must be of type integer and contain no decimals")
         if lock_script.startswith(b'\x6a'):
             if value != 0:
                 raise TransactionError("Output value for OP_RETURN script must be 0")
         elif value < self.network.dust_amount:
-            raise TransactionError("Output to %s must be more then dust amount %d" % (to, self.network.dust_amount))
-        self.outputs.append(Output(value=int(value), address=address, public_key_hash=public_key_hash,
+            raise TransactionError("Output must be more then dust amount %d" % self.network.dust_amount)
+        self.outputs.append(Output(value=int(value), address=address, public_hash=public_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    encoding=encoding, network=self.network.name))
         return output_n
