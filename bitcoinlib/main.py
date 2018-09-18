@@ -124,8 +124,8 @@ def initialize_lib():
         if os.path.isfile(full_file_name):
             copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
 
-initialize_lib()
 
+initialize_lib()
 
 # Initialize logging to bitcoinlib.log
 logfile = os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log')

@@ -707,6 +707,12 @@ class Input:
                 # elif self.script_type != us_dict['script_type']:
                 #     raise TransactionError("Address script type %s is different from script type provided %s" %
                 #                            (us_dict['script_type'], self.script_type))
+        elif unlocking_script_unsigned and not signatures:
+            # FIXME: 'unlocking_script_unsigned' should be named locking script and not signature but public_(
+            # key)_hash...
+            ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
+            if ls_dict['signatures']:
+                self.public_hash = ls_dict['signatures'][0]
         if not self.script_type:
             self.script_type = 'sig_pubkey'
 
@@ -782,7 +788,7 @@ class Input:
             if not self.public_hash:
                 self.public_hash = self.keys[0].hash160()
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
-            self.unlocking_script_unsigned = self.script_code  # FIXME: What's this for?
+            self.unlocking_script_unsigned = self.script_code
             self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
                                    script_type=self.script_type, witness_type=self.witness_type).address
             if len(self.signatures) and self.keys:
