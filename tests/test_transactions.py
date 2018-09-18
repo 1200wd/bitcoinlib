@@ -76,6 +76,15 @@ class TestTransactionInputs(unittest.TestCase):
         ti = Input(prev_hash=ph, output_n=1, keys=k.public(), compressed=k.compressed)
         self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', ti.keys[0].address())
 
+    def test_transaction_input_with_pkh(self):
+        ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX', network='dash_testnet', compressed=False)
+        prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
+        output_n = 0
+        ki_public_hash = ki.hash160()
+        ti = Input(prev_hash=prev_tx, output_n=output_n, public_hash=ki_public_hash, network='dash_testnet',
+                   compressed=False)
+        self.assertEqual(ti.address, 'yWut2kHY6nXbpgqatMCNkwsxoYHcpWeF6Q')
+
 
 class TestTransactionOutputs(unittest.TestCase):
     def test_transaction_output_add_address(self):
