@@ -579,7 +579,7 @@ class Input:
     
     """
 
-    def __init__(self, prev_hash, output_n, keys=None, signatures=None, unlocking_script=b'',
+    def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, witness_type=None,
@@ -595,6 +595,8 @@ class Input:
         :type keys: list (bytes, str)
         :param signatures: Specify optional signatures
         :type signatures: bytes, str
+        :param public_hash: Public key or script hash
+        :type public_hash: bytes, str
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
@@ -648,6 +650,7 @@ class Input:
         self.keys = []
         if not isinstance(keys, list):
             keys = [keys]
+        self.public_hash = public_hash
         if not signatures:
             signatures = []
         if not isinstance(signatures, list):
@@ -776,18 +779,16 @@ class Input:
         if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
             if not self.keys:
                 return
-            keyhash = self.keys[0].hash160()
-            self.script_code = b'\x76\xa9\x14' + keyhash + b'\x88\xac'
+            self.public_hash = self.keys[0].hash160()
+            self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code  # FIXME: What's this for?
-            if self.keys[0].compressed:
-                addr_data = self.keys[0].public_byte
-            else:
-                addr_data = self.keys[0].public_uncompressed_byte
+            self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
+                                   script_type=self.script_type, witness_type=self.witness_type).address
             if len(self.signatures):
                 unlock_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
             if self.witness_type == 'p2sh-segwit':
-                self.unlocking_script = varstr(b'\0' + varstr(keyhash))
+                self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
                 self.witness = unlock_script
             elif self.witness_type == 'segwit':
                 self.unlocking_script = b''
@@ -800,14 +801,10 @@ class Input:
             if not self.redeemscript:
                 self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
                                                                     compressed=self.compressed)
+            self.public_hash = script_to_pubkeyhash(self.redeemscript)
             if not self.address:
-                if self.witness_type in ['segwit', 'p2sh-segwit']:
-                    addr_data = self.redeemscript
-                else:
-                    self.address = pubkeyhash_to_addr(script_to_pubkeyhash(self.redeemscript),
-                                                      versionbyte=self.network.prefix_address_p2sh)
-            # addr_data = script_to_pubkeyhash(self.redeemscript)
-            # addr_data = self.redeemscript
+                self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
+                                       script_type=self.script_type, witness_type=self.witness_type).address
             self.unlocking_script_unsigned = self.redeemscript
 
             n_tag = self.redeemscript[0]
