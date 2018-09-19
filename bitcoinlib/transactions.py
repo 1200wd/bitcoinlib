@@ -1296,17 +1296,27 @@ class Transaction:
         # TODO: Implement sig_version
         prevouts_serialized = b''
         sequence_serialized = b''
+        outputs_serialized = b''
+        hash_prevouts = b'\0' * 32
+        hash_sequence = b'\0' * 32
+        hash_outputs = b'\0' * 32
+
         for i in self.inputs:
             prevouts_serialized += i.prev_hash[::-1] + i.output_n[::-1]
             sequence_serialized += struct.pack('<L', i.sequence)
-        hash_prevouts = hashlib.sha256(hashlib.sha256(prevouts_serialized).digest()).digest()
-        hash_sequence = hashlib.sha256(hashlib.sha256(sequence_serialized).digest()).digest()
-
-        outputs_serialized = b''
-        for o in self.outputs:
-            outputs_serialized += struct.pack('<Q', o.value)
-            outputs_serialized += varstr(o.lock_script)
-        hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
+        if not hash_type & SIGHASH_ANYONECANPAY:
+            hash_prevouts = hashlib.sha256(hashlib.sha256(prevouts_serialized).digest()).digest()
+            if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
+                hash_sequence = hashlib.sha256(hashlib.sha256(sequence_serialized).digest()).digest()
+        if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
+            for o in self.outputs:
+                outputs_serialized += struct.pack('<Q', o.value)
+                outputs_serialized += varstr(o.lock_script)
+            hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
+        elif (hash_type & 0x1f) != SIGHASH_SINGLE and sign_id < len(self.outputs):
+            outputs_serialized += struct.pack('<Q', self.outputs[sign_id].value)
+            outputs_serialized += varstr(self.outputs[sign_id].lock_script)
+            hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
 
         if not self.inputs[sign_id].value:
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
