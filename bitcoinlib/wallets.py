@@ -2730,12 +2730,6 @@ class HDWallet:
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
                 multisig = False if isinstance(inp_keys, list) and len(inp_keys) < 2 else True
                 unlock_script_type = get_unlocking_script_type(utxo.script_type, self.witness_type, multisig=multisig)
-                # witness_type = 'legacy'
-                # if self.witness_type == 'segwit':
-                #     if unlock_script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
-                #         witness_type = 'p2sh-segwit'
-                #     else:
-                #         witness_type = 'segwit'
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys,
                                       script_type=unlock_script_type, sigs_required=self.multisig_n_required,
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,

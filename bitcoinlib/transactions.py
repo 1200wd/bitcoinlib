@@ -160,30 +160,30 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     :return list: With this items: [script_type, data, number_of_sigs_n, number_of_sigs_m] 
     """
 
-    def _parse_signatures(scr, max_signatures=None, redeemscript_expected=False, signature_length=0):
+    def _parse_data(scr, max_items=None, redeemscript_expected=False, item_length=0):
         scr = to_bytes(scr)
-        sigs = []
+        items = []
         total_length = 0
-        while len(scr) and (max_signatures is None or max_signatures > len(sigs)):
-            siglen, size = varbyteint_to_int(scr[0:9])
-            if signature_length and siglen != signature_length:
+        while len(scr) and (max_items is None or max_items > len(items)):
+            itemlen, size = varbyteint_to_int(scr[0:9])
+            if item_length and itemlen != item_length:
                 break
             # TODO: Rethink and rewrite this:
-            if siglen not in [20, 33, 65, 70, 71, 72, 73]:
+            if not item_length and itemlen not in [20, 33, 65, 70, 71, 72, 73]:
                 break
             # TODO: Does this have influence?
-            if len(scr) < siglen:
+            if len(scr) < itemlen:
                 break
-            if redeemscript_expected and len(scr[siglen + 1:]) < 20:
+            if redeemscript_expected and len(scr[itemlen + 1:]) < 20:
                 break
-            sigs.append(scr[1:siglen + 1])
-            total_length += siglen + size
-            scr = scr[siglen + 1:]
-        return sigs, total_length
+            items.append(scr[1:itemlen + 1])
+            total_length += itemlen + size
+            scr = scr[itemlen + 1:]
+        return items, total_length
 
     def _get_empty_data():
-        return {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'number_of_sigs_n': 1,
-                'number_of_sigs_m': 1, 'locktime_cltv': 0, 'locktime_csv': 0, 'result': ''}
+        return {'script_type': '', 'keys': [], 'signatures': [], 'hashes': [], 'redeemscript': b'',
+                'number_of_sigs_n': 1, 'number_of_sigs_m': 1, 'locktime_cltv': 0, 'locktime_csv': 0, 'result': ''}
 
     def _parse_script(script):
         found = False
@@ -205,11 +205,21 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                 cur_char = script[cur]
                 if sys.version < '3':
                     cur_char = ord(script[cur])
-                if ch[:9] == 'signature':
+                if ch[:4] == 'hash':
+                    hash_length = 0
+                    if len(ch) > 5:
+                        hash_length = int(ch.split("-")[1])
+                    s, total_length = _parse_data(script[cur:], 1, item_length=hash_length)
+                    if not s:
+                        found = False
+                        break
+                    data['hashes'] += s
+                    cur += total_length
+                elif ch == 'signature':
                     signature_length = 0
                     if len(ch) > 10:
                         signature_length = int(ch.split("-")[1])
-                    s, total_length = _parse_signatures(script[cur:], 1, signature_length=signature_length)
+                    s, total_length = _parse_data(script[cur:], 1, item_length=signature_length)
                     if not s:
                         found = False
                         break
@@ -235,7 +245,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     redeemscript_expected = False
                     if 'redeemscript' in ost:
                         redeemscript_expected = True
-                    s, total_length = _parse_signatures(script[cur:], redeemscript_expected=redeemscript_expected)
+                    s, total_length = _parse_data(script[cur:], redeemscript_expected=redeemscript_expected)
                     if not s:
                         found = False
                         break
@@ -712,7 +722,7 @@ class Input:
             # key)_hash...
             ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
             if ls_dict['signatures']:
-                self.public_hash = ls_dict['signatures'][0]
+                self.public_hash = ls_dict['hashes'][0]
         if not self.script_type:
             self.script_type = 'sig_pubkey'
 
@@ -974,11 +984,11 @@ class Output:
             if self.script_type == 'p2sh':
                 self.versionbyte = self.network.prefix_address_p2sh
             if self.script_type in ['p2pkh', 'p2sh']:
-                self.public_hash = ss['signatures'][0]
+                self.public_hash = ss['hashes'][0]
                 self.address = pubkeyhash_to_addr(self.public_hash, versionbyte=self.versionbyte)
             elif self.script_type in ['p2wpkh', 'p2wsh']:
-                self.public_hash = ss['signatures'][0]
-                self.address_obj = Address(hashed_data=ss['signatures'][0], script_type=self.script_type,
+                self.public_hash = ss['hashes'][0]
+                self.address_obj = Address(hashed_data=ss['hashes'][0], script_type=self.script_type,
                                            encoding='bech32')
                 self.address = self.address_obj.address
             elif self.script_type != 'nulldata':
@@ -1295,7 +1305,7 @@ class Transaction:
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
-        print(to_hexstring(self.inputs[sign_id].script_code))
+        # print(to_hexstring(self.inputs[sign_id].script_code))
         return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):

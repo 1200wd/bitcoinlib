@@ -42,18 +42,17 @@ TIMEOUT_REQUESTS = 5
 
 # Transactions
 SCRIPT_TYPES_LOCKING = {
-    # Locking scripts (Output)
-    # FIXME: signature should be named hash?
-    'p2pkh': ['OP_DUP', 'OP_HASH160', 'signature-20', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
-    'p2sh': ['OP_HASH160', 'signature-20', 'OP_EQUAL'],
-    'p2wpkh': ['OP_0', 'signature-20'],
-    'p2wsh': ['OP_0', 'signature-32'],
+    # Locking scripts / scriptPubKey (Output)
+    'p2pkh': ['OP_DUP', 'OP_HASH160', 'hash-20', 'OP_EQUALVERIFY', 'OP_CHECKSIG'],
+    'p2sh': ['OP_HASH160', 'hash-20', 'OP_EQUAL'],
+    'p2wpkh': ['OP_0', 'hash-20'],
+    'p2wsh': ['OP_0', 'hash-32'],
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
     'pubkey': ['signature', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data'],
 }
 SCRIPT_TYPES_UNLOCKING = {
-    # Unlocking scripts (Input)
+    # Unlocking scripts / scriptSig (Input)
     'sig_pubkey': ['signature', 'SIGHASH_ALL', 'public_key'],
     'p2sh_multisig': ['OP_0', 'multisig', 'redeemscript'],
     'p2sh_p2wpkh': ['OP_0', 'OP_HASH160', 'redeemscript', 'OP_EQUAL'],
