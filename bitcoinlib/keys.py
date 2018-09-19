@@ -813,6 +813,9 @@ class Key:
         Prints key information to standard output
         
         """
+
+        print(" Network                     %s" % self.network.name)
+        print(" Compressed                  %s" % self.compressed)
         if self.secret:
             print("SECRET EXPONENT")
             print(" Private Key (hex)              %s" % self.private_hex)
@@ -820,8 +823,6 @@ class Key:
             print(" Private Key (wif)              %s" % self.wif())
         else:
             print("PUBLIC KEY ONLY, NO SECRET EXPONENT")
-        print("")
-        print(" Compressed                  %s" % self.compressed)
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)

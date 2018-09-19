@@ -682,13 +682,6 @@ class Input:
         self.double_spend = double_spend
         self.locktime_cltv = locktime_cltv
         self.locktime_csv = locktime_csv
-        if witness_type is None:
-            if self.script_type in ['p2wpkh', 'p2wsh']:
-                witness_type = 'segwit'
-            elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
-                witness_type = 'p2sh-segwit'
-            else:
-                witness_type = 'legacy'
         self.witness_type = witness_type
         if encoding is None:
             self.encoding = 'base58'
@@ -718,11 +711,19 @@ class Input:
                 #     raise TransactionError("Address script type %s is different from script type provided %s" %
                 #                            (us_dict['script_type'], self.script_type))
         elif unlocking_script_unsigned and not signatures:
-            # FIXME: 'unlocking_script_unsigned' should be named locking script and not signature but public_(
-            # key)_hash...
             ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
-            if ls_dict['signatures']:
+            if ls_dict['hashes']:
                 self.public_hash = ls_dict['hashes'][0]
+                if ls_dict['script_type'] in ['p2wpkh', 'p2wsh']:
+                    self.witness_type = 'segwit'
+                self.script_type = get_unlocking_script_type(ls_dict['script_type'])
+        if self.witness_type is None:
+            if self.script_type in ['p2wpkh', 'p2wsh']:
+                self.witness_type = 'segwit'
+            elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+                self.witness_type = 'p2sh-segwit'
+            else:
+                self.witness_type = 'legacy'
         if not self.script_type:
             self.script_type = 'sig_pubkey'
 
@@ -835,8 +836,10 @@ class Input:
             if len(signatures):
                 unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
             if self.witness_type == 'segwit':
-                self.script_code = self.redeemscript
-                self.witness = unlock_script
+                key_str = varstr(self.keys[0].public_byte) + b'\xac'
+                self.script_code = key_str
+                if signatures:
+                    self.witness = varstr(signatures[0] + struct.pack('B', hash_type)) + varstr(key_str)
             elif self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = self.redeemscript
                 self.script_code = unlock_script
@@ -876,12 +879,24 @@ class Input:
             'script_type': self.script_type,
             'address': self.address,
             'value': self.value,
-            'public_key': pks,
+            'public_keys': pks,
+            'compressed': self.compressed,
+            'encoding': self.encoding,
             'double_spend': self.double_spend,
             'script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
             'sequence': self.sequence,
             'signatures': [to_hexstring(s['signature']) for s in self.signatures],
+            'sigs_required': self.sigs_required,
+            'locktime_cltv': self.locktime_cltv,
+            'locktime_csv': self.locktime_csv, 'public_hash': to_hexstring(self.public_hash),
+            'script_code': to_hexstring(self.script_code),
+            'unlocking_script': to_hexstring(self.unlocking_script),
+            'unlocking_script_unsigned': to_hexstring(self.unlocking_script_unsigned),
+            'witness_type': self.witness_type,
+            'witness': to_hexstring(self.witness),
+            'sort': self.sort,
+            'valid': self.valid,
         }
 
     def __repr__(self):
@@ -1614,12 +1629,6 @@ class Transaction:
 
         """
         lock_script = to_bytes(lock_script)
-        # if address:
-        #     to = address
-        # elif public_key:
-        #     to = public_key
-        # else:
-        #     to = public_hash
         if output_n is None:
             output_n = len(self.outputs)
         if not float(value).is_integer():
