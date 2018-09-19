@@ -51,7 +51,6 @@ class TestTransactionInputs(unittest.TestCase):
             b"\x13"
         ti = Input(prev_hash, output_index, unlocking_script=unlock_scr)
         expected_dict = {
-            'public_key': '02309a196919cff1d18754271be7ee54d1b37f414cbb292b55d7ed1f0dc8209d13',
             'output_n': 0,
             'script': '47304402206ca28f7bafdd65bdfc0fbd88f5a5b003699127caf0fff6e65535d7f131152c0302201617'
                       '303f638e08947f18697edcb3a7a53ae66df94f2629db98dc0cc5076b34b7012102309a196919cff1d1'
@@ -63,7 +62,7 @@ class TestTransactionInputs(unittest.TestCase):
             'script_type': 'sig_pubkey'
         }
         ti_dict = {key: ti.dict()[key] for key in
-                   ['public_key', 'output_n', 'script', 'sequence', 'prev_hash', 'index_n', 'address', 'script_type']}
+                   ['output_n', 'script', 'sequence', 'prev_hash', 'index_n', 'address', 'script_type']}
         self.assertDictEqual(expected_dict, ti_dict)
 
     def test_transaction_input_add_coinbase(self):

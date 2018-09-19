@@ -183,7 +183,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
 
     def _get_empty_data():
         return {'script_type': '', 'keys': [], 'signatures': [], 'hashes': [], 'redeemscript': b'',
-                'number_of_sigs_n': 1, 'number_of_sigs_m': 1, 'locktime_cltv': 0, 'locktime_csv': 0, 'result': ''}
+                'number_of_sigs_n': 1, 'number_of_sigs_m': 1, 'locktime_cltv': None, 'locktime_csv': None, 'result': ''}
 
     def _parse_script(script):
         found = False
@@ -592,7 +592,7 @@ class Input:
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, locktime_cltv=0, locktime_csv=0, witness_type=None,
+                 value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, witness_type=None,
                  encoding=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
