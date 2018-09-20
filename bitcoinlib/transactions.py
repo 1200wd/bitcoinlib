@@ -819,7 +819,10 @@ class Input:
             if not self.redeemscript:
                 self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
                                                                     compressed=self.compressed)
-            self.public_hash = script_to_pubkeyhash(self.redeemscript)
+            if self.witness_type == 'segwit':
+                self.public_hash = hashlib.sha256(self.redeemscript).digest()
+            else:
+                self.public_hash = script_to_pubkeyhash(self.redeemscript)
             if not self.address:
                 self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
                                        script_type=self.script_type, witness_type=self.witness_type).address
@@ -836,10 +839,15 @@ class Input:
             if len(signatures):
                 unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
             if self.witness_type == 'segwit':
-                key_str = varstr(self.keys[0].public_byte) + b'\xac'
-                self.script_code = key_str
+                script_code = b''
+                for k in self.keys:
+                    script_code += varstr(k.public_byte) + b'\xad\xab'
+                if len(script_code) > 3:
+                    script_code = script_code[:-2] + b'\xac'
+                self.script_code = script_code
                 if signatures:
-                    self.witness = varstr(signatures[0] + struct.pack('B', hash_type)) + varstr(key_str)
+                    self.witness = varstr(signatures[0] + struct.pack('B', hash_type)) + \
+                                   varstr(self.keys[0].public_byte)
             elif self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = self.redeemscript
                 self.script_code = unlock_script
@@ -1292,7 +1300,7 @@ class Transaction:
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sig_version=SIGNATURE_VERSION_STANDARD):
+    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=0, sig_version=SIGNATURE_VERSION_STANDARD):
         # TODO: Implement sig_version
         prevouts_serialized = b''
         sequence_serialized = b''
@@ -1323,13 +1331,22 @@ class Transaction:
                                    sign_id)
         if not self.inputs[sign_id].script_code or self.inputs[sign_id].script_code == b'\0':
             raise TransactionError("Script code missing")
+
+        if len(self.inputs[sign_id].keys) > 1:
+            script_code = b''
+            for n in range(sign_key_id, len(self.inputs[sign_id].keys)):
+                script_code += varstr(self.inputs[sign_id].keys[n].public_byte) + b'\xad\xab'
+            if len(script_code) > 3:
+                script_code = script_code[:-2] + b'\xac'
+        else:
+            script_code = self.inputs[sign_id].script_code
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
-            varstr(self.inputs[sign_id].script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
+            varstr(script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
-        # print(to_hexstring(ser_tx))
+        print(to_hexstring(ser_tx))
         # print(to_hexstring(self.inputs[sign_id].script_code))
         return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
