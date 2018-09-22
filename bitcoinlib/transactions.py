@@ -1445,7 +1445,7 @@ class Transaction:
                              (len(i.signatures), i.sigs_required))
                 return False
             transaction_hash = b''
-            if i.witness_type == 'p2sh-segwit':
+            if i.witness_type == 'p2sh-segwit' or (i.witness_type == 'segwit' and len(i.keys) == 1):
                 transaction_hash = self.signature_hash(i.index_n)
             elif i.witness_type == 'legacy':
                 t_to_sign = self.raw(i.index_n)
@@ -1509,9 +1509,10 @@ class Transaction:
 
             if self.inputs[tid].script_type == 'coinbase':
                 raise TransactionError("Can not sign coinbase transactions")
-            if self.inputs[tid].witness_type == 'p2sh-segwit':
+            if self.inputs[tid].witness_type == 'p2sh-segwit' or \
+                    (self.inputs[tid].witness_type == 'segwit' and len(self.inputs[tid].keys) == 1):
                 tsig = self.signature_hash(tid)
-            elif self.inputs[tid].witness_type =='legacy':
+            elif self.inputs[tid].witness_type == 'legacy':
                 tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
 
             pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
@@ -1524,7 +1525,7 @@ class Transaction:
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
                 sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
-                if self.inputs[tid].witness_type == 'segwit':
+                if self.inputs[tid].witness_type == 'segwit' and len(self.inputs[tid].keys) > 1:
                     tsig = self.signature_hash(tid, sign_key_id=key_n)
                 key_n += 1
                 while True:
