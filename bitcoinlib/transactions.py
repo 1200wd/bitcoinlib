@@ -1444,9 +1444,10 @@ class Transaction:
                 _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
                              (len(i.signatures), i.sigs_required))
                 return False
-            if i.witness_type in ['segwit', 'p2sh-segwit']:
+            transaction_hash = b''
+            if i.witness_type == 'p2sh-segwit':
                 transaction_hash = self.signature_hash(i.index_n)
-            else:
+            elif i.witness_type == 'legacy':
                 t_to_sign = self.raw(i.index_n)
                 transaction_hash = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
             sig_id = 0
@@ -1457,8 +1458,11 @@ class Transaction:
                 if sig_id >= len(i.signatures):
                     _logger.info("No valid signatures found")
                     return False
-                if len(i.keys) > 1:
+                if i.witness_type == 'segwit' and len(i.keys) > 1:
                     transaction_hash = self.signature_hash(i.index_n, sign_key_id=key_n)
+                elif not transaction_hash:
+                    _logger.info("Need at least 1 key to create segwit transaction signature")
+                    return False
                 key_n += 1
                 if verify_signature(transaction_hash, i.signatures[sig_id]['signature'],
                                     key.public_uncompressed_byte[1:]):
