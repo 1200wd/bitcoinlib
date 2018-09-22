@@ -1334,9 +1334,10 @@ class Transaction:
 
         if len(self.inputs[sign_id].keys) > 1:
             script_code = b''
-            for n in range(sign_key_id, len(self.inputs[sign_id].keys)):
+            total_keys = len(self.inputs[sign_id].keys)
+            for n in range(sign_key_id, total_keys):
                 script_code += varstr(self.inputs[sign_id].keys[n].public_byte) + b'\xad\xab'
-            if len(script_code) > 3:
+            if sign_key_id < total_keys:
                 script_code = script_code[:-2] + b'\xac'
         else:
             script_code = self.inputs[sign_id].script_code
