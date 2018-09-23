@@ -1375,7 +1375,7 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             if i.witness:
-                witnesses.append(i.witness)
+                witnesses.append(struct.pack("B", len(i.keys)*2) + i.witness)
             else:
                 witnesses.append(b'\0')
             if sign_id is None:
@@ -1397,11 +1397,6 @@ class Transaction:
             if not self.coinbase and not len([w for w in witnesses if w != b'\0']):
                 raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
             for witness in witnesses:
-                if witness != b'\0':
-                    if len(witness) > 100:
-                        r += b'\4'
-                    else:
-                        r += b'\2'
                 r += witness
 
         r += struct.pack('<L', self.locktime)
