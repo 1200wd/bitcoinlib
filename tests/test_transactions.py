@@ -1336,6 +1336,32 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertTrue(t2.verify())
         self.assertEqual(t2.inputs[0].script_type, 'p2sh_p2wpkh')
 
+    def test_transaction_segwit_p2wsh(self):
+        pk_input1a = 'b8f28a772fccbf9b4f58a4f027e07dc2e35e7cd80529975e292ea34f84c4580c'
+        pk1 = Key(pk_input1a)
+        pk_input2a = '8e02b539b1500aa7c81cf3fed177448a546f19d2be416c0c61ff28e577d8d0cd'
+        pk2a = Key(pk_input2a)
+        pk_input2b = '86bf2ed75935a0cbef03b89d72034bb4c189d381037a5ac121a70016db8896ec'
+        pk2b = Key(pk_input2b)
+        output1_value_hexle = binascii.unhexlify('00f2052a01000000')
+        output1_value = change_base(output1_value_hexle[::-1], 256, 10)
+        inp_prev_tx1 = binascii.unhexlify('fe3dc9208094f3ffd12645477b3dc56f60ec4fa8e6f5d67c565d1c6b9216b36e')[::-1]
+        inp_prev_tx2 = binascii.unhexlify('0815cf020f013ed6cf91d29f4202e8a58726b1ac6c79da47c23d1bee0a6925f8')[::-1]
+        inputs = [
+            Input(inp_prev_tx1, 0, sequence=0xffffffff, value=int(1.5625 * 100000000), keys=[pk1], sigs_required=1),
+            Input(inp_prev_tx2, 0, sequence=0xffffffff, value=int(49 * 100000000), witness_type='segwit',
+                  keys=[pk2a, pk2b], sigs_required=2, script_type='p2sh_multisig'), ]
+        outputs = [Output(output1_value, lock_script='76a914a30741f8145e5acadf23f751864167f32e0963f788ac'), ]
+        t = Transaction(inputs, outputs, witness_type='segwit')
+
+        # Specify already kwown private keys to try to confuse signing method
+        t.sign([pk1], 0)
+        t.sign([pk2a, pk2b], 1)
+        self.assertTrue(t.verify())
+        self.assertEqual(to_hexstring(t.signature_hash(1, SIGHASH_SINGLE, sign_key_id=1)),
+                         'fef7bd749cce710c5c052bd796df1af0d935e59cea63736268bcbe2d2134fc47')
+        # TODO: Test import raw tx
+
     def test_transaction_segwit_addresses(self):
         pk = 'Ky4o5RNziUHUuDjUaAKuHnfMt2hRsX4y4itaGPGNMPDhR11faGtA'
         inp = Input('prev', 0, pk, script_type='p2sh_p2wpkh')

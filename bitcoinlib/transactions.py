@@ -1472,7 +1472,7 @@ class Transaction:
         self.verified = True
         return True
 
-    def sign(self, keys, tid=None, hash_type=SIGHASH_ALL):
+    def sign(self, keys=None, tid=None, hash_type=SIGHASH_ALL):
         """
         Sign the transaction input with provided private key
         
@@ -1491,16 +1491,22 @@ class Transaction:
         else:
             tids = [tid]
 
+        if keys is None:
+            keys = []
+        elif not isinstance(keys, list):
+            keys = [keys]
+
         n_signs = 0
         for tid in tids:
-            if not isinstance(keys, list):
-                keys = [keys]
-            keys = [k if isinstance(k, (HDKey, Key)) else Key(k, compressed=self.inputs[tid].compressed) for k in keys]
-
-            # If input does not contain any keys, try using provided key
+            tid_keys = [k if isinstance(k, (HDKey, Key)) else Key(k, compressed=self.inputs[tid].compressed)
+                        for k in keys]
+            for k in self.inputs[tid].keys:
+                if k.isprivate and k not in tid_keys:
+                    tid_keys.append(k)
+            # If input does not contain any keys, try using provided keys
             if not self.inputs[tid].keys:
-                self.inputs[tid].keys = keys
-                self.inputs[tid].update_scripts()
+                self.inputs[tid].keys = tid_keys
+                self.inputs[tid].update_scripts(hash_type=hash_type)
 
             if self.inputs[tid].script_type == 'coinbase':
                 raise TransactionError("Can not sign coinbase transactions")
@@ -1516,7 +1522,7 @@ class Transaction:
             sig_domain = [''] * n_total_sigs
 
             key_n = 0
-            for key in keys:
+            for key in tid_keys:
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
                 sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
