@@ -27,6 +27,7 @@ from bitcoinlib.transactions import Transaction
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'blockchair'
+REQUEST_LIMIT = 3
 
 
 class BlockChairClient(BaseClient):
@@ -34,14 +35,14 @@ class BlockChairClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, command, query_vars=None):
+    def compose_request(self, command, query_vars=None, offset=0):
         url_path = ''
-        variables = None
+        variables = {'offset': offset, 'limit': REQUEST_LIMIT}
         if command:
             url_path += command
         if query_vars is not None:
             varstr = ','.join(['%s(%s)' % (qv, query_vars[qv]) for qv in query_vars])
-            variables = {'q': varstr}
+            variables.update({'q': varstr})
         return self.request(url_path, variables)
 
     # def getbalance(self, addresslist):
@@ -50,37 +51,38 @@ class BlockChairClient(BaseClient):
     #         res = self.compose_request('address', address)
     #         balance += int(res['balance'])
     #     return int(balance * self.units)
-    #
-    # def getutxos(self, addresslist):
-    #     utxos = []
-    #     for address in addresslist:
-    #         # res = self.compose_request('address', address, 'unspent-outputs')
-    #         current_page = 1
-    #         while len(utxos) < 2000:
-    #             variables = {'page': current_page, 'limit': 200}
-    #             res = self.compose_request('address', address, 'unspent-outputs', variables)
-    #             for utxo in res['data']:
-    #                 utxos.append({
-    #                     'address': address,
-    #                     'tx_hash': utxo['hash'],
-    #                     'confirmations': utxo['confirmations'],
-    #                     'output_n': utxo['index'],
-    #                     'input_n': 0,
-    #                     'block_height': None,
-    #                     'fee': None,
-    #                     'size': 0,
-    #                     'value': int(round(utxo['value'] * self.units, 0)),
-    #                     'script': utxo['script_hex'],
-    #                     'date': datetime.strptime(utxo['time'], "%Y-%m-%dT%H:%M:%S+%f")
-    #                 })
-    #             if current_page*200 > int(res['total']):
-    #                 break
-    #             current_page += 1
-    #
-    #     if len(utxos) >= 2000:
-    #         _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
-    #     return utxos
-    #
+
+    def getutxos(self, addresslist):
+        utxos = []
+        for address in addresslist:
+            offset = 0
+            while True:
+                res = self.compose_request('outputs', {'recipient': address, 'is_spent': 'false'}, offset=offset)
+                current_block = res['context']['state']
+                for utxo in res['data']:
+                    if utxo['is_spent']:
+                        continue
+                    utxos.append({
+                        'address': address,
+                        'tx_hash': utxo['transaction_hash'],
+                        'confirmations': current_block - utxo['block_id'],
+                        'output_n': utxo['index'],
+                        'input_n': 0,
+                        'block_height': utxo['block_id'],
+                        'fee': None,
+                        'size': 0,
+                        'value': utxo['value'],
+                        'script': utxo['script_hex'],
+                        'date': datetime.strptime(utxo['time'], "%Y-%m-%d %H:%M:%S")
+                    })
+                if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
+                    break
+                offset += REQUEST_LIMIT
+
+        # if len(utxos) >= 2000:
+        #     _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
+        return utxos
+
     # def gettransactions(self, addresslist):
     #     txs = []
     #     for address in addresslist:
