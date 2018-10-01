@@ -27,7 +27,7 @@ from bitcoinlib.transactions import Transaction
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'blockchair'
-REQUEST_LIMIT = 3
+REQUEST_LIMIT = 50
 
 
 class BlockChairClient(BaseClient):
@@ -35,22 +35,24 @@ class BlockChairClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, command, query_vars=None, offset=0):
+    def compose_request(self, command, query_vars=None, data=None, offset=0):
         url_path = ''
         variables = {'offset': offset, 'limit': REQUEST_LIMIT}
         if command:
             url_path += command
+        if data:
+            url_path += data
         if query_vars is not None:
             varstr = ','.join(['%s(%s)' % (qv, query_vars[qv]) for qv in query_vars])
             variables.update({'q': varstr})
         return self.request(url_path, variables)
 
-    # def getbalance(self, addresslist):
-    #     balance = 0.0
-    #     for address in addresslist:
-    #         res = self.compose_request('address', address)
-    #         balance += int(res['balance'])
-    #     return int(balance * self.units)
+    def getbalance(self, addresslist):
+        balance = 0
+        for address in addresslist:
+            res = self.compose_request('dashboards/address/', data=address)
+            balance += int(res['data'][address]['address']['balance'])
+        return balance
 
     def getutxos(self, addresslist):
         utxos = []
@@ -78,9 +80,6 @@ class BlockChairClient(BaseClient):
                 if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
                     break
                 offset += REQUEST_LIMIT
-
-        # if len(utxos) >= 2000:
-        #     _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
         return utxos
 
     # def gettransactions(self, addresslist):
@@ -119,36 +118,36 @@ class BlockChairClient(BaseClient):
     #     if len(txs) >= 2000:
     #         _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
     #     return txs
-    #
-    # def gettransaction(self, tx_id):
-    #     tx = self.compose_request('transaction', tx_id)
-    #
-    #     rawtx = tx['raw']
-    #     t = Transaction.import_raw(rawtx, network=self.network)
-    #     if tx['confirmations']:
-    #         t.status = 'confirmed'
-    #     else:
-    #         t.status = 'unconfirmed'
-    #
-    #     if t.coinbase:
-    #         t.input_total = t.output_total
-    #     else:
-    #         t.input_total = tx['total_input_value']
-    #     t.output_total = tx['total_output_value']
-    #     t.fee = tx['total_fee']
-    #     t.hash = tx['hash']
-    #     t.block_hash = tx['block_hash']
-    #     t.block_height = tx['block_height']
-    #     t.confirmations = tx['confirmations']
-    #     t.date = datetime.strptime(tx['block_time'], "%Y-%m-%dT%H:%M:%S+%f")
-    #     t.size = tx['size']
-    #     for n, i in enumerate(t.inputs):
-    #         i.value = tx['inputs'][n]['value']
-    #     for n, o in enumerate(t.outputs):
-    #         if tx['outputs'][n]['address']:
-    #             o.spent = True if 'spent_hash' in tx['outputs'][n] else False
-    #
-    #     return t
+
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('transaction', {'hash': tx_id})
+
+        rawtx = tx['raw']
+        t = Transaction.import_raw(rawtx, network=self.network)
+        if tx['confirmations']:
+            t.status = 'confirmed'
+        else:
+            t.status = 'unconfirmed'
+
+        if t.coinbase:
+            t.input_total = t.output_total
+        else:
+            t.input_total = tx['total_input_value']
+        t.output_total = tx['total_output_value']
+        t.fee = tx['total_fee']
+        t.hash = tx['hash']
+        t.block_hash = tx['block_hash']
+        t.block_height = tx['block_height']
+        t.confirmations = tx['confirmations']
+        t.date = datetime.strptime(tx['block_time'], "%Y-%m-%dT%H:%M:%S+%f")
+        t.size = tx['size']
+        for n, i in enumerate(t.inputs):
+            i.value = tx['inputs'][n]['value']
+        for n, o in enumerate(t.outputs):
+            if tx['outputs'][n]['address']:
+                o.spent = True if 'spent_hash' in tx['outputs'][n] else False
+
+        return t
 
     def estimatefee(self, blocks):
         # Non-scientific method to estimate transaction fees. It's probably good when it looks complicated...
