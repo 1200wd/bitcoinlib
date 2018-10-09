@@ -120,33 +120,33 @@ class BlockChairClient(BaseClient):
     #     return txs
 
     def gettransaction(self, tx_id):
-        tx = self.compose_request('transaction', {'hash': tx_id})
+        # tx = self.compose_request('transactions', {'hash': tx_id})
+        res = self.compose_request('dashboards/transaction/', data=tx_id)
 
-        rawtx = tx['raw']
-        t = Transaction.import_raw(rawtx, network=self.network)
-        if tx['confirmations']:
-            t.status = 'confirmed'
-        else:
-            t.status = 'unconfirmed'
-
-        if t.coinbase:
-            t.input_total = t.output_total
-        else:
-            t.input_total = tx['total_input_value']
-        t.output_total = tx['total_output_value']
-        t.fee = tx['total_fee']
-        t.hash = tx['hash']
-        t.block_hash = tx['block_hash']
-        t.block_height = tx['block_height']
-        t.confirmations = tx['confirmations']
-        t.date = datetime.strptime(tx['block_time'], "%Y-%m-%dT%H:%M:%S+%f")
-        t.size = tx['size']
-        for n, i in enumerate(t.inputs):
-            i.value = tx['inputs'][n]['value']
-        for n, o in enumerate(t.outputs):
-            if tx['outputs'][n]['address']:
-                o.spent = True if 'spent_hash' in tx['outputs'][n] else False
-
+        tx = res['data'][tx_id]['transaction']
+        confirmations = res['context']['state'] - tx['block_id']
+        status = 'unconfirmed'
+        if confirmations:
+            status = 'confirmed'
+        witness_type = 'legacy'
+        if tx['has_witness']:
+            witness_type = 'segwit'
+        t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
+                        fee=tx['fee'], size=tx['size'], hash=tx['hash'],
+                        date=datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S"),
+                        confirmations=confirmations, block_height=tx['block_id'], status=status,
+                        input_total=tx['input_total'], coinbase=tx['is_coinbase'],
+                        output_total=tx['output_total'], witness_type=witness_type)
+        output_n = 0
+        for ti in res['data'][tx_id]['inputs']:
+            # TODO: Add signatures, also for multisig
+            # sigs = [sig for sig in ti['spending_witness'].split(',') if sig != '']
+            t.add_input(prev_hash=ti['transaction_hash'], output_n=output_n, unlocking_script=ti['script_hex'],
+                        index_n=ti['index'], value=ti['value'], address=ti['recipient'])
+            output_n += 1
+        for to in res['data'][tx_id]['outputs']:
+            t.add_output(value=to['value'], address=to['recipient'], lock_script=to['script_hex'],
+                         spent=to['is_spent'], output_n=to['index'])
         return t
 
     def estimatefee(self, blocks):
