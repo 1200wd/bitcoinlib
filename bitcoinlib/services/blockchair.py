@@ -23,11 +23,13 @@ import logging
 from datetime import datetime
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.keys import deserialize_address
+from bitcoinlib.encoding import EncodingError
 
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'blockchair'
-REQUEST_LIMIT = 50
+REQUEST_LIMIT = 25
 
 
 class BlockChairClient(BaseClient):
@@ -82,42 +84,27 @@ class BlockChairClient(BaseClient):
                 offset += REQUEST_LIMIT
         return utxos
 
-    # def gettransactions(self, addresslist):
-    #     txs = []
-    #     for address in addresslist:
-    #         # res = self.compose_request('address', address, 'unspent-outputs')
-    #         current_page = 1
-    #         while len(txs) < 2000:
-    #             variables = {'page': current_page, 'limit': 200}
-    #             res = self.compose_request('address', address, 'transactions', variables)
-    #             for tx in res['data']:
-    #                 if tx['hash'] in [t.hash for t in txs]:
-    #                     break
-    #                 if tx['confirmations']:
-    #                     status = 'confirmed'
-    #                 else:
-    #                     status = 'unconfirmed'
-    #                 t = Transaction(network=self.network, fee=tx['total_fee'], hash=tx['hash'],
-    #                                 date=datetime.strptime(tx['time'], "%Y-%m-%dT%H:%M:%S+%f"),
-    #                                 confirmations=tx['confirmations'], block_height=tx['block_height'],
-    #                                 block_hash=tx['block_hash'], status=status,
-    #                                 input_total=tx['total_input_value'], output_total=tx['total_output_value'])
-    #                 for index_n, ti in enumerate(tx['inputs']):
-    #                     t.add_input(prev_hash=ti['output_hash'], output_n=ti['output_index'],
-    #                                 unlocking_script=ti['script_signature'],
-    #                                 index_n=index_n, value=int(round(ti['value'] * self.units, 0)))
-    #                 for to in tx['outputs']:
-    #                     t.add_output(value=int(round(to['value'] * self.units, 0)), address=to['address'],
-    #                                  lock_script=to['script_hex'],
-    #                                  spent=bool(to['spent_hash']))
-    #                 txs.append(t)
-    #             if current_page*200 > int(res['total']):
-    #                 break
-    #             current_page += 1
-    #
-    #     if len(txs) >= 2000:
-    #         _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
-    #     return txs
+    def gettransactions(self, addresslist):
+        tx_ids = []
+        for address in addresslist:
+            # offset = 0
+            # transaction_count = None
+            # while transaction_count is100 None or offset < transaction_count:
+            res = self.compose_request('dashboards/address/', data=address)
+            addr = res['data'][address]
+            transaction_count = addr['address']['transaction_count']
+            if transaction_count > REQUEST_LIMIT:
+                _logger.warning("Transactions truncated. Found more transactions for address %s then request limit."
+                                % addr)
+            tx_ids += addr['transactions']
+            # offset += REQUEST_LIMIT
+        tx_ids = list(set(tx_ids))
+        txs = []
+        if len(tx_ids) > REQUEST_LIMIT:
+            _logger.warning("Transactions truncated. Found more transactions for this addresslist then request limit.")
+        for tx_id in tx_ids[:REQUEST_LIMIT]:
+            txs.append(self.gettransaction(tx_id))
+        return txs
 
     def gettransaction(self, tx_id):
         # tx = self.compose_request('transactions', {'hash': tx_id})
@@ -137,15 +124,20 @@ class BlockChairClient(BaseClient):
                         confirmations=confirmations, block_height=tx['block_id'], status=status,
                         input_total=tx['input_total'], coinbase=tx['is_coinbase'],
                         output_total=tx['output_total'], witness_type=witness_type)
-        output_n = 0
+        index_n = 0
         for ti in res['data'][tx_id]['inputs']:
             # TODO: Add signatures, also for multisig
             # sigs = [sig for sig in ti['spending_witness'].split(',') if sig != '']
-            t.add_input(prev_hash=ti['transaction_hash'], output_n=output_n, unlocking_script=ti['script_hex'],
-                        index_n=ti['index'], value=ti['value'], address=ti['recipient'])
-            output_n += 1
+            t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'], unlocking_script=ti['script_hex'],
+                        index_n=index_n, value=ti['value'], address=ti['recipient'])
+            index_n += 1
         for to in res['data'][tx_id]['outputs']:
-            t.add_output(value=to['value'], address=to['recipient'], lock_script=to['script_hex'],
+            try:
+                deserialize_address(to['recipient'], network=self.network.name)
+                addr = to['recipient']
+            except EncodingError:
+                addr = None
+            t.add_output(value=to['value'], address=addr, lock_script=to['script_hex'],
                          spent=to['is_spent'], output_n=to['index'])
         return t
 
