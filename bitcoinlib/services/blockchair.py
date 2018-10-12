@@ -118,11 +118,14 @@ class BlockChairClient(BaseClient):
         witness_type = 'legacy'
         if tx['has_witness']:
             witness_type = 'segwit'
+        input_total = tx['input_total']
+        if tx['is_coinbase']:
+            input_total = tx['output_total']
         t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], hash=tx['hash'],
                         date=datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S"),
                         confirmations=confirmations, block_height=tx['block_id'], status=status,
-                        input_total=tx['input_total'], coinbase=tx['is_coinbase'],
+                        input_total=input_total, coinbase=tx['is_coinbase'],
                         output_total=tx['output_total'], witness_type=witness_type)
         index_n = 0
         for ti in res['data'][tx_id]['inputs']:
