@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Blockchair client
-#    © 2018 September - 1200 Web Development <http://1200wd.com/>
+#    © 2018 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -107,7 +107,6 @@ class BlockChairClient(BaseClient):
         return txs
 
     def gettransaction(self, tx_id):
-        # tx = self.compose_request('transactions', {'hash': tx_id})
         res = self.compose_request('dashboards/transaction/', data=tx_id)
 
         tx = res['data'][tx_id]['transaction']
@@ -157,3 +156,12 @@ class BlockChairClient(BaseClient):
         avgfeekb_24h = avgtxsize * (medfee / 1000)
         fee_estimate = (mempool_feekb + avgfeekb_24h) / 2
         return int(fee_estimate * (1 / math.log(blocks+2, 6)))
+
+    def block_count(self):
+        """
+        Get latest block number: The block number of last block in longest chain on the blockchain
+
+        :return int:
+        """
+        res = self.compose_request('stats')
+        return res['context']['state']
