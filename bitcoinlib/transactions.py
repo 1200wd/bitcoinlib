@@ -80,7 +80,6 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
             coinbase = True
         output_n = rawtx[cursor + 32:cursor + 36][::-1]
         cursor += 36
-
         unlocking_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
         unlocking_script = rawtx[cursor:cursor + unlocking_script_size]
@@ -122,8 +121,12 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
             if witness_str:
                 inp_witness_type = 'segwit'
                 wsd = script_deserialize(witness_str, locking_script=False)
-                sig = wsd['signatures'][0]
-                key = wsd['keys'][0]
+                if not wsd['script_type']:
+                    sig = ''
+                    key = ''
+                else:
+                    sig = wsd['signatures'][0]
+                    key = wsd['keys'][0]
                 usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
                 script_type = inputs[n].script_type
                 if usd['script_type'] == "p2wpkh" and wsd['script_type'] == 'sig_pubkey':
