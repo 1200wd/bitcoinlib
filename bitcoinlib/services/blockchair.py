@@ -126,17 +126,16 @@ class BlockChairClient(BaseClient):
                         output_total=tx['output_total'], witness_type=witness_type)
         index_n = 0
         for ti in res['data'][tx_id]['inputs']:
-            # TODO: Add signatures, also for multisig
-            # sigs = [sig for sig in ti['spending_witness'].split(',') if sig != '']
-            t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'], unlocking_script=ti['script_hex'],
-                        index_n=index_n, value=ti['value'], address=ti['recipient'])
+            t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
+                        unlocking_script_unsigned=ti['script_hex'], index_n=index_n, value=ti['value'],
+                        address=ti['recipient'], unlocking_script=ti['spending_signature_hex'])
             index_n += 1
         for to in res['data'][tx_id]['outputs']:
             try:
                 deserialize_address(to['recipient'], network=self.network.name)
                 addr = to['recipient']
             except EncodingError:
-                addr = None
+                addr = ''
             t.add_output(value=to['value'], address=addr, lock_script=to['script_hex'],
                          spent=to['is_spent'], output_n=to['index'])
         return t

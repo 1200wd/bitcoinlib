@@ -745,7 +745,8 @@ class Input:
                 if sig['sig_der'] not in [x['sig_der'] for x in self.signatures]:
                     self.signatures.append(sig)
             else:
-                assert(isinstance(sig, bytes))
+                if not isinstance(sig, bytes):
+                    sig = to_bytes(sig)
                 sig_der = ''
                 if sig.startswith(b'\x30'):
                     # If signature ends with Hashtype, remove hashtype and continue
@@ -795,7 +796,14 @@ class Input:
         unlock_script = b''
         if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
             if not self.keys and not self.public_hash:
-                return
+                if self.unlocking_script_unsigned:
+                    script_dict = script_deserialize(self.unlocking_script_unsigned)
+                    if script_dict['script_type'] == 'p2pkh':
+                        self.public_hash = script_dict['hashes'][0]
+                    else:
+                        return
+                else:
+                    return
             if not self.public_hash:
                 self.public_hash = self.keys[0].hash160()
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'

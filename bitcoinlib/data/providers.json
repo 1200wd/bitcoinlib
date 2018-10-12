@@ -319,7 +319,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "blockchair.bitcoin": {
+  "blockchair.bitcoin": {
     "provider": "blockchair",
     "network": "bitcoin",
     "client_class": "BlockChairClient",
