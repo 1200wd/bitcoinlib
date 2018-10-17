@@ -117,6 +117,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
             for m in range(0, n_items):
                 item_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
                 witness_str += rawtx[cursor:cursor + item_size + size]
+                # print(to_hexstring(rawtx[cursor:cursor + item_size + size]))
                 cursor += size + item_size
             if witness_str:
                 inp_witness_type = 'segwit'
@@ -1405,8 +1406,8 @@ class Transaction:
             r += varstr(o.lock_script)
 
         if sign_id is None and self.witness_type == 'segwit':
-            if not self.coinbase and not len([w for w in witnesses if w != b'\0']):
-                raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
+            # if not self.coinbase and not len([w for w in witnesses if w != b'\0']):
+            #     raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
             for witness in witnesses:
                 r += witness
 
@@ -1451,7 +1452,8 @@ class Transaction:
                              (len(i.signatures), i.sigs_required))
                 return False
             transaction_hash = b''
-            if i.witness_type == 'p2sh-segwit' or (i.witness_type == 'segwit' and len(i.keys) == 1):
+            # if i.witness_type == 'p2sh-segwit' or (i.witness_type == 'segwit' and len(i.keys) == 1):
+            if i.witness_type in ['p2sh-segwit', 'segwit']:
                 transaction_hash = self.signature_hash(i.index_n)
             elif i.witness_type == 'legacy':
                 t_to_sign = self.raw(i.index_n)
