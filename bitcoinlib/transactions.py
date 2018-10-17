@@ -595,7 +595,7 @@ class Input:
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
-                 sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
+                 sequence=0xffffffff, compressed=True, sigs_required=None, sort=True, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, witness_type=None,
                  encoding=None, network=DEFAULT_NETWORK):
         """
@@ -1562,9 +1562,9 @@ class Transaction:
                 # Check if signature signs known key and is not already in list
                 # if pub_key not in pub_key_list and pub_key not in pub_key_list_uncompressed:
                 if key.public_byte not in pub_key_list:
-                    raise TransactionError("This key does not sign any known key: %s" % key.public_byte)
+                    raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
                 if key.public_byte in [x['pub_key'] for x in self.inputs[tid].signatures]:
-                    _logger.warning("Key %s already signed" % key.public_byte)
+                    _logger.warning("Key %s already signed" % key.public_hex)
                     break
 
                 newsig_pos = pub_key_list.index(key.public_byte)
