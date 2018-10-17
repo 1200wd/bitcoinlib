@@ -1311,7 +1311,7 @@ class Transaction:
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=0, sig_version=SIGNATURE_VERSION_STANDARD):
+    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=None, sig_version=SIGNATURE_VERSION_STANDARD):
         # TODO: Implement sig_version
         prevouts_serialized = b''
         sequence_serialized = b''
@@ -1343,7 +1343,7 @@ class Transaction:
         if not self.inputs[sign_id].script_code or self.inputs[sign_id].script_code == b'\0':
             raise TransactionError("Script code missing")
 
-        if len(self.inputs[sign_id].keys) > 1:
+        if len(self.inputs[sign_id].keys) > 1 and sign_key_id is not None:
             script_code = b''
             total_keys = len(self.inputs[sign_id].keys)
             for n in range(sign_key_id, total_keys):
@@ -1359,7 +1359,8 @@ class Transaction:
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
-        # print(to_hexstring(self.inputs[sign_id].script_code))
+        # print(to_hexstring(script_code))
+        print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
         return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
@@ -1452,8 +1453,7 @@ class Transaction:
                              (len(i.signatures), i.sigs_required))
                 return False
             transaction_hash = b''
-            # if i.witness_type == 'p2sh-segwit' or (i.witness_type == 'segwit' and len(i.keys) == 1):
-            if i.witness_type in ['p2sh-segwit', 'segwit']:
+            if i.witness_type in ['p2sh-segwit', 'segwit'] and len(i.keys) == 1:
                 transaction_hash = self.signature_hash(i.index_n)
             elif i.witness_type == 'legacy':
                 t_to_sign = self.raw(i.index_n)
@@ -1466,7 +1466,7 @@ class Transaction:
                 if sig_id >= len(i.signatures):
                     _logger.info("No valid signatures found")
                     return False
-                if i.witness_type == 'segwit' and len(i.keys) > 1:
+                if i.witness_type in ['p2sh-segwit', 'segwit'] and len(i.keys) > 1:
                     transaction_hash = self.signature_hash(i.index_n, sign_key_id=key_n)
                 elif not transaction_hash:
                     _logger.info("Need at least 1 key to create segwit transaction signature")
@@ -1485,7 +1485,7 @@ class Transaction:
         self.verified = True
         return True
 
-    def sign(self, keys=None, tid=None, hash_type=SIGHASH_ALL):
+    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL):
         """
         Sign the transaction input with provided private key
         
@@ -1493,6 +1493,8 @@ class Transaction:
         :type keys: HDKey, Key, bytes, list
         :param tid: Index of transaction input
         :type tid: int
+        :param multisig_key_n: Index number of key for multisig input for segwit transactions. Leave empty if not known. If not specified all possibilities will be checked
+        :type multisig_key_n: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
 
@@ -1520,28 +1522,25 @@ class Transaction:
             if not self.inputs[tid].keys:
                 self.inputs[tid].keys = tid_keys
                 self.inputs[tid].update_scripts(hash_type=hash_type)
-
             if self.inputs[tid].script_type == 'coinbase':
                 raise TransactionError("Can not sign coinbase transactions")
-            if self.inputs[tid].witness_type == 'p2sh-segwit' or \
-                    (self.inputs[tid].witness_type == 'segwit' and len(self.inputs[tid].keys) == 1):
-                tsig = self.signature_hash(tid)
-            elif self.inputs[tid].witness_type == 'legacy':
-                tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
-
             pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
             pub_key_list_uncompressed = [x.public_uncompressed_byte for x in self.inputs[tid].keys]
             n_total_sigs = len(pub_key_list)
             sig_domain = [''] * n_total_sigs
 
-            key_n = 0
+            tsig = None
             for key in tid_keys:
+                if self.inputs[tid].witness_type in ['p2sh-segwit', 'segwit']:
+                    key_n = multisig_key_n
+                    if key_n is None:
+                        key_n = [i for i,y in enumerate([x.public_byte for x in self.inputs[tid].keys]) if y == key.public_byte][0]
+                    tsig = self.signature_hash(tid, sign_key_id=key_n)
+                elif not tsig:
+                    tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
                 sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
-                if self.inputs[tid].witness_type == 'segwit' and len(self.inputs[tid].keys) > 1:
-                    tsig = self.signature_hash(tid, sign_key_id=key_n)
-                key_n += 1
                 while True:
                     sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
                     # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors

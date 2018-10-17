@@ -479,6 +479,6 @@ class TestService(unittest.TestCase, CustomAssertions):
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
-                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5,
+                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=2000,
                                        msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
             n_blocks = srv.results[provider]
