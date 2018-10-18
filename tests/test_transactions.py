@@ -1357,6 +1357,8 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t.sign([pk1], 0)
         t.sign([pk2a, pk2b], 1)
         self.assertTrue(t.verify())
+        self.assertEqual(to_hexstring(t.signature_hash(1, SIGHASH_SINGLE, sign_key_id=0)),
+                         '82dde6e4f1e94d02c2b7ad03d2115d691f48d064e9d52f58194a6637e4194391')
         self.assertEqual(to_hexstring(t.signature_hash(1, SIGHASH_SINGLE, sign_key_id=1)),
                          'fef7bd749cce710c5c052bd796df1af0d935e59cea63736268bcbe2d2134fc47')
         # TODO: Test import raw tx

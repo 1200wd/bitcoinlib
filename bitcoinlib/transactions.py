@@ -694,7 +694,7 @@ class Input:
         else:
             self.encoding = encoding
         self.valid = None
-        self.witness = b''
+        self.witnesses = []
         self.script_code = b''
 
         # If unlocking script is specified extract keys, signatures, type from script
@@ -819,10 +819,10 @@ class Input:
                     varstr(self.keys[0].public_byte)
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
-                self.witness = unlock_script
+                self.witnesses = [unlock_script]
             elif self.witness_type == 'segwit':
                 self.unlocking_script = b''
-                self.witness = unlock_script
+                self.witnesses = [unlock_script]
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
         elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
@@ -858,11 +858,12 @@ class Input:
                     script_code = script_code[:-2] + b'\xac'
                 self.script_code = script_code
                 if signatures:
-                    self.witness = unlock_script
+                    self.witnesses = [unlock_script]
             elif self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = self.redeemscript
                 self.script_code = unlock_script
-                self.witness = unlock_script
+                if signatures:
+                    self.witnesses = [unlock_script]
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
         elif self.script_type != 'coinbase':
@@ -913,7 +914,7 @@ class Input:
             'unlocking_script': to_hexstring(self.unlocking_script),
             'unlocking_script_unsigned': to_hexstring(self.unlocking_script_unsigned),
             'witness_type': self.witness_type,
-            'witness': to_hexstring(self.witness),
+            'witness': to_hexstring("".join(self.witness)),
             'sort': self.sort,
             'valid': self.valid,
         }
@@ -1312,7 +1313,12 @@ class Transaction:
         print("Confirmations: %s" % self.confirmations)
 
     def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=None, sig_version=SIGNATURE_VERSION_STANDARD):
+        return hashlib.sha256(hashlib.sha256(self.signature(sign_id, hash_type, sign_key_id, sig_version)).
+            digest()).digest()
+
+    def signature(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=None, sig_version=SIGNATURE_VERSION_STANDARD):
         # TODO: Implement sig_version
+        assert(self.witness_type == 'segwit')
         prevouts_serialized = b''
         sequence_serialized = b''
         outputs_serialized = b''
@@ -1361,7 +1367,7 @@ class Transaction:
         # print(to_hexstring(ser_tx))
         # print(to_hexstring(script_code))
         # print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
-        return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
+        return ser_tx
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
@@ -1377,20 +1383,20 @@ class Transaction:
         :return bytes:
         
         """
-
         r = self.version[::-1]
         if sign_id is None and self.witness_type == 'segwit':
             r += b'\x00'  # marker (BIP 141)
             r += b'\x01'  # flag (BIP 141)
 
         r += int_to_varbyteint(len(self.inputs))
-        witnesses = []
+        r_witness = b''
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
-            if i.witness:
-                witnesses.append(struct.pack("B", len(i.keys)*2) + i.witness)
+            if i.witnesses:
+                # witnesses.append(struct.pack("B", len(i.keys)*2) + i.witness)
+                r_witness += struct.pack("B", len(i.witnesses)) + b''.join(i.witnesses)
             else:
-                witnesses.append(b'\0')
+                r_witness += b'\0'
             if sign_id is None:
                 r += varstr(i.unlocking_script)
             elif sign_id == i.index_n:
@@ -1409,8 +1415,7 @@ class Transaction:
         if sign_id is None and self.witness_type == 'segwit':
             # if not self.coinbase and not len([w for w in witnesses if w != b'\0']):
             #     raise TransactionError("Transaction type is segwit, but transaction has no segwit inputs")
-            for witness in witnesses:
-                r += witness
+            r += r_witness
 
         r += struct.pack('<L', self.locktime)
         if sign_id is not None:
@@ -1534,7 +1539,8 @@ class Transaction:
                 if self.inputs[tid].witness_type in ['p2sh-segwit', 'segwit']:
                     key_n = multisig_key_n
                     if key_n is None:
-                        key_n = [i for i,y in enumerate([x.public_byte for x in self.inputs[tid].keys]) if y == key.public_byte][0]
+                        key_n = [i for i, y in enumerate([x.public_byte for x in self.inputs[tid].keys])
+                                 if y == key.public_byte][0]
                     tsig = self.signature_hash(tid, sign_key_id=key_n)
                 elif not tsig:
                     tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
