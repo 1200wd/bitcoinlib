@@ -1360,7 +1360,7 @@ class Transaction:
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
         # print(to_hexstring(script_code))
-        print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
+        # print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
         return hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):

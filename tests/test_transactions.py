@@ -1349,7 +1349,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         inputs = [
             Input(inp_prev_tx1, 0, sequence=0xffffffff, value=int(1.5625 * 100000000), keys=[pk1], sigs_required=1),
             Input(inp_prev_tx2, 0, sequence=0xffffffff, value=int(49 * 100000000), witness_type='segwit',
-                  keys=[pk2a, pk2b], sigs_required=2, script_type='p2sh_multisig'), ]
+                  keys=[pk2a, pk2b], sigs_required=2, script_type='p2sh_multisig', sort=False), ]
         outputs = [Output(output1_value, lock_script='76a914a30741f8145e5acadf23f751864167f32e0963f788ac'), ]
         t = Transaction(inputs, outputs, witness_type='segwit')
 
