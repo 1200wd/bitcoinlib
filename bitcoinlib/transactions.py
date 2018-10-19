@@ -143,6 +143,9 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                                   sequence=inputs[n].sequence, index_n=inputs[n].index_n,
                                   network=inputs[n].network)
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
+    if len(rawtx[cursor+4:]):
+        raise TransactionError("Error when deserializing raw transaction, bytes left after operation %s" %
+                               to_hexstring(rawtx[cursor+4:]))
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
                        coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=to_hexstring(rawtx))
@@ -1322,7 +1325,7 @@ class Transaction:
 
     def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=None, sig_version=SIGNATURE_VERSION_STANDARD):
         return hashlib.sha256(hashlib.sha256(self.signature(sign_id, hash_type, sign_key_id, sig_version)).
-            digest()).digest()
+                              digest()).digest()
 
     def signature(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=None, sig_version=SIGNATURE_VERSION_STANDARD):
         # TODO: Implement sig_version
@@ -1373,7 +1376,8 @@ class Transaction:
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
-        # print(to_hexstring(script_code))
+        print(self.locktime)
+        # print(sign_id, sign_key_id, to_hexstring(script_code))
         # print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
         return ser_tx
 
