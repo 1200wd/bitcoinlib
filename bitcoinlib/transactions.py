@@ -823,12 +823,15 @@ class Input:
             self.unlocking_script_unsigned = self.script_code
             self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
                                    script_type=self.script_type, witness_type=self.witness_type).address
+            # TODO: Rewrite code below...
             if len(self.signatures) and self.keys:
                 unlock_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
                     varstr(self.keys[0].public_byte)
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
-                self.witnesses = [unlock_script]
+                if len(self.signatures) and self.keys:
+                    self.witnesses = [varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)),
+                                      varstr(self.keys[0].public_byte)]
             elif self.witness_type == 'segwit':
                 self.unlocking_script = b''
                 if len(self.signatures) and self.keys:
@@ -1376,7 +1379,6 @@ class Transaction:
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
-        print(self.locktime)
         # print(sign_id, sign_key_id, to_hexstring(script_code))
         # print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
         return ser_tx
