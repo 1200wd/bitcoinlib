@@ -659,7 +659,7 @@ class Input:
             self.network = Network(network)
         self.index_n = index_n
         self.value = value
-        if keys is None:
+        if not keys:
             keys = []
         self.keys = []
         if not isinstance(keys, list):
