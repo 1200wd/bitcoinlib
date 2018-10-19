@@ -120,7 +120,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                 # print(to_hexstring(rawtx[cursor:cursor + item_size + size]))
                 cursor += size + item_size
             if witness_str:
-                inp_witness_type = 'segwit'
+                inp_witness_type = inputs[n].witness_type
                 wsd = script_deserialize(witness_str, locking_script=False)
                 if not wsd['script_type']:
                     sig = ''
@@ -699,18 +699,24 @@ class Input:
 
         # If unlocking script is specified extract keys, signatures, type from script
         if unlocking_script and self.script_type != 'coinbase' and not signatures:
-            us_dict = script_deserialize(unlocking_script, locking_script=False)
+            # us_dict = script_deserialize(unlocking_script, locking_script=False)
+            us_dict = script_deserialize(unlocking_script)
             if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
                 raise TransactionError("Could not parse unlocking script (%s)" % binascii.hexlify(unlocking_script))
-            if us_dict['script_type'] not in ['unknown', 'empty']:
+            if us_dict['script_type'] not in ['', 'unknown', 'empty']:
                 self.sigs_required = us_dict['number_of_sigs_n']
                 self.redeemscript = us_dict['redeemscript']
                 signatures += us_dict['signatures']
                 keys += us_dict['keys']
+                if not signatures and not self.public_hash:
+                    self.public_hash = us_dict['hashes'][0]
                 # Determine locking script type for unlocking script type
                 if not self.script_type:
-                    if us_dict['script_type'] in ['p2wsh', 'p2sh_multisig']:
-                        self.script_type = 'p2sh_multisig'
+                    self.script_type = us_dict['script_type']
+                    if us_dict['script_type'] == 'p2wsh':
+                        self.script_type = 'p2sh_p2wsh'
+                    elif us_dict['script_type'] == 'p2wpkh':
+                        self.script_type = 'p2sh_p2wpkh'
                 # elif self.script_type != us_dict['script_type']:
                 #     raise TransactionError("Address script type %s is different from script type provided %s" %
                 #                            (us_dict['script_type'], self.script_type))
@@ -721,7 +727,7 @@ class Input:
                 if ls_dict['script_type'] in ['p2wpkh', 'p2wsh']:
                     self.witness_type = 'segwit'
                 self.script_type = get_unlocking_script_type(ls_dict['script_type'])
-        if self.witness_type is None:
+        if self.witness_type is None or self.witness_type == 'legacy':
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
@@ -822,7 +828,9 @@ class Input:
                 self.witnesses = [unlock_script]
             elif self.witness_type == 'segwit':
                 self.unlocking_script = b''
-                self.witnesses = [unlock_script]
+                if len(self.signatures) and self.keys:
+                    self.witnesses = [varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)),
+                                      varstr(self.keys[0].public_byte)]
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
         elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
@@ -914,7 +922,7 @@ class Input:
             'unlocking_script': to_hexstring(self.unlocking_script),
             'unlocking_script_unsigned': to_hexstring(self.unlocking_script_unsigned),
             'witness_type': self.witness_type,
-            'witness': to_hexstring("".join(self.witness)),
+            'witness': to_hexstring("".join(self.witnesses)),
             'sort': self.sort,
             'valid': self.valid,
         }
@@ -1394,6 +1402,7 @@ class Transaction:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             if i.witnesses:
                 # witnesses.append(struct.pack("B", len(i.keys)*2) + i.witness)
+                # r_witness += struct.pack("B", len(i.keys)*2) + b''.join(i.witnesses)
                 r_witness += struct.pack("B", len(i.witnesses)) + b''.join(i.witnesses)
             else:
                 r_witness += b'\0'
@@ -1539,8 +1548,10 @@ class Transaction:
                 if self.inputs[tid].witness_type in ['p2sh-segwit', 'segwit']:
                     key_n = multisig_key_n
                     if key_n is None:
-                        key_n = [i for i, y in enumerate([x.public_byte for x in self.inputs[tid].keys])
-                                 if y == key.public_byte][0]
+                        klist = [i for i, y in enumerate([x.public_byte for x in self.inputs[tid].keys])
+                                 if y == key.public_byte]
+                        if klist:
+                            key_n = klist[0]
                     tsig = self.signature_hash(tid, sign_key_id=key_n)
                 elif not tsig:
                     tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
