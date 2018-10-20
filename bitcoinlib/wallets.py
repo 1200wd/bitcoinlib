@@ -572,7 +572,7 @@ class HDWalletTransaction(Transaction):
                    block_hash=t.block_hash, input_total=t.input_total, output_total=t.output_total,
                    rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, verified=t.verified, flag=t.flag)
 
-    def sign(self, keys=None, index_n=0, hash_type=SIGHASH_ALL):
+    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL):
         """
         Sign this transaction. Use existing keys from wallet or use keys argument for extra keys.
 
@@ -580,6 +580,8 @@ class HDWalletTransaction(Transaction):
         :type keys: HDKey, str
         :param index_n: Transaction index_n to sign
         :type index_n: int
+        :param multisig_key_n: Index number of key for multisig input for segwit transactions. Leave empty if not known. If not specified all possibilities will be checked
+        :type multisig_key_n: int
         :param hash_type: Hashtype to use, default is SIGHASH_ALL
         :type hash_type: int
 
@@ -611,7 +613,7 @@ class HDWalletTransaction(Transaction):
                         filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.hdwallet.wallet_id])).first()
                     if db_pk:
                         priv_key_list.append(HDKey(db_pk.wif, network=self.network.name))
-            Transaction.sign(self, priv_key_list, ti.index_n, hash_type)
+            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type)
         self.verify()
         self.error = ""
         return True

@@ -489,16 +489,22 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
     return _serialize_multisig_redeemscript(public_key_list, n_required)
 
 
-def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
+def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=False):
     usu = b'\x00'
+    if as_list:
+        usu = []
     if not isinstance(sigs, list):
         sigs = [sigs]
     for sig in sigs:
         s = to_bytes(sig)
         if hash_type:
             s += struct.pack('B', hash_type)
-        usu += varstr(s)
+        if as_list:
+            usu.append(s)
+        else:
+            usu += varstr(s)
     rs_size = int_to_varbyteint(len(redeemscript))
+    size_byte = b''
     if len(redeemscript) >= 76:
         if len(rs_size) == 1:
             size_byte = b'\x4c'
@@ -506,8 +512,11 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None):
             size_byte = b'\x4d'
         else:
             size_byte = b'\x4e'
-        usu += size_byte
-    usu += rs_size + redeemscript
+    redeemscript_str = size_byte + rs_size + redeemscript
+    if as_list:
+        usu.append(redeemscript_str)
+    else:
+        usu += redeemscript_str
     return usu
 
 
@@ -598,7 +607,7 @@ class Input:
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
-                 sequence=0xffffffff, compressed=True, sigs_required=None, sort=True, index_n=0,
+                 sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, witness_type=None,
                  encoding=None, network=DEFAULT_NETWORK):
         """
@@ -863,7 +872,11 @@ class Input:
                 raise TransactionError("Empty signature found in signature list when signing. "
                                        "Is DER encoded version of signature defined?")
             if len(signatures):
-                unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type)
+                us_as_list = False
+                if self.witness_type in ['segwit', 'p2sh-segwit']:
+                    us_as_list = True
+                unlock_script = _p2sh_multisig_unlocking_script(signatures, self.redeemscript, hash_type,
+                                                                as_list=us_as_list)
             if self.witness_type == 'segwit':
                 script_code = b''
                 for k in self.keys:
@@ -872,12 +885,12 @@ class Input:
                     script_code = script_code[:-2] + b'\xac'
                 self.script_code = script_code
                 if signatures:
-                    self.witnesses = [unlock_script]
+                    self.witnesses = unlock_script
             elif self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = self.redeemscript
                 self.script_code = unlock_script
                 if signatures:
-                    self.witnesses = [unlock_script]
+                    self.witnesses = unlock_script
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
         elif self.script_type != 'coinbase':
@@ -1360,8 +1373,6 @@ class Transaction:
         if not self.inputs[sign_id].value:
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
                                    sign_id)
-        if not self.inputs[sign_id].script_code or self.inputs[sign_id].script_code == b'\0':
-            raise TransactionError("Script code missing")
 
         if len(self.inputs[sign_id].keys) > 1 and sign_key_id is not None:
             script_code = b''
@@ -1372,6 +1383,10 @@ class Transaction:
                 script_code = script_code[:-2] + b'\xac'
         else:
             script_code = self.inputs[sign_id].script_code
+
+        if not script_code or script_code == b'\0':
+            raise TransactionError("Script code missing")
+
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
@@ -1380,7 +1395,7 @@ class Transaction:
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
         # print(sign_id, sign_key_id, to_hexstring(script_code))
-        # print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
+        print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
         return ser_tx
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
