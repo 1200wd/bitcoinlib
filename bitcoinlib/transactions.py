@@ -492,7 +492,7 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
 def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=False):
     usu = b'\x00'
     if as_list:
-        usu = []
+        usu = [usu]
     if not isinstance(sigs, list):
         sigs = [sigs]
     for sig in sigs:
@@ -854,7 +854,7 @@ class Input:
             if not self.redeemscript:
                 self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
                                                                     compressed=self.compressed)
-            if self.witness_type == 'segwit':
+            if self.witness_type == 'segwit' or self.witness_type == 'p2sh-segwit':
                 self.public_hash = hashlib.sha256(self.redeemscript).digest()
             else:
                 self.public_hash = script_to_pubkeyhash(self.redeemscript)
@@ -887,7 +887,7 @@ class Input:
                 if signatures:
                     self.witnesses = unlock_script
             elif self.witness_type == 'p2sh-segwit':
-                self.unlocking_script = self.redeemscript
+                self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
                 self.script_code = unlock_script
                 if signatures:
                     self.witnesses = unlock_script
@@ -1395,7 +1395,7 @@ class Transaction:
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
         # print(sign_id, sign_key_id, to_hexstring(script_code))
-        print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
+        # print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
         return ser_tx
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
@@ -1424,7 +1424,7 @@ class Transaction:
             if i.witnesses:
                 # witnesses.append(struct.pack("B", len(i.keys)*2) + i.witness)
                 # r_witness += struct.pack("B", len(i.keys)*2) + b''.join(i.witnesses)
-                r_witness += struct.pack("B", len(i.witnesses)) + b''.join(i.witnesses)
+                r_witness += struct.pack("B", len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
             else:
                 r_witness += b'\0'
             if sign_id is None:

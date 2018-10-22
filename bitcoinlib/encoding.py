@@ -331,6 +331,8 @@ def varstr(s):
     :return bytes: varstring
     """
     s = normalize_var(s)
+    if s == b'\0':
+        return s
     return int_to_varbyteint(len(s)) + s
 
 
