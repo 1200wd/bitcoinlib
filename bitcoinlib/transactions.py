@@ -1381,11 +1381,11 @@ class Transaction:
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=None, sig_version=SIGNATURE_VERSION_STANDARD):
-        return hashlib.sha256(hashlib.sha256(self.signature(sign_id, hash_type, sign_key_id, sig_version)).
+    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sig_version=SIGNATURE_VERSION_STANDARD):
+        return hashlib.sha256(hashlib.sha256(self.signature(sign_id, hash_type, sig_version)).
                               digest()).digest()
 
-    def signature(self, sign_id, hash_type=SIGHASH_ALL, sign_key_id=None, sig_version=SIGNATURE_VERSION_STANDARD):
+    def signature(self, sign_id, hash_type=SIGHASH_ALL,  sig_version=SIGNATURE_VERSION_STANDARD):
         # TODO: Implement sig_version
         assert(self.witness_type == 'segwit')
         prevouts_serialized = b''
@@ -1423,9 +1423,12 @@ class Transaction:
         #         script_code += varstr(self.inputs[sign_id].keys[n].public_byte) + b'\xad\xab'
         #     if sign_key_id < total_keys:
         #         script_code = script_code[:-2] + b'\xac'
+        #     print(to_hexstring(script_code))
         # else:
         #     script_code = self.inputs[sign_id].script_code
         script_code = self.inputs[sign_id].redeemscript
+        if not script_code:
+            script_code = self.inputs[sign_id].script_code
 
         if not script_code or script_code == b'\0':
             raise TransactionError("Script code missing")
@@ -1531,7 +1534,7 @@ class Transaction:
                              (len(i.signatures), i.sigs_required))
                 return False
             transaction_hash = b''
-            if i.witness_type in ['p2sh-segwit', 'segwit'] and len(i.keys) == 1:
+            if i.witness_type in ['p2sh-segwit', 'segwit']:
                 transaction_hash = self.signature_hash(i.index_n)
             elif i.witness_type == 'legacy':
                 t_to_sign = self.raw(i.index_n)
@@ -1544,9 +1547,9 @@ class Transaction:
                 if sig_id >= len(i.signatures):
                     _logger.info("No valid signatures found")
                     return False
-                if i.witness_type in ['p2sh-segwit', 'segwit'] and len(i.keys) > 1:
-                    transaction_hash = self.signature_hash(i.index_n, sign_key_id=key_n)
-                elif not transaction_hash:
+                # if i.witness_type in ['p2sh-segwit', 'segwit'] and len(i.keys) > 1:
+                #     transaction_hash = self.signature_hash(i.index_n, sign_key_id=key_n)
+                if not transaction_hash:
                     _logger.info("Need at least 1 key to create segwit transaction signature")
                     return False
                 key_n += 1
@@ -1610,13 +1613,13 @@ class Transaction:
             tsig = None
             for key in tid_keys:
                 if self.inputs[tid].witness_type in ['p2sh-segwit', 'segwit']:
-                    key_n = multisig_key_n
-                    if key_n is None:
-                        klist = [i for i, y in enumerate([x.public_byte for x in self.inputs[tid].keys])
-                                 if y == key.public_byte]
-                        if klist:
-                            key_n = klist[0]
-                    tsig = self.signature_hash(tid, sign_key_id=key_n)
+                    # key_n = multisig_key_n
+                    # if key_n is None:
+                    #     klist = [i for i, y in enumerate([x.public_byte for x in self.inputs[tid].keys])
+                    #              if y == key.public_byte]
+                    #     if klist:
+                    #         key_n = klist[0]
+                    tsig = self.signature_hash(tid)
                 elif not tsig:
                     tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
                 if not key.private_byte:
