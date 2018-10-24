@@ -116,9 +116,10 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
             witness_str = b''
             for m in range(0, n_items):
                 item_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
-                witness_str += rawtx[cursor:cursor + item_size + size]
+                cursor += size
+                witness_str += rawtx[cursor:cursor + item_size]
                 # print(to_hexstring(rawtx[cursor:cursor + item_size + size]))
-                cursor += size + item_size
+                cursor += item_size
             if witness_str:
                 inp_witness_type = inputs[n].witness_type
                 wsd = script_deserialize(witness_str, locking_script=False)
