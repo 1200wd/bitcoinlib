@@ -1269,6 +1269,22 @@ class TestTransactionsTimelocks(unittest.TestCase):
 
 class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
 
+    def test_transaction_segwit_deserialize(self):
+        # Random segwit p2wsh transaction - bbff3196a5668f5d90a901056adcc8c6dbec2e7ba0b9721772ea45693f08ce81
+        raw_tx = "01000000000101c2f54901df3f74e7999f505b629f5229a2cafcf8cc6325bb2a1f216748cb9fcb0200000000ffffffff03" \
+                 "40a4b600000000001976a91437883c91fbfbd90330fadec0d1b38ee2e5de449488ac00735500000000001976a914c77d15" \
+                 "052e9a8cce5cea9bb41e1edd6bd93dd8d988ac78bb9d0200000000220020701a8d401c84fb13e6baf169d59684e17abd9f" \
+                 "a216c8cc5b9fc63d622ff8c58d0400473044022042f474d354a3d406b01748bdb08ff771abb85b2de6dc220956b342eca6" \
+                 "c6ea00022030fce68b5db9ad760dfff39389a0e9c340f77fd95e9b256b01f2220192143f9e01483045022100b68f7f4848" \
+                 "b145197cfd38a204e46a443646fe292d5c553184e8adc6b1ed14f802206c2548d8b9a4901ab18fc26c11d249e62e716500" \
+                 "305a5152cd4ad1377a2286a1016952210375e00eb72e29da82b89367947f29ef34afb75e8654f6ea368e0acdfd92976b7c" \
+                 "2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70eff01874496feff2103c96d495bfdd5ba4145e3e046fe" \
+                 "e45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000"
+        t = Transaction.import_raw(raw_tx)
+        self.assertEqual(t.inputs[0].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
+        self.assertEqual(t.outputs[2].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
+        self.assertTrue(t.verify())
+
     def test_transaction_segwit_p2wpkh(self):
         pk_input1 = 'bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866'
         pk_input2 = '619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9'
