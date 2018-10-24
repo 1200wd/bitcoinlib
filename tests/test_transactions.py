@@ -1283,6 +1283,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t = Transaction.import_raw(raw_tx)
         self.assertEqual(t.inputs[0].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
         self.assertEqual(t.outputs[2].address, 'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej')
+        t.inputs[0].value = 61501176
         self.assertTrue(t.verify())
 
     def test_transaction_segwit_p2wpkh(self):
