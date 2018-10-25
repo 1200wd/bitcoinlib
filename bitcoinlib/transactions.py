@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 - 2018 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -856,20 +856,14 @@ class Input:
             self.unlocking_script_unsigned = self.script_code
             self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
                                    script_type=self.script_type, witness_type=self.witness_type).address
-            # TODO: Rewrite code below...
-            if len(self.signatures) and self.keys:
-                unlock_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type)) + \
-                    varstr(self.keys[0].public_byte)
+            self.witnesses = []
+            if self.signatures and self.keys:
+                self.witnesses = [self.signatures[0]['sig_der'] + struct.pack('B', hash_type), self.keys[0].public_byte]
+                unlock_script = b''.join([varstr(w) for w in self.witnesses])
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
-                if len(self.signatures) and self.keys:
-                    self.witnesses = [self.signatures[0]['sig_der'] + struct.pack('B', hash_type),
-                                      self.keys[0].public_byte]
             elif self.witness_type == 'segwit':
                 self.unlocking_script = b''
-                if len(self.signatures) and self.keys:
-                    self.witnesses = [self.signatures[0]['sig_der'] + struct.pack('B', hash_type),
-                                      self.keys[0].public_byte]
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
         elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
@@ -967,7 +961,7 @@ class Input:
             'unlocking_script': to_hexstring(self.unlocking_script),
             'unlocking_script_unsigned': to_hexstring(self.unlocking_script_unsigned),
             'witness_type': self.witness_type,
-            'witness': to_hexstring("".join(self.witnesses)),
+            'witness': to_hexstring(b''.join(self.witnesses)),
             'sort': self.sort,
             'valid': self.valid,
         }
