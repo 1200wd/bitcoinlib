@@ -233,7 +233,8 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     break
                 cur_char = script[cur]
                 if sys.version < '3':
-                    cur_char = ord(script[cur])
+                    if not isinstance(script, bytearray):
+                        cur_char = ord(script[cur])
                 if ch[:4] == 'hash':
                     hash_length = 0
                     if len(ch) > 5:
