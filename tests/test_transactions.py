@@ -1371,7 +1371,12 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
         self.assertEqual(to_hexstring(t.signature_hash(0)),
                          'e671e16a05001059a87767057700a7cb935c30a90e0728b739f24dd0d55ebae8')
-        # TODO: Add tx import
+        t2 = Transaction.import_raw(t.raw())
+        t2.inputs[0].value = 70626
+        t2.verify()
+        self.assertTrue(t2.verify())
+        self.assertEqual(to_hexstring(t2.signature_hash(0)),
+                         'e671e16a05001059a87767057700a7cb935c30a90e0728b739f24dd0d55ebae8')
 
     def test_transaction_segwit_p2sh_p2wsh(self):
         key1 = Key('241e4ec8680a77404bfd8ec8618c5db99dcb6c3eadd913d28a5e85bf28a29d92')
@@ -1388,10 +1393,11 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
         self.assertEqual(to_hexstring(t.signature_hash(0)),
                          '12ca412ed631d17d757a298f0d98e1b971d660b2e90a73b2ce6af3bb92ac342e')
-        # TODO: fix tx import
-        # t2 = Transaction.import_raw(t.raw())
-        # t2.inputs[0].value = 70626
-        # t2.info()
+        t2 = Transaction.import_raw(t.raw())
+        t2.inputs[0].value = 70626
+        self.assertTrue(t2.verify())
+        self.assertEqual(to_hexstring(t2.signature_hash(0)),
+                         '12ca412ed631d17d757a298f0d98e1b971d660b2e90a73b2ce6af3bb92ac342e')
 
     def test_transaction_segwit_addresses(self):
         pk = 'Ky4o5RNziUHUuDjUaAKuHnfMt2hRsX4y4itaGPGNMPDhR11faGtA'
