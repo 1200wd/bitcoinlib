@@ -1287,8 +1287,16 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verify())
 
     def test_transaction_segwit_deserialize_p2wpkh(self):
-        # TODO: add
-        pass
+        # Random segwit p2wpkh transaction - 299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4
+        raw_tx = "02000000000101b99ef54dd7695be7574ac6fb4a6d1a2dd98cb4ec7ee53b06117754da424a4c440100000000ffffffff01" \
+                 "12d62d1e00000000160014f922634ea00272421ffdb6f187935602159e17500247304402204c040218c1a5dc87e0ba3597" \
+                 "06fbd0c9c36063fd89c6b4dd900e03cd69de7fd602204c7ebe180a072cc415ba3337dd66d259a4c7de2b563269a90e055f" \
+                 "91898bcf590121025477b3e0aa2619e1ed61b7734b31369c156d9ff7fcbcdc1b7e3c79ed657aab0f00000000"
+        t = Transaction.import_raw(raw_tx)
+        self.assertEqual(t.inputs[0].address, 'bc1qpjnaav9yvane7qq3a7efq6nw229g6gh09jzlvc')
+        self.assertEqual(t.outputs[0].address, 'bc1qly3xxn4qqfeyy8lakmcc0y6kqg2eu96srjzycu')
+        t.inputs[0].value = 506323064
+        self.assertTrue(t.verify())
 
     def test_transaction_segwit_p2wpkh(self):
         pk_input1 = 'bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866'

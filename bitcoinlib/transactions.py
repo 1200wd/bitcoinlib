@@ -771,6 +771,8 @@ class Input:
                 self.witness_type = 'p2sh-segwit'
             else:
                 self.witness_type = 'legacy'
+        elif self.witness_type == 'segwit' and self.script_type == 'sig_pubkey' and encoding is None:
+            self.encoding = 'bech32'
         if not self.script_type:
             self.script_type = 'sig_pubkey'
 
@@ -1295,8 +1297,8 @@ class Transaction:
             'output_total': self.output_total,
             'version': self.version,
             'locktime': self.locktime,
-            'raw': self.raw_hex(),
             'size': self.size,
+            'raw': self.raw_hex(),
             'verified': self.verified,
             'status': self.status
         }

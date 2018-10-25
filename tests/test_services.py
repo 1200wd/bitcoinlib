@@ -459,6 +459,51 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
+    def test_gettransaction_segwit_p2pkh(self):
+        expected_dict = {
+            'block_hash': '00000000000000000006e7007407805af2bfb386439e570f5310bb97cdcf0352',
+            'block_height': 547270,
+            'coinbase': False,
+            'date': datetime.datetime(2018, 10, 25, 16, 30, 46),
+            'fee': 2662,
+            'hash': '299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4',
+            'input_total': 506323064,
+            'inputs':
+                [{
+                    'address': 'bc1qpjnaav9yvane7qq3a7efq6nw229g6gh09jzlvc',
+                    'index_n': 0,
+                    'output_n': 1,
+                    'prev_hash': '444c4a42da547711063be57eecb48cd92d1a6d4afbc64a57e75b69d74df59eb9',
+                    'public_hash': '0ca7deb0a467679f0011efb2906a6e528a8d22ef',
+                    'script_code': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
+                    'sequence': 4294967295,
+                    'sigs_required': 1,
+                    'unlocking_script_unsigned': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
+                    'value': 506323064}
+                ],
+            'locktime': 0,
+            'network': 'bitcoin',
+            'output_total': 506320402,
+            'outputs':
+                [{
+                    'address': 'bc1qly3xxn4qqfeyy8lakmcc0y6kqg2eu96srjzycu',
+                    'output_n': 0,
+                    'public_hash': 'f922634ea00272421ffdb6f187935602159e1750',
+                    'script': '0014f922634ea00272421ffdb6f187935602159e1750',
+                    'value': 506320402}
+                ],
+            # 'size': 191,  #  FIXME: Enable size
+            'version': '\x00\x00\x00\x02'
+        }
+        srv = Service(network='bitcoin', min_providers=10)
+
+        srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
+
+        for provider in srv.results:
+            print("Comparing provider %s" % provider)
+            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+                                    ['block_hash', 'block_height', 'spent', 'value', 'flag'])
+
     def test_network_litecoin_legacy(self):
         txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'
         address = 'LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG'

@@ -20,7 +20,7 @@
 
 from datetime import datetime
 import struct
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'blockexplorer'
@@ -81,6 +81,9 @@ class BlockExplorerClient(BaseClient):
                             script_type='coinbase', sequence=ti['sequence'])
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
+                if not ti['scriptSig']['hex']:
+                    raise ClientError("Missing unlocking script in BlockExplorer Input. Possible reason: Segwit is not "
+                                      "supported")
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
                             index_n=ti['n'], value=value, sequence=ti['sequence'],
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
