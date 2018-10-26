@@ -310,6 +310,21 @@ class TestWalletElectrum(unittest.TestCase):
                               msg='Key %s (%s, %s) not found in Electrum wallet key export' %
                                   (key.name, key.path, key.address))
 
+    def test_wallet_electrum_p2pkh(self):
+        phrase = 'smart donor clever resource stool denial wink under oak sand limb wagon'
+        wlt = HDWallet.create('wallet_electrum_p2pkh', phrase, network='bitcoin', witness_type='segwit', purpose=84,
+                              databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wlt.get_key().address, 'bc1qjz5l6mej6ptqlggfvdlys8pfukwqp8xnu0mn5u')
+        self.assertEqual(wlt.get_key_change().address, 'bc1qz4tr569wfs2fuekgcjtdlz0eufk7rfs8gnu5j9')
+
+    def test_wallet_electrum_p2sh_p2wsh(self):
+        phrase1 = 'magnet voice math okay castle recall arrange music high sustain require crowd'
+        phrase2 = 'wink tornado honey delay nest sing series timber album region suit spawn'
+        wlt = HDWallet.create_multisig('wallet_electrum_p2sh_p2wsh', [phrase1, phrase2], network='bitcoin', purpose=48,
+                                       witness_type='p2sh-segwit', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wlt.get_key().address, '3KsbwmS3cqpQgD9gzj3sCkAYSpuTMLiq6o')
+        self.assertEqual(wlt.get_key_change().address, '3M6Z7Jz7fbfCoWZ2ecWvpeA93GJ4VqBNNc')
+
 
 class TestWalletMultiCurrency(unittest.TestCase):
 
@@ -1151,13 +1166,34 @@ class TestWalletSegwit(unittest.TestCase):
     def tearDownClass(cls):
         os.remove(DATABASEFILE_UNITTESTS)
 
-    def test_wallet_create_segwit(self):
+    def test_wallet_segwit_create_p2pkh(self):
         phrase = 'depth child sheriff attack when purpose velvet stay problem lock myself praise'
         wlt = wallet_create_or_open('thetestwallet-bech32', key=phrase, network='bitcoin', witness_type='segwit',
                                     databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(wlt.get_key().address, 'bc1q9e77qg66squynnz2z03wpkr7s6esr2evfyxh05')
 
-    def test_wallet_segwit_p2sh_p2wpkh(self):
+    def test_wallet_segwit_create_pswsh(self):
+        phrase1 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
+        phrase2 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
+        pk1 = HDKey.from_passphrase(phrase1)
+        pk2 = HDKey.from_passphrase(phrase2)
+        w = HDWallet.create_multisig('multisig-segwit', [pk1, pk2.account_multisig_key().public()], sigs_required=1,
+                                     sort_keys=True, witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.get_key().address, 'bc1qa2tqpgfqle9u4pr4h2fv908zclmycd6yj34c8zrggmyz6kxwmdgshnueaf')
+
+    def test_wallet_segwit_create_p2sh_p2wsh(self):
+        phrase1 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
+        phrase2 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
+        pk1 = HDKey.from_passphrase(phrase1)
+        pk2 = HDKey.from_passphrase(phrase2)
+        w = HDWallet.create_multisig('segwit-p2sh-p2wsh', [pk1, pk2.account_multisig_key().public()], sigs_required=2,
+                                     sort_keys=True, witness_type='p2sh-segwit', databasefile=DATABASEFILE_UNITTESTS)
+        nk = w.get_key()
+        self.assertEqual(nk.address, '3DdAfhruNAEvmYTPnJHT9QXq5eMtAVQpnZ')
+        self.assertEqual(nk.key_type, 'multisig')
+        self.assertEqual(nk.path, "m/45'/0'/0'/0/0")
+
+    def test_wallet_segwit_create_p2sh_p2wpkh(self):
         phrase = 'fun brick apology sport museum vague once gospel walnut jump spawn hedgehog'
         w = wallet_create_or_open('segwit-p2sh-p2wpkh', phrase, purpose=49, witness_type='p2sh-segwit',
                                   network='bitcoin', databasefile=DATABASEFILE_UNITTESTS)
@@ -1168,12 +1204,59 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertEqual(Address(k1.key().key.public_byte, script_type='p2sh_p2wpkh').address, address)
         self.assertEqual(k1.address, address)
 
-    def test_wallet_create_multisig_segwit(self):
-        phrase1 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
-        phrase2 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
-        pk1 = HDKey.from_passphrase(phrase1)
-        pk2 = HDKey.from_passphrase(phrase2)
-        w = HDWallet.create_multisig('multisig-segwit', [pk1, pk2.account_multisig_key().public()], sigs_required=1,
-                                     sort_keys=True, witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
-        # TODO: Double-check this:
-        self.assertEqual(w.get_key().address, 'bc1qa2tqpgfqle9u4pr4h2fv908zclmycd6yj34c8zrggmyz6kxwmdgshnueaf')
+    def test_wallet_segwit_p2wpkh_send(self):
+        w = HDWallet.create('segwit_p2wpkh_send', witness_type='segwit', network='bitcoinlib_test',
+                            databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key()
+        w.utxos_update()
+        t = w.send_to('bclt1qz6u6qq30wt0zfhlgc6hj7sgkhs9eex5ulgcyr8', 10000)
+        self.assertEqual(t.witness_type, 'segwit')
+        self.assertEqual(t.inputs[0].script_type, 'sig_pubkey')
+        self.assertEqual(t.inputs[0].witness_type, 'segwit')
+        self.assertTrue(t.verified)
+        self.assertTrue(t.pushed)
+
+    def test_wallet_segwit_p2wsh_send(self):
+        w = HDWallet.create_multisig('segwit_p2wsh_send', witness_type='segwit', network='bitcoinlib_test',
+                                     key_list=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test')],
+                                     sigs_required=2, databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key()
+        w.utxos_update()
+        t = w.send_to('bclt1qz6u6qq30wt0zfhlgc6hj7sgkhs9eex5ulgcyr8', 10000)
+        self.assertEqual(t.witness_type, 'segwit')
+        self.assertEqual(t.inputs[0].script_type, 'p2sh_multisig')
+        self.assertEqual(t.inputs[0].witness_type, 'segwit')
+        self.assertTrue(t.verified)
+        self.assertTrue(t.pushed)
+
+    def test_wallet_segwit_p2sh_p2wpkh_send(self):
+        w = HDWallet.create('segwit_p2sh_p2wpkh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
+                            databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key()
+        w.utxos_update()
+        t = w.send_to('bclt1qz6u6qq30wt0zfhlgc6hj7sgkhs9eex5ulgcyr8', 10000)
+        self.assertEqual(t.witness_type, 'segwit')
+        self.assertEqual(t.inputs[0].script_type, 'sig_pubkey')
+        self.assertEqual(t.inputs[0].witness_type, 'p2sh-segwit')
+        self.assertTrue(t.verified)
+        self.assertTrue(t.pushed)
+
+    def test_wallet_segwit_p2sh_p2wsh_send(self):
+        w = HDWallet.create_multisig('segwit_p2sh_p2wsh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
+                                     key_list=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test'),
+                                               HDKey(network='bitcoinlib_test')],
+                                     sigs_required=2, databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key()
+        w.utxos_update()
+        t = w.send_to('bclt1qz6u6qq30wt0zfhlgc6hj7sgkhs9eex5ulgcyr8', 10000)
+        self.assertEqual(t.witness_type, 'segwit')
+        self.assertEqual(t.inputs[0].script_type, 'p2sh_multisig')
+        self.assertEqual(t.inputs[0].witness_type, 'p2sh-segwit')
+        self.assertTrue(t.verified)
+        self.assertTrue(t.pushed)
+
+    def test_wallet_segwit_uncompressed_error(self):
+        k = HDKey(compressed=False)
+        self.assertRaisesRegexp(KeyError, 'Uncompressed keys are non-standard', wallet_create_or_open,
+                                'segwit_uncompressed_error', k, witness_type='segwit', network='bitcoinlib_test',
+                                databasefile=DATABASEFILE_UNITTESTS)

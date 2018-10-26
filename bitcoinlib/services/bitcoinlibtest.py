@@ -21,7 +21,7 @@
 import logging
 import hashlib
 from bitcoinlib.services.baseclient import BaseClient
-from bitcoinlib.encoding import addr_to_pubkeyhash, to_hexstring, to_bytes
+from bitcoinlib.encoding import addr_to_pubkeyhash, to_hexstring, to_bytes, addr_bech32_to_pubkeyhash
 
 _logger = logging.getLogger(__name__)
 
@@ -65,7 +65,10 @@ class BitcoinLibTestClient(BaseClient):
         utxos = []
         for n in range(utxos_per_address):
             for address in addresslist:
-                pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
+                try:
+                    pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
+                except:
+                    pkh = str(n).encode() + addr_bech32_to_pubkeyhash(address)[1:]
                 utxos.append(
                     {
                         'address': address,
