@@ -459,7 +459,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
-    def test_gettransaction_segwit_p2pkh(self):
+    def test_gettransaction_segwit_p2wpkh(self):
         expected_dict = {
             'block_hash': '00000000000000000006e7007407805af2bfb386439e570f5310bb97cdcf0352',
             'block_height': 547270,
@@ -503,6 +503,13 @@ class TestService(unittest.TestCase, CustomAssertions):
             print("Comparing provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
+
+    def test_gettransaction_segwit_coinbase(self):
+        txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
+        srv = Service(network='bitcoin')
+        t = srv.gettransaction(txid)
+        self.assertTrue(t.verify())
+        self.assertTrue(t.inputs[0].valid)
 
     def test_network_litecoin_legacy(self):
         txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'

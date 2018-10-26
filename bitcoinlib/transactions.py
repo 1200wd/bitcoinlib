@@ -121,7 +121,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                     witness = rawtx[cursor:cursor + item_size + size]
                 cursor += item_size + size
                 witnesses.append(witness)
-            if witnesses:
+            if witnesses and not coinbase:
                 script_type = inputs[n].script_type
                 witness_script_type = 'sig_pubkey'
                 signatures = []
@@ -889,8 +889,8 @@ class Input:
                 n_tag = self.redeemscript[0:1]
                 if not isinstance(n_tag, int):
                     n_tag = struct.unpack('B', n_tag)[0]
-                n_required = n_tag - 80
-                signatures = [s['sig_der'] for s in self.signatures[:n_required]]
+                self.sigs_required = n_tag - 80
+                signatures = [s['sig_der'] for s in self.signatures[:self.sigs_required]]
                 if b'' in signatures:
                     raise TransactionError("Empty signature found in signature list when signing. "
                                            "Is DER encoded version of signature defined?")
@@ -1492,6 +1492,7 @@ class Transaction:
         self.verified = False
         for i in self.inputs:
             if i.script_type == 'coinbase':
+                i.valid = True
                 return True
             if not i.signatures:
                 _logger.info("No signatures found for transaction input %d" % i.index_n)
