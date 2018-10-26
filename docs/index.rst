@@ -102,6 +102,7 @@ Example: Get estimated transactionfee in sathosis per Kb for confirmation within
    source/bitcoinlib.services
    source/bitcoinlib.transactions
    source/bitcoinlib.wallets
+   _static/script-types-overview
 
 
 Disclaimer
