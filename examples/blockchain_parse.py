@@ -3,11 +3,11 @@
 #    BitcoinLib - Python Cryptocurrency Library
 #
 #    EXAMPLES - Deserialize and Verify all transactions from the latest block
+#    Just use for testing and experimenting, this library is not optimized for blockchain parsing!
 #
-#    © 2017 November - 1200 Web Development <http://1200wd.com/>
+#    © 2018 October - 1200 Web Development <http://1200wd.com/>
 #
 
-from pprint import pprint
 from bitcoinlib.services.services import *
 from bitcoinlib.services.bitcoind import *
 

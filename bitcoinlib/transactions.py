@@ -1297,8 +1297,8 @@ class Transaction:
             'output_total': self.output_total,
             'version': self.version,
             'locktime': self.locktime,
-            'size': self.size,
             'raw': self.raw_hex(),
+            'size': self.size,
             'verified': self.verified,
             'status': self.status
         }
@@ -1493,7 +1493,7 @@ class Transaction:
         for i in self.inputs:
             if i.script_type == 'coinbase':
                 i.valid = True
-                return True
+                break
             if not i.signatures:
                 _logger.info("No signatures found for transaction input %d" % i.index_n)
                 return False
