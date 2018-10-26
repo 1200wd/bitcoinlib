@@ -563,17 +563,11 @@ def script_add_locktime_csv(locktime_csv, script):
 
 
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
-    # TODO: Test this!
     if locking_script_type in ['p2pkh', 'p2wpkh']:
         return 'sig_pubkey'
     elif locking_script_type == 'p2wsh' or (witness_type == 'legacy' and multisig):
         return 'p2sh_multisig'
     elif locking_script_type == 'p2sh':
-        # if witness_type == 'p2sh-segwit':
-        #     if multisig:
-        #         return 'p2wsh'
-        #     else:
-        #         return 'p2wpkh'
         if not multisig:
             return 'sig_pubkey'
         else:

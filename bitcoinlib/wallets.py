@@ -2761,7 +2761,7 @@ class HDWallet:
                     key_id = inp.key_id
                     value = inp.value
                     signatures = None
-                    # FIXME: This probably not an unlocking_script
+                    # FIXME: This is probably not an unlocking_script
                     unlocking_script = inp.script
                     unlocking_script_type = get_unlocking_script_type(inp.script_type)
                     address = inp.key.address
