@@ -66,24 +66,94 @@ Or create a P2SH nested single key P2SH_P2WPKH wallet:
     36ESSWgR4WxXJSc4ysDSJvecyY6FJkhUbp
 
 
+Wallet from passphrase with accounts and multiple currencies
+------------------------------------------------------------
 
-Mnemonic Keys
--------------
-
-Allows you to use easy to remember passphrases consisting of a number of words to store private keys (BIP0039).
-You can password protect this passphrase (BIP0038), and use the HD Wallet structure to generate a almost infinite
-number of new private keys and bitcoin addresses (BIP0043 and BIP0044).
-
-Example: Generate a list of words passphrase and derive a private key seed
+The following code creates a wallet with two bitcoin and one litecoin account from a Mnemonic passphrase.
+The complete wallet can be recovered from the passphrase which is the masterkey.
 
 .. code-block:: python
 
-   >>> from bitcoinlib.mnemonic import Mnemonic
-   >>> words = Mnemonic().generate()
-   >>> words
-   protect dumb smart toddler journey spawn same dry season ecology scissors more
-   >>> Mnemonic().to_seed(words)
-   ..very long and ugly byte string which can be used as private key
+    from bitcoinlib.wallets import HDWallet, wallet_delete
+    from bitcoinlib.mnemonic import Mnemonic
+
+    passphrase = Mnemonic().generate()
+    print(passphrase)
+    w = HDWallet.create("Wallet2", key=passphrase, network='bitcoin')
+    account_btc2 = w.new_account('Account BTC 2')
+    account_ltc1 = w.new_account('Account LTC', network='litecoin')
+    w.get_key()
+    w.get_key(account_btc2.account_id)
+    w.get_key(account_ltc1.account_id)
+    w.info()
+
+
+Multi Signature Wallets
+-----------------------
+
+Create a Multisig wallet with 2 cosigner which both need to sign a transaction.
+
+.. code-block:: python
+
+    from bitcoinlib.wallets import HDWallet
+    from bitcoinlib.keys import HDKey
+
+    NETWORK = 'testnet'
+    pk1 = HDKey('tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK'
+                '5zNYeiX8', network=NETWORK)
+    pk2 = HDKey('tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'
+                'MeQHdWDp', network=NETWORK)
+    w1 = HDWallet.create_multisig('multisig_2of2_cosigner1', sigs_required=2,
+                                   key_list=[pk1, pk2.account_multisig_key().wif_public()], network=NETWORK)
+    w2 = HDWallet.create_multisig('multisig_2of2_cosigner2',  sigs_required=2,
+                                   key_list=[pk1.account_multisig_key().wif_public(), pk2], network=NETWORK)
+    print("Deposit testnet bitcoin to this address to create transaction: ", w1.get_key().address)
+
+Create a transaction in the first wallet
+
+.. code-block:: python
+
+    w1.utxos_update()
+    t = w1.sweep('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', min_confirms=0)
+    t.info()
+
+And then import the transaction in the second wallet, sign it and push it to the network
+
+.. code-block:: python
+
+    w2.get_key()
+    t2 = w2.transaction_import(t)
+    t2.sign()
+    t2.send()
+    t2.info()
+
+
+Command Line Tool
+-----------------
+
+With the command line tool you can create and manage wallet without any Python programming.
+
+To create a new Bitcoin wallet
+
+.. code-block:: bash
+
+    $ cli-wallet NewWallet
+    Command Line Wallet for BitcoinLib
+
+    Wallet newwallet does not exist, create new wallet [yN]? y
+
+    CREATE wallet 'newwallet' (bitcoin network)
+
+    Your mnemonic private key sentence is: force humble chair kiss season ready elbow cool awake divorce famous tunnel
+
+    Please write down on paper and backup. With this key you can restore your wallet and all keys
+
+You can use 'cli-wallet' to create simple or multisig wallets for various networks, manage public and private keys
+and managing transactions.
+
+For the full command line wallet documentation please read
+
+http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.command-line-wallet.html
 
 
 Service providers
@@ -101,6 +171,10 @@ Example: Get estimated transactionfee in sathosis per Kb for confirmation within
    >>> Service().estimatefee(5)
    138964
 
+
+More examples
+-------------
+For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
 
 
 .. toctree::

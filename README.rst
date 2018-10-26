@@ -35,11 +35,11 @@ This library is still in development, please use at your own risk and test suffi
 production environment.
 
 
-Features
-========
+Some Examples
+=============
 
-Simple Wallet
--------------
+Wallet
+------
 
 The bitcoin library contains a wallet implementation using sqlalchemy and sqllite3 to import, create and manage
 keys in a Hierarchical Deterministic way.
@@ -278,6 +278,17 @@ Other requirements Windows
 --------------------------
 
 Tested on Windows 10 with Python 3.6 and pip installed. No special requirements needed.
+
+
+Future / Roadmap
+----------------
+
+* Implement Native and P2SH Segregated witness transactions
+* Fully support timelocks
+* Support for Trezor wallet
+* Create Script class and support advanced scripts
+* Support and extensively test other databases
+* Improve speed and security
 
 
 References
