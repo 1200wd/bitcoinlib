@@ -90,6 +90,8 @@ class DbWallet(Base):
     network = relationship("DbNetwork")
     purpose = Column(Integer, default=44)
     scheme = Column(String(25))
+    witness_type = Column(String(20), default='legacy')
+    encoding = Column(String(15), default='base58', doc="Default encoding to use for address generation")
     main_key_id = Column(Integer)
     keys = relationship("DbKey", back_populates="wallet")
     transactions = relationship("DbTransaction", back_populates="wallet")
@@ -100,7 +102,11 @@ class DbWallet(Base):
     parent_id = Column(Integer, ForeignKey('wallets.id'))
     children = relationship("DbWallet", lazy="joined", join_depth=2)
 
-    __table_args__ = (CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='constrained_allowed_schemes'),)
+    __table_args__ = (
+        CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='constraint_allowed_schemes'),
+        CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
+        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']), name='constraint_allowed_types'),
+    )
 
     def __repr__(self):
         return "<DbWallet(name='%s', network='%s'>" % (self.name, self.network_name)
@@ -140,6 +146,7 @@ class DbKey(Base):
     compressed = Column(Boolean, default=True)
     key_type = Column(String(10), default='bip32')
     address = Column(String(255), index=True)
+    encoding = Column(String(15), default='base58')
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
     path = Column(String(100))
@@ -159,6 +166,7 @@ class DbKey(Base):
 
     __table_args__ = (
         CheckConstraint(key_type.in_(['single', 'bip32', 'multisig']), name='constraint_key_types_allowed'),
+        CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_address_encodings_allowed'),
         UniqueConstraint('wallet_id', 'public', name='constraint_wallet_pubkey_unique'),
         UniqueConstraint('wallet_id', 'private', name='constraint_wallet_privkey_unique'),
         UniqueConstraint('wallet_id', 'wif', name='constraint_wallet_wif_unique'),
@@ -202,6 +210,7 @@ class DbTransaction(Base):
     hash = Column(String(64), index=True)
     wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True)
     wallet = relationship("DbWallet", back_populates="transactions")
+    witness_type = Column(String(20), default='legacy')
     version = Column(Integer, default=1)
     locktime = Column(Integer, default=0)
     date = Column(DateTime, default=datetime.datetime.utcnow)
@@ -224,6 +233,7 @@ class DbTransaction(Base):
         UniqueConstraint('wallet_id', 'hash', name='constraint_wallet_transaction_hash_unique'),
         CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed']),
                         name='constraint_status_allowed'),
+        CheckConstraint(witness_type.in_(['legacy', 'segwit']), name='constraint_allowed_types'),
     )
 
     def __repr__(self):
@@ -243,17 +253,20 @@ class DbTransactionInput(Base):
     index_n = Column(Integer, primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_inputs")
+    witness_type = Column(String(20), default='legacy')
     prev_hash = Column(String(64))
     output_n = Column(Integer)
     script = Column(String)
-    script_type = Column(String, default='p2pkh')
+    script_type = Column(String, default='sig_pubkey')
     sequence = Column(Integer)
     value = Column(Integer, default=0)
     double_spend = Column(Boolean, default=False)
 
-    __table_args__ = (CheckConstraint(script_type.in_(['', 'coinbase', 'sig_pubkey', 'p2pkh', 'p2sh_multisig',
-                                                       'multisig', 'p2sh', 'pubkey', 'nulldata', 'unknown']),
-                                      name='constraint_script_types_allowed'),)
+    __table_args__ = (CheckConstraint(script_type.in_(['', 'coinbase', 'sig_pubkey', 'p2sh_multisig',
+                                                       'pubkey', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
+                                      name='constraint_script_types_allowed'),
+                      CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']),
+                                      name='constraint_allowed_types'),)
 
 
 class DbTransactionOutput(Base):
@@ -272,13 +285,12 @@ class DbTransactionOutput(Base):
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_outputs")
     script = Column(String)
-    script_type = Column(String, default='pubkey')
+    script_type = Column(String, default='p2pkh')
     value = Column(Integer, default=0)
     spent = Column(Boolean(), default=False)
 
-    # TODO: sig_pubkey ?
-    __table_args__ = (CheckConstraint(script_type.in_(['', 'sig_pubkey', 'p2pkh', 'p2sh_multisig', 'multisig', 'p2sh',
-                                                       'pubkey', 'nulldata', 'unknown']),
+    __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'pubkey', 'nulldata',
+                                                       'unknown', 'p2wpkh', 'p2wsh']),
                                       name='constraint_script_types_allowed'),)
 
 

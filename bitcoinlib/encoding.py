@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
 import math
 import numbers
 from copy import deepcopy
@@ -30,10 +29,6 @@ import unicodedata
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
-
-
-# True if we are running on Python 3.
-PY3 = sys.version_info[0] == 3
 
 
 class EncodingError(Exception):
@@ -336,6 +331,8 @@ def varstr(s):
     :return bytes: varstring
     """
     s = normalize_var(s)
+    if s == b'\0':
+        return s
     return int_to_varbyteint(len(s)) + s
 
 
@@ -401,8 +398,7 @@ def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
     :return str: Base-58 encoded address
 
     """
-    pkh = to_bytearray(pkh)
-    key = versionbyte + pkh
+    key = to_bytearray(versionbyte) + to_bytearray(pkh)
     addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
     return change_base(addr256, 256, 58)
 
@@ -461,7 +457,7 @@ def convertbits(data, frombits, tobits, pad=True):
     return ret
 
 
-def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
+def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, separator='1'):
     """
     Encode public key hash as bech32 segwit address
 
@@ -475,14 +471,15 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     :type hrp: str
     :param witver: Witness version between 0 and 16
     :type witver: int
-    :param seperator: Seperator char between hrp and data, should always be left to '1' otherwise its not standard.
-    :type seperator: str
+    :param separator: Separator char between hrp and data, should always be left to '1' otherwise its not standard.
+    :type separator: str
 
     :return str: Bech32 encoded address
     """
 
-    if not isinstance(pubkeyhash, bytes):
-        pubkeyhash = to_bytes(pubkeyhash)
+    if not isinstance(pubkeyhash, bytearray):
+        pubkeyhash = bytearray(to_bytes(pubkeyhash))
+
     if len(pubkeyhash) not in [20, 32]:
         if int(pubkeyhash[0]) != 0:
             witver = int(pubkeyhash[0]) - 0x50
@@ -495,7 +492,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, seperator='1'):
     polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
     checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
-    return hrp + seperator + _array_to_codestring(data, 'bech32') + _array_to_codestring(checksum, 'bech32')
+    return hrp + separator + _array_to_codestring(data, 'bech32') + _array_to_codestring(checksum, 'bech32')
 
 
 def addr_convert(addr, prefix):
@@ -505,7 +502,7 @@ def addr_convert(addr, prefix):
     return pubkeyhash_to_addr(pkh, versionbyte=prefix)
 
 
-def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False):
+def addr_bech32_to_pubkeyhash(bech, hrp=None, as_hex=False, include_witver=False):
     """
     Decode bech32 / segwit address to public key hash
 
@@ -513,7 +510,7 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
 
     :param bech: Bech32 address to convert
     :type bech: str
-    :param hrp: Address prefix called Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
+    :param hrp: Address prefix called Human-readable part. Default is None and tries to derive prefix, for bitcoin specify 'bc' and for bitcoin testnet 'tb'
     :type hrp: str
     :param as_hex: Output public key hash as hex or bytes. Default is False
     :type as_hex: bool
@@ -530,8 +527,10 @@ def addr_bech32_to_pubkeyhash(bech, hrp='bc', as_hex=False, include_witver=False
     pos = bech.rfind('1')
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
         return False
-    if hrp != bech[:pos]:
+    if hrp and hrp != bech[:pos]:
         raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
+    else:
+        hrp = bech[:pos]
     data = _codestring_to_array(bech[pos+1:], 'bech32')
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:

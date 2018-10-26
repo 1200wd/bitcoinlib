@@ -318,5 +318,16 @@
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
+  },
+  "blockchair.bitcoin": {
+    "provider": "blockchair",
+    "network": "bitcoin",
+    "client_class": "BlockChairClient",
+    "provider_coin_id": "",
+    "url": "https://api.blockchair.com/bitcoin/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
   }
 }

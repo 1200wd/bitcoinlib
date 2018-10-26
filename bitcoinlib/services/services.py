@@ -23,8 +23,8 @@ import logging
 import json
 import random
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
-from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib import services
+from bitcoinlib.networks import DEFAULT_NETWORK, Network
 
 _logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class Service(object):
         :param max_providers: Maximum number of providers to connect to. Default is 1.
         :type max_providers: int
         :param providers: List of providers to connect to. Default is all providers and select a provider at random.
-        :type providers: list
+        :type providers: list, str
 
         """
         self.network = network
@@ -87,6 +87,8 @@ class Service(object):
         provider_list = list([self.providers_defined[x]['provider'] for x in self.providers_defined])
         if providers is None:
             providers = []
+        if not isinstance(providers, list):
+            providers = [providers]
         for p in providers:
             if p not in provider_list:
                 raise ServiceError("Provider '%s' not found in provider definitions" % p)
@@ -165,6 +167,8 @@ class Service(object):
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
+        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
+        :type addresses_per_request: int
 
         :return dict: Balance per address
         """
@@ -187,6 +191,8 @@ class Service(object):
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
+        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
+        :type addresses_per_request: int
 
         :return dict: UTXO's per address
         """
@@ -209,6 +215,8 @@ class Service(object):
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
+        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
+        :type addresses_per_request: int
 
         :return list: List of Transaction objects
         """
@@ -278,3 +286,11 @@ class Service(object):
             else:
                 raise ServiceError("Could not estimate fees, please define default fees in network settings")
         return fee
+
+    def block_count(self):
+        """
+        Get latest block number: The block number of last block in longest chain on the blockchain
+
+        :return int:
+        """
+        return self._provider_execute('block_count')

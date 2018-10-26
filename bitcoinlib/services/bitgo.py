@@ -20,7 +20,7 @@
 
 import logging
 from datetime import datetime
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
 _logger = logging.getLogger(__name__)
@@ -123,6 +123,8 @@ class BitGoClient(BaseClient):
             input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
             t.input_total = sum([x[1] for x in input_values])
         for i in t.inputs:
+            if not i.address:
+                raise ClientError("Address missing in input. Provider might not support segwit transactions")
             if len(t.inputs) != len(input_values):
                 i.value = None
                 continue
@@ -135,6 +137,8 @@ class BitGoClient(BaseClient):
                 i.value = value[0]
         for o in t.outputs:
             o.spent = None
+        if t.input_total != t.output_total + t.fee:
+            t.input_total = t.output_total + t.fee
         return t
 
     def getrawtransaction(self, txid):
@@ -144,3 +148,6 @@ class BitGoClient(BaseClient):
     def estimatefee(self, blocks):
         res = self.compose_request('tx', 'fee', variables={'numBlocks': blocks})
         return res['feePerKb']
+
+    # def block_count(self):
+    #     return self.proxy.getblockcount()

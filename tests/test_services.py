@@ -77,6 +77,8 @@ class TestService(unittest.TestCase, CustomAssertions):
         except ServiceError:
             pass
         for provider in srv.errors:
+            if isinstance(srv.errors[provider], Exception) or 'response [429]' in srv.errors[provider]:
+                pass
             if provider == 'blockcypher.testnet':
                 self.assertIn('has already been spent', srv.errors['blockcypher.testnet'])
             elif provider == 'blockexplorer.testnet' or provider == 'bitcoind.testnet':
@@ -109,6 +111,15 @@ class TestService(unittest.TestCase, CustomAssertions):
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
             else:
                 prev = balance
+
+    def test_service_address_conversion(self):
+        srv = Service(min_providers=2, network='litecoin_legacy', providers=['cryptoid', 'litecoreio'])
+        srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
+        exp_dict = {'cryptoid.litecoin.legacy': 95510000, 'litecoreio.litecoin.legacy': 95510000}
+        for r in srv.results:
+            if r not in exp_dict:
+                print("WARNING: Provider %s not found in results" % r)
+            self.assertEqual(srv.results[r], exp_dict[r])
 
     def test_get_utxos(self):
         srv = Service()
@@ -220,7 +231,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': 'fa7b29d0e1cf62c79749c977dd9b3fedcfa348e696600f2240206eedaccbb309',
                     'double_spend': False,
                     'index_n': 0,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 },
                 {
@@ -229,7 +240,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': '512f4363ccb28d04d47edd684840cc074f2a3b625838909a6074d277883b9f83',
                     'double_spend': False,
                     'index_n': 1,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1Hw3ZTxMqVK3jgmJSod4LF5XFbDVYc3EZP'
                 },
                 {
@@ -238,7 +249,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': '0ccd49e93261c9dd2bee124d90849677e93f789d2dc83013bfb0643beb962733',
                     'double_spend': False,
                     'index_n': 2,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 },
                 {
@@ -247,7 +258,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': '1b110073aed6637f9a492ceaac45d2b978b75f0139df0401032ad68c0944d38c',
                     'double_spend': False,
                     'index_n': 3,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 },
                 {
@@ -256,7 +267,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': 'a2d613e5a649102672462aa6a09e3e833769f5a85a65a8844acc723c07a8991d',
                     'double_spend': False,
                     'index_n': 4,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 },
                 {
@@ -265,7 +276,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'prev_hash': 'd8505b78a4cddbd058372443bbce9ea74a313c27c586b7bbe8bc3825b7c7cbd7',
                     'double_spend': False,
                     'index_n': 5,
-                    'script_type': 'p2pkh',
+                    'script_type': 'sig_pubkey',
                     'address': '1CCBgvQdqPHGrRJxpKEnjJkgFp5UsDYvWD'
                 }
             ],
@@ -332,7 +343,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                      'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
                      '6067528fffca52292d803b75e53f7dfbf63d'],
                  'public_key': '028bd465d7eb03bbee946c3a277ad1b331f78add78c6723eed00097520edc21ed2', 'index_n': 0,
-                 'script_type': 'p2pkh',
+                 'script_type': 'sig_pubkey',
                  'script': '483045022100e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc'
                            '0f33d036c1c60a7d561de06067528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a'
                            '277ad1b331f78add78c6723eed00097520edc21ed2',
@@ -411,9 +422,6 @@ class TestService(unittest.TestCase, CustomAssertions):
                  'output_n': 4294967295,
                  'prev_hash': '0000000000000000000000000000000000000000000000000000000000000000',
                  'public_key': [],
-                 'script': '0362a4071c2f5669614254432f4d696e656420627920676c6f62616c686173682f2cfabe6d6d2c31604d43cac'
-                           '8b0f5c819c1d2b6f9051349d7633df07fc664be73533e64ccf9010000000000000010c147e903973b4143d99d'
-                           'e6b376ca0200',
                  'script_type': 'coinbase',
                  'sequence': 4294967295,
                  }
@@ -444,12 +452,63 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(network='bitcoin', min_providers=10)
 
         # Get transactions by hash
-        srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13').dict()
+        srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
+
+    def test_gettransaction_segwit_p2wpkh(self):
+        expected_dict = {
+            'block_hash': '00000000000000000006e7007407805af2bfb386439e570f5310bb97cdcf0352',
+            'block_height': 547270,
+            'coinbase': False,
+            'date': datetime.datetime(2018, 10, 25, 16, 30, 46),
+            'fee': 2662,
+            'hash': '299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4',
+            'input_total': 506323064,
+            'inputs':
+                [{
+                    'address': 'bc1qpjnaav9yvane7qq3a7efq6nw229g6gh09jzlvc',
+                    'index_n': 0,
+                    'output_n': 1,
+                    'prev_hash': '444c4a42da547711063be57eecb48cd92d1a6d4afbc64a57e75b69d74df59eb9',
+                    'public_hash': '0ca7deb0a467679f0011efb2906a6e528a8d22ef',
+                    'script_code': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
+                    'sequence': 4294967295,
+                    'sigs_required': 1,
+                    'unlocking_script_unsigned': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
+                    'value': 506323064}
+                ],
+            'locktime': 0,
+            'network': 'bitcoin',
+            'output_total': 506320402,
+            'outputs':
+                [{
+                    'address': 'bc1qly3xxn4qqfeyy8lakmcc0y6kqg2eu96srjzycu',
+                    'output_n': 0,
+                    'public_hash': 'f922634ea00272421ffdb6f187935602159e1750',
+                    'script': '0014f922634ea00272421ffdb6f187935602159e1750',
+                    'value': 506320402}
+                ],
+            # 'size': 191,  #  FIXME: Enable size
+        }
+        srv = Service(network='bitcoin', min_providers=10)
+
+        srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
+
+        for provider in srv.results:
+            print("Comparing provider %s" % provider)
+            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+                                    ['block_hash', 'block_height', 'spent', 'value', 'flag'])
+
+    def test_gettransaction_segwit_coinbase(self):
+        txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
+        srv = Service(network='bitcoin')
+        t = srv.gettransaction(txid)
+        self.assertTrue(t.verify())
+        self.assertTrue(t.inputs[0].valid)
 
     def test_network_litecoin_legacy(self):
         txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'
@@ -464,3 +523,13 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         utxos = srv.getutxos(address)
         self.assertIn(txid, [utxo['tx_hash'] for utxo in utxos])
+
+    def test_block_count(self):
+        srv = Service(min_providers=10)
+        srv.block_count()
+        n_blocks = None
+        for provider in srv.results:
+            if n_blocks is not None:
+                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
+                                       msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
+            n_blocks = srv.results[provider]

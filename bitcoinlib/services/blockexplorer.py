@@ -20,7 +20,7 @@
 
 from datetime import datetime
 import struct
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'blockexplorer'
@@ -32,7 +32,9 @@ class BlockExplorerClient(BaseClient):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     def compose_request(self, category, data, cmd='', variables=None, method='get'):
-        url_path = category + '/' + data + '/' + cmd
+        url_path = category
+        if data:
+            url_path += '/' + data + '/' + cmd
         return self.request(url_path, variables, method=method)
 
     def getutxos(self, addresslist):
@@ -73,21 +75,24 @@ class BlockExplorerClient(BaseClient):
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
         for ti in tx['vin']:
-            sequence = struct.pack('<L', ti['sequence'])
+            # sequence = struct.pack('<L', ti['sequence'])
             if isCoinbase:
                 t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
-                            script_type='coinbase', sequence=sequence)
+                            script_type='coinbase', sequence=ti['sequence'])
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
+                if not ti['scriptSig']['hex']:
+                    raise ClientError("Missing unlocking script in BlockExplorer Input. Possible reason: Segwit is not "
+                                      "supported")
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
-                            index_n=ti['n'], value=value, sequence=sequence,
+                            index_n=ti['n'], value=value, sequence=ti['sequence'],
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
             address = ''
             try:
                 address = to['scriptPubKey']['addresses'][0]
-            except ValueError:
+            except (ValueError, KeyError):
                 pass
             t.add_output(value=value, address=address, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
@@ -122,3 +127,7 @@ class BlockExplorerClient(BaseClient):
             'txid': res['txid'],
             'response_dict': res
         }
+
+    def block_count(self):
+        res = self.compose_request('status', '', variables={'q': 'getinfo'})
+        return res['info']['blocks']

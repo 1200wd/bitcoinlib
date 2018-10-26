@@ -41,6 +41,31 @@ If succesfull a transaction ID is returned
    'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
 
 
+Segregated Witness Wallet
+-------------------------
+
+Easily create and manage segwit wallets. Both native segwit with base32/bech32 addresses and P2SH nested segwit
+wallets with traditional addresses are available.
+
+Create a native single key P2WPKH wallet:
+
+.. code-block:: python
+
+    >>> from bitcoinlib.wallets import HDWallet
+    >>> w = HDWallet.create('segwit_p2wpkh', witness_type='segwit')
+    >>> w.get_key().address
+    bc1q84y2quplejutvu0h4gw9hy59fppu3thg0u2xz3
+
+Or create a P2SH nested single key P2SH_P2WPKH wallet:
+
+.. code-block:: python
+
+    >>> from bitcoinlib.wallets import HDWallet
+    >>> w = HDWallet.create('segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
+    >>> w.get_key().address
+    36ESSWgR4WxXJSc4ysDSJvecyY6FJkhUbp
+
+
 Wallet from passphrase with accounts and multiple currencies
 ------------------------------------------------------------
 
@@ -177,6 +202,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    source/bitcoinlib.services
    source/bitcoinlib.transactions
    source/bitcoinlib.wallets
+   _static/script-types-overview
 
 
 Disclaimer

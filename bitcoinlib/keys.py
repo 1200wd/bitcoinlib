@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -34,7 +34,8 @@ from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert
+from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert, \
+    addr_bech32_to_pubkeyhash, pubkeyhash_to_addr_bech32, varstr
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -96,7 +97,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
 
 def get_key_format(key, isprivate=None):
     """
-    Determins the type (private or public), format and network key.
+    Determines the type (private or public), format and network key.
     
     This method does not validate if a key is valid.
 
@@ -202,9 +203,9 @@ def get_key_format(key, isprivate=None):
 
 def ec_point(p):
     """
-    Method for eliptic curve multiplication
+    Method for elliptic curve multiplication
 
-    :param p: A point on the eliptic curve
+    :param p: A point on the elliptic curve
     
     :return Point: Point multiplied by generator G
     """
@@ -214,86 +215,234 @@ def ec_point(p):
     return point
 
 
-def deserialize_address(address):
+def deserialize_address(address, encoding=None, network=None):
     """
-    Deserialize cryptocurrency address. Calculate public key hash and try to determine script type and network.
+    Deserialize address. Calculate public key hash and try to determine script type and network.
 
-    If one and only one network is found the 'network' dictionary item with contain this network. Same applies for the script type.
+    The 'network' dictionary item with contain the network with highest priority if multiple networks are found. Same applies for the script type.
 
-    If more networks and or script types are found you can find these in 'networks_p2sh' and 'networks_p2pkh'.
+    Specify the network argument if known to avoid unexpected results.
 
-    :param address: A base-58 encoded address
+    If more networks and or script types are found you can find these in the 'networks' field.
+
+    :param address: A base58 or bech32 encoded address
     :type address: str
+    :param encoding: Encoding scheme used for address encoding. Attempts to guess encoding if not specified.
+    :type encoding: str
 
     :return dict: with information about this address
     """
-    try:
-        address_bytes = change_base(address, 58, 256, 25)
-    except EncodingError as err:
-        raise EncodingError("Invalid address %s: %s" % (address, err))
-    check = address_bytes[-4:]
-    key_hash = address_bytes[:-4]
-    checksum = hashlib.sha256(hashlib.sha256(key_hash).digest()).digest()[0:4]
-    assert (check == checksum), "Invalid address, checksum incorrect"
-    address_prefix = key_hash[0:1]
-    networks_p2pkh = network_by_value('prefix_address', address_prefix)
-    networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
-    public_key_hash = key_hash[1:]
-    script_type = ''
-    network = ''
-    if networks_p2pkh and not networks_p2sh:
-        script_type = 'p2pkh'
-        if len(networks_p2pkh) == 1:
-            network = networks_p2pkh[0]
-    elif networks_p2sh and not networks_p2pkh:
-        script_type = 'p2sh'
-        if len(networks_p2sh) == 1:
-            network = networks_p2sh[0]
 
-    return {
-        'address': address,
-        'public_key_hash': change_base(public_key_hash, 256, 16),
-        'public_key_hash_bytes': public_key_hash,
-        'prefix': address_prefix,
-        'network': network,
-        'script_type': script_type,
-        'networks_p2sh': networks_p2sh,
-        'networks_p2pkh': networks_p2pkh
-    }
+    if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
+        raise KeyError("Encoding '%s' not found in supported address encodings %s" %
+                       (encoding, SUPPORTED_ADDRESS_ENCODINGS))
+    if encoding is None or encoding == 'base58':
+        try:
+            address_bytes = change_base(address, 58, 256, 25)
+        except EncodingError:
+            pass
+        else:
+            check = address_bytes[-4:]
+            key_hash = address_bytes[:-4]
+            checksum = hashlib.sha256(hashlib.sha256(key_hash).digest()).digest()[0:4]
+            assert (check == checksum), "Invalid address, checksum incorrect"
+            address_prefix = key_hash[0:1]
+            networks_p2pkh = network_by_value('prefix_address', address_prefix)
+            networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
+            public_key_hash = key_hash[1:]
+            script_type = ''
+            networks = []
+            if networks_p2pkh and not networks_p2sh:
+                script_type = 'p2pkh'
+                networks = networks_p2pkh
+            elif networks_p2sh:
+                script_type = 'p2sh'
+                networks = networks_p2sh
+            if network:
+                if network not in networks:
+                    raise KeyError("Network %s not found in extracted networks: %s" % (network, networks))
+            elif len(networks) >= 1:
+                network = networks[0]
+            return {
+                'address': address,
+                'encoding': 'base58',
+                'public_key_hash': change_base(public_key_hash, 256, 16),
+                'public_key_hash_bytes': public_key_hash,
+                'prefix': address_prefix,
+                'network': network,
+                'script_type': script_type,
+                'networks': networks,
+            }
+    if encoding == 'bech32' or encoding is None:
+        try:
+            public_key_hash = addr_bech32_to_pubkeyhash(address)
+            if not public_key_hash:
+                raise EncodingError("Invalid bech32 address %s" % address)
+            prefix = address[:address.rfind('1')]
+            networks = network_by_value('prefix_bech32', prefix)
+            if len(public_key_hash) == 20:
+                script_type = 'p2wpkh'
+            elif len(public_key_hash) == 32:
+                script_type = 'p2wsh'
+            else:
+                raise KeyError("Unknown script type for address %s. Invalid length %d" %
+                               (address, len(public_key_hash)))
+            return {
+                'address': address,
+                'encoding': 'bech32',
+                'public_key_hash': change_base(public_key_hash, 256, 16),
+                'public_key_hash_bytes': public_key_hash,
+                'prefix': prefix,
+                'network': '' if not networks else networks[0],
+                'script_type': script_type,
+                'networks': networks,
+            }
+        except EncodingError as err:
+            raise EncodingError("Invalid address %s: %s" % (address, err))
+    else:
+        raise EncodingError("Address %s is not in specified encoding %s" % (address, encoding))
 
 
 class Address:
     """
-    Class to store, convert and analyse various address types as representation of public keys
+    Class to store, convert and analyse various address types as representation of public keys or scripts hashes
     """
 
-    def __init__(self, address, network_overrides=None):
+    @classmethod
+    def import_address(cls, address, network=None, network_overrides=None):
+        """
+        Import an address to the Address class. Specify network if available, otherwise it will be
+        derived form the address.
+
+        :param address:
+        :param network: Bitcoin, testnet, litecoin or other network
+        :type network: str
+        :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
+        :type network_overrides: dict
+
+        :return Address:
+        """
         addr_dict = deserialize_address(address)
-        self.address = address
-        self.public_key_hash = addr_dict['public_key_hash']
-        self.public_key_hash_bytes = addr_dict['public_key_hash_bytes']
-        self.address_prefix = addr_dict['prefix']
-        self.network = addr_dict['network']
-        self.script_type = addr_dict['script_type']
-        self.networks_p2sh = addr_dict['networks_p2sh']
-        self.networks_p2pkh = addr_dict['networks_p2pkh']
-        self.address_provider = address
+        public_key_hash_bytes = addr_dict['public_key_hash_bytes']
+        prefix = addr_dict['prefix']
+        if network is None:
+            network = addr_dict['network']
+        script_type = addr_dict['script_type']
+        return Address(hashed_data=public_key_hash_bytes, network=network, prefix=prefix, script_type=script_type,
+                       encoding=addr_dict['encoding'], network_overrides=network_overrides)
+
+    def __init__(self, data='', hashed_data='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
+                 encoding=None, witness_type=None, network_overrides=None):
+        """
+        Initialize an Address object. Specify a public key, redeemscript or a hash.
+
+        :param data: Public key, redeem script or other type of script.
+        :type data: str, bytes
+        :param hashed_data: Hash of a public key or script. Will be generated if 'data' parameter is provided
+        :type hashed_data: str, bytes
+        :param network: Bitcoin, testnet, litecoin or other network
+        :type network: str, Network
+        :param prefix: Address prefix. Use default network / script_type prefix if not provided
+        :type prefix: str, bytes
+        :param script_type: Type of script, i.e. p2sh or p2pkh.
+        :type script_type: str
+        :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding
+        :type encoding: str
+        :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
+        :type network_overrides: dict
+
+        """
+        self.network = network
+        if not (data or hashed_data):
+            raise KeyError("Please specify data (public key or script) or hashed_data argument")
+        if not isinstance(network, Network):
+            self.network = Network(network)
+        self.data_bytes = to_bytes(data)
+        self.data = to_hexstring(data)
+        self.script_type = script_type
+        self.encoding = encoding
+        if witness_type is None:
+            if self.script_type in ['p2wpkh', 'p2wsh']:
+                witness_type = 'segwit'
+            elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
+                witness_type = 'p2sh-segwit'
+        self.witness_type = witness_type
+        if self.encoding is None:
+            if self.script_type in ['p2wpkh', 'p2wsh'] or self.witness_type == 'segwit':
+                self.encoding = 'bech32'
+            else:
+                self.encoding = 'base58'
+        self.hash_bytes = to_bytes(hashed_data)
+        self.prefix = prefix
+        self.redeemscript = b''
+        if not self.hash_bytes:
+            if (self.encoding == 'bech32' and self.script_type in ['p2sh', 'p2sh_multisig']) or \
+                            self.script_type in ['p2wsh', 'p2sh_p2wsh']:
+                self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
+            else:
+                self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
+        self.hashed_data = to_hexstring(self.hash_bytes)
+        if self.encoding == 'base58':
+            # if self.script_type is None:
+            #     self.script_type = 'p2pkh'
+            if self.witness_type == 'p2sh-segwit':
+                self.redeemscript = b'\0' + varstr(self.hash_bytes)
+                self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.redeemscript).digest()).digest()
+            if self.prefix is None:
+                if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig'] or \
+                                self.witness_type == 'p2sh-segwit':
+                    self.prefix = self.network.prefix_address_p2sh
+                else:
+                    self.prefix = self.network.prefix_address
+            else:
+                # TODO: Test bytearray
+                if not isinstance(prefix, (bytes, bytearray)):
+                    self.prefix = binascii.unhexlify(prefix)
+                else:
+                    self.prefix = prefix
+            addr_bytes = self.prefix + self.hash_bytes
+            self.checksum = hashlib.sha256(hashlib.sha256(addr_bytes).digest()).digest()[:4]
+            self.address = change_base(addr_bytes + self.checksum, 256, 58)
+        elif self.encoding == 'bech32':
+            if self.script_type is None:
+                self.script_type = 'p2wpkh'
+            if self.prefix is None:
+                self.prefix = self.network.prefix_bech32
+            self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), hrp=self.prefix)
+        else:
+            raise KeyError("Encoding %s not supported" % self.encoding)
+        self.address_orig = None
         provider_prefix = None
         if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
             provider_prefix = network_overrides['prefix_address_p2sh']
+        self.address_orig = self.address
         if provider_prefix:
-            self.address_provider = addr_convert(address, provider_prefix)
+            self.address = addr_convert(self.address, provider_prefix)
+
+    def __repr__(self):
+        return "<Address(address=%s)" % self.address
+
+    def with_prefix(self, prefix):
+        """
+        Convert address using another prefix
+
+        :param prefix: Address prefix
+        :type prefix: str, bytes
+
+        :return str: Converted address
+        """
+        return addr_convert(self.address, prefix)
 
 
 class Key:
     """
-    Class to generate, import and convert public cryptograpic key pairs used for bitcoin.
+    Class to generate, import and convert public cryptographic key pairs used for bitcoin.
 
     If no key is specified when creating class a cryptographically secure Private Key is
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, network=None, compressed=True, passphrase=''):
+    def __init__(self, import_key=None, network=None, compressed=True, passphrase='', is_private=None):
         """
         Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc.
         If a private key is imported a public key will be derived. If a public is imported the private key data will
@@ -310,6 +459,8 @@ class Key:
         :type compressed: bool
         :param passphrase: Optional passphrase if imported key is password protected
         :type passphrase: str
+        :param is_private: Specify if imported key is private or public. Default is None: derive from provided key
+        :type is_private: bool
         
         :return: Key object
         """
@@ -325,6 +476,7 @@ class Key:
         self._y = None
         self.secret = None
         self.compressed = compressed
+        self._hash160 = None
         if not import_key:
             import_key = random.SystemRandom().randint(0, secp256k1_n)
         kf = get_key_format(import_key)
@@ -337,12 +489,14 @@ class Key:
             network_name = self.network.name
         network = check_network_and_key(import_key, network_name, kf["networks"])
         self.network = Network(network)
-        if kf['isprivate']:
-            self.isprivate = True
-        elif kf['isprivate'] is None:
-            raise KeyError("Could not determine if key is private or public")
-        else:
-            self.isprivate = False
+        self.isprivate = is_private
+        if is_private is None:
+            if kf['isprivate']:
+                self.isprivate = True
+            elif kf['isprivate'] is None:
+                raise KeyError("Could not determine if key is private or public")
+            else:
+                self.isprivate = False
 
         if self.key_format == "wif_protected":
             # TODO: return key as byte to make more efficient
@@ -455,6 +609,7 @@ class Key:
             self.public_byte = binascii.unhexlify(self.public_hex)
             self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
+        self.address_obj = Address(self.public_byte, network=self.network)
 
     def __repr__(self):
         return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.name)
@@ -608,13 +763,15 @@ class Key:
         
         :return bytes: Hash160 of public key 
         """
-        if self.compressed:
-            pb = self.public_byte
-        else:
-            pb = self.public_uncompressed_byte
-        return hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
+        if not self._hash160:
+            if self.compressed:
+                pb = self.public_byte
+            else:
+                pb = self.public_uncompressed_byte
+            self._hash160 = hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
+        return self._hash160
 
-    def address(self, compressed=None, prefix=None):
+    def address(self, compressed=None, prefix=None, script_type=None, encoding='base58'):
         """
         Get address derived from public key
         
@@ -622,24 +779,23 @@ class Key:
         :type compressed: bool
         :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
+        :param script_type: Type of script, i.e. p2sh or p2pkh.
+        :type script_type: str
+        :param encoding: Address encoding. Default is base58 encoding, for segwit you can specify bech32 encoding
+        :type encoding: str
         
         :return str: Base58 encoded address 
         """
         if (self.compressed and compressed is None) or compressed:
-            key = self.public_byte
+            data = self.public_byte
         else:
-            key = self.public_uncompressed_byte
-        if prefix is None:
-            versionbyte = self.network.prefix_address
-        else:
-            # TODO: Test bytearray
-            if not isinstance(prefix, (bytes, bytearray)):
-                versionbyte = binascii.unhexlify(prefix)
-            else:
-                versionbyte = prefix
-        key = versionbyte + hashlib.new('ripemd160', hashlib.sha256(key).digest()).digest()
-        checksum = hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
-        return change_base(key + checksum, 256, 58)
+            data = self.public_uncompressed_byte
+        if not self.compressed and encoding == 'bech32':
+            raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
+        if not(self.address_obj and self.address_obj.prefix == prefix and self.address_obj.encoding == encoding):
+            self.address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
+                                       encoding=encoding)
+        return self.address_obj.address
 
     def address_uncompressed(self, prefix=None):
         """
@@ -657,6 +813,9 @@ class Key:
         Prints key information to standard output
         
         """
+
+        print(" Network                     %s" % self.network.name)
+        print(" Compressed                  %s" % self.compressed)
         if self.secret:
             print("SECRET EXPONENT")
             print(" Private Key (hex)              %s" % self.private_hex)
@@ -664,8 +823,6 @@ class Key:
             print(" Private Key (wif)              %s" % self.wif())
         else:
             print("PUBLIC KEY ONLY, NO SECRET EXPONENT")
-        print("")
-        print(" Compressed                  %s" % self.compressed)
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
@@ -1051,7 +1208,7 @@ class HDKey:
 
     def account_multisig_key(self, account_id=0, purpose=45, set_network=None):
         """
-        Derives a multisig account key according to BIP44/45 definiation.
+        Derives a multisig account key according to BIP44/45 definition.
         Wrapper for the 'account_key' method.
 
         :param account_id: Account ID. Leave empty for account 0

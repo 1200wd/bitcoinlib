@@ -8,6 +8,7 @@
     "currency_code": "TST",
     "prefix_address": "90",
     "prefix_address_p2sh": "95",
+    "prefix_bech32": "bclt",
     "prefix_wif": "99",
     "prefix_hdkey_private": "9488ADE4",
     "prefix_hdkey_public": "9488B21E",
@@ -16,7 +17,8 @@
     "dust_amount": 1000,
     "fee_default": 10000,
     "fee_min": 1000,
-    "fee_max": 1000000
+    "fee_max": 1000000,
+    "priority": 2
   },
   "bitcoin":
   {
@@ -27,6 +29,7 @@
     "currency_code": "BTC",
     "prefix_address": "00",
     "prefix_address_p2sh": "05",
+    "prefix_bech32": "bc",
     "prefix_wif": "80",
     "prefix_hdkey_private": "0488ADE4",
     "prefix_hdkey_public": "0488B21E",
@@ -35,7 +38,8 @@
     "dust_amount": 1000,
     "fee_default": null,
     "fee_min": 1000,
-    "fee_max": 1000000
+    "fee_max": 1000000,
+    "priority": 12
   },
   "testnet":
   {
@@ -46,6 +50,7 @@
     "currency_code": "TBTC",
     "prefix_address": "6F",
     "prefix_address_p2sh": "C4",
+    "prefix_bech32": "tb",
     "prefix_wif": "EF",
     "prefix_hdkey_private": "04358394",
     "prefix_hdkey_public": "043587CF",
@@ -54,7 +59,8 @@
     "dust_amount": 1000,
     "fee_default": 10000,
     "fee_min": 5000,
-    "fee_max": 2000000
+    "fee_max": 2000000,
+    "priority": 8
   },
   "litecoin":
   {
@@ -65,6 +71,7 @@
     "currency_code": "LTC",
     "prefix_address": "30",
     "prefix_address_p2sh": "32",
+    "prefix_bech32": "ltc",
     "prefix_wif": "B0",
     "prefix_hdkey_private": "019D9CFE",
     "prefix_hdkey_public": "019DA462",
@@ -73,7 +80,8 @@
     "dust_amount": 1000,
     "fee_default": 50000,
     "fee_min": 1000,
-    "fee_max": 1000000
+    "fee_max": 1000000,
+    "priority": 10
   },
   "litecoin_legacy":
   {
@@ -84,6 +92,7 @@
     "currency_code": "LTC",
     "prefix_address": "30",
     "prefix_address_p2sh": "05",
+    "prefix_bech32": "ltc",
     "prefix_wif": "B0",
     "prefix_hdkey_private": "019D9CFE",
     "prefix_hdkey_public": "019DA462",
@@ -92,7 +101,8 @@
     "dust_amount": 1000,
     "fee_default": 50000,
     "fee_min": 1000,
-    "fee_max": 1000000
+    "fee_max": 1000000,
+    "priority": 8
   },
   "litecoin_testnet":
   {
@@ -103,6 +113,7 @@
     "currency_code": "XLT",
     "prefix_address": "6F",
     "prefix_address_p2sh": "3A",
+    "prefix_bech32": "tltc",
     "prefix_wif": "EF",
     "prefix_hdkey_private": "04358394",
     "prefix_hdkey_public": "043587CF",
@@ -111,7 +122,8 @@
     "dust_amount": 1000,
     "fee_default": 50000,
     "fee_min": 1000,
-    "fee_max": 1000000
+    "fee_max": 1000000,
+    "priority": 6
   },
   "dash":
   {
@@ -122,6 +134,7 @@
     "currency_code": "DASH",
     "prefix_address": "4C",
     "prefix_address_p2sh": "10",
+    "prefix_bech32": "dash",
     "prefix_wif": "CC",
     "prefix_hdkey_private": "0488ADE4",
     "prefix_hdkey_public": "0488B21E",
@@ -130,7 +143,8 @@
     "dust_amount": 1000,
     "fee_default": 2000,
     "fee_min": 1000,
-    "fee_max": 50000
+    "fee_max": 50000,
+    "priority": 10
   },
   "dash_testnet":
   {
@@ -141,6 +155,7 @@
     "currency_code": "tDASH",
     "prefix_address": "8C",
     "prefix_address_p2sh": "13",
+    "prefix_bech32": "tdash",
     "prefix_wif": "EF",
     "prefix_hdkey_private": "04358394",
     "prefix_hdkey_public": "043587CF",
@@ -149,6 +164,7 @@
     "dust_amount": 1000,
     "fee_default": 10000,
     "fee_min": 1000,
-    "fee_max": 50000
+    "fee_max": 50000,
+    "priority": 6
   }
 }
