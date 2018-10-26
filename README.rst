@@ -133,6 +133,31 @@ And then import the transaction in the second wallet, sign it and push it to the
     t2.info()
 
 
+Segregated Witness Wallet
+-------------------------
+
+Easily create and manage segwit wallets. Both native segwit with base32/bech32 addresses and P2SH nested segwit
+wallets with traditional addresses are available.
+
+Create a native single key P2WPKH wallet:
+
+.. code-block:: python
+
+    >>> from bitcoinlib.wallets import HDWallet
+    >>> w = HDWallet.create('segwit_p2wpkh', witness_type='segwit')
+    >>> w.get_key().address
+    bc1q84y2quplejutvu0h4gw9hy59fppu3thg0u2xz3
+
+Or create a P2SH nested single key P2SH_P2WPKH wallet:
+
+.. code-block:: python
+
+    >>> from bitcoinlib.wallets import HDWallet
+    >>> w = HDWallet.create('segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
+    >>> w.get_key().address
+    36ESSWgR4WxXJSc4ysDSJvecyY6FJkhUbp
+
+
 Command Line Tool
 -----------------
 
@@ -211,6 +236,8 @@ Implements the following Bitcoin Improvement Proposals
 - Purpose Field for Deterministic Wallets (BIP0043)
 - Multi-Account Hierarchy for Deterministic Wallets (BIP0044)
 - Structure for Deterministic P2SH Multisignature Wallets (BIP0045)
+- Base32/bech32 address format for native v0-16 witness outputs (BIP0173)
+- Native and P2SH nested Segregated Witness transactions (BIP0141 and BIP0143)
 
 
 Installation
