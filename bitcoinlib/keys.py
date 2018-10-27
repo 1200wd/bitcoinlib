@@ -229,6 +229,8 @@ def deserialize_address(address, encoding=None, network=None):
     :type address: str
     :param encoding: Encoding scheme used for address encoding. Attempts to guess encoding if not specified.
     :type encoding: str
+    :param network: Bitcoin, testnet, litecoin or other network
+    :type network: str
 
     :return dict: with information about this address
     """
@@ -314,7 +316,8 @@ class Address:
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
 
-        :param address:
+        :param address: Address to import
+        :type address: str
         :param network: Bitcoin, testnet, litecoin or other network
         :type network: str
         :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
@@ -348,6 +351,8 @@ class Address:
         :type script_type: str
         :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding
         :type encoding: str
+        :param witness_type: Specify 'legacy', 'segwit' or 'p2sh-segwit'. Legacy for old-style bitcoin addresses, segwit for native segwit addresses and p2sh-segwit for segwit embedded in a p2sh script. Leave empty to derive automatically from script type if possible
+        :type witness_type: str
         :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
         :type network_overrides: dict
 
@@ -907,7 +912,11 @@ class HDKey:
         :type network: str, Network
         :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
         :type key_type: str
-        
+        :param passphrase: Optional passphrase if imported key is password protected
+        :type passphrase: str
+        :param compressed: Is key compressed or not, default is True
+        :type compressed: bool
+
         :return HDKey: 
         """
 

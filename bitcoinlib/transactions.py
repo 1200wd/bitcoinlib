@@ -665,11 +665,15 @@ class Input:
         :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
+        :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
+        :type witness_type: str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
         :type encoding: str
         :param network: Network, leave empty for default
         :type network: str, Network
+
         """
+
         self.prev_hash = to_bytes(prev_hash)
         self.output_n = output_n
         if isinstance(output_n, numbers.Number):
@@ -1198,9 +1202,13 @@ class Transaction:
         :type coinbase: bool
         :param verified: Is transaction successfully verified? Updated when verified() method is called
         :type verified: bool
+        :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
+        :type witness_type: str
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str
+
         """
+
         self.coinbase = coinbase
         self.inputs = []
         if inputs is not None:

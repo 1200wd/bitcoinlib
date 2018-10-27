@@ -496,6 +496,17 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, separator='1'):
 
 
 def addr_convert(addr, prefix):
+    """
+    Convert base-58 encoded address to address with another prefix
+
+    :param addr: Base58 address
+    :type addr: str
+    :param prefix: New address prefix
+    :type prefix: str, bytes
+
+    :return str: New converted address
+
+    """
     pkh = addr_to_pubkeyhash(addr)
     if isinstance(prefix, str):
         prefix = binascii.unhexlify(prefix)

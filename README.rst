@@ -283,12 +283,12 @@ Tested on Windows 10 with Python 3.6 and pip installed. No special requirements 
 Future / Roadmap
 ----------------
 
-* Implement Native and P2SH Segregated witness transactions
+* Create Script class and support advanced scripts
 * Fully support timelocks
 * Support for Trezor wallet
-* Create Script class and support advanced scripts
 * Support and extensively test other databases
 * Improve speed and security
+* Integrate in ERP solutions such as Odoo
 
 
 References

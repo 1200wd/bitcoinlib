@@ -21,7 +21,7 @@
 import csv
 try:
     import enum
-except:
+except ImportError:
     import enum34 as enum
 import datetime
 from sqlalchemy import create_engine, func

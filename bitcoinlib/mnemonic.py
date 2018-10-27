@@ -106,8 +106,7 @@ class Mnemonic:
         Uses cryptographically secure os.urandom() function to generate data. Then creates a Mnemonic sentence with
         the 'to_mnemonic' method.
 
-        :param strength: Key strength in number of bits, default is 128 bits. It advised to specify 128 bits or more,
-        i.e.: 128, 256, 512 or 1024
+        :param strength: Key strength in number of bits, default is 128 bits. It advised to specify 128 bits or more, i.e.: 128, 256, 512 or 1024
         :type strength: int
         :param add_checksum: Included a checksum? Default is True
         :type add_checksum: bool
