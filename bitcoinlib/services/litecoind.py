@@ -146,6 +146,25 @@ class LitecoindClient(BaseClient):
         t.update_totals()
         return t
 
+    def getutxos(self, addresslist):
+        txs = []
+        for t in self.proxy.listunspent(0, 99999999, addresslist):
+            txs.append({
+                'address': t['address'],
+                'tx_hash': t['txid'],
+                'confirmations': t['confirmations'],
+                'output_n': t['vout'],
+                'input_n': -1,
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(t['amount'] * self.units),
+                'script': t['scriptPubKey'],
+                'date': None,
+            })
+
+        return txs
+
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
         return {
