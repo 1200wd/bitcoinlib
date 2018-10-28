@@ -94,7 +94,9 @@ class BitcoindClient(BaseClient):
             else:
                 port = 8332
         server = '127.0.0.1'
-        if 'bind' in config['rpc']:
+        if 'rpcconnect' in config['rpc']:
+            server = config.get('rpc', 'rpcconnect')
+        elif 'bind' in config['rpc']:
             server = config.get('rpc', 'bind')
         elif 'externalip' in config['rpc']:
             server = config.get('rpc', 'externalip')
