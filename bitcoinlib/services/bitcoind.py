@@ -87,7 +87,7 @@ class BitcoindClient(BaseClient):
         if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
             raise ConfigError("Please update config settings in %s" % cfn)
         try:
-            port = config.get('rpc', 'port')
+            port = config.get('rpc', 'rpcport')
         except configparser.NoOptionError:
             if network == 'testnet':
                 port = 18332

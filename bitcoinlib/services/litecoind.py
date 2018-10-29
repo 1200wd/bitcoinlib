@@ -86,7 +86,7 @@ class LitecoindClient(BaseClient):
         if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
             raise ConfigError("Please update config settings in %s" % cfn)
         try:
-            port = config.get('rpc', 'port')
+            port = config.get('rpc', 'rpcport')
         except configparser.NoOptionError:
             if network == 'testnet':
                 port = 19432
@@ -179,27 +179,27 @@ if __name__ == '__main__':
     # bdc = LitecoindClient(base_url=base_url)
 
     # 2. Or connect using default settings or settings from config file
-    bdc = LitecoindClient()
+    client = LitecoindClient()
 
     print("\n=== SERVERINFO ===")
-    pprint(bdc.proxy.getnetworkinfo())
+    pprint(client.proxy.getnetworkinfo())
 
     print("\n=== Best Block ===")
-    blockhash = bdc.proxy.getbestblockhash()
-    bestblock = bdc.proxy.getblock(blockhash)
+    blockhash = client.proxy.getbestblockhash()
+    bestblock = client.proxy.getblock(blockhash)
     bestblock['tx'] = '...' + str(len(bestblock['tx'])) + ' transactions...'
     pprint(bestblock)
 
     print("\n=== Mempool ===")
-    rmp = bdc.proxy.getrawmempool()
+    rmp = client.proxy.getrawmempool()
     pprint(rmp[:25])
     print('... truncated ...')
     print("Mempool Size %d" % len(rmp))
 
     print("\n=== Raw Transaction by txid ===")
-    t = bdc.getrawtransaction('a351153c3c87ada887ef7f28d3e3adec0f94a619be4b9f160f0128f977b85262')
+    t = client.getrawtransaction('a351153c3c87ada887ef7f28d3e3adec0f94a619be4b9f160f0128f977b85262')
     pprint(t)
 
     print("\n=== Current network fees ===")
-    t = bdc.estimatefee(5)
+    t = client.estimatefee(5)
     pprint(t)
