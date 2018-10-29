@@ -65,8 +65,12 @@ class LitecoindClient(BaseClient):
         config = configparser.ConfigParser(strict=False)
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/litecoin.conf')
-            if not os.path.isfile(cfn):
+            if not os.path.isfile(cfn):  # Try Linux path
                 cfn = os.path.join(os.path.expanduser("~"), '.litecoin/litecoin.conf')
+            if not os.path.isfile(cfn):  # Try Windows path
+                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Litecoin/litecoin.conf')
+            if not os.path.isfile(cfn):  # Try Max path
+                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Litecoin/litecoin.conf')
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install litecoin client and specify a path to config file if path is not "
                                   "default. Or place a config file in .bitcoinlib/config/litecoin.conf to reference to "
@@ -89,9 +93,9 @@ class LitecoindClient(BaseClient):
             port = config.get('rpc', 'rpcport')
         except configparser.NoOptionError:
             if network == 'testnet':
-                port = 19432
+                port = 19332
             else:
-                port = 9432
+                port = 9332
         server = '127.0.0.1'
         if 'rpcconnect' in config['rpc']:
             server = config.get('rpc', 'rpcconnect')
@@ -197,7 +201,7 @@ if __name__ == '__main__':
     print("Mempool Size %d" % len(rmp))
 
     print("\n=== Raw Transaction by txid ===")
-    t = client.getrawtransaction('a351153c3c87ada887ef7f28d3e3adec0f94a619be4b9f160f0128f977b85262')
+    t = client.getrawtransaction('fa3906a4219078364372d0e2715f93e822edd0b47ce146c71ba7ba57179b50f6')
     pprint(t)
 
     print("\n=== Current network fees ===")

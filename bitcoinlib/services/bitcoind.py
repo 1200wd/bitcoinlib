@@ -66,8 +66,12 @@ class BitcoindClient(BaseClient):
         config = configparser.ConfigParser(strict=False)
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/bitcoin.conf')
-            if not os.path.isfile(cfn):
+            if not os.path.isfile(cfn):  # Linux
                 cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/bitcoin.conf')
+            if not os.path.isfile(cfn):  # Try Windows path
+                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Litecoin/bitcoin.conf')
+            if not os.path.isfile(cfn):  # Try Max path
+                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Litecoin/bitcoin.conf')
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
                                   "default. Or place a config file in .bitcoinlib/config/bitcoin.conf to reference to "
