@@ -1383,12 +1383,57 @@ class Transaction:
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sig_version=SIGNATURE_VERSION_STANDARD):
-        return hashlib.sha256(hashlib.sha256(self.signature(sign_id, hash_type, sig_version)).
+    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
+        """
+        Double SHA256 Hash of Transaction signature
+
+        :param sign_id: Index of input to sign
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param witness_type: Legacy or Segwit witness type? Leave empty to use Transaction witness type
+        :type witness_type: str
+
+        :return bytes: Transaction signature hash
+        """
+
+        return hashlib.sha256(hashlib.sha256(self.signature(sign_id, hash_type, witness_type)).
                               digest()).digest()
 
-    def signature(self, sign_id, hash_type=SIGHASH_ALL, sig_version=SIGNATURE_VERSION_STANDARD):
-        # TODO: Implement sig_version
+    def signature(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
+        """
+        Serializes transaction and calculates signature for Legacy or Segwit transactions
+
+        :param sign_id: Index of input to sign
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param witness_type: Legacy or Segwit witness type? Leave empty to use Transaction witness type
+        :type witness_type: str
+
+        :return bytes: Transaction signature
+        """
+
+        if witness_type is None:
+            witness_type = self.witness_type
+        if witness_type in ['segwit', 'p2sh-segwit']:
+            return self.signature_segwit(sign_id, hash_type)
+        elif witness_type == 'legacy':
+            return self.raw(sign_id, hash_type)
+        else:
+            raise TransactionError("Witness_type %s not supported" % self.witness_type)
+
+    def signature_segwit(self, sign_id, hash_type=SIGHASH_ALL):
+        """
+        Serialize transaction signature for segregated witness transaction
+
+        :param sign_id: Index of input to sign
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
+        :return bytes: Segwit transaction signature
+        """
         assert(self.witness_type == 'segwit')
         prevouts_serialized = b''
         sequence_serialized = b''
@@ -1490,7 +1535,7 @@ class Transaction:
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
-        Wrapper for raw method. Return current raw transaction hex
+        Wrapper for raw() method. Return current raw transaction hex
 
         :param sign_id: Create raw transaction which can be signed by transaction with this input ID
         :type sign_id: int
@@ -1523,12 +1568,7 @@ class Transaction:
                 _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
                              (len(i.signatures), i.sigs_required))
                 return False
-            transaction_hash = b''
-            if i.witness_type in ['p2sh-segwit', 'segwit']:
-                transaction_hash = self.signature_hash(i.index_n)
-            elif i.witness_type == 'legacy':
-                t_to_sign = self.raw(i.index_n)
-                transaction_hash = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
+            transaction_hash = self.signature_hash(i.index_n, witness_type=i.witness_type)
             sig_id = 0
             key_n = 0
             for key in i.keys:
@@ -1600,10 +1640,7 @@ class Transaction:
 
             tsig = None
             for key in tid_keys:
-                if self.inputs[tid].witness_type in ['p2sh-segwit', 'segwit']:
-                    tsig = self.signature_hash(tid)
-                elif not tsig:
-                    tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
+                tsig = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
                 sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
