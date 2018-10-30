@@ -46,7 +46,7 @@ keys in a Hierarchical Deterministic way.
 
 Example: Create wallet and generate new address (key) to receive bitcoins
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> from bitcoinlib.wallets import HDWallet
    >>> w = HDWallet.create('Wallet1')
@@ -56,7 +56,7 @@ Example: Create wallet and generate new address (key) to receive bitcoins
 
 Now send a small transaction to your wallet and use the scan() method to update transactions and UTXO's
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> w.scan()
     >>> w.info()  # Shows wallet information, keys, transactions and UTXO's
@@ -64,7 +64,7 @@ Now send a small transaction to your wallet and use the scan() method to update 
 When your wallet received a payment and has unspent transaction outputs, you can send bitcoins easily.
 If successful a transaction ID is returned
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> t = w.send_to('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', 100000)
     'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
@@ -141,7 +141,7 @@ wallets with traditional addresses are available.
 
 Create a native single key P2WPKH wallet:
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> from bitcoinlib.wallets import HDWallet
     >>> w = HDWallet.create('segwit_p2wpkh', witness_type='segwit')
@@ -150,7 +150,7 @@ Create a native single key P2WPKH wallet:
 
 Or create a P2SH nested single key P2SH_P2WPKH wallet:
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> from bitcoinlib.wallets import HDWallet
     >>> w = HDWallet.create('segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
@@ -178,6 +178,7 @@ To create a new Bitcoin wallet
 
     Please write down on paper and backup. With this key you can restore your wallet and all keys
 
+
 You can use 'cli-wallet' to create simple or multisig wallets for various networks, manage public and private keys
 and managing transactions.
 
@@ -195,7 +196,7 @@ number of new private keys and bitcoin addresses (BIP0043 and BIP0044).
 
 Example: Generate a list of words passphrase and derive a private key seed
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> from bitcoinlib.mnemonic import Mnemonic
    >>> words = Mnemonic().generate()
@@ -216,7 +217,7 @@ about them. You can however easily use the Service object directly.
 
 Example: Get estimated transaction fee in sathosis per Kb for confirmation within 5 blocks
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> from bitcoinlib.services.services import Service
    >>> Service().estimatefee(5)

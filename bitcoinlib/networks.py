@@ -48,10 +48,10 @@ def read_network_definitions():
     """
     try:
         fn = DEFAULT_SETTINGSDIR + "/networks.json"
-        f = open(fn, "r")
+        f = open(fn)
     except FileNotFoundError:
         fn = CURRENT_INSTALLDIR_DATA + "/networks.json"
-        f = open(fn, "r")
+        f = open(fn)
 
     try:
         network_definitions = json.loads(f.read())

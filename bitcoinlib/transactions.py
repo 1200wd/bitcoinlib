@@ -30,7 +30,6 @@ _logger = logging.getLogger(__name__)
 class TransactionError(Exception):
     """
     Handle Transaction class Exceptions
-
     """
 
     def __init__(self, msg=''):
@@ -56,6 +55,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
 
     :return Transaction:
     """
+
     rawtx = to_bytes(rawtx)
     version = rawtx[0:4][::-1]
     coinbase = False
@@ -417,6 +417,7 @@ def script_deserialize_sigpk(script):
 
     :return tuple: Tuple with a signature and public key in bytes
     """
+
     data = script_deserialize(script, ['sig_pubkey'])
     assert(len(data['signatures']) == 1)
     assert(len(data['keys']) == 1)
@@ -434,6 +435,7 @@ def script_to_string(script):
 
     :return str: 
     """
+
     script = to_bytes(script)
     data = script_deserialize(script)
     if not data or data['script_type'] == 'empty':
@@ -486,6 +488,7 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
 
     :return bytes: A multisig redeemscript
     """
+
     if not key_list:
         return b''
     if not isinstance(key_list, list):
@@ -563,6 +566,19 @@ def script_add_locktime_csv(locktime_csv, script):
 
 
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
+    """
+    Specify locking script type and get corresponding script type for unlocking script.
+
+    :param locking_script_type: Locking script type. I.e.: p2pkh, p2sh, p2wpkh, p2wsh
+    :type locking_script_type: str
+    :param witness_type: Type of witness: legacy or segwit. Default is legacy
+    :type witness_type: str
+    :param multisig: Is multisig script or not? Default is False
+    :type multisig: bool
+
+    :return str: Unlocking script type such as sig_pubkey or p2sh_multisig
+    """
+
     if locking_script_type in ['p2pkh', 'p2wpkh']:
         return 'sig_pubkey'
     elif locking_script_type == 'p2wsh' or (witness_type == 'legacy' and multisig):
@@ -588,8 +604,8 @@ def verify_signature(transaction_to_sign, signature, public_key):
     :type public_key: bytes, str
 
     :return bool: Return True if verified
-
     """
+
     transaction_to_sign = to_bytes(transaction_to_sign)
     signature = to_bytes(signature)
     public_key = to_bytes(public_key)
@@ -622,7 +638,6 @@ class Input:
     To spent the UTXO an unlocking script can be included to prove ownership.
     
     Inputs are verified by the Transaction class.
-    
     """
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
@@ -641,7 +656,7 @@ class Input:
         :type keys: list (bytes, str)
         :param signatures: Specify optional signatures
         :type signatures: bytes, str
-        :param public_hash: Public key or script hash
+        :param public_hash: Public key or script hash. Specify if key is not available
         :type public_hash: bytes, str
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
@@ -671,7 +686,6 @@ class Input:
         :type encoding: str
         :param network: Network, leave empty for default
         :type network: str, Network
-
         """
 
         self.prev_hash = to_bytes(prev_hash)
@@ -830,15 +844,19 @@ class Input:
             raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
 
-    def update_scripts(self, hash_type=SIGHASH_ALL, recreate_all=False):
+    def update_scripts(self, hash_type=SIGHASH_ALL):
         """
         Method to update Input scripts.
 
         Creates or updates unlocking script, witness script for segwit inputs, multisig redeemscripts and
         locktime scripts. This method is called when initializing a Input class or when signing an input.
 
-        :return:
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
+        :return bool: Always returns True when method is completed
         """
+
         addr_data = b''
         unlock_script = b''
         if self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
@@ -927,14 +945,15 @@ class Input:
         elif self.locktime_csv:
             self.unlocking_script_unsigned = script_add_locktime_csv(self.locktime_csv, self.unlocking_script_unsigned)
             self.unlocking_script = script_add_locktime_csv(self.locktime_csv, self.unlocking_script)
+        return True
 
     def dict(self):
         """
         Get transaction input information in json format
         
         :return dict: Json with output_n, prev_hash, output_n, type, address, public_key, public_hash, unlocking_script and sequence
-
         """
+
         pks = []
         for k in self.keys:
             pks.append(k.public_hex)
@@ -976,9 +995,9 @@ class Output:
     """
     Transaction Output class, normally part of Transaction class.
     
-    Contains the amount and destination of a transaction. 
-    
+    Contains the amount and destination of a transaction.
     """
+
     def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
                  output_n=0, script_type=None, encoding='base58', network=DEFAULT_NETWORK):
         """
@@ -1012,6 +1031,7 @@ class Output:
         :param network: Network, leave empty for default
         :type network: str, Network
         """
+
         if not (address or public_hash or public_key or lock_script):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
@@ -1101,8 +1121,8 @@ class Output:
         Get transaction output information in json format
 
         :return dict: Json with amount, locking script, public key, public key hash and address
-
         """
+
         return {
             'value': self.value,
             'script': to_hexstring(self.lock_script),
@@ -1131,7 +1151,6 @@ class Transaction:
     A verify method is available to check if the transaction Inputs have valid unlocking scripts. 
     
     Each input in the transaction can be signed with the sign method provided a valid private key.
-    
     """
 
     @staticmethod
@@ -1148,8 +1167,8 @@ class Transaction:
         :type network: str, Network
 
         :return Transaction:
-         
         """
+
         rawtx = to_bytes(rawtx)
         return _transaction_deserialize(rawtx, network=network)
 
@@ -1206,7 +1225,6 @@ class Transaction:
         :type witness_type: str
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str
-
         """
 
         self.coinbase = coinbase
@@ -1276,6 +1294,7 @@ class Transaction:
         
         :return dict: 
         """
+
         inputs = []
         outputs = []
         for i in self.inputs:
@@ -1308,8 +1327,8 @@ class Transaction:
     def info(self):
         """
         Prints transaction information to standard output
-
         """
+
         print("Transaction %s" % self.hash)
         print("Date: %s" % self.date)
         print("Network: %s" % self.network.name)
@@ -1419,7 +1438,7 @@ class Transaction:
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
-        Get raw transaction 
+        Serialize raw transaction
         
         Return transaction with signed inputs if signatures are available
         
@@ -1429,8 +1448,8 @@ class Transaction:
         :type hash_type: int
 
         :return bytes:
-        
         """
+
         r = self.version[::-1]
         if sign_id is None and self.witness_type == 'segwit':
             r += b'\x00'  # marker (BIP 141)
@@ -1480,6 +1499,7 @@ class Transaction:
 
         :return hexstring: 
         """
+
         return to_hexstring(self.raw(sign_id, hash_type=hash_type))
 
     def verify(self):
@@ -1660,10 +1680,18 @@ class Transaction:
         :type output_n: bytes, int
         :param keys: Public keys can be provided to construct an Unlocking script. Optional
         :type keys: bytes, str
+        :param signatures: Add signatures to input if already known
+        :type signatures: bytes, str
+        :param public_hash: Specify public hash from key or redeemscript if key is not available
+        :type public_hash: bytes, str
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
+        :param unlocking_script_unsigned: TODO: find better name...
+        :type unlocking_script_unsigned: bytes, str
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
+        :param address: Specify address of input if known, default is to derive from key or scripts
+        :type address: str
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: int, bytes
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
@@ -1682,10 +1710,10 @@ class Transaction:
         :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
-        :param address: Specify address of input if known
-        :type address: str
-        :param signatures: Add signatures to input if already known
-        :type signatures: bytes, str
+        :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
+        :type witness_type: str
+        :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from script or script type
+        :type encoding: str
 
         :return int: Transaction index number (index_n)
         """
@@ -1724,12 +1752,12 @@ class Transaction:
         :type spent: bool
         :param output_n: Index number of output in transaction
         :type output_n: int
-        :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
+        :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for to derive from script or script type
         :type encoding: str
 
         :return int: Transaction output number (output_n)
-
         """
+
         lock_script = to_bytes(lock_script)
         if output_n is None:
             output_n = len(self.outputs)
@@ -1754,6 +1782,7 @@ class Transaction:
 
         :return int: Estimated transaction size
         """
+
         est_size = 10
         if add_change_output:
             est_size += 34

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    WALLETS - HD wallet Class for key and transaction management
-#    © 2017-2018 August - 1200 Web Development <http://1200wd.com/>
+#    WALLETS - HD wallet Class for Key and Transaction management
+#    © 2017 - 2018 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -103,8 +103,8 @@ def wallet_create_or_open(name, key='', owner='', network=None, account_id=0, pu
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
     See Wallets class create method for option documentation
-
     """
+
     if wallet_exists(name, databasefile=databasefile):
         return HDWallet(name, databasefile=databasefile)
     else:
@@ -120,8 +120,8 @@ def wallet_create_or_open_multisig(
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
     See Wallets class create method for option documentation
-
     """
+
     if wallet_exists(name, databasefile=databasefile):
         return HDWallet(name, databasefile=databasefile)
     else:
@@ -183,6 +183,18 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
 
 
 def wallet_empty(wallet, databasefile=DEFAULT_DATABASE):
+    """
+    Remove all generated keys and transactions from wallet. Does not delete the wallet itself or the masterkey,
+    so everything can be recreated.
+
+    :param wallet: Wallet ID as integer or Wallet Name as string
+    :type wallet: int, str
+    :param databasefile: Location of Sqlite database. Leave empty to use default
+    :type databasefile: str
+
+    :return bool: True if succesfull
+    """
+
     session = DbInit(databasefile=databasefile).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
@@ -290,6 +302,8 @@ def script_type_default(witness_type, key_type, locking_script=False):
     :type witness_type: str
     :param key_type: Type of keys used in this wallet
     :type key_type: str
+    :param locking_script: Limit search to locking_script. Specify False for locking scripts and True for unlocking scripts
+    :type locking_script: bool
 
     :return str: Default script type
     """
@@ -346,6 +360,10 @@ class HDWalletKey:
         :type path: str
         :param key_type: Type of key, single or BIP44 type
         :type key_type: str
+        :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58
+        :type encoding: str
+        :param witness_type: Witness type used when creating transaction script: legacy, p2sh-segwit or segwit.
+        :type witness_type: str
 
         :return HDWalletKey: HDWalletKey object
         """
@@ -399,8 +417,9 @@ class HDWalletKey:
         :type key_id: int
         :param session: Required Sqlalchemy Session object
         :type session: sqlalchemy.orm.session.Session
-        :param hdkey_object: Optional HDKey object 
+        :param hdkey_object: Optional HDKey object. Specify HDKey object if available for performance
         :type hdkey_object: HDKey
+
         """
 
         wk = session.query(DbKey).filter_by(id=key_id).first()
@@ -540,6 +559,7 @@ class HDWalletTransaction(Transaction):
         :param kwargs: Keyword arguments for HDWallet parent class
         :type kwargs: kwargs
         """
+
         assert isinstance(hdwallet, HDWallet)
         self.hdwallet = hdwallet
         self.pushed = False
@@ -765,8 +785,8 @@ class HDWalletTransaction(Transaction):
     def info(self):
         """
         Print Wallet transaction information to standard output. Include send information.
-
         """
+
         Transaction.info(self)
         print("Pushed to network: %s" % self.pushed)
         print("Wallet: %s" % self.hdwallet.name)
@@ -820,6 +840,8 @@ class HDWallet:
         :type password: str
         :param witness_type: Specify witness type, default is 'legacy'. Use 'segwit' for native segregated witness wallet, or 'p2sh-segwit' for legacy compatible wallets
         :type witness_type: str
+        :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
+        :type encoding: str
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
         
@@ -921,8 +943,10 @@ class HDWallet:
         :type multisig_compressed: bool
         :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
         :type sort_keys: bool
-        :param witness_type: Specify wallet type, default is standard. Use 'segwit' for segregated witness wallet.
+        :param witness_type: Specify wallet type, default is legacy. Use 'segwit' for segregated witness wallet.
         :type witness_type: str
+        :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
+        :type encoding: str
         :param databasefile: Location of database file. Leave empty to use default
         :type databasefile: str
 
@@ -1010,7 +1034,9 @@ class HDWallet:
         :type change: int
         :param purpose: Purpose field according to BIP32 definition, default is 44 for BIP44.
         :type purpose: int
-        
+        :param witness_type: Specify witness type, default is 'legacy'. Use 'segwit' for segregated witness wallet.
+        :type witness_type: str
+
         :return HDWalletKey: 
         """
 
@@ -1231,6 +1257,7 @@ class HDWallet:
 
         :return HDWalletKey:
         """
+
         assert isinstance(wallet_key, HDWalletKey)
         if not isinstance(private_key, HDKey):
             private_key = HDKey(private_key, network=self.network.name)
@@ -1253,6 +1280,7 @@ class HDWallet:
 
         :return HDKey: Main key as HDKey object
         """
+
         network, account_id, acckey = self._get_account_defaults()
 
         if not isinstance(hdkey, HDKey):
@@ -2030,8 +2058,8 @@ class HDWallet:
         :type account_id: int
 
         :return HDWalletKey:
-
         """
+
         qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.name,
                       account_id=account_id, depth=3).scalar()
@@ -2103,7 +2131,7 @@ class HDWallet:
         :param network: Network name. Leave empty for default network
         :type network: str
 
-        :return:
+        :return int: Total balance
         """
 
         balance = Service(network=network, providers=self.providers).getbalance(self.addresslist(account_id=account_id,
@@ -2260,6 +2288,7 @@ class HDWallet:
         :type utxos: list
         :param update_balance: Option to disable balance update after fetching UTXO's, used when utxos_update method is called several times in a row. Default is True
         :type update_balance: bool
+
         :return int: Number of new UTXO's added 
         """
 
@@ -2427,13 +2456,29 @@ class HDWallet:
 
         This method does not check if UTXO exists or is still spendable.
 
-        :param address:
-        :param value:
-        :param tx_hash:
-        :param output_n:
-        :param confirmations:
-        :param script:
-        :return:
+        [{
+            'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
+            'script': '',
+            'confirmations': 10,
+            'output_n': 1,
+            'tx_hash': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
+            'value': 8970937
+        }]
+
+        :param address: Address of Unspent Output. Address should be available in wallet
+        :type address: str
+        :param value: Value of output in sathosis or smallest denominator for type of currency
+        :type value: int
+        :param tx_hash: Transaction hash or previous output as hex-string
+        :type tx_hash: str
+        :param output_n: Output number of previous transaction output
+        :type output_n: int
+        :param confirmations: Number of confirmations. Default is 0, unconfirmed
+        :type confirmations: int
+        :param script: Locking script of previous output as hex-string
+        :type script: str
+
+        :return int: Number of new UTXO's added, so 1 if successful
         """
 
         utxo = {
@@ -2466,7 +2511,6 @@ class HDWallet:
         :type change: int
 
         :return bool: True if all transactions are updated
-
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
@@ -2498,7 +2542,7 @@ class HDWallet:
             for u in tos:
                 u.spent = True
         self._session.commit()
-        self._balance_update(account_id=account_id, network=network, key_id=key_id, min_confirms=0)
+        self._balance_update(account_id=account_id, network=network, key_id=key_id)
 
         return len(txs)
 
@@ -2581,8 +2625,9 @@ class HDWallet:
     def select_inputs(self, amount, variance=None, account_id=None, network=None, min_confirms=0, max_utxos=None,
                       return_input_obj=True):
         """
+        Select available inputs for given amount
 
-        :param amount: Total value of inputs to selects
+        :param amount: Total value of inputs to select
         :type amount: int
         :param variance: Allowed difference in total input value. Default is dust amount of selected network.
         :type variance: int
@@ -2594,8 +2639,12 @@ class HDWallet:
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
-        :return:
+        :param return_input_obj: Return inputs as Input class object. Default is True
+        :type return_input_obj: bool
+
+        :return Input, dict: Selected inputs as dict or Input object
         """
+
         network, account_id, _ = self._get_account_defaults(network, account_id)
         if variance is None:
             variance = self.network.dust_amount
@@ -2660,28 +2709,28 @@ class HDWallet:
     def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, fee=None,
                            min_confirms=0, max_utxos=None, locktime=0):
         """
-            Create new transaction with specified outputs. 
-            Inputs can be specified but if not provided they will be selected from wallets utxo's.
-            Output array is a list of 1 or more addresses and amounts.
+        Create new transaction with specified outputs.
+        Inputs can be specified but if not provided they will be selected from wallets utxo's.
+        Output array is a list of 1 or more addresses and amounts.
 
-            :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
-            :type output_arr: list 
-            :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
-            :type input_arr: list
-            :param account_id: Account ID
-            :type account_id: int
-            :param network: Network name. Leave empty for default network
-            :type network: str
-            :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
-            :type fee: int
-            :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
-            :type min_confirms: int
-            :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
-            :type max_utxos: int
-            :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
-            :type locktime: int
+        :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]
+        :type output_arr: list
+        :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
+        :type input_arr: list
+        :param account_id: Account ID
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
+        :type fee: int
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
+        :type min_confirms: int
+        :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
+        :type max_utxos: int
+        :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
+        :type locktime: int
 
-            :return HDWalletTransaction: object
+        :return HDWalletTransaction: object
         """
 
         amount_total_output = 0
@@ -2893,8 +2942,8 @@ class HDWallet:
         :type network: str
 
         :return HDWalletTransaction:
-
         """
+
         if network is None:
             network = self.network.name
         t_import = Transaction.import_raw(raw_tx, network=network)
@@ -3042,8 +3091,8 @@ class HDWallet:
         
         :param detail: Level of detail to show. Specify a number between 0 and 4, with 0 low detail and 4 highest detail
         :type detail: int
-
         """
+
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
         print(" Name                           %s" % self.name)

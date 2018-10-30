@@ -104,7 +104,7 @@ SUPPORTED_ADDRESS_ENCODINGS = ['base58', 'bech32']
 
 
 # Copy data and settings to default settings directory if install.log is not found
-def initialize_lib():
+def _initialize_lib():
     instlogfile = os.path.join(DEFAULT_LOGDIR, 'install.log')
     if os.path.isfile(instlogfile):
         return
@@ -124,7 +124,7 @@ def initialize_lib():
             copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
 
 
-initialize_lib()
+_initialize_lib()
 
 # Initialize logging to bitcoinlib.log
 logfile = os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log')

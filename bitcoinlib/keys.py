@@ -995,7 +995,7 @@ class HDKey:
         self.child_index = child_index
         self.isprivate = isprivate
         if not self.network:
-            self.network = Network(DEFAULT_NETWORK)
+            self.network = Network()
             _logger.warning("No network specified when creating new HDKey, using default network")
         # self.network = Network(network)
         self.public_byte = self.key.public_byte
@@ -1319,6 +1319,6 @@ class HDKey:
         :return HDKey:
         """
 
-        #TODO: more clevvvvver
+        # TODO: more clevvvvver
         return HDKey(self.wif_public(), parent_fingerprint=self.parent_fingerprint, isprivate=self.isprivate,
                      key_type=self.key_type, network=self.network.name)

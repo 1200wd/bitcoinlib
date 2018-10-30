@@ -41,7 +41,7 @@ class Mnemonic:
         
         """
         self._wordlist = []
-        with open('%s/%s.txt' % (WORDLIST_DIR, language), 'r') as f:
+        with open('%s/%s.txt' % (WORDLIST_DIR, language)) as f:
             self._wordlist = [w.strip() for w in f.readlines()]
 
     @staticmethod
@@ -212,7 +212,7 @@ class Mnemonic:
         language = self.detect_language(words)
         if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
             words = words.split(' ')
-        with open('%s/%s.txt' % (WORDLIST_DIR, language), 'r') as f:
+        with open('%s/%s.txt' % (WORDLIST_DIR, language)) as f:
             wordlist = [w.strip() for w in f.readlines()]
             for word in words:
                 if sys.version < '3':
