@@ -21,7 +21,7 @@
 from datetime import datetime
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
 
@@ -148,6 +148,13 @@ class LitecoindClient(BaseClient):
 
     def getutxos(self, addresslist):
         txs = []
+
+        for addr in addresslist:
+            res = self.proxy.validateaddress(addr)
+            if not (res['ismine'] or res['iswatchonly']):
+                raise ClientError("Address %s not found in Litecoind wallet, use 'importaddress' to add address to "
+                                  "wallet." % addr)
+
         for t in self.proxy.listunspent(0, 99999999, addresslist):
             txs.append({
                 'address': t['address'],
