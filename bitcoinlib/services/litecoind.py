@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    litecoind deamon
+#    Client for litecoind deamon
 #    © 2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -60,13 +60,17 @@ class LitecoindClient(BaseClient):
         :param network: Litecoin mainnet or testnet. Default is litecoin mainnet
         :type: str
 
-        :return BitcoindClient:
+        :return LitecoindClient:
         """
         config = configparser.ConfigParser(strict=False)
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/litecoin.conf')
-            if not os.path.isfile(cfn):
+            if not os.path.isfile(cfn):  # Try Linux path
                 cfn = os.path.join(os.path.expanduser("~"), '.litecoin/litecoin.conf')
+            if not os.path.isfile(cfn):  # Try Windows path
+                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Litecoin/litecoin.conf')
+            if not os.path.isfile(cfn):  # Try Max path
+                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Litecoin/litecoin.conf')
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install litecoin client and specify a path to config file if path is not "
                                   "default. Or place a config file in .bitcoinlib/config/litecoin.conf to reference to "
@@ -86,14 +90,16 @@ class LitecoindClient(BaseClient):
         if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
             raise ConfigError("Please update config settings in %s" % cfn)
         try:
-            port = config.get('rpc', 'port')
+            port = config.get('rpc', 'rpcport')
         except configparser.NoOptionError:
             if network == 'testnet':
-                port = 19432
+                port = 19332
             else:
-                port = 9432
+                port = 9332
         server = '127.0.0.1'
-        if 'bind' in config['rpc']:
+        if 'rpcconnect' in config['rpc']:
+            server = config.get('rpc', 'rpcconnect')
+        elif 'bind' in config['rpc']:
             server = config.get('rpc', 'bind')
         elif 'externalip' in config['rpc']:
             server = config.get('rpc', 'externalip')
@@ -116,11 +122,12 @@ class LitecoindClient(BaseClient):
             base_url = bdc.base_url
             network = bdc.network
         if len(base_url.split(':')) != 4:
-            raise ConfigError("litecoind connection URL must be of format 'http(s)://user:password@host:port,"
-                              "current format is %s. Please set url in providers.json file" % base_url)
+            raise ConfigError("Litecoind connection URL must be of format 'http(s)://user:password@host:port,"
+                              "current format is %s. Please set url in providers.json file or check litecoin config "
+                              "file" % base_url)
         if 'password' in base_url:
-            raise ConfigError("Invalid password 'password' in litecoind provider settings. "
-                              "Please set password and url in providers.json file")
+            raise ConfigError("Invalid password in litecoind provider settings. "
+                              "Please replace default password and set url in providers.json or litecoin.conf file")
         _logger.info("Connect to litecoind on %s" % base_url)
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
@@ -202,27 +209,27 @@ if __name__ == '__main__':
     # bdc = LitecoindClient(base_url=base_url)
 
     # 2. Or connect using default settings or settings from config file
-    bdc = LitecoindClient()
+    client = LitecoindClient()
 
     print("\n=== SERVERINFO ===")
-    pprint(bdc.proxy.getnetworkinfo())
+    pprint(client.proxy.getnetworkinfo())
 
     print("\n=== Best Block ===")
-    blockhash = bdc.proxy.getbestblockhash()
-    bestblock = bdc.proxy.getblock(blockhash)
+    blockhash = client.proxy.getbestblockhash()
+    bestblock = client.proxy.getblock(blockhash)
     bestblock['tx'] = '...' + str(len(bestblock['tx'])) + ' transactions...'
     pprint(bestblock)
 
     print("\n=== Mempool ===")
-    rmp = bdc.proxy.getrawmempool()
+    rmp = client.proxy.getrawmempool()
     pprint(rmp[:25])
     print('... truncated ...')
     print("Mempool Size %d" % len(rmp))
 
     print("\n=== Raw Transaction by txid ===")
-    t = bdc.getrawtransaction('a351153c3c87ada887ef7f28d3e3adec0f94a619be4b9f160f0128f977b85262')
+    t = client.getrawtransaction('fa3906a4219078364372d0e2715f93e822edd0b47ce146c71ba7ba57179b50f6')
     pprint(t)
 
     print("\n=== Current network fees ===")
-    t = bdc.estimatefee(5)
+    t = client.estimatefee(5)
     pprint(t)
