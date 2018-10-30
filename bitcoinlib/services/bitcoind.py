@@ -22,7 +22,7 @@ from datetime import datetime
 import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
 
@@ -152,6 +152,32 @@ class BitcoindClient(BaseClient):
         t.hash = txid
         t.update_totals()
         return t
+
+    def getutxos(self, addresslist):
+        txs = []
+
+        for addr in addresslist:
+            res = self.proxy.validateaddress(addr)
+            if not (res['ismine'] or res['iswatchonly']):
+                raise ClientError("Address %s not found in Litecoind wallet, use 'importaddress' to add address to "
+                                  "wallet." % addr)
+            
+        for t in self.proxy.listunspent(0, 99999999, addresslist):
+            txs.append({
+                'address': t['address'],
+                'tx_hash': t['txid'],
+                'confirmations': t['confirmations'],
+                'output_n': t['vout'],
+                'input_n': -1,
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(t['amount'] * self.units),
+                'script': t['scriptPubKey'],
+                'date': None,
+            })
+
+        return txs
 
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
