@@ -1088,7 +1088,7 @@ class Output:
                 self.versionbyte = self.network.prefix_address_p2sh
             if self.script_type in ['p2pkh', 'p2sh']:
                 self.public_hash = ss['hashes'][0]
-                self.address = pubkeyhash_to_addr(self.public_hash, versionbyte=self.versionbyte)
+                self.address = pubkeyhash_to_addr(self.public_hash, prefix=self.versionbyte)
             elif self.script_type in ['p2wpkh', 'p2wsh']:
                 self.public_hash = ss['hashes'][0]
                 self.address_obj = Address(hashed_data=ss['hashes'][0], script_type=self.script_type,

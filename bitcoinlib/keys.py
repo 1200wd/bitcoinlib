@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2017 - 2018 August - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2018 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -35,7 +35,7 @@ from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert, \
-    addr_bech32_to_pubkeyhash, pubkeyhash_to_addr_bech32, varstr
+    addr_bech32_to_pubkeyhash, pubkeyhash_to_addr, varstr
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -405,17 +405,18 @@ class Address:
                     self.prefix = binascii.unhexlify(prefix)
                 else:
                     self.prefix = prefix
-            addr_bytes = self.prefix + self.hash_bytes
-            self.checksum = hashlib.sha256(hashlib.sha256(addr_bytes).digest()).digest()[:4]
-            self.address = change_base(addr_bytes + self.checksum, 256, 58)
+            # addr_bytes = self.prefix + self.hash_bytes
+            # self.checksum = hashlib.sha256(hashlib.sha256(addr_bytes).digest()).digest()[:4]
+            # self.address = change_base(addr_bytes + self.checksum, 256, 58)
         elif self.encoding == 'bech32':
             if self.script_type is None:
                 self.script_type = 'p2wpkh'
             if self.prefix is None:
                 self.prefix = self.network.prefix_bech32
-            self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), hrp=self.prefix)
+            # self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), prefix=self.prefix)
         else:
             raise KeyError("Encoding %s not supported" % self.encoding)
+        self.address = pubkeyhash_to_addr(bytearray(self.hash_bytes), prefix=self.prefix, encoding=self.encoding)
         self.address_orig = None
         provider_prefix = None
         if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
