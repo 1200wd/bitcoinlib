@@ -1017,7 +1017,6 @@ class HDKey:
         if not self.network:
             self.network = Network()
             _logger.warning("No network specified when creating new HDKey, using default network")
-        # self.network = Network(network)
         self.public_byte = self.key.public_byte
         self.public_hex = self.key.public_hex
         self.secret = None
@@ -1114,7 +1113,6 @@ class HDKey:
         :return bytes:
         """
 
-        # Old: return hashlib.new('ripemd160', hashlib.sha256(self.public_byte).digest()).digest()[:4]
         return self.key.hash160()[:4]
 
     def wif(self, public=None, child_index=None, prefix=None):
@@ -1322,14 +1320,14 @@ class HDKey:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
         x, y = self.key.public_point()
-        Ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
+        ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
 
         # if change_base(Ki.y(), 16, 10) % 2:
-        if Ki.y() % 2:
+        if ki.y() % 2:
             prefix = '03'
         else:
             prefix = '02'
-        xhex = change_base(Ki.x(), 10, 16, 64)
+        xhex = change_base(ki.x(), 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, isprivate=False, network=network)
