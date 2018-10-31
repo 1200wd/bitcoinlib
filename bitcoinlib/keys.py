@@ -328,7 +328,7 @@ def addr_convert(addr, prefix, encoding=None, to_encoding=None):
     if to_encoding is None:
         to_encoding = encoding
     if isinstance(prefix, str) and to_encoding == 'base58':
-        prefix = binascii.unhexlify(prefix)
+        prefix = to_hexstring(prefix)
     return pubkeyhash_to_addr(pkh, prefix=prefix, encoding=to_encoding)
 
 
@@ -427,11 +427,7 @@ class Address:
                 else:
                     self.prefix = self.network.prefix_address
             else:
-                # TODO: Test bytearray
-                if not isinstance(prefix, (bytes, bytearray)):
-                    self.prefix = binascii.unhexlify(prefix)
-                else:
-                    self.prefix = prefix
+                self.prefix = to_bytes(prefix)
         elif self.encoding == 'bech32':
             if self.script_type is None:
                 self.script_type = 'p2wpkh'

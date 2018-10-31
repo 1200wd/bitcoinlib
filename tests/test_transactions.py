@@ -931,7 +931,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_p2pkh_2(self):
-        s = binascii.unhexlify('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac')
+        s = to_bytes('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac')
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_p2sh(self):
