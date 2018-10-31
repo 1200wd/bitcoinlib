@@ -35,7 +35,7 @@ from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_to_pubkeyhash, \
-    pubkeyhash_to_addr, varstr
+    pubkeyhash_to_addr, varstr, double_sha256
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -246,7 +246,7 @@ def deserialize_address(address, encoding=None, network=None):
         else:
             check = address_bytes[-4:]
             key_hash = address_bytes[:-4]
-            checksum = hashlib.sha256(hashlib.sha256(key_hash).digest()).digest()[0:4]
+            checksum = double_sha256(key_hash)[0:4]
             assert (check == checksum), "Invalid address, checksum incorrect"
             address_prefix = key_hash[0:1]
             networks_p2pkh = network_by_value('prefix_address', address_prefix)
@@ -585,7 +585,7 @@ class Key:
                 key = change_base(import_key, 58, 256)
                 checksum = key[-4:]
                 key = key[:-4]
-                if checksum != hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]:
+                if checksum != double_sha256(key)[:4]:
                     raise BKeyError("Invalid checksum, not a valid WIF key")
                 found_networks = network_by_value('prefix_wif', key[0:1])
                 if not len(found_networks):
@@ -686,7 +686,7 @@ class Key:
         addr = k.address()
         if isinstance(addr, str) and sys.version_info > (3,):
             addr = addr.encode('utf-8')
-        if hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4] != addresshash:
+        if double_sha256(addr)[0:4] != addresshash:
             print('Addresshash verification failed! Password is likely incorrect.')
         return wif, key_format
 
@@ -710,7 +710,7 @@ class Key:
         privkey = self.private_hex
         if isinstance(addr, str) and sys.version_info > (3,):
             addr = addr.encode('utf-8')
-        addresshash = hashlib.sha256(hashlib.sha256(addr).digest()).digest()[0:4]
+        addresshash = double_sha256(addr)[0:4]
         key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
         derivedhalf1 = key[0:32]
         derivedhalf2 = key[32:64]
@@ -720,7 +720,7 @@ class Key:
         encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[32:64], 16) ^
                                                                     int(binascii.hexlify(derivedhalf1[16:32]), 16))))
         encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
-        encrypted_privkey += hashlib.sha256(hashlib.sha256(encrypted_privkey).digest()).digest()[:4]
+        encrypted_privkey += double_sha256(encrypted_privkey)[:4]
         return change_base(encrypted_privkey, 256, 58)
 
     def wif(self, prefix=None):
@@ -747,7 +747,7 @@ class Key:
         key = versionbyte + change_base(self.secret, 10, 256, 32)
         if self.compressed:
             key += b'\1'
-        key += hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
+        key += double_sha256(key)[:4]
         return change_base(key, 256, 58)
 
     def public(self, return_compressed=None):
@@ -1147,7 +1147,7 @@ class HDKey:
             self.child_index = child_index
         raw = prefix + struct.pack('B', self.depth) + self.parent_fingerprint + \
             struct.pack('>L', self.child_index) + self.chain + typebyte + rkey
-        chk = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
+        chk = double_sha256(raw)[:4]
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
 

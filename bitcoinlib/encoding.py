@@ -321,35 +321,20 @@ def int_to_varbyteint(inp):
         return struct.pack('<cQ', b'\xff', inp)
 
 
-def varstr(s):
-    """
-    Convert string to bytestring preceeded with length byte
-
-    :param s: bytestring
-    :type s: bytes, str
-
-    :return bytes: varstring
-    """
-    s = normalize_var(s)
-    if s == b'\0':
-        return s
-    return int_to_varbyteint(len(s)) + s
-
-
-def convert_der_sig(s, as_hex=True):
+def convert_der_sig(signature, as_hex=True):
     """
     Convert DER encoded signature to signature
 
-    :param s: DER signature
-    :type s: bytes
+    :param signature: DER signature
+    :type signature: bytes
     :param as_hex: Output as hexstring
     :type as_hex: bool
 
     :return bytes, str: Signature
     """
-    if not s:
+    if not signature:
         return ""
-    sg, junk = ecdsa.der.remove_sequence(s)
+    sg, junk = ecdsa.der.remove_sequence(signature)
     if junk != b'':
         raise EncodingError("Junk found in encoding sequence %s" % junk)
     x, sg = ecdsa.der.remove_integer(sg)
@@ -404,7 +389,7 @@ def addr_base58_to_pubkeyhash(address, as_hex=False):
         raise EncodingError("Invalid address %s: %s" % (address, err))
     check = address[-4:]
     pkh = address[:-4]
-    checksum = hashlib.sha256(hashlib.sha256(pkh).digest()).digest()[0:4]
+    checksum = double_sha256(pkh)[0:4]
     assert (check == checksum), "Invalid address, checksum incorrect"
     if as_hex:
         return change_base(pkh, 256, 16)[2:]
@@ -500,7 +485,7 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
     """
     # prefix = to_bytes(prefix)
     key = to_bytearray(prefix) + to_bytearray(pubkeyhash)
-    addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
+    addr256 = key + double_sha256(key)[:4]
     return change_base(addr256, 256, 58)
 
 
@@ -596,46 +581,50 @@ def convertbits(data, frombits, tobits, pad=True):
     return ret
 
 
-def script_to_pubkeyhash(script):
+def varstr(string):
     """
-    Creates a RIPEMD-160 hash of a locking, unlocking, redeemscript, etc
+    Convert string to bytestring preceeded with length byte
 
+    :param string: bytestring
+    :type string: bytes, str
 
-    :param script: Script
-    :type script: bytes
-
-    :return bytes: RIPEMD-160 hash of script
+    :return bytes: varstring
     """
-    return hashlib.new('ripemd160', hashlib.sha256(script).digest()).digest()
+    s = normalize_var(string)
+    if s == b'\0':
+        return s
+    return int_to_varbyteint(len(s)) + s
 
 
-def to_bytearray(s):
+def to_bytearray(string):
     """
     Convert String, Unicode or Bytes to Python 2 and 3 compatible ByteArray
-    :param s: String, Unicode, Bytes or ByteArray
 
-    :return: ByteArray
+    :param string: String, Unicode, Bytes or ByteArray
+    :type string: bytes, str, bytearray
+
+    :return bytearray:
     """
-    if isinstance(s, (str, unicode if not PY3 else str)):
+    if isinstance(string, (str, unicode if not PY3 else str)):
         try:
-            s = binascii.unhexlify(s)
+            string = binascii.unhexlify(string)
         except (TypeError, binascii.Error):
             pass
-    return bytearray(s)
+    return bytearray(string)
 
 
-def to_bytes(s, unhexlify=True):
+def to_bytes(string, unhexlify=True):
     """
     Convert String, Unicode or ByteArray to Bytes
 
-    :param s: String to convert
-    :type s: str, unicode, bytes, bytearray
+    :param string: String to convert
+    :type string: str, unicode, bytes, bytearray
     :param unhexlify: Try to unhexlify hexstring
     :type unhexlify: bool
 
     :return: Bytes var
     """
-    s = normalize_var(s)
+    s = normalize_var(string)
     if unhexlify:
         try:
             s = binascii.unhexlify(s)
@@ -645,49 +634,78 @@ def to_bytes(s, unhexlify=True):
     return s
 
 
-def to_hexstring(var):
+def to_hexstring(string):
     """
     Convert Bytes or ByteArray to hexadecimal string
 
-    :param var: Variable to convert to hex string
-    :type var: bytes, bytearray, str
+    :param string: Variable to convert to hex string
+    :type string: bytes, bytearray, str
 
     :return: hexstring
     """
-    var = normalize_var(var)
+    string = normalize_var(string)
 
-    if isinstance(var, (str, bytes)):
+    if isinstance(string, (str, bytes)):
         try:
-            binascii.unhexlify(var)
+            binascii.unhexlify(string)
             if PY3:
-                return str(var, 'ISO-8859-1')
+                return str(string, 'ISO-8859-1')
             else:
-                return var
+                return string
         except (TypeError, binascii.Error):
             pass
 
-    s = binascii.hexlify(var)
+    s = binascii.hexlify(string)
     if PY3:
         return str(s, 'ISO-8859-1')
     else:
         return s
 
 
-def normalize_string(txt):
+def normalize_string(string):
     """
     Normalize a string to the default NFKD unicode format
     See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
-    :param txt: string value
-    :type txt: bytes, bytearray, str
+    :param string: string value
+    :type string: bytes, bytearray, str
 
     :return: string
     """
-    if isinstance(txt, str if sys.version < '3' else bytes):
-        utxt = txt.decode('utf8')
-    elif isinstance(txt, unicode if sys.version < '3' else str):
-        utxt = txt
+    if isinstance(string, str if sys.version < '3' else bytes):
+        utxt = string.decode('utf8')
+    elif isinstance(string, unicode if sys.version < '3' else str):
+        utxt = string
     else:
         raise TypeError("String value expected")
 
     return unicodedata.normalize('NFKD', utxt)
+
+
+def double_sha256(string, as_hex=False):
+    """
+    Get double SHA256 hash of string
+
+    :param string: String to be hashed
+    :type string: bytes
+    :param as_hex: Return value as hexadecimal string. Default is False
+    :type as_hex
+
+    :return bytes, str:
+    """
+    if not as_hex:
+        return hashlib.sha256(hashlib.sha256(string).digest()).digest()
+    else:
+        return hashlib.sha256(hashlib.sha256(string).digest()).hexdigest()
+
+
+def hash160(string):
+    """
+    Creates a RIPEMD-160 + SHA256 hash of the input string
+
+    :param string: Script
+    :type string: bytes
+
+    :return bytes: RIPEMD-160 hash of script
+    """
+    return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()

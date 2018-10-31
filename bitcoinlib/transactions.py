@@ -610,7 +610,7 @@ def verify_signature(transaction_to_sign, signature, public_key):
     signature = to_bytes(signature)
     public_key = to_bytes(public_key)
     if len(transaction_to_sign) != 32:
-        transaction_to_sign = hashlib.sha256(hashlib.sha256(transaction_to_sign).digest()).digest()
+        transaction_to_sign = double_sha256(transaction_to_sign)
     if len(public_key) == 65:
         public_key = public_key[1:]
     ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
@@ -895,7 +895,7 @@ class Input:
                 if self.witness_type == 'segwit' or self.witness_type == 'p2sh-segwit':
                     self.public_hash = hashlib.sha256(self.redeemscript).digest()
                 else:
-                    self.public_hash = script_to_pubkeyhash(self.redeemscript)
+                    self.public_hash = hash160(self.redeemscript)
             if not self.address and self.public_hash:
                 self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
                                        script_type=self.script_type, witness_type=self.witness_type).address
@@ -1282,7 +1282,7 @@ class Transaction:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
 
         if not self.hash and rawtx:
-            self.hash = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
+            self.hash = to_hexstring(double_sha256(to_bytes(rawtx))[::-1])
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -1397,8 +1397,7 @@ class Transaction:
         :return bytes: Transaction signature hash
         """
 
-        return hashlib.sha256(hashlib.sha256(self.signature(sign_id, hash_type, witness_type)).
-                              digest()).digest()
+        return double_sha256(self.signature(sign_id, hash_type, witness_type))
 
     def signature(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
         """
@@ -1446,18 +1445,18 @@ class Transaction:
             prevouts_serialized += i.prev_hash[::-1] + i.output_n[::-1]
             sequence_serialized += struct.pack('<L', i.sequence)
         if not hash_type & SIGHASH_ANYONECANPAY:
-            hash_prevouts = hashlib.sha256(hashlib.sha256(prevouts_serialized).digest()).digest()
+            hash_prevouts = double_sha256(prevouts_serialized)
             if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
-                hash_sequence = hashlib.sha256(hashlib.sha256(sequence_serialized).digest()).digest()
+                hash_sequence = double_sha256(sequence_serialized)
         if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
             for o in self.outputs:
                 outputs_serialized += struct.pack('<Q', o.value)
                 outputs_serialized += varstr(o.lock_script)
-            hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
+            hash_outputs = double_sha256(outputs_serialized)
         elif (hash_type & 0x1f) != SIGHASH_SINGLE and sign_id < len(self.outputs):
             outputs_serialized += struct.pack('<Q', self.outputs[sign_id].value)
             outputs_serialized += varstr(self.outputs[sign_id].lock_script)
-            hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
+            hash_outputs = double_sha256(outputs_serialized)
 
         if not self.inputs[sign_id].value:
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
@@ -1478,7 +1477,6 @@ class Transaction:
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
         # print(sign_id, sign_key_id, to_hexstring(script_code))
-        # print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
         return ser_tx
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):

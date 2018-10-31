@@ -59,7 +59,7 @@ print("\n=== Create PKH from redeemscript ===")
 redeemscript = '5221023dd6aeaa2acb92cbea35820361e5fd07af10f4b01c985adec30848b424756a6c210381cd2bb2a38d939fa677a5dcc' \
                '981ee0630b32b956b2e6dc3e1c028e6d09db5a72103d2c6d31cabe4025c25879010465f501194b352823c553660d303adfa' \
                '9a26ad3c53ae'
-print(to_hexstring(script_to_pubkeyhash(to_bytes(redeemscript))))
+print(to_hexstring(hash160(to_bytes(redeemscript))))
 
 #
 # Other type conversions and normalizations
