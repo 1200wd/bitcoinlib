@@ -1260,3 +1260,50 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertRaisesRegexp(KeyError, 'Uncompressed keys are non-standard', wallet_create_or_open,
                                 'segwit_uncompressed_error', k, witness_type='segwit', network='bitcoinlib_test',
                                 databasefile=DATABASEFILE_UNITTESTS)
+
+    def test_wallet_segwit_bitcoin_send(self):
+        # Create several SegWit wallet and create transaction to send to each other. Uses utxo_add() method to create
+        # test UTXO's
+
+        prev_tx_hash = '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5'
+
+        # === Segwit P2WSH to P2WSH ===
+        pk2 = HDKey()
+        key_list = [
+            HDKey(),
+            pk2.account_multisig_key().wif_public(),
+            HDKey().account_multisig_key().wif_public(),
+        ]
+
+        wallet_delete_if_exists('segwit_bitcoin_p2wsh_send', force=True, databasefile=DATABASEFILE_UNITTESTS)
+        wl1 = HDWallet.create_multisig('segwit_bitcoin_p2wsh_send', key_list, sigs_required=2, witness_type='segwit',
+                                       databasefile=DATABASEFILE_UNITTESTS)
+        wl1.utxo_add(wl1.get_key().address, 10000000, prev_tx_hash, 0)
+        to_address = wl1.get_key_change().address
+        t = wl1.transaction_create([(to_address, 100000)], fee=10000)
+        t.sign(pk2.subkey_for_path("m/45'/0'/0'/0/0"))
+        self.assertTrue(t.verify())
+        self.assertEqual(t.outputs[0].address, to_address)
+        self.assertFalse(t.error)
+
+        # === Segwit P2WPKH to P2WSH ===
+        wallet_delete_if_exists('segwit_bitcoin_p2wpkh_send', force=True, databasefile=DATABASEFILE_UNITTESTS)
+        wl2 = HDWallet.create('segwit_bitcoin_p2wpkh_send', witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
+        wl2.utxo_add(wl2.get_key().address, 200000, prev_tx_hash, 0)
+        to_address = wl1.get_key_change().address
+        t = wl2.transaction_create([(to_address, 100000)], fee=10000)
+        t.sign()
+        self.assertTrue(t.verify())
+        self.assertEqual(t.outputs[0].address, to_address)
+        self.assertFalse(t.error)
+
+        # === Segwit P2SH-P2WPKH to P2WPK ===
+        wallet_delete_if_exists('segwit_bitcoin_p2sh_p2wpkh_send', force=True, databasefile=DATABASEFILE_UNITTESTS)
+        wl3 = HDWallet.create('segwit_bitcoin_p2sh_p2wpkh_send', witness_type='p2sh-segwit',
+                              databasefile=DATABASEFILE_UNITTESTS)
+        wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
+        t = wl3.transaction_create([(to_address, 100000)], fee=10000)
+        t.sign()
+        self.assertTrue(t.verify())
+        self.assertEqual(t.outputs[0].address, to_address)
+        self.assertFalse(t.error)
