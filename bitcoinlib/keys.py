@@ -35,7 +35,7 @@ from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_to_pubkeyhash, \
-    pubkeyhash_to_addr, varstr, double_sha256
+    pubkeyhash_to_addr, varstr, double_sha256, hash160
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -412,14 +412,14 @@ class Address:
                             self.script_type in ['p2wsh', 'p2sh_p2wsh']:
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
-                self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.data_bytes).digest()).digest()
+                self.hash_bytes = hash160(self.data_bytes)
         self.hashed_data = to_hexstring(self.hash_bytes)
         if self.encoding == 'base58':
             # if self.script_type is None:
             #     self.script_type = 'p2pkh'
             if self.witness_type == 'p2sh-segwit':
                 self.redeemscript = b'\0' + varstr(self.hash_bytes)
-                self.hash_bytes = hashlib.new('ripemd160', hashlib.sha256(self.redeemscript).digest()).digest()
+                self.hash_bytes = hash160(self.redeemscript)
             if self.prefix is None:
                 if self.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2sh_multisig'] or \
                                 self.witness_type == 'p2sh-segwit':
@@ -793,7 +793,7 @@ class Key:
                 pb = self.public_byte
             else:
                 pb = self.public_uncompressed_byte
-            self._hash160 = hashlib.new('ripemd160', hashlib.sha256(pb).digest()).digest()
+            self._hash160 = hash160(pb)
         return self._hash160
 
     def address(self, compressed=None, prefix=None, script_type=None, encoding='base58'):
@@ -1113,7 +1113,9 @@ class HDKey:
 
         :return bytes:
         """
-        return hashlib.new('ripemd160', hashlib.sha256(self.public_byte).digest()).digest()[:4]
+
+        # Old: return hashlib.new('ripemd160', hashlib.sha256(self.public_byte).digest()).digest()[:4]
+        return self.key.hash160()[:4]
 
     def wif(self, public=None, child_index=None, prefix=None):
         """

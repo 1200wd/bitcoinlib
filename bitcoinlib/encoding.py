@@ -498,7 +498,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
     For more information see BIP173 proposal at https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 
     :param pubkeyhash: Public key hash
-    :type pubkeyhash: str, bytes
+    :type pubkeyhash: str, bytes, bytearray
     :param prefix: Address prefix or Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
     :type prefix: str
     :param witver: Witness version between 0 and 16
@@ -548,7 +548,7 @@ def convertbits(data, frombits, tobits, pad=True):
     Source: https://github.com/sipa/bech32/tree/master/ref/python
 
     :param data: Data values to convert
-    :type data: list
+    :type data: list, bytearray
     :param frombits: Number of bits in source data
     :type frombits: int
     :param tobits: Number of bits in result data
@@ -583,9 +583,9 @@ def convertbits(data, frombits, tobits, pad=True):
 
 def varstr(string):
     """
-    Convert string to bytestring preceeded with length byte
+    Convert string to variably sized string: Bytestring preceeded with length byte
 
-    :param string: bytestring
+    :param string: String input
     :type string: bytes, str
 
     :return bytes: varstring
