@@ -542,6 +542,16 @@ class TestKeysAddress(unittest.TestCase):
         self.assertEqual(addr_dict['encoding'], 'bech32')
         self.assertEqual(addr_dict['script_type'], 'p2wpkh')
 
+    def test_keys_address_conversion(self):
+        self.assertEqual(addr_convert('1GMDUKLom6bJuY37RuFNc6PHv1rv2Hziuo', prefix='bc', to_encoding='bech32'),
+                         'bc1q4pwfmstmw8q80nxtxud2h42lev9xzcjqwqyq7t')
+        self.assertEqual(addr_convert('1GMDUKLom6bJuY37RuFNc6PHv1rv2Hziuo', prefix=b'\x05'),
+                         '3H3EPrqFJzugzhjYYzuy2ikE4Y9dWPJjnQ')
+        self.assertEqual(addr_convert('bc1q4pwfmstmw8q80nxtxud2h42lev9xzcjqwqyq7t', prefix=b'\x00',
+                                      to_encoding='base58'), '1GMDUKLom6bJuY37RuFNc6PHv1rv2Hziuo')
+        self.assertEqual(addr_convert('bc1q4pwfmstmw8q80nxtxud2h42lev9xzcjqwqyq7t', prefix='tb'),
+                         'tb1q4pwfmstmw8q80nxtxud2h42lev9xzcjqyxln9c')
+
 
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):

@@ -34,8 +34,8 @@ from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_convert, \
-    addr_bech32_to_pubkeyhash, pubkeyhash_to_addr, varstr
+from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_to_pubkeyhash, \
+    pubkeyhash_to_addr, varstr
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -277,7 +277,7 @@ def deserialize_address(address, encoding=None, network=None):
             }
     if encoding == 'bech32' or encoding is None:
         try:
-            public_key_hash = addr_bech32_to_pubkeyhash(address)
+            public_key_hash = addr_to_pubkeyhash(address, encoding='bech32')
             if not public_key_hash:
                 raise EncodingError("Invalid bech32 address %s" % address)
             prefix = address[:address.rfind('1')]
@@ -303,6 +303,33 @@ def deserialize_address(address, encoding=None, network=None):
             raise EncodingError("Invalid address %s: %s" % (address, err))
     else:
         raise EncodingError("Address %s is not in specified encoding %s" % (address, encoding))
+
+
+def addr_convert(addr, prefix, encoding=None, to_encoding=None):
+    """
+    Convert base-58 encoded address to address with another prefix
+
+    :param addr: Base58 address
+    :type addr: str
+    :param prefix: New address prefix
+    :type prefix: str, bytes
+    :param encoding: Encoding of original address: base58 or bech32. Leave empty to extract from address
+    :type encoding: str
+    :param to_encoding: Encoding of converted address: base58 or bech32. Leave empty use same encoding as original address
+    :type to_encoding: str
+
+    :return str: New converted address
+    """
+
+    if encoding is None:
+        da = deserialize_address(addr)
+        encoding = da['encoding']
+    pkh = addr_to_pubkeyhash(addr, encoding=encoding)
+    if to_encoding is None:
+        to_encoding = encoding
+    if isinstance(prefix, str) and to_encoding == 'base58':
+        prefix = binascii.unhexlify(prefix)
+    return pubkeyhash_to_addr(pkh, prefix=prefix, encoding=to_encoding)
 
 
 class Address:
@@ -405,15 +432,11 @@ class Address:
                     self.prefix = binascii.unhexlify(prefix)
                 else:
                     self.prefix = prefix
-            # addr_bytes = self.prefix + self.hash_bytes
-            # self.checksum = hashlib.sha256(hashlib.sha256(addr_bytes).digest()).digest()[:4]
-            # self.address = change_base(addr_bytes + self.checksum, 256, 58)
         elif self.encoding == 'bech32':
             if self.script_type is None:
                 self.script_type = 'p2wpkh'
             if self.prefix is None:
                 self.prefix = self.network.prefix_bech32
-            # self.address = pubkeyhash_to_addr_bech32(bytearray(self.hash_bytes), prefix=self.prefix)
         else:
             raise KeyError("Encoding %s not supported" % self.encoding)
         self.address = pubkeyhash_to_addr(bytearray(self.hash_bytes), prefix=self.prefix, encoding=self.encoding)
