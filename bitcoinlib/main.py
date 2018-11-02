@@ -61,7 +61,6 @@ SCRIPT_TYPES_UNLOCKING = {
     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
 }
 
-
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
@@ -100,7 +99,69 @@ elif locale.getpreferredencoding() != 'UTF-8':
                            "This library needs the locale set to UTF-8 to function properly" %
                            locale.getpreferredencoding())
 
+# Keys / Addresses
 SUPPORTED_ADDRESS_ENCODINGS = ['base58', 'bech32']
+
+
+# Wallets
+WALLET_KEY_STRUCTURES = {
+    'none': {
+        'purpose': None,
+        'script_type': 'p2pkh',
+        'witness_type': 'legacy',
+        'multisig': False,
+        'encoding': 'base58',
+        'description': 'Single key wallet with no hierarchical deterministic key structure'
+    },
+    'bip44': {
+        'purpose': 44,
+        'script_type': 'p2pkh',
+        'witness_type': 'legacy',
+        'multisig': False,
+        'encoding': 'base58',
+        'description': 'Legacy wallet using pay-to-public-key-hash scripts'
+    },
+    'bip45': {
+        'purpose': 45,
+        'script_type': 'p2sh',
+        'witness_type': 'legacy',
+        'multisig': True,
+        'encoding': 'base58',
+        'description': 'Legacy multisig wallet using pay-to-script-hash scripts'
+    },
+    'bip48_basic': {
+        'purpose': 48,
+        'script_type': 'p2sh-p2wsh',
+        'witness_type': 'segwit',
+        'multisig': True,
+        'encoding': 'base58',
+        'description': 'Segwit multisig wallet using pay-to-wallet-script-hash scripts nested in p2sh scripts'
+    },
+    'bip48_native': {
+        'purpose': 48,
+        'script_type': 'p2wsh',
+        'witness_type': 'segwit',
+        'multisig': True,
+        'encoding': 'bech32',
+        'description': 'Segwit multisig wallet using native segwit pay-to-wallet-script-hash scripts'
+    },
+    'bip49': {
+        'purpose': 49,
+        'script_type': 'p2sh-p2wpkh',
+        'witness_type': 'segwit',
+        'multisig': False,
+        'encoding': 'base32',
+        'description': 'Segwit wallet using pay-to-wallet-public-key-hash scripts nested in p2sh scripts'
+    },
+    'bip84': {
+        'purpose': 84,
+        'script_type': 'p2wpkh',
+        'witness_type': 'segwit',
+        'multisig': True,
+        'encoding': 'bech32',
+        'description': 'Segwit multisig wallet using native segwit pay-to-wallet-public-key-hash scripts'
+    },
+}
 
 
 # Copy data and settings to default settings directory if install.log is not found

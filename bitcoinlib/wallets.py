@@ -828,7 +828,7 @@ class HDWallet:
         :type network: str
         :param account_id: Account ID, default is 0
         :type account_id: int
-        :param purpose: BIP44 purpose field, default is 44
+        :param purpose: BIP43 purpose field, default is 44
         :type purpose: int
         :param scheme: Key structure type, i.e. BIP44, single or multisig
         :type scheme: str
