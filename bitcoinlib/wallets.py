@@ -811,17 +811,27 @@ class HDWallet:
     """
 
     @classmethod
-    def create(cls, name, key='', owner='', network=None, account_id=0, purpose=44, scheme='bip44', parent_id=None,
-               sort_keys=True, password='', witness_type='legacy', encoding=None, databasefile=None):
+    def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32', parent_id=None,
+               sort_keys=True, password='', witness_type='legacy', encoding=None, multisig=None, sigs_required=None,
+               databasefile=None):
         """
-        Create HDWallet and insert in database. Generate masterkey or import key when specified. 
+        Create HDWallet and insert in database. Generate masterkey or import key when specified.
+
+        When only a name is specified an legacy HDWallet with a single masterkey is created with standard p2wpkh
+        scripts.
+
+        To create a multi signature wallet specify multiple keys (private or public) and provide the sigs_required
+        argument if it different then len(keys)
+
+        To create a native segwit wallet use the option witness_type = 'segwit' and for old style addresses and p2sh
+        embedded segwit script us 'ps2h-segwit' as witness_type.
         
         Please mention account_id if you are using multiple accounts.
         
         :param name: Unique name of this Wallet
         :type name: str
-        :param key: Masterkey to use for this wallet. Will be automatically created if not specified. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
-        :type key: str, bytes, int, bytearray
+        :param keys: Masterkey to or list of keys to use for this wallet. Will be automatically created if not specified. One or more keys are obligatory for multisig wallets. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
+        :type keys: str, bytes, int, bytearray
         :param owner: Wallet owner for your own reference
         :type owner: str
         :param network: Network name, use default if not specified
@@ -847,6 +857,32 @@ class HDWallet:
         
         :return HDWallet: 
         """
+
+        if multisig is None:
+            if keys and len(keys) > 1:
+                multisig = True
+            else:
+                multisig = False
+        if scheme not in ['bip32', 'single']:
+            raise WalletError("Only bip32 or single key scheme's are supported at the moment")
+        if witness_type not in ['legacy', 'p2sh-segwit', 'segwit']:
+            raise WalletError("Witness type %s not supported at the moment" % witness_type)
+
+        #     def create_multisig(cls, name, key_list, sigs_required=None, owner='', network=None, account_id=0,
+        # purpose=45,
+        #                         multisig_compressed=True, sort_keys=True, witness_type='legacy', encoding=None,
+        #                         databasefile=None):
+        if multisig:
+            return cls.create_multisig(name, keys, sigs_required, owner, network, account_id, purpose,
+                                       True, sort_keys, witness_type, encoding, databasefile)
+        # cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32', parent_id=None,
+        #                sort_keys=True, password='', witness_type='legacy', encoding=None, multisig=None,
+        # sigs_required=None,
+        #                databasefile=None
+
+        key = ''
+        if keys is not None and len(keys):
+            key = keys[0]
 
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
@@ -879,12 +915,13 @@ class HDWallet:
                 encoding = 'base58'
 
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
-                              sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding)
+                              sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
+                              multisig=False)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
 
-        if scheme == 'bip44':
+        if scheme == 'bip32':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
                                       witness_type=witness_type)
@@ -902,8 +939,8 @@ class HDWallet:
                                          session=session, account_id=account_id, purpose=purpose, basepath="m",
                                          witness_type=witness_type)
                 w.new_account(account_id=account_id)
-        elif scheme == 'multisig':
-            w = cls(new_wallet_id, databasefile=databasefile)
+        # elif scheme == 'bip32':
+        #     w = cls(new_wallet_id, databasefile=databasefile)
         elif scheme == 'single':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='single', encoding=encoding,
@@ -970,8 +1007,8 @@ class HDWallet:
             raise WalletError("Number of keys required to sign is greater then number of keys provided")
 
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                          scheme='multisig', sort_keys=sort_keys, witness_type=witness_type, encoding=encoding,
-                          databasefile=databasefile)
+                          sort_keys=sort_keys, witness_type=witness_type, encoding=encoding,
+                          databasefile=databasefile, multisig=False)
         hdpm.multisig_compressed = multisig_compressed
         co_id = 0
         hdpm.cosigner = []
@@ -991,11 +1028,11 @@ class HDWallet:
             if hdpm.network.name != cokey.network.name:
                 raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
                                   (cokey.wif(), cokey.network.name, network, hdpm.network.name))
-            scheme = 'bip44'
+            scheme = 'bip32'
             wn = name + '-cosigner-%d' % co_id
             if cokey.key_type == 'single':
                 scheme = 'single'
-            w = cls.create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id, purpose=purpose,
+            w = cls.create(name=wn, keys=[cokey], owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=hdpm.wallet_id, witness_type=witness_type, encoding=encoding,
                            databasefile=databasefile)
             hdpm.cosigner.append(w)
@@ -1137,6 +1174,7 @@ class HDWallet:
             self.providers = None
             self.witness_type = db_wlt.witness_type
             self.encoding = db_wlt.encoding
+            self.multisig = db_wlt.multisig
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -1708,8 +1746,8 @@ class HDWallet:
         :return HDWalletKey: 
         """
 
-        if self.scheme != 'bip44':
-            raise WalletError("We can only create new accounts for a wallet with a BIP44 key scheme")
+        if self.scheme != 'bip32':
+            raise WalletError("We can only create new accounts for a wallet with a BIP32 key scheme")
         if self.main_key.depth != 0 or self.main_key.is_private is False:
             raise WalletError("A master private key of depth 0 is needed to create new accounts (%s)" %
                               self.main_key.wif)
@@ -3098,6 +3136,7 @@ class HDWallet:
         print(" Name                           %s" % self.name)
         print(" Owner                          %s" % self._owner)
         print(" Scheme                         %s" % self.scheme)
+        print(" Multisig                       %s" % self.multisig)
         if self.scheme == 'multisig':
             print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
         print(" Witness type                   %s" % self.witness_type)
