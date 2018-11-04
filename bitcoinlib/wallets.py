@@ -2891,13 +2891,13 @@ class HDWallet:
             transaction.outputs[on].key_id = ck.key_id
             amount_total_output += transaction.change
 
-        # FIXME: Disable for now, seems duplicate
-        # if transaction.fee < self.network.fee_min:
-        #     raise WalletError("Fee of %d is lower then minimal network fee of %d" %
-        #                       (transaction.fee, self.network.fee_min))
-        # elif transaction.fee > self.network.fee_max:
-        #     raise WalletError("Fee of %d is higher then maximum network fee of %d" %
-        #                       (transaction.fee, self.network.fee_max))
+        transaction.fee_per_kb = int((transaction.fee / transaction.size) * 1024)
+        if transaction.fee_per_kb < self.network.fee_min:
+            raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
+                              (transaction.fee, self.network.fee_min))
+        elif transaction.fee_per_kb > self.network.fee_max:
+            raise WalletError("Fee per kB of %d is higher then maximum network fee of %d" %
+                              (transaction.fee, self.network.fee_max))
 
         return transaction
 
