@@ -824,15 +824,15 @@ class TestWalletMultisig(unittest.TestCase):
             wl1 = wallet_create_or_open_multisig(
                 'multisigmulticur1_tst', sigs_required=2, network=network,
                 databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
-                key_list=[pk1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
+                keys=[pk1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
             wl2 = wallet_create_or_open_multisig(
                 'multisigmulticur2_tst', sigs_required=2, network=network,
                 databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
-                key_list=[pk1.account_multisig_key().wif_public(), pk2, pk3.account_multisig_key().wif_public()])
+                keys=[pk1.account_multisig_key().wif_public(), pk2, pk3.account_multisig_key().wif_public()])
             wl3 = wallet_create_or_open_multisig(
                 'multisigmulticur3_tst', sigs_required=2, network=network,
                 databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
-                key_list=[pk1.account_multisig_key().wif_public(), pk2.account_multisig_key().wif_public(), pk3])
+                keys=[pk1.account_multisig_key().wif_public(), pk2.account_multisig_key().wif_public(), pk3])
             return wl1, wl2, wl3
 
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -864,7 +864,7 @@ class TestWalletMultisig(unittest.TestCase):
         pk3 = HDKey.from_passphrase(phrase3, network=network)
         wlt = wallet_create_or_open_multisig(
             'multisig_network_mixups', sigs_required=2, network=network, databasefile=DATABASEFILE_UNITTESTS,
-            key_list=[phrase1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()],
+            keys=[phrase1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()],
             sort_keys=False)
         self.assertEqual(wlt.get_key().address, 'QeBprfDJNadgqJV4R5d7e9i6duVK8HFgAN')
         self.assertEqual(wlt.get_key().network.name, network)
@@ -1170,7 +1170,7 @@ class TestWalletSegwit(unittest.TestCase):
         phrase = 'depth child sheriff attack when purpose velvet stay problem lock myself praise'
         wlt = wallet_create_or_open('thetestwallet-bech32', keys=phrase, network='bitcoin', witness_type='segwit',
                                     databasefile=DATABASEFILE_UNITTESTS)
-        self.assertEqual(wlt.get_key().address, 'bc1q9e77qg66squynnz2z03wpkr7s6esr2evfyxh05')
+        self.assertEqual(wlt.get_key().address, 'bc1q0xjnzddk8t4rnujmya8zgvxuct5s04my0fde3e')
 
     def test_wallet_segwit_create_pswsh(self):
         phrase1 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
@@ -1218,7 +1218,7 @@ class TestWalletSegwit(unittest.TestCase):
 
     def test_wallet_segwit_p2wsh_send(self):
         w = HDWallet.create_multisig('segwit_p2wsh_send', witness_type='segwit', network='bitcoinlib_test',
-                                     key_list=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test')],
+                                     keys=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test')],
                                      sigs_required=2, databasefile=DATABASEFILE_UNITTESTS)
         w.get_key()
         w.utxos_update()
@@ -1243,8 +1243,8 @@ class TestWalletSegwit(unittest.TestCase):
 
     def test_wallet_segwit_p2sh_p2wsh_send(self):
         w = HDWallet.create_multisig('segwit_p2sh_p2wsh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
-                                     key_list=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test'),
-                                               HDKey(network='bitcoinlib_test')],
+                                     keys=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test'),
+                                           HDKey(network='bitcoinlib_test')],
                                      sigs_required=2, databasefile=DATABASEFILE_UNITTESTS)
         w.get_key()
         w.utxos_update()

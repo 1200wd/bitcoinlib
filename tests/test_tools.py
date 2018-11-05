@@ -98,7 +98,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         cmd_wlt_update = "%s test2 -d %s" % \
                          (python_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_transaction = "%s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
-                         (python_executable, DATABASEFILE_UNITTESTS)
+                              (python_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "%s test2 --wallet-remove -d %s" % \
                          (python_executable, DATABASEFILE_UNITTESTS)
         output_wlt_create = "21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"

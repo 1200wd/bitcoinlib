@@ -155,10 +155,10 @@ def create_wallet(wallet_name, args, databasefile):
                 passphrase = ' '.join(passphrase)
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
                 key_list.append(HDKey().from_seed(seed, network=args.network))
-        return HDWallet.create_multisig(name=wallet_name, key_list=key_list, sigs_required=sigs_required,
+        return HDWallet.create_multisig(name=wallet_name, keys=key_list, sigs_required=sigs_required,
                                         network=args.network, databasefile=databasefile, sort_keys=True)
     elif args.create_from_key:
-        return HDWallet.create(name=wallet_name, network=args.network, key=args.create_from_key,
+        return HDWallet.create(name=wallet_name, network=args.network, keys=args.create_from_key,
                                databasefile=databasefile)
     else:
         passphrase = args.passphrase
@@ -175,7 +175,7 @@ def create_wallet(wallet_name, args, databasefile):
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey().from_seed(seed, network=args.network)
-        return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif(), databasefile=databasefile)
+        return HDWallet.create(name=wallet_name, network=args.network, keys=hdkey.wif(), databasefile=databasefile)
 
 
 def create_transaction(wlt, send_args, args):

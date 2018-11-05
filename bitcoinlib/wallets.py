@@ -1514,7 +1514,7 @@ class HDWallet:
             if self.sort_keys:
                 public_keys.sort(key=lambda x: x['public_key'])
             public_key_list = [x['public_key'] for x in public_keys]
-            public_key_ids = [x['key_id'] for x in public_keys]
+            public_key_ids = [str(x['key_id']) for x in public_keys]
             depths = [x['depth'] for x in public_keys]
             depth = 5 if len(set(depths)) != 1 else depths[0]
 
@@ -1530,7 +1530,7 @@ class HDWallet:
             else:
                 path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)
             if not name:
-                name = "Multisig Key " + '/'.join([str(i) for i in public_key_ids])
+                name = "Multisig Key " + '/'.join(public_key_ids)
             multisig_key = DbKey(
                 name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
                 depth=depth, change=change, address_index=0, parent_id=0, is_private=False, path=path,
@@ -1540,7 +1540,7 @@ class HDWallet:
             self._session.commit()
             for child_id in public_key_ids:
                 self._session.add(DbKeyMultisigChildren(key_order=public_key_ids.index(child_id),
-                                                        parent_id=multisig_key.id, child_id=child_id))
+                                                        parent_id=multisig_key.id, child_id=int(child_id)))
             self._session.commit()
             return HDWalletKey(multisig_key.id, session=self._session)
 
