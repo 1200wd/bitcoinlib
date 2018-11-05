@@ -114,7 +114,7 @@ def wallet_create_or_open(name, keys='', owner='', network=None, account_id=0, p
 
 def wallet_create_or_open_multisig(
         name, keys, sigs_required=None, owner='', network=None, account_id=0,
-        purpose=45, multisig_compressed=True, sort_keys=True, witness_type='legacy', encoding=None,
+        purpose=None, multisig_compressed=True, sort_keys=True, witness_type='legacy', encoding=None,
         databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
@@ -812,7 +812,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32', parent_id=None,
-               sort_keys=True, password='', witness_type='legacy', encoding=None, multisig=None, sigs_required=None,
+               sort_keys=True, password='', witness_type='legacy', encoding=None, multisig=None,
                databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified.
@@ -871,13 +871,14 @@ class HDWallet:
         #     return cls.create_multisig(name, keys, sigs_required, owner, network, account_id, purpose,
         #                                True, sort_keys, witness_type, encoding, databasefile)
 
-        if not purpose:
-            if witness_type == 'legacy':
-                purpose = 44
-            elif witness_type == 'p2sh_segwit':
-                purpose = 49
-            elif witness_type == 'segwit':
-                purpose = 84
+        ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig]
+        if len(ks) > 1:
+            raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                              "witness_type - multisig combination")
+        if ks and not purpose:
+            purpose = ks[0]['purpose']
+        if ks and not encoding:
+            encoding = ks[0]['encoding']
         key = ''
         if keys:
             if isinstance(keys, list):
@@ -908,11 +909,6 @@ class HDWallet:
             network = DEFAULT_NETWORK
         if not name:
             raise WalletError("Please enter wallet name")
-        if encoding is None:
-            if witness_type == 'segwit':
-                encoding = 'bech32'
-            else:
-                encoding = 'base58'
 
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
@@ -955,7 +951,7 @@ class HDWallet:
         return w
 
     @classmethod
-    def create_multisig(cls, name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=45,
+    def create_multisig(cls, name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None,
                         multisig_compressed=True, sort_keys=True, witness_type='legacy', encoding=None,
                         databasefile=None):
         """
@@ -1032,9 +1028,9 @@ class HDWallet:
             wn = name + '-cosigner-%d' % co_id
             if cokey.key_type == 'single':
                 scheme = 'single'
-            w = cls.create(name=wn, keys=[cokey], owner=owner, network=network, account_id=account_id, purpose=purpose,
-                           scheme=scheme, parent_id=hdpm.wallet_id, witness_type=witness_type, encoding=encoding,
-                           databasefile=databasefile)
+            w = cls.create(name=wn, keys=[cokey], owner=owner, network=network, account_id=account_id,
+                           purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, witness_type=witness_type,
+                           encoding=encoding, databasefile=databasefile)
             hdpm.cosigner.append(w)
             co_id += 1
 
@@ -2360,7 +2356,10 @@ class HDWallet:
                 }
                 if depth is None:
                     if self.scheme == 'bip32':
-                        depth = 5
+                        if self.purpose == 48:
+                            depth = 6
+                        else:
+                            depth = 5
                     else:
                         depth = 0
 
