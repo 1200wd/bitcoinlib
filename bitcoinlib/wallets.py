@@ -2891,7 +2891,7 @@ class HDWallet:
             transaction.outputs[on].key_id = ck.key_id
             amount_total_output += transaction.change
 
-        transaction.fee_per_kb = int((transaction.fee / transaction.size) * 1024)
+        transaction.fee_per_kb = int((transaction.fee * 1024.0)/ transaction.size)
         if transaction.fee_per_kb < self.network.fee_min:
             raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
                               (transaction.fee_per_kb, self.network.fee_min))
