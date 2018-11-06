@@ -370,6 +370,8 @@ class HDWalletKey:
 
         if isinstance(key, HDKey):
             k = key
+            if network is None:
+                network = k.network.name
         else:
             if network is None:
                 network = DEFAULT_NETWORK
@@ -1903,32 +1905,61 @@ class HDWallet:
             'change': 0,
         }
         for i, pi in enumerate(path):
-            if isinstance(pi, str):
-                if pi in "mM":
-                    continue
-                hardened = False
-                varname = pi
-                if pi[-1:] == "'":
-                    varname = pi[:-1]
-                    hardened = True
-                if self.key_path[i][-1:] == "'" and not hardened:
-                    hardened = True
-                new_varname = (str(var_defaults[varname]) if varname in var_defaults else varname)
-                if new_varname == varname and not new_varname.isdigit():
-                    raise WalletError("Variable %s not found in Key structure definitions in main.py" % varname)
-                path[i] = new_varname + ("'" if hardened else '')
+            if not isinstance(pi, str):
+                pi = str(pi)
+            if pi in "mM":
+                continue
+            hardened = False
+            varname = pi
+            if pi[-1:] == "'":
+                varname = pi[:-1]
+                hardened = True
+            if self.key_path[i][-1:] == "'" and not hardened:
+                hardened = True
+            new_varname = (str(var_defaults[varname]) if varname in var_defaults else varname)
+            if new_varname == varname and not new_varname.isdigit():
+                raise WalletError("Variable %s not found in Key structure definitions in main.py" % varname)
+            path[i] = new_varname + ("'" if hardened else '')
         return path
 
     def keys_for_path(self, path):
+        network, account_id, acckey = self._get_account_defaults()
         path = self.path_expand(path)
-        print(path)
-        # Check if key is already in wallet
 
-        # otherwise check for closest ancestor in wallet
+        # Check for closest ancestor in wallet
+        spath = normalize_path('/'.join(path))
+        dbkey = None
+        while spath and not dbkey:
+            dbkey = self._session.query(DbKey).filter_by(path=spath, wallet_id=self.wallet_id).first()
+            spath = '/'.join(spath.split("/")[:-1])
+        topkey = self.key(dbkey.id)
+
+        # Key already found in db, return key
+        if dbkey and dbkey.path == path:
+            return topkey
 
         # Create 1 or more keys add them to wallet
+        parent_id = topkey.key_id
+        ck = topkey.key()
+        newpath = topkey.path
+        nk = None
+        for lvl in path[len(str(dbkey.path).split('/')):]:
+            ck = ck.subkey_for_path(lvl, network=topkey.network.name)
+            newpath += '/' + lvl
+            account_id = int(path[self.key_path.index("account'")][:-1])
+            change = int(path[self.key_path.index("change")])
+            name = "%s %s" % (self.key_path[len(newpath.split('/'))-1], lvl)
+            name = name.replace("'", "").replace("_", " ")
+            # TODO: Add witness type / cosigner ID
+            nk = HDWalletKey.from_key(key=ck, name=name, wallet_id=self.wallet_id, account_id=account_id,
+                                      change=change, purpose=self.purpose, path=newpath, parent_id=parent_id,
+                                      encoding=self.encoding, witness_type=self.witness_type, session=self._session)
+            self._key_objects.update({nk.key_id: nk})
+            parent_id = nk.key_id
+            print(nk.address)
 
         # Return higest key in hierarchy
+        return nk
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
              has_balance=None, is_active=True, network=None, as_dict=False):
