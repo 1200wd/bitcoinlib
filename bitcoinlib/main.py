@@ -111,7 +111,8 @@ WALLET_KEY_STRUCTURES = [
         'witness_type': 'legacy',
         'multisig': False,
         'encoding': 'base58',
-        'description': 'Single key wallet with no hierarchical deterministic key structure'
+        'description': 'Single key wallet with no hierarchical deterministic key structure',
+        'key_path': ['m']
     },
     {
         'purpose': 44,
@@ -119,7 +120,8 @@ WALLET_KEY_STRUCTURES = [
         'witness_type': 'legacy',
         'multisig': False,
         'encoding': 'base58',
-        'description': 'Legacy wallet using pay-to-public-key-hash scripts'
+        'description': 'Legacy wallet using pay-to-public-key-hash scripts',
+        'key_path': ["m", "purpose'", "coin_type'",  "account'", "change", "address_index"]
     },
     {
         'purpose': 45,
@@ -127,7 +129,8 @@ WALLET_KEY_STRUCTURES = [
         'witness_type': 'legacy',
         'multisig': True,
         'encoding': 'base58',
-        'description': 'Legacy multisig wallet using pay-to-script-hash scripts'
+        'description': 'Legacy multisig wallet using pay-to-script-hash scripts',
+        'key_path': ["m", "purpose'", "cosigner_index", "change", "address_index"]
     },
     {
         'purpose': 48,
@@ -135,7 +138,8 @@ WALLET_KEY_STRUCTURES = [
         'witness_type': 'p2sh-segwit',
         'multisig': True,
         'encoding': 'base58',
-        'description': 'Segwit multisig wallet using pay-to-wallet-script-hash scripts nested in p2sh scripts'
+        'description': 'Segwit multisig wallet using pay-to-wallet-script-hash scripts nested in p2sh scripts',
+        'key_path': ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
     },
     {
         'purpose': 48,
@@ -143,7 +147,8 @@ WALLET_KEY_STRUCTURES = [
         'witness_type': 'segwit',
         'multisig': True,
         'encoding': 'bech32',
-        'description': 'Segwit multisig wallet using native segwit pay-to-wallet-script-hash scripts'
+        'description': 'Segwit multisig wallet using native segwit pay-to-wallet-script-hash scripts',
+        'key_path': ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
     },
     {
         'purpose': 49,
@@ -151,7 +156,8 @@ WALLET_KEY_STRUCTURES = [
         'witness_type': 'p2sh-segwit',
         'multisig': False,
         'encoding': 'base32',
-        'description': 'Segwit wallet using pay-to-wallet-public-key-hash scripts nested in p2sh scripts'
+        'description': 'Segwit wallet using pay-to-wallet-public-key-hash scripts nested in p2sh scripts',
+        'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
     },
     {
         'purpose': 84,
@@ -159,7 +165,8 @@ WALLET_KEY_STRUCTURES = [
         'witness_type': 'segwit',
         'multisig': False,
         'encoding': 'bech32',
-        'description': 'Segwit multisig wallet using native segwit pay-to-wallet-public-key-hash scripts'
+        'description': 'Segwit multisig wallet using native segwit pay-to-wallet-public-key-hash scripts',
+        'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
     },
 ]
 

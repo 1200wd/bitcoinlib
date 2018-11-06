@@ -102,6 +102,7 @@ class DbWallet(Base):
     parent_id = Column(Integer, ForeignKey('wallets.id'))
     children = relationship("DbWallet", lazy="joined", join_depth=2)
     multisig = Column(Boolean, default=True)
+    cosigner_id = Column(Integer)
 
     __table_args__ = (
         CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),

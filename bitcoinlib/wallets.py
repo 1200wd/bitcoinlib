@@ -98,7 +98,7 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 def wallet_create_or_open(name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32',
                           parent_id=None, sort_keys=False, password='', witness_type='legacy', encoding=None,
-                          databasefile=DEFAULT_DATABASE):
+                          multisig=None, databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -109,7 +109,7 @@ def wallet_create_or_open(name, keys='', owner='', network=None, account_id=0, p
         return HDWallet(name, databasefile=databasefile)
     else:
         return HDWallet.create(name, keys, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                               password, witness_type, encoding, databasefile=databasefile)
+                               password, witness_type, encoding, multisig, databasefile=databasefile)
 
 
 def wallet_create_or_open_multisig(
@@ -812,7 +812,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32', parent_id=None,
-               sort_keys=True, password='', witness_type='legacy', encoding=None, multisig=None,
+               sort_keys=True, password='', witness_type='legacy', encoding=None, multisig=None, cosigner_id=None,
                databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified.
@@ -870,8 +870,8 @@ class HDWallet:
         # if multisig:
         #     return cls.create_multisig(name, keys, sigs_required, owner, network, account_id, purpose,
         #                                True, sort_keys, witness_type, encoding, databasefile)
-
-        ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig]
+        ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig and
+              k['purpose'] is not None]
         if len(ks) > 1:
             raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
                               "witness_type - multisig combination")
@@ -912,7 +912,7 @@ class HDWallet:
 
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
-                              multisig=multisig)
+                              multisig=multisig, cosigner_id=cosigner_id)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
@@ -1006,7 +1006,7 @@ class HDWallet:
                           sort_keys=sort_keys, witness_type=witness_type, encoding=encoding,
                           databasefile=databasefile, multisig=True)
         hdpm.multisig_compressed = multisig_compressed
-        co_id = 0
+        cosigner_id = 0
         hdpm.cosigner = []
         hdkey_list = []
         for cokey in keys:
@@ -1025,14 +1025,14 @@ class HDWallet:
                 raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
                                   (cokey.wif(), cokey.network.name, network, hdpm.network.name))
             scheme = 'bip32'
-            wn = name + '-cosigner-%d' % co_id
+            wn = name + '-cosigner-%d' % cosigner_id
             if cokey.key_type == 'single':
                 scheme = 'single'
-            w = cls.create(name=wn, keys=[cokey], owner=owner, network=network, account_id=account_id,
+            w = cls.create(name=wn, keys=cokey, owner=owner, network=network, account_id=account_id,
                            purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, witness_type=witness_type,
-                           encoding=encoding, databasefile=databasefile)
+                           encoding=encoding, cosigner_id=cosigner_id, databasefile=databasefile)
             hdpm.cosigner.append(w)
-            co_id += 1
+            cosigner_id += 1
 
         hdpm.multisig_n_required = sigs_required
         hdpm.sort_keys = sort_keys
@@ -1171,6 +1171,9 @@ class HDWallet:
             self.witness_type = db_wlt.witness_type
             self.encoding = db_wlt.encoding
             self.multisig = db_wlt.multisig
+            self.key_structure = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == self.witness_type and
+                                  k['multisig'] == self.multisig and k['purpose'] is not None][0]
+            self.key_path = self.key_structure['key_path']
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
