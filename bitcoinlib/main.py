@@ -155,7 +155,7 @@ WALLET_KEY_STRUCTURES = [
         'script_type': 'p2sh-p2wpkh',
         'witness_type': 'p2sh-segwit',
         'multisig': False,
-        'encoding': 'base32',
+        'encoding': 'base58',
         'description': 'Segwit wallet using pay-to-wallet-public-key-hash scripts nested in p2sh scripts',
         'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
     },

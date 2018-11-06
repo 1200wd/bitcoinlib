@@ -1179,7 +1179,7 @@ class TestWalletSegwit(unittest.TestCase):
         pk2 = HDKey.from_passphrase(phrase2)
         w = HDWallet.create_multisig('multisig-segwit', [pk1, pk2.account_multisig_key().public()], sigs_required=1,
                                      sort_keys=True, witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
-        self.assertEqual(w.get_key().address, 'bc1qa2tqpgfqle9u4pr4h2fv908zclmycd6yj34c8zrggmyz6kxwmdgshnueaf')
+        self.assertEqual(w.get_key().address, 'bc1q6mdpx2x9pu4mfjryj8gr97xjef0383cy7r54ysjfx98jatmz40hs8xy85a')
 
     def test_wallet_segwit_create_p2sh_p2wsh(self):
         phrase1 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
@@ -1189,9 +1189,9 @@ class TestWalletSegwit(unittest.TestCase):
         w = HDWallet.create_multisig('segwit-p2sh-p2wsh', [pk1, pk2.account_multisig_key().public()], sigs_required=2,
                                      sort_keys=True, witness_type='p2sh-segwit', databasefile=DATABASEFILE_UNITTESTS)
         nk = w.get_key()
-        self.assertEqual(nk.address, '3DdAfhruNAEvmYTPnJHT9QXq5eMtAVQpnZ')
+        self.assertEqual(nk.address, '35ZXP11wkkrQiV9Amgs1ECxfWiWuiucEpX')
         self.assertEqual(nk.key_type, 'multisig')
-        self.assertEqual(nk.path, "m/45'/0'/0'/0/0")
+        self.assertEqual(nk.path, "m/48'/0'/0'/0/0")
 
     def test_wallet_segwit_create_p2sh_p2wpkh(self):
         phrase = 'fun brick apology sport museum vague once gospel walnut jump spawn hedgehog'

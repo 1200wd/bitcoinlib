@@ -2418,10 +2418,10 @@ class HDWallet:
                 }
                 if depth is None:
                     if self.scheme == 'bip32':
-                        if self.purpose == 48:
-                            depth = 6
-                        else:
-                            depth = 5
+                        # if self.purpose == 48:
+                        #     depth = 6
+                        # else:
+                        depth = 5
                     else:
                         depth = 0
 
