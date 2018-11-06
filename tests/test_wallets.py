@@ -1307,3 +1307,25 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertTrue(t.verify())
         self.assertEqual(t.outputs[0].address, to_address)
         self.assertFalse(t.error)
+
+
+class TestWalletKeyStructures(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(DATABASEFILE_UNITTESTS)
+
+    def test_wallet_path_expand(self):
+        wlt = wallet_create_or_open('wltbip45', network='bitcoin', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertListEqual(wlt.path_expand([8]), ['m', "44'", "0'", "0'", '0', 8])
+        self.assertListEqual(wlt.path_expand(["99'", 1, 2]), ['m', "44'", "0'", "99'", 1, 2])
+        self.assertListEqual(wlt.path_expand(['m', "purpose'", "coin_type'", "1'", 2, 3]), ['m', "44'", "0'", "1'", 2, 3])
+        self.assertListEqual(wlt.path_expand(['m', "purpose'", "coin_type'", "1", 2, 3]), ['m', "44'", "0'", "1'", 2, 3])
+        self.assertListEqual(wlt.path_expand(['m', "purpose", "coin_type'", "1", 2, 3]), ['m', "44'", "0'", "1'", 2, 3])
+        self.assertRaisesRegexp(WalletError, "Variable bestaatnie not found in Key structure definitions in main.py",
+                                wlt.path_expand, ['m', "bestaatnie'", "coin_type'", "1", 2, 3])

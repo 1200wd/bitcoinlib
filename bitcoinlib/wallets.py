@@ -1871,6 +1871,65 @@ class HDWallet:
             witness_type=self.witness_type)
         return newkey
 
+    def path_expand(self, path):
+        if not path or not isinstance(path, list):
+            raise WalletError("Please provide path as list with at least 1 item. Wallet key path format is %s" %
+                              self.key_path)
+        if len(path) > len(self.key_path):
+            raise WalletError("Invalid path provided. Path should be shorter than %d items. "
+                              "Wallet key path format is %s" % (len(self.key_path), self.key_path))
+
+        # If path doesn't start with m/M complement path
+        if path[0] not in ['m', 'M']:
+            new_path = []
+            for pi in self.key_path[::-1]:
+                if not len(path):
+                    new_path.append(pi)
+                else:
+                    new_path.append(path.pop())
+            path = new_path[::-1]
+
+        # Replace variable names in path with corresponding values
+        network, account_id, acckey = self._get_account_defaults()
+        script_type = None #  TODO
+        cosigner = None #  TODO
+        var_defaults = {
+            'network': network,
+            'account': account_id,
+            'purpose': self.purpose,
+            'coin_type': Network(network).bip44_cointype,
+            'script_type': script_type,
+            'cosigner_index': cosigner,
+            'change': 0,
+        }
+        for i, pi in enumerate(path):
+            if isinstance(pi, str):
+                if pi in "mM":
+                    continue
+                hardened = False
+                varname = pi
+                if pi[-1:] == "'":
+                    varname = pi[:-1]
+                    hardened = True
+                if self.key_path[i][-1:] == "'" and not hardened:
+                    hardened = True
+                new_varname = (str(var_defaults[varname]) if varname in var_defaults else varname)
+                if new_varname == varname and not new_varname.isdigit():
+                    raise WalletError("Variable %s not found in Key structure definitions in main.py" % varname)
+                path[i] = new_varname + ("'" if hardened else '')
+        return path
+
+    def keys_for_path(self, path):
+        path = self.path_expand(path)
+        print(path)
+        # Check if key is already in wallet
+
+        # otherwise check for closest ancestor in wallet
+
+        # Create 1 or more keys add them to wallet
+
+        # Return higest key in hierarchy
+
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
              has_balance=None, is_active=True, network=None, as_dict=False):
         """
