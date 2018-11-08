@@ -1249,6 +1249,9 @@ class HDKey:
 
         :return HDKey:
         """
+        path = '%s/%d' % ('m' if self.isprivate else 'M', purpose)
+        if purpose == 45:
+            return self.subkey_for_path(path)
         return self.account_key(account_id, purpose, set_network)
 
     def network_change(self, new_network):

@@ -67,10 +67,10 @@ class TestWalletCreate(unittest.TestCase):
         self.assertEqual(new_account.path, "m/44'/0'/100'")
 
     def test_wallet_create_key(self):
-        new_key = self.wallet.new_key(account_id=100)
+        new_key = self.wallet.new_key(account_id=200)
         self.assertEqual(new_key.depth, 5)
         self.assertEqual(new_key.wif[:4], 'xprv')
-        self.assertEqual(new_key.path, "m/44'/0'/100'/0/0")
+        self.assertEqual(new_key.path, "m/44'/0'/200'/0/0")
 
     def test_wallets_list(self):
         wallets = wallets_list(databasefile=DATABASEFILE_UNITTESTS)
@@ -107,6 +107,7 @@ class TestWalletCreate(unittest.TestCase):
         wlt = HDWallet.create("wallet-passphrase-litecoin", keys=passphrase, network='litecoin',
                               databasefile=DATABASEFILE_UNITTESTS)
         keys = wlt.get_key(number_of_keys=5)
+        wlt.info()
         self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
 
 
@@ -361,7 +362,9 @@ class TestWalletMultiCurrency(unittest.TestCase):
                              msg="Not all network are defined correctly for this wallet")
 
     def test_wallet_multiple_networks_default_addresses(self):
-        addresses_expected = ['XqTpf6NYrrckvsauJKfHFBzZaD9wRHjQtv', 'Xj6tV9Jc3qJ2AszpNxvEq7KVQKUMcfmBqH']
+        addresses_expected = ['XqTpf6NYrrckvsauJKfHFBzZaD9wRHjQtv', 'Xamqfy4y21pXMUP8x8TeTPWCNzsKrhSfau',
+                              'XugknDhBtJFvfErjaobizCa8KAEDVU7bCJ', 'Xj6tV9Jc3qJ2AszpNxvEq7KVQKUMcfmBqH',
+                              'XgkpZbqaRsRb2e2BC1QsWxTDEfW6JVpP6r']
         self.assertListEqual(self.wallet.addresslist(network='dash'), addresses_expected)
 
     def test_wallet_multiple_networks_import_key(self):
@@ -464,7 +467,6 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
             name='test_wallet_bitcoinlib_testnet_send_utxos_updated',
             databasefile=DATABASEFILE_UNITTESTS)
 
-        w.new_key()
         w.utxos_update()
         self.assertEqual(len(w.utxos()), 2)
         t = w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 10000)
@@ -1321,7 +1323,7 @@ class TestWalletKeyStructures(unittest.TestCase):
         os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_path_expand(self):
-        wlt = wallet_create_or_open('wltbip45', network='bitcoin', databasefile=DATABASEFILE_UNITTESTS)
+        wlt = wallet_create_or_open('wallet_path_expand', network='bitcoin', databasefile=DATABASEFILE_UNITTESTS)
         self.assertListEqual(wlt.path_expand([8]), ['m', "44'", "0'", "0'", '0', '8'])
         self.assertListEqual(wlt.path_expand(['8']), ['m', "44'", "0'", "0'", '0', '8'])
         self.assertListEqual(wlt.path_expand(["99'", 1, 2]), ['m', "44'", "0'", "99'", '1', '2'])
@@ -1331,5 +1333,8 @@ class TestWalletKeyStructures(unittest.TestCase):
                              ['m', "44'", "0'", "1'", '2', '3'])
         self.assertListEqual(wlt.path_expand(['m', "purpose", "coin_type'", "1", 2, 3]),
                              ['m', "44'", "0'", "1'", '2', '3'])
+        self.assertListEqual(wlt.path_expand(['m', 45, "cosigner_index", 55, 1000]),
+                             ['m', "45'", "None'", "55'", '1000'])
+        self.assertListEqual(wlt.path_expand([100], -2), ['m', "44'", "0'", "100'"])
         self.assertRaisesRegexp(WalletError, "Variable bestaatnie not found in Key structure definitions in main.py",
                                 wlt.path_expand, ['m', "bestaatnie'", "coin_type'", "1", 2, 3])

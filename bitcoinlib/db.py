@@ -105,7 +105,7 @@ class DbWallet(Base):
     cosigner_id = Column(Integer)
 
     __table_args__ = (
-        CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),
+        CheckConstraint(scheme.in_(['single', 'bip32', 'cosigwallet']), name='constraint_allowed_schemes'),
         CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
         CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']), name='constraint_allowed_types'),
     )
