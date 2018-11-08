@@ -1466,7 +1466,7 @@ class HDWallet:
                 if account_id is None:
                     account_id = 0
                 self.new_account(account_id=account_id, network=network)
-                return self.key_for_path([account_id, change, 0])
+                return self.key_for_path([account_id, change, 0], network=network)
             if not acckey:
                 raise WalletError("No key found this wallet_id, network and purpose. "
                                   "Is there a master key imported?")
@@ -1484,7 +1484,7 @@ class HDWallet:
 
             # Compose key path and create new key
             # newpath = [(str(change)), str(address_index)]
-            return self.key_for_path([change, address_index])
+            return self.key_for_path([account_id, change, address_index], network=network)
             # bpath = main_acc_key.path + '/'
             # if not name:
             #     if change:
@@ -1759,9 +1759,13 @@ class HDWallet:
         if self.main_key.depth != 0 or self.main_key.is_private is False:
             raise WalletError("A master private key of depth 0 is needed to create new accounts (%s)" %
                               self.main_key.wif)
-
         if network is None:
             network = self.network.name
+        duplicate_cointypes = [Network(x).name for x in self.network_list() if Network(x).name != network and
+                               Network(x).bip44_cointype == Network(network).bip44_cointype]
+        if duplicate_cointypes:
+            raise WalletError("Can not create new account for network %s with same BIP44 cointype: %s" %
+                                  (network, duplicate_cointypes))
 
         # Determine account_id and name
         if account_id is None:
@@ -1962,9 +1966,9 @@ class HDWallet:
         for lvl in path[n_items:]:
             ck = ck.subkey_for_path(lvl, network=network)
             newpath += '/' + lvl
-            account_id = 0 if 'account_id' not in self.key_path or self.key_path.index("account_id") >= len(path) \
+            account_id = 0 if "account'" not in self.key_path or self.key_path.index("account'") >= len(path) \
                 else int(path[self.key_path.index("account'")][:-1])
-            change = None if 'change' not in self.key_path or self.key_path.index("change") >= len(path) \
+            change = None if "change" not in self.key_path or self.key_path.index("change") >= len(path) \
                 else int(path[self.key_path.index("change")])
             if name and len(path) == len(newpath.split('/')):
                 key_name = name

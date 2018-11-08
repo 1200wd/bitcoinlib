@@ -188,8 +188,9 @@ class TestWalletImport(unittest.TestCase):
             network='litecoin')
         newkey = wallet_import.new_key()
         self.assertEqual(wallet_import.main_key.wif, accountkey)
-        self.assertEqual(newkey.address, u'LPkJcpV1cmT8qLFmUApySBtxt7UWavoQmh')
-        self.assertEqual(newkey.path, "m/44'/2'/0'/0/0")
+        wallet_import.info()
+        self.assertEqual(newkey.address, u'LZj8MnR6tRgLNKUBSfd2pD2czA4F9G5oGk')
+        self.assertEqual(newkey.path, "m/44'/2'/0'/0/1")
 
     def test_wallet_import_key_network_error(self):
         w = HDWallet.create(
@@ -217,6 +218,7 @@ class TestWalletKeys(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
         cls.wallet.new_key()
         cls.wallet.new_key_change()
+        cls.wallet.info()
 
     @classmethod
     def tearDownClass(cls):
@@ -226,8 +228,9 @@ class TestWalletKeys(unittest.TestCase):
     def test_wallet_addresslist(self):
         expected_addresslist = ['1B8gTuj778tkrQV1e8qjcesoZt9Cif3VEp', '1LS8zYrkgGpvJdtMmUdU1iU4TUMQh6jjF1',
                                 '1K7S5am1hLfugEFWR9ENfEBpUrMbFhqtoh', '1EByrVS1sc6TDihJRRRtMAnKTaAVSZAgtQ',
-                                '1KyLsZS2JwWdfvDZ5g8vhbanqjbNwKUseK', '1A7wRpnstUiA33rxW1i33b5qqaTsS4YSNQ',
-                                '1J6jppU5mWf4ausGfHMumrKrztpDKq2MrD', '13uQKuiWwWp15BsEijnpKZSuTuHVTpZMvP']
+                                '1KyLsZS2JwWdfvDZ5g8vhbanqjbNwKUseK', '1J6jppU5mWf4ausGfHMumrKrztpDKq2MrD',
+                                '12ypWFxJSKWknmvxdSeStWCyVDBi8YyXpn', '1A7wRpnstUiA33rxW1i33b5qqaTsS4YSNQ',
+                                '13uQKuiWwWp15BsEijnpKZSuTuHVTpZMvP']
         self.assertListEqual(self.wallet.addresslist(depth=None), expected_addresslist)
 
     def test_wallet_keys_method_masterkey(self):
@@ -242,6 +245,8 @@ class TestWalletKeys(unittest.TestCase):
         address_wifs = [
             'xprvA3xQPpbB95TCpX9eL2kVLrJKt4KZmzePogQFmefPABpm7gLghfMW5sK2dbogzaLV3EgaaHeUZTBEJ7irBEJAj5E9vpQ5byYCkzcn'
             'RAwpG7X',
+            'xprvA3xQPpbB95TCrKAaUwPCwXR2iyAyg3SVQntdFnSzAGX3Wcr6XzocH31fznmjwufTyFcWuAghfb3bwfmQCHDQtKckEewjPWX8qDU7'
+            'bhoLVVS',
             'xprvA3ALLPsyMi2DUrZbSRegEhrdNNg1kwM6n6zh3cv9Qx9ZYoHwgk44TwympUPV3UuQ5YNjubBsF2QbBfJqujoiFDKLHnphCpLmBzeER'
             'yZeFRE'
         ]
@@ -291,13 +296,14 @@ class TestWalletElectrum(unittest.TestCase):
             keys=cls.pk,
             name='test_wallet_electrum',
             databasefile=DATABASEFILE_UNITTESTS)
+        cls.wallet.key_path = ["m", "change", "address_index"]
         workdir = os.path.dirname(__file__)
-        with open('%s/%s' % (workdir, 'electrum_keys.json'), 'r') as f:
+        with open('%s/%s' % (workdir, 'electrum_keys.json')) as f:
             cls.el_keys = json.load(f)
         for i in range(20):
-            cls.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i, enable_checks=False)
+            cls.wallet.key_for_path('m/0/%d' % i, name='-test- Receiving #%d' % i)
         for i in range(6):
-            cls.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i, enable_checks=False)
+            cls.wallet.key_for_path('m/1/%d' % i, name='-test- Change #%d' % i)
 
     @classmethod
     def tearDownClass(cls):
@@ -306,7 +312,7 @@ class TestWalletElectrum(unittest.TestCase):
 
     def test_electrum_keys(self):
         for key in self.wallet.keys():
-            if key.name[:6] == '-test-' and key.path not in ['m/0', 'm/1']:
+            if key.name[:6] == '-test-' and key.path not in ['m/0', 'm/1'] and key.path[3:] != 'm/4':
                 self.assertIn(key.address, self.el_keys.keys(),
                               msg='Key %s (%s, %s) not found in Electrum wallet key export' %
                                   (key.name, key.path, key.address))
@@ -417,21 +423,21 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         wallet.get_key(network='testnet', number_of_keys=2)
         wallet.get_key(network='testnet', change=1)
         wallet.utxos_update(networks='testnet')
-        
-        self.assertEqual(wallet.balance(network='bitcoinlib_test'), 200000000)
-        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 200000000)
+        self.assertEqual(wallet.balance(network='bitcoinlib_test'), 600000000)
+        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
         self.assertEqual(wallet.balance(network='testnet'), 1500000)
-        ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
-                          'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
+        ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk',
+                          'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf']
         self.assertListEqual(wallet.addresslist(network='testnet'), ltct_addresses)
         
         t = wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
-                                network='bitcoinlib_test', fee=1000, offline=False)
+                           network='bitcoinlib_test', fee=1000, offline=False)
         self.assertIsNone(t.error)
         self.assertTrue(t.verified)
-        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 189999000)
-        self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 2)
-        self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 4)
+        wallet.info()
+        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 589999000)
+        self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 6)
+        self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 8)
         del wallet
 
     def test_wallet_multi_networks_account_bip44_code_error(self):
@@ -1034,7 +1040,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         self.assertEqual(wlt.balance(), 900)
         self.assertEqual(wlt.balance(network='testnet'), 900)
-        self.assertEqual(wlt.balance(network='bitcoinlib_test'), 200000000)
+        self.assertEqual(wlt.balance(network='bitcoinlib_test'), 400000000)
         del wlt
 
     def test_wallet_add_dust_to_fee(self):
