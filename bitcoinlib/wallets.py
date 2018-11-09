@@ -876,9 +876,6 @@ class HDWallet:
             raise WalletError("Only bip32 or single key scheme's are supported at the moment")
         if witness_type not in ['legacy', 'p2sh-segwit', 'segwit']:
             raise WalletError("Witness type %s not supported at the moment" % witness_type)
-        # if multisig:
-        #     return cls.create_multisig(name, keys, sigs_required, owner, network, account_id, purpose,
-        #                                True, sort_keys, witness_type, encoding, databasefile)
         ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig and
               k['purpose'] is not None]
         if len(ks) > 1:
@@ -939,17 +936,6 @@ class HDWallet:
 
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
             w.key_for_path([0, 0], account_id=account_id, cosigner_id=cosigner_id)
-            # if purpose == 45:
-            #     nk = w.key_for_path([cosigner_id, 0, 0])
-            # if mk.depth == 0:
-            #     w.key_for_path([account_id, 0, 0])
-                # nw = Network(network)
-                # networkcode = nw.bip44_cointype
-                # path = ["%d'" % purpose, "%s'" % networkcode]
-                # w._create_keys_from_path(mk, path, name=name, wallet_id=new_wallet_id, network=network,
-                #                          session=session, account_id=account_id, purpose=purpose, basepath="m",
-                #                          witness_type=witness_type)
-                # w.new_account(account_id=account_id)
         elif scheme == 'single':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='single', encoding=encoding,
@@ -1055,74 +1041,6 @@ class HDWallet:
         session.commit()
         session.close_all()
         return hdpm
-
-    # def _create_keys_from_path(self, parent, path, wallet_id, account_id, network, session,
-    #                            name='', basepath='', change=0, purpose=44, witness_type=None):
-    #     """
-    #     Create all keys for a given path.
-    #
-    #     :param parent: Main parent key. Can be a BIP0044 master key, level 3 account key, or any other.
-    #     :type parent: HDWalletKey
-    #     :param path: Path of keys to generate, relative to given parent key
-    #     :type path: list
-    #     :param wallet_id: Wallet ID
-    #     :type wallet_id: int
-    #     :param account_id: Account ID
-    #     :type account_id: int
-    #     :param network: Network
-    #     :type network: str
-    #     :param session: Sqlalchemy session
-    #     :type session: sqlalchemy.orm.session.Session
-    #     :param name: Name for generated keys. Leave empty for default
-    #     :type name: str
-    #     :param basepath: Basepath of main parent key
-    #     :type basepath: str
-    #     :param change: Change = 1, or payment = 0. Default is 0.
-    #     :type change: int
-    #     :param purpose: Purpose field according to BIP32 definition, default is 44 for BIP44.
-    #     :type purpose: int
-    #     :param witness_type: Specify witness type, default is 'legacy'. Use 'segwit' for segregated witness wallet.
-    #     :type witness_type: str
-    #
-    #     :return HDWalletKey:
-    #     """
-    #
-    #     # Initial checks and settings
-    #     if not isinstance(parent, HDWalletKey):
-    #         raise WalletError("Parent must be of type 'HDWalletKey'")
-    #     if not isinstance(path, list):
-    #         raise WalletError("Path must be of type 'list'")
-    #     if len(basepath) and basepath[-1] != "/":
-    #         basepath += "/"
-    #     nk = parent
-    #     ck = nk.key()
-    #
-    #     # Check for closest ancestor in wallet
-    #     spath = basepath + '/'.join(path)
-    #     rkey = None
-    #     while spath and not rkey:
-    #         rkey = self._session.query(DbKey).filter_by(wallet_id=wallet_id, path=spath).first()
-    #         spath = '/'.join(spath.split("/")[:-1])
-    #     if rkey is not None and rkey.path not in [basepath, basepath[:-1]]:
-    #         path = (basepath + '/'.join(path)).replace(rkey.path + '/', '').split('/')
-    #         basepath = rkey.path + '/'
-    #         nk = self.key(rkey.id)
-    #         ck = nk.key()
-    #
-    #     parent_id = nk.key_id
-    #     # Create new keys from path
-    #     for l in range(len(path)):
-    #         pp = "/".join(path[:l+1])
-    #         fullpath = basepath + pp
-    #         ck = ck.subkey_for_path(path[l], network=network)
-    #         nk = HDWalletKey.from_key(key=ck, name=name, wallet_id=wallet_id, network=network,
-    #                                   account_id=account_id, change=change, purpose=purpose, path=fullpath,
-    #                                   parent_id=parent_id, encoding=self.encoding, witness_type=witness_type,
-    #                                   session=session)
-    #         self._key_objects.update({nk.key_id: nk})
-    #         parent_id = nk.key_id
-    #     _logger.info("New key(s) created for parent_id %d" % parent_id)
-    #     return nk
 
     def __enter__(self):
         return self
@@ -1355,11 +1273,6 @@ class HDWallet:
             key=hdkey.wif(), name=name, session=self._session, wallet_id=self.wallet_id, network=network,
             account_id=account_id, purpose=self.purpose, key_type='bip32')
         self.main_key_id = self.main_key.key_id
-        # network_code = self.network.bip44_cointype
-        # path = ["%d'" % self.purpose, "%s'" % network_code]
-        # self._create_keys_from_path(
-        #     self.main_key, path, name=name, wallet_id=self.wallet_id, network=network, session=self._session,
-        #     account_id=account_id, purpose=self.purpose, basepath="m", witness_type=self.witness_type)
         self.key_for_path([], top_key_depth, name=name, network=network)
 
         self._key_objects = {
@@ -1478,8 +1391,6 @@ class HDWallet:
             if not acckey:
                 raise WalletError("No key found this wallet_id, network and purpose. "
                                   "Is there a master key imported?")
-            # else:
-            #     main_acc_key = self.key(acckey.id)
 
             # Determine new key ID
             prevkey = self._session.query(DbKey). \
@@ -1491,20 +1402,7 @@ class HDWallet:
                 address_index = prevkey.address_index + 1
 
             # Compose key path and create new key
-            # newpath = [(str(change)), str(address_index)]
             return self.key_for_path([change, address_index], account_id=account_id, network=network)
-            # bpath = main_acc_key.path + '/'
-            # if not name:
-            #     if change:
-            #         name = "Change %d" % address_index
-            #     else:
-            #         name = "Key %d" % address_index
-            # newkey = self._create_keys_from_path(
-            #     main_acc_key, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-            #     change=change, network=network, purpose=self.purpose, basepath=bpath, session=self._session,
-            #     witness_type=self.witness_type
-            # )
-            # return newkey
         else:
             if self.network.name != network:
                 raise WalletError("Multiple networks is currently not supported for multisig")
@@ -1514,8 +1412,6 @@ class HDWallet:
                 account_id = 0
             if cosigner_id is None:
                 cosigner_id = self.cosigner_id
-            # co_sign_wallets = self._session.query(DbWallet).\
-            #     filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
 
             # Determine new key ID
             prevkey = self._session.query(DbKey). \
@@ -1663,7 +1559,7 @@ class HDWallet:
                 self.scan(scan_gap_limit, account_id, change=1, network=network, _keys_ignore=_keys_ignore,
                           _recursion_depth=_recursion_depth)
 
-    def get_key(self, account_id=None, network=None, number_of_keys=1, change=0):
+    def get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
         """
         Get a unused key or create a new one if there are no unused keys. 
         Returns a key from this wallet which has no transactions linked to it.
@@ -1699,7 +1595,7 @@ class HDWallet:
                 dk = dbkey.pop()
                 nk = HDWalletKey(dk.id, session=self._session)
             else:
-                nk = self.new_key(account_id=account_id, network=network, change=change)
+                nk = self.new_key(account_id=account_id, change=change, cosigner_id=cosigner_id, network=network)
             key_list.append(nk)
         if len(key_list) == 1:
             return key_list[0]
@@ -1790,117 +1686,14 @@ class HDWallet:
                 order_by(DbKey.account_id.desc()).first()
             if qr:
                 account_id = qr.account_id + 1
-        # if not name:
-        #     name = 'Account #%d' % account_id
         if self.keys(account_id=account_id, depth=3, network=network):
             raise WalletError("Account with ID %d already exists for this wallet" % account_id)
-        # if name in [k.name for k in self.keys(network=network)]:
-        #     raise WalletError("Account or key with name %s already exists for this wallet" % name)
 
         acckey = self.key_for_path([account_id], -2, name=name, network=network)
         self.key_for_path([account_id, 0, 0], network=network)
         self.key_for_path([account_id, 1, 0], network=network)
-        # Get root key of new account
-        # res = self.keys(depth=2, network=network)
-        # if not res:
-        #     try:
-        #         purposekey = self.key(self.keys(depth=1)[0].id)
-        #         bip44_cointype = Network(network).bip44_cointype
-        #         duplicate_cointypes = [Network(x).name for x in self.network_list() if
-        #                                Network(x).bip44_cointype == bip44_cointype]
-        #         if duplicate_cointypes:
-        #             raise WalletError("Can not create new account for network %s with same BIP44 cointype: %s" %
-        #                               (network, duplicate_cointypes))
-        #         accrootkey_obj = self._create_keys_from_path(
-        #             purposekey, ["%s'" % str(bip44_cointype)], name=network, wallet_id=self.wallet_id,
-        #             account_id=account_id, network=network, purpose=self.purpose, basepath=purposekey.path,
-        #             session=self._session, witness_type=self.witness_type)
-        #     except IndexError:
-        #         raise WalletError("No key found for this wallet_id and purpose. Can not create new"
-        #                           "account for this wallet, is there a master key imported?")
-        # else:
-        #     accrootkey = res[0]
-        #     accrootkey_obj = self.key(accrootkey.id)
-
-        # # Create new account addresses and return main account key
-        # newpath = [str(account_id) + "'"]
-        # acckey = self._create_keys_from_path(
-        #     accrootkey_obj, newpath, name=name, wallet_id=self.wallet_id,  account_id=account_id,
-        #     network=network, purpose=self.purpose, basepath=accrootkey_obj.path, session=self._session,
-        #     witness_type=self.witness_type
-        # )
-        # self._create_keys_from_path(
-        #     acckey, ['0'], name=acckey.name + ' Payments', wallet_id=self.wallet_id, account_id=account_id,
-        #     network=network, purpose=self.purpose, basepath=acckey.path,  session=self._session,
-        #     witness_type=self.witness_type)
-        # self._create_keys_from_path(
-        #     acckey, ['1'], name=acckey.name + ' Change', wallet_id=self.wallet_id, account_id=account_id,
-        #     network=network, purpose=self.purpose, basepath=acckey.path, session=self._session,
-        #     witness_type=self.witness_type)
         return acckey
 
-    # def key_for_path(self, path, name='', account_id=0, change=0, enable_checks=True):
-    #     """
-    #     Create key with specified path. Can be used to create non-default (non-BIP0044) paths.
-    #
-    #     Can cause problems if already used account ID's or address indexes are provided.
-    #
-    #     :param path: Path string in m/#/#/# format. With quote (') or (p/P/h/H) character for hardened child key derivation
-    #     :type path: str
-    #     :param name: Key name to use
-    #     :type name: str
-    #     :param account_id: Account ID
-    #     :type account_id: int
-    #     :param change: Change 0 or 1
-    #     :type change: int
-    #     :param enable_checks: Use checks for valid BIP0044 path, default is True
-    #     :type enable_checks: bool
-    #
-    #     :return HDWalletKey:
-    #     """
-    #
-    #     # Validate key path
-    #     if path not in ['m', 'M'] and enable_checks:
-    #         pathdict = parse_bip44_path(path)
-    #         purpose = 0 if not pathdict['purpose'] else int(pathdict['purpose'].replace("'", ""))
-    #         if purpose != self.purpose:
-    #             raise WalletError("Cannot create key with different purpose field (%d) as existing wallet (%d)" %
-    #                               (purpose, self.purpose))
-    #         cointype = int(pathdict['cointype'].replace("'", ""))
-    #         wallet_cointypes = [Network(nw).bip44_cointype for nw in self.network_list()]
-    #         if cointype not in wallet_cointypes:
-    #             raise WalletError("Network / cointype %s not available in this wallet, please create an account for "
-    #                               "this network first. Or disable BIP checks." % cointype)
-    #         if pathdict['cointype'][-1] != "'" or pathdict['purpose'][-1] != "'" or pathdict['account'][-1] != "'":
-    #             raise WalletError("Cointype, purpose and account must be hardened, see BIP43 and BIP44 definitions")
-    #     if not name:
-    #         name = self.name
-    #
-    #     # Check for closest ancestor in wallet
-    #     spath = normalize_path(path)
-    #     rkey = None
-    #     while spath and not rkey:
-    #         rkey = self._session.query(DbKey).filter_by(path=spath, wallet_id=self.wallet_id).first()
-    #         spath = '/'.join(spath.split("/")[:-1])
-    #
-    #     # Key already found in db, return key
-    #     if rkey and rkey.path == path:
-    #         return self.key(rkey.id)
-    #
-    #     parent_key = self.main_key
-    #     subpath = path
-    #     basepath = ''
-    #     if rkey is not None:
-    #         subpath = normalize_path(path).replace(rkey.path + '/', '')
-    #         basepath = rkey.path
-    #         if self.main_key.wif != rkey.wif:
-    #             parent_key = self.key(rkey.id)
-    #     newkey = self._create_keys_from_path(
-    #         parent_key, subpath.split("/"), name=name, wallet_id=self.wallet_id,
-    #         account_id=account_id, change=change,
-    #         network=self.network.name, purpose=self.purpose, basepath=basepath, session=self._session,
-    #         witness_type=self.witness_type)
-    #     return newkey
 
     def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None):
         if isinstance(path, str):
@@ -2480,13 +2273,6 @@ class HDWallet:
                 accounts = [account_id]
             for account_id in accounts:
                 _, _, acckey = self._get_account_defaults(network, account_id, key_id)
-                # TODO: implement bip45/67/electrum/?  + Move settings to top or main
-                schemes_key_depth = {
-                    'bip44': 5,
-                    'single': 0,
-                    'electrum': 4,
-                    'multisig': 0
-                }
                 if depth is None:
                     if self.scheme == 'bip32':
                         depth = len(self.key_path) - 1

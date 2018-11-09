@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2016 - 2018 Oktober - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2018 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -846,43 +846,41 @@ class TestWalletMultisig(unittest.TestCase):
         wt.sign(hdkey)
         self.assertTrue(wt.verify())
 
-    # FIXME
-    # def test_wallet_multisig_reopen_wallet(self):
-    #
-    #     def _open_all_wallets():
-    #         wl1 = wallet_create_or_open_multisig(
-    #             'multisigmulticur1_tst', sigs_required=2, network=network,
-    #             databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
-    #             keys=[pk1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
-    #         wl2 = wallet_create_or_open_multisig(
-    #             'multisigmulticur2_tst', sigs_required=2, network=network,
-    #             databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
-    #             keys=[pk1.account_multisig_key().wif_public(), pk2, pk3.account_multisig_key().wif_public()])
-    #         wl3 = wallet_create_or_open_multisig(
-    #             'multisigmulticur3_tst', sigs_required=2, network=network,
-    #             databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
-    #             keys=[pk1.account_multisig_key().wif_public(), pk2.account_multisig_key().wif_public(), pk3])
-    #         return wl1, wl2, wl3
-    #
-    #     if os.path.isfile(DATABASEFILE_UNITTESTS):
-    #         os.remove(DATABASEFILE_UNITTESTS)
-    #     network = 'litecoin'
-    #     phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
-    #     phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
-    #     phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
-    #     pk1 = HDKey.from_passphrase(phrase1, network=network)
-    #     pk2 = HDKey.from_passphrase(phrase2, network=network)
-    #     pk3 = HDKey.from_passphrase(phrase3, network=network)
-    #     wallets = _open_all_wallets()
-    #     for wlt in wallets:
-    #         self.assertEqual(wlt.get_key().address, 'MQVt7KeRHGe35b9ziZo16T5y4fQPg6Up7q')
-    #         wlt.info()
-    #     del wallets
-        # wallets2 = _open_all_wallets()
-        # for wlt in wallets2:
-        #     self.assertEqual(wlt.get_key().address, 'MWwnjq67qYzywXE4VwTyqjcTz7VbdM4zQP')
-        #     wlt.info()
-        #     wlt._session.close_all()
+    def test_wallet_multisig_reopen_wallet(self):
+
+        def _open_all_wallets():
+            wl1 = wallet_create_or_open_multisig(
+                'multisigmulticur1_tst', sigs_required=2, network=network,
+                databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
+                keys=[pk1, pk2.account_multisig_key().wif_public(), pk3.account_multisig_key().wif_public()])
+            wl2 = wallet_create_or_open_multisig(
+                'multisigmulticur2_tst', sigs_required=2, network=network,
+                databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
+                keys=[pk1.account_multisig_key().wif_public(), pk2, pk3.account_multisig_key().wif_public()])
+            wl3 = wallet_create_or_open_multisig(
+                'multisigmulticur3_tst', sigs_required=2, network=network,
+                databasefile=DATABASEFILE_UNITTESTS, sort_keys=False,
+                keys=[pk1.account_multisig_key().wif_public(), pk2.account_multisig_key().wif_public(), pk3])
+            return wl1, wl2, wl3
+
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+        network = 'litecoin'
+        phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
+        phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
+        phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
+        pk1 = HDKey.from_passphrase(phrase1, network=network)
+        pk2 = HDKey.from_passphrase(phrase2, network=network)
+        pk3 = HDKey.from_passphrase(phrase3, network=network)
+        wallets = _open_all_wallets()
+        for wlt in wallets:
+            self.assertEqual(wlt.get_key(cosigner_id=1).address, 'MQVt7KeRHGe35b9ziZo16T5y4fQPg6Up7q')
+        del wallets
+        wallets2 = _open_all_wallets()
+        for wlt in wallets2:
+            self.assertEqual(wlt.get_key(cosigner_id=1).address, 'MQVt7KeRHGe35b9ziZo16T5y4fQPg6Up7q')
+            wlt.info()
+            wlt._session.close_all()
 
     def test_wallet_multisig_network_mixups(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
