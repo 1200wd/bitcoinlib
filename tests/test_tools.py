@@ -53,7 +53,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "%s %s testms --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "2N7QSKcsmWPP9anG7cdZvzBUbgTVrAK2MZ9"
+        output_wlt_create = "2NBrLTapyFqU4Wo29xG4QeEt8kn38KVWRR"
         output_wlt_delete = "Wallet testms has been removed"
 
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)

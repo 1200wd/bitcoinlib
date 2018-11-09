@@ -1235,7 +1235,7 @@ class HDKey:
         path += "/%d'" % account_id
         return self.subkey_for_path(path)
 
-    def account_multisig_key(self, account_id=0, purpose=45, set_network=None):
+    def account_multisig_key(self, account_id=0, purpose=None, witness_type='legacy', set_network=None):
         """
         Derives a multisig account key according to BIP44/45 definition.
         Wrapper for the 'account_key' method.
@@ -1249,10 +1249,27 @@ class HDKey:
 
         :return HDKey:
         """
-        path = '%s/%d' % ('m' if self.isprivate else 'M', purpose)
+        if self.key_type == 'single':
+            return self
+        if witness_type == 'legacy':
+            purpose = 45
+        elif witness_type == 'p2sh-segwit':
+            purpose = 48
+            script_type = 1
+        elif witness_type == 'segwit':
+            purpose = 48
+            script_type = 2
+        else:
+            raise KeyError("Unknown witness type %s" % witness_type)
+        path = "%s/%d'" % ('m' if self.isprivate else 'M', purpose)
         if purpose == 45:
             return self.subkey_for_path(path)
-        return self.account_key(account_id, purpose, set_network)
+        elif purpose == 48:
+            path += "/%d'/%d'/%d'" % (self.network.bip44_cointype, account_id, script_type)
+            # "m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"
+            return self.subkey_for_path(path)
+        else:
+            raise KeyError("Unknown purpose %d, cannot determine wallet public cosigner key" % purpose)
 
     def network_change(self, new_network):
         """

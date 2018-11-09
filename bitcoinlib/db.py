@@ -105,7 +105,7 @@ class DbWallet(Base):
     cosigner_id = Column(Integer)
 
     __table_args__ = (
-        CheckConstraint(scheme.in_(['single', 'bip32', 'cosigwallet']), name='constraint_allowed_schemes'),
+        CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),
         CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
         CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']), name='constraint_allowed_types'),
     )
@@ -148,6 +148,7 @@ class DbKey(Base):
     compressed = Column(Boolean, default=True)
     key_type = Column(String(10), default='bip32')
     address = Column(String(255), index=True)
+    cosigner_id = Column(Integer)
     encoding = Column(String(15), default='base58')
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
