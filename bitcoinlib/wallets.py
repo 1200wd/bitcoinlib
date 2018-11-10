@@ -622,6 +622,8 @@ class HDWalletTransaction(Transaction):
                 keys = [keys]
             for priv_key in keys:
                 if isinstance(priv_key, HDKey):
+                    if priv_key.depth == 0 and self.inputs[index_n].key_path:
+                        priv_key = priv_key.subkey_for_path(self.inputs[index_n].key_path)
                     priv_key_list_arg.append(priv_key)
                 else:
                     priv_key_list_arg.append(HDKey(priv_key, network=self.network.name))
@@ -635,6 +637,7 @@ class HDWalletTransaction(Transaction):
                         hdkey = HDKey(k, network=self.network.name)
                     if hdkey not in priv_key_list:
                         priv_key_list.append(k)
+                        # priv_key_list.append(hdkey)
                 elif self.hdwallet.cosigner:
                     # Check if private key is available in wallet
                     cosign_wallet_ids = [w.wallet_id for w in self.hdwallet.cosigner]
@@ -2737,7 +2740,8 @@ class HDWallet:
                 transaction.add_input(utxo.transaction.hash, utxo.output_n, keys=inp_keys,
                                       script_type=unlock_script_type, sigs_required=self.multisig_n_required,
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
-                                      address=utxo.key.address, sequence=sequence, witness_type=self.witness_type)
+                                      address=utxo.key.address, sequence=sequence,
+                                      key_path=utxo.key.path, witness_type=self.witness_type)
         else:
             for inp in input_arr:
                 locktime_cltv = None

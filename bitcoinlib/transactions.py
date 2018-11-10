@@ -643,7 +643,7 @@ class Input:
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, witness_type=None,
+                 value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
                  encoding=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
@@ -744,6 +744,7 @@ class Input:
         else:
             self.encoding = encoding
         self.valid = None
+        self.key_path = key_path
         self.witnesses = []
         self.script_code = b''
 
@@ -1703,7 +1704,7 @@ class Transaction:
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  witness_type=None, encoding=None):
+                  key_path='', witness_type=None, encoding=None):
         """
         Add input to this transaction
         
@@ -1762,7 +1763,8 @@ class Transaction:
                   unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
                   script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
-                  locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, witness_type=witness_type, encoding=encoding,
+                  locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, key_path=key_path, witness_type=witness_type,
+                  encoding=encoding,
                   network=self.network.name))
         return index_n
 
