@@ -27,7 +27,7 @@ from operator import itemgetter
 from bitcoinlib.db import *
 from bitcoinlib.encoding import to_hexstring, to_bytes
 from bitcoinlib.keys import HDKey, check_network_and_key, Address
-from bitcoinlib.networks import Network
+from bitcoinlib.networks import Network, prefix_search
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, \
@@ -879,30 +879,14 @@ class HDWallet:
             raise WalletError("Only bip32 or single key scheme's are supported at the moment")
         if witness_type not in ['legacy', 'p2sh-segwit', 'segwit']:
             raise WalletError("Witness type %s not supported at the moment" % witness_type)
-        ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig and
-              k['purpose'] is not None]
-        if len(ks) > 1:
-            raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
-                              "witness_type - multisig combination")
-        if ks and not purpose:
-            purpose = ks[0]['purpose']
-        if ks and not encoding:
-            encoding = ks[0]['encoding']
+        if name.isdigit():
+            raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
         key = ''
         if keys:
             if isinstance(keys, list):
                 key = keys[0]
             else:
                 key = keys
-        if databasefile is None:
-            databasefile = DEFAULT_DATABASE
-        session = DbInit(databasefile=databasefile).session
-        if session.query(DbWallet).filter_by(name=name).count():
-            raise WalletError("Wallet with name '%s' already exists" % name)
-        else:
-            _logger.info("Create new wallet '%s'" % name)
-        if name.isdigit():
-            raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
         if isinstance(key, HDKey):
             network = key.network.name
         elif key:
@@ -913,9 +897,35 @@ class HDWallet:
                 key = HDKey().from_seed(Mnemonic().to_seed(key, password), network=network)
             else:
                 network = check_network_and_key(key, network)
+                hdkeyinfo = prefix_search(key, network)
                 key = HDKey(key, network=network)
+                if hdkeyinfo:
+                    if 'p2sh_p2wpkh' in hdkeyinfo[0]['script_types']:
+                        witness_type = 'p2sh-segwit'
+                    elif 'p2wpkh' in hdkeyinfo[0]['script_types']:
+                        witness_type = 'segwit'
+                    elif set(set(hdkeyinfo[0]['script_types']).intersection(['p2sh_p2wsh', 'p2wsh'])):
+                        raise WalletError("Imported key is for multisig wallets, use create_multisig instead")
+
         elif network is None:
             network = DEFAULT_NETWORK
+        ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig and
+              k['purpose'] is not None]
+        if len(ks) > 1:
+            raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                              "witness_type - multisig combination")
+        if ks and not purpose:
+            purpose = ks[0]['purpose']
+        if ks and not encoding:
+            encoding = ks[0]['encoding']
+
+        if databasefile is None:
+            databasefile = DEFAULT_DATABASE
+        session = DbInit(databasefile=databasefile).session
+        if session.query(DbWallet).filter_by(name=name).count():
+            raise WalletError("Wallet with name '%s' already exists" % name)
+        else:
+            _logger.info("Create new wallet '%s'" % name)
         if not name:
             raise WalletError("Please enter wallet name")
 

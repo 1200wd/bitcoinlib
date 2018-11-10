@@ -22,7 +22,7 @@ import json
 import binascii
 import math
 from bitcoinlib.main import *
-from bitcoinlib.encoding import to_hexstring, normalize_var
+from bitcoinlib.encoding import to_hexstring, normalize_var, change_base
 
 
 _logger = logging.getLogger(__name__)
@@ -138,6 +138,29 @@ def network_defined(network):
     if network not in list(NETWORK_DEFINITIONS.keys()):
         return False
     return True
+
+
+def prefix_search(wif, network=None):
+    try:
+        key_hex = change_base(wif, 58, 16)
+    except:
+        key_hex = to_hexstring(wif)
+    prefix = key_hex[:8].upper()
+    matches = []
+    for nw in NETWORK_DEFINITIONS:
+        if network is not None and nw != network:
+            continue
+        data = NETWORK_DEFINITIONS[nw]
+        for pf in data['prefixes']:
+            if pf[1] == prefix:
+                matches.append({
+                    'prefix': prefix,
+                    'is_private': True if pf[0] == 'private' else False,
+                    'prefix_str': pf[2],
+                    'network': nw,
+                    'script_types': pf[3]
+                })
+    return matches
 
 
 class Network:

@@ -31,7 +31,7 @@ import scrypt
 import pyaes
 
 from bitcoinlib.main import *
-from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value
+from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, prefix_search
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_to_pubkeyhash, \
@@ -112,6 +112,7 @@ def get_key_format(key, isprivate=None):
         raise BKeyError("Key empty, please specify a valid key")
     key_format = ""
     networks = None
+    script_types = None
 
     if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
         key = to_hexstring(key)
@@ -180,6 +181,15 @@ def get_key_format(key, isprivate=None):
                     #     if networks:
                     #         key_format = 'address'
                     #         isprivate = False
+                    else:
+                        prefix_data = prefix_search(key_hex[:8])
+                        if prefix_data:
+                            networks = [n['network'] for n in prefix_data]
+                            isprivate = prefix_data[0]['is_private']
+                            script_types = prefix_data[0]['script_types']
+                            key_format = 'hdkey_public'
+                            if isprivate:
+                                key_format = 'hdkey_private'
 
         except (TypeError, EncodingError):
             pass
@@ -197,7 +207,8 @@ def get_key_format(key, isprivate=None):
         return {
             "format": key_format,
             "networks": networks,
-            "isprivate": isprivate
+            "isprivate": isprivate,
+            "script_types": script_types
         }
 
 
