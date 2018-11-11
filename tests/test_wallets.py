@@ -204,7 +204,6 @@ class TestWalletImport(unittest.TestCase):
         
     def test_wallet_import_hdwif(self):
         # p2wpkh
-        p = 'garage million cheese nephew original subject pass reward month practice advance decide'
         wif = \
             'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmxC' \
             'KkXdDAXN'
@@ -213,7 +212,6 @@ class TestWalletImport(unittest.TestCase):
         self.assertEqual(w.get_key_change().address, "bc1qg6h45txt82x87uvv3ndm82xsf3wjknq8j7sufh")
 
         # p2sh_p2wpkh
-        p = 'cluster census trash van rack skill feed inflict mixture vocal crew sea'
         wif = \
             'ypub6YMgBd4GfQjtxUf8ExorFUQEpBfUYTDz7E1tvfNgDqZeDEUuNNVXSNfsebis2cyeqWYXx6yaBBEQV7sJW3NGoXw5wsp9kkEsB2D' \
             'qiVquYLE'
@@ -222,8 +220,6 @@ class TestWalletImport(unittest.TestCase):
         self.assertEqual(w.get_key_change().address, "33Un3fDSdT2hsuqyuHiCci1GyUbiyZEWHW")
 
         # p2wsh
-        p1 = 'cave display deposit habit surround erupt that melt grace upgrade pink remove'
-        p2 = 'question game start distance ritual frozen hint teach decorate boat sure mad'
         wif1 = \
             'Zpub74arK1zZNbJYvbMz6wwu2vvcSyB421ePA2p65AD1vaUA5ApzbPLwe3yRDHFgEoBZiLbTzdBPJyPMMaTNsmGkv76t2uD2d9ACqpv' \
             'vBa5zbv9'
@@ -235,9 +231,6 @@ class TestWalletImport(unittest.TestCase):
         self.assertEqual(w.get_key_change().address, "bc1qyn73qh408ry38twxnj4aqzuyv7j6euwhwt2qtzayg673vtw2a4rsn7jlek")
 
         # p2sh_p2wsh
-        p1 = 'organ pave cube daring travel thrive average solid wolf type refuse camp'
-        p2 = 'horror brown web jaguar man current glow step harvest zero flush super'
-        p3 = 'valid circle lounge pipe alone stool system off until physical juice opera'
         wif1 = \
             'Ypub6kLT3k6fGK3ifMJwLB8BxiG8MGv5gG7uQhymshYiw2Lp5B3yuQJfn8KB5dL3fZnraEErTXmXp2cSKbACmxcRQ7AbcRrsnhns7Zw' \
             'zQb4kGgF'
@@ -251,6 +244,65 @@ class TestWalletImport(unittest.TestCase):
                                      databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(w.get_key().address, "3BeYQTUgrGPQMHDJcch6mF7G7sRrNYkRhP")
         self.assertEqual(w.get_key_change().address, "3PFD1qkgbaeeDnX38Smerb5vAPBkDVkhcm")
+
+
+class TestWalletExport(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(DATABASEFILE_UNITTESTS)
+
+    def test_wallet_export_hdwifs(self):
+        # p2wpkh
+        p = 'garage million cheese nephew original subject pass reward month practice advance decide'
+        w = HDWallet.create("wif_import_p2wpkh", p, network='bitcoin', witness_type='segwit',
+                            databasefile=DATABASEFILE_UNITTESTS)
+        wif = 'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmx' \
+              'CKkXdDAXN'
+        self.assertEqual(w.account(0).key().wif_public(script_type=w.script_type), wif)
+
+        # # p2sh_p2wpkh
+        p = 'cluster census trash van rack skill feed inflict mixture vocal crew sea'
+        w = HDWallet.create("wif_import_p2sh_p2wpkh", p, network='bitcoin', witness_type='p2sh-segwit',
+                            databasefile=DATABASEFILE_UNITTESTS)
+        wif = 'ypub6YMgBd4GfQjtxUf8ExorFUQEpBfUYTDz7E1tvfNgDqZeDEUuNNVXSNfsebis2cyeqWYXx6yaBBEQV7sJW3NGoXw5wsp9kkEsB2' \
+              'DqiVquYLE'
+        self.assertEqual(w.account(0).key().wif_public(script_type=w.script_type), wif)
+
+        # p2wsh
+        p1 = 'cave display deposit habit surround erupt that melt grace upgrade pink remove'
+        p2 = 'question game start distance ritual frozen hint teach decorate boat sure mad'
+        wifs = [
+            'Zpub74arK1zZNbJYvbMz6wwu2vvcSyB421ePA2p65AD1vaUA5ApzbPLwe3yRDHFgEoBZiLbTzdBPJyPMMaTNsmGkv76t2uD2d9ACqpvv'
+            'Ba5zbv9',
+            'Zpub74JTMKMB9cTWwE9Hs4UVaHvddqPtR51D99x2B5EGyXyxEg3PW77vfmD15RZ86TVdwwwuUaCueBtvaL921mgyKe9Ya6LHCaMXnEp1'
+            'PMw4vDy']
+        w = HDWallet.create_multisig("wif_import_p2wsh", [p1, p2], witness_type='segwit', network='bitcoin',
+                                     databasefile=DATABASEFILE_UNITTESTS)
+        for cs in w.cosigner:
+            self.assertIn(cs.key_for_path("m/48'/0'/0'/2'").key().wif_public(script_type=cs.script_type), wifs)
+
+        # p2sh_p2wsh
+        p1 = 'organ pave cube daring travel thrive average solid wolf type refuse camp'
+        p2 = 'horror brown web jaguar man current glow step harvest zero flush super'
+        p3 = 'valid circle lounge pipe alone stool system off until physical juice opera'
+        wifs = [
+            'Ypub6kLT3k6fGK3ifMJwLB8BxiG8MGv5gG7uQhymshYiw2Lp5B3yuQJfn8KB5dL3fZnraEErTXmXp2cSKbACmxcRQ7AbcRrsnhns7Zwz'
+            'Qb4kGgF',
+            'Ypub6jkwv4tzCZJNe6j1JHZgwUmj6yCi5iEBNHrP1RDFyR13RwRNB5foJWeinpcBTqfv2uUe7mWSwsF1am4cVLN99xrkADPWrDick3Sa'
+            'P8nxY8N',
+            'Ypub6jVwyh6yYiRoA5zAnGY1g88G5LdaxkHX65d2kSW97yTBAF1RQwAs3UGPz8bX7LvQfg8tc9MQz7eZ79qVigELqSJzfFbGmPak4PZr'
+            'vW8fZXy']
+        w = HDWallet.create_multisig("wif_import_p2sh_p2wsh", [p1, p2, p3], sigs_required=2, witness_type='p2sh-segwit',
+                                     databasefile=DATABASEFILE_UNITTESTS)
+        for cs in w.cosigner:
+            # TODO: Create wallet.wifs() wallets.wifs_public of wallet.public() methods
+            self.assertIn(cs.key_for_path("m/48'/0'/0'/1'").key().wif_public(script_type=cs.script_type), wifs)
 
 
 class TestWalletKeys(unittest.TestCase):

@@ -1132,6 +1132,12 @@ class HDWallet:
                                   k['multisig'] == self.multisig and k['purpose'] is not None][0]
             self.key_path = self.key_structure['key_path']
             self.cosigner_id = db_wlt.cosigner_id
+            if self.witness_type == 'legacy':
+                self.script_type = 'p2sh' if self.multisig else 'p2pkh'
+            if self.witness_type == 'p2sh-segwit':
+                self.script_type = 'p2sh_p2wsh' if self.multisig else 'p2sh_p2wpkh'
+            if self.witness_type == 'segwit':
+                self.script_type = 'p2wsh' if self.multisig else 'p2wpkh'
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -3087,7 +3093,8 @@ class HDWallet:
         if self.multisig:
             print("\n= Multisig Public Account Keys =")
             for mk in [w.main_key for w in self.cosigner]:
-                print("%5s %-70s %-10s" % (mk.key_id, mk.key().account_multisig_key().wif_public(),
+                print("%5s %-70s %-10s" % (mk.key_id, mk.key().account_multisig_key().wif_public(
+                    script_type=self.script_type),
                                            "main" if mk.is_private else "cosigner"))
             print("For main keys a private master key is available in this wallet to sign transactions.")
 
@@ -3124,7 +3131,8 @@ class HDWallet:
                     if detail > 3:
                         include_new = True
                     for account in self.accounts(network=nw['network_name']):
-                        print("\n- - Transactions (Account %d, %s)" % (account.account_id, account.key().wif_public()))
+                        print("\n- - Transactions (Account %d, %s)" %
+                              (account.account_id, account.key().wif_public(script_type=self.script_type)))
                         for t in self.transactions(include_new=include_new, account_id=account.account_id,
                                                    network=nw['network_name']):
                             spent = ""

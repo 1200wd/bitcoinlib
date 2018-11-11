@@ -22,7 +22,7 @@ import json
 import binascii
 import math
 from bitcoinlib.main import *
-from bitcoinlib.encoding import to_hexstring, normalize_var, change_base
+from bitcoinlib.encoding import to_hexstring, normalize_var, change_base, to_bytes
 
 
 _logger = logging.getLogger(__name__)
@@ -195,6 +195,7 @@ class Network:
         self.fee_min = NETWORK_DEFINITIONS[network_name]['fee_min']
         self.fee_max = NETWORK_DEFINITIONS[network_name]['fee_max']
         self.priority = NETWORK_DEFINITIONS[network_name]['priority']
+        self.prefixes_wif = NETWORK_DEFINITIONS[network_name]['prefixes_wif']
 
         # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
         # for f in list(NETWORK_DEFINITIONS[network_name].keys()):
@@ -218,3 +219,14 @@ class Network:
         balance = round(value * denominator, denominator_size)
         format_str = "%%.%df %%s" % denominator_size
         return format_str % (balance, symb)
+
+    def wif_prefix(self, is_private=False, script_type='p2pkh'):
+        if is_private:
+            ip = 'private'
+        else:
+            ip = 'public'
+        found_prefixes = [to_bytes(pf[1]) for pf in self.prefixes_wif if pf[0] == ip and script_type in pf[3]]
+        if found_prefixes:
+            return found_prefixes[0]
+        else:
+            raise NetworkError("WIF Prefix for script type %s not found" % script_type)

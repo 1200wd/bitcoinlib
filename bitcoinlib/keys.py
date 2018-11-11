@@ -1126,7 +1126,7 @@ class HDKey:
 
         return self.key.hash160()[:4]
 
-    def wif(self, public=None, child_index=None, prefix=None):
+    def wif(self, public=None, child_index=None, prefix=None, script_type='p2pkh'):
         """
         Get Extended WIF of current key
         
@@ -1150,7 +1150,8 @@ class HDKey:
             typebyte = b'\x00'
         else:
             if not prefix:
-                prefix = self.network.prefix_hdkey_public
+                # prefix = self.network.prefix_hdkey_public
+                prefix = self.network.wif_prefix(script_type=script_type)
             typebyte = b''
             if public:
                 rkey = self.public_byte
@@ -1162,7 +1163,7 @@ class HDKey:
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
 
-    def wif_public(self, prefix=None):
+    def wif_public(self, prefix=None, script_type='p2pkh'):
         """
         Get Extended WIF public key
 
@@ -1171,7 +1172,7 @@ class HDKey:
         
         :return str: Base58 encoded WIF key
         """
-        return self.wif(public=True, prefix=prefix)
+        return self.wif(public=True, prefix=prefix, script_type=script_type)
 
     def subkey_for_path(self, path, network=None):
         """
