@@ -942,7 +942,7 @@ class HDWallet:
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
                                       witness_type=witness_type)
-            if mk.depth > 4:
+            if mk.depth > 5:
                 raise WalletError("Cannot create new wallet with main key of depth 5 or more")
             new_wallet.main_key_id = mk.key_id
             session.commit()
@@ -1024,7 +1024,18 @@ class HDWallet:
                 if len(cokey.split(' ')) > 5:
                     k = HDKey().from_passphrase(cokey, network=network)
                 else:
+                    network = check_network_and_key(cokey, network)
+                    hdkeyinfo = prefix_search(cokey, network)
                     k = HDKey(cokey, network=network)
+                    if hdkeyinfo:
+                        hdpm.purpose = 48
+                        if 'p2sh_p2wsh' in hdkeyinfo[0]['script_types']:
+                            hdpm.witness_type = 'p2sh-segwit'
+                        elif 'p2wsh' in hdkeyinfo[0]['script_types']:
+                            hdpm.encoding = 'bech32'
+                            hdpm.witness_type = 'segwit'
+                        elif set(set(hdkeyinfo[0]['script_types']).intersection(['p2sh_p2wpkh', 'p2wpkh'])):
+                            raise WalletError("Imported key is for multisig wallets, use HDWallet.create() instead")
                 hdkey_list.append(k)
             else:
                 hdkey_list.append(cokey)
@@ -1042,8 +1053,9 @@ class HDWallet:
             if cokey.key_type == 'single':
                 scheme = 'single'
             w = cls.create(name=wn, keys=cokey, owner=owner, network=network, account_id=account_id, multisig=True,
-                           purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, witness_type=witness_type,
-                           encoding=encoding, cosigner_id=cosigner_id, sort_keys=sort_keys, databasefile=databasefile)
+                           purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id,
+                           witness_type=hdpm.witness_type, encoding=encoding, cosigner_id=cosigner_id,
+                           sort_keys=sort_keys, databasefile=databasefile)
             hdpm.cosigner.append(w)
             cosigner_id += 1
 

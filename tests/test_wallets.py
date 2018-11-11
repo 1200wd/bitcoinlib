@@ -199,7 +199,58 @@ class TestWalletImport(unittest.TestCase):
         self.assertRaisesRegexp(WalletError,
                                 "Network litecoin not available in this wallet, please create an account "
                                 "for this network first.",
-                                w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp', network='litecoin')
+                                w.import_key, 'T43gB4F6k1Ly3YWbMuddq13xLb56hevUDP3RthKArr7FPHjQiXpp', 
+                                network='litecoin')
+        
+    def test_wallet_import_hdwif(self):
+        # p2wpkh
+        p = 'garage million cheese nephew original subject pass reward month practice advance decide'
+        wif = \
+            'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmxC' \
+            'KkXdDAXN'
+        w = HDWallet.create("wif_import_p2wpkh", wif, databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.get_key().address, "bc1qruvyu8f2tg06zhysytdsc3qlngnpfzn0juwssx")
+        self.assertEqual(w.get_key_change().address, "bc1qg6h45txt82x87uvv3ndm82xsf3wjknq8j7sufh")
+
+        # p2sh_p2wpkh
+        p = 'cluster census trash van rack skill feed inflict mixture vocal crew sea'
+        wif = \
+            'ypub6YMgBd4GfQjtxUf8ExorFUQEpBfUYTDz7E1tvfNgDqZeDEUuNNVXSNfsebis2cyeqWYXx6yaBBEQV7sJW3NGoXw5wsp9kkEsB2D' \
+            'qiVquYLE'
+        w = HDWallet.create("wif_import_p2sh_p2wpkh", wif, databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.get_key().address, "3EFDqEWcrzyidoCXhxaUDB28pVtgX3YuiR")
+        self.assertEqual(w.get_key_change().address, "33Un3fDSdT2hsuqyuHiCci1GyUbiyZEWHW")
+
+        # p2wsh
+        p1 = 'cave display deposit habit surround erupt that melt grace upgrade pink remove'
+        p2 = 'question game start distance ritual frozen hint teach decorate boat sure mad'
+        wif1 = \
+            'Zpub74arK1zZNbJYvbMz6wwu2vvcSyB421ePA2p65AD1vaUA5ApzbPLwe3yRDHFgEoBZiLbTzdBPJyPMMaTNsmGkv76t2uD2d9ACqpv' \
+            'vBa5zbv9'
+        wif2 = \
+            'Zpub74JTMKMB9cTWwE9Hs4UVaHvddqPtR51D99x2B5EGyXyxEg3PW77vfmD15RZ86TVdwwwuUaCueBtvaL921mgyKe9Ya6LHCaMXnEp' \
+            '1PMw4vDy'
+        w = HDWallet.create_multisig("wif_import_p2wsh", [wif1, wif2], databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.get_key().address, "bc1qhk5pd2fh0uea8z2wkceuf8eqlxsnkxm0hlt6qvfv346evqnfyumqucpqew")
+        self.assertEqual(w.get_key_change().address, "bc1qyn73qh408ry38twxnj4aqzuyv7j6euwhwt2qtzayg673vtw2a4rsn7jlek")
+
+        # p2sh_p2wsh
+        p1 = 'organ pave cube daring travel thrive average solid wolf type refuse camp'
+        p2 = 'horror brown web jaguar man current glow step harvest zero flush super'
+        p3 = 'valid circle lounge pipe alone stool system off until physical juice opera'
+        wif1 = \
+            'Ypub6kLT3k6fGK3ifMJwLB8BxiG8MGv5gG7uQhymshYiw2Lp5B3yuQJfn8KB5dL3fZnraEErTXmXp2cSKbACmxcRQ7AbcRrsnhns7Zw' \
+            'zQb4kGgF'
+        wif2 = \
+            'Ypub6jkwv4tzCZJNe6j1JHZgwUmj6yCi5iEBNHrP1RDFyR13RwRNB5foJWeinpcBTqfv2uUe7mWSwsF1am4cVLN99xrkADPWrDick3S' \
+            'aP8nxY8N'
+        wif3 = \
+            'Ypub6jVwyh6yYiRoA5zAnGY1g88G5LdaxkHX65d2kSW97yTBAF1RQwAs3UGPz8bX7LvQfg8tc9MQz7eZ79qVigELqSJzfFbGmPak4PZ' \
+            'rvW8fZXy'
+        w = HDWallet.create_multisig("wif_import_p2sh_p2wsh", [wif1, wif2, wif3], sigs_required=2,
+                                     databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.get_key().address, "3BeYQTUgrGPQMHDJcch6mF7G7sRrNYkRhP")
+        self.assertEqual(w.get_key_change().address, "3PFD1qkgbaeeDnX38Smerb5vAPBkDVkhcm")
 
 
 class TestWalletKeys(unittest.TestCase):

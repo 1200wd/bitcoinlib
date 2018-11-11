@@ -151,7 +151,7 @@ def prefix_search(wif, network=None):
         if network is not None and nw != network:
             continue
         data = NETWORK_DEFINITIONS[nw]
-        for pf in data['prefixes']:
+        for pf in data['prefixes_wif']:
             if pf[1] == prefix:
                 matches.append({
                     'prefix': prefix,
