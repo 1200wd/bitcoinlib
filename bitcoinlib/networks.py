@@ -220,7 +220,10 @@ class Network:
         format_str = "%%.%df %%s" % denominator_size
         return format_str % (balance, symb)
 
-    def wif_prefix(self, is_private=False, script_type='p2pkh'):
+    def wif_prefix(self, is_private=False, witness_type='legacy', multisig=False):
+        script_type = script_type_default(witness_type, multisig, locking_script=True)
+        if script_type == 'p2sh' and witness_type in ['p2sh-segwit', 'segwit']:
+            script_type = 'p2sh_p2wsh' if multisig else 'p2sh_p2wpkh'
         if is_private:
             ip = 'private'
         else:

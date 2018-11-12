@@ -208,3 +208,33 @@ logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
 
 logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+
+
+def script_type_default(witness_type, multisig=False, locking_script=False):
+    """
+    Determine default script type for provided witness type and key type combination used in this library.
+
+    :param witness_type: Type of wallet: standard or segwit
+    :type witness_type: str
+    :param multisig: Multisig key or not, default is False
+    :type multisig: bool
+    :param locking_script: Limit search to locking_script. Specify False for locking scripts and True for unlocking scripts
+    :type locking_script: bool
+
+    :return str: Default script type
+    """
+
+    if witness_type == 'legacy' and not multisig:
+        return 'p2pkh' if locking_script else 'sig_pubkey'
+    elif witness_type == 'legacy' and multisig:
+        return 'p2sh' if locking_script else 'p2sh_multisig'
+    elif witness_type == 'segwit' and not multisig:
+        return 'p2wpkh' if locking_script else 'sig_pubkey'
+    elif witness_type == 'segwit' and multisig:
+        return 'p2wsh' if locking_script else 'p2sh_multisig'
+    elif witness_type == 'p2sh-segwit' and not multisig:
+        return 'p2sh' if locking_script else 'p2sh_p2wpkh'
+    elif witness_type == 'p2sh-segwit' and multisig:
+        return 'p2sh' if locking_script else 'p2sh_p2wsh'
+    else:
+        raise KeyError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))

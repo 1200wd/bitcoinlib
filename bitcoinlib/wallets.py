@@ -294,36 +294,6 @@ def parse_bip44_path(path):
     }
 
 
-def script_type_default(witness_type, key_type, locking_script=False):
-    """
-    Determine default script type for wallet type and key type combination used in this library.
-
-    :param witness_type: Type of wallet: standard or segwit
-    :type witness_type: str
-    :param key_type: Type of keys used in this wallet
-    :type key_type: str
-    :param locking_script: Limit search to locking_script. Specify False for locking scripts and True for unlocking scripts
-    :type locking_script: bool
-
-    :return str: Default script type
-    """
-
-    if witness_type == 'legacy' and key_type in ['bip32', 'single']:
-        return 'p2pkh' if locking_script else 'sig_pubkey'
-    elif witness_type == 'legacy' and key_type in ['multisig']:
-        return 'p2sh' if locking_script else 'p2sh_multisig'
-    elif witness_type == 'segwit' and key_type in ['bip32', 'single']:
-        return 'p2wpkh' if locking_script else 'sig_pubkey'
-    elif witness_type == 'segwit' and key_type in ['multisig']:
-        return 'p2wsh' if locking_script else 'p2sh_multisig'
-    elif witness_type == 'p2sh-segwit' and key_type in ['bip32', 'single']:
-        return 'p2wpkh' if locking_script else 'p2sh_p2wpkh'
-    elif witness_type == 'p2sh-segwit' and key_type in ['multisig']:
-        return 'p2wsh' if locking_script else 'p2sh_p2wsh'
-    else:
-        raise WalletError("Wallet and key type combination not supported: %s / %s" % (witness_type, key_type))
-
-
 class HDWalletKey:
     """
     Normally only used as attribute of HDWallet class. Contains HDKey object and extra information such as path and
@@ -334,7 +304,8 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m', key_type=None, encoding='base58', witness_type=None):
+                 purpose=44, parent_id=0, path='m', key_type=None, encoding='base58', witness_type='legacy',
+                 multisig=False):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -377,9 +348,10 @@ class HDWalletKey:
                 network = DEFAULT_NETWORK
             k = HDKey(import_key=key, network=network)
 
-        keyexists = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.wif == k.wif()).first()
+        keyexists = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
+            witness_type=witness_type, multisig=multisig)).first()
         if keyexists:
-            _logger.warning("Key %s already exists" % (key or k.wif()))
+            _logger.warning("Key %s already exists" % (key or k.wif(witness_type=witness_type, multisig=multisig)))
             return HDWalletKey(keyexists.id, session, k)
 
         if key_type != 'single' and k.depth != len(path.split('/'))-1:
@@ -401,7 +373,7 @@ class HDWalletKey:
 
         wk = session.query(DbKey).filter(DbKey.wallet_id == wallet_id,
                                          or_(DbKey.public == k.public_hex,
-                                             DbKey.wif == k.wif())).first()
+                                             DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig))).first()
         if wk:
             return HDWalletKey(wk.id, session, k)
 
@@ -412,8 +384,9 @@ class HDWalletKey:
 
         nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
-                   wif=k.wif(), address=address, parent_id=parent_id, compressed=k.compressed,
-                   is_private=k.isprivate, path=path, key_type=key_type, network_name=network, encoding=encoding)
+                   wif=k.wif(witness_type=witness_type, multisig=multisig), address=address, parent_id=parent_id,
+                   compressed=k.compressed, is_private=k.isprivate, path=path, key_type=key_type,
+                   network_name=network, encoding=encoding)
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -900,15 +873,16 @@ class HDWallet:
                 hdkeyinfo = prefix_search(key, network)
                 key = HDKey(key, network=network)
                 if hdkeyinfo:
-                    if 'p2sh_p2wpkh' in hdkeyinfo[0]['script_types']:
-                        witness_type = 'p2sh-segwit'
-                    elif 'p2wpkh' in hdkeyinfo[0]['script_types']:
-                        witness_type = 'segwit'
-                    elif set(set(hdkeyinfo[0]['script_types']).intersection(['p2sh_p2wsh', 'p2wsh'])):
-                        raise WalletError("Imported key is for multisig wallets, use create_multisig instead")
+                    if len(hdkeyinfo[0]['script_types']) == 1:
+                        if hdkeyinfo[0]['script_types'][0] == 'p2sh_p2wpkh':
+                            witness_type = 'p2sh-segwit'
+                        elif hdkeyinfo[0]['script_types'][0] == 'p2wpkh':
+                            witness_type = 'segwit'
+                        elif set(set(hdkeyinfo[0]['script_types']).intersection(['p2sh_p2wsh', 'p2wsh'])):
+                            raise WalletError("Imported key is for multisig wallets, use create_multisig instead")
         elif network is None:
             network = DEFAULT_NETWORK
-        if network == 'dash' or network == 'dash_testnet':
+        if (network == 'dash' or network == 'dash_testnet') and witness_type != 'legacy':
             raise WalletError("Segwit is not supported for Dash wallets")
 
         ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig and
@@ -943,7 +917,7 @@ class HDWallet:
         elif scheme == 'bip32':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
-                                      witness_type=witness_type)
+                                      witness_type=witness_type, multisig=multisig)
             if mk.depth > 5:
                 raise WalletError("Cannot create new wallet with main key of depth 5 or more")
             new_wallet.main_key_id = mk.key_id
@@ -954,7 +928,7 @@ class HDWallet:
         elif scheme == 'single':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='single', encoding=encoding,
-                                      witness_type=witness_type)
+                                      witness_type=witness_type, multisig=multisig)
             new_wallet.main_key_id = mk.key_id
             session.commit()
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
@@ -1031,15 +1005,21 @@ class HDWallet:
                     k = HDKey(cokey, network=network)
                     if hdkeyinfo:
                         hdpm.purpose = 45
-                        if 'p2sh_p2wsh' in hdkeyinfo[0]['script_types']:
-                            hdpm.purpose = 48
-                            hdpm.witness_type = 'p2sh-segwit'
-                        elif 'p2wsh' in hdkeyinfo[0]['script_types']:
-                            hdpm.purpose = 48
-                            hdpm.encoding = 'bech32'
-                            hdpm.witness_type = 'segwit'
-                        elif set(set(hdkeyinfo[0]['script_types']).intersection(['p2sh_p2wpkh', 'p2wpkh'])):
-                            raise WalletError("Imported key is for multisig wallets, use HDWallet.create() instead")
+                        if len(hdkeyinfo[0]['script_types']) == 1:
+                            if 'p2sh_p2wsh' in hdkeyinfo[0]['script_types']:
+                                hdpm.purpose = 48
+                                hdpm.witness_type = 'p2sh-segwit'
+                            elif 'p2wsh' in hdkeyinfo[0]['script_types']:
+                                hdpm.purpose = 48
+                                hdpm.encoding = 'bech32'
+                                hdpm.witness_type = 'segwit'
+                            # elif 'p2wpkh' in hdkeyinfo[0]['script_types']:
+                            #     hdpm.purpose = 84
+                            #     hdpm.encoding = 'bech32'
+                            #     hdpm.witness_type = 'segwit'
+                            # elif 'p2sh_p2wpkh' in hdkeyinfo[0]['script_types']:
+                            #     hdpm.purpose = 49
+                            #     hdpm.witness_type = 'p2sh-segwit'
                 hdkey_list.append(k)
             else:
                 hdkey_list.append(cokey)
@@ -1306,7 +1286,7 @@ class HDWallet:
 
         self.main_key = HDWalletKey.from_key(
             key=hdkey.wif(), name=name, session=self._session, wallet_id=self.wallet_id, network=network,
-            account_id=account_id, purpose=self.purpose, key_type='bip32')
+            account_id=account_id, purpose=self.purpose, key_type='bip32', witness_type=self.witness_type)
         self.main_key_id = self.main_key.key_id
         self.key_for_path([], top_key_depth, name=name, network=network)
 
@@ -1378,7 +1358,8 @@ class HDWallet:
 
             mk = HDWalletKey.from_key(
                 key=hdkey, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
-                account_id=account_id, purpose=purpose, session=self._session, path=ik_path)
+                account_id=account_id, purpose=purpose, session=self._session, path=ik_path,
+                witness_type=self.witness_type)
             return mk
         else:
             account_key = hdkey.account_multisig_key().wif_public()
@@ -2055,11 +2036,19 @@ class HDWallet:
         :return HDWalletKey:
         """
 
-        qr = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.name,
-                      account_id=account_id, depth=3).scalar()
-        if not qr:
-            raise WalletError("Account with ID %d not found in this wallet" % account_id)
+        # TODO: Rename method to cover purpose == 48 ...
+        if self.purpose == 48:
+            qr = self._session.query(DbKey).\
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.name,
+                          depth=4).scalar()
+            if not qr:
+                raise WalletError("No public masterkey found with purpose 48")
+        else:
+            qr = self._session.query(DbKey).\
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.name,
+                          account_id=account_id, depth=3).scalar()
+            if not qr:
+                raise WalletError("Account with ID %d not found in this wallet" % account_id)
         key_id = qr.id
         return HDWalletKey(key_id, session=self._session)
 
@@ -2378,8 +2367,8 @@ class HDWallet:
                         else:
                             tid = transaction_in_db.scalar().id
 
-                        # FIXME: Check possible values of key_type
-                        script_type = script_type_default(self.witness_type, key.key_type, locking_script=True)
+                        script_type = script_type_default(self.witness_type, multisig=self.multisig,
+                                                          locking_script=True)
                         new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'],
                                                        value=utxo['value'], key_id=key.id, script=utxo['script'],
                                                        script_type=script_type, spent=False)
@@ -3075,6 +3064,19 @@ class HDWallet:
         return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
                          fee=estimated_fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
 
+    def wif(self, public=False, account_id=0):
+        if not self.multisig or not self.cosigner:
+            if not public and self.main_key:
+                return self.main_key.wif
+            else:
+                return self.account(account_id=account_id).key().wif(public=public, witness_type=self.witness_type,
+                                                                     multisig=self.multisig)
+        else:
+            wiflist = []
+            for cs in self.cosigner:
+                wiflist.append(cs.wif(public=public))
+            return wiflist
+
     def info(self, detail=3):
         """
         Prints wallet information to standard output
@@ -3098,8 +3100,7 @@ class HDWallet:
             print("\n= Multisig Public Account Keys =")
             for mk in [w.main_key for w in self.cosigner]:
                 print("%5s %-70s %-10s" % (mk.key_id, mk.key().account_multisig_key().wif_public(
-                    script_type=self.script_type),
-                                           "main" if mk.is_private else "cosigner"))
+                    witness_type=self.witness_type), "main" if mk.is_private else "cosigner"))
             print("For main keys a private master key is available in this wallet to sign transactions.")
 
         if detail and self.main_key:
@@ -3136,7 +3137,7 @@ class HDWallet:
                         include_new = True
                     for account in self.accounts(network=nw['network_name']):
                         print("\n- - Transactions (Account %d, %s)" %
-                              (account.account_id, account.key().wif_public(script_type=self.script_type)))
+                              (account.account_id, account.key().wif_public(witness_type=self.witness_type)))
                         for t in self.transactions(include_new=include_new, account_id=account.account_id,
                                                    network=nw['network_name']):
                             spent = ""

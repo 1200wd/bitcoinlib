@@ -264,7 +264,8 @@ class TestWalletExport(unittest.TestCase):
                             databasefile=DATABASEFILE_UNITTESTS)
         wif = 'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmx' \
               'CKkXdDAXN'
-        self.assertEqual(w.account(0).key().wif_public(script_type=w.script_type), wif)
+        # self.assertEqual(w.account(0).key().wif_public(script_type=w.script_type), wif)
+        self.assertEqual(w.wif(public=True), wif)
 
         # # p2sh_p2wpkh
         p = 'cluster census trash van rack skill feed inflict mixture vocal crew sea'
@@ -272,7 +273,7 @@ class TestWalletExport(unittest.TestCase):
                             databasefile=DATABASEFILE_UNITTESTS)
         wif = 'ypub6YMgBd4GfQjtxUf8ExorFUQEpBfUYTDz7E1tvfNgDqZeDEUuNNVXSNfsebis2cyeqWYXx6yaBBEQV7sJW3NGoXw5wsp9kkEsB2' \
               'DqiVquYLE'
-        self.assertEqual(w.account(0).key().wif_public(script_type=w.script_type), wif)
+        self.assertEqual(w.wif(public=True), wif)
 
         # p2wsh
         p1 = 'cave display deposit habit surround erupt that melt grace upgrade pink remove'
@@ -284,8 +285,8 @@ class TestWalletExport(unittest.TestCase):
             'PMw4vDy']
         w = HDWallet.create_multisig("wif_import_p2wsh", [p1, p2], witness_type='segwit', network='bitcoin',
                                      databasefile=DATABASEFILE_UNITTESTS)
-        for cs in w.cosigner:
-            self.assertIn(cs.key_for_path("m/48'/0'/0'/2'").key().wif_public(script_type=cs.script_type), wifs)
+        for wif in w.wif(public=True):
+            self.assertIn(wif, wifs)
 
         # p2sh_p2wsh
         p1 = 'organ pave cube daring travel thrive average solid wolf type refuse camp'
@@ -300,9 +301,8 @@ class TestWalletExport(unittest.TestCase):
             'vW8fZXy']
         w = HDWallet.create_multisig("wif_import_p2sh_p2wsh", [p1, p2, p3], sigs_required=2, witness_type='p2sh-segwit',
                                      databasefile=DATABASEFILE_UNITTESTS)
-        for cs in w.cosigner:
-            # TODO: Create wallet.wifs() wallets.wifs_public of wallet.public() methods
-            self.assertIn(cs.key_for_path("m/48'/0'/0'/1'").key().wif_public(script_type=cs.script_type), wifs)
+        for wif in w.wif(public=True):
+            self.assertIn(wif, wifs)
 
 
 class TestWalletKeys(unittest.TestCase):
@@ -1408,11 +1408,10 @@ class TestWalletSegwit(unittest.TestCase):
         pk2 = HDKey()
         key_list = [
             HDKey(),
-            pk2.account_multisig_key(witness_type='segwit').wif_public(),
-            HDKey().account_multisig_key(witness_type='segwit').wif_public(),
+            pk2.account_multisig_key(witness_type='segwit').wif_public(witness_type='segwit', multisig=True),
+            HDKey().account_multisig_key(witness_type='segwit').wif_public(witness_type='segwit', multisig=True),
         ]
 
-        wallet_delete_if_exists('segwit_bitcoin_p2wsh_send', force=True, databasefile=DATABASEFILE_UNITTESTS)
         wl1 = HDWallet.create_multisig('segwit_bitcoin_p2wsh_send', key_list, sigs_required=2, witness_type='segwit',
                                        databasefile=DATABASEFILE_UNITTESTS)
         wl1.utxo_add(wl1.get_key().address, 10000000, prev_tx_hash, 0)
@@ -1425,7 +1424,6 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertFalse(t.error)
 
         # === Segwit P2WPKH to P2WSH ===
-        wallet_delete_if_exists('segwit_bitcoin_p2wpkh_send', force=True, databasefile=DATABASEFILE_UNITTESTS)
         wl2 = HDWallet.create('segwit_bitcoin_p2wpkh_send', witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
         wl2.utxo_add(wl2.get_key().address, 200000, prev_tx_hash, 0)
         to_address = wl1.get_key_change().address
@@ -1436,7 +1434,6 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertFalse(t.error)
 
         # === Segwit P2SH-P2WPKH to P2WPK ===
-        wallet_delete_if_exists('segwit_bitcoin_p2sh_p2wpkh_send', force=True, databasefile=DATABASEFILE_UNITTESTS)
         wl3 = HDWallet.create('segwit_bitcoin_p2sh_p2wpkh_send', witness_type='p2sh-segwit',
                               databasefile=DATABASEFILE_UNITTESTS)
         wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)

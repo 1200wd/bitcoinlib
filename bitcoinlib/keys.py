@@ -1126,7 +1126,7 @@ class HDKey:
 
         return self.key.hash160()[:4]
 
-    def wif(self, public=None, child_index=None, prefix=None, script_type='p2pkh'):
+    def wif(self, public=None, child_index=None, prefix=None, witness_type='legacy', multisig=False):
         """
         Get Extended WIF of current key
         
@@ -1146,12 +1146,12 @@ class HDKey:
             return ''
         if self.isprivate and not public:
             if not prefix:
-                prefix = self.network.prefix_hdkey_private
+                prefix = self.network.wif_prefix(is_private=True, witness_type=witness_type, multisig=multisig)
             typebyte = b'\x00'
         else:
             if not prefix:
                 # prefix = self.network.prefix_hdkey_public
-                prefix = self.network.wif_prefix(script_type=script_type)
+                prefix = self.network.wif_prefix(witness_type=witness_type, multisig=multisig)
             typebyte = b''
             if public:
                 rkey = self.public_byte
@@ -1163,7 +1163,7 @@ class HDKey:
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
 
-    def wif_public(self, prefix=None, script_type='p2pkh'):
+    def wif_public(self, prefix=None, witness_type='legacy', multisig=False):
         """
         Get Extended WIF public key
 
@@ -1172,7 +1172,7 @@ class HDKey:
         
         :return str: Base58 encoded WIF key
         """
-        return self.wif(public=True, prefix=prefix, script_type=script_type)
+        return self.wif(public=True, prefix=prefix, witness_type=witness_type, multisig=multisig)
 
     def subkey_for_path(self, path, network=None):
         """
@@ -1247,20 +1247,19 @@ class HDKey:
         path += "/%d'" % account_id
         return self.subkey_for_path(path)
 
-    def account_multisig_key(self, account_id=0, purpose=None, witness_type='legacy', set_network=None):
+    def account_multisig_key(self, account_id=0, witness_type='legacy', set_network=None):
         """
         Derives a multisig account key according to BIP44/45 definition.
         Wrapper for the 'account_key' method.
 
         :param account_id: Account ID. Leave empty for account 0
         :type account_id: int
-        :param purpose: BIP standard used, leave empty for 45 which is the default for multisig
-        :type purpose: int
         :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
         :type set_network: str
 
         :return HDKey:
         """
+        script_type = 0
         if self.key_type == 'single':
             return self
         if witness_type == 'legacy':
