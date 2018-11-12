@@ -12,7 +12,10 @@
     "prefix_wif": "99",
     "prefix_hdkey_private": "9488ADE4",
     "prefix_hdkey_public": "9488B21E",
-    "prefixes_wif": [],
+    "prefixes_wif": [
+      ["public", "9488B21E", "xpub", ["p2pkh", "p2sh", "p2sh_p2wpkh", "p2wpkh", "p2sh_p2wsh", "p2wsh"]],
+      ["private", "9488ADE4", "xprv", ["p2pkh", "p2sh", "p2sh_p2wpkh", "p2wpkh", "p2sh_p2wsh", "p2wsh"]]
+    ],
     "bip44_cointype": 9999999,
     "denominator": 0.00000001,
     "dust_amount": 1000,
@@ -67,7 +70,18 @@
     "prefix_wif": "EF",
     "prefix_hdkey_private": "04358394",
     "prefix_hdkey_public": "043587CF",
-    "prefixes_wif": [],
+    "prefixes_wif": [
+      ["public", "043587CF", "tpub", ["p2pkh", "p2sh"]],
+      ["private", "04358394", "tprv", ["p2pkh", "p2sh"]],
+      ["public", "044A5262", "upub", ["p2sh_p2wpkh"]],
+      ["private", "044A4E28", "uprv", ["p2sh_p2wpkh"]],
+      ["public", "024289EF", "Upub", ["p2sh_p2wsh"]],
+      ["private", "024285B5", "Uprv", ["p2sh_p2wsh"]],
+      ["public", "045F1CF6", "vpub", ["p2wpkh"]],
+      ["private", "045F18BC", "vprv", ["p2wpkh"]],
+      ["public", "02575483", "Vpub", ["p2wsh"]],
+      ["private", "02575048", "Vprv", ["p2wsh"]]
+    ],
     "bip44_cointype": 1,
     "denominator": 0.00000001,
     "dust_amount": 1000,
@@ -89,7 +103,12 @@
     "prefix_wif": "B0",
     "prefix_hdkey_private": "019D9CFE",
     "prefix_hdkey_public": "019DA462",
-    "prefixes_wif": [],
+    "prefixes_wif": [
+      ["public", "019DA462", "Ltub", ["p2pkh", "p2sh"]],
+      ["private", "019D9CFE", "Ltpv", ["p2pkh", "p2sh"]],
+      ["public", "01B26EF6", "Mtub", ["p2sh_p2wpkh", "p2wpkh", "p2sh_p2wsh", "p2wsh"]],
+      ["private", "01B26792", "Mtpv", ["p2sh_p2wpkh", "p2wpkh", "p2sh_p2wsh", "p2wsh"]]
+    ],
     "bip44_cointype": 2,
     "denominator": 0.00000001,
     "dust_amount": 1000,
@@ -111,7 +130,12 @@
     "prefix_wif": "B0",
     "prefix_hdkey_private": "019D9CFE",
     "prefix_hdkey_public": "019DA462",
-    "prefixes_wif": [],
+    "prefixes_wif": [
+      ["public", "019DA462", "Ltub", ["p2pkh", "p2sh"]],
+      ["private", "019D9CFE", "Ltpv", ["p2pkh", "p2sh"]],
+      ["public", "01B26EF6", "Mtub", ["p2sh_p2wpkh", "p2wpkh", "p2sh_p2wsh", "p2wsh"]],
+      ["private", "01B26792", "Mtpv", ["p2sh_p2wpkh", "p2wpkh", "p2sh_p2wsh", "p2wsh"]]
+    ],
     "bip44_cointype": 2,
     "denominator": 0.00000001,
     "dust_amount": 1000,
@@ -133,7 +157,10 @@
     "prefix_wif": "EF",
     "prefix_hdkey_private": "04358394",
     "prefix_hdkey_public": "043587CF",
-    "prefixes_wif": [],
+    "prefixes_wif": [
+      ["public", "0436F6E1", "ttub", ["p2pkh", "p2sh", "p2sh_p2wpkh", "p2wpkh", "p2sh_p2wsh", "p2wsh"]],
+      ["private", "0436EF7D", "ttpv", ["p2pkh", "p2sh", "p2sh_p2wpkh", "p2wpkh", "p2sh_p2wsh", "p2wsh"]]
+    ],
     "bip44_cointype": 1,
     "denominator": 0.00000001,
     "dust_amount": 1000,
@@ -155,7 +182,10 @@
     "prefix_wif": "CC",
     "prefix_hdkey_private": "0488ADE4",
     "prefix_hdkey_public": "0488B21E",
-    "prefixes_wif": [],
+    "prefixes_wif": [
+      ["public", "0488B21E", "xpub", ["p2pkh", "p2sh"]],
+      ["private", "0488ADE4", "xprv", ["p2pkh", "p2sh"]]
+    ],
     "bip44_cointype": 5,
     "denominator": 0.00000001,
     "dust_amount": 1000,
@@ -177,7 +207,10 @@
     "prefix_wif": "EF",
     "prefix_hdkey_private": "04358394",
     "prefix_hdkey_public": "043587CF",
-    "prefixes_wif": [],
+    "prefixes_wif": [
+      ["public", "043587CF", "tpub", ["p2pkh", "p2sh"]],
+      ["private", "04358394", "tprv", ["p2pkh", "p2sh"]]
+    ],
     "bip44_cointype": 1,
     "denominator": 0.00000001,
     "dust_amount": 1000,

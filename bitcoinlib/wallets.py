@@ -906,9 +906,11 @@ class HDWallet:
                         witness_type = 'segwit'
                     elif set(set(hdkeyinfo[0]['script_types']).intersection(['p2sh_p2wsh', 'p2wsh'])):
                         raise WalletError("Imported key is for multisig wallets, use create_multisig instead")
-
         elif network is None:
             network = DEFAULT_NETWORK
+        if network == 'dash' or network == 'dash_testnet':
+            raise WalletError("Segwit is not supported for Dash wallets")
+
         ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig and
               k['purpose'] is not None]
         if len(ks) > 1:
@@ -1028,10 +1030,12 @@ class HDWallet:
                     hdkeyinfo = prefix_search(cokey, network)
                     k = HDKey(cokey, network=network)
                     if hdkeyinfo:
-                        hdpm.purpose = 48
+                        hdpm.purpose = 45
                         if 'p2sh_p2wsh' in hdkeyinfo[0]['script_types']:
+                            hdpm.purpose = 48
                             hdpm.witness_type = 'p2sh-segwit'
                         elif 'p2wsh' in hdkeyinfo[0]['script_types']:
+                            hdpm.purpose = 48
                             hdpm.encoding = 'bech32'
                             hdpm.witness_type = 'segwit'
                         elif set(set(hdkeyinfo[0]['script_types']).intersection(['p2sh_p2wpkh', 'p2wpkh'])):
