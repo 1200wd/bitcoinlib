@@ -1882,10 +1882,11 @@ class HDWallet:
 
         if self.scheme != 'bip32':
             raise WalletError("The 'keys_network' method can only be used with BIP32 type wallets")
-        res = self.keys(depth=2, used=used, as_dict=as_dict)
-        if not res:
-            res = self.keys(depth=3, used=used, as_dict=as_dict)
-        return res
+        try:
+            depth = self.key_path.index("coin_type'")
+        except ValueError:
+            return []
+        return self.keys(depth=depth, used=used, as_dict=as_dict)
 
     def keys_accounts(self, account_id=None, network=None, as_dict=False):
         """
@@ -2072,6 +2073,10 @@ class HDWallet:
             return [nw_dict]
         else:
             wks = self.keys_networks(as_dict=True)
+            if not wks:
+                nw_dict = self.network.__dict__
+                nw_dict['network_name'] = nw_dict['name']
+                return [nw_dict]
             for wk in wks:
                 if '_sa_instance_state' in wk:
                     del wk['_sa_instance_state']
