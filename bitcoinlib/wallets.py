@@ -945,7 +945,7 @@ class HDWallet:
     @classmethod
     def create_multisig(cls, name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None,
                         multisig_compressed=True, sort_keys=True, witness_type='legacy', encoding=None,
-                        databasefile=None):
+                        key_path=None, databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
         public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
@@ -995,7 +995,7 @@ class HDWallet:
             raise WalletError("Number of keys required to sign is greater then number of keys provided")
 
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                          sort_keys=sort_keys, witness_type=witness_type, encoding=encoding,
+                          sort_keys=sort_keys, witness_type=witness_type, encoding=encoding, key_path=key_path,
                           databasefile=databasefile, multisig=True)
         hdpm.multisig_compressed = multisig_compressed
         hdkey_list = []
@@ -1008,7 +1008,6 @@ class HDWallet:
                     hdkeyinfo = prefix_search(cokey, network)
                     k = HDKey(cokey, network=network)
                     if hdkeyinfo:
-                        hdpm.purpose = 45
                         if len(hdkeyinfo[0]['script_types']) == 1:
                             if 'p2sh_p2wsh' in hdkeyinfo[0]['script_types']:
                                 hdpm.purpose = 48
@@ -1036,7 +1035,7 @@ class HDWallet:
             w = cls.create(name=wn, keys=cokey, owner=owner, network=network, account_id=account_id, multisig=True,
                            purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id,
                            witness_type=hdpm.witness_type, encoding=encoding, cosigner_id=cosigner_id,
-                           sort_keys=sort_keys, databasefile=databasefile)
+                           key_path=key_path, sort_keys=sort_keys, databasefile=databasefile)
             hdpm.cosigner.append(w)
             cosigner_id += 1
 
@@ -1699,7 +1698,6 @@ class HDWallet:
         self.key_for_path([account_id, 0, 0], network=network)
         self.key_for_path([account_id, 1, 0], network=network)
         return acckey
-
 
     def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None):
         if isinstance(path, str):
@@ -3115,7 +3113,7 @@ class HDWallet:
                     else:
                         ds = [0, 3, 5]
                 else:
-                    ds = range(7)
+                    ds = range(8)
                 for d in ds:
                     is_active = True
                     if detail > 3:
