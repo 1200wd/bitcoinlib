@@ -1126,12 +1126,12 @@ class HDKey:
 
         return self.key.hash160()[:4]
 
-    def wif(self, public=None, child_index=None, prefix=None, witness_type='legacy', multisig=False):
+    def wif(self, is_private=None, child_index=None, prefix=None, witness_type='legacy', multisig=False):
         """
         Get Extended WIF of current key
         
-        :param public: Return public key?
-        :type public: bool
+        :param is_private: Return public or private key
+        :type is_private: bool
         :param child_index: Change child index of output WIF key
         :type child_index: int
         :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
@@ -1142,9 +1142,9 @@ class HDKey:
         rkey = self.private_byte or self.public_byte
         if prefix and not isinstance(prefix, (bytes, bytearray)):
             prefix = binascii.unhexlify(prefix)
-        if not self.isprivate and public is False:
-            return ''
-        if self.isprivate and not public:
+        # if not self.isprivate and is_private:
+        #     return ''
+        if self.isprivate and is_private:
             if not prefix:
                 prefix = self.network.wif_prefix(is_private=True, witness_type=witness_type, multisig=multisig)
             typebyte = b'\x00'
@@ -1153,7 +1153,7 @@ class HDKey:
                 # prefix = self.network.prefix_hdkey_public
                 prefix = self.network.wif_prefix(witness_type=witness_type, multisig=multisig)
             typebyte = b''
-            if public:
+            if not is_private:
                 rkey = self.public_byte
         if child_index:
             self.child_index = child_index
@@ -1172,7 +1172,7 @@ class HDKey:
         
         :return str: Base58 encoded WIF key
         """
-        return self.wif(public=True, prefix=prefix, witness_type=witness_type, multisig=multisig)
+        return self.wif(is_private=False, prefix=prefix, witness_type=witness_type, multisig=multisig)
 
     def subkey_for_path(self, path, network=None):
         """

@@ -263,7 +263,7 @@ class TestWalletExport(unittest.TestCase):
         wif = 'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmx' \
               'CKkXdDAXN'
         # self.assertEqual(w.account(0).key().wif_public(script_type=w.script_type), wif)
-        self.assertEqual(w.wif(public=True), wif)
+        self.assertEqual(w.wif(is_private=False), wif)
 
         # # p2sh_p2wpkh
         p = 'cluster census trash van rack skill feed inflict mixture vocal crew sea'
@@ -271,7 +271,7 @@ class TestWalletExport(unittest.TestCase):
                             databasefile=DATABASEFILE_UNITTESTS)
         wif = 'ypub6YMgBd4GfQjtxUf8ExorFUQEpBfUYTDz7E1tvfNgDqZeDEUuNNVXSNfsebis2cyeqWYXx6yaBBEQV7sJW3NGoXw5wsp9kkEsB2' \
               'DqiVquYLE'
-        self.assertEqual(w.wif(public=True), wif)
+        self.assertEqual(w.wif(is_private=False), wif)
 
         # p2wsh
         p1 = 'cave display deposit habit surround erupt that melt grace upgrade pink remove'
@@ -283,7 +283,7 @@ class TestWalletExport(unittest.TestCase):
             'PMw4vDy']
         w = HDWallet.create_multisig("wif_import_p2wsh", [p1, p2], witness_type='segwit', network='bitcoin',
                                      databasefile=DATABASEFILE_UNITTESTS)
-        for wif in w.wif(public=True):
+        for wif in w.wif(is_private=False):
             self.assertIn(wif, wifs)
 
         # p2sh_p2wsh
@@ -299,7 +299,7 @@ class TestWalletExport(unittest.TestCase):
             'vW8fZXy']
         w = HDWallet.create_multisig("wif_import_p2sh_p2wsh", [p1, p2, p3], sigs_required=2, witness_type='p2sh-segwit',
                                      databasefile=DATABASEFILE_UNITTESTS)
-        for wif in w.wif(public=True):
+        for wif in w.wif(is_private=False):
             self.assertIn(wif, wifs)
 
 
@@ -1471,7 +1471,7 @@ class TestWalletKeyStructures(unittest.TestCase):
                             databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(w.new_key().path, "m/0/1")
         self.assertEqual(w.new_key_change().path, "m/1/0")
-        self.assertEqual(w.wif(public=True)[:4], 'xpub')
+        self.assertEqual(w.wif()[:4], 'xpub')
 
         w = HDWallet.create_multisig(
             "strange_key_path", keys=[HDKey(), HDKey()], purpose=100,

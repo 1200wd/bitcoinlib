@@ -334,6 +334,8 @@ class HDWalletKey:
         :type encoding: str
         :param witness_type: Witness type used when creating transaction script: legacy, p2sh-segwit or segwit.
         :type witness_type: str
+        :param multisig: Specify if key is part of multisig wallet, used for create keys and key representations such as WIF and addreses
+        :type multisig: bool
 
         :return HDWalletKey: HDWalletKey object
         """
@@ -348,9 +350,10 @@ class HDWalletKey:
             k = HDKey(import_key=key, network=network)
 
         keyexists = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
-            witness_type=witness_type, multisig=multisig)).first()
+            witness_type=witness_type, multisig=multisig, is_private=True)).first()
         if keyexists:
-            _logger.warning("Key %s already exists" % (key or k.wif(witness_type=witness_type, multisig=multisig)))
+            _logger.warning("Key %s already exists" % (key or k.wif(witness_type=witness_type, multisig=multisig,
+                                                                    is_private=True)))
             return HDWalletKey(keyexists.id, session, k)
 
         if key_type != 'single' and k.depth != len(path.split('/'))-1:
@@ -372,7 +375,8 @@ class HDWalletKey:
 
         wk = session.query(DbKey).filter(DbKey.wallet_id == wallet_id,
                                          or_(DbKey.public == k.public_hex,
-                                             DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig))).first()
+                                             DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig,
+                                                                is_private=True))).first()
         if wk:
             return HDWalletKey(wk.id, session, k)
 
@@ -383,8 +387,8 @@ class HDWalletKey:
 
         nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
-                   wif=k.wif(witness_type=witness_type, multisig=multisig), address=address, parent_id=parent_id,
-                   compressed=k.compressed, is_private=k.isprivate, path=path, key_type=key_type,
+                   wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
+                   parent_id=parent_id, compressed=k.compressed, is_private=k.isprivate, path=path, key_type=key_type,
                    network_name=network, encoding=encoding)
         session.add(nk)
         session.commit()
@@ -1266,10 +1270,11 @@ class HDWallet:
         if not isinstance(private_key, HDKey):
             private_key = HDKey(private_key, network=self.network.name)
         wallet_key.is_private = True
-        wallet_key.wif = private_key.wif()
+        wallet_key.wif = private_key.wif(is_private=True)
         wallet_key.private = private_key.private_hex
         self._session.query(DbKey).filter(DbKey.id == wallet_key.key_id).update(
-                {DbKey.is_private: True, DbKey.private: private_key.private_hex, DbKey.wif: private_key.wif()})
+                {DbKey.is_private: True, DbKey.private: private_key.private_hex,
+                 DbKey.wif: private_key.wif(is_private=True)})
         self._session.commit()
         return wallet_key
 
@@ -1304,7 +1309,7 @@ class HDWallet:
                               "the same network")
 
         self.main_key = HDWalletKey.from_key(
-            key=hdkey.wif(), name=name, session=self._session, wallet_id=self.wallet_id, network=network,
+            key=hdkey.wif(is_private=True), name=name, session=self._session, wallet_id=self.wallet_id, network=network,
             account_id=account_id, purpose=self.purpose, key_type='bip32', witness_type=self.witness_type)
         self.main_key_id = self.main_key.key_id
         self.key_for_path([], top_key_depth, name=name, network=network)
@@ -1402,6 +1407,8 @@ class HDWallet:
         :type account_id: int
         :param change: Change (1) or payments (0). Default is 0
         :type change: int
+        :param cosigner_id: Cosigner ID for key path
+        :type cosigner_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
 
@@ -1600,6 +1607,8 @@ class HDWallet:
         :type network: str
         :param number_of_keys: Number of keys to return. Default is 1
         :type number_of_keys: int
+        :param cosigner_id: Cosigner ID for key path
+        :type cosigner_id: int
         :param change: Payment (0) or change key (1). Default is 0
         :type change: int
 
@@ -1728,6 +1737,22 @@ class HDWallet:
         return acckey
 
     def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None):
+        """
+        Create key path. Specify part of key path and path settings
+
+        :param path: Part of path, for example [0, 2] for change=0 and address_index=2
+        :type path: list, str
+        :param level_offset: Just create part of path. For example -2 means create path with the last 2 items (change, address_index) or 1 will return the master key 'm'
+        :type level_offset: int
+        :param account_id: Account ID
+        :type account_id: int
+        :param cosigner_id: ID of cosigner
+        :type cosigner_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+
+        :return list:
+        """
         if isinstance(path, str):
             path = path.split('/')
         if not isinstance(path, list):
@@ -1786,6 +1811,25 @@ class HDWallet:
         return npath
 
     def key_for_path(self, path, level_offset=None, name='', account_id=None, cosigner_id=None, network=None):
+        """
+        Return key for specified path. Derive all wallet keys in path if they not already exists
+
+        :param path: Part of key
+        :type path: list, str
+        :param level_offset: Just create part of path, when creating keys. For example -2 means create path with the last 2 items (change, address_index) or 1 will return the master key 'm'
+        :type level_offset: int
+        :param name: Specify key name for latest/highest key in structure
+        :type name: str
+        :param account_id: Account ID
+        :type account_id: int
+        :param cosigner_id: ID of cosigner
+        :type cosigner_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+
+        :return HDWalletKey:
+        """
+
         network, account_id, acckey = self._get_account_defaults(network, account_id)
         path = self.path_expand(path, level_offset, account_id=account_id, cosigner_id=cosigner_id, network=network)
 
@@ -3089,20 +3133,43 @@ class HDWallet:
         return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
                          fee=estimated_fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
 
-    def wif(self, public=False, account_id=0):
+    def wif(self, is_private=False, account_id=0):
+        """
+        Return Wallet Import Format string for master private or public key which can be used to import key and
+        recreate wallet in other software.
+
+        A list of keys will be exported for a multisig wallet.
+
+        :param is_private: Export public or private key
+        :type is_private: Public or private, default is True
+        :param account_id: Account ID of key to export
+        :type account_id: bool
+
+        :return list, str:
+        """
         if not self.multisig or not self.cosigner:
-            if not public and self.main_key:
+            if is_private and self.main_key:
                 return self.main_key.wif
             else:
                 return self.public_master(account_id=account_id).key().\
-                    wif(public=public, witness_type=self.witness_type, multisig=self.multisig)
+                    wif(is_private=is_private, witness_type=self.witness_type, multisig=self.multisig)
         else:
             wiflist = []
             for cs in self.cosigner:
-                wiflist.append(cs.wif(public=public))
+                wiflist.append(cs.wif(is_private=is_private))
             return wiflist
 
     def public_master(self, account_id=None, network=None):
+        """
+        Return public master key(s) for this wallet. Use to import in other wallets to sign transactions or create keys.
+
+        :param account_id: Account ID of key to export
+        :type account_id: bool
+        :param network: Network name. Leave empty for default network
+        :type network: str
+
+        :return str, list:
+        """
         if not self.cosigner:
             depth = -3 if 'cosigner_index' in self.key_path else -2
             return self.key_for_path([], depth, account_id=account_id, network=network, cosigner_id=self.cosigner_id)
@@ -3134,7 +3201,7 @@ class HDWallet:
         if self.multisig:
             print("\n= Multisig Public Account Keys =")
             for cs in self.cosigner:
-                print("%5s %-70s %-10s" % (cs.main_key.key_id, cs.wif(public=True),
+                print("%5s %-70s %-10s" % (cs.main_key.key_id, cs.wif(is_private=False),
                                            "main" if cs.main_key.is_private else "cosigner"))
             print("For main keys a private master key is available in this wallet to sign transactions.")
 
