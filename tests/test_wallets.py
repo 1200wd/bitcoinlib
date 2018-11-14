@@ -107,7 +107,6 @@ class TestWalletCreate(unittest.TestCase):
         wlt = HDWallet.create("wallet-passphrase-litecoin", keys=passphrase, network='litecoin',
                               databasefile=DATABASEFILE_UNITTESTS)
         keys = wlt.get_key(number_of_keys=5)
-        wlt.info()
         self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
 
 
@@ -188,7 +187,6 @@ class TestWalletImport(unittest.TestCase):
             network='litecoin')
         newkey = wallet_import.new_key()
         self.assertEqual(wallet_import.main_key.wif, accountkey)
-        wallet_import.info()
         self.assertEqual(newkey.address, u'LZj8MnR6tRgLNKUBSfd2pD2czA4F9G5oGk')
         self.assertEqual(newkey.path, "m/44'/2'/0'/0/1")
 
@@ -321,7 +319,6 @@ class TestWalletKeys(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
         cls.wallet.new_key()
         cls.wallet.new_key_change()
-        cls.wallet.info()
 
     @classmethod
     def tearDownClass(cls):
@@ -537,7 +534,6 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
                            network='bitcoinlib_test', fee=1000, offline=False)
         self.assertIsNone(t.error)
         self.assertTrue(t.verified)
-        wallet.info()
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 589999000)
         self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 6)
         self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 8)
@@ -703,7 +699,6 @@ class TestWalletMultisig(unittest.TestCase):
                                       databasefile=DATABASEFILE_UNITTESTS)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
         t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
-        wl.info()
         t.sign(pk2)
         t.send(offline=True)
         self.assertTrue(t.verify())
@@ -981,7 +976,6 @@ class TestWalletMultisig(unittest.TestCase):
         wallets2 = _open_all_wallets()
         for wlt in wallets2:
             self.assertEqual(wlt.get_key(cosigner_id=1).address, 'MQVt7KeRHGe35b9ziZo16T5y4fQPg6Up7q')
-            wlt.info()
             wlt._session.close_all()
 
     def test_wallet_multisig_network_mixups(self):
@@ -1466,8 +1460,35 @@ class TestWalletKeyStructures(unittest.TestCase):
                              ['m', "44'", "0'", "1'", '2', '3'])
         self.assertListEqual(wlt.path_expand(['m', "purpose", "coin_type'", "1", 2, 3]),
                              ['m', "44'", "0'", "1'", '2', '3'])
-        self.assertListEqual(wlt.path_expand(['m', 45, "cosigner_index", 55, 1000]),
-                             ['m', "45'", "None'", "55'", '1000'])
         self.assertListEqual(wlt.path_expand([100], -2), ['m', "44'", "0'", "100'"])
+        self.assertRaisesRegexp(WalletError, "Field \"cosigner_index\" is None in key_path",
+                                wlt.path_expand, ['m', 45, "cosigner_index", 55, 1000])
         self.assertRaisesRegexp(WalletError, "Variable bestaatnie not found in Key structure definitions in main.py",
                                 wlt.path_expand, ['m', "bestaatnie'", "coin_type'", "1", 2, 3])
+
+    def test_wallet_exotic_key_paths(self):
+        w = HDWallet.create("simple_custom_keypath", key_path="m/change/address_index",
+                            databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.new_key().path, "m/0/1")
+        self.assertEqual(w.new_key_change().path, "m/1/0")
+        self.assertEqual(w.wif(public=True)[:4], 'xpub')
+
+        w = HDWallet.create_multisig(
+            "strange_key_path", keys=[HDKey(), HDKey()], purpose=100,
+            key_path="m/purpose'/cosigner_index/change/address_index",
+            databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.new_key().path, "m/100'/0/0/0")
+        self.assertEqual(w.new_key_change().path, "m/100'/0/1/0")
+
+        wif1 = 'Zpub74CSuvLPQxWkdW7bivQAhomXZTzbE8quAakKRg1C3x7uDcCCeh7zPp1tZrtJrscihJRASZWjZQ7nPQj1SHTn8gkzAHPZL3dC' \
+               'MbMQLFwMKVV'
+        wif2 = 'Zpub75J84sqDUenYwh6eYwFnpXmfRMkfCwyEUBsN6fkGLQhh4nGmdxHw1io3AcUvAcK14RXosXfjG6Gfkz3NUHCa1JESGCf52ZWQ' \
+               'd2CqDgo1rLa'
+        w = HDWallet.create_multisig(
+            "long_key_path", keys=[wif1, wif2], witness_type='segwit', cosigner_id=1,
+            key_path="m/purpose'/coin_type'/account'/script_type'/cosigner_index/change/address_index",
+            databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.new_key().path, "m/48'/0'/0'/2'/1/0/0")
+        self.assertEqual(w.new_key_change().path, "m/48'/0'/0'/2'/1/1/0")
+        self.assertEqual(w.public_master()[0].wif, wif1)
+        self.assertEqual(w.public_master()[1].wif, wif2)

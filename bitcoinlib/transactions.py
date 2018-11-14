@@ -589,7 +589,7 @@ def get_unlocking_script_type(locking_script_type, witness_type='legacy', multis
         else:
             return 'p2sh_multisig'
     else:
-        raise TransactionError("Unknonw locking script type %s" % locking_script_type)
+        raise TransactionError("Unknown locking script type %s" % locking_script_type)
 
 
 def verify_signature(transaction_to_sign, signature, public_key):

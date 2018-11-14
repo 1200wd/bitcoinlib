@@ -1277,7 +1277,6 @@ class HDKey:
             return self.subkey_for_path(path)
         elif purpose == 48:
             path += "/%d'/%d'/%d'" % (self.network.bip44_cointype, account_id, script_type)
-            # "m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"
             return self.subkey_for_path(path)
         else:
             raise KeyError("Unknown purpose %d, cannot determine wallet public cosigner key" % purpose)
