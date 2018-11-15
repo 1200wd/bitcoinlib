@@ -42,11 +42,11 @@ class TestMnemonics(unittest.TestCase):
             self.assertEqual(v[1], phrase)
             self.assertEqual(v[2], seed)
             k = HDKey.from_seed(seed)
-            self.assertEqual(k.wif(), v[3])
+            self.assertEqual(k.wif(is_private=True), v[3])
 
     def test_vectors(self):
         workdir = os.path.dirname(__file__)
-        with open('%s/%s' % (workdir, 'mnemonics_tests.json'), 'r') as f:
+        with open('%s/%s' % (workdir, 'mnemonics_tests.json')) as f:
             vectors = json.load(f)
         for lang in vectors.keys():
             self._check_list(lang, vectors[lang])

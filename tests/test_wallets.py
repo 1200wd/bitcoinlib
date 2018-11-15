@@ -1439,7 +1439,7 @@ class TestWalletSegwit(unittest.TestCase):
 
     def test_wallet_segwit_litecoin_multi_accounts(self):
         phrase = 'rug rebuild group coin artwork degree basic humor flight away praise able'
-        w = HDWallet.create('segwit_wallet_litecoin', keys=phrase, network='litecoin',
+        w = HDWallet.create('segwit_wallet_litecoin_p2wpkh', keys=phrase, network='litecoin',
                             databasefile=DATABASEFILE_UNITTESTS, witness_type='segwit')
         self.assertEqual(w.get_key().address, "ltc1qsrzxzg39jyt8knsw5hlqmpwmuc8ejxvp9hfch8")
         self.assertEqual(w.get_key_change().address, "ltc1q9n6zknsw2hhq7dkyvczars8vl8zta5yusjjem5")
@@ -1448,6 +1448,14 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertEqual(w.get_key(acc2.account_id).address, "ltc1quya06p0ywk55rvf6jjpvxwmd66n2axu8qhnned")
         self.assertEqual(w.get_key(btc_acc.account_id, network='bitcoin').address,
                          "bc1qnxntu52qfppmt2l2wezrn8rtsqy092q3utxhgd")
+
+        phrase = 'rug rebuild group coin artwork degree basic humor flight away praise able'
+
+        w = HDWallet.create('segwit_wallet_litecoin_p2sh_p2wpkh', keys=phrase, network='litecoin',
+                            databasefile=DATABASEFILE_UNITTESTS,
+                            witness_type='p2sh-segwit')
+        self.assertEqual(w.get_key().address, "MW1V5XPPW1YYQ5BGL5mSWEZNZSyD4XQPgh")
+        self.assertEqual(w.get_key_change().address, "MWQoYMDTNvwZPNNypLMzkQ7JNSCtvS554j")
 
 
 class TestWalletKeyStructures(unittest.TestCase):
