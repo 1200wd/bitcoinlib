@@ -1437,7 +1437,7 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertEqual(t.outputs[0].address, to_address)
         self.assertFalse(t.error)
 
-    def test_wallet_segwit_litecoin(self):
+    def test_wallet_segwit_litecoin_multi_accounts(self):
         phrase = 'rug rebuild group coin artwork degree basic humor flight away praise able'
         w = HDWallet.create('segwit_wallet_litecoin', keys=phrase, network='litecoin',
                             databasefile=DATABASEFILE_UNITTESTS, witness_type='segwit')
