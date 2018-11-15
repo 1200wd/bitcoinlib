@@ -1146,15 +1146,12 @@ class HDKey:
         rkey = self.private_byte or self.public_byte
         if prefix and not isinstance(prefix, (bytes, bytearray)):
             prefix = binascii.unhexlify(prefix)
-        # if not self.isprivate and is_private:
-        #     return ''
         if self.isprivate and is_private:
             if not prefix:
                 prefix = self.network.wif_prefix(is_private=True, witness_type=witness_type, multisig=multisig)
             typebyte = b'\x00'
         else:
             if not prefix:
-                # prefix = self.network.prefix_hdkey_public
                 prefix = self.network.wif_prefix(witness_type=witness_type, multisig=multisig)
             typebyte = b''
             if not is_private:
@@ -1181,6 +1178,22 @@ class HDKey:
         :return str: Base58 encoded WIF key
         """
         return self.wif(is_private=False, prefix=prefix, witness_type=witness_type, multisig=multisig)
+
+    def wif_private(self, prefix=None, witness_type='legacy', multisig=False):
+        """
+        Get Extended WIF private key. Wrapper for the wif() method
+
+        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified,
+        method uses default prefix from network settings
+        :type prefix: str, bytes
+        :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
+        :type witness_type: str
+        :param multisig: Key is part of a multisignature wallet?
+        :type multisig: bool
+
+        :return str: Base58 encoded WIF key
+        """
+        return self.wif(is_private=True, prefix=prefix, witness_type=witness_type, multisig=multisig)
 
     def subkey_for_path(self, path, network=None):
         """
