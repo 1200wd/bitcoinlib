@@ -1260,10 +1260,10 @@ class TestWalletDash(unittest.TestCase):
         pk1 = HDKey(network=network)
         pk2 = HDKey(network=network)
         wl1 = HDWallet.create_multisig('multisig_test_wallet1',
-                                       [pk1.wif(), pk2.subkey_for_path("m/45'").wif_public()],
+                                       [pk1.wif(is_private=True), pk2.subkey_for_path("m/45'").wif_public()],
                                        sigs_required=2, network=network, databasefile=DATABASEFILE_UNITTESTS)
         wl2 = HDWallet.create_multisig('multisig_test_wallet2',
-                                       [pk1.subkey_for_path("m/45'").wif_public(), pk2.wif()],
+                                       [pk1.subkey_for_path("m/45'").wif_public(), pk2.wif(is_private=True)],
                                        sigs_required=2, network=network, databasefile=DATABASEFILE_UNITTESTS)
         wl1_key = wl1.new_key()
         wl2_key = wl2.new_key(cosigner_id=wl1.cosigner_id)
@@ -1436,6 +1436,18 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertTrue(t.verify())
         self.assertEqual(t.outputs[0].address, to_address)
         self.assertFalse(t.error)
+
+    def test_wallet_segwit_litecoin(self):
+        phrase = 'rug rebuild group coin artwork degree basic humor flight away praise able'
+        w = HDWallet.create('segwit_wallet_litecoin', keys=phrase, network='litecoin',
+                            databasefile=DATABASEFILE_UNITTESTS, witness_type='segwit')
+        self.assertEqual(w.get_key().address, "ltc1qsrzxzg39jyt8knsw5hlqmpwmuc8ejxvp9hfch8")
+        self.assertEqual(w.get_key_change().address, "ltc1q9n6zknsw2hhq7dkyvczars8vl8zta5yusjjem5")
+        acc2 = w.new_account()
+        btc_acc = w.new_account(network='bitcoin')
+        self.assertEqual(w.get_key(acc2.account_id).address, "ltc1quya06p0ywk55rvf6jjpvxwmd66n2axu8qhnned")
+        self.assertEqual(w.get_key(btc_acc.account_id, network='bitcoin').address,
+                         "bc1qnxntu52qfppmt2l2wezrn8rtsqy092q3utxhgd")
 
 
 class TestWalletKeyStructures(unittest.TestCase):

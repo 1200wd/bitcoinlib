@@ -1073,7 +1073,7 @@ class HDKey:
         print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint, 256, 16))
         print(" Depth                       %s" % self.depth)
         print(" Extended Public Key (wif)   %s" % self.wif_public())
-        print(" Extended Private Key (wif)  %s" % self.wif(public=False))
+        print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
         print("\n")
 
     def dict(self):
@@ -1099,7 +1099,7 @@ class HDKey:
             'fingerprint_parent': change_base(self.parent_fingerprint, 256, 16),
             'depth': self.depth,
             'extended_wif_public': self.wif_public(),
-            'extended_wif_private': self.wif(public=False),
+            'extended_wif_private': self.wif(is_private=True),
         }
         
     def _key_derivation(self, seed):
@@ -1136,6 +1136,10 @@ class HDKey:
         :type child_index: int
         :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
+        :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
+        :type witness_type: str
+        :param multisig: Key is part of a multisignature wallet?
+        :type multisig: bool
 
         :return str: Base58 encoded WIF key 
         """
@@ -1165,10 +1169,14 @@ class HDKey:
 
     def wif_public(self, prefix=None, witness_type='legacy', multisig=False):
         """
-        Get Extended WIF public key
+        Get Extended WIF public key. Wrapper for the wif() method
 
         :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
+        :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
+        :type witness_type: str
+        :param multisig: Key is part of a multisignature wallet?
+        :type multisig: bool
         
         :return str: Base58 encoded WIF key
         """
@@ -1254,6 +1262,8 @@ class HDKey:
 
         :param account_id: Account ID. Leave empty for account 0
         :type account_id: int
+        :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
+        :type witness_type: str
         :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
         :type set_network: str
 
