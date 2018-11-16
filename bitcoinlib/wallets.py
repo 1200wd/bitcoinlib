@@ -2832,6 +2832,7 @@ class HDWallet:
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
                                       address=utxo.key.address, sequence=sequence,
                                       key_path=utxo.key.path, witness_type=self.witness_type)
+                                        # FIXME: Missing locktime_cltv=locktime_cltv, locktime_csv=locktime_csv (?)
         else:
             for inp in input_arr:
                 locktime_cltv = None
@@ -2882,6 +2883,7 @@ class HDWallet:
                         value = inp_utxo.value
                         address = inp_utxo.key.address
                         unlocking_script_type = get_unlocking_script_type(inp_utxo.script_type, multisig=self.multisig)
+                        # witness_type = inp_utxo.witness_type
                     else:
                         _logger.info("UTXO %s not found in this wallet. Please update UTXO's if this is not an "
                                      "offline wallet" % to_hexstring(prev_hash))
@@ -2901,8 +2903,9 @@ class HDWallet:
                                       compressed=key.compressed, value=value, signatures=signatures,
                                       unlocking_script=unlocking_script, address=address,
                                       unlocking_script_unsigned=unlocking_script_unsigned,
-                                      sequence=sequence, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv)
-
+                                      sequence=sequence, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv,
+                                      witness_type=self.witness_type)
+                                      # key_path=utxo.key.path, witness_type=self.witness_type)
         # Calculate fees
         transaction.fee = fee
         fee_per_output = None

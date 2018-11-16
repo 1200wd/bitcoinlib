@@ -1457,6 +1457,15 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertEqual(w.get_key().address, "MW1V5XPPW1YYQ5BGL5mSWEZNZSyD4XQPgh")
         self.assertEqual(w.get_key_change().address, "MWQoYMDTNvwZPNNypLMzkQ7JNSCtvS554j")
 
+    def test_wallet_segwit_litecoin_sweep(self):
+        phrase = 'wagon tunnel garage blast eager jaguar shop bring lake dumb chalk emerge'
+        w = wallet_create_or_open('ltcsw', phrase, network='litecoin', witness_type='segwit',
+                                  databasefile=DATABASEFILE_UNITTESTS)
+        w.utxo_add('ltc1qu8dum66gd6dfr2cchgenf87qqxgenyme2kyhn8', 28471723,
+                   '21da13be453624cf46b3d883f39602ce74d04efa7a186037898b6d7bcfd405ee', 10, 99)
+        t = w.sweep('MLqham8sXULvktmNMuDQdrBbHRdytVZ1QK', offline=True)
+        self.assertTrue(t.verified)
+
 
 class TestWalletKeyStructures(unittest.TestCase):
 
