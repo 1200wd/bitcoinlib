@@ -1466,6 +1466,18 @@ class TestWalletSegwit(unittest.TestCase):
         t = w.sweep('MLqham8sXULvktmNMuDQdrBbHRdytVZ1QK', offline=True)
         self.assertTrue(t.verified)
 
+    def test_wallet_segwit_litecoin_multisig(self):
+        p1 = 'only sing document speed outer gauge stand govern way column material odor'
+        p2 = 'oyster pelican debate mass scene title pipe lock recipe flavor razor accident'
+        w = wallet_create_or_open_multisig('ltcswms', [p1, p2], network='litecoin', witness_type='segwit',
+                                           databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key(number_of_keys=2)
+        w.utxo_add('ltc1qkewaz7lxn75y6wppvqlsfhrnq5p5mksmlp26n8xsef0556cdfzqq2uhdrt', 2100000000000001,
+                   '21da13be453624cf46b3d883f39602ce74d04efa7a186037898b6d7bcfd405ee', 0, 15)
+
+        t = w.sweep('ltc1q9h8xvtrge5ttcwzy3xtz7l8kj4dewgh6hgqfjdhtq6lwr4k3527qd8tyzs', offline=True)
+        self.assertTrue(t.verified)
+
 
 class TestWalletKeyStructures(unittest.TestCase):
 

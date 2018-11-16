@@ -1026,7 +1026,7 @@ class HDWallet:
 
         hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id, purpose=purpose,
                           sort_keys=sort_keys, witness_type=witness_type, encoding=encoding, key_path=key_path,
-                          multisig=True, cosigner_id=cosigner_id ,databasefile=databasefile)
+                          multisig=True, cosigner_id=cosigner_id, databasefile=databasefile)
         hdpm.multisig_compressed = multisig_compressed
         hdkey_list = []
         for cokey in keys:
@@ -1053,26 +1053,28 @@ class HDWallet:
             hdkey_list.sort(key=lambda x: x.public_byte)
         cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.isprivate]
         if cosigner_id is None:
-            hdpm.cosigner_id = cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
+            hdpm.cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
+        wlt_cos_id = 0
         for cokey in hdkey_list:
             if hdpm.network.name != cokey.network.name:
                 raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
                                   (cokey.wif(), cokey.network.name, network, hdpm.network.name))
             scheme = 'bip32'
-            wn = name + '-cosigner-%d' % cosigner_id
+            wn = name + '-cosigner-%d' % wlt_cos_id
             if cokey.key_type == 'single':
                 scheme = 'single'
             w = cls.create(name=wn, keys=cokey, owner=owner, network=network, account_id=account_id, multisig=True,
                            purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id,
-                           witness_type=hdpm.witness_type, encoding=encoding, cosigner_id=cosigner_id,
+                           witness_type=hdpm.witness_type, encoding=encoding, cosigner_id=wlt_cos_id,
                            key_path=key_path, sort_keys=sort_keys, databasefile=databasefile)
             hdpm.cosigner.append(w)
-            cosigner_id += 1
+            wlt_cos_id += 1
 
         hdpm.multisig_n_required = sigs_required
         hdpm.sort_keys = sort_keys
         session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id).\
-            update({DbWallet.multisig_n_required: sigs_required})
+            update({DbWallet.multisig_n_required: sigs_required, DbWallet.sort_keys: hdpm.sort_keys,
+                    DbWallet.cosigner_id: hdpm.cosigner_id})
         session.commit()
         session.close_all()
         return hdpm
