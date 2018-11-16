@@ -120,6 +120,22 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         poutput = process.communicate(input=b'test2')
         self.assertIn(output_wlt_delete, normalize_string(poutput[0]))
 
+    def test_tools_clw_create_litecoin_segwit_wallet(self):
+        cmd_wlt_create = '%s %s ltcsw --passphrase "lounge chief tip frog camera build trouble write end ' \
+                         'sword order share" -r -d %s -y segwit -n litecoin' % \
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        cmd_wlt_delete = "%s %s ltcsw --wallet-remove -d %s" % \
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        output_wlt_create = "ltc1qgc7c2z56rr4lftg0fr8tgh2vknqc3yuydedu6m"
+        output_wlt_delete = "Wallet ltcsw has been removed"
+
+        process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
+        poutput = process.communicate(input=b'y')
+        self.assertIn(output_wlt_create, normalize_string(poutput[0]))
+        process = Popen(cmd_wlt_delete, stdin=PIPE, stdout=PIPE, shell=True)
+        poutput = process.communicate(input=b'ltcsw')
+        self.assertIn(output_wlt_delete, normalize_string(poutput[0]))
+
     # FIXME: Doesn't work on Travis + Also tested with test_tools_clw_transaction_with_script
     # def test_tools_cli_wallet(self):
     #     from bitcoinlib.tools.cli_wallet import main
