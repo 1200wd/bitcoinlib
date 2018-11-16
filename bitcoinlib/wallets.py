@@ -2129,6 +2129,8 @@ class HDWallet:
 
         accounts = []
         if self.multisig:
+            # FIXME: This should return an error, instead of list of main keys for multisig (?)
+            #raise WalletError("Accounts not supported for multisig wallets")
             for wlt in self.cosigner:
                 if wlt.main_key.is_private:
                     accounts.append(HDWalletKey(wlt.main_key.key_id, self._session))
@@ -2358,7 +2360,7 @@ class HDWallet:
 
         count_utxos = 0
         for network in networks:
-            if account_id is None:
+            if account_id is None and not self.multisig:
                 accounts = [k.account_id for k in self.accounts(network=network)]
                 if not accounts:
                     accounts = [self.default_account_id]
@@ -3240,19 +3242,32 @@ class HDWallet:
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    for account in self.accounts(network=nw['network_name']):
-                        print("\n- - Transactions (Account %d, %s)" %
-                              (account.account_id, account.key().wif_public(witness_type=self.witness_type)))
-                        for t in self.transactions(include_new=include_new, account_id=account.account_id,
-                                                   network=nw['network_name']):
+                    if self.multisig:
+                        for t in self.transactions(include_new=include_new, account_id=0, network=nw['network_name']):
+                            print("\n- - Transactions")
                             spent = ""
                             if 'spent' in t and t['spent'] is False:
                                 spent = "U"
                             status = ""
                             if t['status'] not in ['confirmed', 'unconfirmed']:
                                 status = t['status']
-                            print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
-                                                                    t['confirmations'], t['value'], spent, status))
+                            print("%4d %64s %36s %8d %13d %s %s" % (
+                            t['transaction_id'], t['tx_hash'], t['address'], t['confirmations'], t['value'], spent,
+                            status))
+                    else:
+                        for account in self.accounts(network=nw['network_name']):
+                            print("\n- - Transactions (Account %d, %s)" %
+                                  (account.account_id, account.key().wif_public(witness_type=self.witness_type)))
+                            for t in self.transactions(include_new=include_new, account_id=account.account_id,
+                                                       network=nw['network_name']):
+                                spent = ""
+                                if 'spent' in t and t['spent'] is False:
+                                    spent = "U"
+                                status = ""
+                                if t['status'] not in ['confirmed', 'unconfirmed']:
+                                    status = t['status']
+                                print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
+                                                                        t['confirmations'], t['value'], spent, status))
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
