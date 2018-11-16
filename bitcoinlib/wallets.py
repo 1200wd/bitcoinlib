@@ -1607,10 +1607,10 @@ class HDWallet:
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param number_of_keys: Number of keys to return. Default is 1
-        :type number_of_keys: int
         :param cosigner_id: Cosigner ID for key path
         :type cosigner_id: int
+        :param number_of_keys: Number of keys to return. Default is 1
+        :type number_of_keys: int
         :param change: Payment (0) or change key (1). Default is 0
         :type change: int
 

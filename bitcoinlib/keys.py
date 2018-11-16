@@ -174,13 +174,6 @@ def get_key_format(key, isprivate=None):
                     if networks:
                         key_format = 'hdkey_public'
                         isprivate = False
-                    # TODO: Recognise address key and implement in Key en HDKey classs
-                    # else:
-                    #     networks = network_by_value('prefix_address_p2sh', key_hex[:2]) + \
-                    #                network_by_value('prefix_address', key_hex[:2])
-                    #     if networks:
-                    #         key_format = 'address'
-                    #         isprivate = False
                     else:
                         prefix_data = prefix_search(key_hex[:8])
                         if prefix_data:

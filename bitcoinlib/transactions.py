@@ -680,6 +680,8 @@ class Input:
         :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
+        :param key_path: Key path of input key as BIP32 string or list
+        :type key_path: str, list
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
@@ -1504,7 +1506,9 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             if i.witnesses:
-                r_witness += struct.pack("B", len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
+                # r_witness += struct.pack("B", len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
+                # TODO: check if this is better:
+                r_witness += int_to_varbyteint(len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
             else:
                 r_witness += b'\0'
             if sign_id is None:
@@ -1746,6 +1750,8 @@ class Transaction:
         :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
+        :param key_path: Key path of input key as BIP32 string or list
+        :type key_path: str, list
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from script or script type
@@ -1764,8 +1770,7 @@ class Transaction:
                   script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, key_path=key_path, witness_type=witness_type,
-                  encoding=encoding,
-                  network=self.network.name))
+                  encoding=encoding, network=self.network.name))
         return index_n
 
     def add_output(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
