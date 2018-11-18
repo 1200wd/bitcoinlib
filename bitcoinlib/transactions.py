@@ -1826,6 +1826,7 @@ class Transaction:
         """
 
         est_size = 10
+        witness_size = 0
         if self.witness_type != 'legacy':
             est_size += 2
         for inp in self.inputs:
@@ -1833,7 +1834,9 @@ class Transaction:
             if inp.witness_type != 'legacy':
                 est_size += 1
             if inp.unlocking_script and len(inp.signatures) >= inp.sigs_required:
-                est_size += len(varstr(inp.unlocking_script))
+                scr_size = len(varstr(inp.unlocking_script))
+                est_size += scr_size
+                witness_size += scr_size
             else:
                 if inp.script_type == 'sig_pubkey':
                     est_size += 107
@@ -1841,7 +1844,9 @@ class Transaction:
                         est_size += 33
                 # elif inp.script_type in ['p2sh_multisig', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
                 elif inp.script_type == 'p2sh_multisig':
-                    est_size += 9 + (len(inp.keys) * 34) + (inp.sigs_required * 72)
+                    scr_size = 9 + (len(inp.keys) * 34) + (inp.sigs_required * 72)
+                    est_size += scr_size
+                    witness_size += scr_size
                 else:
                     raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
                                            inp.script_type)
