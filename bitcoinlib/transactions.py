@@ -1815,7 +1815,7 @@ class Transaction:
                                    encoding=encoding, network=self.network.name))
         return output_n
 
-    def estimate_size(self, add_change_output=True):
+    def estimate_size(self, add_change_output=False):
         """
         Get estimated size in bytes for current transaction based on transaction type and number of inputs and outputs.
 
@@ -1826,34 +1826,51 @@ class Transaction:
         """
 
         est_size = 10
-        if add_change_output:
-            est_size += 34
+        if self.witness_type != 'legacy':
+            est_size += 2
         for inp in self.inputs:
-            # TODO: Check sizes and move values to main.py in dictionary
-            if inp.script_type in ['sig_pubkey', 'p2pkh']:
-                if inp.compressed:
-                    est_size += 147
+            est_size += 40
+            if inp.witness_type != 'legacy':
+                est_size += 1
+            if inp.unlocking_script and len(inp.signatures) >= inp.sigs_required:
+                est_size += len(varstr(inp.unlocking_script))
+            else:
+                if inp.script_type == 'sig_pubkey':
+                    est_size += 107
+                    if not inp.compressed:
+                        est_size += 33
+                # elif inp.script_type in ['p2sh_multisig', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
+                elif inp.script_type == 'p2sh_multisig':
+                    est_size += 9 + (len(inp.keys) * 34) + (inp.sigs_required * 72)
                 else:
-                    est_size += 180
-            elif inp.script_type in ['p2sh_multisig', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
-                n_sigs = len(inp.keys)
-                est_size += 9 + (n_sigs * 34) + (inp.sigs_required * 72)
-            else:
-                raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
-                                       inp.script_type)
-        if not self.inputs:
-            est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
+                    raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
+                                           inp.script_type)
+        # if not self.inputs:
+        #     est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
         for outp in self.outputs:
-            # TODO: check this:
-            if outp.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2wpkh']:
-                est_size += 22
-            elif outp.script_type in ['p2pkh', 'p2wsh']:
-                est_size += 34
-            elif outp.script_type == 'nulldata':
-                est_size += len(outp.lock_script) + 9
+            est_size += 8
+            if outp.lock_script:
+                est_size += len(varstr(outp.lock_script))
             else:
-                raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
-                                       outp.script_type)
+                if outp.script_type == 'p2sh':
+                    est_size += 22
+                elif outp.script_type == 'p2pkh':
+                    est_size += 26
+                elif outp.script_type == 'p2wpkh':
+                    est_size += 21
+                elif outp.script_type == 'p2wsh':
+                    est_size += 33
+                elif outp.script_type == 'nulldata':
+                    est_size += len(outp.lock_script) + 1
+                else:
+                    raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
+                                           outp.script_type)
+        if add_change_output:
+            est_size += 8
+            if self.witness_type == 'legacy':
+                est_size += 34
+            else:
+                est_size += 34  # FIXME
         return est_size
 
     def calculate_fee(self):
