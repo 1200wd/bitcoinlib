@@ -1269,6 +1269,7 @@ class Transaction:
         self.fee = fee
         self.fee_per_kb = fee_per_kb
         self.size = size
+        self.vsize = size
         self.change = 0
         self.hash = hash
         self.date = date
@@ -1826,30 +1827,33 @@ class Transaction:
         """
 
         est_size = 10
-        witness_size = 0
+        witness_size = 2
         if self.witness_type != 'legacy':
             est_size += 2
         for inp in self.inputs:
             est_size += 40
+            scr_size = 0
             if inp.witness_type != 'legacy':
                 est_size += 1
             if inp.unlocking_script and len(inp.signatures) >= inp.sigs_required:
-                scr_size = len(varstr(inp.unlocking_script))
-                est_size += scr_size
-                witness_size += scr_size
+                scr_size += len(varstr(inp.unlocking_script))
+                if inp.witness_type == 'p2sh-segwit':
+                    scr_size += sum([1 + len(w) for w in inp.witnesses])
             else:
                 if inp.script_type == 'sig_pubkey':
-                    est_size += 107
+                    scr_size += 107
                     if not inp.compressed:
-                        est_size += 33
+                        scr_size += 33
+                    if inp.witness_type == 'p2sh-segwit':
+                        scr_size += 24
                 # elif inp.script_type in ['p2sh_multisig', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
                 elif inp.script_type == 'p2sh_multisig':
-                    scr_size = 9 + (len(inp.keys) * 34) + (inp.sigs_required * 72)
-                    est_size += scr_size
-                    witness_size += scr_size
+                    scr_size += 9 + (len(inp.keys) * 34) + (inp.sigs_required * 72)
                 else:
                     raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
                                            inp.script_type)
+            est_size += scr_size
+            witness_size += scr_size
         # if not self.inputs:
         #     est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
         for outp in self.outputs:
@@ -1876,7 +1880,13 @@ class Transaction:
                 est_size += 34
             else:
                 est_size += 34  # FIXME
-        return est_size
+        self.size = est_size
+        self.vsize = est_size
+        if self.witness_type == 'legacy':
+            return est_size
+        else:
+            self.vsize = math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
+            return self.vsize
 
     def calculate_fee(self):
         """
