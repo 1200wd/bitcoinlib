@@ -1384,6 +1384,8 @@ class Transaction:
                 print("-", to.address, to.value)
         if replace_by_fee:
             print("Replace by fee: Enabled")
+        print("Size: %d" % self.size)
+        print("Vsize: %d" % self.vsize)
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
@@ -1906,7 +1908,7 @@ class Transaction:
 
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
-        return int(len(self.raw())/1024.0 * self.fee_per_kb)
+        return int(self.estimate_size()/1024.0 * self.fee_per_kb)
 
     def update_totals(self):
         """
