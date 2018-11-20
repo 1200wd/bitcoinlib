@@ -1221,6 +1221,46 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.pushed)
         self.assertNotEqual(t.fee, 0)
 
+    def test_wallet_transactions_estimate_fee(self):
+        prev_tx_hash = '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5'
+
+        for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
+            wallet_delete_if_exists('wallet_estimate_fees', force=True, databasefile=DATABASEFILE_UNITTESTS)
+            wl3 = HDWallet.create('wallet_estimate_fees', witness_type=witness_type,
+                                  databasefile=DATABASEFILE_UNITTESTS)
+            wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
+            to_address = wl3.get_key_change().address
+            t = wl3.transaction_create([(to_address, 90000)], fee=10000)
+            t.estimate_size()
+            size1 = t.size
+            t.sign()
+            t.estimate_size()
+            size2 = t.size
+            self.assertAlmostEqual(size1, size2, delta=1)
+            self.assertAlmostEqual(len(t.raw()), size2, delta=1)
+
+        for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
+            p1 = HDKey()
+            p2 = HDKey()
+            p3 = HDKey()
+
+            wallet_delete_if_exists('wallet_estimate_fees_multisig', force=True, databasefile=DATABASEFILE_UNITTESTS)
+            wl3 = HDWallet.create_multisig('wallet_estimate_fees_multisig',
+                                           [p1, p2.account_multisig_key(witness_type=witness_type).public(),
+                                            p3.account_multisig_key(witness_type=witness_type).public()],
+                                           witness_type=witness_type, sigs_required=2,
+                                           databasefile=DATABASEFILE_UNITTESTS)
+            wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
+            to_address = wl3.get_key_change().address
+            t = wl3.transaction_create([(to_address, 90000)], fee=10000)
+            t.estimate_size()
+            size1 = t.size
+            t.sign(p2)
+            t.estimate_size()
+            size2 = t.size
+            self.assertAlmostEqual(size1, size2, delta=2)
+            self.assertAlmostEqual(len(t.raw()), size2, delta=2)
+
 
 class TestWalletDash(unittest.TestCase):
 

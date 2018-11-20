@@ -1818,7 +1818,10 @@ class Transaction:
 
     def estimate_size(self, add_change_output=False):
         """
-        Get estimated size in bytes for current transaction based on transaction type and number of inputs and outputs.
+        Get estimated vsize in for current transaction based on transaction type and number of inputs and outputs.
+
+        For old-style legacy transaction the vsize is the length of the transaction. In segwit transaction the
+        witness data has less weigth. The formula used is: math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
 
         :param add_change_output: Assume an extra change output will be created but has not been created yet.
         :type add_change_output: bool
@@ -1888,11 +1891,9 @@ class Transaction:
         self.size = est_size
         self.vsize = est_size
         if self.witness_type == 'legacy':
-            print('legacy', est_size, self.vsize)
             return est_size
         else:
             self.vsize = math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
-            print('segwit', est_size, self.vsize)
             return self.vsize
 
     def calculate_fee(self):
