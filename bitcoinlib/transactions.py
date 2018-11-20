@@ -1849,6 +1849,8 @@ class Transaction:
                 # elif inp.script_type in ['p2sh_multisig', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
                 elif inp.script_type == 'p2sh_multisig':
                     scr_size += 9 + (len(inp.keys) * 34) + (inp.sigs_required * 72)
+                    if inp.witness_type == 'p2sh-segwit':
+                        scr_size += 17 * inp.sigs_required
                 else:
                     raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
                                            inp.script_type)
