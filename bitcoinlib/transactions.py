@@ -1856,8 +1856,8 @@ class Transaction:
                                            inp.script_type)
             est_size += scr_size
             witness_size += scr_size
-        # if not self.inputs:
-        #     est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
+        if not self.inputs:
+            est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
         for outp in self.outputs:
             est_size += 8
             if outp.lock_script:
@@ -1877,9 +1877,9 @@ class Transaction:
                     raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
                                            outp.script_type)
         if add_change_output:
-            is_multisig = True if self.inputs[0].script_type == 'p2sh_multisig' else False
+            is_multisig = True if self.inputs and self.inputs[0].script_type == 'p2sh_multisig' else False
             est_size += 8
-            if self.inputs[0].witness_type == 'legacy':
+            if not self.inputs or self.inputs[0].witness_type == 'legacy':
                 est_size += 24 if is_multisig else 26
             elif self.inputs[0].witness_type == 'p2sh-segwit':
                 est_size += 24

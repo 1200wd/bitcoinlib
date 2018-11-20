@@ -39,7 +39,9 @@ class BlockChairClient(BaseClient):
 
     def compose_request(self, command, query_vars=None, data=None, offset=0):
         url_path = ''
-        variables = {'limit': REQUEST_LIMIT}
+        variables = {}
+        if command != 'stats':
+            variables.update({'limit': REQUEST_LIMIT})
         if offset:
             variables.update({'offset': offset})
         if command:
