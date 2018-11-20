@@ -2808,7 +2808,7 @@ class HDWallet:
         if fee is None:
             if not input_arr:
                 transaction.fee_per_kb = srv.estimatefee()
-                fee_estimate = (transaction.estimate_size() / 1024.0 * transaction.fee_per_kb)
+                fee_estimate = (transaction.estimate_size(add_change_output=True) / 1024.0 * transaction.fee_per_kb)
                 if fee_estimate < self.network.fee_min:
                     fee_estimate = self.network.fee_min
             else:
@@ -2913,7 +2913,7 @@ class HDWallet:
         # Calculate fees
         transaction.fee = fee
         fee_per_output = None
-        tr_size = transaction.estimate_size()
+        tr_size = transaction.estimate_size(add_change_output=True)
         if fee is None:
             if not input_arr:
                 if not transaction.fee_per_kb:

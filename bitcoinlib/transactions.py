@@ -1862,7 +1862,7 @@ class Transaction:
                 est_size += len(varstr(outp.lock_script))
             else:
                 if outp.script_type == 'p2sh':
-                    est_size += 22
+                    est_size += 24
                 elif outp.script_type == 'p2pkh':
                     est_size += 26
                 elif outp.script_type == 'p2wpkh':
@@ -1875,17 +1875,22 @@ class Transaction:
                     raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
                                            outp.script_type)
         if add_change_output:
+            is_multisig = True if self.inputs[0].script_type == 'p2sh_multisig' else False
             est_size += 8
-            if self.witness_type == 'legacy':
-                est_size += 34
+            if self.inputs[0].witness_type == 'legacy':
+                est_size += 24 if is_multisig else 26
+            elif self.inputs[0].witness_type == 'p2sh-segwit':
+                est_size += 24
             else:
-                est_size += 34  # FIXME
+                est_size += 33 if is_multisig else 23
         self.size = est_size
         self.vsize = est_size
         if self.witness_type == 'legacy':
+            print('legacy', est_size, self.vsize)
             return est_size
         else:
             self.vsize = math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
+            print('segwit', est_size, self.vsize)
             return self.vsize
 
     def calculate_fee(self):
