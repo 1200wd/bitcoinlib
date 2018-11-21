@@ -22,6 +22,7 @@ WALLET_NAME = "Multisig-2of3"
 NETWORK = 'testnet'
 KEY_STRENGTH = 128  # Remove this line to use the default 256 bit key strength
 SIGNATURES_REQUIRED = 2
+WITNESS_TYPE = 'segwit'  # Witness type can be legacy, p2sh-segwit or segwit
 
 # from bitcoinlib.wallets import wallet_delete_if_exists
 # wallet_delete_if_exists(WALLET_NAME, force=True)
@@ -52,7 +53,7 @@ if not wallet_exists(WALLET_NAME):
         seed = Mnemonic().to_seed(words, password)
         hdkey = HDKey.from_seed(seed, network=NETWORK, key_type=cosigner[1])
         if cosigner[1] == 'bip44':
-            public_account = hdkey.account_multisig_key()
+            public_account = hdkey.account_multisig_key(witness_type=WITNESS_TYPE)
         else:
             public_account = hdkey
         print("Key for cosigner '%s' generated. Please store both passphrase and password carefully!" % cosigner[0])
@@ -69,7 +70,7 @@ if not wallet_exists(WALLET_NAME):
             key_list_thispc.append(public_account.public())
 
     thispc_wallet = HDWallet.create_multisig(WALLET_NAME, key_list_thispc, SIGNATURES_REQUIRED, sort_keys=True,
-                                             network=NETWORK)
+                                             witness_type=WITNESS_TYPE, network=NETWORK)
     thispc_wallet.new_key()
 
     print("\n\nA multisig wallet has been created on this system")
@@ -82,9 +83,10 @@ if not wallet_exists(WALLET_NAME):
     print("key_list = [")
     print("    '%s'," % key_list[0].account_multisig_key().wif_public())
     print("    '%s'," % key_list[1].wif())
-    print("    HDKey('%s', key_type='single')" % key_list[2].wif_public())
+    print("    HDKey('%s', key_type='single', witness_type='%s')" % (key_list[2].wif_public(), WITNESS_TYPE))
     print("]")
-    print("wlt = HDWallet.create_multisig('%s', key_list, 2, sort_keys=True, network='%s')" % (WALLET_NAME, NETWORK))
+    print("wlt = HDWallet.create_multisig('%s', key_list, 2, sort_keys=True, witness_type='%s', network='%s')" %
+          (WALLET_NAME, WITNESS_TYPE, NETWORK))
     print("wlt.new_key()")
     print("wlt.info()")
 else:

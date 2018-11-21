@@ -885,6 +885,7 @@ class TestWalletMultisig(unittest.TestCase):
         wl.new_key()
         wl.new_key_change()
         wl.utxos_update()
+        self.assertEqual(wl.public_master()[1].wif, keys[1].wif())
         key_names = [k.name for k in wl.keys(is_active=False)]
         self.assertListEqual(key_names, ['Multisig Key 5/6', 'Multisig Key 8/6', 'Multisig Key 11/6'])
 

@@ -3177,7 +3177,9 @@ class HDWallet:
 
         :return str, list:
         """
-        if not self.cosigner:
+        if self.main_key and self.main_key.key_type == 'single':
+            return self.main_key
+        elif not self.cosigner:
             depth = -3 if 'cosigner_index' in self.key_path else -2
             return self.key_for_path([], depth, account_id=account_id, network=network, cosigner_id=self.cosigner_id)
         else:
