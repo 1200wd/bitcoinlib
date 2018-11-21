@@ -93,6 +93,6 @@ for dt in data:
 # Convert Bech32 address to Public key hash
 address = "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4"
 pkh = "0014751e76e8199196d454941c45d1b3a323f1433bd6"
-pkh_converted = addr_bech32_to_pubkeyhash(address, hrp='bc', include_witver=True, as_hex=True)
+pkh_converted = addr_bech32_to_pubkeyhash(address, prefix='bc', include_witver=True, as_hex=True)
 print(pkh, " == ", pkh_converted)
 addr = pubkeyhash_to_addr_bech32(pkh_converted, address[:2].lower())

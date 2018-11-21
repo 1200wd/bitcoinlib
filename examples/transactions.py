@@ -79,7 +79,7 @@ transaction_inputs = [
 ]
 for ti in transaction_inputs:
     ki = Key(ti[2], network='testnet')
-    t.add_input(prev_hash=ti[0], output_n=ti[1], keys=ki.public(), sequence=0xffffffff)
+    t.add_input(prev_hash=ti[0], output_n=ti[1], keys=ki.public())
 icount = 0
 for ti in transaction_inputs:
     ki = Key(ti[2], network='testnet')

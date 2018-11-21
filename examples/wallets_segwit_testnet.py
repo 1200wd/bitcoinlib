@@ -34,20 +34,20 @@ cowif2 = HDKey(wif2).account_multisig_key()
 #
 
 # Segwit P2SH-P2WPKH Wallet
-w1 = wallet_create_or_open('segwit_testnet_p2sh_p2wpkh', key=wif, witness_type='p2sh-segwit', network='testnet')
+w1 = wallet_create_or_open('segwit_testnet_p2sh_p2wpkh', keys=wif, witness_type='p2sh-segwit', network='testnet')
 w1_key = w1.get_key()
 
 # Segwit Native P2WPKH Wallet
-w2 = wallet_create_or_open('segwit_testnet_p2wpkh', key=wif, witness_type='segwit', network='testnet')
+w2 = wallet_create_or_open('segwit_testnet_p2wpkh', keys=wif, witness_type='segwit', network='testnet')
 w2_key = w2.get_key()
 
 # Segwit Native P2WSH Wallet
-w3 = wallet_create_or_open_multisig('segwit_testnet_p2wsh', key_list=[wif, cowif2.public()], witness_type='segwit',
+w3 = wallet_create_or_open_multisig('segwit_testnet_p2wsh', keys=[wif, cowif2.public()], witness_type='segwit',
                                     network='testnet')
 w3_key = w3.get_key()
 
 # Segwit P2SH-P2WSH Wallet
-w4 = wallet_create_or_open_multisig('segwit_testnet_p2sh_p2wsh', key_list=[wif, cowif2.public()],
+w4 = wallet_create_or_open_multisig('segwit_testnet_p2sh_p2wsh', keys=[wif, cowif2.public()],
                                     witness_type='p2sh-segwit', network='testnet')
 w4_key = w4.get_key()
 

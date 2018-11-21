@@ -8,7 +8,7 @@
 #    Transaction are created and signed with 1 signature on this PC, on the other offline PC the transaction is signed
 #    with a second private key. The third key is a stored on a paper in case one of the others keys is lost.
 #
-#    © 2017 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
 #
 
 from __future__ import print_function
