@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Transaction Class examples
 #
-#    © 2017 December - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -146,6 +146,15 @@ script = '004cc9524104c898af7c30ff06735110f4041d02f242c676a85011b5ea9aae2b64c74e
 script_dict = script_deserialize(script)
 pprint(script_dict)
 
+print("\n- p2wpkh -")
+script = b"\x00\x14\xdc'M\xf8\x110Ke\xbd\x95\x1fq\xa3\x81\x0e\xc1\x91\x0b\xd7\x96"
+script_dict = script_deserialize(script)
+pprint(script_dict)
+
+print("\n- p2wsh -")
+script = b'\x00 X|\x82_z\xb2\xdcV!\x0f\x92q\x15\x85\xed\x0cj\x84\x930]~\xa7\xb2\xd4\xb3a\x1e\\\xda\x85*'
+script_dict = script_deserialize(script)
+pprint(script_dict)
 
 #
 # Deserialize transactions
@@ -166,4 +175,12 @@ rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d
         '8a12658c75763feb3d8f3cf7be2236f231cd157e932103c0007ae565abf62a9005801b0dad123e307ab3826b7ad7511f113db9c' \
         '8bae26a2102d132eab76542dfaae8e824ec553f20a8f11c10960203cd581428f66e2b4a98f853aeffffffff01a0860100000000' \
         '001976a91413d215d212cd5188ae02c5635faabdc4d7d4ec9188ac00000000'
+pprint(Transaction.import_raw(rawtx).dict())
+
+print("\nDeserialize SegWit Transaction")
+rawtx = "010000000001012cee085d06fba97cabab6644e948c1d8366368c54837fd85381b3bfa7884602b0000000000ffffffff0210270" \
+        "00000000000220020587c825f7ab2dc56210f92711585ed0c6a8493305d7ea7b2d4b3611e5cda852a7ca6f50500000000160014" \
+        "1a994cf1bb70b3b5e896ae28a1208eff84dbd5c20247304402204f1e2a4d0412d8c5e49acbb4a14bcfc0eeac5535e2e9bcebfc7" \
+        "e1c557ea2942b02203d74d47ce3c93f7ccdbc4cc67f6cc96ac13a7f53b4bbe2a5e3c36f2ca19939800121032a70d2054b4977ca" \
+        "926eeafb8ba24c6fdc086b2c127335b10b3c9fbbccf67ef700000000"
 pprint(Transaction.import_raw(rawtx).dict())
