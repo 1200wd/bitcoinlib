@@ -597,12 +597,11 @@ class HDWalletTransaction(Transaction):
             if not isinstance(keys, list):
                 keys = [keys]
             for priv_key in keys:
-                if isinstance(priv_key, HDKey):
-                    if priv_key.depth == 0 and self.inputs[index_n].key_path and priv_key.key_type != "single":
-                        priv_key = priv_key.subkey_for_path(self.inputs[index_n].key_path)
-                    priv_key_list_arg.append(priv_key)
-                else:
-                    priv_key_list_arg.append(HDKey(priv_key, network=self.network.name))
+                if not isinstance(priv_key, HDKey):
+                    priv_key = HDKey(priv_key, network=self.network.name)
+                if priv_key.depth == 0 and self.inputs[index_n].key_path and priv_key.key_type != "single":
+                    priv_key = priv_key.subkey_for_path(self.inputs[index_n].key_path)
+                priv_key_list_arg.append(priv_key)
         for ti in self.inputs:
             priv_key_list = deepcopy(priv_key_list_arg)
             for k in ti.keys:

@@ -106,13 +106,13 @@ pk1 = HDKey('YXscyqNJ5YK411nwB33KeVkhSVjwwUkSG9xG3hkaoQFEbTwNJSrNTfni3aSSYiKtPeU
             'mqSEZrKP', network=NETWORK)
 pk2 = HDKey('YXscyqNJ5YK411nwB3kXiApMaJySYss8sMM9FYgXMtmQKmDTF9yiu7yBNKnVjE8WdVVvuhxLqS6kHvW2MPHKmYzbzEHQsDXXAZuu1rCs'
             'Hcp7rrJx', network=NETWORK, key_type='single')
-wl1 = HDWallet.create_multisig('multisig_single_keys1', [pk1, pk2.wif_public()],
+wl1 = HDWallet.create_multisig('multisig_single_keys1', [pk1, pk2.public()],
                                sigs_required=2, network=NETWORK, databasefile=test_database)
 wl2 = HDWallet.create_multisig('multisig_single_keys2', [pk1.account_multisig_key().wif_public(), pk2],
                                sigs_required=2, network=NETWORK, databasefile=test_database)
 
 # Create multisig keys and update UTXO's
-wl1.new_key()
+wl1.new_key(cosigner_id=0)
 wl2.new_key(cosigner_id=0)
 wl1.utxos_update()
 wl2.utxos_update()
