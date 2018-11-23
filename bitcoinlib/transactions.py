@@ -164,10 +164,10 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                                   signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
                                   sequence=inputs[n].sequence, index_n=inputs[n].index_n, public_hash=public_hash,
                                   network=inputs[n].network)
+    if len(rawtx[cursor:]) != 4:
+        raise TransactionError("Error when deserializing raw transaction, bytes left for locktime must be 4 not %d" %
+                               len(rawtx[cursor:]))
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
-    if len(rawtx[cursor+4:]):
-        raise TransactionError("Error when deserializing raw transaction, bytes left after operation %s" %
-                               to_hexstring(rawtx[cursor+4:]))
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
                        coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=to_hexstring(rawtx))
@@ -1481,8 +1481,8 @@ class Transaction:
             varstr(script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
-        # print(to_hexstring(ser_tx))
-        # print(sign_id, sign_key_id, to_hexstring(script_code))
+        print(to_hexstring(ser_tx))
+        print(sign_id, to_hexstring(script_code))
         return ser_tx
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
