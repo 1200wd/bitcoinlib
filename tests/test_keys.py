@@ -535,6 +535,12 @@ class TestKeysAddress(unittest.TestCase):
         self.assertEqual(addr_convert('bc1q4pwfmstmw8q80nxtxud2h42lev9xzcjqwqyq7t', prefix='tb'),
                          'tb1q4pwfmstmw8q80nxtxud2h42lev9xzcjqyxln9c')
 
+    def test_keys_address_import_ambigue_bech32(self):
+        # Import bech32 address with only base58 characters
+        pk = '73c32f225a98ac084565429d5a15148dad5d9f6ef7cc7a5d901c9dfd6bb6027a'
+        addr = Address(HDKey(pk).public_hex, witness_type='segwit')
+        self.assertEqual(deserialize_address(addr.address, encoding='bech32')['encoding'], 'bech32')
+
 
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):

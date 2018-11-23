@@ -252,7 +252,10 @@ def deserialize_address(address, encoding=None, network=None):
             check = address_bytes[-4:]
             key_hash = address_bytes[:-4]
             checksum = double_sha256(key_hash)[0:4]
-            assert (check == checksum), "Invalid address, checksum incorrect"
+            if check != checksum and encoding == 'base58':
+                raise KeyError("Invalid address %s, checksum incorrect" % address)
+            else:
+                pass
             address_prefix = key_hash[0:1]
             networks_p2pkh = network_by_value('prefix_address', address_prefix)
             networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
