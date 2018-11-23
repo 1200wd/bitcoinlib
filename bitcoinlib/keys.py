@@ -254,35 +254,34 @@ def deserialize_address(address, encoding=None, network=None):
             checksum = double_sha256(key_hash)[0:4]
             if check != checksum and encoding == 'base58':
                 raise KeyError("Invalid address %s, checksum incorrect" % address)
-            else:
-                pass
-            address_prefix = key_hash[0:1]
-            networks_p2pkh = network_by_value('prefix_address', address_prefix)
-            networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
-            public_key_hash = key_hash[1:]
-            script_type = ''
-            networks = []
-            if networks_p2pkh and not networks_p2sh:
-                script_type = 'p2pkh'
-                networks = networks_p2pkh
-            elif networks_p2sh:
-                script_type = 'p2sh'
-                networks = networks_p2sh
-            if network:
-                if network not in networks:
-                    raise KeyError("Network %s not found in extracted networks: %s" % (network, networks))
-            elif len(networks) >= 1:
-                network = networks[0]
-            return {
-                'address': address,
-                'encoding': 'base58',
-                'public_key_hash': change_base(public_key_hash, 256, 16),
-                'public_key_hash_bytes': public_key_hash,
-                'prefix': address_prefix,
-                'network': network,
-                'script_type': script_type,
-                'networks': networks,
-            }
+            elif check == checksum:
+                address_prefix = key_hash[0:1]
+                networks_p2pkh = network_by_value('prefix_address', address_prefix)
+                networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
+                public_key_hash = key_hash[1:]
+                script_type = ''
+                networks = []
+                if networks_p2pkh and not networks_p2sh:
+                    script_type = 'p2pkh'
+                    networks = networks_p2pkh
+                elif networks_p2sh:
+                    script_type = 'p2sh'
+                    networks = networks_p2sh
+                if network:
+                    if network not in networks:
+                        raise KeyError("Network %s not found in extracted networks: %s" % (network, networks))
+                elif len(networks) >= 1:
+                    network = networks[0]
+                return {
+                    'address': address,
+                    'encoding': 'base58',
+                    'public_key_hash': change_base(public_key_hash, 256, 16),
+                    'public_key_hash_bytes': public_key_hash,
+                    'prefix': address_prefix,
+                    'network': network,
+                    'script_type': script_type,
+                    'networks': networks,
+                }
     if encoding == 'bech32' or encoding is None:
         try:
             public_key_hash = addr_to_pubkeyhash(address, encoding='bech32')
@@ -790,9 +789,9 @@ class Key:
 
     def hash160(self):
         """
-        Get public key in Hash160 format
+        Get public key in RIPEMD-160 + SHA256 format
         
-        :return bytes: Hash160 of public key 
+        :return bytes:
         """
         if not self._hash160:
             if self.compressed:
@@ -1115,7 +1114,7 @@ class HDKey:
 
     def fingerprint(self):
         """
-        Get fingerprint of keys public part
+        Get key fingerprint: the last for bytes of the hash160 of this key.
 
         :return bytes:
         """
