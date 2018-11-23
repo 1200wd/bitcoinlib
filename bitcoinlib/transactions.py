@@ -1509,8 +1509,6 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             if i.witnesses:
-                # r_witness += struct.pack("B", len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
-                # TODO: check if this is better:
                 r_witness += int_to_varbyteint(len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
             else:
                 r_witness += b'\0'

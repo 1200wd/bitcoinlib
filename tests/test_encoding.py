@@ -310,12 +310,6 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             self.assertFalse(addr_bech32_to_pubkeyhash("bc", test))
             self.assertFalse(addr_bech32_to_pubkeyhash("tb", test))
 
-    # FIXME: This test is BS right now
-    # def test_invalid_address_enc(self):
-    #     """Test whether address encoding fails on invalid input."""
-    #     for hrp, version, length in INVALID_ADDRESS_ENC:
-    #         self.assertFalse(addr_bech32_to_pubkeyhash(hrp, version, [0] * length))
-
 
 if __name__ == '__main__':
     unittest.main()

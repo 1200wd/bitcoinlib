@@ -1840,6 +1840,8 @@ class HDWallet:
         while spath and not dbkey:
             dbkey = self._session.query(DbKey).filter_by(path=spath, wallet_id=self.wallet_id).first()
             spath = '/'.join(spath.split("/")[:-1])
+        if not dbkey:
+            raise WalletError("No master or public master key found in this wallet")
         topkey = self.key(dbkey.id)
 
         # Key already found in db, return key
@@ -1865,7 +1867,6 @@ class HDWallet:
             else:
                 key_name = "%s %s" % (self.key_path[len(newpath.split('/'))-1], lvl)
                 key_name = key_name.replace("'", "").replace("_", " ")
-            # TODO: Add witness type / cosigner ID
             nk = HDWalletKey.from_key(key=ck, name=key_name, wallet_id=self.wallet_id, account_id=account_id,
                                       change=change, purpose=self.purpose, path=newpath, parent_id=parent_id,
                                       encoding=self.encoding, witness_type=self.witness_type, network=network,
@@ -2412,9 +2413,8 @@ class HDWallet:
                         status = 'confirmed'
 
                     # Update confirmations in db if utxo was already imported
-                    # TODO: Add network filter (?)
-                    transaction_in_db = self._session.query(DbTransaction).filter_by(wallet_id=self.wallet_id,
-                                                                                     hash=utxo['tx_hash'])
+                    transaction_in_db = self._session.query(DbTransaction).\
+                        filter_by(wallet_id=self.wallet_id, hash=utxo['tx_hash'], network_name=self.network.name)
                     utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == utxo['tx_hash'],

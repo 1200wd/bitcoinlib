@@ -492,7 +492,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'script': '0014f922634ea00272421ffdb6f187935602159e1750',
                     'value': 506320402}
                 ],
-            # 'size': 191,  #  FIXME: Enable size
+            'size': 191,
         }
         srv = Service(network='bitcoin', min_providers=10)
 
