@@ -136,20 +136,6 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         poutput = process.communicate(input=b'ltcsw')
         self.assertIn(output_wlt_delete, normalize_string(poutput[0]))
 
-    # FIXME: Doesn't work on Travis + Also tested with test_tools_clw_transaction_with_script
-    # def test_tools_cli_wallet(self):
-    #     from bitcoinlib.tools.cli_wallet import main
-    #     import io
-    #     from contextlib import redirect_stdout
-    #     f = io.StringIO()
-    #     with redirect_stdout(f):
-    #         try:
-    #             main()
-    #         except SystemExit:
-    #             pass
-    #     out = f.getvalue()
-    #     self.assertIn("Command Line Wallet for BitcoinLib", out)
-
 
 if __name__ == '__main__':
     unittest.main()
