@@ -1481,8 +1481,8 @@ class Transaction:
             varstr(script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
-        print(to_hexstring(ser_tx))
-        print(sign_id, to_hexstring(script_code))
+        # print(to_hexstring(ser_tx))
+        # print(sign_id, to_hexstring(script_code))
         return ser_tx
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):

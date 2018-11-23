@@ -1469,7 +1469,7 @@ class HDWallet:
                 public_keys.append({
                     'key_id': wk.key_id,
                     'public_key_uncompressed': wk.key().key.public_uncompressed(),
-                    'public_key': wk.key().key.public(),
+                    'public_key': wk.key().key.public_hex,
                     'depth': wk.depth,
                     'path': wk.path
                 })

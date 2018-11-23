@@ -25,6 +25,7 @@ import numbers
 import random
 import struct
 import sys
+from copy import deepcopy
 
 import ecdsa
 import scrypt
@@ -743,7 +744,6 @@ class Key:
         if prefix is None:
             versionbyte = self.network.prefix_wif
         else:
-            # TODO: Test bytearray
             if not isinstance(prefix, (bytes, bytearray)):
                 versionbyte = binascii.unhexlify(prefix)
             else:
@@ -754,19 +754,18 @@ class Key:
         key += double_sha256(key)[:4]
         return change_base(key, 256, 58)
 
-    def public(self, return_compressed=None):
+    def public(self):
         """
-        Get public key
-        
-        :param return_compressed: If True always return a compressed version and if False always return uncompressed
-        :type return_compressed: bool
-        
-        :return str: Public key hexstring 
+        Get public version of current key. Removes all private information from current key
+
+        :return Key: Public key
         """
-        if (self.compressed and return_compressed is None) or return_compressed:
-            return self.public_hex
-        else:
-            return self.public_uncompressed_hex
+        key = deepcopy(self)
+        key.isprivate = False
+        key.private_byte = None
+        key.private_hex = None
+        key.secret = None
+        return key
 
     def public_uncompressed(self):
         """
@@ -1066,7 +1065,8 @@ class HDKey:
         print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint, 256, 16))
         print(" Depth                       %s" % self.depth)
         print(" Extended Public Key (wif)   %s" % self.wif_public())
-        print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
+        if self.isprivate:
+            print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
         print("\n")
 
     def dict(self):
@@ -1380,11 +1380,17 @@ class HDKey:
 
     def public(self):
         """
-        Public version of current private key.
+        Public version of current private key. Strips all private information from HDKey object, returns deepcopy
+        version of current object
 
         :return HDKey:
         """
 
-        # TODO: more clevvvvver
-        return HDKey(self.wif_public(), parent_fingerprint=self.parent_fingerprint, isprivate=self.isprivate,
-                     key_type=self.key_type, network=self.network.name)
+        hdkey = deepcopy(self)
+        hdkey.isprivate = False
+        hdkey.secret = None
+        hdkey.private_hex = None
+        hdkey.private_byte = None
+        hdkey.key_hex = hdkey.public_hex
+        hdkey.key = self.key.public()
+        return hdkey
