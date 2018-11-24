@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Transaction Class examples
 #
-#    © 2017 December - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -79,7 +79,7 @@ transaction_inputs = [
 ]
 for ti in transaction_inputs:
     ki = Key(ti[2], network='testnet')
-    t.add_input(prev_hash=ti[0], output_n=ti[1], keys=ki.public(), sequence=0xffffffff)
+    t.add_input(prev_hash=ti[0], output_n=ti[1], keys=ki.public())
 icount = 0
 for ti in transaction_inputs:
     ki = Key(ti[2], network='testnet')
@@ -146,6 +146,15 @@ script = '004cc9524104c898af7c30ff06735110f4041d02f242c676a85011b5ea9aae2b64c74e
 script_dict = script_deserialize(script)
 pprint(script_dict)
 
+print("\n- p2wpkh -")
+script = b"\x00\x14\xdc'M\xf8\x110Ke\xbd\x95\x1fq\xa3\x81\x0e\xc1\x91\x0b\xd7\x96"
+script_dict = script_deserialize(script)
+pprint(script_dict)
+
+print("\n- p2wsh -")
+script = b'\x00 X|\x82_z\xb2\xdcV!\x0f\x92q\x15\x85\xed\x0cj\x84\x930]~\xa7\xb2\xd4\xb3a\x1e\\\xda\x85*'
+script_dict = script_deserialize(script)
+pprint(script_dict)
 
 #
 # Deserialize transactions
@@ -167,3 +176,18 @@ rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d
         '8bae26a2102d132eab76542dfaae8e824ec553f20a8f11c10960203cd581428f66e2b4a98f853aeffffffff01a0860100000000' \
         '001976a91413d215d212cd5188ae02c5635faabdc4d7d4ec9188ac00000000'
 pprint(Transaction.import_raw(rawtx).dict())
+
+print("\nDeserialize SegWit Transaction")
+rawtx = "01000000000102d6ff09fefa22fabd07306d9185da3cdefbed208d949fdc9985a164dd2ddde097000000006a4730440220385bd" \
+        "1b040f520a9560fbe105924540546b7b9d4d21c0f689d7e6d02fd231df00220088c0bec0a976ec522b9cc8f19b42dc18d4e3cc7" \
+        "5444734d09b22d5bff73a752012103a739dbb81512ff7e8e080c734159e110d90e96da82d7ea62cc524d4d2259a650ffffffff6" \
+        "79487626c91a9426e1b3cdf66dc5319fce5b6507aabdc4fdfa1485eec824b340000000000ffffffff02b81c1200000000001600" \
+        "148264e2ece75fb347481df309f130443674be674ae5252f00000000001976a9145384ca03c2e1b3509f335f031ee0c994626de" \
+        "36d88ac000247304402201f835e46c76a6701dd80ba925447863d1a31ff3367083459b146564059770aab022072808730fd04d3" \
+        "a7613abbe0403c36cd4e7e75ec6f7eed4faa66d1970eb6af3a0121028229ee1a1016847930d5baf8e5d017ad6ebe48167935969" \
+        "021865abfa06837f500000000"
+t = Transaction.import_raw(rawtx)
+t.inputs[0].value = 2197812
+t.inputs[1].value = 2080188
+t.verify()
+pprint(t.dict())

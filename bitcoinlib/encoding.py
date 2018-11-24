@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    ENCODING - Helper methods for encoding and conversion
-#    © 2018 January - 1200 Web Development <http://1200wd.com/>
+#    ENCODING - Methods for encoding and conversion
+#    © 2016 - 2018 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -321,35 +321,20 @@ def int_to_varbyteint(inp):
         return struct.pack('<cQ', b'\xff', inp)
 
 
-def varstr(s):
-    """
-    Convert string to bytestring preceeded with length byte
-
-    :param s: bytestring
-    :type s: bytes, str
-
-    :return bytes: varstring
-    """
-    s = normalize_var(s)
-    if s == b'\0':
-        return s
-    return int_to_varbyteint(len(s)) + s
-
-
-def convert_der_sig(s, as_hex=True):
+def convert_der_sig(signature, as_hex=True):
     """
     Convert DER encoded signature to signature
 
-    :param s: DER signature
-    :type s: bytes
+    :param signature: DER signature
+    :type signature: bytes
     :param as_hex: Output as hexstring
     :type as_hex: bool
 
     :return bytes, str: Signature
     """
-    if not s:
+    if not signature:
         return ""
-    sg, junk = ecdsa.der.remove_sequence(s)
+    sg, junk = ecdsa.der.remove_sequence(signature)
     if junk != b'':
         raise EncodingError("Junk found in encoding sequence %s" % junk)
     x, sg = ecdsa.der.remove_integer(sg)
@@ -361,24 +346,50 @@ def convert_der_sig(s, as_hex=True):
         return binascii.unhexlify(sig)
 
 
-def addr_to_pubkeyhash(address, as_hex=False):
+def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):
     """
-    Convert address to public key hash
+    Convert base58 or bech32 address to public key hash
 
     :param address: Crypto currency address in base-58 format
     :type address: str
     :param as_hex: Output as hexstring
     :type as_hex: bool
+    :param encoding: Address encoding used: base58 or bech32
+    :type encoding: str
 
     :return bytes, str: public key hash
     """
+
+    if encoding == 'base58' or encoding is None:
+        try:
+            pkh = addr_base58_to_pubkeyhash(address, as_hex)
+        except EncodingError:
+            pkh = None
+        if pkh is not None:
+            return pkh
+    if encoding == 'bech32' or encoding is None:
+        return addr_bech32_to_pubkeyhash(address, as_hex=as_hex)
+
+
+def addr_base58_to_pubkeyhash(address, as_hex=False):
+    """
+    Convert Base58 encoded address to public key hash
+
+    :param address: Crypto currency address in base-58 format
+    :type address: str, bytes
+    :param as_hex: Output as hexstring
+    :type as_hex: bool
+
+    :return bytes, str: Public Key Hash
+    """
+
     try:
         address = change_base(address, 58, 256, 25)
     except EncodingError as err:
         raise EncodingError("Invalid address %s: %s" % (address, err))
     check = address[-4:]
     pkh = address[:-4]
-    checksum = hashlib.sha256(hashlib.sha256(pkh).digest()).digest()[0:4]
+    checksum = double_sha256(pkh)[0:4]
     assert (check == checksum), "Invalid address, checksum incorrect"
     if as_hex:
         return change_base(pkh, 256, 16)[2:]
@@ -386,21 +397,134 @@ def addr_to_pubkeyhash(address, as_hex=False):
         return pkh[1:]
 
 
-def pubkeyhash_to_addr(pkh, versionbyte=b'\x00'):
+def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=False):
     """
-    Convert public key hash to address
+    Decode bech32 / segwit address to public key hash
 
-    :param pkh: Public key hash
-    :type pkh: bytes, str
-    :param versionbyte: Prefix version byte of network, default is bitcoin '\x00'
-    :type versionbyte: bytes
+    Validate the Bech32 string, and determine HRP and data
+
+    :param bech: Bech32 address to convert
+    :type bech: str
+    :param prefix: Address prefix called Human-readable part. Default is None and tries to derive prefix, for bitcoin specify 'bc' and for bitcoin testnet 'tb'
+    :type prefix: str
+    :param include_witver: Include witness version in output? Default is False
+    :type include_witver: bool
+    :param as_hex: Output public key hash as hex or bytes. Default is False
+    :type as_hex: bool
+
+    :return str: Public Key Hash
+    """
+
+    if (any(ord(x) < 33 or ord(x) > 126 for x in bech)) or (bech.lower() != bech and bech.upper() != bech):
+        return False
+    bech = bech.lower()
+    pos = bech.rfind('1')
+    if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
+        return False
+    if prefix and prefix != bech[:pos]:
+        raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], prefix))
+    else:
+        hrp = bech[:pos]
+    data = _codestring_to_array(bech[pos + 1:], 'bech32')
+    hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+    if not _bech32_polymod(hrp_expanded + data) == 1:
+        return False
+    data = data[:-6]
+    decoded = bytearray(convertbits(data[1:], 5, 8, pad=False))
+    if decoded is None or len(decoded) < 2 or len(decoded) > 40:
+        return False
+    if data[0] > 16:
+        return False
+    if data[0] == 0 and len(decoded) not in [20, 32]:
+        return False
+    prefix = b''
+    if include_witver:
+        datalen = len(decoded)
+        prefix = bytearray([data[0] + 0x50 if data[0] else 0, datalen])
+    if as_hex:
+        return change_base(prefix + decoded, 256, 16)
+    return prefix + decoded
+
+
+def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
+    """
+    Convert public key hash to base58 encoded address
+
+    :param pubkeyhash: Public key hash
+    :type pubkeyhash: bytes, str
+    :param prefix: Prefix version byte of network, default is bitcoin '\x00'
+    :type prefix: str, bytes
+    :param encoding: Encoding of address to calculate: base58 or bech32. Default is base58
+    :type encoding: str
+
+    :return str: Base58 or bech32 encoded address
+
+    """
+    if encoding == 'base58':
+        if prefix is None:
+            prefix = b'\x00'
+        return pubkeyhash_to_addr_base58(pubkeyhash, prefix)
+    elif encoding == 'bech32':
+        if prefix is None:
+            prefix = 'bc'
+        return pubkeyhash_to_addr_bech32(pubkeyhash, prefix)
+    else:
+        raise EncodingError("Encoding %s not supported" % encoding)
+
+
+def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
+    """
+    Convert public key hash to base58 encoded address
+
+    :param pubkeyhash: Public key hash
+    :type pubkeyhash: bytes, str
+    :param prefix: Prefix version byte of network, default is bitcoin '\x00'
+    :type prefix: str, bytes
 
     :return str: Base-58 encoded address
-
     """
-    key = to_bytearray(versionbyte) + to_bytearray(pkh)
-    addr256 = key + hashlib.sha256(hashlib.sha256(key).digest()).digest()[:4]
+    # prefix = to_bytes(prefix)
+    key = to_bytearray(prefix) + to_bytearray(pubkeyhash)
+    addr256 = key + double_sha256(key)[:4]
     return change_base(addr256, 256, 58)
+
+
+def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
+    """
+    Encode public key hash as bech32 encoded (segwit) address
+
+    Format of address is prefix/hrp + seperator + bech32 address + checksum
+
+    For more information see BIP173 proposal at https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+
+    :param pubkeyhash: Public key hash
+    :type pubkeyhash: str, bytes, bytearray
+    :param prefix: Address prefix or Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
+    :type prefix: str
+    :param witver: Witness version between 0 and 16
+    :type witver: int
+    :param separator: Separator char between hrp and data, should always be left to '1' otherwise its not standard.
+    :type separator: str
+
+    :return str: Bech32 encoded address
+    """
+
+    if not isinstance(pubkeyhash, bytearray):
+        pubkeyhash = bytearray(to_bytes(pubkeyhash))
+
+    if len(pubkeyhash) not in [20, 32]:
+        if int(pubkeyhash[0]) != 0:
+            witver = int(pubkeyhash[0]) - 0x50
+        pubkeyhash = pubkeyhash[2:]
+
+    data = [witver] + convertbits(pubkeyhash, 8, 5)
+
+    # Expand the HRP into values for checksum computation
+    hrp_expanded = [ord(x) >> 5 for x in prefix] + [0] + [ord(x) & 31 for x in prefix]
+    polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
+    checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+
+    return prefix + separator + _array_to_codestring(data, 'bech32') + _array_to_codestring(checksum, 'bech32')
 
 
 def _bech32_polymod(values):
@@ -424,7 +548,7 @@ def convertbits(data, frombits, tobits, pad=True):
     Source: https://github.com/sipa/bech32/tree/master/ref/python
 
     :param data: Data values to convert
-    :type data: list
+    :type data: list, bytearray
     :param frombits: Number of bits in source data
     :type frombits: int
     :param tobits: Number of bits in result data
@@ -457,152 +581,50 @@ def convertbits(data, frombits, tobits, pad=True):
     return ret
 
 
-def pubkeyhash_to_addr_bech32(pubkeyhash, hrp='bc', witver=0, separator='1'):
+def varstr(string):
     """
-    Encode public key hash as bech32 segwit address
+    Convert string to variably sized string: Bytestring preceeded with length byte
 
-    Format of address is prefix/hrp + seperator + bech32 address + checksum
+    :param string: String input
+    :type string: bytes, str
 
-    For more information see BIP173 proposal at https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-
-    :param pubkeyhash: Public key hash
-    :type pubkeyhash: str, bytes
-    :param hrp: Address prefix called Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
-    :type hrp: str
-    :param witver: Witness version between 0 and 16
-    :type witver: int
-    :param separator: Separator char between hrp and data, should always be left to '1' otherwise its not standard.
-    :type separator: str
-
-    :return str: Bech32 encoded address
+    :return bytes: varstring
     """
-
-    if not isinstance(pubkeyhash, bytearray):
-        pubkeyhash = bytearray(to_bytes(pubkeyhash))
-
-    if len(pubkeyhash) not in [20, 32]:
-        if int(pubkeyhash[0]) != 0:
-            witver = int(pubkeyhash[0]) - 0x50
-        pubkeyhash = pubkeyhash[2:]
-
-    data = [witver] + convertbits(pubkeyhash, 8, 5)
-
-    # Expand the HRP into values for checksum computation
-    hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
-    polymod = _bech32_polymod(hrp_expanded + data + [0, 0, 0, 0, 0, 0]) ^ 1
-    checksum = [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
-
-    return hrp + separator + _array_to_codestring(data, 'bech32') + _array_to_codestring(checksum, 'bech32')
+    s = normalize_var(string)
+    if s == b'\0':
+        return s
+    return int_to_varbyteint(len(s)) + s
 
 
-def addr_convert(addr, prefix):
-    """
-    Convert base-58 encoded address to address with another prefix
-
-    :param addr: Base58 address
-    :type addr: str
-    :param prefix: New address prefix
-    :type prefix: str, bytes
-
-    :return str: New converted address
-
-    """
-    pkh = addr_to_pubkeyhash(addr)
-    if isinstance(prefix, str):
-        prefix = binascii.unhexlify(prefix)
-    return pubkeyhash_to_addr(pkh, versionbyte=prefix)
-
-
-def addr_bech32_to_pubkeyhash(bech, hrp=None, as_hex=False, include_witver=False):
-    """
-    Decode bech32 / segwit address to public key hash
-
-    Validate the Bech32 string, and determine HRP and data
-
-    :param bech: Bech32 address to convert
-    :type bech: str
-    :param hrp: Address prefix called Human-readable part. Default is None and tries to derive prefix, for bitcoin specify 'bc' and for bitcoin testnet 'tb'
-    :type hrp: str
-    :param as_hex: Output public key hash as hex or bytes. Default is False
-    :type as_hex: bool
-    :param include_witver: Include witness version in output? Default is False
-    :type include_witver: bool
-
-    :return str: Public Key Hash
-     
-    """
-    if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
-            (bech.lower() != bech and bech.upper() != bech)):
-        return False
-    bech = bech.lower()
-    pos = bech.rfind('1')
-    if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
-        return False
-    if hrp and hrp != bech[:pos]:
-        raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], hrp))
-    else:
-        hrp = bech[:pos]
-    data = _codestring_to_array(bech[pos+1:], 'bech32')
-    hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
-    if not _bech32_polymod(hrp_expanded + data) == 1:
-        return False
-    data = data[:-6]
-    decoded = bytearray(convertbits(data[1:], 5, 8, pad=False))
-    if decoded is None or len(decoded) < 2 or len(decoded) > 40:
-        return False
-    if data[0] > 16:
-        return False
-    if data[0] == 0 and len(decoded) not in [20, 32]:
-        return False
-    prefix = b''
-    if include_witver:
-        datalen = len(decoded)
-        prefix = bytearray([data[0] + 0x50 if data[0] else 0, datalen])
-    if as_hex:
-        return change_base(prefix + decoded, 256, 16)
-    return prefix + decoded
-
-
-def script_to_pubkeyhash(script):
-    """
-    Creates a RIPEMD-160 hash of a locking, unlocking, redeemscript, etc
-
-
-    :param script: Script
-    :type script: bytes
-
-    :return bytes: RIPEMD-160 hash of script
-    """
-    return hashlib.new('ripemd160', hashlib.sha256(script).digest()).digest()
-
-
-def to_bytearray(s):
+def to_bytearray(string):
     """
     Convert String, Unicode or Bytes to Python 2 and 3 compatible ByteArray
-    :param s: String, Unicode, Bytes or ByteArray
 
-    :return: ByteArray
+    :param string: String, Unicode, Bytes or ByteArray
+    :type string: bytes, str, bytearray
+
+    :return bytearray:
     """
-    if isinstance(s, (str, unicode if not PY3 else str)):
+    if isinstance(string, (str, unicode if not PY3 else str)):
         try:
-            s = binascii.unhexlify(s)
+            string = binascii.unhexlify(string)
         except (TypeError, binascii.Error):
             pass
-    return bytearray(s)
+    return bytearray(string)
 
 
-def to_bytes(s, unhexlify=True):
+def to_bytes(string, unhexlify=True):
     """
     Convert String, Unicode or ByteArray to Bytes
 
-    :param s: String to convert
-    :type s: str, unicode, bytes, bytearray
+    :param string: String to convert
+    :type string: str, unicode, bytes, bytearray
     :param unhexlify: Try to unhexlify hexstring
     :type unhexlify: bool
 
     :return: Bytes var
     """
-    s = normalize_var(s)
+    s = normalize_var(string)
     if unhexlify:
         try:
             s = binascii.unhexlify(s)
@@ -612,50 +634,78 @@ def to_bytes(s, unhexlify=True):
     return s
 
 
-def to_hexstring(var):
+def to_hexstring(string):
     """
     Convert Bytes or ByteArray to hexadecimal string
 
-    :param var: Variable to convert to hex string
-    :type var: bytes, bytearray, str
+    :param string: Variable to convert to hex string
+    :type string: bytes, bytearray, str
 
     :return: hexstring
     """
-    var = normalize_var(var)
+    string = normalize_var(string)
 
-    if isinstance(var, (str, bytes)):
+    if isinstance(string, (str, bytes)):
         try:
-            binascii.unhexlify(var)
+            binascii.unhexlify(string)
             if PY3:
-                return str(var, 'ISO-8859-1')
+                return str(string, 'ISO-8859-1')
             else:
-                return var
+                return string
         except (TypeError, binascii.Error):
             pass
 
-    s = binascii.hexlify(var)
+    s = binascii.hexlify(string)
     if PY3:
         return str(s, 'ISO-8859-1')
     else:
         return s
 
 
-def normalize_string(txt):
+def normalize_string(string):
     """
     Normalize a string to the default NFKD unicode format
     See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
-    :param txt: string value
-    :type txt: bytes, bytearray, str
+    :param string: string value
+    :type string: bytes, bytearray, str
 
     :return: string
-
     """
-    if isinstance(txt, str if sys.version < '3' else bytes):
-        utxt = txt.decode('utf8')
-    elif isinstance(txt, unicode if sys.version < '3' else str):
-        utxt = txt
+    if isinstance(string, str if sys.version < '3' else bytes):
+        utxt = string.decode('utf8')
+    elif isinstance(string, unicode if sys.version < '3' else str):
+        utxt = string
     else:
         raise TypeError("String value expected")
 
     return unicodedata.normalize('NFKD', utxt)
+
+
+def double_sha256(string, as_hex=False):
+    """
+    Get double SHA256 hash of string
+
+    :param string: String to be hashed
+    :type string: bytes
+    :param as_hex: Return value as hexadecimal string. Default is False
+    :type as_hex
+
+    :return bytes, str:
+    """
+    if not as_hex:
+        return hashlib.sha256(hashlib.sha256(string).digest()).digest()
+    else:
+        return hashlib.sha256(hashlib.sha256(string).digest()).hexdigest()
+
+
+def hash160(string):
+    """
+    Creates a RIPEMD-160 + SHA256 hash of the input string
+
+    :param string: Script
+    :type string: bytes
+
+    :return bytes: RIPEMD-160 hash of script
+    """
+    return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()

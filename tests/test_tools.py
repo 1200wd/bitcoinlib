@@ -53,7 +53,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "%s %s testms --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "2N7QSKcsmWPP9anG7cdZvzBUbgTVrAK2MZ9"
+        output_wlt_create = "2NBrLTapyFqU4Wo29xG4QeEt8kn38KVWRR"
         output_wlt_delete = "Wallet testms has been removed"
 
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
@@ -98,7 +98,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         cmd_wlt_update = "%s test2 -d %s" % \
                          (python_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_transaction = "%s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
-                         (python_executable, DATABASEFILE_UNITTESTS)
+                              (python_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_delete = "%s test2 --wallet-remove -d %s" % \
                          (python_executable, DATABASEFILE_UNITTESTS)
         output_wlt_create = "21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
@@ -120,19 +120,21 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         poutput = process.communicate(input=b'test2')
         self.assertIn(output_wlt_delete, normalize_string(poutput[0]))
 
-    # FIXME: Doesn't work on Travis + Also tested with test_tools_clw_transaction_with_script
-    # def test_tools_cli_wallet(self):
-    #     from bitcoinlib.tools.cli_wallet import main
-    #     import io
-    #     from contextlib import redirect_stdout
-    #     f = io.StringIO()
-    #     with redirect_stdout(f):
-    #         try:
-    #             main()
-    #         except SystemExit:
-    #             pass
-    #     out = f.getvalue()
-    #     self.assertIn("Command Line Wallet for BitcoinLib", out)
+    def test_tools_clw_create_litecoin_segwit_wallet(self):
+        cmd_wlt_create = '%s %s ltcsw --passphrase "lounge chief tip frog camera build trouble write end ' \
+                         'sword order share" -r -d %s -y segwit -n litecoin' % \
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        cmd_wlt_delete = "%s %s ltcsw --wallet-remove -d %s" % \
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        output_wlt_create = "ltc1qgc7c2z56rr4lftg0fr8tgh2vknqc3yuydedu6m"
+        output_wlt_delete = "Wallet ltcsw has been removed"
+
+        process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
+        poutput = process.communicate(input=b'y')
+        self.assertIn(output_wlt_create, normalize_string(poutput[0]))
+        process = Popen(cmd_wlt_delete, stdin=PIPE, stdout=PIPE, shell=True)
+        poutput = process.communicate(input=b'ltcsw')
+        self.assertIn(output_wlt_delete, normalize_string(poutput[0]))
 
 
 if __name__ == '__main__':

@@ -46,8 +46,8 @@ with HDWallet.create(name='Personal', network='testnet', databasefile=test_datab
 print("\n=== Create new Wallet with Testnet master key and account ID 99 ===")
 testnet_wallet = HDWallet.create(
     name='TestNetWallet',
-    key='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
-        '7irEvBoe4aAn52',
+    keys='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
+         '7irEvBoe4aAn52',
     network='testnet',
     account_id=99,
     databasefile=test_database)
@@ -75,7 +75,7 @@ accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73
 wallet_import2 = HDWallet.create(
     databasefile=test_database,
     name='Account Import',
-    key=accountkey,
+    keys=accountkey,
     network='testnet',
     account_id=99)
 wallet_import2.info(detail=3)
@@ -84,7 +84,7 @@ del wallet_import2
 print("\n=== Create simple wallet and import some unrelated private keys ===")
 simple_wallet = HDWallet.create(
     name='Simple Wallet',
-    key='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
+    keys='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
     databasefile=test_database)
 simple_wallet.import_key('KxVjTaa4fd6gaga3YDDRDG56tn1UXdMF9fAMxehUH83PTjqk4xCs')
 simple_wallet.import_key('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy')
@@ -98,9 +98,8 @@ pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDH
 pubwal = HDWallet.create(
     databasefile=test_database,
     name='Import Public Key Wallet',
-    key=pubkey,
-    network='testnet',
-    account_id=0)
+    keys=pubkey,
+    network='testnet')
 newkey = pubwal.new_key()
 pubwal.info(detail=3)
 del pubwal
@@ -131,7 +130,7 @@ print("Generated Passphrase: %s" % words)
 seed = Mnemonic().to_seed(words)
 hdkey = HDKey().from_seed(seed, network='litecoin_testnet')
 wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
-                         key=hdkey.wif(), databasefile=test_database)
+                         keys=hdkey.wif(), databasefile=test_database)
 wallet.new_key("Input", 0)
 wallet.utxos_update()
 wallet.info(detail=3)
@@ -154,7 +153,7 @@ wallet_import = HDWallet('TestNetWallet', databasefile=test_database)
 for _ in range(10):
     wallet_import.new_key()
 wallet_import.utxos_update(99)
-wallet_import.info(detail=3)
+wallet_import.info()
 utxos = wallet_import.utxos(99)
 try:
     res = wallet_import.send_to('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 1000, 99)

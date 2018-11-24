@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    DataBase - SqlAlchemy database definitions
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2017 September - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -88,7 +88,7 @@ class DbWallet(Base):
     owner = Column(String(50))
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
-    purpose = Column(Integer, default=44)
+    purpose = Column(Integer)
     scheme = Column(String(25))
     witness_type = Column(String(20), default='legacy')
     encoding = Column(String(15), default='base58', doc="Default encoding to use for address generation")
@@ -101,9 +101,12 @@ class DbWallet(Base):
     sort_keys = Column(Boolean, default=False, doc="Sort keys in multisig wallet")
     parent_id = Column(Integer, ForeignKey('wallets.id'))
     children = relationship("DbWallet", lazy="joined", join_depth=2)
+    multisig = Column(Boolean, default=True)
+    cosigner_id = Column(Integer)
+    key_path = Column(String(100))
 
     __table_args__ = (
-        CheckConstraint(scheme.in_(['single', 'bip44', 'multisig']), name='constraint_allowed_schemes'),
+        CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),
         CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
         CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']), name='constraint_allowed_types'),
     )
@@ -146,6 +149,7 @@ class DbKey(Base):
     compressed = Column(Boolean, default=True)
     key_type = Column(String(10), default='bip32')
     address = Column(String(255), index=True)
+    cosigner_id = Column(Integer)
     encoding = Column(String(15), default='base58')
     purpose = Column(Integer, default=44)
     is_private = Column(Boolean)
@@ -290,7 +294,7 @@ class DbTransactionOutput(Base):
     spent = Column(Boolean(), default=False)
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'pubkey', 'nulldata',
-                                                       'unknown', 'p2wpkh', 'p2wsh']),
+                                                       'unknown', 'p2wpkh', 'p2wsh', 'p2sh_p2wpkh', 'p2sh_p2wpkh']),
                                       name='constraint_script_types_allowed'),)
 
 

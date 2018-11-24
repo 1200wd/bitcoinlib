@@ -25,29 +25,32 @@ from bitcoinlib.keys import HDKey
 from time import sleep
 
 
-wif = 'tprv8ZgxMBicQKsPdpenF8SX1WMsr6eaS3rZgqhqVu1LJ3wkAp1NhREnFrsvzK4A7ERrHhxqjzZpoESRjwpgrrhjC1cWALzZRxoycCNz8jBNWre'
-wif2 = 'tprv8ZgxMBicQKsPdktmSG4hGs6kq3dmTMmiDtLZwaipsCYxqbhtqWH69kNGZvNufnemLTCP3gbypLf1koKfAEujo5cnWPKBg3YbpZa63J9Cqtj'
-cowif2 = HDKey(wif2).account_multisig_key()
+tx_fee = 500
+tx_amount = 1000
+wif = 'tprv8ZgxMBicQKsPdd7kWYnxC5BTucY6fESWSA9tWwtKiSpasvL1WDbtHNEU8sZDTWcoxG2qYzBA5HFWzR2NoxgG2MTyR8PeCry266DbmjF8pT4'
+wif2 = 'tprv8ZgxMBicQKsPe2Fpzm7zK6WsUqcYGZsZe3vwvQGLEqe8eunrxJXXxaw3pF283uQ9J7EhTVazDhKVquwk8a5K1rSx3T9qZJiNHkzJz3sRrWd'
 
 #
 # CREATE WALLETS
 #
 
 # Segwit P2SH-P2WPKH Wallet
-w1 = wallet_create_or_open('segwit_testnet_p2sh_p2wpkh', key=wif, witness_type='p2sh-segwit', network='testnet')
+w1 = wallet_create_or_open('segwit_testnet_p2sh_p2wpkh', keys=wif, witness_type='p2sh-segwit', network='testnet')
 w1_key = w1.get_key()
 
 # Segwit Native P2WPKH Wallet
-w2 = wallet_create_or_open('segwit_testnet_p2wpkh', key=wif, witness_type='segwit', network='testnet')
+w2 = wallet_create_or_open('segwit_testnet_p2wpkh', keys=wif, witness_type='segwit', network='testnet')
 w2_key = w2.get_key()
 
 # Segwit Native P2WSH Wallet
-w3 = wallet_create_or_open_multisig('segwit_testnet_p2wsh', key_list=[wif, cowif2.public()], witness_type='segwit',
-                                    network='testnet')
+w3 = wallet_create_or_open_multisig('segwit_testnet_p2wsh',
+                                    keys=[wif, HDKey(wif2).account_multisig_key(witness_type='segwit').public()],
+                                    witness_type='segwit', network='testnet')
 w3_key = w3.get_key()
 
 # Segwit P2SH-P2WSH Wallet
-w4 = wallet_create_or_open_multisig('segwit_testnet_p2sh_p2wsh', key_list=[wif, cowif2.public()],
+w4 = wallet_create_or_open_multisig('segwit_testnet_p2sh_p2wsh',
+                                    keys=[wif, HDKey(wif2).account_multisig_key(witness_type='p2sh-segwit').public()],
                                     witness_type='p2sh-segwit', network='testnet')
 w4_key = w4.get_key()
 
@@ -58,10 +61,11 @@ w4_key = w4.get_key()
 
 w1.utxos_update()
 if not w1.utxos():
-    print("No UTXO'S found, please make a test-bitcoin deposit to %s" % w1_key.address)
+    print("No UTXO'S found, please make a test-bitcoin deposit to %s. Minimum amount needed is %d sathosi" %
+          (w1_key.address, (4 * (tx_fee + tx_amount))))
 else:
     print("Sending transaction from wallet #1 to wallet #2:")
-    t = w1.send_to(w2_key.address, 20000, fee=5000)
+    t = w1.send_to(w2_key.address, 4 * tx_amount, fee=tx_fee)
     t.info()
 
     while True:
@@ -70,7 +74,7 @@ else:
         sleep(1)
         if w2.utxos():
             print("Sending transaction from wallet #2 to wallet #3:")
-            t2 = w2.send_to(w3_key.address, 15000, fee=5000)
+            t2 = w2.send_to(w3_key.address, 3 * tx_amount, fee=tx_fee)
             t2.info()
             break
 
@@ -80,8 +84,8 @@ else:
         sleep(1)
         if w3.utxos():
             print("Sending transaction from wallet #3 to wallet #4:")
-            t3 = w3.send_to(w4_key.address, 10000, fee=5000)
-            t3.sign(cowif2.subkey_for_path('0/0'))
+            t3 = w3.send_to(w4_key.address, 2 * tx_amount, fee=tx_fee)
+            t3.sign(wif2)
             t3.send()
             t3.info()
             break
@@ -92,8 +96,8 @@ else:
         sleep(1)
         if w4.utxos():
             print("Sending transaction from wallet #4 to wallet #1:")
-            t4 = w4.send_to(w1_key.address, 5000, fee=5000)
-            t4.sign(cowif2.subkey_for_path('0/0'))
+            t4 = w4.send_to(w1_key.address, tx_amount, fee=tx_fee)
+            t4.sign(wif2)
             t4.send()
             t4.info()
             break

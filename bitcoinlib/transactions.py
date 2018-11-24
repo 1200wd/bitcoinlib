@@ -164,10 +164,10 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                                   signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
                                   sequence=inputs[n].sequence, index_n=inputs[n].index_n, public_hash=public_hash,
                                   network=inputs[n].network)
+    if len(rawtx[cursor:]) != 4:
+        raise TransactionError("Error when deserializing raw transaction, bytes left for locktime must be 4 not %d" %
+                               len(rawtx[cursor:]))
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
-    if len(rawtx[cursor+4:]):
-        raise TransactionError("Error when deserializing raw transaction, bytes left after operation %s" %
-                               to_hexstring(rawtx[cursor+4:]))
 
     return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
                        coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=to_hexstring(rawtx))
@@ -589,7 +589,7 @@ def get_unlocking_script_type(locking_script_type, witness_type='legacy', multis
         else:
             return 'p2sh_multisig'
     else:
-        raise TransactionError("Unknonw locking script type %s" % locking_script_type)
+        raise TransactionError("Unknown locking script type %s" % locking_script_type)
 
 
 def verify_signature(transaction_to_sign, signature, public_key):
@@ -610,7 +610,7 @@ def verify_signature(transaction_to_sign, signature, public_key):
     signature = to_bytes(signature)
     public_key = to_bytes(public_key)
     if len(transaction_to_sign) != 32:
-        transaction_to_sign = hashlib.sha256(hashlib.sha256(transaction_to_sign).digest()).digest()
+        transaction_to_sign = double_sha256(transaction_to_sign)
     if len(public_key) == 65:
         public_key = public_key[1:]
     ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
@@ -643,7 +643,7 @@ class Input:
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
-                 value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, witness_type=None,
+                 value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
                  encoding=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
@@ -680,6 +680,8 @@ class Input:
         :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
+        :param key_path: Key path of input key as BIP32 string or list
+        :type key_path: str, list
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
@@ -744,6 +746,7 @@ class Input:
         else:
             self.encoding = encoding
         self.valid = None
+        self.key_path = key_path
         self.witnesses = []
         self.script_code = b''
 
@@ -895,7 +898,7 @@ class Input:
                 if self.witness_type == 'segwit' or self.witness_type == 'p2sh-segwit':
                     self.public_hash = hashlib.sha256(self.redeemscript).digest()
                 else:
-                    self.public_hash = script_to_pubkeyhash(self.redeemscript)
+                    self.public_hash = hash160(self.redeemscript)
             if not self.address and self.public_hash:
                 self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
                                        script_type=self.script_type, witness_type=self.witness_type).address
@@ -1088,7 +1091,7 @@ class Output:
                 self.versionbyte = self.network.prefix_address_p2sh
             if self.script_type in ['p2pkh', 'p2sh']:
                 self.public_hash = ss['hashes'][0]
-                self.address = pubkeyhash_to_addr(self.public_hash, versionbyte=self.versionbyte)
+                self.address = pubkeyhash_to_addr(self.public_hash, prefix=self.versionbyte)
             elif self.script_type in ['p2wpkh', 'p2wsh']:
                 self.public_hash = ss['hashes'][0]
                 self.address_obj = Address(hashed_data=ss['hashes'][0], script_type=self.script_type,
@@ -1266,6 +1269,7 @@ class Transaction:
         self.fee = fee
         self.fee_per_kb = fee_per_kb
         self.size = size
+        self.vsize = size
         self.change = 0
         self.hash = hash
         self.date = date
@@ -1282,7 +1286,7 @@ class Transaction:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
 
         if not self.hash and rawtx:
-            self.hash = to_hexstring(hashlib.sha256(hashlib.sha256(to_bytes(rawtx)).digest()).digest()[::-1])
+            self.hash = to_hexstring(double_sha256(to_bytes(rawtx))[::-1])
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -1380,15 +1384,61 @@ class Transaction:
                 print("-", to.address, to.value)
         if replace_by_fee:
             print("Replace by fee: Enabled")
+        print("Size: %d" % self.size)
+        print("Vsize: %d" % self.vsize)
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, sig_version=SIGNATURE_VERSION_STANDARD):
-        return hashlib.sha256(hashlib.sha256(self.signature(sign_id, hash_type, sig_version)).
-                              digest()).digest()
+    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
+        """
+        Double SHA256 Hash of Transaction signature
 
-    def signature(self, sign_id, hash_type=SIGHASH_ALL, sig_version=SIGNATURE_VERSION_STANDARD):
-        # TODO: Implement sig_version
+        :param sign_id: Index of input to sign
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param witness_type: Legacy or Segwit witness type? Leave empty to use Transaction witness type
+        :type witness_type: str
+
+        :return bytes: Transaction signature hash
+        """
+
+        return double_sha256(self.signature(sign_id, hash_type, witness_type))
+
+    def signature(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
+        """
+        Serializes transaction and calculates signature for Legacy or Segwit transactions
+
+        :param sign_id: Index of input to sign
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+        :param witness_type: Legacy or Segwit witness type? Leave empty to use Transaction witness type
+        :type witness_type: str
+
+        :return bytes: Transaction signature
+        """
+
+        if witness_type is None:
+            witness_type = self.witness_type
+        if witness_type in ['segwit', 'p2sh-segwit']:
+            return self.signature_segwit(sign_id, hash_type)
+        elif witness_type == 'legacy':
+            return self.raw(sign_id, hash_type)
+        else:
+            raise TransactionError("Witness_type %s not supported" % self.witness_type)
+
+    def signature_segwit(self, sign_id, hash_type=SIGHASH_ALL):
+        """
+        Serialize transaction signature for segregated witness transaction
+
+        :param sign_id: Index of input to sign
+        :type sign_id: int
+        :param hash_type: Specific hash type, default is SIGHASH_ALL
+        :type hash_type: int
+
+        :return bytes: Segwit transaction signature
+        """
         assert(self.witness_type == 'segwit')
         prevouts_serialized = b''
         sequence_serialized = b''
@@ -1401,18 +1451,18 @@ class Transaction:
             prevouts_serialized += i.prev_hash[::-1] + i.output_n[::-1]
             sequence_serialized += struct.pack('<L', i.sequence)
         if not hash_type & SIGHASH_ANYONECANPAY:
-            hash_prevouts = hashlib.sha256(hashlib.sha256(prevouts_serialized).digest()).digest()
+            hash_prevouts = double_sha256(prevouts_serialized)
             if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
-                hash_sequence = hashlib.sha256(hashlib.sha256(sequence_serialized).digest()).digest()
+                hash_sequence = double_sha256(sequence_serialized)
         if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
             for o in self.outputs:
                 outputs_serialized += struct.pack('<Q', o.value)
                 outputs_serialized += varstr(o.lock_script)
-            hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
+            hash_outputs = double_sha256(outputs_serialized)
         elif (hash_type & 0x1f) != SIGHASH_SINGLE and sign_id < len(self.outputs):
             outputs_serialized += struct.pack('<Q', self.outputs[sign_id].value)
             outputs_serialized += varstr(self.outputs[sign_id].lock_script)
-            hash_outputs = hashlib.sha256(hashlib.sha256(outputs_serialized).digest()).digest()
+            hash_outputs = double_sha256(outputs_serialized)
 
         if not self.inputs[sign_id].value:
             raise TransactionError("Need value of input %d to create transaction signature, value can not be 0" %
@@ -1432,8 +1482,7 @@ class Transaction:
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
-        # print(sign_id, sign_key_id, to_hexstring(script_code))
-        # print(to_hexstring(hashlib.sha256(hashlib.sha256(ser_tx).digest()).digest()))
+        # print(sign_id, to_hexstring(script_code))
         return ser_tx
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
@@ -1460,7 +1509,7 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             if i.witnesses:
-                r_witness += struct.pack("B", len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
+                r_witness += int_to_varbyteint(len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
             else:
                 r_witness += b'\0'
             if sign_id is None:
@@ -1490,7 +1539,7 @@ class Transaction:
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL):
         """
-        Wrapper for raw method. Return current raw transaction hex
+        Wrapper for raw() method. Return current raw transaction hex
 
         :param sign_id: Create raw transaction which can be signed by transaction with this input ID
         :type sign_id: int
@@ -1523,12 +1572,7 @@ class Transaction:
                 _logger.info("Not enough signatures provided. Found %d signatures but %d needed" %
                              (len(i.signatures), i.sigs_required))
                 return False
-            transaction_hash = b''
-            if i.witness_type in ['p2sh-segwit', 'segwit']:
-                transaction_hash = self.signature_hash(i.index_n)
-            elif i.witness_type == 'legacy':
-                t_to_sign = self.raw(i.index_n)
-                transaction_hash = hashlib.sha256(hashlib.sha256(t_to_sign).digest()).digest()
+            transaction_hash = self.signature_hash(i.index_n, witness_type=i.witness_type)
             sig_id = 0
             key_n = 0
             for key in i.keys:
@@ -1600,10 +1644,7 @@ class Transaction:
 
             tsig = None
             for key in tid_keys:
-                if self.inputs[tid].witness_type in ['p2sh-segwit', 'segwit']:
-                    tsig = self.signature_hash(tid)
-                elif not tsig:
-                    tsig = hashlib.sha256(hashlib.sha256(self.raw(tid)).digest()).digest()
+                tsig = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
                 sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
@@ -1668,7 +1709,7 @@ class Transaction:
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  witness_type=None, encoding=None):
+                  key_path='', witness_type=None, encoding=None):
         """
         Add input to this transaction
         
@@ -1710,6 +1751,8 @@ class Transaction:
         :type locktime_cltv: int
         :param locktime_csv: Check Sequency Verify value.
         :type locktime_csv: int
+        :param key_path: Key path of input key as BIP32 string or list
+        :type key_path: str, list
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from script or script type
@@ -1727,8 +1770,8 @@ class Transaction:
                   unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
                   script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
-                  locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, witness_type=witness_type, encoding=encoding,
-                  network=self.network.name))
+                  locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, key_path=key_path, witness_type=witness_type,
+                  encoding=encoding, network=self.network.name))
         return index_n
 
     def add_output(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
@@ -1773,9 +1816,12 @@ class Transaction:
                                    encoding=encoding, network=self.network.name))
         return output_n
 
-    def estimate_size(self, add_change_output=True):
+    def estimate_size(self, add_change_output=False):
         """
-        Get estimated size in bytes for current transaction based on transaction type and number of inputs and outputs.
+        Get estimated vsize in for current transaction based on transaction type and number of inputs and outputs.
+
+        For old-style legacy transaction the vsize is the length of the transaction. In segwit transaction the
+        witness data has less weigth. The formula used is: math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
 
         :param add_change_output: Assume an extra change output will be created but has not been created yet.
         :type add_change_output: bool
@@ -1784,35 +1830,71 @@ class Transaction:
         """
 
         est_size = 10
-        if add_change_output:
-            est_size += 34
+        witness_size = 2
+        if self.witness_type != 'legacy':
+            est_size += 2
         for inp in self.inputs:
-            # TODO: Check sizes and move values to main.py in dictionary
-            if inp.script_type in ['sig_pubkey', 'p2pkh']:
-                if inp.compressed:
-                    est_size += 147
-                else:
-                    est_size += 180
-            elif inp.script_type in ['p2sh_multisig', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
-                n_sigs = len(inp.keys)
-                est_size += 9 + (n_sigs * 34) + (inp.sigs_required * 72)
+            est_size += 40
+            scr_size = 0
+            if inp.witness_type != 'legacy':
+                est_size += 1
+            if inp.unlocking_script and len(inp.signatures) >= inp.sigs_required:
+                scr_size += len(varstr(inp.unlocking_script))
+                if inp.witness_type == 'p2sh-segwit':
+                    scr_size += sum([1 + len(w) for w in inp.witnesses])
             else:
-                raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
-                                       inp.script_type)
+                if inp.script_type == 'sig_pubkey':
+                    scr_size += 107
+                    if not inp.compressed:
+                        scr_size += 33
+                    if inp.witness_type == 'p2sh-segwit':
+                        scr_size += 24
+                # elif inp.script_type in ['p2sh_multisig', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
+                elif inp.script_type == 'p2sh_multisig':
+                    scr_size += 9 + (len(inp.keys) * 34) + (inp.sigs_required * 72)
+                    if inp.witness_type == 'p2sh-segwit':
+                        scr_size += 17 * inp.sigs_required
+                else:
+                    raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
+                                           inp.script_type)
+            est_size += scr_size
+            witness_size += scr_size
         if not self.inputs:
             est_size += 147  # If nothing is known assume 1 p2sh/p2pkh input
         for outp in self.outputs:
-            # TODO: check this:
-            if outp.script_type in ['p2sh', 'p2sh_p2wpkh', 'p2sh_p2wsh', 'p2wpkh']:
-                est_size += 22
-            elif outp.script_type in ['p2pkh', 'p2wsh']:
-                est_size += 34
-            elif outp.script_type == 'nulldata':
-                est_size += len(outp.lock_script) + 9
+            est_size += 8
+            if outp.lock_script:
+                est_size += len(varstr(outp.lock_script))
             else:
-                raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
-                                       outp.script_type)
-        return est_size
+                if outp.script_type == 'p2sh':
+                    est_size += 24
+                elif outp.script_type == 'p2pkh':
+                    est_size += 26
+                elif outp.script_type == 'p2wpkh':
+                    est_size += 21
+                elif outp.script_type == 'p2wsh':
+                    est_size += 33
+                elif outp.script_type == 'nulldata':
+                    est_size += len(outp.lock_script) + 1
+                else:
+                    raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
+                                           outp.script_type)
+        if add_change_output:
+            is_multisig = True if self.inputs and self.inputs[0].script_type == 'p2sh_multisig' else False
+            est_size += 8
+            if not self.inputs or self.inputs[0].witness_type == 'legacy':
+                est_size += 24 if is_multisig else 26
+            elif self.inputs[0].witness_type == 'p2sh-segwit':
+                est_size += 24
+            else:
+                est_size += 33 if is_multisig else 23
+        self.size = est_size
+        self.vsize = est_size
+        if self.witness_type == 'legacy':
+            return est_size
+        else:
+            self.vsize = math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
+            return self.vsize
 
     def calculate_fee(self):
         """
@@ -1824,7 +1906,7 @@ class Transaction:
 
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
-        return int(len(self.raw())/1024.0 * self.fee_per_kb)
+        return int(self.estimate_size()/1024.0 * self.fee_per_kb)
 
     def update_totals(self):
         """

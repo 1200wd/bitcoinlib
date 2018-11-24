@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2018 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -299,7 +299,7 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             try:
                 scriptpubkey = addr_bech32_to_pubkeyhash(address, include_witver=True)
             except EncodingError:
-                scriptpubkey = addr_bech32_to_pubkeyhash(address, hrp='tb', include_witver=True)
+                scriptpubkey = addr_bech32_to_pubkeyhash(address, prefix='tb', include_witver=True)
             self.assertEqual(scriptpubkey, binascii.unhexlify(hexscript))
             addr = pubkeyhash_to_addr_bech32(scriptpubkey, address[:2].lower())
             self.assertEqual(address.lower(), addr)
@@ -309,12 +309,6 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
         for test in INVALID_ADDRESS:
             self.assertFalse(addr_bech32_to_pubkeyhash("bc", test))
             self.assertFalse(addr_bech32_to_pubkeyhash("tb", test))
-
-    # FIXME: This test is BS right now
-    # def test_invalid_address_enc(self):
-    #     """Test whether address encoding fails on invalid input."""
-    #     for hrp, version, length in INVALID_ADDRESS_ENC:
-    #         self.assertFalse(addr_bech32_to_pubkeyhash(hrp, version, [0] * length))
 
 
 if __name__ == '__main__':
