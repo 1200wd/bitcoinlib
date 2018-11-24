@@ -44,7 +44,7 @@ kwargs['install_requires'] = install_requires
 
 setup(
       name='bitcoinlib',
-      version='0.4.1',
+      version='0.4.2',
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[
@@ -57,6 +57,7 @@ setup(
             'Programming Language :: Python :: 3.4',
             'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
+            'Programming Language :: Python :: 3.7',
             'Topic :: Software Development :: Libraries :: Python Modules',
             'Topic :: Security :: Cryptography',
             'Topic :: Office/Business :: Financial :: Accounting',

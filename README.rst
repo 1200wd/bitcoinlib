@@ -144,7 +144,7 @@ Create a native single key P2WPKH wallet:
 .. code-block:: pycon
 
     >>> from bitcoinlib.wallets import HDWallet
-    >>> w = HDWallet.create('segwit_p2wpkh', witness_type='segwit')
+    >>> w = HDWallet.create('wallet_segwit_p2wpkh', witness_type='segwit')
     >>> w.get_key().address
     bc1q84y2quplejutvu0h4gw9hy59fppu3thg0u2xz3
 
@@ -153,7 +153,7 @@ Or create a P2SH nested single key P2SH_P2WPKH wallet:
 .. code-block:: pycon
 
     >>> from bitcoinlib.wallets import HDWallet
-    >>> w = HDWallet.create('segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
+    >>> w = HDWallet.create('wallet_segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
     >>> w.get_key().address
     36ESSWgR4WxXJSc4ysDSJvecyY6FJkhUbp
 
