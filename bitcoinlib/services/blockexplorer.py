@@ -118,8 +118,12 @@ class BlockExplorerClient(BaseClient):
         return balance
 
     def getrawtransaction(self, tx_id):
-        res = self.compose_request('rawtx', tx_id)
-        return res['rawtx']
+        tx = self.compose_request('rawtx', tx_id)
+        t = Transaction.import_raw(tx['rawtx'], network=self.network)
+        for i in t.inputs:
+            if not i.address:
+                raise ClientError("Address missing in input. Provider might not support segwit transactions")
+        return tx['rawtx']
 
     def sendrawtransaction(self, rawtx):
         res = self.compose_request('tx', 'send', variables={'rawtx': rawtx}, method='post')

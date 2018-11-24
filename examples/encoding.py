@@ -59,7 +59,7 @@ print("\n=== Create PKH from redeemscript ===")
 redeemscript = '5221023dd6aeaa2acb92cbea35820361e5fd07af10f4b01c985adec30848b424756a6c210381cd2bb2a38d939fa677a5dcc' \
                '981ee0630b32b956b2e6dc3e1c028e6d09db5a72103d2c6d31cabe4025c25879010465f501194b352823c553660d303adfa' \
                '9a26ad3c53ae'
-print(to_hexstring(script_to_pubkeyhash(to_bytes(redeemscript))))
+print(to_hexstring(hash160(to_bytes(redeemscript))))
 
 #
 # Other type conversions and normalizations
@@ -93,6 +93,6 @@ for dt in data:
 # Convert Bech32 address to Public key hash
 address = "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4"
 pkh = "0014751e76e8199196d454941c45d1b3a323f1433bd6"
-pkh_converted = addr_bech32_to_pubkeyhash(address, hrp='bc', include_witver=True, as_hex=True)
+pkh_converted = addr_bech32_to_pubkeyhash(address, prefix='bc', include_witver=True, as_hex=True)
 print(pkh, " == ", pkh_converted)
 addr = pubkeyhash_to_addr_bech32(pkh_converted, address[:2].lower())

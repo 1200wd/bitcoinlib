@@ -30,7 +30,7 @@ print("\n=== Create a simple Mnemonic wallet ===")
 passphrase = Mnemonic().generate()
 print("Your private key passphrase is:", passphrase)
 password = input("Enter password to protect passphrase: ")
-wlt = HDWallet.create('mnwlttest1', key=passphrase, password=password, network='bitcoinlib_test',
+wlt = HDWallet.create('mnwlttest1', keys=passphrase, password=password, network='bitcoinlib_test',
                       databasefile=test_database)
 wlt.get_key()
 wlt.utxos_update()  # Create some test UTXOs

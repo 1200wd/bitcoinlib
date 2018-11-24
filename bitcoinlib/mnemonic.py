@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MNEMONIC class for BIP0039 Mnemonic Key management
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2018 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -183,7 +183,7 @@ class Mnemonic:
         wlcount = {}
         for fn in os.listdir(WORDLIST_DIR):
             if fn.endswith(".txt"):
-                with open('%s/%s' % (WORDLIST_DIR, fn), 'r') as f:
+                with open('%s/%s' % (WORDLIST_DIR, fn)) as f:
                     wordlist = [w.strip() for w in f.readlines()]
                     language = fn.split('.')[0]
                     wlcount[language] = 0

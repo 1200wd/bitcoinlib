@@ -142,8 +142,12 @@ class BitGoClient(BaseClient):
         return t
 
     def getrawtransaction(self, txid):
-        res = self.compose_request('tx', txid)
-        return res['hex']
+        tx = self.compose_request('tx', txid)
+        t = Transaction.import_raw(tx['hex'], network=self.network)
+        for i in t.inputs:
+            if not i.address:
+                raise ClientError("Address missing in input. Provider might not support segwit transactions")
+        return tx['hex']
 
     def estimatefee(self, blocks):
         res = self.compose_request('tx', 'fee', variables={'numBlocks': blocks})

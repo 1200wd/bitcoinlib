@@ -235,14 +235,14 @@ class TestTransactions(unittest.TestCase):
         t.add_output(2710000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
         t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
-        self.assertEqual(t.estimate_size(), 259)
+        self.assertEqual(t.estimate_size(), 225)
 
     def test_transactions_estimate_size_nulldata(self):
         t = Transaction()
         lock_script = b'j' + varstr(b'Please leave a message after the beep')
         t.add_output(0, lock_script=lock_script)
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
-        self.assertEqual(t.estimate_size(), 239)
+        self.assertEqual(t.estimate_size(add_change_output=True), 239)
 
     def test_transaction_very_large(self):
         rawtx = \
@@ -931,7 +931,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_p2pkh_2(self):
-        s = binascii.unhexlify('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac')
+        s = to_bytes('76a914a13fdfc301c89094f5dc1089e61888794130e38188ac')
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_p2sh(self):
@@ -1194,7 +1194,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_input(prev_hash, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
                     sigs_required=2)
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')
-        self.assertEqual(t.estimate_size(), 321)
+        self.assertEqual(t.estimate_size(), 337)
 
     def test_transaction_multisig_litecoin(self):
         network = 'litecoin'

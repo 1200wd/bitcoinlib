@@ -106,7 +106,20 @@ else:
 
 
 #
-#
+# Addresses
 #
 print("\n=== Deserialize address ===")
 pprint(deserialize_address('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH'))
+
+print("\n=== Deserialize bech32 address ===")
+pprint(deserialize_address('bc1qtlktwxgx3xu3r7fnt04q06e4gflpvmm70qw66rjckzyc0n54elxqsgqlpy'))
+
+print("\n=== Create addreses from public key ===")
+pk = HDKey().public_hex
+print("Public key: %s" % pk)
+print(Address(pk).address)
+print(Address(pk, script_type='p2sh').address)
+print(Address(pk, encoding='bech32').address)
+print(Address(pk, script_type='p2sh', encoding='bech32').address)
+print(Address(pk, encoding='bech32', network='litecoin').address)
+print(Address(pk, encoding='bech32', network='dash').address)

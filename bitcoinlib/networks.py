@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    NETWORK class reads network definitions and with helper methods
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@ import json
 import binascii
 import math
 from bitcoinlib.main import *
-from bitcoinlib.encoding import to_hexstring, normalize_var
+from bitcoinlib.encoding import to_hexstring, normalize_var, change_base, to_bytes, EncodingError
 
 
 _logger = logging.getLogger(__name__)
@@ -140,6 +140,39 @@ def network_defined(network):
     return True
 
 
+def prefix_search(wif, network=None):
+    """
+    Extract network, script type and public/private information from WIF prefix.
+
+    :param wif: WIF string or prefix in bytes or hexadecimal string
+    :type wif: str, bytes
+    :param network: Limit search to specified network
+    :type network: str
+
+    :return dict:
+    """
+    try:
+        key_hex = change_base(wif, 58, 16)
+    except EncodingError:
+        key_hex = to_hexstring(wif)
+    prefix = key_hex[:8].upper()
+    matches = []
+    for nw in NETWORK_DEFINITIONS:
+        if network is not None and nw != network:
+            continue
+        data = NETWORK_DEFINITIONS[nw]
+        for pf in data['prefixes_wif']:
+            if pf[1] == prefix:
+                matches.append({
+                    'prefix': prefix,
+                    'is_private': True if pf[0] == 'private' else False,
+                    'prefix_str': pf[2],
+                    'network': nw,
+                    'script_types': pf[3]
+                })
+    return matches
+
+
 class Network:
     """
     Network class with all network definitions. 
@@ -172,6 +205,7 @@ class Network:
         self.fee_min = NETWORK_DEFINITIONS[network_name]['fee_min']
         self.fee_max = NETWORK_DEFINITIONS[network_name]['fee_max']
         self.priority = NETWORK_DEFINITIONS[network_name]['priority']
+        self.prefixes_wif = NETWORK_DEFINITIONS[network_name]['prefixes_wif']
 
         # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
         # for f in list(NETWORK_DEFINITIONS[network_name].keys()):
@@ -195,3 +229,29 @@ class Network:
         balance = round(value * denominator, denominator_size)
         format_str = "%%.%df %%s" % denominator_size
         return format_str % (balance, symb)
+
+    def wif_prefix(self, is_private=False, witness_type='legacy', multisig=False):
+        """
+        Get WIF prefix for this network and specifications in arguments
+
+        :param is_private: Private or public key, default is True
+        :type is_private: bool
+        :param witness_type: Legacy, segwit or p2sh-segwit
+        :type witness_type: str
+        :param multisig: Multisignature or single signature wallet. Default is not multisig
+        :type multisig: True
+
+        :return bytes:
+        """
+        script_type = script_type_default(witness_type, multisig, locking_script=True)
+        if script_type == 'p2sh' and witness_type in ['p2sh-segwit', 'segwit']:
+            script_type = 'p2sh_p2wsh' if multisig else 'p2sh_p2wpkh'
+        if is_private:
+            ip = 'private'
+        else:
+            ip = 'public'
+        found_prefixes = [to_bytes(pf[1]) for pf in self.prefixes_wif if pf[0] == ip and script_type in pf[3]]
+        if found_prefixes:
+            return found_prefixes[0]
+        else:
+            raise NetworkError("WIF Prefix for script type %s not found" % script_type)

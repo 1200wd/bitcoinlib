@@ -32,3 +32,9 @@ for k in network.__dir__():
         v = eval('network.%s' % k)
         if not callable(v):
             print("%25s: %s" % (k, v))
+
+wif = 'Zpub74CSuvLPQxWkdW7bivQAhomXZTzbE8quAakKRg1C3x7uDcCCeh7zPp1tZrtJrscihJRASZWjZQ7nPQj1SHTn8gkzAHPZL3dC' \
+      'MbMQLFwMKVV'
+print("\n=== Search for WIF prefix ===")
+print("WIF: %s" % wif)
+print(prefix_search(wif))

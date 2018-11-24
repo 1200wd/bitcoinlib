@@ -237,7 +237,7 @@ Implements the following Bitcoin Improvement Proposals
 - Purpose Field for Deterministic Wallets (BIP0043)
 - Multi-Account Hierarchy for Deterministic Wallets (BIP0044)
 - Structure for Deterministic P2SH Multisignature Wallets (BIP0045)
-- Base32/bech32 address format for native v0-16 witness outputs (BIP0173)
+- Bech32/base32 address format for native v0-16 witness outputs (BIP0173)
 - Native and P2SH nested Segregated Witness transactions (BIP0141 and BIP0143)
 
 

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MAIN - Load configs, initialize logging and database
-#    © 2017 April - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -61,7 +61,6 @@ SCRIPT_TYPES_UNLOCKING = {
     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
 }
 
-
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
@@ -100,7 +99,76 @@ elif locale.getpreferredencoding() != 'UTF-8':
                            "This library needs the locale set to UTF-8 to function properly" %
                            locale.getpreferredencoding())
 
+# Keys / Addresses
 SUPPORTED_ADDRESS_ENCODINGS = ['base58', 'bech32']
+
+
+# Wallets
+WALLET_KEY_STRUCTURES = [
+    {
+        'purpose': None,
+        'script_type': 'p2pkh',
+        'witness_type': 'legacy',
+        'multisig': False,
+        'encoding': 'base58',
+        'description': 'Single key wallet with no hierarchical deterministic key structure',
+        'key_path': ['m']
+    },
+    {
+        'purpose': 44,
+        'script_type': 'p2pkh',
+        'witness_type': 'legacy',
+        'multisig': False,
+        'encoding': 'base58',
+        'description': 'Legacy wallet using pay-to-public-key-hash scripts',
+        'key_path': ["m", "purpose'", "coin_type'",  "account'", "change", "address_index"]
+    },
+    {
+        'purpose': 45,
+        'script_type': 'p2sh',
+        'witness_type': 'legacy',
+        'multisig': True,
+        'encoding': 'base58',
+        'description': 'Legacy multisig wallet using pay-to-script-hash scripts',
+        'key_path': ["m", "purpose'", "cosigner_index", "change", "address_index"]
+    },
+    {
+        'purpose': 48,
+        'script_type': 'p2sh-p2wsh',
+        'witness_type': 'p2sh-segwit',
+        'multisig': True,
+        'encoding': 'base58',
+        'description': 'Segwit multisig wallet using pay-to-wallet-script-hash scripts nested in p2sh scripts',
+        'key_path': ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
+    },
+    {
+        'purpose': 48,
+        'script_type': 'p2wsh',
+        'witness_type': 'segwit',
+        'multisig': True,
+        'encoding': 'bech32',
+        'description': 'Segwit multisig wallet using native segwit pay-to-wallet-script-hash scripts',
+        'key_path': ["m", "purpose'", "coin_type'", "account'", "script_type'", "change", "address_index"]
+    },
+    {
+        'purpose': 49,
+        'script_type': 'p2sh-p2wpkh',
+        'witness_type': 'p2sh-segwit',
+        'multisig': False,
+        'encoding': 'base58',
+        'description': 'Segwit wallet using pay-to-wallet-public-key-hash scripts nested in p2sh scripts',
+        'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
+    },
+    {
+        'purpose': 84,
+        'script_type': 'p2wpkh',
+        'witness_type': 'segwit',
+        'multisig': False,
+        'encoding': 'bech32',
+        'description': 'Segwit multisig wallet using native segwit pay-to-wallet-public-key-hash scripts',
+        'key_path': ["m", "purpose'", "coin_type'", "account'", "change", "address_index"]
+    },
+]
 
 
 # Copy data and settings to default settings directory if install.log is not found
@@ -140,3 +208,33 @@ logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
 
 logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+
+
+def script_type_default(witness_type, multisig=False, locking_script=False):
+    """
+    Determine default script type for provided witness type and key type combination used in this library.
+
+    :param witness_type: Type of wallet: standard or segwit
+    :type witness_type: str
+    :param multisig: Multisig key or not, default is False
+    :type multisig: bool
+    :param locking_script: Limit search to locking_script. Specify False for locking scripts and True for unlocking scripts
+    :type locking_script: bool
+
+    :return str: Default script type
+    """
+
+    if witness_type == 'legacy' and not multisig:
+        return 'p2pkh' if locking_script else 'sig_pubkey'
+    elif witness_type == 'legacy' and multisig:
+        return 'p2sh' if locking_script else 'p2sh_multisig'
+    elif witness_type == 'segwit' and not multisig:
+        return 'p2wpkh' if locking_script else 'sig_pubkey'
+    elif witness_type == 'segwit' and multisig:
+        return 'p2wsh' if locking_script else 'p2sh_multisig'
+    elif witness_type == 'p2sh-segwit' and not multisig:
+        return 'p2sh' if locking_script else 'p2sh_p2wpkh'
+    elif witness_type == 'p2sh-segwit' and multisig:
+        return 'p2sh' if locking_script else 'p2sh_p2wsh'
+    else:
+        raise KeyError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))

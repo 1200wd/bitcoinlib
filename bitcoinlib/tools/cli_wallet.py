@@ -87,7 +87,8 @@ def parse_args():
                                     'key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
-
+    group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default='legacy',
+                               help='Witness type of wallet: lecacy (default), p2sh-segwit or segwit')
     group_transaction = parser.add_argument_group("Transactions")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
                                    help="Create transaction. Specify address followed by amount. Repeat for multiple "
@@ -155,11 +156,12 @@ def create_wallet(wallet_name, args, databasefile):
                 passphrase = ' '.join(passphrase)
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
                 key_list.append(HDKey().from_seed(seed, network=args.network))
-        return HDWallet.create_multisig(name=wallet_name, key_list=key_list, sigs_required=sigs_required,
-                                        network=args.network, databasefile=databasefile, sort_keys=True)
+        return HDWallet.create_multisig(name=wallet_name, keys=key_list, sigs_required=sigs_required,
+                                        network=args.network, databasefile=databasefile, sort_keys=True,
+                                        witness_type=args.witness_type)
     elif args.create_from_key:
-        return HDWallet.create(name=wallet_name, network=args.network, key=args.create_from_key,
-                               databasefile=databasefile)
+        return HDWallet.create(name=wallet_name, network=args.network, keys=args.create_from_key,
+                               databasefile=databasefile, witness_type=args.witness_type)
     else:
         passphrase = args.passphrase
         if passphrase is None:
@@ -175,7 +177,8 @@ def create_wallet(wallet_name, args, databasefile):
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey().from_seed(seed, network=args.network)
-        return HDWallet.create(name=wallet_name, network=args.network, key=hdkey.wif(), databasefile=databasefile)
+        return HDWallet.create(name=wallet_name, network=args.network, keys=hdkey, witness_type=args.witness_type,
+                               databasefile=databasefile)
 
 
 def create_transaction(wlt, send_args, args):
