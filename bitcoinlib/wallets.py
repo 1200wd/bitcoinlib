@@ -2912,14 +2912,14 @@ class HDWallet:
         # Calculate fees
         transaction.fee = fee
         fee_per_output = None
-        tr_size = transaction.estimate_size(add_change_output=True)
+        transaction.size = transaction.estimate_size(add_change_output=True)
         if fee is None:
             if not input_arr:
                 if not transaction.fee_per_kb:
                     transaction.fee_per_kb = srv.estimatefee()
-                transaction.fee = int((tr_size / 1024.0) * transaction.fee_per_kb)
-                if transaction.fee < self.network.fee_min:
-                    transaction.fee = self.network.fee_min
+                if transaction.fee_per_kb < self.network.fee_min:
+                    transaction.fee_per_kb = self.network.fee_min
+                transaction.fee = int((transaction.size / 1024.0) * transaction.fee_per_kb)
                 fee_per_output = int((50 / 1024.0) * transaction.fee_per_kb)
             else:
                 if amount_total_output and amount_total_input:
@@ -2945,12 +2945,13 @@ class HDWallet:
             transaction.outputs[on].key_id = ck.key_id
             amount_total_output += transaction.change
 
-        if transaction.fee < self.network.fee_min:
-            raise WalletError("Fee of %d is lower then minimal network fee of %d" %
-                              (transaction.fee, self.network.fee_min))
-        elif transaction.fee > self.network.fee_max:
-            raise WalletError("Fee of %d is higher then maximum network fee of %d" %
-                              (transaction.fee, self.network.fee_max))
+        transaction.fee_per_kb = int((transaction.fee * 1024.0)/ transaction.size)
+        if transaction.fee_per_kb < self.network.fee_min:
+            raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
+                              (transaction.fee_per_kb, self.network.fee_min))
+        elif transaction.fee_per_kb > self.network.fee_max:
+            raise WalletError("Fee per kB of %d is higher then maximum network fee of %d" %
+                              (transaction.fee_per_kb, self.network.fee_max))
 
         return transaction
 
@@ -2968,6 +2969,11 @@ class HDWallet:
         """
         if isinstance(t, Transaction):
             rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.name)
+            if t.size:
+                rt.size = t.size
+            else:
+                rt.size = len(t.raw())
+            rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
         elif isinstance(t, dict):
             output_arr = []
             for o in t['outputs']:
@@ -3003,6 +3009,8 @@ class HDWallet:
         t_import = Transaction.import_raw(raw_tx, network=network)
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
         rt.verify()
+        rt.size = len(raw_tx)
+        rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
         return rt
 
     def send(self, output_arr, input_arr=None, account_id=None, network=None, fee=None, min_confirms=0,
@@ -3055,6 +3063,7 @@ class HDWallet:
                                                       min_confirms, max_utxos, locktime)
                 transaction.sign(priv_keys)
 
+        transaction.fee_per_kb = int((transaction.fee / transaction.size) * 1024)
         transaction.send(offline)
         return transaction
 
