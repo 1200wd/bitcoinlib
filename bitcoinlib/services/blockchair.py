@@ -157,8 +157,8 @@ class BlockChairClient(BaseClient):
         res = self.compose_request('stats')
         memtx = res['data']['mempool_transactions']
         memsize = res['data']['mempool_size']
-        medfee = res['data']['median_trasaction_fee_24h']
-        avgfee = res['data']['average_trasaction_fee_24h']
+        medfee = res['data']['median_transaction_fee_24h']
+        avgfee = res['data']['average_transaction_fee_24h']
         memtotfee = res['data']['mempool_total_fee_usd']
         price = res['data']['market_price_usd']
         avgtxsize = memsize / memtx
