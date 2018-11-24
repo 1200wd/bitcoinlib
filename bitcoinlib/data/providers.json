@@ -32,6 +32,28 @@
     "denominator": 100000000,
     "network_overrides": null
   },
+    "litecoind": {
+    "provider": "litecoind",
+    "network": "litecoin",
+    "client_class": "LitecoindClient",
+    "provider_coin_id": "",
+    "url": "",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "litecoind.testnet": {
+    "provider": "litecoind",
+    "network": "litecoin_testnet",
+    "client_class": "LitecoindClient",
+    "provider_coin_id": "",
+    "url": "",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
   "blockexplorer": {
     "provider": "blockexplorer",
     "network": "bitcoin",
