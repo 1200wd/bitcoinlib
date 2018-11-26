@@ -74,6 +74,11 @@ try:
             del(fields['balance'])
         except:
             pass
+        if fields['scheme'] == 'bip44':
+            fields['scheme'] = 'bip32'
+        elif fields['scheme'] == 'multisig':
+            fields['scheme'] = 'bip32'
+            fields['multisig'] = True
 
         # Remove unused fields
         db_field_names = [field[0] for field in DbWallet.__table__.columns.items()]
