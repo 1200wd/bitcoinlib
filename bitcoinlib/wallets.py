@@ -1442,7 +1442,7 @@ class HDWallet:
                 address_index = prevkey.address_index + 1
 
             # Compose key path and create new key
-            return self.key_for_path([change, address_index], account_id=account_id, network=network)
+            return self.key_for_path([change, address_index], name=name, account_id=account_id, network=network)
         else:
             if self.network.name != network:
                 raise WalletError("Multiple networks is currently not supported for multisig")
