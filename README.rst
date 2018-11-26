@@ -241,8 +241,8 @@ Implements the following Bitcoin Improvement Proposals
 - Native and P2SH nested Segregated Witness transactions (BIP0141 and BIP0143)
 
 
-Installation
-============
+Installing and updating
+=======================
 
 Install with pip
 
@@ -260,6 +260,7 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 * sqlalchemy
 * requests
 * enum34 (for older python installations)
+
 
 Other requirements Linux
 ------------------------
@@ -281,8 +282,35 @@ Other requirements Windows
 Tested on Windows 10 with Python 3.6 and pip installed. No special requirements needed.
 
 
+Troubleshooting
+---------------
+
+When you experience issues with the scrypt package when installing you can try to solve this by installing
+scrypt seperately:
+ pip intall scrypt
+
+Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
+above.
+
+If you run into issues to not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
+
+
+Update library
+--------------
+
+Update to the latest version of the library with
+ pip install bitcoinlib --upgrade
+
+To upgrade make sure everything is backuped and run updatedb.py from the installation directory.
+ python updatedb.py -d [<link-to-database-if-not-standard>]
+
+
+For more information on installing, updating and maintenance see
+https://bitcoinlib.readthedocs.io/en/latest/_static/manuals.install.html#installation
+
+
 Future / Roadmap
-----------------
+================
 
 * Create Script class and support advanced scripts
 * Fully support timelocks
@@ -290,10 +318,3 @@ Future / Roadmap
 * Support and extensively test other databases
 * Improve speed and security
 * Integrate in ERP solutions such as Odoo
-
-
-References
-----------
-
-* https://pypi.python.org/pypi/bitcoinlib/
-* https://github.com/1200wd/bitcoinlib

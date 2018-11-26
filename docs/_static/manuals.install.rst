@@ -90,6 +90,19 @@ of database changes. So backup database / private keys first and use at your own
     Type 'y' or 'Y' to continue or any other key to cancel: y
 
 
+Troubleshooting
+---------------
+
+When you experience issues with the scrypt package when installing you can try to solve this by installing
+scrypt seperately:
+ pip intall scrypt
+
+Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
+above.
+
+If you run into issues to not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
+
+
 Tweak BitcoinLib
 ----------------
 
