@@ -2427,9 +2427,10 @@ class HDWallet:
                             count_utxos += 1
                         utxo_record.key_id = key.id
                         utxo_record.spent = False
-                        transaction_record = transaction_in_db.scalar()
-                        transaction_record.confirmations = utxo['confirmations']
-                        transaction_record.status = status
+                        if transaction_in_db.count():
+                            transaction_record = transaction_in_db.scalar()
+                            transaction_record.confirmations = utxo['confirmations']
+                            transaction_record.status = status
                     else:
                         # Add transaction if not exist and then add output
                         if not transaction_in_db.count():
