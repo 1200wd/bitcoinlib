@@ -449,6 +449,8 @@ class HDWalletKey:
         :return HDKey: 
         """
 
+        if self.key_type == 'multisig':
+            raise WalletError("HDWalletKey of type multisig has no single hdkey object, use cosigner attribute")
         if self._hdkey_object is None:
             self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
         return self._hdkey_object
@@ -611,7 +613,7 @@ class HDWalletTransaction(Transaction):
                     else:
                         hdkey = HDKey(k, network=self.network.name)
                     if hdkey not in priv_key_list:
-                        priv_key_list.append(k)
+                        priv_key_list.append(hdkey)
                         # priv_key_list.append(hdkey)
                 elif self.hdwallet.cosigner:
                     # Check if private key is available in wallet
