@@ -60,6 +60,8 @@ class CryptoID(BaseClient):
         return int(balance * self.units)
 
     def getutxos(self, addresslist):
+        if not self.api_key:
+            raise ClientError("Method getutxos() is not available for CryptoID without API key")
         utxos = []
         addresslist = self._addresslist_convert(addresslist)
         for a in addresslist:
