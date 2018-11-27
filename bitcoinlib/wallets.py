@@ -1189,7 +1189,7 @@ class HDWallet:
             network = self.network.name
             if account_id is None:
                 account_id = self.default_account_id
-        depth = len(self.key_path) - 2
+        depth = len(self.key_path) - 3
         qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=depth, network_name=network)
         if account_id is not None:
@@ -1619,7 +1619,7 @@ class HDWallet:
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
-        keys_depth = len(self.key_path)-1
+        keys_depth = len(self.key_path) - 1
         last_used_qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
                       used=True, change=change, depth=keys_depth).\
@@ -2371,7 +2371,7 @@ class HDWallet:
             else:
                 accounts = [account_id]
             for account_id in accounts:
-                _, _, acckey = self._get_account_defaults(network, account_id, key_id)
+                # _, _, acckey = self._get_account_defaults(network, account_id, key_id)
                 if depth is None:
                     if self.scheme == 'bip32':
                         depth = len(self.key_path) - 1

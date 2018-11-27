@@ -544,6 +544,15 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         error_str = "Can not create new account for network litecoin_testnet with same BIP44 cointype"
         self.assertRaisesRegexp(WalletError, error_str, wlt.new_account, network='litecoin_testnet')
 
+    def test_wallet_get_account_defaults(self):
+        w = wallet_create_or_open("test_wallet_get_account_defaults", witness_type='segwit',
+                                  databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key(network='litecoin', account_id=100)
+        network, account_id, account_key = w._get_account_defaults(network='litecoin')
+        self.assertEqual(network, 'litecoin')
+        self.assertEqual(account_id, 100)
+        self.assertIn('account', account_key.name)
+
 
 class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
