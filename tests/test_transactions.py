@@ -1415,3 +1415,18 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         pk = 'KzfY4SCg56duLi1UTXbwUzaK1nQEF8gUvGLvwUDi7bYJvhMn3CFV'
         inp = Input('prev', 0, pk, encoding='bech32')
         self.assertEqual(inp.address, 'bc1qhzt298pr6tm23hqkd4akzr3cajpyt2wsnz8zr4')
+
+    def test_transaction_segwit_importraw_litecoin(self):
+        rawtx = '010000000001016768c8454c2d561957e13baabf9641382337f89e5854343895b46ab368bbd6350000000017160014d60b21' \
+                '752adc62eb3117b0b2bd00b0126d8e0157ffffffff024aae8b060000000017a914d966f0e3e05e3ab1209524338ff61b32eb' \
+                '2aa58887be5d9b00000000001600148ceebc8944c8bb2af9f6714d60c88860191032f302473044022025a38facc3e83e532a' \
+                '6ad5a09ff2cc5e10bf1b09249169b233c5a3ffc21003de022031715687bc57778f7564924861a2d821b4eb6d15b1957ef895' \
+                '5fd7d6f93df7bd0121034168c3df0c9db74c8159388b270a6dbb30778b8ac74e6b456ad1ebb8c4bb344f00000000'
+        t = Transaction.import_raw(rawtx, network='litecoin')
+        self.assertEqual(t.inputs[0].address, 'MLairbWquSaGqMF1cWJZSH7xU6iY8jZBi5')
+        self.assertEqual(t.outputs[0].address, 'MTigBXDpqJTK12Lhmd8P8UPqDGe97zVgNW')
+        self.assertEqual(t.outputs[0].value, 109817418)
+        self.assertEqual(t.outputs[1].address, 'ltc1q3nhtez2yezaj470kw9xkpjygvqv3qvhn5sp469')
+        self.assertEqual(t.outputs[1].value, 10182078)
+        self.assertEqual(t.raw_hex(), rawtx)
+        self.assertEqual(t.hash, '6bf265d81f235a995dfd433765dcee7da56786973234be2b8db4a156ac64b0e1')

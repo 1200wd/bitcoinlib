@@ -1286,7 +1286,10 @@ class Transaction:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
 
         if not self.hash and rawtx:
-            self.hash = to_hexstring(double_sha256(to_bytes(rawtx))[::-1])
+            if self.witness_type == 'legacy':
+                self.hash = to_hexstring(double_sha256(to_bytes(rawtx))[::-1])
+            else:
+                self.hash = to_hexstring(double_sha256(to_bytes(self.raw(witness_type='legacy')))[::-1])
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -1485,7 +1488,7 @@ class Transaction:
         # print(sign_id, to_hexstring(script_code))
         return ser_tx
 
-    def raw(self, sign_id=None, hash_type=SIGHASH_ALL):
+    def raw(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
         """
         Serialize raw transaction
         
@@ -1495,12 +1498,17 @@ class Transaction:
         :type sign_id: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
+        :param witness_type: Serialize transaction with other witness type then default. Use to create legacy raw transaction for segwit transaction to create transaction signature ID's
+        :type witness_type: str
 
         :return bytes:
         """
 
+        if witness_type is None:
+            witness_type = self.witness_type
+
         r = self.version[::-1]
-        if sign_id is None and self.witness_type == 'segwit':
+        if sign_id is None and witness_type == 'segwit':
             r += b'\x00'  # marker (BIP 141)
             r += b'\x01'  # flag (BIP 141)
 
@@ -1527,7 +1535,7 @@ class Transaction:
             r += struct.pack('<Q', o.value)
             r += varstr(o.lock_script)
 
-        if sign_id is None and self.witness_type == 'segwit':
+        if sign_id is None and witness_type == 'segwit':
             r += r_witness
 
         r += struct.pack('<L', self.locktime)
@@ -1537,7 +1545,7 @@ class Transaction:
             self.size = len(r)
         return r
 
-    def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL):
+    def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
         """
         Wrapper for raw() method. Return current raw transaction hex
 
@@ -1545,11 +1553,13 @@ class Transaction:
         :type sign_id: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
+        :param witness_type: Serialize transaction with other witness type then default. Use to create legacy raw transaction for segwit transaction to create transaction signature ID's
+        :type witness_type: str
 
         :return hexstring: 
         """
 
-        return to_hexstring(self.raw(sign_id, hash_type=hash_type))
+        return to_hexstring(self.raw(sign_id, hash_type=hash_type, witness_type=witness_type))
 
     def verify(self):
         """
