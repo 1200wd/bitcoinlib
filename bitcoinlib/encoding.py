@@ -205,10 +205,12 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
                 item = inp[-1:]
                 inp = inp[:-1]
             itemindex = _in_code_string_check(item, code_str_from)
-            try:
+            if itemindex not in code_str_from:
+                return False
+            else:
                 pos = code_str_from.index(itemindex)
-            except ValueError:
-                raise EncodingError("Unknown character '%s' in input" % item)
+            # except ValueError:
+            #     raise EncodingError("Unknown character '%s' in input" % item)
             input_dec += pos * factor
 
             # Add leading zero if there are leading zero's in input

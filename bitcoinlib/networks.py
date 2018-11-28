@@ -151,9 +151,9 @@ def prefix_search(wif, network=None):
 
     :return dict:
     """
-    try:
-        key_hex = change_base(wif, 58, 16)
-    except EncodingError:
+
+    key_hex = change_base(wif, 58, 16)
+    if not key_hex:
         key_hex = to_hexstring(wif)
     prefix = key_hex[:8].upper()
     matches = []

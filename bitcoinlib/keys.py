@@ -244,11 +244,8 @@ def deserialize_address(address, encoding=None, network=None):
         raise KeyError("Encoding '%s' not found in supported address encodings %s" %
                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     if encoding is None or encoding == 'base58':
-        try:
-            address_bytes = change_base(address, 58, 256, 25)
-        except EncodingError:
-            pass
-        else:
+        address_bytes = change_base(address, 58, 256, 25)
+        if address_bytes:
             check = address_bytes[-4:]
             key_hash = address_bytes[:-4]
             checksum = double_sha256(key_hash)[0:4]
@@ -345,13 +342,15 @@ class Address:
     """
 
     @classmethod
-    def import_address(cls, address, network=None, network_overrides=None):
+    def import_address(cls, address, encoding=None, network=None, network_overrides=None):
         """
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
 
         :param address: Address to import
         :type address: str
+        :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding. Leave empty to derive from address
+        :type encoding: str
         :param network: Bitcoin, testnet, litecoin or other network
         :type network: str
         :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
@@ -359,7 +358,9 @@ class Address:
 
         :return Address:
         """
-        addr_dict = deserialize_address(address)
+        if encoding is None and address[:3].split("1")[0] in ['bc', 'tb', 'ltc', 'tltc', 'tdash', 'tdash', 'bclt']:
+            encoding = 'bech32'
+        addr_dict = deserialize_address(address, encoding=encoding)
         public_key_hash_bytes = addr_dict['public_key_hash_bytes']
         prefix = addr_dict['prefix']
         if network is None:
