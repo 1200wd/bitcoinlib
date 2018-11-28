@@ -1080,7 +1080,7 @@ class Output:
             self.compressed = self.k.compressed
         if self.public_hash and not self.address:
             self.address_obj = Address(hashed_data=self.public_hash, prefix=self.versionbyte,
-                                       script_type=script_type, encoding=encoding)
+                                       script_type=script_type, encoding=encoding, network=self.network)
             self.address = self.address_obj.address
             self.versionbyte = self.address_obj.prefix
 
@@ -1095,7 +1095,7 @@ class Output:
             elif self.script_type in ['p2wpkh', 'p2wsh']:
                 self.public_hash = ss['hashes'][0]
                 self.address_obj = Address(hashed_data=ss['hashes'][0], script_type=self.script_type,
-                                           encoding='bech32')
+                                           encoding='bech32', network=self.network)
                 self.address = self.address_obj.address
             elif self.script_type != 'nulldata':
                 _logger.warning("Script type %s not supported" % self.script_type)

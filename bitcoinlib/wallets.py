@@ -2567,11 +2567,8 @@ class HDWallet:
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
         if depth is None:
-            if self.multisig:
-                depth = 5
-                account_id = None
-            elif self.scheme == 'bip32':
-                depth = 5
+            if self.scheme == 'bip32':
+                depth = len(self.key_path) - 1
             else:
                 depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
