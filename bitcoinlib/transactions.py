@@ -881,7 +881,7 @@ class Input:
             self.witnesses = []
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0]['sig_der'] + struct.pack('B', hash_type), self.keys[0].public_byte]
-                unlock_script = b''.join([varstr(w) for w in self.witnesses])
+                unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
             elif self.witness_type == 'segwit':
@@ -1285,9 +1285,11 @@ class Transaction:
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
 
-        if not self.hash and rawtx:
+        if not self.hash:
             if self.witness_type == 'legacy':
-                self.hash = to_hexstring(double_sha256(to_bytes(rawtx))[::-1])
+                if not self.rawtx:
+                    self.rawtx = self.raw_hex()
+                self.hash = to_hexstring(double_sha256(to_bytes(self.rawtx))[::-1])
             else:
                 self.hash = to_hexstring(double_sha256(to_bytes(self.raw(witness_type='legacy')))[::-1])
 
@@ -1517,7 +1519,7 @@ class Transaction:
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
             if i.witnesses:
-                r_witness += int_to_varbyteint(len(i.witnesses)) + b''.join([varstr(w) for w in i.witnesses])
+                r_witness += int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
             else:
                 r_witness += b'\0'
             if sign_id is None:
