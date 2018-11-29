@@ -594,8 +594,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.new_key()
         w.utxos_update()
         balance = w.balance()
-        self.assertRaisesRegexp(WalletError, 'Not enough unspent transaction outputs found',
-                                w.send_to, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance)
+        self.assertFalse(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance))
 
     def test_wallet_bitcoinlib_testnet_sweep(self):
         w = HDWallet.create(
