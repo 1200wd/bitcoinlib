@@ -2149,7 +2149,7 @@ class HDWallet:
         """
         Get list of networks used by this wallet
         
-        :return: List of networks as dictionary
+        :return list: List of networks as dictionary
         """
 
         if self.scheme == 'single' or self.multisig:

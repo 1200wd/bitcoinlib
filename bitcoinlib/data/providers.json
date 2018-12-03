@@ -94,7 +94,7 @@
     "provider_coin_id": "",
     "url": "https://api.blockcypher.com/v1/btc/main/",
     "api_key": "",
-    "priority": 8,
+    "priority": 10,
     "denominator": 1,
     "network_overrides": null
   },
@@ -138,7 +138,7 @@
     "provider_coin_id": "",
     "url": "https://api.blockcypher.com/v1/btc/test3/",
     "api_key": "",
-    "priority": 8,
+    "priority": 10,
     "denominator": 1,
     "network_overrides": null
   },
@@ -193,7 +193,7 @@
     "provider_coin_id": "LTCTEST",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 9,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -204,7 +204,7 @@
     "provider_coin_id": "BTC",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 9,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -215,7 +215,7 @@
     "provider_coin_id": "BTCTEST",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 9,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -226,7 +226,7 @@
     "provider_coin_id": "LTC",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 9,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -238,7 +238,7 @@
     "provider_coin_id": "LTC",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 9,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -249,7 +249,7 @@
     "provider_coin_id": "DASH",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 9,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -260,7 +260,7 @@
     "provider_coin_id": "DASHTEST",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 9,
+    "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
   },
