@@ -77,22 +77,16 @@ class LitecoreIOClient(BaseClient):
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
         for ti in tx['vin']:
-            sequence = struct.pack('<L', ti['sequence'])
             if isCoinbase:
                 t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
-                            script_type='coinbase', sequence=sequence)
+                            script_type='coinbase', sequence=ti['sequence'])
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
-                            index_n=ti['n'], value=value, sequence=sequence,
+                            index_n=ti['n'], value=value, sequence=ti['sequence'],
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
-            # address = ''
-            # try:
-            #     address = to['scriptPubKey']['addresses'][0]
-            # except ValueError:
-            #     pass
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t

@@ -3203,7 +3203,7 @@ class HDWallet:
         """
         Prints wallet information to standard output
         
-        :param detail: Level of detail to show. Specify a number between 0 and 4, with 0 low detail and 4 highest detail
+        :param detail: Level of detail to show. Specify a number between 0 and 5, with 0 low detail and 5 highest detail
         :type detail: int
         """
 
@@ -3236,7 +3236,9 @@ class HDWallet:
             for nw in self.networks():
                 print("\n- NETWORK: %s -" % nw['network_name'])
                 print("- - Keys")
-                if detail < 3:
+                if detail < 4:
+                    ds = [len(self.key_path) - 1]
+                elif detail < 5:
                     if self.purpose == 45:
                         ds = [0, 4]
                     elif self.purpose == 48:

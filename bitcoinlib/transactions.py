@@ -1775,7 +1775,10 @@ class Transaction:
 
         if index_n is None:
             index_n = len(self.inputs)
-        if self.version == b'\x00\x00\x00\x01' and 0 < sequence < SEQUENCE_LOCKTIME_DISABLE_FLAG:
+        sequence_int = sequence
+        if isinstance(sequence, bytes):
+            sequence_int = struct.unpack('<L', sequence)[0]
+        if self.version == b'\x00\x00\x00\x01' and 0 < sequence_int < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
             Input(prev_hash=prev_hash, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
