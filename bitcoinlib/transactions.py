@@ -1389,8 +1389,8 @@ class Transaction:
                 print("-", to.address, to.value)
         if replace_by_fee:
             print("Replace by fee: Enabled")
-        print("Size: %d" % self.size)
-        print("Vsize: %d" % self.vsize)
+        print("Size: %s" % self.size)
+        print("Vsize: %s" % self.vsize)
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
