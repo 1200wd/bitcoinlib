@@ -1002,7 +1002,7 @@ class Output:
     """
 
     def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                 output_n=0, script_type=None, encoding='base58', network=DEFAULT_NETWORK):
+                 output_n=0, script_type=None, encoding=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -1029,7 +1029,7 @@ class Output:
         :type output_n: int
         :param script_type: Script type of output (p2pkh, p2sh, segwit p2wpkh, etc). Extracted from lock_script if provided.
         :type script_type: str
-        :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
+        :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from address or default base58 encoding
         :type encoding: str
         :param network: Network, leave empty for default
         :type network: str, Network
@@ -1053,13 +1053,15 @@ class Output:
         self.versionbyte = self.network.prefix_address
         self.script_type = script_type
         self.encoding = encoding
+        if not self.address and self.encoding is None:
+            self.encoding = 'base58'
         self.spent = spent
         self.output_n = output_n
 
         if self.public_key:
             self.k = Key(self.public_key, is_private=False, network=network)
             self.compressed = self.k.compressed
-            self.address = self.k.address(compressed=self.compressed, script_type=script_type, encoding=encoding)
+            self.address = self.k.address(compressed=self.compressed, script_type=script_type, encoding=self.encoding)
         elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self.address, self.encoding, self.network.name)
             if address_dict['script_type']:
@@ -1080,7 +1082,7 @@ class Output:
             self.compressed = self.k.compressed
         if self.public_hash and not self.address:
             self.address_obj = Address(hashed_data=self.public_hash, prefix=self.versionbyte,
-                                       script_type=script_type, encoding=encoding, network=self.network)
+                                       script_type=script_type, encoding=self.encoding, network=self.network)
             self.address = self.address_obj.address
             self.versionbyte = self.address_obj.prefix
 
