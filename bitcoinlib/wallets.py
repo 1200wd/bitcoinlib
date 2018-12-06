@@ -359,7 +359,10 @@ class HDWalletKey:
         if key_type != 'single' and k.depth != len(path.split('/'))-1:
             if path == 'm' and k.depth == 3:
                 if purpose == 45:
-                    raise WalletError("Cannot import old style BIP45 account keys, use master key to create new wallet")
+                    raise WalletError('Cannot import old style BIP45 account keys, use master key to create new '
+                                      'wallet. Or workaround this issue by specifying key_path such as '
+                                      '["m", "purpose\'", "coin_type\'", "account\'", "change", "address_index"] and '
+                                      'purpose 45 for multisig')
                 # Create path when importing new account-key
                 networkcode = Network(network).bip44_cointype
                 path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
