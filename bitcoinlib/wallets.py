@@ -2667,9 +2667,7 @@ class HDWallet:
                 # TODO:  CHECK THIS
                 inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
         elif key.key_type in ['bip32', 'single']:
-            key = HDKey(key.wif, compressed=key.compressed, network=key.network_name).key
-            if key:
-                inp_keys = [key]
+            inp_keys = [HDKey(key.wif, compressed=key.compressed, network=key.network_name).key]
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
@@ -2911,8 +2909,7 @@ class HDWallet:
                                       unlocking_script=unlocking_script, address=address,
                                       unlocking_script_unsigned=unlocking_script_unsigned,
                                       sequence=sequence, locktime_cltv=locktime_cltv, locktime_csv=locktime_csv,
-                                      witness_type=self.witness_type)
-                                      # key_path=utxo.key.path, witness_type=self.witness_type)
+                                      witness_type=self.witness_type, key_path=key.path)
         # Calculate fees
         transaction.fee = fee
         fee_per_output = None
