@@ -1265,8 +1265,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
             t.sign(p2)
             t.estimate_size()
             size2 = t.size
-            self.assertAlmostEqual(size1, size2, delta=2)
-            self.assertAlmostEqual(len(t.raw()), size2, delta=2)
+            self.assertAlmostEqual(size1, size2, delta=3)
+            self.assertAlmostEqual(len(t.raw()), size2, delta=3)
 
 
 class TestWalletDash(unittest.TestCase):
@@ -1524,6 +1524,21 @@ class TestWalletSegwit(unittest.TestCase):
 
         t = w.sweep('ltc1q9h8xvtrge5ttcwzy3xtz7l8kj4dewgh6hgqfjdhtq6lwr4k3527qd8tyzs', offline=True)
         self.assertTrue(t.verified)
+
+    def test_wallet_segwit_multisig_multiple_inputs(self):
+        main_key = HDKey(network='bitcoinlib_test')
+        cosigner = HDKey(network='bitcoinlib_test')
+        w = wallet_create_or_open_multisig('test_wallet_segwit_multisig_multiple_inputs',
+                                           [main_key, cosigner.account_multisig_key(witness_type='segwit').public()],
+                                           witness_type='segwit', network='bitcoinlib_test',
+                                           databasefile=DATABASEFILE_UNITTESTS)
+
+        w.get_key(number_of_keys=2)
+        w.utxos_update()
+        w.get_key_change()
+        t = w.sweep('bclt1qg3a0gka2kwlrgpzpzg2dscwk5e8wy0knpnc8vjqtz9hr5jjke3eqstv2rl', offline=True)
+        t.sign(cosigner)
+        self.assertTrue(t.verify())
 
 
 class TestWalletKeyStructures(unittest.TestCase):
