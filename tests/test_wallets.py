@@ -1535,8 +1535,8 @@ class TestWalletSegwit(unittest.TestCase):
 
         w.get_key(number_of_keys=2)
         w.utxos_update()
-        w.get_key_change()
-        t = w.sweep('bclt1qg3a0gka2kwlrgpzpzg2dscwk5e8wy0knpnc8vjqtz9hr5jjke3eqstv2rl', offline=True)
+        to = w.get_key_change()
+        t = w.sweep(to.address, offline=True)
         t.sign(cosigner)
         self.assertTrue(t.verify())
 
