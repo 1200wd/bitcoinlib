@@ -1023,6 +1023,7 @@ class HDKey:
         if not self.network:
             self.network = Network()
         self.public_byte = self.key.public_byte
+        self.public_uncompressed_byte = self.key.public_uncompressed_byte
         self.public_hex = self.key.public_hex
         self.secret = None
         self.private_hex = None
@@ -1053,7 +1054,7 @@ class HDKey:
             print("")
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
-        print(" Public Key Hash160          %s" % change_base(self.key.hash160(), 256, 16))
+        print(" Public Key Hash160          %s" % change_base(self.hash160(), 256, 16))
         print(" Address (b58)               %s" % self.key.address())
         print(" Fingerprint (hex)           %s" % change_base(self.fingerprint(), 256, 16))
         point_x, point_y = self.key.public_point()
@@ -1083,7 +1084,7 @@ class HDKey:
             'private_long': '' if not self.isprivate else self.secret,
             'private_wif': '' if not self.isprivate else self.key.wif(),
             'public_hex': self.public_hex,
-            'public_hash160': self.key.hash160(),
+            'public_hash160': self.hash160(),
             'address': self.key.address(),
             'fingerprint': change_base(self.fingerprint(), 256, 16),
             'point_x': point_x,
@@ -1119,7 +1120,7 @@ class HDKey:
         :return bytes:
         """
 
-        return self.key.hash160()[:4]
+        return self.hash160()[:4]
 
     def wif(self, is_private=None, child_index=None, prefix=None, witness_type='legacy', multisig=False):
         """
@@ -1396,3 +1397,12 @@ class HDKey:
         hdkey.key_hex = hdkey.public_hex
         hdkey.key = self.key.public()
         return hdkey
+
+    def hash160(self):
+        """
+        Get RIPEMD-160 + SHA256 hash of public key
+
+        :return bytes:
+        """
+
+        return self.key.hash160()
