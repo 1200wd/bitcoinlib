@@ -45,7 +45,7 @@ class BlockExplorerClient(BaseClient):
             txs.append({
                 'address': tx['address'],
                 'tx_hash': tx['txid'],
-                'confirmations': tx['confirmations'],
+                'confirmations': 0 if tx['confirmations'] < 0 else tx['confirmations'],
                 'output_n': tx['vout'],
                 'input_n': 0,
                 'block_height': None,
