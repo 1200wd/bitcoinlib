@@ -1520,7 +1520,7 @@ class Transaction:
         r_witness = b''
         for i in self.inputs:
             r += i.prev_hash[::-1] + i.output_n[::-1]
-            if i.witnesses:
+            if i.witnesses and i.witness_type != 'legacy':
                 r_witness += int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
             else:
                 r_witness += b'\0'
