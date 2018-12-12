@@ -68,6 +68,8 @@ class BlockExplorerClient(BaseClient):
         if 'isCoinBase' in tx and tx['isCoinBase']:
             value_in = tx['valueOut']
             isCoinbase = True
+        if tx['confirmations'] < 0:
+            tx['confirmations'] = None
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],
                         date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
