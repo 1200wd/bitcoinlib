@@ -25,6 +25,7 @@ from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.networks import Network
 
 
 PROVIDERNAME = 'bitcoind'
@@ -64,14 +65,17 @@ class BitcoindClient(BaseClient):
         :return BitcoindClient:
         """
         config = configparser.ConfigParser(strict=False)
+        config_fn = 'bitcoin.conf'
+        if network == 'testnet':
+            config_fn = 'bitcoin-testnet.conf'
         if not configfile:
-            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/bitcoin.conf')
+            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/%s' % config_fn)
             if not os.path.isfile(cfn):  # Linux
-                cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/bitcoin.conf')
+                cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/%s' % config_fn)
             if not os.path.isfile(cfn):  # Try Windows path
-                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Litecoin/bitcoin.conf')
+                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Bitcoin/%s' % config_fn)
             if not os.path.isfile(cfn):  # Try Max path
-                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Litecoin/bitcoin.conf')
+                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Bitcoin/%s' % config_fn)
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
                                   "default. Or place a config file in .bitcoinlib/config/bitcoin.conf to reference to "
@@ -118,6 +122,8 @@ class BitcoindClient(BaseClient):
         :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for bitcoin
         :type: str
         """
+        if isinstance(network, Network):
+            network = network.name
         if not base_url:
             bdc = self.from_config('', network)
             base_url = bdc.base_url
