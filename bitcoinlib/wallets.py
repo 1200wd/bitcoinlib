@@ -1552,6 +1552,28 @@ class HDWallet:
         if self.scheme != 'bip32' and self.scheme != 'multisig':
             raise WalletError("The wallet scan() method is only available for BIP32 wallets")
 
+        # Update number of confirmations
+        txs = self._session.query(DbTransaction). \
+            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransaction.status == 'confirmed').\
+            filter(DbTransaction.block_height > 0)
+        if account_id is not None:
+            txs.filter(DbKey.account_id == account_id)
+        srv = Service(network=self.network.name)
+        current_block_height = srv.block_count()
+        for tx in txs:
+            tx.confirmations = current_block_height - tx.block_height
+        if txs:
+            self._session.commit()
+
+        # Check unconfirmed UTXO's
+        utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransaction.status == 'unconfirmed')
+        if account_id is not None:
+            utxos.filter(DbKey.account_id == account_id)
+        utxo_key_ids = list(set([utxo.key_id for utxo in utxos]))
+        for key_id in utxo_key_ids:
+            self.utxos_update(key_id=key_id)
+
         # FIXME: This removes to much UTXO's, used keys are not scanned...
         # if not _recursion_depth:
         #     # Mark all UTXO's for this wallet as spend
