@@ -1565,9 +1565,9 @@ class HDWallet:
         if txs:
             self._session.commit()
 
-        # Check unconfirmed UTXO's
+        # Check UTXO's
         utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
-            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransaction.status == 'unconfirmed')
+            filter(DbTransaction.wallet_id == self.wallet_id)
         if account_id is not None:
             utxos.filter(DbKey.account_id == account_id)
         utxo_key_ids = list(set([utxo.key_id for utxo in utxos]))
