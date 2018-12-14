@@ -22,7 +22,6 @@ import math
 import numbers
 from copy import deepcopy
 import ecdsa
-import struct
 import hashlib
 import binascii
 import unicodedata
@@ -62,15 +61,6 @@ def _get_code_string(base):
         return code_strings[base]
     else:
         return list(range(0, base))
-
-
-def _in_code_string_check(inp, code_str_from):
-    if not PY3 and isinstance(inp, bytearray):
-        inp = str(inp)
-    if inp in code_str_from:
-        return inp
-    else:
-        return inp.lower()
 
 
 def _array_to_codestring(array, base):
@@ -204,13 +194,13 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             else:
                 item = inp[-1:]
                 inp = inp[:-1]
-            itemindex = _in_code_string_check(item, code_str_from)
-            if itemindex not in code_str_from:
-                return False
-            else:
-                pos = code_str_from.index(itemindex)
-            # except ValueError:
-            #     raise EncodingError("Unknown character '%s' in input" % item)
+            try:
+                pos = code_str_from.index(item)
+            except ValueError:
+                try:
+                    pos = code_str_from.index(item.lower())
+                except ValueError:
+                    return False
             input_dec += pos * factor
 
             # Add leading zero if there are leading zero's in input
