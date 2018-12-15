@@ -2473,8 +2473,11 @@ class HDWallet:
                     else:
                         # Add transaction if not exist and then add output
                         if not transaction_in_db.count():
+                            block_height = None
+                            if block_height in utxo:
+                                block_height = utxo['block_height']
                             new_tx = DbTransaction(wallet_id=self.wallet_id, hash=utxo['tx_hash'], status=status,
-                                                   block_height=utxo['block_height'],
+                                                   block_height=block_height,
                                                    confirmations=utxo['confirmations'], network_name=self.network.name)
                             self._session.add(new_tx)
                             self._session.commit()
