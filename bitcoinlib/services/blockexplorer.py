@@ -45,7 +45,7 @@ class BlockExplorerClient(BaseClient):
             txs.append({
                 'address': tx['address'],
                 'tx_hash': tx['txid'],
-                'confirmations': 0 if tx['confirmations'] < 0 else tx['confirmations'],
+                'confirmations': 3 if tx['confirmations'] < 0 else tx['confirmations'],
                 'output_n': tx['vout'],
                 'input_n': 0,
                 'block_height': None,
@@ -69,7 +69,7 @@ class BlockExplorerClient(BaseClient):
             value_in = tx['valueOut']
             isCoinbase = True
         if tx['confirmations'] < 0:
-            tx['confirmations'] = None
+            tx['confirmations'] = 3
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],
                         date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],

@@ -1588,23 +1588,12 @@ class HDWallet:
 
         # Check UTXO's
         utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
-            filter(DbTransaction.wallet_id == self.wallet_id)
+            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransactionOutput.spent.op("IS")(False))
         if account_id is not None:
             utxos.filter(DbKey.account_id == account_id)
         utxo_key_ids = list(set([utxo.key_id for utxo in utxos]))
         for key_id in utxo_key_ids:
             self.utxos_update(key_id=key_id)
-
-        # FIXME: This removes to much UTXO's, used keys are not scanned...
-        # if not _recursion_depth:
-        #     # Mark all UTXO's for this wallet as spend
-        #     utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
-        #         filter(DbTransaction.wallet_id == self.wallet_id)
-        #     if account_id is not None:
-        #         utxos.filter(DbKey.account_id == account_id)
-        #     for utxo_record in utxos.all():
-        #         utxo_record.spent = True
-        #     self._session.commit()
 
         _recursion_depth += 1
         if change != 1:
@@ -2398,10 +2387,11 @@ class HDWallet:
         :return int: Number of new UTXO's added 
         """
 
+        single_key = None
         if key_id:
-            kobj = self.key(key_id)
-            networks = [kobj.network_name]
-            account_id = kobj.account_id
+            single_key = self._session.query(DbKey).filter_by(id=key_id).scalar()
+            networks = [single_key.network_name]
+            account_id = single_key.account_id
         if networks is None:
             networks = self.network_list()
         elif not isinstance(networks, list):
@@ -2452,8 +2442,10 @@ class HDWallet:
 
                 # If UTXO is new, add to database otherwise update depth (confirmation count)
                 for utxo in utxos:
-                    key = self._session.query(DbKey).\
-                        filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
+                    key = single_key
+                    if not single_key:
+                        key = self._session.query(DbKey).\
+                            filter_by(wallet_id=self.wallet_id, address=utxo['address']).scalar()
                     if not key:
                         raise WalletError("Key with address %s not found in this wallet" % utxo['address'])
                     key.used = True
@@ -2482,6 +2474,7 @@ class HDWallet:
                         # Add transaction if not exist and then add output
                         if not transaction_in_db.count():
                             new_tx = DbTransaction(wallet_id=self.wallet_id, hash=utxo['tx_hash'], status=status,
+                                                   block_height=utxo['block_height'],
                                                    confirmations=utxo['confirmations'], network_name=self.network.name)
                             self._session.add(new_tx)
                             self._session.commit()
