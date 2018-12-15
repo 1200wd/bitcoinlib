@@ -410,12 +410,13 @@ class HDWalletKey:
 
         """
 
+        self._session = session
         wk = session.query(DbKey).filter_by(id=key_id).first()
         if wk:
             self._dbkey = wk
             self._hdkey_object = hdkey_object
             self.key_id = key_id
-            self.name = wk.name
+            self._name = wk.name
             self.wallet_id = wk.wallet_id
             # self.key_hex = wk.key
             self.key_public = wk.public
@@ -444,6 +445,26 @@ class HDWalletKey:
 
     def __repr__(self):
         return "<HDWalletKey(key_id=%d, name=%s, wif=%s, path=%s)>" % (self.key_id, self.name, self.wif, self.path)
+
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """
+        Set key name, update in database
+
+        :param value: Name for this key
+        :type value: str
+
+        :return str:
+        """
+
+        self._name = value
+        self._dbkey.name = value
+        self._session.commit()
 
     def key(self):
         """
