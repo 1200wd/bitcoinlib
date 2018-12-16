@@ -804,7 +804,6 @@ class HDWalletTransaction(Transaction):
         Transaction.info(self)
         print("Pushed to network: %s" % self.pushed)
         print("Wallet: %s" % self.hdwallet.name)
-        self.pushed = False
         if self.error:
             print("Errors: %s" % self.error)
         print("\n")
@@ -2474,7 +2473,7 @@ class HDWallet:
                         # Add transaction if not exist and then add output
                         if not transaction_in_db.count():
                             block_height = None
-                            if block_height in utxo:
+                            if block_height in utxo and utxo['block_height']:
                                 block_height = utxo['block_height']
                             new_tx = DbTransaction(wallet_id=self.wallet_id, hash=utxo['tx_hash'], status=status,
                                                    block_height=block_height,
