@@ -20,7 +20,7 @@
 
 import logging
 from datetime import datetime
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
 _logger = logging.getLogger(__name__)
@@ -144,6 +144,8 @@ class BlockTrail(BaseClient):
         t.date = datetime.strptime(tx['block_time'], "%Y-%m-%dT%H:%M:%S+%f")
         t.size = tx['size']
         for n, i in enumerate(t.inputs):
+            if not tx['inputs'][n]['address']:
+                raise ClientError("Address missing in input. Provider might not support segwit transactions")
             i.value = tx['inputs'][n]['value']
         for n, o in enumerate(t.outputs):
             if tx['outputs'][n]['address']:
