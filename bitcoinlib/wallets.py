@@ -1586,19 +1586,21 @@ class HDWallet:
             self._session.commit()
 
         # Check unconfirmed
-        utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+        utxos = self._session.query(DbTransactionOutput).join(DbTransaction). \
             filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransaction.status == 'unconfirmed')
         if account_id is not None:
             utxos.filter(DbKey.account_id == account_id)
+        # TODO: Use tx hash instead of key to avoid multiple queries for the same tx
         unconf_key_ids = list(set([utxo.key_id for utxo in utxos]))
         for key_id in unconf_key_ids:
             self.transactions_update(key_id=key_id)
 
         # Check UTXO's
-        utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+        utxos = self._session.query(DbTransactionOutput).join(DbTransaction). \
             filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransactionOutput.spent.op("IS")(False))
         if account_id is not None:
             utxos.filter(DbKey.account_id == account_id)
+        # TODO: Use tx hash instead of key to avoid multiple queries for the same tx
         utxo_key_ids = list(set([utxo.key_id for utxo in utxos]))
         for key_id in utxo_key_ids:
             self.utxos_update(key_id=key_id)
