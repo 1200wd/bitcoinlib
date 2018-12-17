@@ -1548,7 +1548,7 @@ class HDWallet:
 
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
-    def scan(self, scan_gap_limit=10, account_id=None, change=None, network=None, _keys_ignore=None,
+    def scan(self, scan_gap_limit=3, account_id=None, change=None, network=None, _keys_ignore=None,
              _recursion_depth=0):
         """
         Generate new keys for this wallet and scan for UTXO's.
@@ -1584,6 +1584,15 @@ class HDWallet:
             tx.confirmations = current_block_height - tx.block_height
         if txs:
             self._session.commit()
+
+        # Check unconfirmed
+        utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
+            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransaction.status == 'unconfirmed')
+        if account_id is not None:
+            utxos.filter(DbKey.account_id == account_id)
+        unconf_key_ids = list(set([utxo.key_id for utxo in utxos]))
+        for key_id in unconf_key_ids:
+            self.transactions_update(key_id=key_id)
 
         # Check UTXO's
         utxos = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
