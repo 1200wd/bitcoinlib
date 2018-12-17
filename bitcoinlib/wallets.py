@@ -3141,7 +3141,7 @@ class HDWallet:
                          min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
-              fee_per_kb=None, locktime=0, offline=False):
+              fee_per_kb=None, fee=None, locktime=0, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
         Wrapper for the send method.
@@ -3158,8 +3158,10 @@ class HDWallet:
         :type max_utxos: int
         :param min_confirms: Minimal confirmations needed to include utxo
         :type min_confirms: int
-        :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider.
+        :param fee_per_kb: Fee per kilobyte transaction size, leave empty to get estimated fee costs from Service provider. This option is ignored when the 'fee' option is specified
         :type fee_per_kb: int
+        :param fee: Total transaction fee in smallest denominator (i.e. satoshis). Leave empty to get estimated fee from service providers.
+        :type fee: int
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
@@ -3178,17 +3180,19 @@ class HDWallet:
             raise WalletError("Cannot sweep wallet, no UTXO's found")
         for utxo in utxos:
             # Skip dust transactions
-            if utxo['value'] < self.network.dust_amount:
+            if utxo['value'] <= self.network.dust_amount:
                 continue
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
         srv = Service(network=network, providers=self.providers)
-        if fee_per_kb is None:
-            fee_per_kb = srv.estimatefee()
-        tr_size = 125 + (len(input_arr) * 125)
-        estimated_fee = int((tr_size / 1024.0) * fee_per_kb)
-        return self.send([(to_address, total_amount-estimated_fee)], input_arr, network=network,
-                         fee=estimated_fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
+
+        if not fee:
+            if fee_per_kb is None:
+                fee_per_kb = srv.estimatefee()
+            tr_size = 125 + (len(input_arr) * 125)
+            fee = int((tr_size / 1024.0) * fee_per_kb)
+        return self.send([(to_address, total_amount-fee)], input_arr, network=network,
+                         fee=fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
 
     def wif(self, is_private=False, account_id=0):
         """
