@@ -28,7 +28,7 @@ import sys
 from copy import deepcopy
 
 import ecdsa
-import scrypt
+import pyscrypt as scrypt
 import pyaes
 
 from bitcoinlib.main import *
@@ -671,9 +671,11 @@ class Key:
             compressed = True
         else:
             raise Warning("Unrecognised password protected key format. Flagbyte incorrect.")
+        if isinstance(passphrase, str) and sys.version_info > (3,):
+            passphrase = passphrase.encode('utf-8')
         addresshash = d[0:4]
         d = d[4:-4]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
+        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
         derivedhalf1 = key[0:32]
         derivedhalf2 = key[32:64]
         encryptedhalf1 = d[0:16]
@@ -718,8 +720,10 @@ class Key:
         privkey = self.private_hex
         if isinstance(addr, str) and sys.version_info > (3,):
             addr = addr.encode('utf-8')
+        if isinstance(passphrase, str) and sys.version_info > (3,):
+            passphrase = passphrase.encode('utf-8')
         addresshash = double_sha256(addr)[0:4]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8)
+        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
         derivedhalf1 = key[0:32]
         derivedhalf2 = key[32:64]
         aes = pyaes.AESModeOfOperationECB(derivedhalf2)

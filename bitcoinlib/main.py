@@ -201,8 +201,13 @@ logger = logging.getLogger()
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
                               datefmt='%Y/%m/%d %H:%M:%S')
 handler.setFormatter(formatter)
+handler.setLevel(logging.DEBUG)
 logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
