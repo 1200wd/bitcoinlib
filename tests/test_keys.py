@@ -248,16 +248,16 @@ class TestHDKeysImport(unittest.TestCase):
     def test_hdkey_import_bip38_key(self):
         self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo',
                        passphrase='TestingOneTwoThree')
-        self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.key.wif())
+        self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.wif_key())
 
     def test_hdkey_import_public(self):
-        self.assertEqual('15mKKb2eos1hWa6tisdPwwDC1a5J1y9nma', self.xpub.key.address())
+        self.assertEqual('15mKKb2eos1hWa6tisdPwwDC1a5J1y9nma', self.xpub.address())
         self.assertEqual('0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2',
                          self.xpub.public_hex)
 
     def test_hdkey_import_public_try_private(self):
         try:
-            self.xpub.key.wif()
+            self.xpub.wif()
         except KeyError as e:
             self.assertEqual('WIF format not supported for public key', e.args[0])
         try:
@@ -330,7 +330,7 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
         pk = 'Ltpv71G8qDifUiNes8hK1m3ZjL3bW76X4AKF3J26FVDM5awe6mWdyyzZgTrbvkK5z4WQyKkyVnDvC56KfRaHHhcZjWcWvRFCzBYUsCc' \
              'FoNNHjck'
         k = HDKey(pk, network='litecoin')
-        self.assertEqual(k.account_key().key.address(), 'LZ4gg2m6uNY3vj9RUFkderRP18ChTwWyiq')
+        self.assertEqual(k.account_key().address(), 'LZ4gg2m6uNY3vj9RUFkderRP18ChTwWyiq')
 
     def test_hdkey_bip44_account_set_network(self):
         pk = 'xprv9s21ZrQH143K3eL4S7g5DWNecoKFw1tbWA5wQDbeQcNKQD4dvFjG4UZE9U3xXK3DcpYWpaYCtWN2jmuiPsNTxDA1YoCupKFFAAb' \
@@ -350,14 +350,14 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
                        '1h3BoPuEJzsgeypdKj')
 
     def test_hdkey_derive_public_child_key(self):
-        self.assertEqual('1BvgsfsZQVtkLS69NvGF8rw6NZW2ShJQHr', self.K.child_public(0).key.address())
+        self.assertEqual('1BvgsfsZQVtkLS69NvGF8rw6NZW2ShJQHr', self.K.child_public(0).address())
 
     def test_hdkey_derive_public_child_key2(self):
-        self.assertEqual('17JbSP83rPWmbdcdtiiTNqBE8MgGN8kmUk', self.K.child_public(8).key.address())
+        self.assertEqual('17JbSP83rPWmbdcdtiiTNqBE8MgGN8kmUk', self.K.child_public(8).address())
 
     def test_hdkey_private_key(self):
         self.assertEqual('KxABnXp7SiuWi218c14KkjEMV7SjcfXnvsWaveNVxWZU1Rwi8zNQ',
-                         self.k.child_private(7).key.wif())
+                         self.k.child_private(7).wif_key())
 
     def test_hdkey_private_key_hardened(self):
         self.k2 = HDKey('xprv9s21ZrQH143K31AgNK5pyVvW23gHnkBq2wh5aEk6g1s496M8ZMjxncCKZKgb5j'
@@ -368,9 +368,9 @@ class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
     def test_hdkey_litecoin(self):
         k = HDKey('Ltpv71G8qDifUiNetj2H4no6Q4oB8o2eUH8tSU2BsJDGyKTyMJ6ejPDXHWtQeTzKQdEeEexxyw3vSAYtxnAz3qYZc'
                   '59jfTiqHLzjKkwJ9iDJ1uC', network='litecoin')
-        self.assertEqual('LWsiwZnGg74CFHEaLPzfASxktrzDYYSwvM', k.child_public(0).key.address())
-        self.assertEqual('LfH72Fgeikvhu1y5rtMAkQ5SS5aJJUafLX', k.child_public(100).key.address())
-        self.assertEqual('T65a5dNtdayWp9F638f8fokiyixCA4fhyzb7FWFYXjejqjaxKRSc', k.child_private(6).key.wif())
+        self.assertEqual('LWsiwZnGg74CFHEaLPzfASxktrzDYYSwvM', k.child_public(0).address())
+        self.assertEqual('LfH72Fgeikvhu1y5rtMAkQ5SS5aJJUafLX', k.child_public(100).address())
+        self.assertEqual('T65a5dNtdayWp9F638f8fokiyixCA4fhyzb7FWFYXjejqjaxKRSc', k.child_private(6).wif_key())
         self.assertEqual('Ltpv75tiiksDF3fUqK8jkAfwY1h3zDLs3oCFQa5wXDNh981n6LDJZ6juFWUJwwkN3pKbr3diSdMkZfYAhwhkhjP9qG'
                          'wviSbMXtEJYxoH2m3FbDQ', str(k.subkey_for_path('3H/1').wif(is_private=True)))
 
@@ -382,16 +382,16 @@ class TestHDKeys(unittest.TestCase):
 
         self.assertEqual('tprv', self.k.wif(is_private=True)[:4])
         self.assertEqual('tpub', self.k.wif_public()[:4])
-        self.assertIn(self.k.key.address()[:1], ['m', 'n'])
+        self.assertIn(self.k.address()[:1], ['m', 'n'])
 
     def test_hdkey_testnet_import(self):
         self.k = HDKey('tprv8ZgxMBicQKsPf2S18qpSypHPZBK7mdiwvXHPh5TSjGjm2pLacP4tEqVjLVyagTLLgSZK4YyBNb4eytBykE755Kc'
                        'L9YXAqPtfERNRfwRt54M')
 
-        self.assertEqual('cPSokRrLueavzAmVBmAXwgALkumRNMN9pErvRLAXvx58NBJAkEYJ', self.k.key.wif())
+        self.assertEqual('cPSokRrLueavzAmVBmAXwgALkumRNMN9pErvRLAXvx58NBJAkEYJ', self.k.wif_key())
         self.assertEqual('tpubD6NzVbkrYhZ4YVTo2VV3PDwW8Cq3vxurVptAybVk9YY9sJbMEmtURL7bWgKxXSWSahXu6HbHkdpjBGzwYYkJm'
                          'u2VmoeHuiTmzHZpJo8Cdpb', self.k.wif_public())
-        self.assertEqual('n4c8TKkqUmj3b8VJrTioiZuciyaCDRd6iE', self.k.key.address())
+        self.assertEqual('n4c8TKkqUmj3b8VJrTioiZuciyaCDRd6iE', self.k.address())
 
     def test_hdkey_uncompressed_key_conversion(self):
         key = Key('5JGSWMSfKiXVDvXzUeod8HeSsGRpHWQgrETithYjZKcxWNpexVK')
@@ -403,7 +403,7 @@ class TestHDKeys(unittest.TestCase):
         self.assertFalse(hdkey.compressed)
         self.assertEqual(hdkey_uncompressed.private_hex, hdkey_compressed.private_hex)
         self.assertEqual(hdkey_uncompressed.wif(), hdkey.wif())
-        self.assertEqual(hdkey_compressed.key.wif(), 'KyD9aZEG9cHZa3Hnh3rnTAUHAs6XhroYtJQwuBy4qfBhzHGEApgv')
+        self.assertEqual(hdkey_compressed.wif_key(), 'KyD9aZEG9cHZa3Hnh3rnTAUHAs6XhroYtJQwuBy4qfBhzHGEApgv')
 
 
 class TestBip38(unittest.TestCase):
@@ -450,8 +450,8 @@ class TestKeysBulk(unittest.TestCase):
         if not BULKTESTCOUNT:
             self.skipTest("Skip bulktesting. Bulktestcount == 0")
         for i in range(BULKTESTCOUNT):
-            pub_with_pubparent = self.K.child_public(i).key.address()
-            pub_with_privparent = self.k.child_private(i).key.address()
+            pub_with_pubparent = self.K.child_public(i).address()
+            pub_with_privparent = self.k.child_private(i).address()
             if pub_with_privparent != pub_with_pubparent:
                 print("Error index %4d: pub-child %s, priv-child %s" % (i, pub_with_privparent, pub_with_pubparent))
             self.assertEqual(pub_with_pubparent, pub_with_privparent)
@@ -463,8 +463,8 @@ class TestKeysBulk(unittest.TestCase):
         for i in range(BULKTESTCOUNT):
             k = HDKey()
             pubk = HDKey(k.wif_public())
-            pub_with_pubparent = pubk.child_public().key.address()
-            pub_with_privparent = k.child_private().key.address()
+            pub_with_pubparent = pubk.child_public().address()
+            pub_with_privparent = k.child_private().address()
             if pub_with_privparent != pub_with_pubparent:
                 print("Error random key: %4d: pub-child %s, priv-child %s" %
                       (i, pub_with_privparent, pub_with_pubparent))
@@ -576,9 +576,9 @@ class TestKeysDash(unittest.TestCase):
     def test_hdkey_dash(self):
         k = HDKey('xprv9s21ZrQH143K4EGnYMHVxNp8JgqXCyywC3CGTrSzSudH3iRgC1gPTYgce4xamXMnyDAX8Qv8tvuW1LEgkZSrXiC25LqTJN'
                   '8RpCKS5ixcQWD', network='dash')
-        self.assertEqual('XkQ9Vudjgq62pvuG9K7pknVbiViZzZjWkJ', k.child_public(0).key.address())
-        self.assertEqual('XtqfKEcdtn1QioGRie41uP79gGC6yPzmnz', k.child_public(100).key.address())
-        self.assertEqual('XEYoxQJvhuXCXMpUFjf9knkJrFeE3mYp9mbFXG6mR3EK2Vvzi8vA', k.child_private(6).key.wif())
+        self.assertEqual('XkQ9Vudjgq62pvuG9K7pknVbiViZzZjWkJ', k.child_public(0).address())
+        self.assertEqual('XtqfKEcdtn1QioGRie41uP79gGC6yPzmnz', k.child_public(100).address())
+        self.assertEqual('XEYoxQJvhuXCXMpUFjf9knkJrFeE3mYp9mbFXG6mR3EK2Vvzi8vA', k.child_private(6).wif_key())
         self.assertEqual('xprv9wZJLyzHEFzD3w3uazhGhbytbsVbrHQ5Spc7qkuwsPqUQo2VTxhpyoYRGD7o1T4AKZkfjGrWHtHrS4GUkBxzUH'
                          'ozuqu8c2n3d7sjbmyPdFC', str(k.subkey_for_path('3H/1').wif(is_private=True)))
 

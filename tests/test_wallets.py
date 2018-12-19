@@ -812,7 +812,7 @@ class TestWalletMultisig(unittest.TestCase):
         key_dict = {}
         for key_id in range(number_of_sigs):
             key_dict[key_id] = HDKey(network=network)
-        random_output_address = HDKey(network=network).key.address()
+        random_output_address = HDKey(network=network).address()
 
         # Create wallets with 1 private key each
         wallet_dict = {}
@@ -897,7 +897,7 @@ class TestWalletMultisig(unittest.TestCase):
         key_names = [k.name for k in wl.keys(is_active=False)]
         self.assertListEqual(key_names, ['Multisig Key 5/6', 'Multisig Key 8/6', 'Multisig Key 11/6'])
 
-        t = wl.transaction_create([(HDKey(network='bitcoinlib_test').key.address(), 6400000)], min_confirms=0)
+        t = wl.transaction_create([(HDKey(network='bitcoinlib_test').address(), 6400000)], min_confirms=0)
         t.sign(keys[1])
         t.send()
         self.assertIsNone(t.error)
@@ -1378,8 +1378,8 @@ class TestWalletSegwit(unittest.TestCase):
 
         k1 = w.get_key()
         address = '3Disr2CmERuYuuMkkfGrjRUHqDENQvtNep'
-        self.assertEqual(Address(b'\x00\x14' + k1.key().key.hash160(), script_type='p2sh').address, address)
-        self.assertEqual(Address(k1.key().key.public_byte, script_type='p2sh_p2wpkh').address, address)
+        self.assertEqual(Address(b'\x00\x14' + k1.key().hash160(), script_type='p2sh').address, address)
+        self.assertEqual(Address(k1.key().public_byte, script_type='p2sh_p2wpkh').address, address)
         self.assertEqual(k1.address, address)
 
     def test_wallet_segwit_p2wpkh_send(self):
