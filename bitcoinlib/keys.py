@@ -62,7 +62,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
     this method tries to extract the network from the key. If no network can be extracted from the key the
     default network will be returned.
     
-    A KeyError will be raised if key does not corresponds with network or if multiple networks are found.
+    A KeyError will be raised if key does not corresponds with network or if multiple network are found.
     
     :param key: Key in any format recognized by get_key_format function
     :type key: str, int, bytes, bytearray
@@ -968,8 +968,9 @@ class HDKey(Key):
                 key = import_key.private_byte
                 key_type = 'private'
             else:
-                network = Network(check_network_and_key(import_key, network))
-                if self.key_format in ['hdkey_private', 'hdkey_public']:
+                kf = get_key_format(import_key)
+                network = Network(check_network_and_key(import_key, network, kf["networks"]))
+                if kf['format'] in ['hdkey_private', 'hdkey_public']:
                     bkey = change_base(import_key, 58, 256)
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                     if ord(bkey[45:46]):
