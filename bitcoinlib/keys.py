@@ -648,6 +648,26 @@ class Key(object):
     def __repr__(self):
         return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.name)
 
+    def __str__(self):
+        if self.is_private:
+            return self.private_hex
+        else:
+            return self.public_hex
+
+    def __eq__(self, other):
+        if self.is_private and other.is_private:
+            return self.private_hex == other.private_hex
+        elif not self.is_private and not other.is_private:
+            return self.public_hex == other.public_hex
+        else:
+            raise KeyError("Can only compare two public or two private keys")
+
+    def __int__(self):
+        if self.is_private:
+            return self.secret
+        else:
+            raise KeyError("Public key has no secret integer attribute")
+
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
         """
