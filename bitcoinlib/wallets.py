@@ -349,8 +349,9 @@ class HDWalletKey:
                 network = DEFAULT_NETWORK
             k = HDKey(import_key=key, network=network)
 
-        keyexists = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
-            witness_type=witness_type, multisig=multisig, is_private=True)).first()
+        keyexists = session.query(DbKey).\
+            filter(DbKey.wallet_id == wallet_id,
+                   DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=True)).first()
         if keyexists:
             _logger.warning("Key %s already exists" % (key or k.wif(witness_type=witness_type, multisig=multisig,
                                                                     is_private=True)))

@@ -643,7 +643,7 @@ class Key(object):
             self.public_byte = binascii.unhexlify(self.public_hex)
             self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
-        self.address_obj = Address(self.public_byte, network=self.network)
+        self.address_obj = None
 
     def __repr__(self):
         return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.name)
@@ -846,6 +846,7 @@ class Key(object):
         
         """
 
+        print("KEY INFO")
         print(" Network                     %s" % self.network.name)
         print(" Compressed                  %s" % self.compressed)
         if self.secret:
@@ -858,13 +859,12 @@ class Key(object):
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
-        print(" Public Key Hash160          %s" % self.hash160())
+        print(" Public Key Hash160          %s" % to_hexstring(self.hash160()))
         print(" Address (b58)               %s" % self.address())
         print(" Address uncompressed (b58)  %s" % self.address_uncompressed())
         point_x, point_y = self.public_point()
         print(" Point x                     %s" % point_x)
         print(" Point y                     %s" % point_y)
-        print("\n")
 
 
 class HDKey(Key):
@@ -1005,21 +1005,8 @@ class HDKey(Key):
         Prints key information to standard output
         
         """
-        if self.is_private:
-            print("SECRET EXPONENT")
-            print(" Private Key (hex)           %s" % self.private_hex)
-            print(" Private Key (long)          %s" % self.secret)
-            print(" Private Key (wif)           %s" % self.wif_key())
-            print("")
-        print("PUBLIC KEY")
-        print(" Public Key (hex)            %s" % self.public_hex)
-        print(" Public Key Hash160          %s" % change_base(self.hash160(), 256, 16))
-        print(" Address (b58)               %s" % self.address())
-        print(" Fingerprint (hex)           %s" % change_base(self.fingerprint(), 256, 16))
-        point_x, point_y = self.public_point()
-        print(" Point x                     %s" % point_x)
-        print(" Point y                     %s" % point_y)
-        print("")
+        super(HDKey, self).info()
+
         print("EXTENDED KEY INFO")
         print(" Key Type                    %s" % self.key_type)
         print(" Chain code (hex)            %s" % change_base(self.chain, 256, 16))
