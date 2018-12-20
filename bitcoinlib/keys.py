@@ -467,7 +467,7 @@ class Address:
         return addr_convert(self.address, prefix)
 
 
-class Key:
+class Key(object):
     """
     Class to generate, import and convert public cryptographic key pairs used for bitcoin.
 
