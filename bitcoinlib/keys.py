@@ -657,10 +657,8 @@ class Key(object):
     def __eq__(self, other):
         if self.is_private and other.is_private:
             return self.private_hex == other.private_hex
-        elif not self.is_private and not other.is_private:
-            return self.public_hex == other.public_hex
         else:
-            raise KeyError("Can only compare two public or two private keys")
+            return self.public_hex == other.public_hex
 
     def __int__(self):
         if self.is_private:
