@@ -860,7 +860,7 @@ class Key(object):
             self._hash160 = hash160(pb)
         return self._hash160
 
-    def address(self, compressed=None, prefix=None, script_type=None, encoding='base58'):
+    def address(self, compressed=None, prefix=None, script_type=None, encoding=None):
         """
         Get address derived from public key
 
@@ -881,6 +881,13 @@ class Key(object):
             data = self.public_uncompressed_byte
         if not self.compressed and encoding == 'bech32':
             raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
+        if encoding is None:
+            if self._address_obj:
+                encoding = self._address_obj.encoding
+            else:
+                encoding = 'base58'
+        if self._address_obj and script_type is None:
+            script_type = self._address_obj.script_type
         if not(self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
             self._address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
                                         encoding=encoding)
@@ -918,7 +925,6 @@ class Key(object):
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
         print(" Public Key Hash160          %s" % to_hexstring(self.hash160()))
         print(" Address (b58)               %s" % self.address())
-        print(" Address uncompressed (b58)  %s" % self.address_uncompressed())
         point_x, point_y = self.public_point()
         print(" Point x                     %s" % point_x)
         print(" Point y                     %s" % point_y)
