@@ -42,6 +42,17 @@ class TestKeyClasses(unittest.TestCase):
         pubk2 = HDKey(k.wif_public())
         self.assertEqual(str(pubk2), '03dc86716b2be27a0575558bac73279290ac22c3ea0240e42a2152d584f2b4006b')
         self.assertTrue(k.public() == pubk2)
+        
+    def test_dict_and_json_outputs(self):
+        k = HDKey()
+        k.address(script_type='p2wsh', encoding='bech32')
+        self.assertTrue(isinstance(json.loads(k._address_obj.as_json()), dict))
+        self.assertTrue(isinstance(k._address_obj.as_dict(), dict))
+        self.assertTrue(isinstance(json.loads(k.as_json()), dict))
+        self.assertTrue(isinstance(k.as_dict(), dict))
+        k = Key()
+        self.assertTrue(isinstance(json.loads(k.as_json()), dict))
+        self.assertTrue(isinstance(k.as_dict(), dict))
 
 
 class TestGetKeyFormat(unittest.TestCase):

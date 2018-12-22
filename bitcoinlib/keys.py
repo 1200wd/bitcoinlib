@@ -457,15 +457,17 @@ class Address:
     def __repr__(self):
         return "<Address(address=%s)" % self.address
 
-    def dict(self):
-        addr_dict = self.__dict__
+    def as_dict(self):
+        addr_dict = deepcopy(self.__dict__)
         del(addr_dict['data_bytes'])
         del(addr_dict['hash_bytes'])
+        if isinstance(addr_dict['network'], Network):
+            addr_dict['network'] = addr_dict['network'].name
+        addr_dict['redeemscript'] = to_hexstring(addr_dict['redeemscript'])
         return addr_dict
 
-    def json(self):
-        adict = self.dict()
-        adict['network'] = adict['network'].name
+    def as_json(self):
+        adict = self.as_dict()
         return json.dumps(adict, indent=4)
 
     def with_prefix(self, prefix):
@@ -669,7 +671,7 @@ class Key(object):
         self._wif_prefix = None
 
     def __repr__(self):
-        return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.name)
+        return "<Key(public_hex=%s, network=%s)>" % (self.public_hex, self.network.name)
 
     def __str__(self):
         if self.is_private:
@@ -689,7 +691,7 @@ class Key(object):
         else:
             raise KeyError("Public key has no secret integer attribute")
 
-    def dict(self):
+    def as_dict(self):
         key_dict = collections.OrderedDict()
         key_dict['network'] = self.network.name
         key_dict['key_format'] = self.key_format
@@ -707,8 +709,8 @@ class Key(object):
         key_dict['point_y'] = y
         return key_dict
 
-    def json(self):
-        return json.dumps(self.dict(), indent=4)
+    def as_json(self):
+        return json.dumps(self.as_dict(), indent=4)
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
@@ -1092,13 +1094,13 @@ class HDKey(Key):
             print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
         print("\n")
 
-    def dict(self):
+    def as_dict(self):
         """
         Returns key information as dictionary
 
         """
 
-        key_dict = super(HDKey, self).dict()
+        key_dict = super(HDKey, self).as_dict()
         key_dict['fingerprint'] = to_hexstring(self.fingerprint())
         key_dict['chain_code'] = to_hexstring(self.chain)
         key_dict['child_index'] = self.child_index
@@ -1108,8 +1110,8 @@ class HDKey(Key):
         key_dict['extended_wif_private'] = self.wif(is_private=True)
         return key_dict
 
-    def json(self):
-        return json.dumps(self.dict(), indent=4)
+    def as_json(self):
+        return json.dumps(self.as_dict(), indent=4)
 
     def _key_derivation(self, seed):
         """
