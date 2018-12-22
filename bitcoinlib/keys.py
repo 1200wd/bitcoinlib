@@ -457,6 +457,17 @@ class Address:
     def __repr__(self):
         return "<Address(address=%s)" % self.address
 
+    def dict(self):
+        addr_dict = self.__dict__
+        del(addr_dict['data_bytes'])
+        del(addr_dict['hash_bytes'])
+        return addr_dict
+
+    def json(self):
+        adict = self.dict()
+        adict['network'] = adict['network'].name
+        return json.dumps(adict, indent=4)
+
     def with_prefix(self, prefix):
         """
         Convert address using another prefix
