@@ -360,7 +360,7 @@ class Address:
 
         :return Address:
         """
-        if encoding is None and address[:3].split("1")[0] in ['bc', 'tb', 'ltc', 'tltc', 'tdash', 'tdash', 'bclt']:
+        if encoding is None and address[:3].split("1")[0] in ENCODING_BECH32_PREFIXES:
             encoding = 'bech32'
         addr_dict = deserialize_address(address, encoding=encoding)
         public_key_hash_bytes = addr_dict['public_key_hash_bytes']
@@ -455,9 +455,14 @@ class Address:
             self.address = addr_convert(self.address, provider_prefix)
 
     def __repr__(self):
-        return "<Address(address=%s)" % self.address
+        return "<Address(address=%s)>" % self.address
 
     def as_dict(self):
+        """
+        Get current Address class as dictionary. Byte values are represented by hexadecimal strings
+
+        :return dict:
+        """
         addr_dict = deepcopy(self.__dict__)
         del(addr_dict['data_bytes'])
         del(addr_dict['hash_bytes'])
@@ -467,6 +472,11 @@ class Address:
         return addr_dict
 
     def as_json(self):
+        """
+        Get current key as json formatted string
+
+        :return str:
+        """
         adict = self.as_dict()
         return json.dumps(adict, indent=4)
 
@@ -692,6 +702,12 @@ class Key(object):
             raise KeyError("Public key has no secret integer attribute")
 
     def as_dict(self):
+        """
+        Get current Key class as dictionary. Byte values are represented by hexadecimal strings.
+
+        :return collections.OrderedDict:
+        """
+
         key_dict = collections.OrderedDict()
         key_dict['network'] = self.network.name
         key_dict['key_format'] = self.key_format
@@ -710,6 +726,11 @@ class Key(object):
         return key_dict
 
     def as_json(self):
+        """
+        Get current key as json formatted string
+
+        :return str:
+        """
         return json.dumps(self.as_dict(), indent=4)
 
     @staticmethod
@@ -1096,8 +1117,9 @@ class HDKey(Key):
 
     def as_dict(self):
         """
-        Returns key information as dictionary
+        Get current HDKey class as dictionary. Byte values are represented by hexadecimal strings.
 
+        :return collections.OrderedDict:
         """
 
         key_dict = super(HDKey, self).as_dict()
@@ -1111,6 +1133,11 @@ class HDKey(Key):
         return key_dict
 
     def as_json(self):
+        """
+        Get current key as json formatted string
+
+        :return str:
+        """
         return json.dumps(self.as_dict(), indent=4)
 
     def _key_derivation(self, seed):
