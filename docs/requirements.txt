@@ -1,6 +1,6 @@
 sphinx==1.7.0
-requests==2.18.4
+requests==2.20
 ecdsa==0.13
 pyaes==1.6.1
 scrypt==0.8.6
-SQLAlchemy==1.2.5
+SQLAlchemy==1.2.12
