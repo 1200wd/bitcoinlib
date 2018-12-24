@@ -1,0 +1,30 @@
+RELEASE 0.4.4 - Fix utxo and provider issues, add pyscrypt support
+==================================================================
+* Fix various issues with updating UTXO's
+* Add pyscrypt support thanks to @x-falcon
+* Fix issues with BlockExplorer and Blockr
+* Allow to sign tx with HDKey
+* Allow to change wallet key names
+
+RELEASE 0.4.3 - More Segwit fixes
+=================================
+* Fix various segwit issues, add unittests and update docstrings
+
+RELEASE 0.4.2 - Segwit update
+=============================
+* Fix issues with Blockchair, BlockExplorer and CryptoID provider
+* Calculate vsize, virtual size for segwit transactions
+* Add support for SegWit to CLI wallet
+* Allow use of user defined key paths
+* Support and use BIP45, BIP48, BIP49 and BIP84 key paths
+* Allow to import ypub/yprv/zpub/zprv keys
+* Fixed fee and transaction size estimation issues
+* Fixed litecoind issues thanks to @slush0
+
+
+RELEASE 0.4.0 - Segwit release
+==============================
+* Added segwit support
+* Added support for Python 3.7
+* Add support for Blockchair provider
+* Add CLTV and CSV timelock support
