@@ -28,7 +28,13 @@ import sys
 from copy import deepcopy
 
 import ecdsa
-import pyscrypt as scrypt
+try:
+    import scrypt
+    USING_MODULE_SCRYPT = True
+except ImportError:
+    import pyscrypt as scrypt
+    USING_MODULE_SCRYPT = False
+
 import pyaes
 
 from bitcoinlib.main import *
@@ -41,6 +47,10 @@ from bitcoinlib.mnemonic import Mnemonic
 
 
 _logger = logging.getLogger(__name__)
+
+if not USING_MODULE_SCRYPT:
+    _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
+                    "protected keys.")
 
 
 class BKeyError(Exception):
