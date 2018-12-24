@@ -34,7 +34,7 @@ kwargs = {}
 install_requires = [
       'requests>=2.20.0',
       'ecdsa==0.13',
-      'pyaes==1.6.1',
+      'scrypt==0.8.6',
       'pyscrypt==1.6.2',
       'SQLAlchemy>=1.2.12'
 ]
