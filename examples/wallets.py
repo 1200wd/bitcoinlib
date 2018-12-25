@@ -164,6 +164,8 @@ try:
         print("TX not send, result:", res.errors)
 except WalletError as e:
     print("TX not send, error: %s" % e.msg)
+except Exception as e:
+    print(e)
     
 
 #
