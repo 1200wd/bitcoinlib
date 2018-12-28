@@ -354,7 +354,7 @@ class Address:
     """
 
     @classmethod
-    def import_address(cls, address, encoding=None, network=None, network_overrides=None):
+    def import_address(cls, address, compressed=None, encoding=None, network=None, network_overrides=None):
         """
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
@@ -379,10 +379,10 @@ class Address:
             network = addr_dict['network']
         script_type = addr_dict['script_type']
         return Address(hashed_data=public_key_hash_bytes, network=network, prefix=prefix, script_type=script_type,
-                       encoding=addr_dict['encoding'], network_overrides=network_overrides)
+                       compressed=compressed, encoding=addr_dict['encoding'], network_overrides=network_overrides)
 
     def __init__(self, data='', hashed_data='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
-                 encoding=None, witness_type=None, network_overrides=None):
+                 compressed=None, encoding=None, witness_type=None, network_overrides=None):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
 
@@ -413,6 +413,7 @@ class Address:
         self.data = to_hexstring(data)
         self.script_type = script_type
         self.encoding = encoding
+        self.compressed = compressed
         if witness_type is None:
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 witness_type = 'segwit'
@@ -479,6 +480,7 @@ class Address:
         if isinstance(addr_dict['network'], Network):
             addr_dict['network'] = addr_dict['network'].name
         addr_dict['redeemscript'] = to_hexstring(addr_dict['redeemscript'])
+        addr_dict['prefix'] = to_hexstring(addr_dict['prefix'])
         return addr_dict
 
     def as_json(self):
@@ -925,8 +927,10 @@ class Key(object):
         """
         if (self.compressed and compressed is None) or compressed:
             data = self.public_byte
+            self.compressed = True
         else:
             data = self.public_uncompressed_byte
+            self.compressed = False
         if not self.compressed and encoding == 'bech32':
             raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
         if encoding is None:
@@ -938,7 +942,7 @@ class Key(object):
             script_type = self._address_obj.script_type
         if not(self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
             self._address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
-                                        encoding=encoding)
+                                        encoding=encoding, compressed=compressed)
         return self._address_obj.address
 
     def address_uncompressed(self, prefix=None):
