@@ -689,7 +689,7 @@ class Key(object):
             self.public_byte = binascii.unhexlify(self.public_hex)
             self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
-        self.address_obj = None
+        self._address_obj = None
         self._wif = None
         self._wif_prefix = None
 
@@ -911,6 +911,12 @@ class Key(object):
             self._hash160 = hash160(pb)
         return self._hash160
 
+    @property
+    def address_obj(self):
+        if not self._address_obj:
+            self.address()
+        return self._address_obj
+
     def address(self, compressed=None, prefix=None, script_type=None, encoding=None):
         """
         Get address derived from public key
@@ -935,16 +941,16 @@ class Key(object):
         if not self.compressed and encoding == 'bech32':
             raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
         if encoding is None:
-            if self.address_obj:
-                encoding = self.address_obj.encoding
+            if self._address_obj:
+                encoding = self._address_obj.encoding
             else:
                 encoding = 'base58'
-        if self.address_obj and script_type is None:
-            script_type = self.address_obj.script_type
-        if not(self.address_obj and self.address_obj.prefix == prefix and self.address_obj.encoding == encoding):
-            self.address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
-                                       encoding=encoding, compressed=compressed)
-        return self.address_obj.address
+        if self._address_obj and script_type is None:
+            script_type = self._address_obj.script_type
+        if not(self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
+            self._address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
+                                        encoding=encoding, compressed=compressed)
+        return self._address_obj.address
 
     def address_uncompressed(self, prefix=None, script_type=None, encoding=None):
         """

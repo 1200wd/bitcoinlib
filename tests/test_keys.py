@@ -567,7 +567,6 @@ class TestKeysAddress(unittest.TestCase):
         addr = Address(HDKey(pk).public_hex, witness_type='segwit')
         self.assertEqual(deserialize_address(addr.address, encoding='bech32')['encoding'], 'bech32')
 
-
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):
         key = 'XH2Yndjv6Ks3XEHGaSMDhUMTAMZTTWv5nEN958Y7VMyQXBCJVQmM'
