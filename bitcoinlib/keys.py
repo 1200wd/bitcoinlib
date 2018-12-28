@@ -433,8 +433,8 @@ class Address:
                 self.hash_bytes = hash160(self.data_bytes)
         self.hashed_data = to_hexstring(self.hash_bytes)
         if self.encoding == 'base58':
-            # if self.script_type is None:
-            #     self.script_type = 'p2pkh'
+            if self.script_type is None:
+                self.script_type = 'p2pkh'
             if self.witness_type == 'p2sh-segwit':
                 self.redeemscript = b'\0' + varstr(self.hash_bytes)
                 self.hash_bytes = hash160(self.redeemscript)

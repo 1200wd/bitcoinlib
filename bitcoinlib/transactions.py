@@ -723,7 +723,13 @@ class Input:
             signatures = [signatures]
         # Sort according to BIP45 standard
         self.sort = sort
-        self.address = address
+        if isinstance(address, Address):
+            self.address = address.address
+            self.encoding = address.encoding
+            self.network = address.network
+            self.script_type = address.script_type
+        else:
+            self.address = address
         self.signatures = []
         self.redeemscript = b''
         self.script_type = script_type
@@ -1016,7 +1022,7 @@ class Output:
         :param value: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
         :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
-        :type address: str
+        :type address: str, Address
         :param public_hash: Hash of public key or script
         :type public_hash: bytes, str
         :param public_key: Destination public key
@@ -1042,8 +1048,12 @@ class Output:
         self.value = value
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_hash = to_bytes(public_hash)
-        self.address = address
-        self.address_obj = None
+        if isinstance(address, Address):
+            self.address = address.address
+            self.address_obj = address
+        else:
+            self.address = address
+            self.address_obj = None
         self.public_key = to_bytes(public_key)
         self.network = network
         if not isinstance(network, Network):
@@ -1058,7 +1068,12 @@ class Output:
         self.spent = spent
         self.output_n = output_n
 
-        if self.public_key:
+        if self.address_obj:
+            self.script_type = self.address_obj.script_type
+            self.public_hash = self.address_obj.hash_bytes
+            self.network =  self.address_obj.network
+            self.encoding = self.address_obj.encoding
+        if self.public_key and not self.address and self.encoding:
             self.k = Key(self.public_key, is_private=False, network=network)
             self.compressed = self.k.compressed
             self.address = self.k.address(compressed=self.compressed, script_type=script_type, encoding=self.encoding)
