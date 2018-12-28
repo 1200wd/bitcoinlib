@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2016 - 2018 August - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2018 December - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -26,6 +26,8 @@ import random
 import struct
 import sys
 from copy import deepcopy
+import collections
+import json
 
 import ecdsa
 try:
@@ -106,7 +108,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
         return network
 
 
-def get_key_format(key, isprivate=None):
+def get_key_format(key, is_private=None):
     """
     Determines the type (private or public), format and network key.
     
@@ -114,10 +116,10 @@ def get_key_format(key, isprivate=None):
 
     :param key: Any private or public key
     :type key: str, int, bytes, bytearray
-    :param isprivate: Is key private or not?
-    :type isprivate: bool
+    :param is_private: Is key private or not?
+    :type is_private: bool
     
-    :return dict: Dictionary with format, network and isprivate
+    :return dict: Dictionary with format, network and is_private
     """
     if not key:
         raise BKeyError("Key empty, please specify a valid key")
@@ -128,43 +130,43 @@ def get_key_format(key, isprivate=None):
     if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
         key = to_hexstring(key)
 
-    if not (isprivate is None or isinstance(isprivate, bool)):
+    if not (is_private is None or isinstance(is_private, bool)):
         raise BKeyError("Attribute 'is_private' must be False or True")
     elif isinstance(key, numbers.Number):
         key_format = 'decimal'
-        isprivate = True
+        is_private = True
     elif isinstance(key, (bytes, bytearray)) and len(key) in [33, 65] and key[:1] in [b'\2', b'\3']:
         key_format = 'bin_compressed'
-        isprivate = False
+        is_private = False
     elif isinstance(key, (bytes, bytearray)) and (len(key) in [33, 65] and key[:1] == b'\4'):
         key_format = 'bin'
-        isprivate = False
+        is_private = False
     elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\1':
         key_format = 'bin_compressed'
-        isprivate = True
+        is_private = True
     elif isinstance(key, (bytes, bytearray)) and len(key) == 32:
         key_format = 'bin'
-        isprivate = True
-    elif len(key) == 130 and key[:2] == '04' and not isprivate:
+        is_private = True
+    elif len(key) == 130 and key[:2] == '04' and not is_private:
         key_format = 'public_uncompressed'
-        isprivate = False
+        is_private = False
     elif len(key) == 128:
         key_format = 'hex'
-        if isprivate is None:
-            isprivate = True
-    elif len(key) == 66 and key[:2] in ['02', '03'] and not isprivate:
+        if is_private is None:
+            is_private = True
+    elif len(key) == 66 and key[:2] in ['02', '03'] and not is_private:
         key_format = 'public'
-        isprivate = False
+        is_private = False
     elif len(key) == 64:
         key_format = 'hex'
-        if isprivate is None:
-            isprivate = True
-    elif len(key) == 66 and key[-2:] in ['01'] and not(isprivate is False):
+        if is_private is None:
+            is_private = True
+    elif len(key) == 66 and key[-2:] in ['01'] and not(is_private is False):
         key_format = 'hex_compressed'
-        isprivate = True
+        is_private = True
     elif len(key) == 58 and key[:2] == '6P':
         key_format = 'wif_protected'
-        isprivate = True
+        is_private = True
     else:
         try:
             key_hex = change_base(key, 58, 16)
@@ -174,25 +176,25 @@ def get_key_format(key, isprivate=None):
                     key_format = 'wif_compressed'
                 else:
                     key_format = 'wif'
-                isprivate = True
+                is_private = True
             else:
                 networks = network_by_value('prefix_hdkey_private', key_hex[:8])
                 if networks:
                     key_format = 'hdkey_private'
-                    isprivate = True
+                    is_private = True
                 else:
                     networks = network_by_value('prefix_hdkey_public', key_hex[:8])
                     if networks:
                         key_format = 'hdkey_public'
-                        isprivate = False
+                        is_private = False
                     else:
                         prefix_data = prefix_search(key_hex[:8])
                         if prefix_data:
                             networks = [n['network'] for n in prefix_data]
-                            isprivate = prefix_data[0]['is_private']
+                            is_private = prefix_data[0]['is_private']
                             script_types = prefix_data[0]['script_types']
                             key_format = 'hdkey_public'
-                            if isprivate:
+                            if is_private:
                                 key_format = 'hdkey_private'
 
         except (TypeError, EncodingError):
@@ -202,7 +204,7 @@ def get_key_format(key, isprivate=None):
             int(key)
             if 70 < len(key) < 78:
                 key_format = 'decimal'
-                isprivate = True
+                is_private = True
         except (TypeError, ValueError):
             pass
     if not key_format:
@@ -211,7 +213,7 @@ def get_key_format(key, isprivate=None):
         return {
             "format": key_format,
             "networks": networks,
-            "isprivate": isprivate,
+            "is_private": is_private,
             "script_types": script_types
         }
 
@@ -368,7 +370,7 @@ class Address:
 
         :return Address:
         """
-        if encoding is None and address[:3].split("1")[0] in ['bc', 'tb', 'ltc', 'tltc', 'tdash', 'tdash', 'bclt']:
+        if encoding is None and address[:3].split("1")[0] in ENCODING_BECH32_PREFIXES:
             encoding = 'bech32'
         addr_dict = deserialize_address(address, encoding=encoding)
         public_key_hash_bytes = addr_dict['public_key_hash_bytes']
@@ -463,7 +465,30 @@ class Address:
             self.address = addr_convert(self.address, provider_prefix)
 
     def __repr__(self):
-        return "<Address(address=%s)" % self.address
+        return "<Address(address=%s)>" % self.address
+
+    def as_dict(self):
+        """
+        Get current Address class as dictionary. Byte values are represented by hexadecimal strings
+
+        :return dict:
+        """
+        addr_dict = deepcopy(self.__dict__)
+        del(addr_dict['data_bytes'])
+        del(addr_dict['hash_bytes'])
+        if isinstance(addr_dict['network'], Network):
+            addr_dict['network'] = addr_dict['network'].name
+        addr_dict['redeemscript'] = to_hexstring(addr_dict['redeemscript'])
+        return addr_dict
+
+    def as_json(self):
+        """
+        Get current key as json formatted string
+
+        :return str:
+        """
+        adict = self.as_dict()
+        return json.dumps(adict, indent=4)
 
     def with_prefix(self, prefix):
         """
@@ -477,7 +502,7 @@ class Address:
         return addr_convert(self.address, prefix)
 
 
-class Key:
+class Key(object):
     """
     Class to generate, import and convert public cryptographic key pairs used for bitcoin.
 
@@ -490,7 +515,7 @@ class Key:
         Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc.
         If a private key is imported a public key will be derived. If a public is imported the private key data will
         be empty.
-        
+
         Both compressed and uncompressed key version is available, the Key.compressed boolean attribute tells if the
         original imported key was compressed or not.
 
@@ -504,7 +529,7 @@ class Key:
         :type passphrase: str
         :param is_private: Specify if imported key is private or public. Default is None: derive from provided key
         :type is_private: bool
-        
+
         :return: Key object
         """
         self.public_hex = None
@@ -522,30 +547,37 @@ class Key:
         self._hash160 = None
         if not import_key:
             import_key = random.SystemRandom().randint(0, secp256k1_n)
-        kf = get_key_format(import_key)
-        self.key_format = kf["format"]
+            self.key_format = 'decimal'
+            networks_extracted = network
+            assert is_private is True or is_private is None
+            self.is_private = True  # Ignore provided attribute
+        else:
+            kf = get_key_format(import_key)
+            self.key_format = kf["format"]
+            networks_extracted = kf["networks"]
+            self.is_private = is_private
+            if is_private is None:
+                if kf['is_private']:
+                    self.is_private = True
+                elif kf['is_private'] is None:
+                    raise KeyError("Could not determine if key is private or public")
+                else:
+                    self.is_private = False
         network_name = None
         if network is not None:
             self.network = network
             if not isinstance(network, Network):
                 self.network = Network(network)
             network_name = self.network.name
-        network = check_network_and_key(import_key, network_name, kf["networks"])
+        network = check_network_and_key(import_key, network_name, networks_extracted)
         self.network = Network(network)
-        self.isprivate = is_private
-        if is_private is None:
-            if kf['isprivate']:
-                self.isprivate = True
-            elif kf['isprivate'] is None:
-                raise KeyError("Could not determine if key is private or public")
-            else:
-                self.isprivate = False
 
         if self.key_format == "wif_protected":
-            # TODO: return key as byte to make more efficient
+            # TODO: return key as byte (?)
+            # FIXME: Key format is changed so old 'wif_protected' is forgotten
             import_key, self.key_format = self._bip38_decrypt(import_key, passphrase)
 
-        if not self.isprivate:
+        if not self.is_private:
             self.secret = None
             pub_key = to_hexstring(import_key)
             if len(pub_key) == 130:
@@ -579,11 +611,11 @@ class Key:
                 self.public_byte = self.public_compressed_byte
             else:
                 self.public_byte = self.public_uncompressed_byte
-        elif self.isprivate and self.key_format == 'decimal':
+        elif self.is_private and self.key_format == 'decimal':
             self.secret = import_key
             self.private_hex = change_base(import_key, 10, 16, 64)
             self.private_byte = binascii.unhexlify(self.private_hex)
-        elif self.isprivate:
+        elif self.is_private:
             if self.key_format == 'hex':
                 key_hex = import_key
                 key_byte = binascii.unhexlify(key_hex)
@@ -598,7 +630,7 @@ class Key:
                 key_byte = import_key[:-1]
                 key_hex = to_hexstring(key_byte)
                 self.compressed = True
-            elif self.isprivate and self.key_format in ['wif', 'wif_compressed']:
+            elif self.is_private and self.key_format in ['wif', 'wif_compressed']:
                 # Check and remove Checksum, prefix and postfix tags
                 key = change_base(import_key, 58, 256)
                 checksum = key[-4:]
@@ -608,6 +640,8 @@ class Key:
                 found_networks = network_by_value('prefix_wif', key[0:1])
                 if not len(found_networks):
                     raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
+                self._wif = import_key
+                self._wif_prefix = key[0:1]
                 if self.network.name not in found_networks:
                     if len(found_networks) > 1:
                         raise BKeyError("More then one network found with this versionbyte, please specify network. "
@@ -634,8 +668,8 @@ class Key:
         else:
             raise KeyError("Cannot import key. Public key format unknown")
 
-        if self.isprivate and not (self.public_byte or self.public_hex):
-            if not self.isprivate:
+        if self.is_private and not (self.public_byte or self.public_hex):
+            if not self.is_private:
                 raise KeyError("Private key has no known secret number")
             point = ec_point(self.secret)
             self._x = change_base(point.x(), 10, 16, 64)
@@ -652,10 +686,62 @@ class Key:
             self.public_byte = binascii.unhexlify(self.public_hex)
             self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
-        self.address_obj = Address(self.public_byte, network=self.network)
+        self._address_obj = None
+        self._wif = None
+        self._wif_prefix = None
 
     def __repr__(self):
-        return "<Key(public_hex=%s, network=%s)" % (self.public_hex, self.network.name)
+        return "<Key(public_hex=%s, network=%s)>" % (self.public_hex, self.network.name)
+
+    def __str__(self):
+        if self.is_private:
+            return self.private_hex
+        else:
+            return self.public_hex
+
+    def __eq__(self, other):
+        if self.is_private and other.is_private:
+            return self.private_hex == other.private_hex
+        else:
+            return self.public_hex == other.public_hex
+
+    def __int__(self):
+        if self.is_private:
+            return self.secret
+        else:
+            raise KeyError("Public key has no secret integer attribute")
+
+    def as_dict(self):
+        """
+        Get current Key class as dictionary. Byte values are represented by hexadecimal strings.
+
+        :return collections.OrderedDict:
+        """
+
+        key_dict = collections.OrderedDict()
+        key_dict['network'] = self.network.name
+        key_dict['key_format'] = self.key_format
+        key_dict['compressed'] = self.compressed
+        key_dict['is_private'] = self.is_private
+        key_dict['private_hex'] = self.private_hex
+        key_dict['secret'] = self.secret
+        key_dict['wif'] = self.wif()
+        key_dict['public_hex'] = self.public_hex
+        key_dict['public_uncompressed_hex'] = self.public_uncompressed_hex
+        key_dict['hash160'] = to_hexstring(self.hash160())
+        key_dict['address'] = self.address()
+        x, y = self.public_point()
+        key_dict['point_x'] = x
+        key_dict['point_y'] = y
+        return key_dict
+
+    def as_json(self):
+        """
+        Get current key as json formatted string
+
+        :return str:
+        """
+        return json.dumps(self.as_dict(), indent=4)
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
@@ -668,7 +754,7 @@ class Key:
         :type encrypted_privkey: str
         :param passphrase: Required passphrase for decryption
         :type passphrase: str
-        
+
         :return str: Private Key WIF
         """
         # TODO: Also check first 2 bytes
@@ -717,7 +803,7 @@ class Key:
 
         :param passphrase: Required passphrase for encryption
         :type passphrase: str
-        
+
         :return str: BIP38 passphrase encrypted private key
         """
         if self.compressed:
@@ -765,11 +851,17 @@ class Key:
                 versionbyte = binascii.unhexlify(prefix)
             else:
                 versionbyte = prefix
+
+        if self._wif and self._wif_prefix == versionbyte:
+            return self._wif
+
         key = versionbyte + change_base(self.secret, 10, 256, 32)
         if self.compressed:
             key += b'\1'
         key += double_sha256(key)[:4]
-        return change_base(key, 256, 58)
+        self._wif = change_base(key, 256, 58)
+        self._wif_prefix = versionbyte
+        return self._wif
 
     def public(self):
         """
@@ -778,7 +870,7 @@ class Key:
         :return Key: Public key
         """
         key = deepcopy(self)
-        key.isprivate = False
+        key.is_private = False
         key.private_byte = None
         key.private_hex = None
         key.secret = None
@@ -787,15 +879,15 @@ class Key:
     def public_uncompressed(self):
         """
         Get public key, uncompressed version
-        
-        :return str: Uncompressed public key hexstring 
+
+        :return str: Uncompressed public key hexstring
         """
         return self.public_uncompressed_hex
 
     def public_point(self):
         """
         Get public key point on Elliptic curve
-        
+
         :return tuple: (x, y) point
         """
         x = self._x and int(self._x, 16)
@@ -805,7 +897,7 @@ class Key:
     def hash160(self):
         """
         Get public key in RIPEMD-160 + SHA256 format
-        
+
         :return bytes:
         """
         if not self._hash160:
@@ -816,10 +908,10 @@ class Key:
             self._hash160 = hash160(pb)
         return self._hash160
 
-    def address(self, compressed=None, prefix=None, script_type=None, encoding='base58'):
+    def address(self, compressed=None, prefix=None, script_type=None, encoding=None):
         """
         Get address derived from public key
-        
+
         :param compressed: Always return compressed address
         :type compressed: bool
         :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
@@ -828,8 +920,8 @@ class Key:
         :type script_type: str
         :param encoding: Address encoding. Default is base58 encoding, for segwit you can specify bech32 encoding
         :type encoding: str
-        
-        :return str: Base58 encoded address 
+
+        :return str: Base58 encoded address
         """
         if (self.compressed and compressed is None) or compressed:
             data = self.public_byte
@@ -837,10 +929,17 @@ class Key:
             data = self.public_uncompressed_byte
         if not self.compressed and encoding == 'bech32':
             raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
-        if not(self.address_obj and self.address_obj.prefix == prefix and self.address_obj.encoding == encoding):
-            self.address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
-                                       encoding=encoding)
-        return self.address_obj.address
+        if encoding is None:
+            if self._address_obj:
+                encoding = self._address_obj.encoding
+            else:
+                encoding = 'base58'
+        if self._address_obj and script_type is None:
+            script_type = self._address_obj.script_type
+        if not(self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
+            self._address_obj = Address(data, prefix=prefix, network=self.network, script_type=script_type,
+                                        encoding=encoding)
+        return self._address_obj.address
 
     def address_uncompressed(self, prefix=None):
         """
@@ -849,16 +948,17 @@ class Key:
         :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
 
-        :return str: Base58 encoded address 
+        :return str: Base58 encoded address
         """
         return self.address(compressed=False, prefix=prefix)
 
     def info(self):
         """
         Prints key information to standard output
-        
+
         """
 
+        print("KEY INFO")
         print(" Network                     %s" % self.network.name)
         print(" Compressed                  %s" % self.compressed)
         if self.secret:
@@ -871,16 +971,14 @@ class Key:
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
-        print(" Public Key Hash160          %s" % self.hash160())
+        print(" Public Key Hash160          %s" % to_hexstring(self.hash160()))
         print(" Address (b58)               %s" % self.address())
-        print(" Address uncompressed (b58)  %s" % self.address_uncompressed())
         point_x, point_y = self.public_point()
         print(" Point x                     %s" % point_x)
         print(" Point y                     %s" % point_y)
-        print("\n")
 
 
-class HDKey:
+class HDKey(Key):
     """
     Class for Hierarchical Deterministic keys as defined in BIP0032
 
@@ -901,8 +999,8 @@ class HDKey:
         :type key_type: str
         :param network: Network to use
         :type network: str, Network
-        
-        :return HDKey: 
+
+        :return HDKey:
         """
         seed = to_bytes(import_seed)
         I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
@@ -927,11 +1025,11 @@ class HDKey:
         return HDKey().from_seed(Mnemonic().to_seed(passphrase, password), network=network)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, isprivate=True, network=None, key_type='bip32', passphrase='', compressed=True):
+                 child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with systems cryptographically random function.
-        Import key can be any format normal or HD key (extended key) accepted by get_key_format. 
+        Import key can be any format normal or HD key (extended key) accepted by get_key_format.
         If a normal key with no chain part is provided, an chain with only 32 0-bytes will be used.
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
@@ -946,8 +1044,8 @@ class HDKey:
         :type parent_fingerprint: bytes
         :param child_index: Index number of child as integer
         :type child_index: int
-        :param isprivate: True for private, False for public key. Default is True
-        :type isprivate: bool
+        :param is_private: True for private, False for public key. Default is True
+        :type is_private: bool
         :param network: Network name. Derived from import_key if possible
         :type network: str, Network
         :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
@@ -957,24 +1055,12 @@ class HDKey:
         :param compressed: Is key compressed or not, default is True
         :type compressed: bool
 
-        :return HDKey: 
+        :return HDKey:
         """
 
-        self.key_format = None
         if (key and not chain) or (not key and chain):
             raise KeyError("Please specify both key and chain, use import_key attribute "
                            "or use simple Key class instead")
-        self.compressed = compressed
-        self.key = None
-
-        network_name = None
-        self.network = None
-        if network is not None:
-            self.network = network
-            if not isinstance(network, Network):
-                self.network = Network(network)
-            network_name = self.network.name
-
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -986,22 +1072,20 @@ class HDKey:
                 key = import_key[:32]
                 chain = import_key[32:]
             elif isinstance(import_key, Key):
-                self.key = import_key
                 if not import_key.compressed:
                     _logger.warning("Uncompressed private keys are not standard for BIP32 keys, use at your own risk!")
-                    self.compressed = False
+                    compressed = False
                 chain = b'\0' * 32
-                key = self.key.private_byte
+                key = import_key.private_byte
                 key_type = 'private'
             else:
                 kf = get_key_format(import_key)
-                self.key_format = kf["format"]
-                self.network = Network(check_network_and_key(import_key, network_name, kf["networks"]))
-                if self.key_format in ['hdkey_private', 'hdkey_public']:
+                network = Network(check_network_and_key(import_key, network, kf["networks"]))
+                if kf['format'] in ['hdkey_private', 'hdkey_public']:
                     bkey = change_base(import_key, 58, 256)
                     # Derive key, chain, depth, child_index and fingerprint part from extended key WIF
                     if ord(bkey[45:46]):
-                        isprivate = False
+                        is_private = False
                         key = bkey[45:78]
                     else:
                         key = bkey[46:78]
@@ -1011,44 +1095,16 @@ class HDKey:
                     chain = bkey[13:45]
                     # chk = bkey[78:82]
                 else:
-                    try:
-                        self.key = Key(import_key, passphrase=passphrase, network=network)
-                        if not self.key.compressed:
-                            _logger.warning(
-                                "Uncompressed private keys are not standard for BIP32 keys, use at your own risk!")
-                            self.compressed = False
-                        # FIXME: Maybe its better to create a random chain?
-                        chain = b'\0'*32
-                        key = self.key.private_byte
-                        key_type = 'private'
-                    except BKeyError as e:
-                        raise BKeyError("[BKeyError] %s" % e)
+                    key = import_key
+                    chain = b'\0' * 32
+                    key_type = 'private'
 
-        if not isinstance(key, (bytes, bytearray)) or not(len(key) == 32 or len(key) == 33):
-            raise KeyError("Invalid key specified must be in bytes with length 32. You can use "
-                           "'import_key' attribute to import keys in other formats")
+        Key.__init__(self, key, network, compressed, passphrase, is_private)
+
         self.chain = chain
-        if self.key is None:
-            self.key = Key(key, passphrase=passphrase, network=self.network, compressed=compressed)
         self.depth = depth
         self.parent_fingerprint = parent_fingerprint
         self.child_index = child_index
-        self.isprivate = isprivate
-        if not self.network:
-            self.network = Network()
-        self.public_byte = self.key.public_byte
-        self.public_uncompressed_byte = self.key.public_uncompressed_byte
-        self.public_hex = self.key.public_hex
-        self.secret = None
-        self.private_hex = None
-        self.private_byte = None
-        if isprivate:
-            self.secret = self.key.secret
-            self.private_hex = self.key.private_hex
-            self.private_byte = self.key.private_byte
-            self.key_hex = self.private_hex
-        else:
-            self.key_hex = self.public_hex
         self.key_type = key_type
 
     def __repr__(self):
@@ -1058,23 +1114,10 @@ class HDKey:
     def info(self):
         """
         Prints key information to standard output
-        
+
         """
-        if self.isprivate:
-            print("SECRET EXPONENT")
-            print(" Private Key (hex)           %s" % self.private_hex)
-            print(" Private Key (long)          %s" % self.secret)
-            print(" Private Key (wif)           %s" % self.key.wif())
-            print("")
-        print("PUBLIC KEY")
-        print(" Public Key (hex)            %s" % self.public_hex)
-        print(" Public Key Hash160          %s" % change_base(self.hash160(), 256, 16))
-        print(" Address (b58)               %s" % self.key.address())
-        print(" Fingerprint (hex)           %s" % change_base(self.fingerprint(), 256, 16))
-        point_x, point_y = self.key.public_point()
-        print(" Point x                     %s" % point_x)
-        print(" Point y                     %s" % point_y)
-        print("")
+        super(HDKey, self).info()
+
         print("EXTENDED KEY INFO")
         print(" Key Type                    %s" % self.key_type)
         print(" Chain code (hex)            %s" % change_base(self.chain, 256, 16))
@@ -1082,43 +1125,42 @@ class HDKey:
         print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint, 256, 16))
         print(" Depth                       %s" % self.depth)
         print(" Extended Public Key (wif)   %s" % self.wif_public())
-        if self.isprivate:
+        if self.is_private:
             print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
         print("\n")
 
-    def dict(self):
+    def as_dict(self):
         """
-        Returns key information as dictionary
+        Get current HDKey class as dictionary. Byte values are represented by hexadecimal strings.
 
+        :return collections.OrderedDict:
         """
 
-        point_x, point_y = self.key.public_point()
-        return {
-            'private_hex': '' if not self.isprivate else self.private_hex,
-            'private_long': '' if not self.isprivate else self.secret,
-            'private_wif': '' if not self.isprivate else self.key.wif(),
-            'public_hex': self.public_hex,
-            'public_hash160': self.hash160(),
-            'address': self.key.address(),
-            'fingerprint': change_base(self.fingerprint(), 256, 16),
-            'point_x': point_x,
-            'point_y': point_y,
-            'key_type': self.key_type,
-            'chain_code': change_base(self.chain, 256, 16),
-            'child_index': self.child_index,
-            'fingerprint_parent': change_base(self.parent_fingerprint, 256, 16),
-            'depth': self.depth,
-            'extended_wif_public': self.wif_public(),
-            'extended_wif_private': self.wif(is_private=True),
-        }
-        
+        key_dict = super(HDKey, self).as_dict()
+        key_dict['fingerprint'] = to_hexstring(self.fingerprint())
+        key_dict['chain_code'] = to_hexstring(self.chain)
+        key_dict['child_index'] = self.child_index
+        key_dict['fingerprint_parent'] = to_hexstring(self.parent_fingerprint)
+        key_dict['depth'] = self.depth
+        key_dict['extended_wif_public'] = self.wif_public()
+        key_dict['extended_wif_private'] = self.wif(is_private=True)
+        return key_dict
+
+    def as_json(self):
+        """
+        Get current key as json formatted string
+
+        :return str:
+        """
+        return json.dumps(self.as_dict(), indent=4)
+
     def _key_derivation(self, seed):
         """
         Derive extended private key with key and chain part from seed
-        
+
         :param seed:
         :type seed: bytes
-        
+
         :return tuple: key and chain bytes
         """
         chain = hasattr(self, 'chain') and self.chain or b"Bitcoin seed"
@@ -1139,7 +1181,7 @@ class HDKey:
     def wif(self, is_private=None, child_index=None, prefix=None, witness_type='legacy', multisig=False):
         """
         Get Extended WIF of current key
-        
+
         :param is_private: Return public or private key
         :type is_private: bool
         :param child_index: Change child index of output WIF key
@@ -1151,12 +1193,13 @@ class HDKey:
         :param multisig: Key is part of a multisignature wallet?
         :type multisig: bool
 
-        :return str: Base58 encoded WIF key 
+        :return str: Base58 encoded WIF key
         """
+
         rkey = self.private_byte or self.public_byte
         if prefix and not isinstance(prefix, (bytes, bytearray)):
             prefix = binascii.unhexlify(prefix)
-        if self.isprivate and is_private:
+        if self.is_private and is_private:
             if not prefix:
                 prefix = self.network.wif_prefix(is_private=True, witness_type=witness_type, multisig=multisig)
             typebyte = b'\x00'
@@ -1174,6 +1217,9 @@ class HDKey:
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
 
+    def wif_key(self, prefix=None):
+        return super(HDKey, self).wif(prefix)
+
     def wif_public(self, prefix=None, witness_type='legacy', multisig=False):
         """
         Get Extended WIF public key. Wrapper for the wif() method
@@ -1184,7 +1230,7 @@ class HDKey:
         :type witness_type: str
         :param multisig: Key is part of a multisignature wallet?
         :type multisig: bool
-        
+
         :return str: Base58 encoded WIF key
         """
         return self.wif(is_private=False, prefix=prefix, witness_type=witness_type, multisig=multisig)
@@ -1242,7 +1288,7 @@ class HDKey:
                 index = int(level)
                 if index < 0:
                     raise BKeyError("Could not parse path. Index must be a positive integer.")
-                if first_public or not key.isprivate:
+                if first_public or not key.is_private:
                     key = key.child_public(index=index, network=network)  # TODO hardened=hardened key?
                     first_public = False
                 else:
@@ -1269,7 +1315,7 @@ class HDKey:
             raise KeyError("Need a master key to generate account key")
         if set_network:
             self.network_change(set_network)
-        if self.isprivate:
+        if self.is_private:
             path = "m"
         else:
             path = "M"
@@ -1305,7 +1351,7 @@ class HDKey:
             script_type = 2
         else:
             raise KeyError("Unknown witness type %s" % witness_type)
-        path = "%s/%d'" % ('m' if self.isprivate else 'M', purpose)
+        path = "%s/%d'" % ('m' if self.is_private else 'M', purpose)
         if purpose == 45:
             return self.subkey_for_path(path)
         elif purpose == 48:
@@ -1341,7 +1387,7 @@ class HDKey:
         """
         if network is None:
             network = self.network.name
-        if not self.isprivate:
+        if not self.is_private:
             raise BKeyError("Need a private key to create child private key")
         if hardened:
             index |= 0x80000000
@@ -1382,7 +1428,7 @@ class HDKey:
         if key > secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
-        x, y = self.key.public_point()
+        x, y = self.public_point()
         ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
 
         # if change_base(Ki.y(), 16, 10) % 2:
@@ -1393,7 +1439,7 @@ class HDKey:
         xhex = change_base(ki.x(), 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, isprivate=False, network=network)
+                     child_index=index, is_private=False, network=network)
 
     def public(self):
         """
@@ -1404,19 +1450,10 @@ class HDKey:
         """
 
         hdkey = deepcopy(self)
-        hdkey.isprivate = False
+        hdkey.is_private = False
         hdkey.secret = None
         hdkey.private_hex = None
         hdkey.private_byte = None
         hdkey.key_hex = hdkey.public_hex
-        hdkey.key = self.key.public()
+        # hdkey.key = self.key.public()
         return hdkey
-
-    def hash160(self):
-        """
-        Get RIPEMD-160 + SHA256 hash of public key
-
-        :return bytes:
-        """
-
-        return self.key.hash160()

@@ -1658,7 +1658,7 @@ class Transaction:
             tid_keys = [k if isinstance(k, (HDKey, Key)) else Key(k, compressed=self.inputs[tid].compressed)
                         for k in keys]
             for k in self.inputs[tid].keys:
-                if k.isprivate and k not in tid_keys:
+                if k.is_private and k not in tid_keys:
                     tid_keys.append(k)
             # If input does not contain any keys, try using provided keys
             if not self.inputs[tid].keys:

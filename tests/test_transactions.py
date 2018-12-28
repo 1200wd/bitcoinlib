@@ -1111,7 +1111,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         # Create 2-of-2 multisig transaction with 1 input and 1 output
         t = Transaction(network='testnet')
         t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
-                    [pk1.key.public_byte, pk2.key.public_byte], script_type='p2sh_multisig', sigs_required=2)
+                    [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2)
         t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
 
         # Sign with private key and verify

@@ -277,14 +277,14 @@ def parse_bip44_path(path):
     :param path: BIP0044 path as string, with backslash (/) seperator. 
     :type path: str
     
-    :return dict: Dictionary with path items: isprivate, purpose, cointype, account, change and address_index
+    :return dict: Dictionary with path items: is_private, purpose, cointype, account, change and address_index
     """
 
     pathl = normalize_path(path).split('/')
     if not 0 < len(pathl) <= 6:
         raise WalletError("Not a valid BIP0044 path. Path length (depth) must be between 1 and 6 not %d" % len(pathl))
     return {
-        'isprivate': True if pathl[0] == 'm' else False,
+        'is_private': True if pathl[0] == 'm' else False,
         'purpose': '' if len(pathl) < 2 else pathl[1],
         'cointype': '' if len(pathl) < 3 else pathl[2],
         'account': '' if len(pathl) < 4 else pathl[3],
@@ -349,8 +349,9 @@ class HDWalletKey:
                 network = DEFAULT_NETWORK
             k = HDKey(import_key=key, network=network)
 
-        keyexists = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
-            witness_type=witness_type, multisig=multisig, is_private=True)).first()
+        keyexists = session.query(DbKey).\
+            filter(DbKey.wallet_id == wallet_id,
+                   DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=True)).first()
         if keyexists:
             _logger.warning("Key %s already exists" % (key or k.wif(witness_type=witness_type, multisig=multisig,
                                                                     is_private=True)))
@@ -386,12 +387,12 @@ class HDWalletKey:
         script_type = None
         if witness_type == 'p2sh-segwit':
             script_type = 'p2sh_p2wpkh'
-        address = k.key.address(encoding=encoding, script_type=script_type)
+        address = k.address(encoding=encoding, script_type=script_type)
 
         nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                    account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                    wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
-                   parent_id=parent_id, compressed=k.compressed, is_private=k.isprivate, path=path, key_type=key_type,
+                   parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path, key_type=key_type,
                    network_name=network, encoding=encoding)
         session.add(nk)
         session.commit()
@@ -633,7 +634,7 @@ class HDWalletTransaction(Transaction):
                     priv_key = priv_key.subkey_for_path(ti.key_path)
                 priv_key_list.append(priv_key)
             for k in ti.keys:
-                if k.isprivate:
+                if k.is_private:
                     if isinstance(k, HDKey):
                         hdkey = k
                     else:
@@ -1076,7 +1077,7 @@ class HDWallet:
                 hdkey_list.append(cokey)
         if sort_keys:
             hdkey_list.sort(key=lambda x: x.public_byte)
-        cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.isprivate]
+        cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
         if cosigner_id is None:
             hdpm.cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
         wlt_cos_id = 0
@@ -1323,7 +1324,7 @@ class HDWallet:
             hdkey = HDKey(hdkey)
         if not isinstance(self.main_key, HDWalletKey):
             raise WalletError("Main wallet key is not an HDWalletKey instance. Type %s" % type(self.main_key))
-        if not hdkey.isprivate or hdkey.depth != 0:
+        if not hdkey.is_private or hdkey.depth != 0:
             raise WalletError("Please supply a valid private BIP32 master key with key depth 0")
         if (self.main_key.depth != 1 and self.main_key.depth != 3) or self.main_key.is_private or \
                 self.main_key.key_type != 'bip32':
@@ -1387,7 +1388,7 @@ class HDWallet:
 
         if not self.multisig:
             if self.main_key and self.main_key.depth == 3 and \
-                    hdkey.isprivate and hdkey.depth == 0 and self.scheme == 'bip32':
+                    hdkey.is_private and hdkey.depth == 0 and self.scheme == 'bip32':
                 hdkey.key_type = 'bip32'
                 return self.import_master_key(hdkey, name)
 
@@ -1494,8 +1495,8 @@ class HDWallet:
                     wk = csw.key_for_path([change, address_index], cosigner_id=cosigner_id)
                 public_keys.append({
                     'key_id': wk.key_id,
-                    'public_key_uncompressed': wk.key().key.public_uncompressed(),
-                    'public_key': wk.key().key.public_hex,
+                    'public_key_uncompressed': wk.key().public_uncompressed(),
+                    'public_key': wk.key().public_hex,
                     'depth': wk.depth,
                     'path': wk.path
                 })
@@ -2715,9 +2716,9 @@ class HDWallet:
         if key.key_type == 'multisig':
             for ck in key.multisig_children:
                 # TODO:  CHECK THIS
-                inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name).key)
+                inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name))
         elif key.key_type in ['bip32', 'single']:
-            inp_keys = [HDKey(key.wif, compressed=key.compressed, network=key.network_name).key]
+            inp_keys = [HDKey(key.wif, compressed=key.compressed, network=key.network_name)]
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
