@@ -46,8 +46,8 @@ class TestKeyClasses(unittest.TestCase):
     def test_dict_and_json_outputs(self):
         k = HDKey()
         k.address(script_type='p2wsh', encoding='bech32')
-        self.assertTrue(isinstance(json.loads(k._address_obj.as_json()), dict))
-        self.assertTrue(isinstance(k._address_obj.as_dict(), dict))
+        self.assertTrue(isinstance(json.loads(k.address_obj.as_json()), dict))
+        self.assertTrue(isinstance(k.address_obj.as_dict(), dict))
         self.assertTrue(isinstance(json.loads(k.as_json()), dict))
         self.assertTrue(isinstance(k.as_dict(), dict))
         k = Key()

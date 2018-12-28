@@ -1071,7 +1071,7 @@ class Output:
         if self.address_obj:
             self.script_type = self.address_obj.script_type
             self.public_hash = self.address_obj.hash_bytes
-            self.network =  self.address_obj.network
+            self.network = self.address_obj.network
             self.encoding = self.address_obj.encoding
         if self.public_key and not self.address and self.encoding:
             self.k = Key(self.public_key, is_private=False, network=network)
