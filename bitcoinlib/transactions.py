@@ -1816,7 +1816,7 @@ class Transaction:
         :param value: Value of output in smallest denominator of currency, for example satoshi's for bitcoins
         :type value: int
         :param address: Destination address of output. Leave empty to derive from other attributes you provide.
-        :type address: str
+        :type address: str, Address
         :param public_hash: Hash of public key or script
         :type public_hash: bytes, str
         :param public_key: Destination public key

@@ -1152,10 +1152,10 @@ class HDWallet:
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
             self.cosigner = [HDWallet(w.id, databasefile=databasefile) for w in co_sign_wallets]
             self.sort_keys = db_wlt.sort_keys
-            if main_key_object:
+            # if main_key_object:
+            #     self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
+            if db_wlt.main_key_id:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
-            elif db_wlt.main_key_id:
-                self.main_key = HDWalletKey(self.main_key_id, session=self._session)
             if self.main_key:
                 self.default_account_id = self.main_key.account_id
             _logger.info("Opening wallet '%s'" % self.name)
@@ -1531,7 +1531,8 @@ class HDWallet:
                 self._session.add(DbKeyMultisigChildren(key_order=public_key_ids.index(child_id),
                                                         parent_id=multisig_key.id, child_id=int(child_id)))
             self._session.commit()
-            return HDWalletKey(multisig_key.id, session=self._session)
+            # return HDWalletKey(multisig_key.id, session=self._session)
+            return self.key(multisig_key.id)
 
     def new_key_change(self, name='', account_id=None, network=None):
         """
@@ -1682,7 +1683,8 @@ class HDWallet:
         for i in range(number_of_keys):
             if dbkey:
                 dk = dbkey.pop()
-                nk = HDWalletKey(dk.id, session=self._session)
+                # nk = HDWalletKey(dk.id, session=self._session)
+                nk = self.key(dk.id)
             else:
                 nk = self.new_key(account_id=account_id, change=change, cosigner_id=cosigner_id, network=network)
             key_list.append(nk)
@@ -1691,33 +1693,34 @@ class HDWallet:
         else:
             return key_list
 
-    def get_keys(self, account_id=None, network=None, change=0):
-        """
-        Get a unused key or create a new one if there are no unused keys.
-        Returns a key from this wallet which has no transactions linked to it.
-
-        :param account_id: Account ID. Default is last used or created account ID.
-        :type account_id: int
-        :param network: Network name. Leave empty for default network
-        :type network: str
-        :param change: Payment (0) or change key (1). Default is 0
-        :type change: int
-
-        :return HDWalletKey:
-        """
-
-        network, account_id, _ = self._get_account_defaults(network, account_id)
-        keys_depth = len(self.key_path)-1
-        if self.multisig:
-            keys_depth = 0
-        dbkeys = self._session.query(DbKey). \
-            filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
-                      used=False, change=change, depth=keys_depth). \
-            order_by(DbKey.id).all()
-        unusedkeys = []
-        for dk in dbkeys:
-            unusedkeys.append(HDWalletKey(dk.id, session=self._session))
-        return unusedkeys
+    # TODO: Remove, duplicate with get_key and keys
+    # def get_keys(self, account_id=None, network=None, change=0):
+    #     """
+    #     Get a unused key or create a new one if there are no unused keys.
+    #     Returns a key from this wallet which has no transactions linked to it.
+    #
+    #     :param account_id: Account ID. Default is last used or created account ID.
+    #     :type account_id: int
+    #     :param network: Network name. Leave empty for default network
+    #     :type network: str
+    #     :param change: Payment (0) or change key (1). Default is 0
+    #     :type change: int
+    #
+    #     :return HDWalletKey:
+    #     """
+    #
+    #     network, account_id, _ = self._get_account_defaults(network, account_id)
+    #     keys_depth = len(self.key_path)-1
+    #     if self.multisig:
+    #         keys_depth = 0
+    #     dbkeys = self._session.query(DbKey). \
+    #         filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
+    #                   used=False, change=change, depth=keys_depth). \
+    #         order_by(DbKey.id).all()
+    #     unusedkeys = []
+    #     for dk in dbkeys:
+    #         unusedkeys.append(HDWalletKey(dk.id, session=self._session))
+    #     return unusedkeys
 
     def get_key_change(self, account_id=None, network=None, number_of_keys=1):
         """
@@ -2166,7 +2169,8 @@ class HDWallet:
         if not qr:
             raise WalletError("Account with ID %d not found in this wallet" % account_id)
         key_id = qr.id
-        return HDWalletKey(key_id, session=self._session)
+        # return HDWalletKey(key_id, session=self._session)
+        return self.key(key_id)
 
     def accounts(self, network=None):
         """
@@ -2184,12 +2188,14 @@ class HDWallet:
             #raise WalletError("Accounts not supported for multisig wallets")
             for wlt in self.cosigner:
                 if wlt.main_key.is_private:
-                    accounts.append(HDWalletKey(wlt.main_key.key_id, self._session))
+                    # accounts.append(HDWalletKey(wlt.main_key.key_id, self._session))
+                    accounts.append(self.key(wlt.main_key.key_id))
         else:
             wks = self.keys_accounts(network=network)
 
             for wk in wks:
-                accounts.append(HDWalletKey(wk.id, self._session))
+                # accounts.append(HDWalletKey(wk.id, self._session))
+                accounts.append(self.key(wk.id))
         return accounts
 
     def networks(self):
