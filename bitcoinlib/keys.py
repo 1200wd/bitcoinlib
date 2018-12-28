@@ -33,7 +33,7 @@ import ecdsa
 try:
     import scrypt
     USING_MODULE_SCRYPT = True
-except ImportError:
+except ImportError as scrypt_error:
     import pyscrypt as scrypt
     USING_MODULE_SCRYPT = False
 
@@ -51,6 +51,7 @@ from bitcoinlib.mnemonic import Mnemonic
 _logger = logging.getLogger(__name__)
 
 if not USING_MODULE_SCRYPT:
+    _logger.warning("Error when trying to import scrypt module", scrypt_error)
     _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
                     "protected keys.")
 

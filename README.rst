@@ -285,9 +285,10 @@ Tested on Windows 10 with Python 3.6 and pip installed. No special requirements 
 Troubleshooting
 ---------------
 
-When you experience issues with the scrypt package when installing you can try to solve this by installing
-scrypt seperately:
- pip intall scrypt
+When you experience issues with the scrypt package when installing you can try to solve this by removing and reinstall
+scrypt:
+ pip uninstall scrypt
+ pip install scrypt
 
 Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
 above.

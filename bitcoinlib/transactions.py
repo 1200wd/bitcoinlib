@@ -1051,6 +1051,9 @@ class Output:
         if isinstance(address, Address):
             self.address = address.address
             self.address_obj = address
+        elif isinstance(address, HDKey):
+            self.address = address.address()
+            self.address_obj = address.address_obj
         else:
             self.address = address
             self.address_obj = None

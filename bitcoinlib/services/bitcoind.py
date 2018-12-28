@@ -64,7 +64,10 @@ class BitcoindClient(BaseClient):
 
         :return BitcoindClient:
         """
-        config = configparser.ConfigParser(strict=False)
+        try:
+            config = configparser.ConfigParser(strict=False)
+        except TypeError:
+            config = configparser.ConfigParser()
         config_fn = 'bitcoin.conf'
         if network == 'testnet':
             config_fn = 'bitcoin-testnet.conf'
