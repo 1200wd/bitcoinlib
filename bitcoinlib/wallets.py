@@ -1191,6 +1191,9 @@ class HDWallet:
         return "<HDWallet(name=%s, databasefile=\"%s\")>" % \
                (self.name, self.databasefile)
 
+    def __str__(self):
+        return self.name
+
     def _get_account_defaults(self, network=None, account_id=None, key_id=None):
         """
         Check parameter values for network and account ID, return defaults if no network or account ID is specified.

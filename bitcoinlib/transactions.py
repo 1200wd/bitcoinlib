@@ -1317,6 +1317,9 @@ class Transaction:
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
                (len(self.inputs), len(self.outputs), self.status, self.network.name)
 
+    def __str__(self):
+        return self.hash
+
     def dict(self):
         """
         Return Json dictionary with transaction information: Inputs, outputs, version and locktime
