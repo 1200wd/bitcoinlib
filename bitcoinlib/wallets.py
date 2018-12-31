@@ -910,16 +910,15 @@ class HDWallet:
                 key = HDKey().from_seed(Mnemonic().to_seed(key, password), network=network)
             else:
                 network = check_network_and_key(key, network)
-                hdkeyinfo = wif_prefix_search(key, network)
+                hdkeyinfo = wif_prefix_search(key, network=network)
                 key = HDKey(key, network=network)
                 if hdkeyinfo:
-                    if len(hdkeyinfo[0]['script_types']) == 1:
-                        if hdkeyinfo[0]['script_types'][0] == 'p2sh_p2wpkh':
-                            witness_type = 'p2sh-segwit'
-                        elif hdkeyinfo[0]['script_types'][0] == 'p2wpkh':
-                            witness_type = 'segwit'
-                        elif set(set(hdkeyinfo[0]['script_types']).intersection(['p2sh_p2wsh', 'p2wsh'])):
-                            raise WalletError("Imported key is for multisig wallets, use create_multisig instead")
+                    if hdkeyinfo[0]['script_type'] == 'p2sh_p2wpkh':
+                        witness_type = 'p2sh-segwit'
+                    elif hdkeyinfo[0]['script_type'] == 'p2wpkh':
+                        witness_type = 'segwit'
+                    elif hdkeyinfo[0]['script_type'] in ['p2sh_p2wsh', 'p2wsh']:
+                        raise WalletError("Imported key is for multisig wallets, use create_multisig instead")
         elif network is None:
             network = DEFAULT_NETWORK
         if (network == 'dash' or network == 'dash_testnet') and witness_type != 'legacy':
@@ -1061,17 +1060,16 @@ class HDWallet:
                     k = HDKey().from_passphrase(cokey, network=network)
                 else:
                     network = check_network_and_key(cokey, network)
-                    hdkeyinfo = wif_prefix_search(cokey, network)
+                    hdkeyinfo = wif_prefix_search(cokey, network=network)
                     k = HDKey(cokey, network=network)
                     if hdkeyinfo:
-                        if len(hdkeyinfo[0]['script_types']) == 1:
-                            if 'p2sh_p2wsh' in hdkeyinfo[0]['script_types']:
-                                hdpm.purpose = 48
-                                hdpm.witness_type = 'p2sh-segwit'
-                            elif 'p2wsh' in hdkeyinfo[0]['script_types']:
-                                hdpm.purpose = 48
-                                hdpm.encoding = 'bech32'
-                                hdpm.witness_type = 'segwit'
+                        if hdkeyinfo[0]['script_type'] == 'p2sh_p2wsh':
+                            hdpm.purpose = 48
+                            hdpm.witness_type = 'p2sh-segwit'
+                        elif hdkeyinfo[0]['script_type'] == 'p2wsh':
+                            hdpm.purpose = 48
+                            hdpm.encoding = 'bech32'
+                            hdpm.witness_type = 'segwit'
                 hdkey_list.append(k)
             else:
                 hdkey_list.append(cokey)

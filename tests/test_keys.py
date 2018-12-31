@@ -22,7 +22,7 @@ import os
 import unittest
 import json
 
-from networks import NETWORK_DEFINITIONS
+from bitcoinlib.networks import NETWORK_DEFINITIONS
 from bitcoinlib.keys import *
 
 # Number of bulktests for generation of private, public keys and hdkeys. Set to 0 to disable
