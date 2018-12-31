@@ -22,6 +22,7 @@ import os
 import unittest
 import json
 
+from networks import NETWORK_DEFINITIONS
 from bitcoinlib.keys import *
 
 # Number of bulktests for generation of private, public keys and hdkeys. Set to 0 to disable
@@ -431,6 +432,20 @@ class TestHDKeys(unittest.TestCase):
         self.assertEqual(hdkey_uncompressed.wif(), hdkey.wif())
         self.assertEqual(hdkey_compressed.wif_key(), 'KyD9aZEG9cHZa3Hnh3rnTAUHAs6XhroYtJQwuBy4qfBhzHGEApgv')
 
+    def test_hdkey_wif_prefixes(self):
+        for network in list(NETWORK_DEFINITIONS.keys()):
+            k = HDKey(network=network)
+            for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
+                for multisig in [False, True]:
+                    if network[:4] == 'dash' and witness_type != 'legacy':
+                        break
+                    kwif = k.wif_private(witness_type=witness_type, multisig=multisig)
+                    hdkey = wif_prefix_search(kwif, witness_type=witness_type, multisig=multisig, network=network)
+                    pwif = k.wif_public(witness_type=witness_type, multisig=multisig)
+                    hdkey_pub = wif_prefix_search(pwif, witness_type=witness_type, multisig=multisig, network=network)
+                    self.assertTrue(kwif[:4] == hdkey[0]['prefix_str'])
+                    self.assertTrue(pwif[:4] == hdkey_pub[0]['prefix_str'])
+
 
 class TestBip38(unittest.TestCase):
 
@@ -566,6 +581,7 @@ class TestKeysAddress(unittest.TestCase):
         pk = '73c32f225a98ac084565429d5a15148dad5d9f6ef7cc7a5d901c9dfd6bb6027a'
         addr = Address(HDKey(pk).public_hex, witness_type='segwit')
         self.assertEqual(deserialize_address(addr.address, encoding='bech32')['encoding'], 'bech32')
+
 
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):

@@ -27,7 +27,7 @@ from operator import itemgetter
 from bitcoinlib.db import *
 from bitcoinlib.encoding import to_hexstring, to_bytes
 from bitcoinlib.keys import HDKey, check_network_and_key, Address
-from bitcoinlib.networks import Network, prefix_search
+from bitcoinlib.networks import Network, wif_prefix_search
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, \
@@ -910,7 +910,7 @@ class HDWallet:
                 key = HDKey().from_seed(Mnemonic().to_seed(key, password), network=network)
             else:
                 network = check_network_and_key(key, network)
-                hdkeyinfo = prefix_search(key, network)
+                hdkeyinfo = wif_prefix_search(key, network)
                 key = HDKey(key, network=network)
                 if hdkeyinfo:
                     if len(hdkeyinfo[0]['script_types']) == 1:
@@ -1061,7 +1061,7 @@ class HDWallet:
                     k = HDKey().from_passphrase(cokey, network=network)
                 else:
                     network = check_network_and_key(cokey, network)
-                    hdkeyinfo = prefix_search(cokey, network)
+                    hdkeyinfo = wif_prefix_search(cokey, network)
                     k = HDKey(cokey, network=network)
                     if hdkeyinfo:
                         if len(hdkeyinfo[0]['script_types']) == 1:

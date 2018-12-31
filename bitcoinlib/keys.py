@@ -40,7 +40,7 @@ except ImportError as scrypt_error:
 import pyaes
 
 from bitcoinlib.main import *
-from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, prefix_search
+from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_to_pubkeyhash, \
@@ -189,11 +189,11 @@ def get_key_format(key, is_private=None):
                         key_format = 'hdkey_public'
                         is_private = False
                     else:
-                        prefix_data = prefix_search(key_hex[:8])
+                        prefix_data = wif_prefix_search(key_hex[:8])
                         if prefix_data:
                             networks = [n['network'] for n in prefix_data]
                             is_private = prefix_data[0]['is_private']
-                            script_types = prefix_data[0]['script_types']
+                            script_types = prefix_data[0]['script_type']
                             key_format = 'hdkey_public'
                             if is_private:
                                 key_format = 'hdkey_private'

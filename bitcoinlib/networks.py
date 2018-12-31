@@ -140,7 +140,7 @@ def network_defined(network):
     return True
 
 
-def prefix_search(wif, network=None):
+def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     """
     Extract network, script type and public/private information from WIF prefix.
 
@@ -162,13 +162,16 @@ def prefix_search(wif, network=None):
             continue
         data = NETWORK_DEFINITIONS[nw]
         for pf in data['prefixes_wif']:
-            if pf[1] == prefix:
+            if pf[0] == prefix and (multisig is None or pf[3] is None or pf[3] == multisig) and \
+                    (witness_type is None or pf[4] is None or pf[4] == witness_type):
                 matches.append({
                     'prefix': prefix,
-                    'is_private': True if pf[0] == 'private' else False,
-                    'prefix_str': pf[2],
+                    'is_private': True if pf[2] == 'private' else False,
+                    'prefix_str': pf[1],
                     'network': nw,
-                    'script_types': pf[3]
+                    'witness_type': pf[4],
+                    'multisig': pf[3],
+                    'script_type': pf[5]
                 })
     return matches
 
@@ -250,7 +253,7 @@ class Network:
             ip = 'private'
         else:
             ip = 'public'
-        found_prefixes = [to_bytes(pf[1]) for pf in self.prefixes_wif if pf[0] == ip and script_type in pf[3]]
+        found_prefixes = [to_bytes(pf[0]) for pf in self.prefixes_wif if pf[2] == ip and script_type == pf[5]]
         if found_prefixes:
             return found_prefixes[0]
         else:
