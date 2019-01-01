@@ -155,7 +155,7 @@ def create_wallet(wallet_name, args, databasefile):
                 passphrase = get_passphrase(args)
                 passphrase = ' '.join(passphrase)
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
-                key_list.append(HDKey().from_seed(seed, network=args.network))
+                key_list.append(HDKey.from_seed(seed, network=args.network))
         return HDWallet.create_multisig(name=wallet_name, keys=key_list, sigs_required=sigs_required,
                                         network=args.network, databasefile=databasefile, sort_keys=True,
                                         witness_type=args.witness_type)
@@ -176,7 +176,7 @@ def create_wallet(wallet_name, args, databasefile):
             clw_exit("Please specify passphrase with 12 words or more")
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
-        hdkey = HDKey().from_seed(seed, network=args.network)
+        hdkey = HDKey.from_seed(seed, network=args.network)
         return HDWallet.create(name=wallet_name, network=args.network, keys=hdkey, witness_type=args.witness_type,
                                databasefile=databasefile)
 
@@ -229,7 +229,7 @@ def main():
         passphrase = get_passphrase(args)
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
-        hdkey = HDKey().from_seed(seed, network=args.network)
+        hdkey = HDKey.from_seed(seed, network=args.network)
         print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif())
         print(
             "Public account key, to share with other cosigner multisig wallets: %s" % hdkey.account_multisig_key(

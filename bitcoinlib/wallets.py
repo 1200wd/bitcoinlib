@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for Key and Transaction management
-#    © 2016 - 2018 November - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2019 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -907,7 +907,7 @@ class HDWallet:
             if len(key.split(" ")) > 1:
                 if not network:
                     raise WalletError("Please specify network when using passphrase to create a key")
-                key = HDKey().from_seed(Mnemonic().to_seed(key, password), network=network)
+                key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network)
             else:
                 network = check_network_and_key(key, network)
                 hdkeyinfo = wif_prefix_search(key, network=network)
@@ -1057,7 +1057,7 @@ class HDWallet:
         for cokey in keys:
             if not isinstance(cokey, HDKey):
                 if len(cokey.split(' ')) > 5:
-                    k = HDKey().from_passphrase(cokey, network=network)
+                    k = HDKey.from_passphrase(cokey, network=network)
                 else:
                     network = check_network_and_key(cokey, network)
                     hdkeyinfo = wif_prefix_search(cokey, network=network)

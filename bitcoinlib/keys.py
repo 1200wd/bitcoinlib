@@ -1037,7 +1037,7 @@ class HDKey(Key):
 
         :return HDKey:
         """
-        return HDKey().from_seed(Mnemonic().to_seed(passphrase, password), network=network)
+        return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True):

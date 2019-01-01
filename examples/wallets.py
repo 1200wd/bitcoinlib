@@ -128,7 +128,7 @@ words = 'blind frequent camera goddess pottery repair skull year mistake wrist l
 #   words = Mnemonic('english').generate()
 print("Generated Passphrase: %s" % words)
 seed = Mnemonic().to_seed(words)
-hdkey = HDKey().from_seed(seed, network='litecoin_testnet')
+hdkey = HDKey.from_seed(seed, network='litecoin_testnet')
 wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
                          keys=hdkey.wif(), databasefile=test_database)
 wallet.new_key("Input", 0)
