@@ -179,25 +179,17 @@ def get_key_format(key, is_private=None):
                     key_format = 'wif'
                 is_private = True
             else:
-                networks = network_by_value('prefix_hdkey_private', key_hex[:8])
-                if networks:
-                    key_format = 'hdkey_private'
-                    is_private = True
-                else:
-                    networks = network_by_value('prefix_hdkey_public', key_hex[:8])
-                    if networks:
-                        key_format = 'hdkey_public'
-                        is_private = False
-                    else:
-                        prefix_data = wif_prefix_search(key_hex[:8])
-                        if prefix_data:
-                            networks = [n['network'] for n in prefix_data]
-                            is_private = prefix_data[0]['is_private']
-                            script_types = prefix_data[0]['script_type']
-                            key_format = 'hdkey_public'
-                            if is_private:
-                                key_format = 'hdkey_private'
-
+                prefix_data = wif_prefix_search(key_hex[:8])
+                if prefix_data:
+                    networks = list(set([n['network'] for n in prefix_data]))
+                    if is_private is None and len(set([n['is_private'] for n in prefix_data])) > 1:
+                        raise KeyError("Cannot determine if key is private or public, please specify is_private "
+                                       "attribute")
+                    is_private = prefix_data[0]['is_private']
+                    script_types = [n['script_type'] for n in prefix_data]
+                    key_format = 'hdkey_public'
+                    if is_private:
+                        key_format = 'hdkey_private'
         except (TypeError, EncodingError):
             pass
     if not key_format:

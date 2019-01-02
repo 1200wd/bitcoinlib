@@ -10,8 +10,6 @@
     "prefix_address_p2sh": "95",
     "prefix_bech32": "bclt",
     "prefix_wif": "99",
-    "prefix_hdkey_private": "9488ADE4",
-    "prefix_hdkey_public": "9488B21E",
     "prefixes_wif": [
       ["9488B21E", "YXsf", "public",  false, "legacy",      "p2pkh"],
       ["9488B21E", "YXsf", "public",  true,  "legacy",      "p2sh"],
@@ -45,8 +43,6 @@
     "prefix_address_p2sh": "05",
     "prefix_bech32": "bc",
     "prefix_wif": "80",
-    "prefix_hdkey_private": "0488ADE4",
-    "prefix_hdkey_public": "0488B21E",
     "prefixes_wif": [
       ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],
       ["0488B21E", "xpub", "public",  true,  "legacy",      "p2sh"],
@@ -80,8 +76,6 @@
     "prefix_address_p2sh": "C4",
     "prefix_bech32": "tb",
     "prefix_wif": "EF",
-    "prefix_hdkey_private": "04358394",
-    "prefix_hdkey_public": "043587CF",
     "prefixes_wif": [
       ["043587CF", "tpub", "public",  false, "legacy",      "p2pkh"],
       ["043587CF", "tpub", "public",  true,  "legacy",      "p2sh"],
@@ -115,8 +109,6 @@
     "prefix_address_p2sh": "32",
     "prefix_bech32": "ltc",
     "prefix_wif": "B0",
-    "prefix_hdkey_private": "019D9CFE",
-    "prefix_hdkey_public": "019DA462",
     "prefixes_wif": [
       ["019DA462", "Ltub", "public",  false, "legacy",      "p2pkh"],
       ["019DA462", "Ltub", "public",  true,  "legacy",      "p2sh"],
@@ -150,8 +142,6 @@
     "prefix_address_p2sh": "05",
     "prefix_bech32": "ltc",
     "prefix_wif": "B0",
-    "prefix_hdkey_private": "019D9CFE",
-    "prefix_hdkey_public": "019DA462",
     "prefixes_wif": [
       ["019DA462", "Ltub", "public",  false, "legacy",      "p2pkh"],
       ["019DA462", "Ltub", "public",  true,  "legacy",      "p2sh"],
@@ -185,8 +175,6 @@
     "prefix_address_p2sh": "3A",
     "prefix_bech32": "tltc",
     "prefix_wif": "EF",
-    "prefix_hdkey_private": "04358394",
-    "prefix_hdkey_public": "043587CF",
     "prefixes_wif": [
       ["0436F6E1", "ttub", "public",  false, "legacy",      "p2pkh"],
       ["0436F6E1", "ttub", "public",  true,  "legacy",      "p2sh"],
@@ -220,8 +208,6 @@
     "prefix_address_p2sh": "10",
     "prefix_bech32": "dash",
     "prefix_wif": "CC",
-    "prefix_hdkey_private": "0488ADE4",
-    "prefix_hdkey_public": "0488B21E",
     "prefixes_wif": [
       ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],
       ["0488B21E", "xpub", "public",  true,  "legacy",      "p2sh"],
@@ -247,8 +233,6 @@
     "prefix_address_p2sh": "13",
     "prefix_bech32": "tdash",
     "prefix_wif": "EF",
-    "prefix_hdkey_private": "04358394",
-    "prefix_hdkey_public": "043587CF",
     "prefixes_wif": [
       ["043587CF", "tpub", "public",  false, "legacy",      "p2pkh"],
       ["043587CF", "tpub", "public",  true,  "legacy",      "p2sh"],

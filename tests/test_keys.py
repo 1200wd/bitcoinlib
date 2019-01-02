@@ -82,8 +82,8 @@ class TestGetKeyFormat(unittest.TestCase):
         self.assertEqual('hdkey_public', get_key_format(key)['format'])
 
     def test_format_hdkey_private_litecoin(self):
-        key = 'tprv8ZgxMBicQKsPdnMVMhgfNHXF1PkuAoUNECLe71vmEdi7R6yWRm7dcaDwxu9rrb8NoYzjT7uZinv6N34gCNHtyfYCoQy68krxf' \
-              '9P3tLd7BLT'
+        key = 'ttpv96BtqegdxXceS41gmguxRWjtFdG11XqquvaPcpionXB8oQ2zkXYY9vCvykdfLEeeihx1SxP3t7ranmqLHKbmgfiMFR7967urhq' \
+              'oAq5eBHur'
         self.assertEqual('hdkey_private', get_key_format(key)['format'])
         self.assertIn('litecoin_testnet', get_key_format(key)['networks'])
 

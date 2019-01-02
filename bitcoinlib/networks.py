@@ -152,7 +152,10 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     :return dict:
     """
 
-    key_hex = change_base(wif, 58, 16)
+    if len(wif) > 8:
+        key_hex = change_base(wif, 58, 16)
+    else:
+        key_hex = wif
     if not key_hex:
         key_hex = to_hexstring(wif)
     prefix = key_hex[:8].upper()
@@ -199,8 +202,6 @@ class Network:
         self.prefix_address = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address'])
         self.prefix_bech32 = NETWORK_DEFINITIONS[network_name]['prefix_bech32']
         self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
-        self.prefix_hdkey_public = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_public'])
-        self.prefix_hdkey_private = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_private'])
         self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
         self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']
         self.dust_amount = NETWORK_DEFINITIONS[network_name]['dust_amount']
