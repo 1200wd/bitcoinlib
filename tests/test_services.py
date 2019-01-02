@@ -141,6 +141,15 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.fail("Only 1 or less service providers found, no fee estimates to compare")
         feelist = list(srv.results.values())
         average_fee = sum(feelist) / float(len(feelist))
+
+        # Normalize with dust amount, to avoid errors on small differences
+        dust = Network().dust_amount
+        for provider in srv.results:
+            if srv.results[provider] < average_fee and average_fee - srv.results[provider] > dust:
+                srv.results[provider] += dust
+            elif srv.results[provider] > average_fee and srv.results[provider] - average_fee > dust:
+                srv.results[provider] -= dust
+
         for provider in srv.results:
             value = srv.results[provider]
             if not value:
