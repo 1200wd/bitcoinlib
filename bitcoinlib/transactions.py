@@ -662,6 +662,8 @@ class Input:
         :type unlocking_script: bytes, hexstring
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
+        :param address: Address string or object for input
+        :type address: str, Address
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: bytes, int
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
@@ -1767,7 +1769,7 @@ class Transaction:
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param address: Specify address of input if known, default is to derive from key or scripts
-        :type address: str
+        :type address: str, Address
         :param sequence: Sequence part of input, you normally do not have to touch this
         :type sequence: int, bytes
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
