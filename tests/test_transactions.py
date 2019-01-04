@@ -1173,8 +1173,10 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
 
-        self.assertEqual(t.sign(self.pk1), 1)
-        self.assertEqual(t.sign(self.pk1), 0)
+        t.sign(self.pk1)
+        self.assertEqual(len(t.inputs[0].signatures), 1)
+        t.sign(self.pk1)  # Sign again with same key
+        self.assertEqual(len(t.inputs[0].signatures), 1)
 
     def test_transaction_multisig_sign_extra_sig(self):
         t = Transaction(network='testnet')

@@ -371,8 +371,8 @@ def main():
         print("Transaction created")
         wt.info()
         if args.push:
-            res = wt.send()
-            if res:
+            wt.send()
+            if wt.pushed:
                 print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
             else:
                 print("Error creating transaction: %s" % wt.error)
@@ -392,7 +392,7 @@ def main():
             clw_exit("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)
         wt.info()
         if args.push:
-            if wt and wt.pushed:
+            if wt.pushed:
                 print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
             elif not wt:
                 print("Cannot sweep wallet, are UTXO's updated and available?")

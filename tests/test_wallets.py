@@ -720,9 +720,8 @@ class TestWalletMultisig(unittest.TestCase):
         key_list = [
             HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067', network=NETWORK),
             pk2.account_multisig_key().wif_public(),
-            HDKey(
-                '86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6', network=NETWORK).
-                account_multisig_key().wif_public(),
+            HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6',
+                  network=NETWORK).account_multisig_key().wif_public(),
         ]
         wl = HDWallet.create_multisig('multisig_test_bitcoin_send', key_list, sigs_required=2, network=NETWORK,
                                       databasefile=DATABASEFILE_UNITTESTS)
