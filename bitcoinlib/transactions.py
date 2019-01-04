@@ -1078,10 +1078,12 @@ class Output:
             self.public_hash = self.address_obj.hash_bytes
             self.network = self.address_obj.network
             self.encoding = self.address_obj.encoding
-        if self.public_key and not self.address and self.encoding:
-            self.k = Key(self.public_key, is_private=False, network=network)
-            self.compressed = self.k.compressed
-            self.address = self.k.address(compressed=self.compressed, script_type=script_type, encoding=self.encoding)
+        if self.public_key and not self.public_hash:
+            k = Key(self.public_key, is_private=False, network=network)
+            # self.compressed = k.compressed
+            # self.address = k.address(compressed=self.compressed, script_type=script_type, encoding=self.encoding)
+            # if not self.public_hash:
+            self.public_hash = k.hash160()
         elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self.address, self.encoding, self.network.name)
             if address_dict['script_type']:
@@ -1097,34 +1099,26 @@ class Output:
                 raise TransactionError("Network for output address %s is different from transaction network. %s not "
                                        "in %s" % (self.address, self.network.name, network_guesses))
             self.public_hash = address_dict['public_key_hash_bytes']
-        if not self.public_hash and self.k:
-            self.public_hash = self.k.hash160()
-            self.compressed = self.k.compressed
-        if self.public_hash and not self.address:
-            self.address_obj = Address(hashed_data=self.public_hash, prefix=self.versionbyte,
-                                       script_type=script_type, encoding=self.encoding, network=self.network)
-            self.address = self.address_obj.address
-            self.versionbyte = self.address_obj.prefix
-
+        if not self.encoding:
+            self.encoding = 'base58'
+            if self.script_type in ['p2wpkh', 'p2wsh']:
+                self.encoding = 'bech32'
         if self.lock_script and not self.public_hash:
             ss = script_deserialize(self.lock_script, locking_script=True)
             self.script_type = ss['script_type']
-            if self.script_type == 'p2sh':
-                self.versionbyte = self.network.prefix_address_p2sh
-            if self.script_type in ['p2pkh', 'p2sh']:
+            if self.script_type in ['p2wpkh', 'p2wsh']:
+                self.encoding = 'bech32'
+            if ss['hashes']:
                 self.public_hash = ss['hashes'][0]
-                self.address = pubkeyhash_to_addr(self.public_hash, prefix=self.versionbyte)
-            elif self.script_type in ['p2wpkh', 'p2wsh']:
-                self.public_hash = ss['hashes'][0]
-                self.address_obj = Address(hashed_data=ss['hashes'][0], script_type=self.script_type,
-                                           encoding='bech32', network=self.network)
-                self.address = self.address_obj.address
-            elif self.script_type != 'nulldata':
-                _logger.warning("Script type %s not supported" % self.script_type)
         if self.script_type is None:
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':
                 self.script_type = 'p2wpkh'
+        if self.public_hash and not self.address:
+            self.address_obj = Address(hashed_data=self.public_hash,
+                                       script_type=self.script_type, encoding=self.encoding, network=self.network)
+            self.address = self.address_obj.address
+            self.versionbyte = self.address_obj.prefix
         if self.lock_script == b'':
             if self.script_type == 'p2pkh':
                 self.lock_script = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
