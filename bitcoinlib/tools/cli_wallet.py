@@ -330,7 +330,7 @@ def main():
         if isinstance(tx_import, dict):
             wt = wlt.transaction_import(tx_import)
         else:
-            wt = wlt.transaction_import_raw(tx_import)
+            wt = wlt.transaction_import_raw(tx_import, network=args.network)
         wt.sign()
         if args.push:
             res = wt.send()
