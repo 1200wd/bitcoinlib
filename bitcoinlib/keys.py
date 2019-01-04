@@ -30,7 +30,6 @@ import collections
 import json
 
 import ecdsa
-scrypt_error = None
 try:
     import scrypt
     USING_MODULE_SCRYPT = True
@@ -51,7 +50,7 @@ from bitcoinlib.mnemonic import Mnemonic
 
 _logger = logging.getLogger(__name__)
 
-if scrypt_error:
+if not USING_MODULE_SCRYPT:
     _logger.warning("Error when trying to import scrypt module", scrypt_error)
     _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
                     "protected keys.")
@@ -355,6 +354,8 @@ class Address:
 
         :param address: Address to import
         :type address: str
+        :param compressed: Is key compressed or not, default is None
+        :type compressed: bool
         :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding. Leave empty to derive from address
         :type encoding: str
         :param network: Bitcoin, testnet, litecoin or other network
@@ -906,6 +907,11 @@ class Key(object):
 
     @property
     def address_obj(self):
+        """
+        Get address object property. Create standard address object if not defined already.
+
+        :return Address:
+        """
         if not self._address_obj:
             self.address()
         return self._address_obj
@@ -1226,6 +1232,13 @@ class HDKey(Key):
         return change_base(ret, 256, 58, 111)
 
     def wif_key(self, prefix=None):
+        """
+        Get WIF of Key object. Call to parent object Key.wif()
+
+        :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
+        :return str: Base58Check encoded Private Key WIF
+        """
         return super(HDKey, self).wif(prefix)
 
     def wif_public(self, prefix=None, witness_type='legacy', multisig=False):
@@ -1332,7 +1345,7 @@ class HDKey(Key):
         path += "/%d'" % account_id
         return self.subkey_for_path(path)
 
-    def account_multisig_key(self, account_id=0, witness_type='legacy', set_network=None):
+    def account_multisig_key(self, account_id=0, witness_type='legacy'):
         """
         Derives a multisig account key according to BIP44/45 definition.
         Wrapper for the 'account_key' method.
@@ -1341,8 +1354,6 @@ class HDKey(Key):
         :type account_id: int
         :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
         :type witness_type: str
-        :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
-        :type set_network: str
 
         :return HDKey:
         """

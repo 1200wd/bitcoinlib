@@ -322,4 +322,5 @@ Future / Roadmap
 * Support for Trezor wallet
 * Support and extensively test other databases
 * Improve speed and security
-* Integrate in ERP solutions such as Odoo
+* Integrate in ERP and shopping solutions such as Odoo, Magento, Shopware
+* Support for lightning network

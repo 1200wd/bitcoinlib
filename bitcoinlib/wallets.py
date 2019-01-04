@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-#
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for Key and Transaction management
 #    © 2016 - 2019 January - 1200 Web Development <http://1200wd.com/>
@@ -447,9 +446,13 @@ class HDWalletKey:
     def __repr__(self):
         return "<HDWalletKey(key_id=%d, name=%s, wif=%s, path=%s)>" % (self.key_id, self.name, self.wif, self.path)
 
-
     @property
     def name(self):
+        """
+        Return name of wallet
+
+        :return str:
+        """
         return self._name
 
     @name.setter
@@ -2186,7 +2189,7 @@ class HDWallet:
         accounts = []
         if self.multisig:
             # FIXME: This should return an error, instead of list of main keys for multisig (?)
-            #raise WalletError("Accounts not supported for multisig wallets")
+            # raise WalletError("Accounts not supported for multisig wallets")
             for wlt in self.cosigner:
                 if wlt.main_key.is_private:
                     # accounts.append(HDWalletKey(wlt.main_key.key_id, self._session))
@@ -2750,7 +2753,7 @@ class HDWallet:
         :param return_input_obj: Return inputs as Input class object. Default is True
         :type return_input_obj: bool
 
-        :return list: List of previous outputs DbTransactionOutput or list of Input objects
+        :return list of DbTransactionOutput, Input: List of previous outputs
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
@@ -2898,7 +2901,7 @@ class HDWallet:
                                       sort=self.sort_keys, compressed=key.compressed, value=utxo.value,
                                       address=utxo.key.address, sequence=sequence,
                                       key_path=utxo.key.path, witness_type=self.witness_type)
-                                        # FIXME: Missing locktime_cltv=locktime_cltv, locktime_csv=locktime_csv (?)
+                # FIXME: Missing locktime_cltv=locktime_cltv, locktime_csv=locktime_csv (?)
         else:
             for inp in input_arr:
                 locktime_cltv = None
@@ -3007,7 +3010,7 @@ class HDWallet:
             transaction.outputs[on].key_id = ck.key_id
             amount_total_output += transaction.change
 
-        transaction.fee_per_kb = int((transaction.fee * 1024.0)/ transaction.size)
+        transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
         if transaction.fee_per_kb < self.network.fee_min:
             raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
                               (transaction.fee_per_kb, self.network.fee_min))
@@ -3333,9 +3336,8 @@ class HDWallet:
                             status = ""
                             if t['status'] not in ['confirmed', 'unconfirmed']:
                                 status = t['status']
-                            print("%4d %64s %36s %8d %13d %s %s" % (
-                            t['transaction_id'], t['tx_hash'], t['address'], t['confirmations'], t['value'], spent,
-                            status))
+                            print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
+                                                                    t['confirmations'], t['value'], spent, status))
                     else:
                         for account in self.accounts(network=nw['network_name']):
                             print("\n- - Transactions (Account %d, %s)" %

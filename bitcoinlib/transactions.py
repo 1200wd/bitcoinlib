@@ -509,7 +509,7 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
                     public_key_list.append(kobj.public_byte)
                 else:
                     public_key_list.append(kobj.public_uncompressed_byte)
-            except:
+            except Exception:
                 raise TransactionError("Unknown key %s, please specify Key object, public or private key string")
 
     return _serialize_multisig_redeemscript(public_key_list, n_required)
