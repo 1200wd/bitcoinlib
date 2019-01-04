@@ -1639,7 +1639,7 @@ class Transaction:
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
 
-        :return int: Return int with number of signatures added
+        :return None:
         """
 
         if tid is None:
@@ -1652,7 +1652,7 @@ class Transaction:
         elif not isinstance(keys, list):
             keys = [keys]
 
-        n_signs = 0
+        # n_signs = 0
         for tid in tids:
             tid_keys = [k if isinstance(k, (HDKey, Key)) else Key(k, compressed=self.inputs[tid].compressed)
                         for k in keys]
@@ -1703,7 +1703,7 @@ class Transaction:
 
                 newsig_pos = pub_key_list.index(key.public_byte)
                 sig_domain[newsig_pos] = newsig
-                n_signs += 1
+                # n_signs += 1
 
             # Add already known signatures on correct position
             n_sigs_to_insert = len(self.inputs[tid].signatures)
@@ -1727,11 +1727,10 @@ class Transaction:
                         break
             if n_sigs_to_insert:
                 _logger.info("Some signatures are replaced with the signatures of the provided keys")
-                n_signs -= n_sigs_to_insert
+                # n_signs -= n_sigs_to_insert
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
 
         self.inputs[tid].update_scripts(hash_type)
-        return n_signs
 
     def add_input(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',

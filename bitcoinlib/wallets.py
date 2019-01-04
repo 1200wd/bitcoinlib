@@ -620,7 +620,7 @@ class HDWalletTransaction(Transaction):
         :param hash_type: Hashtype to use, default is SIGHASH_ALL
         :type hash_type: int
 
-        :return bool: True is successfully signed
+        :return None:
         """
         priv_key_list_arg = []
         if keys:
@@ -654,7 +654,6 @@ class HDWalletTransaction(Transaction):
             Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type)
         self.verify()
         self.error = ""
-        return True
 
     def send(self, offline=False):
         """
@@ -663,23 +662,23 @@ class HDWalletTransaction(Transaction):
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
 
-        :return bool: Returns True if succesfully pushed to the network
+        :return None:
 
         """
 
         self.error = None
         if not self.verified and not self.verify():
             self.error = "Cannot verify transaction"
-            return False
+            return None
 
         if offline:
-            return False
+            return None
 
         srv = Service(network=self.network.name, providers=self.hdwallet.providers)
         res = srv.sendrawtransaction(self.raw_hex())
         if not res:
             self.error = "Cannot send transaction. %s" % srv.errors
-            return False
+            return None
         if 'txid' in res:
             _logger.info("Successfully pushed transaction, result: %s" % res)
             self.hash = res['txid']
@@ -701,9 +700,9 @@ class HDWalletTransaction(Transaction):
 
             self.hdwallet._session.commit()
             self.hdwallet._balance_update(network=self.network.name)
-            return True
+            return None
 
-        return False
+        self.error = "Transaction not send, unknown response from service providers"
 
     def save(self):
         """
