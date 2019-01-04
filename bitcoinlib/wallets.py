@@ -2859,7 +2859,10 @@ class HDWallet:
                 amount_total_output += o.value
             else:
                 amount_total_output += o[1]
-                transaction.add_output(o[1], o[0])
+                addr = o[0]
+                if isinstance(addr, HDWalletKey):
+                    addr = addr.key()
+                transaction.add_output(o[1], addr)
 
         srv = Service(network=network, providers=self.providers)
         transaction.fee_per_kb = None
@@ -3079,7 +3082,7 @@ class HDWallet:
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
         Output array is a list of 1 or more addresses and amounts.
         
-        :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)] 
+        :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]. Address can be an address string, Address object, HDKey object or HDWalletKey object
         :type output_arr: list 
         :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_id, value)]
         :type input_arr: list
@@ -3133,8 +3136,8 @@ class HDWallet:
         """
         Create transaction and send it with default Service objects sendrawtransaction method
 
-        :param to_address: Single output address
-        :type to_address: str
+        :param to_address: Single output address as string Address object, HDKey object or HDWalletKey object
+        :type to_address: str, Address, HDKey, HDWalletKey
         :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin)
         :type amount: int
         :param account_id: Account ID, default is last used

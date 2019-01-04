@@ -1023,8 +1023,8 @@ class Output:
         
         :param value: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
         :type value: int
-        :param address: Destination address of output. Leave empty to derive from other attributes you provide.
-        :type address: str, Address
+        :param address: Destination address of output. Leave empty to derive from other attributes you provide. An instance of an Address or HDKey class is allowed as argument.
+        :type address: str, Address, HDKey
         :param public_hash: Hash of public key or script
         :type public_hash: bytes, str
         :param public_key: Destination public key
@@ -1080,9 +1080,6 @@ class Output:
             self.encoding = self.address_obj.encoding
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
-            # self.compressed = k.compressed
-            # self.address = k.address(compressed=self.compressed, script_type=script_type, encoding=self.encoding)
-            # if not self.public_hash:
             self.public_hash = k.hash160()
         elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self.address, self.encoding, self.network.name)

@@ -30,6 +30,7 @@ import collections
 import json
 
 import ecdsa
+scrypt_error = None
 try:
     import scrypt
     USING_MODULE_SCRYPT = True
@@ -50,7 +51,7 @@ from bitcoinlib.mnemonic import Mnemonic
 
 _logger = logging.getLogger(__name__)
 
-if not USING_MODULE_SCRYPT:
+if scrypt_error:
     _logger.warning("Error when trying to import scrypt module", scrypt_error)
     _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
                     "protected keys.")
