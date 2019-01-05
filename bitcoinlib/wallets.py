@@ -1223,7 +1223,7 @@ class HDWallet:
         if account_id is not None:
             qr = qr.filter_by(account_id=account_id)
         acckey = qr.first()
-        if len(qr.all()) > 1:
+        if len(qr.all()) > 1 and "account'" in self.key_path:
             _logger.warning("No account_id specified and more than one account found for this network %s. "
                             "Using a random account" % network)
         if account_id is None:

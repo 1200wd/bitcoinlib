@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2016 - 2018 December - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2019 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -75,11 +75,11 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
     this method tries to extract the network from the key. If no network can be extracted from the key the
     default network will be returned.
     
-    A KeyError will be raised if key does not corresponds with network or if multiple network are found.
+    A BKeyError will be raised if key does not corresponds with network or if multiple network are found.
     
     :param key: Key in any format recognized by get_key_format function
     :type key: str, int, bytes, bytearray
-    :param network: Optional network. Method raises KeyError if keys belongs to another network
+    :param network: Optional network. Method raises BKeyError if keys belongs to another network
     :type network: str
     :param kf_networks: Optional list of networks which is returned by get_key_format. If left empty the get_key_format function will be called.
     :type kf_networks: list
@@ -94,7 +94,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
             kf_networks = kf['networks']
     if kf_networks:
         if network is not None and network not in kf_networks:
-            raise KeyError("Specified key %s is from different network then specified: %s" % (kf_networks, network))
+            raise BKeyError("Specified key %s is from different network then specified: %s" % (kf_networks, network))
         elif network is None and len(kf_networks) == 1:
             return kf_networks[0]
         elif network is None and len(kf_networks) > 1:
@@ -102,7 +102,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
                 return default_network
             elif 'testnet' in kf_networks:
                 return 'testnet'
-            raise KeyError("Could not determine network of specified key, multiple networks found: %s" % kf_networks)
+            raise BKeyError("Could not determine network of specified key, multiple networks found: %s" % kf_networks)
     if network is None:
         return default_network
     else:
@@ -183,7 +183,7 @@ def get_key_format(key, is_private=None):
                 if prefix_data:
                     networks = list(set([n['network'] for n in prefix_data]))
                     if is_private is None and len(set([n['is_private'] for n in prefix_data])) > 1:
-                        raise KeyError("Cannot determine if key is private or public, please specify is_private "
+                        raise BKeyError("Cannot determine if key is private or public, please specify is_private "
                                        "attribute")
                     is_private = prefix_data[0]['is_private']
                     script_types = [n['script_type'] for n in prefix_data]
@@ -199,6 +199,15 @@ def get_key_format(key, is_private=None):
                 key_format = 'decimal'
                 is_private = True
         except (TypeError, ValueError):
+            pass
+    if not key_format:
+        try:
+            da = deserialize_address(key)
+            key_format = 'address'
+            networks = da['network']
+            is_private = False
+            script_types = da['script_type']
+        except (EncodingError, TypeError):
             pass
     if not key_format:
         raise BKeyError("Key: %s. Unrecognised key format" % key)
@@ -246,7 +255,7 @@ def deserialize_address(address, encoding=None, network=None):
     """
 
     if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
-        raise KeyError("Encoding '%s' not found in supported address encodings %s" %
+        raise BKeyError("Encoding '%s' not found in supported address encodings %s" %
                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     if encoding is None or encoding == 'base58':
         address_bytes = change_base(address, 58, 256, 25)
@@ -255,7 +264,7 @@ def deserialize_address(address, encoding=None, network=None):
             key_hash = address_bytes[:-4]
             checksum = double_sha256(key_hash)[0:4]
             if check != checksum and encoding == 'base58':
-                raise KeyError("Invalid address %s, checksum incorrect" % address)
+                raise BKeyError("Invalid address %s, checksum incorrect" % address)
             elif check == checksum:
                 address_prefix = key_hash[0:1]
                 networks_p2pkh = network_by_value('prefix_address', address_prefix)
@@ -271,7 +280,7 @@ def deserialize_address(address, encoding=None, network=None):
                     networks = networks_p2sh
                 if network:
                     if network not in networks:
-                        raise KeyError("Network %s not found in extracted networks: %s" % (network, networks))
+                        raise BKeyError("Network %s not found in extracted networks: %s" % (network, networks))
                 elif len(networks) >= 1:
                     network = networks[0]
                 return {
@@ -296,7 +305,7 @@ def deserialize_address(address, encoding=None, network=None):
             elif len(public_key_hash) == 32:
                 script_type = 'p2wsh'
             else:
-                raise KeyError("Unknown script type for address %s. Invalid length %d" %
+                raise BKeyError("Unknown script type for address %s. Invalid length %d" %
                                (address, len(public_key_hash)))
             return {
                 'address': address,
@@ -401,7 +410,7 @@ class Address:
         """
         self.network = network
         if not (data or hashed_data):
-            raise KeyError("Please specify data (public key or script) or hashed_data argument")
+            raise BKeyError("Please specify data (public key or script) or hashed_data argument")
         if not isinstance(network, Network):
             self.network = Network(network)
         self.data_bytes = to_bytes(data)
@@ -450,7 +459,7 @@ class Address:
             if self.prefix is None:
                 self.prefix = self.network.prefix_bech32
         else:
-            raise KeyError("Encoding %s not supported" % self.encoding)
+            raise BKeyError("Encoding %s not supported" % self.encoding)
         self.address = pubkeyhash_to_addr(bytearray(self.hash_bytes), prefix=self.prefix, encoding=self.encoding)
         self.address_orig = None
         provider_prefix = None
@@ -550,6 +559,8 @@ class Key(object):
             self.is_private = True  # Ignore provided attribute
         else:
             kf = get_key_format(import_key)
+            if kf['key_format'] == 'address':
+                raise BKeyError("Can not create Key object from address")
             self.key_format = kf["format"]
             networks_extracted = kf["networks"]
             self.is_private = is_private
@@ -557,7 +568,7 @@ class Key(object):
                 if kf['is_private']:
                     self.is_private = True
                 elif kf['is_private'] is None:
-                    raise KeyError("Could not determine if key is private or public")
+                    raise BKeyError("Could not determine if key is private or public")
                 else:
                     self.is_private = False
         network_name = None
@@ -655,19 +666,19 @@ class Key(object):
                 key_byte = key[1:]
                 key_hex = to_hexstring(key_byte)
             else:
-                raise KeyError("Unknown key format %s" % self.key_format)
+                raise BKeyError("Unknown key format %s" % self.key_format)
 
             if not (key_byte or key_hex):
-                raise KeyError("Cannot format key in hex or byte format")
+                raise BKeyError("Cannot format key in hex or byte format")
             self.private_hex = key_hex
             self.private_byte = key_byte
             self.secret = int(key_hex, 16)
         else:
-            raise KeyError("Cannot import key. Public key format unknown")
+            raise BKeyError("Cannot import key. Public key format unknown")
 
         if self.is_private and not (self.public_byte or self.public_hex):
             if not self.is_private:
-                raise KeyError("Private key has no known secret number")
+                raise BKeyError("Private key has no known secret number")
             point = ec_point(self.secret)
             self._x = change_base(point.x(), 10, 16, 64)
             self._y = change_base(point.y(), 10, 16, 64)
@@ -706,7 +717,7 @@ class Key(object):
         if self.is_private:
             return self.secret
         else:
-            raise KeyError("Public key has no secret integer attribute")
+            raise BKeyError("Public key has no secret integer attribute")
 
     def as_dict(self):
         """
@@ -840,7 +851,7 @@ class Key(object):
         :return str: Base58Check encoded Private Key WIF
         """
         if not self.secret:
-            raise KeyError("WIF format not supported for public key")
+            raise BKeyError("WIF format not supported for public key")
         if prefix is None:
             versionbyte = self.network.prefix_wif
         else:
@@ -938,7 +949,7 @@ class Key(object):
             data = self.public_uncompressed_byte
             self.compressed = False
         if not self.compressed and encoding == 'bech32':
-            raise KeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
+            raise BKeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
         if encoding is None:
             if self._address_obj:
                 encoding = self._address_obj.encoding
@@ -1073,8 +1084,8 @@ class HDKey(Key):
         """
 
         if (key and not chain) or (not key and chain):
-            raise KeyError("Please specify both key and chain, use import_key attribute "
-                           "or use simple Key class instead")
+            raise BKeyError("Please specify both key and chain, use import_key attribute "
+                            "or use simple Key class instead")
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
@@ -1094,6 +1105,8 @@ class HDKey(Key):
                 key_type = 'private'
             else:
                 kf = get_key_format(import_key)
+                if kf['format'] == 'address':
+                    raise BKeyError("Can not create HDKey object from address")
                 network = Network(check_network_and_key(import_key, network, kf["networks"]))
                 if kf['format'] in ['hdkey_private', 'hdkey_public']:
                     bkey = change_base(import_key, 58, 256)
@@ -1108,6 +1121,11 @@ class HDKey(Key):
                     child_index = int(change_base(bkey[9:13], 256, 10))
                     chain = bkey[13:45]
                     # chk = bkey[78:82]
+                elif kf['format'] == 'address':
+                    da = deserialize_address(import_key)
+                    key = da['public_key_hash']
+                    network = Network(da['network'])
+                    is_private = False
                 else:
                     key = import_key
                     chain = b'\0' * 32
@@ -1288,7 +1306,7 @@ class HDKey(Key):
         """
 
         if self.key_type == 'single':
-            raise KeyError("Key derivation cannot be used for 'single' type keys")
+            raise BKeyError("Key derivation cannot be used for 'single' type keys")
         key = self
         first_public = False
         if path[0] == 'm':  # Use Private master key
@@ -1333,7 +1351,7 @@ class HDKey(Key):
         if self.depth == 3:
             return self
         elif self.depth != 0:
-            raise KeyError("Need a master key to generate account key")
+            raise BKeyError("Need a master key to generate account key")
         if set_network:
             self.network_change(set_network)
         if self.is_private:
@@ -1369,7 +1387,7 @@ class HDKey(Key):
             purpose = 48
             script_type = 2
         else:
-            raise KeyError("Unknown witness type %s" % witness_type)
+            raise BKeyError("Unknown witness type %s" % witness_type)
         path = "%s/%d'" % ('m' if self.is_private else 'M', purpose)
         if purpose == 45:
             return self.subkey_for_path(path)
@@ -1377,7 +1395,7 @@ class HDKey(Key):
             path += "/%d'/%d'/%d'" % (self.network.bip44_cointype, account_id, script_type)
             return self.subkey_for_path(path)
         else:
-            raise KeyError("Unknown purpose %d, cannot determine wallet public cosigner key" % purpose)
+            raise BKeyError("Unknown purpose %d, cannot determine wallet public cosigner key" % purpose)
 
     def network_change(self, new_network):
         """
