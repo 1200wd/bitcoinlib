@@ -2759,6 +2759,8 @@ class HDWallet:
                 # TODO:  CHECK THIS
                 inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name))
         elif key.key_type in ['bip32', 'single']:
+            if not key.wif:
+                raise WalletError("WIF of key is empty cannot create HDKey")
             inp_keys = [HDKey(key.wif, compressed=key.compressed, network=key.network_name)]
         else:
             raise WalletError("Input key type %s not supported" % key.key_type)
@@ -2793,7 +2795,7 @@ class HDWallet:
 
         utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
             filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
-                   DbKey.network_name == network,
+                   DbKey.network_name == network, DbKey.public != '',
                    DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms). \
             order_by(DbTransaction.confirmations.desc())
         utxos = utxo_query.all()
