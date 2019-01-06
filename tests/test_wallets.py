@@ -25,7 +25,7 @@ from random import shuffle
 from bitcoinlib.db import DEFAULT_DATABASEDIR
 from bitcoinlib.wallets import *
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.keys import HDKey
+from bitcoinlib.keys import HDKey, BKeyError
 from bitcoinlib.networks import Network
 from tests.test_custom import CustomAssertions
 
@@ -1434,7 +1434,7 @@ class TestWalletSegwit(unittest.TestCase):
 
     def test_wallet_segwit_uncompressed_error(self):
         k = HDKey(compressed=False)
-        self.assertRaisesRegexp(KeyError, 'Uncompressed keys are non-standard', wallet_create_or_open,
+        self.assertRaisesRegexp(BKeyError, 'Uncompressed keys are non-standard', wallet_create_or_open,
                                 'segwit_uncompressed_error', k, witness_type='segwit', network='bitcoinlib_test',
                                 databasefile=DATABASEFILE_UNITTESTS)
 

@@ -21,7 +21,7 @@
 import unittest
 import json
 from bitcoinlib.transactions import *
-from bitcoinlib.keys import HDKey
+from bitcoinlib.keys import HDKey, BKeyError
 from tests.test_custom import CustomAssertions
 
 
@@ -921,7 +921,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transaction_sendto_wrong_address(self):
         t = Transaction(network='bitcoin')
-        self.assertRaisesRegexp(KeyError, 'Network bitcoin not found in extracted networks*',
+        self.assertRaisesRegexp(BKeyError, 'Network bitcoin not found in extracted networks*',
                                 t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
 
     def test_transaction_create_with_address_objects(self):

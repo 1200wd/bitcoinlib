@@ -559,7 +559,7 @@ class Key(object):
             self.is_private = True  # Ignore provided attribute
         else:
             kf = get_key_format(import_key)
-            if kf['key_format'] == 'address':
+            if kf['format'] == 'address':
                 raise BKeyError("Can not create Key object from address")
             self.key_format = kf["format"]
             networks_extracted = kf["networks"]
