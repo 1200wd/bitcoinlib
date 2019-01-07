@@ -409,7 +409,7 @@ class HDWalletKey:
                 return HDWalletKey(keyexists.id, session, k)
             nk = DbKey(name=name, wallet_id=wallet_id, purpose=purpose,
                        account_id=account_id, change=change,
-                       address=k.address, depth=5,
+                       address=k.address, depth=0,
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
                        key_type=key_type, network_name=network, encoding=encoding)
 
@@ -3338,7 +3338,10 @@ class HDWallet:
                 print("\n- NETWORK: %s -" % nw['network_name'])
                 print("- - Keys")
                 if detail < 4:
-                    ds = [len(self.key_path) - 1]
+                    if self.scheme == 'bip32':
+                        ds = [len(self.key_path) - 1]
+                    else:
+                        ds = [0]
                 elif detail < 5:
                     if self.purpose == 45:
                         ds = [0, 4]
@@ -3403,7 +3406,7 @@ class HDWallet:
         """
         Return wallet information in dictionary format
 
-        :param detail: Level of detail to show, can be 0, 1, 2 or 3
+        :param detail: Level of detail to show, from 0 to 6. With 0 no details and 6 most details
         :type detail: int
 
         :return dict:
