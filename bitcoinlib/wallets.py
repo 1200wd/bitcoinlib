@@ -368,8 +368,8 @@ class HDWalletKey:
                     if purpose == 45:
                         raise WalletError('Cannot import old style BIP45 account keys, use master key to create new '
                                           'wallet. Or workaround this issue by specifying key_path such as '
-                                          '["m", "purpose\'", "coin_type\'", "account\'", "change", "address_index"] and '
-                                          'purpose 45 for multisig')
+                                          '["m", "purpose\'", "coin_type\'", "account\'", "change", "address_index"] '
+                                          'and purpose 45 for multisig')
                     # Create path when importing new account-key
                     networkcode = Network(network).bip44_cointype
                     path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
@@ -408,8 +408,7 @@ class HDWalletKey:
                 _logger.warning("Key %s already exists" % key)
                 return HDWalletKey(keyexists.id, session, k)
             nk = DbKey(name=name, wallet_id=wallet_id, purpose=purpose,
-                       account_id=account_id, change=change,
-                       address=k.address, depth=0,
+                       account_id=account_id, depth=k.depth, change=change, address=k.address,
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
                        key_type=key_type, network_name=network, encoding=encoding)
 
@@ -517,36 +516,6 @@ class HDWalletKey:
             return self.network.print_value(self._balance)
         else:
             return self._balance
-
-    def fullpath(self, change=None, address_index=None, max_depth=5):
-        """
-        Full BIP0044 key path:
-        - m / purpose' / coin_type' / account' / change / address_index
-        
-        :param change: Normal = 0, change =1
-        :type change: int
-        :param address_index: Index number of address (path depth 5)
-        :type address_index: int
-        :param max_depth: Maximum depth of output path. I.e. type 3 for account path
-        :type max_depth: int
-        
-        :return list: Current key path 
-        """
-
-        if change is None:
-            change = self.change
-        if address_index is None:
-            address_index = self.address_index
-        if self.is_private:
-            p = ["m"]
-        else:
-            p = ["M"]
-        p.append(str(self.purpose) + "'")
-        p.append(str(self.network.bip44_cointype) + "'")
-        p.append(str(self.account_id) + "'")
-        p.append(str(change))
-        p.append(str(address_index))
-        return p[:max_depth]
 
     def dict(self):
         """
@@ -958,16 +927,19 @@ class HDWallet:
             raise WalletError("Segwit is not supported for Dash wallets")
 
         if not key_path:
-            ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig
-                  and k['purpose'] is not None]
-            if len(ks) > 1:
-                raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
-                                  "witness_type - multisig combination")
-            if ks and not purpose:
-                purpose = ks[0]['purpose']
-            if ks and not encoding:
-                encoding = ks[0]['encoding']
-            key_path = ks[0]['key_path']
+            if scheme == 'single':
+                key_path = ['m']
+            else:
+                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig
+                      and k['purpose'] is not None]
+                if len(ks) > 1:
+                    raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                                      "witness_type - multisig combination")
+                if ks and not purpose:
+                    purpose = ks[0]['purpose']
+                if ks and not encoding:
+                    encoding = ks[0]['encoding']
+                key_path = ks[0]['key_path']
         else:
             if purpose is None:
                 purpose = 0
@@ -992,6 +964,9 @@ class HDWallet:
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
+        key_depth = 0 if not key_path else len(key_path.split('/')) - 1
+        if hasattr(key, 'depth') and key.depth is None:
+            key.depth = key_depth
 
         if scheme == 'bip32' and multisig and parent_id is None:
             w = cls(new_wallet_id, databasefile=databasefile)
@@ -1007,6 +982,8 @@ class HDWallet:
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
             w.key_for_path([0, 0], account_id=account_id, cosigner_id=cosigner_id)
         elif scheme == 'single':
+            if not key:
+                key = HDKey(network=network, depth=key_depth)
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='single', encoding=encoding,
                                       witness_type=witness_type, multisig=multisig)
@@ -1197,12 +1174,13 @@ class HDWallet:
             self.witness_type = db_wlt.witness_type
             self.encoding = db_wlt.encoding
             self.multisig = db_wlt.multisig
-            key_structure = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == self.witness_type and
-                             k['multisig'] == self.multisig and k['purpose'] is not None][0]
-            self.key_path = key_structure['key_path']
+            # key_structure = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == self.witness_type and
+            #                  k['multisig'] == self.multisig and k['purpose'] is not None][0]
+            # self.key_path = key_structure['key_path']
             self.cosigner_id = db_wlt.cosigner_id
             self.script_type = script_type_default(self.witness_type, self.multisig, locking_script=True)
             self.key_path = db_wlt.key_path.split('/')
+            self.key_depth = len(self.key_path) - 1
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -1417,7 +1395,6 @@ class HDWallet:
             if network not in self.network_list():
                 raise WalletError("Network %s not available in this wallet, please create an account for this "
                                   "network first." % network)
-
             hdkey = HDKey(key, network=network, key_type=key_type)
 
         if not self.multisig:
@@ -1433,6 +1410,7 @@ class HDWallet:
             ik_path = 'm'
             if key_type == 'single':
                 # Create path for unrelated import keys
+                hdkey.depth = self.key_depth
                 last_import_key = self._session.query(DbKey).filter(DbKey.path.like("import_key_%")).\
                     order_by(DbKey.path.desc()).first()
                 if last_import_key:
@@ -1494,7 +1472,7 @@ class HDWallet:
             # Determine new key ID
             prevkey = self._session.query(DbKey). \
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network,
-                          account_id=account_id, change=change, depth=len(self.key_path)-1). \
+                          account_id=account_id, change=change, depth=self.key_depth).\
                 order_by(DbKey.address_index.desc()).first()
             address_index = 0
             if prevkey:
@@ -1516,7 +1494,7 @@ class HDWallet:
             prevkey = self._session.query(DbKey). \
                 filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network,
                           account_id=account_id, change=change, cosigner_id=cosigner_id,
-                          depth=len(self.key_path)-1).order_by(DbKey.address_index.desc()).first()
+                          depth=self.key_depth).order_by(DbKey.address_index.desc()).first()
             address_index = 0
             if prevkey:
                 address_index = prevkey.address_index + 1
@@ -2069,7 +2047,7 @@ class HDWallet:
             raise WalletError("Accounts not supported for multisig wallets")
         return self.keys(account_id, depth=3, network=network, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, used=None, network=None, depth=5, as_dict=False):
+    def keys_addresses(self, account_id=None, used=None, network=None, depth=None, as_dict=False):
         """
         Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -2087,6 +2065,8 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
+        if depth is None:
+            depth = self.key_depth
         return self.keys(account_id, depth=depth, used=used, network=network, as_dict=as_dict)
 
     def keys_address_payment(self, account_id=None, used=None, network=None, as_dict=False):
@@ -2105,7 +2085,7 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, change=0, used=used, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=self.key_depth, change=0, used=used, network=network, as_dict=as_dict)
 
     def keys_address_change(self, account_id=None, used=None, network=None, as_dict=False):
         """
@@ -2123,9 +2103,9 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        return self.keys(account_id, depth=5, change=1, used=used, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=self.key_depth, change=1, used=used, network=network, as_dict=as_dict)
 
-    def addresslist(self, account_id=None, used=None, network=None, change=None, depth=5, key_id=None):
+    def addresslist(self, account_id=None, used=None, network=None, change=None, depth=None, key_id=None):
         """
         Get list of addresses defined in current wallet
 
@@ -2136,7 +2116,7 @@ class HDWallet:
         :param network: Network name filter
         :type network: str
         :param change: Only include change addresses or not. Default is None which returns both
-        :param depth: Filter by key depth
+        :param depth: Filter by key depth. Default is None for standard key depth. Use -1 to show all keys
         :type depth: int
         :param key_id: Key ID to get address of just 1 key
         :type key_id: int
@@ -2145,6 +2125,10 @@ class HDWallet:
         """
 
         addresslist = []
+        if depth is None:
+            depth = self.key_depth
+        elif depth == -1:
+            depth = None
         for key in self.keys(account_id=account_id, depth=depth, used=used, network=network, change=change,
                              key_id=key_id, is_active=False):
             addresslist.append(key.address)
@@ -2459,12 +2443,8 @@ class HDWallet:
             else:
                 accounts = [account_id]
             for account_id in accounts:
-                # _, _, acckey = self._get_account_defaults(network, account_id, key_id)
                 if depth is None:
-                    if self.scheme == 'bip32':
-                        depth = len(self.key_path) - 1
-                    else:
-                        depth = 0
+                    depth = self.key_depth
 
                 if utxos is None:
                     # Get all UTXO's for this wallet from default Service object
@@ -3338,17 +3318,12 @@ class HDWallet:
                 print("\n- NETWORK: %s -" % nw['network_name'])
                 print("- - Keys")
                 if detail < 4:
-                    if self.scheme == 'bip32':
-                        ds = [len(self.key_path) - 1]
-                    else:
-                        ds = [0]
+                    ds = [self.key_depth]
                 elif detail < 5:
                     if self.purpose == 45:
-                        ds = [0, 4]
-                    elif self.purpose == 48:
-                        ds = [0, 3, 6]
+                        ds = [0, self.key_depth]
                     else:
-                        ds = [0, 3, 5]
+                        ds = [0, 3, self.key_depth]
                 else:
                     ds = range(8)
                 for d in ds:

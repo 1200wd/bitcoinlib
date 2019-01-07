@@ -331,7 +331,7 @@ class TestWalletKeys(unittest.TestCase):
                                 '1KyLsZS2JwWdfvDZ5g8vhbanqjbNwKUseK', '1J6jppU5mWf4ausGfHMumrKrztpDKq2MrD',
                                 '12ypWFxJSKWknmvxdSeStWCyVDBi8YyXpn', '1A7wRpnstUiA33rxW1i33b5qqaTsS4YSNQ',
                                 '13uQKuiWwWp15BsEijnpKZSuTuHVTpZMvP']
-        self.assertListEqual(self.wallet.addresslist(depth=None), expected_addresslist)
+        self.assertListEqual(self.wallet.addresslist(depth=-1), expected_addresslist)
 
     def test_wallet_keys_method_masterkey(self):
         self.assertEqual(self.wallet.keys(name='test_wallet_keys', depth=0)[0].wif, self.private_wif)
@@ -483,7 +483,7 @@ class TestWalletMultiCurrency(unittest.TestCase):
         pk_hex = '770abe6f3854620edfb836ce88ce74c26da1a4b00502c98c368a9373d0c0fcd8'
         address_ltc = 'Lg2uMYnqu48REt4KaSYLPZiaxy5PKUkkdZ'
         self.wallet.import_key(pk_hex, network='litecoin')
-        addresses_ltc_in_wallet = self.wallet.addresslist(network='litecoin', depth=0)
+        addresses_ltc_in_wallet = self.wallet.addresslist(network='litecoin')
         self.assertIn(address_ltc, addresses_ltc_in_wallet)
 
     def test_wallet_multiple_networks_import_error(self):
@@ -1608,12 +1608,13 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         os.remove(DATABASEFILE_UNITTESTS)
 
     def test_wallet_readonly_create_and_import(self):
-        k = '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX'
+        k = '13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'
         w = wallet_create_or_open('addrwlt', k, databasefile=DATABASEFILE_UNITTESTS)
-        addr = Address.import_address('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1')
+        addr = Address.import_address('13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce')
         w.import_key(addr)
         w.utxos_update()
-        self.assertListEqual(w.addresslist(depth=0),  # FIXME: depth argument shouldn't be neccessary
-                             ['12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX', '1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1'])
+        w.info()
+        self.assertListEqual(w.addresslist(),
+                             ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce'])
         self.assertGreater(w.balance(), 10000000000)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)

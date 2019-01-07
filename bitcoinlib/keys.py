@@ -356,7 +356,8 @@ class Address:
     """
 
     @classmethod
-    def import_address(cls, address, compressed=None, encoding=None, network=None, network_overrides=None):
+    def import_address(cls, address, compressed=None, encoding=None, depth=None, change=None,
+                       address_index=None, network=None, network_overrides=None):
         """
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
@@ -382,11 +383,13 @@ class Address:
         if network is None:
             network = addr_dict['network']
         script_type = addr_dict['script_type']
-        return Address(hashed_data=public_key_hash_bytes, network=network, prefix=prefix, script_type=script_type,
-                       compressed=compressed, encoding=addr_dict['encoding'], network_overrides=network_overrides)
+        return Address(hashed_data=public_key_hash_bytes,  prefix=prefix, script_type=script_type,
+                       compressed=compressed, encoding=addr_dict['encoding'], depth=depth, change=change,
+                       address_index=address_index, network=network, network_overrides=network_overrides)
 
-    def __init__(self, data='', hashed_data='', network=DEFAULT_NETWORK, prefix=None, script_type=None,
-                 compressed=None, encoding=None, witness_type=None, network_overrides=None):
+    def __init__(self, data='', hashed_data='', prefix=None, script_type=None,
+                 compressed=None, encoding=None, witness_type=None, depth=None, change=None,
+                 address_index=None, network=DEFAULT_NETWORK, network_overrides=None):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
 
@@ -394,8 +397,6 @@ class Address:
         :type data: str, bytes
         :param hashed_data: Hash of a public key or script. Will be generated if 'data' parameter is provided
         :type hashed_data: str, bytes
-        :param network: Bitcoin, testnet, litecoin or other network
-        :type network: str, Network
         :param prefix: Address prefix. Use default network / script_type prefix if not provided
         :type prefix: str, bytes
         :param script_type: Type of script, i.e. p2sh or p2pkh.
@@ -404,6 +405,8 @@ class Address:
         :type encoding: str
         :param witness_type: Specify 'legacy', 'segwit' or 'p2sh-segwit'. Legacy for old-style bitcoin addresses, segwit for native segwit addresses and p2sh-segwit for segwit embedded in a p2sh script. Leave empty to derive automatically from script type if possible
         :type witness_type: str
+        :param network: Bitcoin, testnet, litecoin or other network
+        :type network: str, Network
         :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
         :type network_overrides: dict
 
@@ -424,6 +427,10 @@ class Address:
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
                 witness_type = 'p2sh-segwit'
         self.witness_type = witness_type
+        self.depth = depth
+        self.change = change
+        self.address_index = address_index
+
         if self.encoding is None:
             if self.script_type in ['p2wpkh', 'p2wsh'] or self.witness_type == 'segwit':
                 self.encoding = 'bech32'
