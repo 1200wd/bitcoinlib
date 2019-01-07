@@ -398,19 +398,18 @@ class HDWalletKey:
             nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                        wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
-                       parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path, key_type=key_type,
-                       network_name=network, encoding=encoding)
+                       parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path,
+                       key_type=key_type, network_name=network, encoding=encoding)
         else:
             keyexists = session.query(DbKey).\
                 filter(DbKey.wallet_id == wallet_id,
                        DbKey.address == k.address).first()
             if keyexists:
-                _logger.warning("Key %s already exists" % (
-                            key or k.wif(witness_type=witness_type, multisig=multisig, is_private=True)))
+                _logger.warning("Key %s already exists" % key)
                 return HDWalletKey(keyexists.id, session, k)
             nk = DbKey(name=name, wallet_id=wallet_id, purpose=purpose,
                        account_id=account_id, change=change,
-                       address=k.address, depth=0,
+                       address=k.address, depth=5,
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
                        key_type=key_type, network_name=network, encoding=encoding)
 
@@ -3373,10 +3372,18 @@ class HDWallet:
                             print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
                                                                     t['confirmations'], t['value'], spent, status))
                     else:
-                        for account in self.accounts(network=nw['network_name']):
-                            print("\n- - Transactions (Account %d, %s)" %
-                                  (account.account_id, account.key().wif_public(witness_type=self.witness_type)))
-                            for t in self.transactions(include_new=include_new, account_id=account.account_id,
+                        accounts = self.accounts(network=nw['network_name'])
+                        if not accounts:
+                            accounts = [0]
+                        for account in accounts:
+                            if account == 0:
+                                print("\n- - Transactions")
+                                account_id = 0
+                            else:
+                                account_id = account.account_id
+                                print("\n- - Transactions (Account %d, %s)" %
+                                      (account_id, account.key().wif_public(witness_type=self.witness_type)))
+                            for t in self.transactions(include_new=include_new, account_id=account_id,
                                                        network=nw['network_name']):
                                 spent = ""
                                 if 'spent' in t and t['spent'] is False:

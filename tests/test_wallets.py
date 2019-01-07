@@ -1594,3 +1594,26 @@ class TestWalletKeyStructures(unittest.TestCase):
         self.assertEqual(w.new_key_change().path, "m/48'/0'/0'/2'/1/1/0")
         self.assertEqual(w.public_master()[0].wif, wif1)
         self.assertEqual(w.public_master()[1].wif, wif2)
+
+
+class TestWalletReadonlyAddress(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        if os.path.isfile(DATABASEFILE_UNITTESTS):
+            os.remove(DATABASEFILE_UNITTESTS)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(DATABASEFILE_UNITTESTS)
+
+    def test_wallet_readonly_create_and_import(self):
+        k = '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX'
+        w = wallet_create_or_open('addrwlt', k, databasefile=DATABASEFILE_UNITTESTS)
+        addr = Address.import_address('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1')
+        w.import_key(addr)
+        w.utxos_update()
+        self.assertListEqual(w.addresslist(depth=0),  # FIXME: depth argument shouldn't be neccessary
+                             ['12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX', '1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1'])
+        self.assertGreater(w.balance(), 10000000000)
+        self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
