@@ -817,7 +817,7 @@ class HDWallet:
 
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32', parent_id=None,
-               sort_keys=True, password='', witness_type='legacy', encoding=None, multisig=None, cosigner_id=None,
+               sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, cosigner_id=None,
                key_path=None, databasefile=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified.
@@ -881,7 +881,7 @@ class HDWallet:
                 multisig = False
         if scheme not in ['bip32', 'single']:
             raise WalletError("Only bip32 or single key scheme's are supported at the moment")
-        if witness_type not in ['legacy', 'p2sh-segwit', 'segwit']:
+        if witness_type not in [None, 'legacy', 'p2sh-segwit', 'segwit']:
             raise WalletError("Witness type %s not supported at the moment" % witness_type)
         if name.isdigit():
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
@@ -904,11 +904,9 @@ class HDWallet:
                 hdkeyinfo = wif_prefix_search(key, network=network)
                 if hdkeyinfo:
                     key = HDKey(key, network=network)
-                    if hdkeyinfo[0]['script_type'] == 'p2sh_p2wpkh':
-                        witness_type = 'p2sh-segwit'
-                    elif hdkeyinfo[0]['script_type'] == 'p2wpkh':
-                        witness_type = 'segwit'
-                    elif hdkeyinfo[0]['script_type'] in ['p2sh_p2wsh', 'p2wsh']:
+                    if witness_type is None:
+                        witness_type = hdkeyinfo[0]['witness_type']
+                    if hdkeyinfo[0]['multisig']:
                         raise WalletError("Imported key is for multisig wallets, use create_multisig instead")
                 else:
                     try:
@@ -923,6 +921,8 @@ class HDWallet:
 
         elif network is None:
             network = DEFAULT_NETWORK
+        if witness_type is None:
+            witness_type = 'legacy'
         if (network == 'dash' or network == 'dash_testnet') and witness_type != 'legacy':
             raise WalletError("Segwit is not supported for Dash wallets")
 
@@ -1073,13 +1073,11 @@ class HDWallet:
                     hdkeyinfo = wif_prefix_search(cokey, network=network)
                     k = HDKey(cokey, network=network)
                     if hdkeyinfo:
-                        if hdkeyinfo[0]['script_type'] == 'p2sh_p2wsh':
+                        hdpm.witness_type = hdkeyinfo[0]['witness_type']
+                        if hdkeyinfo[0]['multisig']:
                             hdpm.purpose = 48
-                            hdpm.witness_type = 'p2sh-segwit'
-                        elif hdkeyinfo[0]['script_type'] == 'p2wsh':
-                            hdpm.purpose = 48
+                        if hdkeyinfo[0]['script_type'] == 'p2wsh':
                             hdpm.encoding = 'bech32'
-                            hdpm.witness_type = 'segwit'
                 hdkey_list.append(k)
             else:
                 hdkey_list.append(cokey)
@@ -1704,35 +1702,6 @@ class HDWallet:
             return key_list[0]
         else:
             return key_list
-
-    # TODO: Remove, duplicate with get_key and keys
-    # def get_keys(self, account_id=None, network=None, change=0):
-    #     """
-    #     Get a unused key or create a new one if there are no unused keys.
-    #     Returns a key from this wallet which has no transactions linked to it.
-    #
-    #     :param account_id: Account ID. Default is last used or created account ID.
-    #     :type account_id: int
-    #     :param network: Network name. Leave empty for default network
-    #     :type network: str
-    #     :param change: Payment (0) or change key (1). Default is 0
-    #     :type change: int
-    #
-    #     :return HDWalletKey:
-    #     """
-    #
-    #     network, account_id, _ = self._get_account_defaults(network, account_id)
-    #     keys_depth = len(self.key_path)-1
-    #     if self.multisig:
-    #         keys_depth = 0
-    #     dbkeys = self._session.query(DbKey). \
-    #         filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
-    #                   used=False, change=change, depth=keys_depth). \
-    #         order_by(DbKey.id).all()
-    #     unusedkeys = []
-    #     for dk in dbkeys:
-    #         unusedkeys.append(HDWalletKey(dk.id, session=self._session))
-    #     return unusedkeys
 
     def get_key_change(self, account_id=None, network=None, number_of_keys=1):
         """

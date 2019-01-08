@@ -244,3 +244,5 @@ def script_type_default(witness_type, multisig=False, locking_script=False):
         return 'p2sh' if locking_script else 'p2sh_p2wsh'
     else:
         raise KeyError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))
+
+
