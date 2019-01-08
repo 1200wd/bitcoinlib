@@ -381,6 +381,11 @@ class TestWalletKeys(unittest.TestCase):
         transaction.sign()
         self.assertTrue(transaction.verify())
 
+    def test_wallet_single_key_segwit(self):
+        wlt = wallet_create_or_open('single_key_segwit', scheme='single', network='litecoin_testnet',
+                                    witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wlt.addresslist()[0][:5], 'tltc1')
+
 
 class TestWalletElectrum(unittest.TestCase):
 

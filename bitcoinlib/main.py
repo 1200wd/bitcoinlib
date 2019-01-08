@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MAIN - Load configs, initialize logging and database
-#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -216,7 +216,7 @@ logging.info('Logger name: %s' % logging.__name__)
 logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
 
 
-def script_type_default(witness_type, multisig=False, locking_script=False):
+def script_type_default(witness_type=None, multisig=False, locking_script=False):
     """
     Determine default script type for provided witness type and key type combination used in this library.
 
@@ -230,6 +230,8 @@ def script_type_default(witness_type, multisig=False, locking_script=False):
     :return str: Default script type
     """
 
+    if not witness_type:
+        return None
     if witness_type == 'legacy' and not multisig:
         return 'p2pkh' if locking_script else 'sig_pubkey'
     elif witness_type == 'legacy' and multisig:
@@ -243,6 +245,22 @@ def script_type_default(witness_type, multisig=False, locking_script=False):
     elif witness_type == 'p2sh-segwit' and multisig:
         return 'p2sh' if locking_script else 'p2sh_p2wsh'
     else:
-        raise KeyError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))
+        raise ValueError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))
 
 
+def get_encoding_from_witness(witness_type=None):
+    """
+    Derive address encoding (base58 or bech32) from transaction witness type
+
+    :param witness_type: Witness type: legacy, p2sh-segwit or segwit
+    :type witness_type: str
+
+    :return str:
+    """
+
+    if witness_type == 'segwit':
+        return 'bech32'
+    elif witness_type in [None, 'legacy', 'p2sh-segwit']:
+        return 'base58'
+    else:
+        raise ValueError("Unknown witness type %s" % witness_type)

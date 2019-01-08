@@ -8,7 +8,7 @@
     "currency_code": "TST",
     "prefix_address": "90",
     "prefix_address_p2sh": "95",
-    "prefix_bech32": "bclt",
+    "prefix_bech32": "blt",
     "prefix_wif": "99",
     "prefixes_wif": [
       ["9488B21E", "YXsf", "public",  false, "legacy",      "p2pkh"],

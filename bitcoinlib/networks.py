@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    NETWORK class reads network definitions and with helper methods
-#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@ import json
 import binascii
 import math
 from bitcoinlib.main import *
-from bitcoinlib.encoding import to_hexstring, normalize_var, change_base, to_bytes, EncodingError
+from bitcoinlib.encoding import to_hexstring, normalize_var, change_base, to_bytes
 
 
 _logger = logging.getLogger(__name__)
@@ -146,6 +146,10 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
 
     :param wif: WIF string or prefix in bytes or hexadecimal string
     :type wif: str, bytes
+    :param witness_type: Limit search to specific witness type
+    :type witness_type: str
+    :param multisig: Limit search to multisig: false, true or None for both. Default is both
+    :type multisig: bool
     :param network: Limit search to specified network
     :type network: str
 

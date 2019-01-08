@@ -302,7 +302,7 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m', key_type=None, encoding='base58', witness_type='legacy',
+                 purpose=44, parent_id=0, path='m', key_type=None, encoding=None, witness_type='legacy',
                  multisig=False):
         """
         Create HDWalletKey from a HDKey object or key
@@ -353,6 +353,9 @@ class HDWalletKey:
             if network is None:
                 network = DEFAULT_NETWORK
             k = HDKey(import_key=key, network=network)
+        if not encoding and witness_type:
+            encoding = get_encoding_from_witness(witness_type)
+        script_type = script_type_default(witness_type, multisig)
 
         if not key_is_address:
             keyexists = session.query(DbKey).\
@@ -377,8 +380,8 @@ class HDWalletKey:
                     path = "m/45'"
                 elif purpose == 48 and path == 'm' and k.depth == 4:
                     networkcode = Network(network).bip44_cointype
-                    script_type = 1 if witness_type == 'p2sh-segwit' else 2
-                    path = "m/%d'/%s'/%d'/%d'" % (purpose, networkcode, account_id, script_type)
+                    script_type_id = 1 if witness_type == 'p2sh-segwit' else 2
+                    path = "m/%d'/%s'/%d'/%d'" % (purpose, networkcode, account_id, script_type_id)
                 else:
                     raise WalletError("Key depth of %d does not match path length of %d for path %s" %
                                       (k.depth, len(path.split('/')) - 1, path))
@@ -390,9 +393,6 @@ class HDWalletKey:
             if wk:
                 return HDWalletKey(wk.id, session, k)
 
-            script_type = None
-            if witness_type == 'p2sh-segwit':
-                script_type = 'p2sh_p2wpkh'
             address = k.address(encoding=encoding, script_type=script_type)
 
             nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
@@ -930,8 +930,8 @@ class HDWallet:
             if scheme == 'single':
                 key_path = ['m']
             else:
-                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and k['multisig'] == multisig
-                      and k['purpose'] is not None]
+                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
+                      k['multisig'] == multisig and k['purpose'] is not None]
                 if len(ks) > 1:
                     raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
                                       "witness_type - multisig combination")
@@ -943,8 +943,8 @@ class HDWallet:
         else:
             if purpose is None:
                 purpose = 0
-            if witness_type == 'segwit':
-                encoding = 'bech32'
+        if not encoding:
+            encoding = get_encoding_from_witness(witness_type)
         if isinstance(key_path, list):
             key_path = '/'.join(key_path)
 
@@ -1387,6 +1387,8 @@ class HDWallet:
         if isinstance(key, (HDKey, Address)):
             network = key.network.name
             hdkey = key
+            if network not in self.network_list():
+                raise WalletError("Network %s not found in this wallet" % network)
         else:
             if network is None:
                 network = check_network_and_key(key, default_network=self.network.name)
@@ -1811,13 +1813,13 @@ class HDWallet:
 
         # Replace variable names in path with corresponding values
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        script_type = 1 if self.witness_type == 'p2sh-segwit' else 2
+        script_type_id = 1 if self.witness_type == 'p2sh-segwit' else 2
         var_defaults = {
             'network': network,
             'account': account_id,
             'purpose': self.purpose,
             'coin_type': Network(network).bip44_cointype,
-            'script_type': script_type,
+            'script_type': script_type_id,
             'cosigner_index': cosigner_id,
             'change': 0,
         }
