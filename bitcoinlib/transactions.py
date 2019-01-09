@@ -503,14 +503,11 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
         elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
             public_key_list.append(k)
         else:
-            try:
-                kobj = Key(k)
-                if compressed:
-                    public_key_list.append(kobj.public_byte)
-                else:
-                    public_key_list.append(kobj.public_uncompressed_byte)
-            except Exception:
-                raise TransactionError("Unknown key %s, please specify Key object, public or private key string")
+            kobj = Key(k)
+            if compressed:
+                public_key_list.append(kobj.public_byte)
+            else:
+                public_key_list.append(kobj.public_uncompressed_byte)
 
     return _serialize_multisig_redeemscript(public_key_list, n_required)
 

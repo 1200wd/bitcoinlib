@@ -23,6 +23,8 @@ import random
 from sqlalchemy import or_
 from itertools import groupby
 from operator import itemgetter
+import json
+
 from bitcoinlib.db import *
 from bitcoinlib.encoding import to_hexstring, to_bytes
 from bitcoinlib.keys import HDKey, check_network_and_key, Address, deserialize_address
@@ -964,7 +966,7 @@ class HDWallet:
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
-        key_depth = 0 if not key_path else len(key_path.split('/')) - 1
+        key_depth = 1 if not key_path else len(key_path.split('/')) - 1
         if hasattr(key, 'depth') and key.depth is None:
             key.depth = key_depth
 
@@ -1158,8 +1160,6 @@ class HDWallet:
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
             self.cosigner = [HDWallet(w.id, databasefile=databasefile) for w in co_sign_wallets]
             self.sort_keys = db_wlt.sort_keys
-            # if main_key_object:
-            #     self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             if db_wlt.main_key_id:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
             if self.main_key:
@@ -1172,9 +1172,6 @@ class HDWallet:
             self.witness_type = db_wlt.witness_type
             self.encoding = db_wlt.encoding
             self.multisig = db_wlt.multisig
-            # key_structure = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == self.witness_type and
-            #                  k['multisig'] == self.multisig and k['purpose'] is not None][0]
-            # self.key_path = key_structure['key_path']
             self.cosigner_id = db_wlt.cosigner_id
             self.script_type = script_type_default(self.witness_type, self.multisig, locking_script=True)
             self.key_path = db_wlt.key_path.split('/')
@@ -1186,13 +1183,13 @@ class HDWallet:
         self._session.close()
 
     def __del__(self):
-        try:
-            if self._session:
-                if self._dbwallet and self._dbwallet.parent_id:
-                    return
-                self._session.close()
-        except Exception:
-            pass
+        # try:
+        if self._session:
+            if self._dbwallet and self._dbwallet.parent_id:
+                return
+            self._session.close()
+        # except Exception:
+        #     pass
 
     def __repr__(self):
         return "<HDWallet(name=%s, databasefile=\"%s\")>" % \
@@ -1975,9 +1972,15 @@ class HDWallet:
                 qr = qr.filter(DbKey.balance == 0)
         if is_active:  # Unused keys and keys with a balance
             qr = qr.filter(or_(DbKey.balance != 0, DbKey.used == False))
-        ret = as_dict and [x.__dict__ for x in qr.all()] or qr.all()
+        keys = qr.all()
+        if as_dict:
+            keys = [x.__dict__ for x in keys]
+            keys2 = []
+            for key in keys:
+                keys2.append({k: v for (k, v) in key.items() if k[:1] != '_' and k != 'wallet'})
+            return keys2
         qr.session.close()
-        return ret
+        return keys
 
     def keys_networks(self, used=None, as_dict=False):
         """
@@ -3348,7 +3351,7 @@ class HDWallet:
                   Network(na_balance['network']).print_value(na_balance['balance'])))
         print("\n")
 
-    def dict(self, detail=3):
+    def as_dict(self):
         """
         Return wallet information in dictionary format
 
@@ -3358,17 +3361,10 @@ class HDWallet:
         :return dict:
         """
 
-        if detail > 1:
-            for nw in self.networks():
-                print("- Network: %s -" % nw['network_name'])
-                if detail < 3:
-                    ds = [0, 3, 5]
-                else:
-                    ds = range(6)
-                for d in ds:
-                    for key in self.keys(depth=d, network=nw['network_name']):
-                        print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
-                                                              Network(key.network_name).print_value(key.balance)))
+        keys = []
+        for nw in self.networks():
+            for key in self.keys(network=nw['network_name'], as_dict=True):
+                keys.append(key)
 
         return {
             'wallet_id': self.wallet_id,
@@ -3388,4 +3384,14 @@ class HDWallet:
             'sort_keys': self.sort_keys,
             'main_key_id': self.main_key_id,
             'encoding': self.encoding,
+            'keys': keys,
         }
+
+    def as_json(self):
+        """
+        Get current key as json formatted string
+
+        :return str:
+        """
+        adict = self.as_dict()
+        return json.dumps(adict, indent=4)
