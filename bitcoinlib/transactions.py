@@ -19,6 +19,8 @@
 #
 
 from datetime import datetime
+import json
+
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address
 from bitcoinlib.networks import Network
@@ -955,7 +957,7 @@ class Input:
             self.unlocking_script = script_add_locktime_csv(self.locktime_csv, self.unlocking_script)
         return True
 
-    def dict(self):
+    def as_dict(self):
         """
         Get transaction input information in json format
         
@@ -1129,7 +1131,7 @@ class Output:
         #     raise TransactionError("Output to %s must be more then dust amount %d" %
         #                            (self.address, self.network.dust_amount))
 
-    def dict(self):
+    def as_dict(self):
         """
         Get transaction output information in json format
 
@@ -1310,7 +1312,7 @@ class Transaction:
     def __str__(self):
         return self.hash
 
-    def dict(self):
+    def as_dict(self):
         """
         Return Json dictionary with transaction information: Inputs, outputs, version and locktime
         
@@ -1320,9 +1322,9 @@ class Transaction:
         inputs = []
         outputs = []
         for i in self.inputs:
-            inputs.append(i.dict())
+            inputs.append(i.as_dict())
         for o in self.outputs:
-            outputs.append(o.dict())
+            outputs.append(o.as_dict())
         return {
             'hash': self.hash,
             'date': self.date,
@@ -1338,13 +1340,22 @@ class Transaction:
             'outputs': outputs,
             'input_total': self.input_total,
             'output_total': self.output_total,
-            'version': self.version,
+            'version': to_hexstring(self.version),
             'locktime': self.locktime,
             'raw': self.raw_hex(),
             'size': self.size,
             'verified': self.verified,
             'status': self.status
         }
+
+    def as_json(self):
+        """
+        Get current key as json formatted string
+
+        :return str:
+        """
+        adict = self.as_dict()
+        return json.dumps(adict, indent=4)
 
     def info(self):
         """

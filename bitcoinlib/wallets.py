@@ -3362,9 +3362,25 @@ class HDWallet:
         """
 
         keys = []
+        transactions = []
         for nw in self.networks():
             for key in self.keys(network=nw['network_name'], as_dict=True):
                 keys.append(key)
+
+            if self.multisig:
+                for t in self.transactions(include_new=True, account_id=0, network=nw['network_name']):
+                    transactions.append(t)
+            else:
+                accounts = self.accounts(network=nw['network_name'])
+                if not accounts:
+                    accounts = [0]
+                for account in accounts:
+                    if account == 0:
+                        account_id = 0
+                    else:
+                        account_id = account.account_id
+                    for t in self.transactions(include_new=True, account_id=account_id, network=nw['network_name']):
+                        transactions.append(t)
 
         return {
             'wallet_id': self.wallet_id,
@@ -3385,6 +3401,7 @@ class HDWallet:
             'main_key_id': self.main_key_id,
             'encoding': self.encoding,
             'keys': keys,
+            'transactions': transactions,
         }
 
     def as_json(self):
