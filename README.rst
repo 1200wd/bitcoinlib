@@ -84,7 +84,7 @@ The complete wallet can be recovered from the passphrase which is the masterkey.
 
     passphrase = Mnemonic().generate()
     print(passphrase)
-    w = HDWallet.create("Wallet2", key=passphrase, network='bitcoin')
+    w = HDWallet.create("Wallet2", keys=passphrase, network='bitcoin')
     account_btc2 = w.new_account('Account BTC 2')
     account_ltc1 = w.new_account('Account LTC', network='litecoin')
     w.get_key()
