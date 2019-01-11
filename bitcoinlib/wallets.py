@@ -725,7 +725,7 @@ class HDWalletTransaction(Transaction):
                 wallet_id=self.hdwallet.wallet_id, hash=self.hash, block_height=self.block_height,
                 size=self.size, confirmations=self.confirmations, date=self.date, fee=self.fee, status=self.status,
                 input_total=self.input_total, output_total=self.output_total, network_name=self.network.name,
-                block_hash=self.block_hash)
+                block_hash=self.block_hash, raw=self.rawtx)
             sess.add(new_tx)
             sess.commit()
             tx_id = new_tx.id
@@ -739,6 +739,7 @@ class HDWalletTransaction(Transaction):
             db_tx.input_total = self.input_total if self.input_total else db_tx.input_total
             db_tx.output_total = self.output_total if self.output_total else db_tx.output_total
             db_tx.network_name = self.network.name if self.network.name else db_tx.name
+            db_tx.raw = self.rawtx if self.rawtx else db_tx.raw
             sess.commit()
 
         assert tx_id
