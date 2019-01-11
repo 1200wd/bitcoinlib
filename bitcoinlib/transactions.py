@@ -1340,7 +1340,7 @@ class Transaction:
             'outputs': outputs,
             'input_total': self.input_total,
             'output_total': self.output_total,
-            'version': to_hexstring(self.version),
+            'version': struct.unpack('>L', self.version)[0],
             'locktime': self.locktime,
             'raw': self.raw_hex(),
             'size': self.size,

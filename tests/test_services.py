@@ -294,7 +294,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'input_total': 1850384,
             'network': 'bitcoin',
             'status': 'confirmed',
-            'version': b'\x00\x00\x00\x02',
+            'version': 2,
             'outputs':
                 [
                     {
@@ -341,7 +341,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  'script': '76a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac', 'value': 75300000}],
                          'output_total': 2575300000, 'block_height': 900147, 'locktime': 0, 'flag': None,
                          'coinbase': False,
-                         'status': 'confirmed', 'verified': False, 'version': b'\x00\x00\x00\x01',
+                         'status': 'confirmed', 'verified': False, 'version': 1,
                          'hash': '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf', 'size': 226,
                          'fee': 200000, 'inputs': [
                 {'redeemscript': '', 'address': 'XczHdW9k4Kg9mu6AdJayJ1PJtfX3Z9wYxm', 'double_spend': False,
@@ -457,7 +457,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  },
             ],
             'status': 'confirmed',
-            'version': b'\x00\x00\x00\x01'
+            'version': 1
         }
         srv = Service(network='bitcoin', min_providers=10)
 
