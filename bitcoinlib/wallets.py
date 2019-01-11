@@ -519,7 +519,7 @@ class HDWalletKey:
         else:
             return self._balance
 
-    def dict(self):
+    def as_dict(self):
         """
         Return current key information as dictionary
 

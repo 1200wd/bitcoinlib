@@ -223,7 +223,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
                 {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
-                for inp in [i.dict() for i in t.inputs]
+                for inp in [i.as_dict() for i in t.inputs]
             ]
             if provider in ['blockchaininfo']:  # Some providers do not provide previous hashes
                 r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
@@ -323,11 +323,11 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(network='bitcoin', min_providers=10)
 
         # Get transactions by hash
-        srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700').dict()
+        srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700').as_dict()
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
-            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+            self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
 
     def test_gettransaction_dash(self):
@@ -362,11 +362,11 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(network='dash', min_providers=10)
 
         # Get transactions by hash
-        srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf').dict()
+        srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf').as_dict()
         print(srv.results)
         for provider in srv.results:
             print("Comparing provider %s" % provider)
-            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+            self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
 
     def test_gettransactions_litecoin(self):
@@ -410,7 +410,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
                 {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
-                for inp in [i.dict() for i in t.inputs]
+                for inp in [i.as_dict() for i in t.inputs]
             ]
             if provider in ['blockchaininfo']:  # Some providers do not provide previous hashes
                 r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
@@ -466,7 +466,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
-            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+            self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
     def test_gettransaction_segwit_p2wpkh(self):
@@ -510,7 +510,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
-            self.assertDictEqualExt(srv.results[provider].dict(), expected_dict,
+            self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
     def test_gettransaction_segwit_coinbase(self):

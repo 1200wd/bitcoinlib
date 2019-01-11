@@ -61,7 +61,7 @@ class TestTransactionInputs(unittest.TestCase):
             'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
             'script_type': 'sig_pubkey'
         }
-        ti_dict = {key: ti.dict()[key] for key in
+        ti_dict = {key: ti.as_dict()[key] for key in
                    ['output_n', 'script', 'sequence', 'prev_hash', 'index_n', 'address', 'script_type']}
         self.assertDictEqual(expected_dict, ti_dict)
 
@@ -133,7 +133,7 @@ class TestTransactions(unittest.TestCase):
                 u'733deffffffff02be9d9600000000001976a914b66e314587c282d5ce290918228e390c0279884688ace280590b0b0000' \
                 u'001976a914f2ea76adc2345f3591ce997def9043fbe68ecc1a88ac00000000'
         self.assertEqual('1P9RQEr2XeE3PEb44ZE35sfZRRW1JHU8qx',
-                         Transaction.import_raw(rawtx).dict()['outputs'][1]['address'])
+                         Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
 
     def test_transactions_deserialize_raw_bytearray(self):
         rawtx = bytearray(b'0100000001685c7c35aabe690cc99f947a8172ad075d4401448a212b9f26607d6ec5530915010000006a4730'
@@ -143,7 +143,7 @@ class TestTransactions(unittest.TestCase):
                           b'a772f8ffd62391190388ac442d0304000000001976a9145b92b92ddd598d2d4977b3c4e5f552332aed743188'
                           b'ac00000000')
         self.assertEqual('19MCFyVmyEhFjYNS8aKJT454jm4YZQjbqm',
-                         Transaction.import_raw(rawtx).dict()['outputs'][1]['address'])
+                         Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
 
     def test_transactions_deserialize_p2sh_output(self):
         rawtx = '01000000011a422ceb2104d9c3ace9fcbda16b9a9f12a1a93c389a0740c70c9b56d3a0c7bf00000000fd4501004730440220' \
@@ -183,8 +183,8 @@ class TestTransactions(unittest.TestCase):
         t = Transaction([inp], [out], network='testnet')
         t.sign(pk)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
-        self.assertEqual(t.dict()['inputs'][0]['address'], 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
-        self.assertEqual(t.dict()['outputs'][0]['address'], 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
+        self.assertEqual(t.as_dict()['inputs'][0]['address'], 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
+        self.assertEqual(t.as_dict()['outputs'][0]['address'], 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
 
     def test_transactions_sign_2(self):
         pk = Key('KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4')  # Private key for import

@@ -58,7 +58,7 @@ class TestWalletCreate(unittest.TestCase):
         self.assertIsNot(self.wallet.info(), "")
 
     def test_wallet_key_info(self):
-        self.assertIsNot(self.wallet.main_key.dict(), "")
+        self.assertIsNot(self.wallet.main_key.as_dict(), "")
 
     def test_wallet_create_account(self):
         new_account = self.wallet.new_account(account_id=100)
@@ -1203,7 +1203,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 50000000, offline=True)
         t2 = wlt.transaction_import(t)
-        self.assertDictEqualExt(t.dict(), t2.dict())
+        self.assertDictEqualExt(t.as_dict(), t2.as_dict())
         del wlt
 
     def test_wallet_transaction_import_raw(self):
@@ -1212,7 +1212,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 50000000, offline=True)
         t2 = wlt.transaction_import_raw(t.raw())
-        self.assertDictEqualExt(t.dict(), t2.dict())
+        self.assertDictEqualExt(t.as_dict(), t2.as_dict())
         del wlt
 
     def test_wallet_transaction_fee_limits(self):
