@@ -97,9 +97,10 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
     return False
 
 
-def wallet_create_or_open(name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32',
-                          parent_id=None, sort_keys=False, password='', witness_type='legacy', encoding=None,
-                          multisig=None, cosigner_id=None, key_path=None, databasefile=DEFAULT_DATABASE):
+def wallet_create_or_open(
+        name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=None,
+        password='', witness_type='legacy', encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
+        key_path=None, databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -108,15 +109,14 @@ def wallet_create_or_open(name, keys='', owner='', network=None, account_id=0, p
     if wallet_exists(name, databasefile=databasefile):
         return HDWallet(name, databasefile=databasefile)
     else:
-        return HDWallet.create(name, keys, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                               password, witness_type, encoding, multisig, cosigner_id,
+        return HDWallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
+                               password, witness_type, encoding, multisig, sigs_required, cosigner_id,
                                key_path, databasefile=databasefile)
 
 
 def wallet_create_or_open_multisig(
-        name, keys, sigs_required=None, owner='', network=None, account_id=0,
-        purpose=None, multisig_compressed=True, sort_keys=True, witness_type='legacy', encoding=None, key_path=None,
-        cosigner_id=None, databasefile=DEFAULT_DATABASE):
+        name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None, sort_keys=True,
+        witness_type='legacy', encoding=None, cosigner_id=None, key_path=None, databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
@@ -125,9 +125,9 @@ def wallet_create_or_open_multisig(
     if wallet_exists(name, databasefile=databasefile):
         return HDWallet(name, databasefile=databasefile)
     else:
-        return HDWallet.create_multisig(name, keys, sigs_required, owner, network, account_id, purpose,
-                                        multisig_compressed, sort_keys, witness_type, encoding, key_path, cosigner_id,
-                                        databasefile=databasefile)
+        return HDWallet.create(name, keys, owner, network, account_id, purpose, 'bip32', sort_keys,
+                               '', witness_type, encoding, True, sigs_required, cosigner_id,
+                               key_path, databasefile=databasefile)
 
 
 def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
@@ -818,81 +818,9 @@ class HDWallet:
     """
 
     @classmethod
-    def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32', parent_id=None,
-               sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, cosigner_id=None,
-               key_path=None, databasefile=None):
-        """
-        Create HDWallet and insert in database. Generate masterkey or import key when specified.
+    def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys, password,
+                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, databasefile):
 
-        When only a name is specified an legacy HDWallet with a single masterkey is created with standard p2wpkh
-        scripts.
-
-        To create a multi signature wallet specify multiple keys (private or public) and provide the sigs_required
-        argument if it different then len(keys)
-
-        To create a native segwit wallet use the option witness_type = 'segwit' and for old style addresses and p2sh
-        embedded segwit script us 'ps2h-segwit' as witness_type.
-        
-        Please mention account_id if you are using multiple accounts.
-        
-        :param name: Unique name of this Wallet
-        :type name: str
-        :param keys: Masterkey to or list of keys to use for this wallet. Will be automatically created if not specified. One or more keys are obligatory for multisig wallets. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
-        :type keys: str, bytes, int, bytearray
-        :param owner: Wallet owner for your own reference
-        :type owner: str
-        :param network: Network name, use default if not specified
-        :type network: str
-        :param account_id: Account ID, default is 0
-        :type account_id: int
-        :param purpose: BIP43 purpose field, will be derived from witness_type and multisig by default
-        :type purpose: int
-        :param scheme: Key structure type, i.e. BIP32 or single
-        :type scheme: str
-        :param parent_id: Parent Wallet ID used for multisig wallet structures
-        :type parent_id: int
-        :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
-        :type sort_keys: bool
-        :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
-        :type password: str
-        :param witness_type: Specify witness type, default is 'legacy'. Use 'segwit' for native segregated witness wallet, or 'p2sh-segwit' for legacy compatible wallets
-        :type witness_type: str
-        :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
-        :type encoding: str
-        :param multisig: Multisig wallet or child of a multisig wallet, default is False. Use create_multisig to create a multisig wallet.
-        :type multisig: False
-        :param cosigner_id: Set this if wallet contains only public keys or if you would like to create keys for other cosigners.
-        :type cosigner_id: int
-        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must
-        follow the following rules:
-        * Path start with masterkey (m) and end with change / address_index
-        * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
-        * All keys must be hardened, except for change, address_index or cosigner_id
-        * Max length of path is 8 levels
-        :type key_path: list, str
-        :param databasefile: Location of database file. Leave empty to use default
-        :type databasefile: str
-        
-        :return HDWallet: 
-        """
-
-        if multisig is None:
-            if keys and isinstance(keys, list) and len(keys) > 1:
-                multisig = True
-            else:
-                multisig = False
-        if scheme not in ['bip32', 'single']:
-            raise WalletError("Only bip32 or single key scheme's are supported at the moment")
-        if witness_type not in [None, 'legacy', 'p2sh-segwit', 'segwit']:
-            raise WalletError("Witness type %s not supported at the moment" % witness_type)
-        if name.isdigit():
-            raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
-        key = ''
-        if keys:
-            if isinstance(keys, list):
-                key = keys[0]
-            else:
-                key = keys
         if isinstance(key, HDKey):
             network = key.network.name
         elif key:
@@ -962,7 +890,8 @@ class HDWallet:
 
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
-                              multisig=multisig, cosigner_id=cosigner_id, key_path=key_path)
+                              multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
+                              key_path=key_path)
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
@@ -999,9 +928,144 @@ class HDWallet:
         return w
 
     @classmethod
+    def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
+               sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, sigs_required=None,
+               cosigner_id=None, key_path=None, databasefile=None):
+        """
+        Create HDWallet and insert in database. Generate masterkey or import key when specified.
+
+        When only a name is specified an legacy HDWallet with a single masterkey is created with standard p2wpkh
+        scripts.
+
+        To create a multi signature wallet specify multiple keys (private or public) and provide the sigs_required
+        argument if it different then len(keys)
+
+        To create a native segwit wallet use the option witness_type = 'segwit' and for old style addresses and p2sh
+        embedded segwit script us 'ps2h-segwit' as witness_type.
+        
+        Please mention account_id if you are using multiple accounts.
+        
+        :param name: Unique name of this Wallet
+        :type name: str
+        :param keys: Masterkey to or list of keys to use for this wallet. Will be automatically created if not specified. One or more keys are obligatory for multisig wallets. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
+        :type keys: str, bytes, int, bytearray
+        :param owner: Wallet owner for your own reference
+        :type owner: str
+        :param network: Network name, use default if not specified
+        :type network: str
+        :param account_id: Account ID, default is 0
+        :type account_id: int
+        :param purpose: BIP43 purpose field, will be derived from witness_type and multisig by default
+        :type purpose: int
+        :param scheme: Key structure type, i.e. BIP32 or single
+        :type scheme: str
+        :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
+        :type sort_keys: bool
+        :param password: Password to protect passphrase, only used if a passphrase is supplied in the 'key' argument.
+        :type password: str
+        :param witness_type: Specify witness type, default is 'legacy'. Use 'segwit' for native segregated witness wallet, or 'p2sh-segwit' for legacy compatible wallets
+        :type witness_type: str
+        :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
+        :type encoding: str
+        :param multisig: Multisig wallet or child of a multisig wallet, default is None / derive from number of keys.
+        :type multisig: bool
+        :param sigs_required: Number of signatures required for validation if using a multisignature wallet. For example 2 for 2-of-3 multisignature. Default is all keys must signed
+        :type sigs_required: int
+        :param cosigner_id: Set this if wallet contains only public keys or if you would like to create keys for other cosigners.
+        :type cosigner_id: int
+        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must
+        follow the following rules:
+        * Path start with masterkey (m) and end with change / address_index
+        * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
+        * All keys must be hardened, except for change, address_index or cosigner_id
+        * Max length of path is 8 levels
+        :type key_path: list, str
+        :param databasefile: Location of database file. Leave empty to use default
+        :type databasefile: str
+        
+        :return HDWallet: 
+        """
+
+        if multisig is None:
+            if keys and isinstance(keys, list) and len(keys) > 1:
+                multisig = True
+            else:
+                multisig = False
+        if scheme not in ['bip32', 'single']:
+            raise WalletError("Only bip32 or single key scheme's are supported at the moment")
+        if witness_type not in [None, 'legacy', 'p2sh-segwit', 'segwit']:
+            raise WalletError("Witness type %s not supported at the moment" % witness_type)
+        if name.isdigit():
+            raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
+        key = ''
+        if multisig:
+            if password:
+                raise WalletError("Password protected multisig wallets not supported")
+            if scheme != 'bip32':
+                raise WalletError("Multisig wallets should use bip32 scheme not %s" % scheme)
+            if sigs_required is None:
+                sigs_required = len(keys)
+            if sigs_required > len(keys):
+                raise WalletError("Number of keys required to sign is greater then number of keys provided")
+        else:
+            if keys:
+                if isinstance(keys, list):
+                    key = keys[0]
+                else:
+                    key = keys
+        hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
+                           scheme=scheme, parent_id=None, sort_keys=sort_keys, password=password,
+                           witness_type=witness_type, encoding=encoding, multisig=multisig, sigs_required=sigs_required,
+                           cosigner_id=cosigner_id, key_path=key_path, databasefile=databasefile)
+
+        if multisig:
+            hdkey_list = []
+            for cokey in keys:
+                if not isinstance(cokey, HDKey):
+                    if len(cokey.split(' ')) > 5:
+                        k = HDKey.from_passphrase(cokey, network=network)
+                    else:
+                        network = check_network_and_key(cokey, network)
+                        hdkeyinfo = wif_prefix_search(cokey, network=network)
+                        k = HDKey(cokey, network=network)
+                        if hdkeyinfo:
+                            hdpm.witness_type = hdkeyinfo[0]['witness_type']
+                            if hdkeyinfo[0]['multisig']:
+                                hdpm.purpose = 48
+                            if hdkeyinfo[0]['script_type'] == 'p2wsh':
+                                hdpm.encoding = 'bech32'
+                    hdkey_list.append(k)
+                else:
+                    hdkey_list.append(cokey)
+            if sort_keys:
+                hdkey_list.sort(key=lambda x: x.public_byte)
+            cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
+            if cosigner_id is None:
+                hdpm.cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
+            wlt_cos_id = 0
+            for cokey in hdkey_list:
+                if hdpm.network.name != cokey.network.name:
+                    raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
+                                      (cokey.wif(), cokey.network.name, network, hdpm.network.name))
+                scheme = 'bip32'
+                wn = name + '-cosigner-%d' % wlt_cos_id
+                if cokey.key_type == 'single':
+                    scheme = 'single'
+
+                w = cls._create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
+                                purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
+                                password='', witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
+                                sigs_required=None, cosigner_id=wlt_cos_id, key_path=key_path,
+                                databasefile=databasefile)
+                hdpm.cosigner.append(w)
+                wlt_cos_id += 1
+
+        return hdpm
+
+    @classmethod
     def create_multisig(cls, name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None,
-                        multisig_compressed=True, sort_keys=True, witness_type='legacy', encoding=None,
-                        key_path=None, cosigner_id=None, databasefile=None):
+                        sort_keys=True, witness_type='legacy', encoding=None, key_path=None, cosigner_id=None,
+                        databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
         public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
@@ -1020,8 +1084,6 @@ class HDWallet:
         :type account_id: int
         :param purpose: BIP44 purpose field, default is 44
         :type purpose: int
-        :param multisig_compressed: Use compressed multisig keys for this wallet. Default is True
-        :type multisig_compressed: bool
         :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
         :type sort_keys: bool
         :param witness_type: Specify wallet type, default is legacy. Use 'segwit' for segregated witness wallet.
@@ -1043,75 +1105,11 @@ class HDWallet:
         :return HDWallet:
 
         """
-        if databasefile is None:
-            databasefile = DEFAULT_DATABASE
-        session = DbInit(databasefile=databasefile).session
-        if session.query(DbWallet).filter_by(name=name).count():
-            raise WalletError("Wallet with name '%s' already exists" % name)
-        else:
-            _logger.info("Create new multisig wallet '%s'" % name)
-        if not isinstance(keys, list):
-            raise WalletError("Need list of keys to create multi-signature key structure")
-        if len(keys) < 2:
-            raise WalletError("Key list must contain at least 2 keys")
-        if sigs_required is None:
-            sigs_required = len(keys)
-        if sigs_required > len(keys):
-            raise WalletError("Number of keys required to sign is greater then number of keys provided")
-        if cosigner_id and cosigner_id >= len(keys):
-            raise WalletError("Cosigner ID must be lower then number of keys / total cosigners")
 
-        hdpm = cls.create(name=name, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                          sort_keys=sort_keys, witness_type=witness_type, encoding=encoding, key_path=key_path,
-                          multisig=True, cosigner_id=cosigner_id, databasefile=databasefile)
-        hdpm.multisig_compressed = multisig_compressed
-        hdkey_list = []
-        for cokey in keys:
-            if not isinstance(cokey, HDKey):
-                if len(cokey.split(' ')) > 5:
-                    k = HDKey.from_passphrase(cokey, network=network)
-                else:
-                    network = check_network_and_key(cokey, network)
-                    hdkeyinfo = wif_prefix_search(cokey, network=network)
-                    k = HDKey(cokey, network=network)
-                    if hdkeyinfo:
-                        hdpm.witness_type = hdkeyinfo[0]['witness_type']
-                        if hdkeyinfo[0]['multisig']:
-                            hdpm.purpose = 48
-                        if hdkeyinfo[0]['script_type'] == 'p2wsh':
-                            hdpm.encoding = 'bech32'
-                hdkey_list.append(k)
-            else:
-                hdkey_list.append(cokey)
-        if sort_keys:
-            hdkey_list.sort(key=lambda x: x.public_byte)
-        cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
-        if cosigner_id is None:
-            hdpm.cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
-        wlt_cos_id = 0
-        for cokey in hdkey_list:
-            if hdpm.network.name != cokey.network.name:
-                raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
-                                  (cokey.wif(), cokey.network.name, network, hdpm.network.name))
-            scheme = 'bip32'
-            wn = name + '-cosigner-%d' % wlt_cos_id
-            if cokey.key_type == 'single':
-                scheme = 'single'
-            w = cls.create(name=wn, keys=cokey, owner=owner, network=network, account_id=account_id, multisig=True,
-                           purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id,
-                           witness_type=hdpm.witness_type, encoding=encoding, cosigner_id=wlt_cos_id,
-                           key_path=key_path, sort_keys=sort_keys, databasefile=databasefile)
-            hdpm.cosigner.append(w)
-            wlt_cos_id += 1
-
-        hdpm.multisig_n_required = sigs_required
-        hdpm.sort_keys = sort_keys
-        session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id).\
-            update({DbWallet.multisig_n_required: sigs_required, DbWallet.sort_keys: hdpm.sort_keys,
-                    DbWallet.cosigner_id: hdpm.cosigner_id})
-        session.commit()
-        session.close_all()
-        return hdpm
+        return cls.create(name, keys=keys, owner=owner, network=network, account_id=account_id, purpose=purpose,
+                          scheme='bip32', sort_keys=sort_keys, password='', witness_type=witness_type,
+                          encoding=encoding, multisig=True, sigs_required=sigs_required, cosigner_id=cosigner_id,
+                          key_path=key_path, databasefile=databasefile)
 
     def __enter__(self):
         return self
@@ -1155,7 +1153,6 @@ class HDWallet:
             self.main_key = None
             self.default_account_id = 0
             self.multisig_n_required = db_wlt.multisig_n_required
-            self.multisig_compressed = None
             co_sign_wallets = self._session.query(DbWallet).\
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
             self.cosigner = [HDWallet(w.id, databasefile=databasefile) for w in co_sign_wallets]
@@ -3394,7 +3391,6 @@ class HDWallet:
             'balances': self._balances,
             'default_account_id': self.default_account_id,
             'multisig_n_required': self.multisig_n_required,
-            'multisig_compressed': self.multisig_compressed,
             'cosigner_wallet_ids': [w.wallet_id for w in self.cosigner],
             'cosigner_mainkey_wifs': [w.main_key.wif for w in self.cosigner],
             'sort_keys': self.sort_keys,

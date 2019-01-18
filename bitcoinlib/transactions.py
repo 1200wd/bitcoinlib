@@ -1111,6 +1111,7 @@ class Output:
             if self.encoding == 'bech32':
                 self.script_type = 'p2wpkh'
         if self.public_hash and not self.address:
+            # FIXME !!!
             self.address_obj = Address(hashed_data=self.public_hash,
                                        script_type=self.script_type, encoding=self.encoding, network=self.network)
             self.address = self.address_obj.address
