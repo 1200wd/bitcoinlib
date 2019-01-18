@@ -1232,7 +1232,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.pushed)
         self.assertNotEqual(t.fee, 0)
 
-    def test_wallet_transactions_estimate_fee(self):
+    def test_wallet_transactions_estimate_size(self):
         prev_tx_hash = '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5'
 
         for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
@@ -1247,8 +1247,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
             t.sign()
             t.estimate_size()
             size2 = t.size
-            self.assertAlmostEqual(size1, size2, delta=1)
-            self.assertAlmostEqual(len(t.raw()), size2, delta=1)
+            self.assertAlmostEqual(size1, size2, delta=2)
+            self.assertAlmostEqual(len(t.raw()), size2, delta=2)
 
         for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
             p1 = HDKey()
@@ -1618,7 +1618,6 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         addr = Address.import_address('13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce')
         w.import_key(addr)
         w.utxos_update()
-        w.info()
         self.assertListEqual(w.addresslist(),
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce'])
         self.assertGreater(w.balance(), 10000000000)
