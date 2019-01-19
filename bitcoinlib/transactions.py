@@ -260,6 +260,9 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                 elif ch == 'public_key':
                     pk_size, size = varbyteint_to_int(script[cur:cur + 9])
                     key = script[cur + size:cur + size + pk_size]
+                    if not key:
+                        found = False
+                        break
                     if key[0] == '0x30':
                         data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
                     else:
@@ -1106,14 +1109,17 @@ class Output:
                 self.encoding = 'bech32'
             if ss['hashes']:
                 self.public_hash = ss['hashes'][0]
+            if ss['keys']:
+                self.public_key = ss['keys'][0]
+                k = Key(self.public_key, is_private=False, network=network)
+                self.public_hash = k.hash160()
         if self.script_type is None:
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':
                 self.script_type = 'p2wpkh'
         if self.public_hash and not self.address:
-            # FIXME !!!
-            self.address_obj = Address(hashed_data=self.public_hash,
-                                       script_type=self.script_type, encoding=self.encoding, network=self.network)
+            self.address_obj = Address(hashed_data=self.public_hash, script_type=self.script_type,
+                                       encoding=self.encoding, network=self.network)
             self.address = self.address_obj.address
             self.versionbyte = self.address_obj.prefix
         if self.lock_script == b'':
