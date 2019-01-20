@@ -265,15 +265,15 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     if not key:
                         found = False
                         break
-                    # FIXME: mixup key and signature :(
-                    if key[0] == '0x30':
-                        data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
-                    else:
-                        data['keys'].append(key)
+                    # if key[0] == '0x30':
+                    #     data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
+                    # else:
+                    data['keys'].append(key)
                     cur += size + pk_size
                 elif ch == 'OP_RETURN':
                     if cur_char == opcodes['OP_RETURN'] and cur == 0:
                         data.update({'op_return': script[cur + 1:]})
+                        cur = len(script)
                         found = True
                         break
                     else:
@@ -357,10 +357,10 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                             break
                     except IndexError:
                         raise TransactionError("Opcode %s not found [type %s]" % (ch, script_type))
-            if found:
+            if found and not len(script[cur:]):  # Found is True and no remaining script to parse
                 break
 
-        if found:
+        if found  and not len(script[cur:]):
             return data, script[cur:]
         data = _get_empty_data()
         data['result'] = 'Script not recognised'
@@ -376,8 +376,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     if size_bytes_check:
         script_size, size = varbyteint_to_int(script[0:9])
         if len(script[1:]) == script_size:
-            script2 = script[1:]  # TODO: remove
-            data = script_deserialize(script2, script_types, locking_script, size_bytes_check=False)
+            data = script_deserialize(script[1:], script_types, locking_script, size_bytes_check=False)
             if 'result' in data and data['result'][:22] not in \
                     ['Script not recognised', 'Empty script', 'Could not parse script']:
                 return data
