@@ -1046,6 +1046,15 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t.sign(ki.private_byte)
         self.assertTrue(t.verify())
 
+    def test_transaction_p2pk_script(self):
+        rawtx = '0100000001db1a1774240cb1bd39d6cd6df0c57d5624fd2bd25b8b1be471714ab00e1a8b5d00000000484730440220592ce8' \
+                '5d3b79509499c9832699c591fc0fd92208bfe20c67d655497c388b3cc50220134e367276b285c35692bcfc832afdc5c27729' \
+                '0a5e02c78f4c3f96f5a393f7cd01ffffffff0278270b0000000000232103b907bb026b78706e612df821c66c6d86b3881d45' \
+                '382f359e92e7c3418cacb8edac0000000000000000226a2012a4aba1a3909f8ad69e2a9f1f0e90346b0fef1f9c5b373dc2ec' \
+                '7be3f3e457b000000000'
+        t = Transaction.import_raw(rawtx)
+        self.assertEqual(t.inputs[0].script_type, 'signature')
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
