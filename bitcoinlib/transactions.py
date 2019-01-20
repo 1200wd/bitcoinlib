@@ -195,6 +195,8 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
         scr = to_bytes(scr)
         items = []
         total_length = 0
+        if 70 <= len(scr) <= 74 and scr[:1] == b'\x30':
+            return [scr], len(scr)
         while len(scr) and (max_items is None or max_items > len(items)):
             itemlen, size = varbyteint_to_int(scr[0:9])
             if item_length and itemlen != item_length:
@@ -263,6 +265,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     if not key:
                         found = False
                         break
+                    # FIXME: mixup key and signature :(
                     if key[0] == '0x30':
                         data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
                     else:
@@ -373,7 +376,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     if size_bytes_check:
         script_size, size = varbyteint_to_int(script[0:9])
         if len(script[1:]) == script_size:
-            script2 = script[1:]
+            script2 = script[1:]  # TODO: remove
             data = script_deserialize(script2, script_types, locking_script, size_bytes_check=False)
             if 'result' in data and data['result'][:22] not in \
                     ['Script not recognised', 'Empty script', 'Could not parse script']:
@@ -945,6 +948,9 @@ class Input:
                         self.witnesses = unlock_script
                 elif unlock_script != b'':
                     self.unlocking_script = unlock_script
+        elif self.script_type == 'signature':
+            if self.keys:
+                self.script_code = self.keys[0].public_byte + b'\xac'
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:

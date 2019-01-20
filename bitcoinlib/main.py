@@ -59,6 +59,7 @@ SCRIPT_TYPES_UNLOCKING = {
     'p2sh_p2wsh': ['OP_0', 'push_size', 'redeemscript'],
     'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
+    'signature': ['signature']
 }
 
 SIGHASH_ALL = 1
