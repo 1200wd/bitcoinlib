@@ -461,6 +461,7 @@ class HDWalletKey:
             self.key_type = wk.key_type
             self.compressed = wk.compressed
             self.encoding = wk.encoding
+            # TODO: Add multisig, witness_Type, script_type ??? or part of wallet?
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -501,7 +502,7 @@ class HDWalletKey:
         if self.key_type == 'multisig':
             raise WalletError("HDWalletKey of type multisig has no single hdkey object, use cosigner attribute")
         if self._hdkey_object is None:
-            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
+            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name, )
         return self._hdkey_object
 
     def balance(self, fmt=''):
@@ -1107,9 +1108,9 @@ class HDWallet:
         """
 
         return cls.create(name, keys=keys, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                          scheme='bip32', sort_keys=sort_keys, password='', witness_type=witness_type,
-                          encoding=encoding, multisig=True, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                          key_path=key_path, databasefile=databasefile)
+                          sort_keys=sort_keys, witness_type=witness_type, encoding=encoding, multisig=True,
+                          sigs_required=sigs_required, cosigner_id=cosigner_id, key_path=key_path,
+                          databasefile=databasefile)
 
     def __enter__(self):
         return self

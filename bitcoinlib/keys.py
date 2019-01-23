@@ -126,7 +126,9 @@ def get_key_format(key, is_private=None):
         raise BKeyError("Key empty, please specify a valid key")
     key_format = ""
     networks = None
-    script_types = None
+    script_types = []
+    witness_types = ['legacy']
+    multisig = [False]
 
     if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
         key = to_hexstring(key)
@@ -184,9 +186,11 @@ def get_key_format(key, is_private=None):
                     networks = list(set([n['network'] for n in prefix_data]))
                     if is_private is None and len(set([n['is_private'] for n in prefix_data])) > 1:
                         raise BKeyError("Cannot determine if key is private or public, please specify is_private "
-                                       "attribute")
+                                        "attribute")
                     is_private = prefix_data[0]['is_private']
-                    script_types = [n['script_type'] for n in prefix_data]
+                    script_types = list(set([n['script_type'] for n in prefix_data]))
+                    witness_types = list(set([n['witness_type'] for n in prefix_data]))
+                    multisig = list(set([n['multisig'] for n in prefix_data]))
                     key_format = 'hdkey_public'
                     if is_private:
                         key_format = 'hdkey_private'
@@ -216,7 +220,9 @@ def get_key_format(key, is_private=None):
             "format": key_format,
             "networks": networks,
             "is_private": is_private,
-            "script_types": script_types
+            "script_types": script_types,
+            "witness_types": witness_types,
+            "multisig": multisig
         }
 
 
@@ -1057,7 +1063,8 @@ class HDKey(Key):
         return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True):
+                 child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True,
+                 encoding='bech32', witness_type='legacy', multisig=False):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with systems cryptographically random function.
@@ -1086,9 +1093,20 @@ class HDKey(Key):
         :type passphrase: str
         :param compressed: Is key compressed or not, default is True
         :type compressed: bool
+        :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58 or derive from witness type
+        :type encoding: str
+        :param witness_type: Witness type used when creating scripts: legacy, p2sh-segwit or segwit.
+        :type witness_type: str
+        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addreses
+        :type multisig: bool
+
 
         :return HDKey:
         """
+
+        if not encoding and witness_type:
+            encoding = get_encoding_from_witness(witness_type)
+        self.script_type = script_type_default(witness_type, multisig)
 
         if (key and not chain) or (not key and chain):
             raise BKeyError("Please specify both key and chain, use import_key attribute "
@@ -1114,6 +1132,12 @@ class HDKey(Key):
                 kf = get_key_format(import_key)
                 if kf['format'] == 'address':
                     raise BKeyError("Can not create HDKey object from address")
+                if len(kf['script_types']) == 1:
+                    self.script_type = kf['script_types'][0]
+                if len(kf['witness_types']) == 1:
+                    witness_type = kf['witness_types'][0]
+                if len(kf['multisig']) == 1:
+                    multisig = kf['multisig'][0]
                 network = Network(check_network_and_key(import_key, network, kf["networks"]))
                 if kf['format'] in ['hdkey_private', 'hdkey_public']:
                     bkey = change_base(import_key, 58, 256)
@@ -1140,6 +1164,10 @@ class HDKey(Key):
 
         Key.__init__(self, key, network, compressed, passphrase, is_private)
 
+        self.encoding = encoding
+        self.witness_type = witness_type
+        self.multisig = multisig
+
         self.chain = chain
         self.depth = depth
         self.parent_fingerprint = parent_fingerprint
@@ -1157,13 +1185,16 @@ class HDKey(Key):
         """
         super(HDKey, self).info()
 
-        print("EXTENDED KEY INFO")
+        print("EXTENDED KEY")
         print(" Key Type                    %s" % self.key_type)
         print(" Chain code (hex)            %s" % change_base(self.chain, 256, 16))
         print(" Child Index                 %s" % self.child_index)
         print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint, 256, 16))
         print(" Depth                       %s" % self.depth)
         print(" Extended Public Key (wif)   %s" % self.wif_public())
+        print(" Witness type                %s" % self.witness_type)
+        print(" Script type                 %s" % self.script_type)
+        print(" Multisig                    %s" % self.multisig)
         if self.is_private:
             print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
         print("\n")
@@ -1217,7 +1248,7 @@ class HDKey(Key):
 
         return self.hash160()[:4]
 
-    def wif(self, is_private=None, child_index=None, prefix=None, witness_type='legacy', multisig=False):
+    def wif(self, is_private=None, child_index=None, prefix=None, witness_type=None, multisig=None):
         """
         Get Extended WIF of current key
 
@@ -1234,6 +1265,11 @@ class HDKey(Key):
 
         :return str: Base58 encoded WIF key
         """
+
+        if not witness_type:
+            witness_type = 'legacy' if not self.witness_type else self.witness_type
+        if not multisig:
+            multisig = False if not self.multisig else self.multisig
 
         rkey = self.private_byte or self.public_byte
         if prefix and not isinstance(prefix, (bytes, bytearray)):
@@ -1266,7 +1302,7 @@ class HDKey(Key):
         """
         return super(HDKey, self).wif(prefix)
 
-    def wif_public(self, prefix=None, witness_type='legacy', multisig=False):
+    def wif_public(self, prefix=None, witness_type=None, multisig=None):
         """
         Get Extended WIF public key. Wrapper for the wif() method
 

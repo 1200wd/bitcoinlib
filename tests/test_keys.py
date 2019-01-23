@@ -292,6 +292,20 @@ class TestHDKeysImport(unittest.TestCase):
         except KeyError as e:
             self.assertEqual('WIF format not supported for public key', e.args[0])
 
+    def test_hdkey_import_segwit_wifs(self):
+        wifs = [
+            ('zprvAe9nVpMfBzSSSCr8WHYiv5a6TeSojETexJfZhvu9oYuENwQkEqRHH7nnwGzscgkCCu9S2PrwnD1VJHXXfLUbSG8yqZoKpi2CaoY'
+             'Kdz7pKM1', True),
+            ('zpub6s98uKtZ2MzjegvbcK5jHDWq1gHJ8hBWKXbAWKJmMtSDFjjtnNjXpv7GnXmDGZzG36XMgLaC3JewffU5pukcUtYuEpRJEkVAiFU'
+             'mdA5GaXM', False),
+            ('yprvAEWM3LZ7vwNRTroi67SjcpexaVEdbEMAgHbiefDibSqssbrqyh9joH6BY6DRzkoGMX9nLxXoa5yYT64r3zQ2i9sQa51iQhzjwUj'
+             '2UJ2GES4', True),
+            ('Ypub6jkwv4tzCZJNe6j1JHZgwUmj6yCi5iEBNHrP1RDFyR13RwRNB5foJWeinpcBTqfv2uUe7mWSwsF1am4cVLN99xrkADPWrDick3S'
+             'aP8nxY8N', False)
+        ]
+        for wif in wifs:
+            self.assertEqual(HDKey(wif[0]).wif(is_private=wif[1]), wif[0])
+
 
 class TestHDKeysChildKeyDerivation(unittest.TestCase):
 
