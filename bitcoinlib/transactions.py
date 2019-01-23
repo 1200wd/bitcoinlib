@@ -592,6 +592,8 @@ def get_unlocking_script_type(locking_script_type, witness_type='legacy', multis
             return 'sig_pubkey'
         else:
             return 'p2sh_multisig'
+    elif locking_script_type == 'p2pk':
+        return 'signature'
     else:
         raise TransactionError("Unknown locking script type %s" % locking_script_type)
 
@@ -950,6 +952,9 @@ class Input:
         elif self.script_type == 'signature':
             if self.keys:
                 self.script_code = self.keys[0].public_byte + b'\xac'
+                self.unlocking_script_unsigned = self.script_code
+            if self.signatures:
+                self.unlocking_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type))
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:
@@ -1136,6 +1141,10 @@ class Output:
                 self.lock_script = b'\x00\x14' + self.public_hash
             elif self.script_type == 'p2wsh':
                 self.lock_script = b'\x00\x20' + self.public_hash
+            elif self.script_type == 'p2pk':
+                if not self.public_key:
+                    raise TransactionError("Public key is needed to create P2PK script for output %d" % output_n)
+                self.lock_script = varstr(to_bytes(self.public_key)) + b'\xac'
             else:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
@@ -1395,8 +1404,8 @@ class Transaction:
                 validstr = "valid"
             elif ti.valid is False:
                 validstr = "invalid"
-            print("  Script type: %s (%s), signatures: %d (%d-of-%d), %s" %
-                  (ti.script_type, ti.witness_type, len(ti.signatures), ti.sigs_required, len(ti.keys), validstr))
+            print("  %s %s; sigs: %d (%d-of-%d) %s" %
+                  (ti.witness_type, ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys), validstr))
             if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
                 replace_by_fee = True
             if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
@@ -1422,7 +1431,7 @@ class Transaction:
             if to.script_type == 'nulldata':
                 print("- NULLDATA ", to.lock_script[2:])
             else:
-                print("-", to.address, to.value)
+                print("-", to.address, to.value, to.script_type)
         if replace_by_fee:
             print("Replace by fee: Enabled")
         print("Size: %s" % self.size)
@@ -1581,6 +1590,7 @@ class Transaction:
             r += struct.pack('<L', hash_type)
         else:
             self.size = len(r)
+        print(sign_id, to_hexstring(r))
         return r
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
@@ -1904,6 +1914,8 @@ class Transaction:
                     scr_size += 9 + (len(inp.keys) * 34) + (inp.sigs_required * 72)
                     if inp.witness_type == 'p2sh-segwit':
                         scr_size += 17 * inp.sigs_required
+                elif inp.script_type == 'signature':
+                    scr_size += 9 + 72
                 else:
                     raise TransactionError("Unknown input script type %s cannot estimate transaction size" %
                                            inp.script_type)
@@ -1924,6 +1936,8 @@ class Transaction:
                     est_size += 21
                 elif outp.script_type == 'p2wsh':
                     est_size += 33
+                elif outp.script_type == 'p2pk':
+                    est_size += 35
                 elif outp.script_type == 'nulldata':
                     est_size += len(outp.lock_script) + 1
                 else:

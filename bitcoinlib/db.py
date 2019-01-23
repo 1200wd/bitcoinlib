@@ -267,7 +267,7 @@ class DbTransactionInput(Base):
     double_spend = Column(Boolean, default=False)
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'coinbase', 'sig_pubkey', 'p2sh_multisig',
-                                                       'pubkey', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
+                                                       'signature', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
                                       name='constraint_script_types_allowed'),
                       CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']),
                                       name='constraint_allowed_types'),)
@@ -293,8 +293,8 @@ class DbTransactionOutput(Base):
     value = Column(Integer, default=0)
     spent = Column(Boolean(), default=False)
 
-    __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'pubkey', 'nulldata',
-                                                       'unknown', 'p2wpkh', 'p2wsh', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
+    __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'p2pk', 'nulldata',
+                                                       'unknown', 'p2wpkh', 'p2wsh']),
                                       name='constraint_script_types_allowed'),)
 
 

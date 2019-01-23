@@ -48,7 +48,7 @@ SCRIPT_TYPES_LOCKING = {
     'p2wpkh': ['OP_0', 'hash-20'],
     'p2wsh': ['OP_0', 'hash-32'],
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
-    'pubkey': ['public_key', 'OP_CHECKSIG'],
+    'p2pk': ['public_key', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data'],
 }
 SCRIPT_TYPES_UNLOCKING = {
