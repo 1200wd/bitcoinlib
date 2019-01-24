@@ -70,8 +70,8 @@ class BlockExplorerClient(BaseClient):
             isCoinbase = True
         if tx['confirmations'] < 0:
             tx['confirmations'] = 0
-        blocktime = datetime.fromtimestamp(tx['blocktime']) if hasattr(tx, 'blocktime') else 0
-        blockhash = tx['blockhash'] if hasattr(tx, 'blockhash') else ''
+        blocktime = datetime.fromtimestamp(tx['blocktime']) if 'blocktime' in tx else 0
+        blockhash = tx['blockhash'] if 'blockhash' in tx else ''
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],
                         date=blocktime, confirmations=tx['confirmations'],
