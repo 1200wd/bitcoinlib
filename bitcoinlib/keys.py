@@ -1341,33 +1341,34 @@ class HDKey(Key):
         See BIP0044 bitcoin proposal for more explanation.
 
         :param path: BIP0044 key path
-        :type path: str
+        :type path: str, list
         :param network: Network name.
         :type network: str
 
         :return HDKey: HD Key class object of subkey
         """
 
+        if isinstance(path, str):
+            path = path.split("/")
         if self.key_type == 'single':
             raise BKeyError("Key derivation cannot be used for 'single' type keys")
         key = self
         first_public = False
         if path[0] == 'm':  # Use Private master key
-            path = path[2:]
+            path = path[1:]
         elif path[0] == 'M':  # Use Public master key
-            path = path[2:]
+            path = path[1:]
             first_public = True
         if path:
-            levels = path.split("/")
-            if len(levels) > 1:
+            if len(path) > 1:
                 _logger.warning("Path length > 1 can be slow for larger paths, use Wallet Class to generate keys paths")
-            for level in levels:
-                if not level:
+            for item in path:
+                if not item:
                     raise BKeyError("Could not parse path. Index is empty.")
-                hardened = level[-1] in "'HhPp"
+                hardened = item[-1] in "'HhPp"
                 if hardened:
-                    level = level[:-1]
-                index = int(level)
+                    item = item[:-1]
+                index = int(item)
                 if index < 0:
                     raise BKeyError("Could not parse path. Index must be a positive integer.")
                 if first_public or not key.is_private:
