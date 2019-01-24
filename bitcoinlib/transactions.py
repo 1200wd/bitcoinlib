@@ -1590,7 +1590,6 @@ class Transaction:
             r += struct.pack('<L', hash_type)
         else:
             self.size = len(r)
-        print(sign_id, to_hexstring(r))
         return r
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
