@@ -25,6 +25,7 @@ import random
 from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
+from bitcoinlib.encoding import to_hexstring
 
 _logger = logging.getLogger(__name__)
 
@@ -241,10 +242,11 @@ class Service(object):
         Get a transaction by its transaction hash
 
         :param txid: Transaction identification hash
-        :type txid: str
+        :type txid: str, bytes
 
         :return Transaction: A single transaction object
         """
+        txid = to_hexstring(txid)
         return self._provider_execute('gettransaction', txid)
 
     def getrawtransaction(self, txid):
@@ -252,10 +254,11 @@ class Service(object):
         Get a raw transaction by its transaction hash
 
         :param txid: Transaction identification hash
-        :type txid: str
+        :type txid: str, bytes
 
         :return str: Raw transaction as hexstring
         """
+        txid = to_hexstring(txid)
         return self._provider_execute('getrawtransaction', txid)
 
     def sendrawtransaction(self, rawtx):
@@ -263,10 +266,11 @@ class Service(object):
         Push a raw transaction to the network
 
         :param rawtx: Raw transaction as hexstring
-        :type rawtx: str
+        :type rawtx: str, bytes
 
         :return dict: Send transaction result
         """
+        rawtx = to_hexstring(rawtx)
         return self._provider_execute('sendrawtransaction', rawtx)
 
     def estimatefee(self, blocks=3):
