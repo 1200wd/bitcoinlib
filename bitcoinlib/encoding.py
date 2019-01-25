@@ -67,10 +67,10 @@ def _get_code_string(base):
 def _in_code_string_check(inp, code_str_from):
     if not PY3 and isinstance(inp, bytearray):
         inp = str(inp)
-    if inp in code_str_from:
-        return inp
-    else:
-        return inp.lower()
+    try:
+        return code_str_from.index(inp)
+    except ValueError:
+        return code_str_from.index(inp.lower())
 
 
 def _array_to_codestring(array, base):
@@ -185,7 +185,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     # Use binascii and int for standard conversions to speedup things
     if not min_length:
         if base_from == 256 and base_to == 16:
-            return to_hexstring(binascii.hexlify(inp))
+            return to_hexstring(inp)
         elif base_from == 16 and base_to == 256:
             return binascii.unhexlify(inp)
     if base_from == 16 and base_to == 10:
@@ -204,13 +204,10 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             else:
                 item = inp[-1:]
                 inp = inp[:-1]
-            itemindex = _in_code_string_check(item, code_str_from)
-            if itemindex not in code_str_from:
+            try:
+                pos = _in_code_string_check(item, code_str_from)
+            except ValueError:
                 return False
-            else:
-                pos = code_str_from.index(itemindex)
-            # except ValueError:
-            #     raise EncodingError("Unknown character '%s' in input" % item)
             input_dec += pos * factor
 
             # Add leading zero if there are leading zero's in input
