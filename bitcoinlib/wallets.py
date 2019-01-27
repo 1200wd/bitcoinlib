@@ -2216,6 +2216,7 @@ class HDWallet:
                 for wk in wks:
                     if '_sa_instance_state' in wk:
                         del wk['_sa_instance_state']
+                networks = wks
             else:
                 for wk in wks:
                     networks.append(Network(wk.network_name))

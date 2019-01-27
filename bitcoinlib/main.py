@@ -28,6 +28,9 @@ from bitcoinlib.config.opcodes import *
 
 # General defaults
 PY3 = sys.version_info[0] == 3
+TYPE_TEXT = str
+if not PY3:
+    TYPE_TEXT = (str, unicode)
 
 # File locations
 DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')

@@ -1348,7 +1348,7 @@ class HDKey(Key):
         :return HDKey: HD Key class object of subkey
         """
 
-        if isinstance(path, str):
+        if isinstance(path, TYPE_TEXT):
             path = path.split("/")
         if self.key_type == 'single':
             raise BKeyError("Key derivation cannot be used for 'single' type keys")
