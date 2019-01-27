@@ -22,7 +22,7 @@ import sys
 import logging
 import json
 import random
-from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA
+from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA, TYPE_TEXT
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
@@ -175,7 +175,7 @@ class Service(object):
         """
         if not addresslist:
             return
-        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
+        if isinstance(addresslist, TYPE_TEXT):
             addresslist = [addresslist]
 
         tot_balance = 0
@@ -199,7 +199,7 @@ class Service(object):
         """
         if not addresslist:
             return []
-        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
+        if isinstance(addresslist, TYPE_TEXT):
             addresslist = [addresslist]
 
         utxos = []
@@ -223,7 +223,7 @@ class Service(object):
         """
         if not addresslist:
             return []
-        if isinstance(addresslist, (str, unicode if sys.version < '3' else str)):
+        if isinstance(addresslist, TYPE_TEXT):
             addresslist = [addresslist]
 
         transactions = []

@@ -149,7 +149,7 @@ class Mnemonic:
         :return bytes: Entrophy seed
         """
         words = self.sanitize_mnemonic(words)
-        if isinstance(words, (str, unicode if sys.version < '3' else str)):
+        if isinstance(words, TYPE_TEXT):
             words = words.split(' ')
         wi = []
         for word in words:
@@ -177,7 +177,7 @@ class Mnemonic:
         :return str: Language 
         """
         words = normalize_string(words)
-        if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
+        if isinstance(words, TYPE_TEXT):
             words = words.split(' ')
 
         wlcount = {}
@@ -210,7 +210,7 @@ class Mnemonic:
         """
         words = normalize_string(words)
         language = self.detect_language(words)
-        if isinstance(words, (str, unicode if sys.version < '3' else bytes)):
+        if isinstance(words, TYPE_TEXT):
             words = words.split(' ')
         with open('%s/%s.txt' % (WORDLIST_DIR, language)) as f:
             wordlist = [w.strip() for w in f.readlines()]

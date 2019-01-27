@@ -604,7 +604,7 @@ def to_bytearray(string):
 
     :return bytearray:
     """
-    if isinstance(string, (str, unicode if not PY3 else str)):
+    if isinstance(string, TYPE_TEXT):
         try:
             string = binascii.unhexlify(string)
         except (TypeError, binascii.Error):
@@ -673,7 +673,7 @@ def normalize_string(string):
     """
     if isinstance(string, str if sys.version < '3' else bytes):
         utxt = string.decode('utf8')
-    elif isinstance(string, unicode if sys.version < '3' else str):
+    elif isinstance(string, TYPE_TEXT):
         utxt = string
     else:
         raise TypeError("String value expected")
