@@ -2188,7 +2188,7 @@ class HDWallet:
                 accounts.append(self.key(wk.id))
         return accounts
 
-    def networks(self):
+    def networks(self, as_dict=True):
         """
         Get list of networks used by this wallet
         
@@ -2196,19 +2196,31 @@ class HDWallet:
         """
 
         if self.scheme == 'single' or self.multisig:
-            nw_dict = self.network.__dict__
-            nw_dict['network_name'] = nw_dict['name']
-            return [nw_dict]
-        else:
-            wks = self.keys_networks(as_dict=True)
-            if not wks:
+            if as_dict:
                 nw_dict = self.network.__dict__
                 nw_dict['network_name'] = nw_dict['name']
                 return [nw_dict]
-            for wk in wks:
-                if '_sa_instance_state' in wk:
-                    del wk['_sa_instance_state']
-            return wks
+            else:
+                return [self.network]
+        else:
+            wks = self.keys_networks(as_dict=as_dict)
+            networks = []
+            if not wks:
+                if as_dict:
+                    nw_dict = self.network.__dict__
+                    nw_dict['network_name'] = nw_dict['name']
+                    return [nw_dict]
+                else:
+                    return [self.network]
+            if as_dict:
+                for wk in wks:
+                    if '_sa_instance_state' in wk:
+                        del wk['_sa_instance_state']
+            else:
+                for wk in wks:
+                    networks.append(Network(wk.network_name))
+
+            return networks
 
     def network_list(self, field='network_name'):
         """
