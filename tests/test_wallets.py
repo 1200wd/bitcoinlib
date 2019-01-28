@@ -468,7 +468,7 @@ class TestWalletMultiCurrency(unittest.TestCase):
 
     def test_wallet_multiple_networks_defined(self):
         networks_expected = sorted(['litecoin', 'bitcoin', 'dash', 'testnet'])
-        networks_wlt = sorted([x['network_name'] for x in self.wallet.networks()])
+        networks_wlt = sorted([x.name for x in self.wallet.networks()])
         self.assertListEqual(networks_wlt, networks_expected,
                              msg="Not all network are defined correctly for this wallet")
 

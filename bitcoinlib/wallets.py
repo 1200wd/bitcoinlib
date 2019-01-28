@@ -616,18 +616,22 @@ class HDWalletTransaction(Transaction):
         """
         priv_key_list_arg = []
         if keys:
+            key_paths = list(set([ti.key_path for ti in self.inputs]))
             if not isinstance(keys, list):
                 keys = [keys]
             for priv_key in keys:
                 if not isinstance(priv_key, HDKey):
                     priv_key = HDKey(priv_key, network=self.network.name)
-                priv_key_list_arg.append(priv_key)
+                if not key_paths or priv_key.depth != 0 or priv_key.key_type == "single":
+                    priv_key_list_arg.append((None, priv_key))
+                else:
+                    for key_path in key_paths:
+                        priv_key_list_arg.append((key_path, priv_key.subkey_for_path(key_path)))
         for ti in self.inputs:
             priv_key_list = []
-            for priv_key in priv_key_list_arg:
-                if priv_key.depth == 0 and ti.key_path and priv_key.key_type != "single":
-                    priv_key = priv_key.subkey_for_path(ti.key_path)
-                priv_key_list.append(priv_key)
+            for (key_path, priv_key) in priv_key_list_arg:
+                if not key_path or key_path == ti.key_path:
+                    priv_key_list.append(priv_key)
             for k in ti.keys:
                 if k.is_private:
                     if isinstance(k, HDKey):
@@ -2188,11 +2192,14 @@ class HDWallet:
                 accounts.append(self.key(wk.id))
         return accounts
 
-    def networks(self, as_dict=True):
+    def networks(self, as_dict=False):
         """
         Get list of networks used by this wallet
-        
-        :return list: List of networks as dictionary
+
+        :param as_dict: Return as dictionary or as Network objects, default is Network objects
+        :type as_dict: bool
+
+        :return list of (Network, dict):
         """
 
         if self.scheme == 'single' or self.multisig:
@@ -2223,15 +2230,15 @@ class HDWallet:
 
             return networks
 
-    def network_list(self, field='network_name'):
+    def network_list(self, field='name'):
         """
         Wrapper for networks methods, returns a flat list with currently used
         networks for this wallet.
         
-        :return: list 
+        :return list of str:
         """
 
-        return [x[field] for x in self.networks()]
+        return [getattr(x, field) for x in self.networks()]
 
     def balance_update_from_serviceprovider(self, account_id=None, network=None):
         """
@@ -3300,7 +3307,7 @@ class HDWallet:
         balances = self._balance_update()
         if detail > 1:
             for nw in self.networks():
-                print("\n- NETWORK: %s -" % nw['network_name'])
+                print("\n- NETWORK: %s -" % nw.name)
                 print("- - Keys")
                 if detail < 4:
                     ds = [self.key_depth]
@@ -3315,7 +3322,7 @@ class HDWallet:
                     is_active = True
                     if detail > 3:
                         is_active = False
-                    for key in self.keys(depth=d, network=nw['network_name'], is_active=is_active):
+                    for key in self.keys(depth=d, network=nw.name, is_active=is_active):
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
                                                               Network(key.network_name).print_value(key.balance)))
 
@@ -3324,7 +3331,7 @@ class HDWallet:
                     if detail > 3:
                         include_new = True
                     if self.multisig:
-                        for t in self.transactions(include_new=include_new, account_id=0, network=nw['network_name']):
+                        for t in self.transactions(include_new=include_new, account_id=0, network=nw.name):
                             print("\n- - Transactions")
                             spent = ""
                             if 'spent' in t and t['spent'] is False:
@@ -3335,7 +3342,7 @@ class HDWallet:
                             print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
                                                                     t['confirmations'], t['value'], spent, status))
                     else:
-                        accounts = self.accounts(network=nw['network_name'])
+                        accounts = self.accounts(network=nw.name)
                         if not accounts:
                             accounts = [0]
                         for account in accounts:
@@ -3347,7 +3354,7 @@ class HDWallet:
                                 print("\n- - Transactions (Account %d, %s)" %
                                       (account_id, account.key().wif_public(witness_type=self.witness_type)))
                             for t in self.transactions(include_new=include_new, account_id=account_id,
-                                                       network=nw['network_name']):
+                                                       network=nw.name):
                                 spent = ""
                                 if 'spent' in t and t['spent'] is False:
                                     spent = "U"
