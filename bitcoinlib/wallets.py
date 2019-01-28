@@ -245,7 +245,8 @@ def wallet_delete_if_exists(wallet, databasefile=DEFAULT_DATABASE, force=False):
 
 
 def normalize_path(path):
-    """ Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys 
+    """
+    Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys
 
     :param path: BIP0044 key path 
     :type path: str

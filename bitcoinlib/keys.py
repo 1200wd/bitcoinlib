@@ -1399,12 +1399,12 @@ class HDKey(Key):
         if set_network:
             self.network_change(set_network)
         if self.is_private:
-            path = "m"
+            path = ["m"]
         else:
-            path = "M"
-        path += "/%d'" % purpose
-        path += "/%d'" % self.network.bip44_cointype
-        path += "/%d'" % account_id
+            path = ["M"]
+        path.append("%d'" % purpose)
+        path.append("%d'" % self.network.bip44_cointype)
+        path.append("%d'" % account_id)
         return self.subkey_for_path(path)
 
     def account_multisig_key(self, account_id=0, witness_type='legacy'):
@@ -1432,11 +1432,11 @@ class HDKey(Key):
             script_type = 2
         else:
             raise BKeyError("Unknown witness type %s" % witness_type)
-        path = "%s/%d'" % ('m' if self.is_private else 'M', purpose)
+        path = ["%s" % 'm' if self.is_private else 'M', "%d'" % purpose]
         if purpose == 45:
             return self.subkey_for_path(path)
         elif purpose == 48:
-            path += "/%d'/%d'/%d'" % (self.network.bip44_cointype, account_id, script_type)
+            path += ["%d'" % self.network.bip44_cointype, "%d'" % account_id, "%d'" % script_type]
             return self.subkey_for_path(path)
         else:
             raise BKeyError("Unknown purpose %d, cannot determine wallet public cosigner key" % purpose)
