@@ -1432,6 +1432,14 @@ class HDKey(Key):
             script_type = 2
         else:
             raise BKeyError("Unknown witness type %s" % witness_type)
+
+        if self.depth == 3 and purpose == 44:
+            return self
+        elif self.depth == 4 and purpose == 45:
+            return self
+        elif self.depth != 0:
+            raise BKeyError("Need a master key to generate account key")
+
         path = ["%s" % 'm' if self.is_private else 'M', "%d'" % purpose]
         if purpose == 45:
             return self.subkey_for_path(path)

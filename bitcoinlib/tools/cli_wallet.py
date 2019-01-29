@@ -232,9 +232,8 @@ def main():
         hdkey = HDKey.from_seed(seed, network=args.network)
         print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif())
         print(
-            "Public account key, to share with other cosigner multisig wallets: %s" % hdkey.account_multisig_key(
-
-            ).wif_public())
+            "Public account key, to share with other cosigner multisig wallets: %s" %
+            hdkey.account_multisig_key(witness_type=args.witness_type).wif_public())
         print("Network: %s" % hdkey.network.name)
         clw_exit()
 

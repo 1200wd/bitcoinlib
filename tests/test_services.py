@@ -362,8 +362,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(network='dash', min_providers=10)
 
         # Get transactions by hash
-        srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf').as_dict()
-        print(srv.results)
+        srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf')
         for provider in srv.results:
             print("Comparing provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,

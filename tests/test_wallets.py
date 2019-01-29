@@ -1066,6 +1066,30 @@ class TestWalletKeyImport(unittest.TestCase):
             wlt.import_key(prk3)
             self.assertTrue(wlt.cosigner[2].main_key.is_private)
 
+    def test_wallet_import_private_for_known_public_p2sh_segwit(self):
+        pk1 = HDKey(network='bitcoinlib_test')
+        pk2 = HDKey(network='bitcoinlib_test')
+        w = HDWallet.create_multisig('segwit-p2sh-p2wsh-import',
+                                     [pk1, pk2.account_multisig_key(witness_type='p2sh-segwit').public()],
+                                     witness_type='p2sh-segwit', network='bitcoinlib_test',
+                                     databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key()
+        w.utxos_update()
+        t = w.sweep('23CvEnQKsTVGgqCZzW6ewXPSJH9msFPsBt3')
+        self.assertEqual(len(t.inputs[0].signatures), 1)
+        self.assertFalse(t.verify())
+
+        w.import_key(pk2)
+        wc0 = w.cosigner[0]
+        self.assertEqual(len(wc0.keys(is_private=False)), 0)
+        t2 = w.send_to('23CvEnQKsTVGgqCZzW6ewXPSJH9msFPsBt3', 1000000)
+        self.assertEqual(len(t2.inputs[0].signatures), 2)
+        self.assertTrue(t2.verify())
+        t3 = w.sweep('23CvEnQKsTVGgqCZzW6ewXPSJH9msFPsBt3')
+        self.assertEqual(len(t3.inputs[0].signatures), 2)
+        self.assertTrue(t3.verify())
+        self.assertEqual(t3.outputs[0].value, 198981935)
+
 
 class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 

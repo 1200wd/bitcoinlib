@@ -297,16 +297,15 @@ def parse_bip44_path(path):
 
 class HDWalletKey:
     """
-    Normally only used as attribute of HDWallet class. Contains HDKey object and extra information such as path and
-    balance.
+    Normally only used as attribute of HDWallet class. Contains HDKey class, and adds extra information such as
+    key ID, name, path and balance.
     
     All HDWalletKey are stored in a database
     """
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0,
-                 purpose=44, parent_id=0, path='m', key_type=None, encoding=None, witness_type='legacy',
-                 multisig=False):
+    def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0, purpose=44, parent_id=0,
+                 path='m', key_type=None, encoding=None, witness_type='legacy', multisig=False):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -389,12 +388,22 @@ class HDWalletKey:
                     raise WalletError("Key depth of %d does not match path length of %d for path %s" %
                                       (k.depth, len(path.split('/')) - 1, path))
 
-            wk = session.query(DbKey).filter(DbKey.wallet_id == wallet_id,
-                                             or_(DbKey.public == k.public_hex,
-                                                 DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig,
-                                                                    is_private=True))).first()
+            wk = session.query(DbKey).filter(
+                DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
+                    witness_type=witness_type, multisig=multisig, is_private=True)).first()
             if wk:
                 return HDWalletKey(wk.id, session, k)
+            elif k.is_private:  # Look for public version of key, and convert to private if possible
+                wk = session.query(DbKey).filter(
+                    DbKey.wallet_id == wallet_id,
+                    or_(DbKey.public == k.public_hex,
+                        DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False))).first()
+                if wk:
+                    wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
+                    wk.is_private = True
+                    wk.private = k.private_hex
+                    session.commit()
+                    return HDWalletKey(wk.id, session, k)
 
             address = k.address(encoding=encoding, script_type=script_type)
 
@@ -440,7 +449,6 @@ class HDWalletKey:
             self.key_id = key_id
             self._name = wk.name
             self.wallet_id = wk.wallet_id
-            # self.key_hex = wk.key
             self.key_public = wk.public
             self.key_private = wk.private
             self.account_id = wk.account_id
@@ -496,8 +504,8 @@ class HDWalletKey:
     def key(self):
         """
         Get HDKey object for current HDWalletKey
-        
-        :return HDKey: 
+
+        :return HDKey:
         """
 
         if self.key_type == 'multisig':
@@ -508,7 +516,7 @@ class HDWalletKey:
 
     def balance(self, fmt=''):
         """
-        Get total of unspent outputs
+        Get total value of unspent outputs
         
         :param fmt: Specify 'string' to return a string in currency format
         :type fmt: str
@@ -1329,35 +1337,36 @@ class HDWallet:
         """
 
         network, account_id, acckey = self._get_account_defaults()
-        top_key_depth = self.main_key.depth
         if not isinstance(hdkey, HDKey):
             hdkey = HDKey(hdkey)
         if not isinstance(self.main_key, HDWalletKey):
             raise WalletError("Main wallet key is not an HDWalletKey instance. Type %s" % type(self.main_key))
         if not hdkey.is_private or hdkey.depth != 0:
             raise WalletError("Please supply a valid private BIP32 master key with key depth 0")
-        if (self.main_key.depth != 1 and self.main_key.depth != 3) or self.main_key.is_private or \
-                self.main_key.key_type != 'bip32':
+        if (self.main_key.depth != 1 and self.main_key.depth != 3 and self.main_key.depth != 4) or \
+                self.main_key.is_private or self.main_key.key_type != 'bip32':
             raise WalletError("Current main key is not a valid BIP32 public account key")
-        if self.main_key.wif != hdkey.account_key(purpose=self.purpose).wif_public() and \
-                self.main_key.wif != hdkey.account_multisig_key().wif_public():
-            raise WalletError("This key does not correspond to current main account key")
+        # TODO: Enable this check, let it work for multisig / segwit, etc
+        # if self.main_key.wif != \
+        #         hdkey.account_key(purpose=self.purpose).wif_public(witness_type=self.witness_type,multisig=self.multisig) \
+        #         and \
+        #         self.main_key.wif != hdkey.account_multisig_key(witness_type=self.witness_type).wif_public():
+        #     raise WalletError("This key does not correspond to current main account key")
         if not (self.network.name == self.main_key.network.name == hdkey.network.name):
             raise WalletError("Network of Wallet class, main account key and the imported private key must use "
                               "the same network")
 
         self.main_key = HDWalletKey.from_key(
-            key=hdkey.wif(is_private=True), name=name, session=self._session, wallet_id=self.wallet_id, network=network,
+            key=hdkey, name=name, session=self._session, wallet_id=self.wallet_id, network=network,
             account_id=account_id, purpose=self.purpose, key_type='bip32', witness_type=self.witness_type)
         self.main_key_id = self.main_key.key_id
-        self.key_for_path([], top_key_depth, name=name, network=network)
-
-        self._key_objects = {
-            self.main_key_id: self.main_key
-        }
-        # FIXME: Use wallet object for this (integrate self._db and self)
+        self._key_objects.update({self.main_key_id: self.main_key})
         self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id).\
             update({DbWallet.main_key_id: self.main_key_id})
+
+        for key in self.keys(is_private=False):
+            self.key_for_path(key.path, recreate=True)
+
         self._session.commit()
         return self.main_key
 
@@ -1424,17 +1433,15 @@ class HDWallet:
                 key=hdkey, name=name, wallet_id=self.wallet_id, network=network, key_type=key_type,
                 account_id=account_id, purpose=purpose, session=self._session, path=ik_path,
                 witness_type=self.witness_type)
+            self._key_objects.update({mk.key_id: mk})
             return mk
         else:
-            account_key = hdkey.account_multisig_key().wif_public()
+            account_key = hdkey.account_multisig_key(witness_type=self.witness_type).wif_public()
             for w in self.cosigner:
-                if w.main_key.wif == account_key:
-                    if w.main_key.depth != 3 and w.main_key.depth != 1:
-                        _logger.debug("Private key probably already known. Key depth of wallet key must be 1 or 3 but "
-                                      "is %d" % w.main_key.depth)
-                        continue
+                if w.main_key.key().wif_public() == account_key:
                     _logger.debug("Import new private cosigner key in this multisig wallet: %s" % account_key)
                     return w.import_master_key(hdkey)
+            raise WalletError("Unknown key: Can only import private key for known public key in multisig wallets")
 
     def new_key(self, name='', account_id=None, change=0, cosigner_id=None, network=None):
         """
@@ -1543,7 +1550,6 @@ class HDWallet:
                 self._session.add(DbKeyMultisigChildren(key_order=public_key_ids.index(child_id),
                                                         parent_id=multisig_key.id, child_id=int(child_id)))
             self._session.commit()
-            # return HDWalletKey(multisig_key.id, session=self._session)
             return self.key(multisig_key.id)
 
     def new_key_change(self, name='', account_id=None, network=None):
@@ -1695,7 +1701,6 @@ class HDWallet:
         for i in range(number_of_keys):
             if dbkey:
                 dk = dbkey.pop()
-                # nk = HDWalletKey(dk.id, session=self._session)
                 nk = self.key(dk.id)
             else:
                 nk = self.new_key(account_id=account_id, change=change, cosigner_id=cosigner_id, network=network)
@@ -1846,7 +1851,8 @@ class HDWallet:
             raise WalletError("Field \"%s\" is None in key_path" % path[npath.index("None")])
         return npath
 
-    def key_for_path(self, path, level_offset=None, name='', account_id=None, cosigner_id=None, network=None):
+    def key_for_path(self, path, level_offset=None, name='', account_id=None, cosigner_id=None, network=None,
+                     recreate=False):
         """
         Return key for specified path. Derive all wallet keys in path if they not already exists
 
@@ -1862,6 +1868,8 @@ class HDWallet:
         :type cosigner_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
+        :param recreate: Recreate key, even if already found in wallet. Can be used to update public key with private key info
+        :type recreate: bool
 
         :return HDWalletKey:
         """
@@ -1873,14 +1881,17 @@ class HDWallet:
         spath = normalize_path('/'.join(path))
         dbkey = None
         while spath and not dbkey:
-            dbkey = self._session.query(DbKey).filter_by(path=spath, wallet_id=self.wallet_id).first()
+            qr = self._session.query(DbKey).filter_by(path=spath, wallet_id=self.wallet_id)
+            if recreate:
+                qr = qr.filter_by(is_private=True)
+            dbkey = qr.first()
             spath = '/'.join(spath.split("/")[:-1])
         if not dbkey:
             raise WalletError("No master or public master key found in this wallet")
         topkey = self.key(dbkey.id)
 
         # Key already found in db, return key
-        if dbkey and dbkey.path == normalize_path('/'.join(path)):
+        if dbkey and dbkey.path == normalize_path('/'.join(path)) and not recreate:
             return topkey
 
         # Create 1 or more keys add them to wallet
@@ -1975,7 +1986,7 @@ class HDWallet:
                 qr = qr.filter(DbKey.balance == 0)
         if is_active:  # Unused keys and keys with a balance
             qr = qr.filter(or_(DbKey.balance != 0, DbKey.used == False))
-        keys = qr.all()
+        keys = qr.order_by(DbKey.depth).all()
         if as_dict:
             keys = [x.__dict__ for x in keys]
             keys2 = []
@@ -2135,7 +2146,9 @@ class HDWallet:
             if dbkey.id in self._key_objects.keys():
                 return self._key_objects[dbkey.id]
             else:
-                return HDWalletKey(key_id=dbkey.id, session=self._session)
+                hdwltkey = HDWalletKey(key_id=dbkey.id, session=self._session)
+                self._key_objects.update({dbkey.id: hdwltkey})
+                return hdwltkey
         else:
             raise KeyError("Key '%s' not found" % term)
 
@@ -2164,7 +2177,6 @@ class HDWallet:
         if not qr:
             raise WalletError("Account with ID %d not found in this wallet" % account_id)
         key_id = qr.id
-        # return HDWalletKey(key_id, session=self._session)
         return self.key(key_id)
 
     def accounts(self, network=None):
@@ -2183,13 +2195,11 @@ class HDWallet:
             # raise WalletError("Accounts not supported for multisig wallets")
             for wlt in self.cosigner:
                 if wlt.main_key.is_private:
-                    # accounts.append(HDWalletKey(wlt.main_key.key_id, self._session))
                     accounts.append(self.key(wlt.main_key.key_id))
         else:
             wks = self.keys_accounts(network=network)
 
             for wk in wks:
-                # accounts.append(HDWalletKey(wk.id, self._session))
                 accounts.append(self.key(wk.id))
         return accounts
 
@@ -2723,13 +2733,10 @@ class HDWallet:
 
     def _objects_by_key_id(self, key_id):
         key = self._session.query(DbKey).filter_by(id=key_id).scalar()
-        inp_keys = []
         if not key:
             raise WalletError("Key '%s' not found in this wallet" % key_id)
         if key.key_type == 'multisig':
-            for ck in key.multisig_children:
-                # TODO:  CHECK THIS
-                inp_keys.append(HDKey(ck.child_key.wif, network=ck.child_key.network_name))
+            inp_keys = [HDKey(ck.child_key.wif, network=ck.child_key.network_name) for ck in key.multisig_children]
         elif key.key_type in ['bip32', 'single']:
             if not key.wif:
                 raise WalletError("WIF of key is empty cannot create HDKey")
@@ -3255,12 +3262,16 @@ class HDWallet:
         """
         Return public master key(s) for this wallet. Use to import in other wallets to sign transactions or create keys.
 
+        For a multisig wallet all public master keys are return as list.
+
+        Returns private key information if available.
+
         :param account_id: Account ID of key to export
         :type account_id: bool
         :param network: Network name. Leave empty for default network
         :type network: str
 
-        :return str, list:
+        :return list of HDWalletKey, HDWalletKey:
         """
         if self.main_key and self.main_key.key_type == 'single':
             return self.main_key
