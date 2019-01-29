@@ -1088,7 +1088,7 @@ class TestWalletKeyImport(unittest.TestCase):
         t3 = w.sweep('23CvEnQKsTVGgqCZzW6ewXPSJH9msFPsBt3')
         self.assertEqual(len(t3.inputs[0].signatures), 2)
         self.assertTrue(t3.verify())
-        self.assertEqual(t3.outputs[0].value, 198981935)
+        self.assertAlmostEqual(t3.outputs[0].value, 198981935, delta=100000)
 
 
 class TestWalletTransactions(unittest.TestCase, CustomAssertions):

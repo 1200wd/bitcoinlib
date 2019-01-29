@@ -1794,7 +1794,7 @@ class HDWallet:
 
         :return list:
         """
-        if isinstance(path, str):
+        if isinstance(path, TYPE_TEXT):
             path = path.split('/')
         if not isinstance(path, list):
             raise WalletError("Please provide path as list with at least 1 item. Wallet key path format is %s" %
