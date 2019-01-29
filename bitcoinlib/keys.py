@@ -351,7 +351,7 @@ def addr_convert(addr, prefix, encoding=None, to_encoding=None):
     pkh = addr_to_pubkeyhash(addr, encoding=encoding)
     if to_encoding is None:
         to_encoding = encoding
-    if isinstance(prefix, str) and to_encoding == 'base58':
+    if isinstance(prefix, TYPE_TEXT) and to_encoding == 'base58':
         prefix = to_hexstring(prefix)
     return pubkeyhash_to_addr(pkh, prefix=prefix, encoding=to_encoding)
 

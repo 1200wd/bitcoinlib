@@ -1441,7 +1441,7 @@ class HDWallet:
                 if w.main_key.key().wif_public() == account_key:
                     _logger.debug("Import new private cosigner key in this multisig wallet: %s" % account_key)
                     return w.import_master_key(hdkey)
-            raise WalletError("Unknown key: Can only import private key for known public key in multisig wallets")
+            raise WalletError("Unknown key: Can only import a private key for a known public key in multisig wallets")
 
     def new_key(self, name='', account_id=None, change=0, cosigner_id=None, network=None):
         """
@@ -1830,7 +1830,7 @@ class HDWallet:
         }
         npath = deepcopy(path)
         for i, pi in enumerate(path):
-            if not isinstance(pi, str):
+            if not isinstance(pi, TYPE_TEXT):
                 pi = str(pi)
             if pi in "mM":
                 continue
