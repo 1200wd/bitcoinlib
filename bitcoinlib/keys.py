@@ -1503,7 +1503,7 @@ class HDKey(Key):
         if ks and not encoding:
             encoding = ks[0]['encoding']
         key_path = ks[0]['key_path']
-        # return path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None)
+        # key_path = path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None)
 
 
     def account_multisig_key(self, account_id=0, witness_type='legacy'):

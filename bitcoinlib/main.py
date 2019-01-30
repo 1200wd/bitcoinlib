@@ -21,6 +21,7 @@
 import os
 import sys
 import locale
+import functools
 import logging
 from logging.handlers import RotatingFileHandler
 from bitcoinlib.config.opcodes import *
@@ -268,3 +269,15 @@ def get_encoding_from_witness(witness_type=None):
         return 'base58'
     else:
         raise ValueError("Unknown witness type %s" % witness_type)
+
+
+def deprecated(func):
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used."""
+
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        logging.warning("Call to deprecated function {}.".format(func.__name__))
+        return func(*args, **kwargs)
+    return new_func
