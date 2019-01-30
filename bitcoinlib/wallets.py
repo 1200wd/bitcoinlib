@@ -27,7 +27,7 @@ import json
 
 from bitcoinlib.db import *
 from bitcoinlib.encoding import to_hexstring, to_bytes
-from bitcoinlib.keys import HDKey, check_network_and_key, Address, deserialize_address
+from bitcoinlib.keys import HDKey, check_network_and_key, Address, deserialize_address, path_expand
 from bitcoinlib.networks import Network, wif_prefix_search
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
@@ -1794,62 +1794,9 @@ class HDWallet:
 
         :return list:
         """
-        if isinstance(path, TYPE_TEXT):
-            path = path.split('/')
-        if not isinstance(path, list):
-            raise WalletError("Please provide path as list with at least 1 item. Wallet key path format is %s" %
-                              self.key_path)
-        if len(path) > len(self.key_path):
-            raise WalletError("Invalid path provided. Path should be shorter than %d items. "
-                              "Wallet key path format is %s" % (len(self.key_path), self.key_path))
-
-        # If path doesn't start with m/M complement path
-        if path == [] or path[0] not in ['m', 'M']:
-            wallet_key_path = self.key_path
-            if level_offset:
-                wallet_key_path = wallet_key_path[:level_offset]
-            new_path = []
-            for pi in wallet_key_path[::-1]:
-                if not len(path):
-                    new_path.append(pi)
-                else:
-                    new_path.append(path.pop())
-            path = new_path[::-1]
-
-        # Replace variable names in path with corresponding values
-        network, account_id, acckey = self._get_account_defaults(network, account_id)
-        script_type_id = 1 if self.witness_type == 'p2sh-segwit' else 2
-        var_defaults = {
-            'network': network,
-            'account': account_id,
-            'purpose': self.purpose,
-            'coin_type': Network(network).bip44_cointype,
-            'script_type': script_type_id,
-            'cosigner_index': cosigner_id,
-            'change': 0,
-        }
-        npath = deepcopy(path)
-        for i, pi in enumerate(path):
-            if not isinstance(pi, TYPE_TEXT):
-                pi = str(pi)
-            if pi in "mM":
-                continue
-            hardened = False
-            varname = pi
-            if pi[-1:] == "'" or (pi[-1:] in "HhPp" and pi[:-1].isdigit()):
-                varname = pi[:-1]
-                hardened = True
-            if self.key_path[i][-1:] == "'":
-                hardened = True
-            new_varname = (str(var_defaults[varname]) if varname in var_defaults else varname)
-            if new_varname == varname and not new_varname.isdigit():
-                raise WalletError("Variable %s not found in Key structure definitions in main.py" % varname)
-            npath[i] = new_varname + ("'" if hardened else '')
-        if "None'" in npath:
-            raise WalletError("Field \"%s\" is None in key_path" % path[npath.index("None'")])
-        if "None" in npath:
-            raise WalletError("Field \"%s\" is None in key_path" % path[npath.index("None")])
-        return npath
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+        return path_expand(path, self.key_path, level_offset, account_id=account_id, cosigner_id=cosigner_id,
+                           purpose=self.purpose, witness_type=self.witness_type, network=network)
 
     def key_for_path(self, path, level_offset=None, name='', account_id=None, cosigner_id=None, network=None,
                      recreate=False):
@@ -1874,8 +1821,9 @@ class HDWallet:
         :return HDWalletKey:
         """
 
-        network, account_id, acckey = self._get_account_defaults(network, account_id)
-        path = self.path_expand(path, level_offset, account_id=account_id, cosigner_id=cosigner_id, network=network)
+        network, account_id, _ = self._get_account_defaults(network, account_id)
+        path = path_expand(path, self.key_path, level_offset, account_id=account_id, cosigner_id=cosigner_id,
+                           purpose=self.purpose, witness_type=self.witness_type, network=network)
 
         # Check for closest ancestor in wallet
         spath = normalize_path('/'.join(path))

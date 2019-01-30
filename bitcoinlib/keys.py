@@ -356,6 +356,90 @@ def addr_convert(addr, prefix, encoding=None, to_encoding=None):
     return pubkeyhash_to_addr(pkh, prefix=prefix, encoding=to_encoding)
 
 
+def path_expand(path, path_template=None, level_offset=None, account_id=None, cosigner_id=None, purpose=None,
+                witness_type=None, network=None):
+    """
+    Create key path. Specify part of key path and path settings
+
+    :param path: Part of path, for example [0, 2] for change=0 and address_index=2
+    :type path: list, str
+    :param path_template: Template for path to create, default is BIP 44: ["m", "purpose'", "coin_type'",  "account'", "change", "address_index"]
+    :type path_template: list
+    :param level_offset: Just create part of path. For example -2 means create path with the last 2 items (change, address_index) or 1 will return the master key 'm'
+    :type level_offset: int
+    :param account_id: Account ID
+    :type account_id: int
+    :param cosigner_id: ID of cosigner
+    :type cosigner_id: int
+    :param purpose: Purpose value
+    :type purpose: int
+    :param witness_type: Witness type for paths with a script ID, specify 'p2sh-segwit' or 'segwit'
+    :type witness_type: str
+    :param network: Network name. Leave empty for default network
+    :type network: str
+
+    :return list:
+    """
+    if isinstance(path, TYPE_TEXT):
+        path = path.split('/')
+    if not path_template:
+        path_template = ["m", "purpose'", "coin_type'",  "account'", "change", "address_index"]
+    if not isinstance(path, list):
+        raise BKeyError("Please provide path as list with at least 1 item. Wallet key path format is %s" %
+                        path_template)
+    if len(path) > len(path_template):
+        raise BKeyError("Invalid path provided. Path should be shorter than %d items. "
+                        "Wallet key path format is %s" % (len(path_template), path_template))
+
+    # If path doesn't start with m/M complement path
+    if path == [] or path[0] not in ['m', 'M']:
+        wallet_key_path = path_template
+        if level_offset:
+            wallet_key_path = wallet_key_path[:level_offset]
+        new_path = []
+        for pi in wallet_key_path[::-1]:
+            if not len(path):
+                new_path.append(pi)
+            else:
+                new_path.append(path.pop())
+        path = new_path[::-1]
+
+    # Replace variable names in path with corresponding values
+    # network, account_id, _ = self._get_account_defaults(network, account_id)
+    script_type_id = 1 if witness_type == 'p2sh-segwit' else 2
+    var_defaults = {
+        'network': network,
+        'account': account_id,
+        'purpose': purpose,
+        'coin_type': Network(network).bip44_cointype,
+        'script_type': script_type_id,
+        'cosigner_index': cosigner_id,
+        'change': 0,
+    }
+    npath = deepcopy(path)
+    for i, pi in enumerate(path):
+        if not isinstance(pi, TYPE_TEXT):
+            pi = str(pi)
+        if pi in "mM":
+            continue
+        hardened = False
+        varname = pi
+        if pi[-1:] == "'" or (pi[-1:] in "HhPp" and pi[:-1].isdigit()):
+            varname = pi[:-1]
+            hardened = True
+        if path_template[i][-1:] == "'":
+            hardened = True
+        new_varname = (str(var_defaults[varname]) if varname in var_defaults else varname)
+        if new_varname == varname and not new_varname.isdigit():
+            raise BKeyError("Variable %s not found in Key structure definitions in main.py" % varname)
+        npath[i] = new_varname + ("'" if hardened else '')
+    if "None'" in npath:
+        raise BKeyError("Field \"%s\" is None in key_path" % path[npath.index("None'")])
+    if "None" in npath:
+        raise BKeyError("Field \"%s\" is None in key_path" % path[npath.index("None")])
+    return npath
+
+
 class Address:
     """
     Class to store, convert and analyse various address types as representation of public keys or scripts hashes
@@ -1384,7 +1468,7 @@ class HDKey(Key):
 
         :param account_id: Account ID. Leave empty for account 0
         :type account_id: int
-        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig
+        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit
         :type purpose: int
         :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
         :type set_network: str
@@ -1392,6 +1476,7 @@ class HDKey(Key):
         :return HDKey:
 
         """
+        # TODO: Derive account_id, purpose from HDKey info
         if self.depth == 3:
             return self
         elif self.depth != 0:
@@ -1407,6 +1492,20 @@ class HDKey(Key):
         path.append("%d'" % account_id)
         return self.subkey_for_path(path)
 
+    def public_master(self, account_id=0, purpose=None, encoding=None):
+        ks = [k for k in WALLET_KEY_STRUCTURES if
+              k['witness_type'] == self.witness_type and k['multisig'] == self.multisig and k['purpose'] is not None]
+        if len(ks) > 1:
+            raise BKeyError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                              "witness_type - multisig combination")
+        if ks and not purpose:
+            purpose = ks[0]['purpose']
+        if ks and not encoding:
+            encoding = ks[0]['encoding']
+        key_path = ks[0]['key_path']
+        # return path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None)
+
+
     def account_multisig_key(self, account_id=0, witness_type='legacy'):
         """
         Derives a multisig account key according to BIP44/45 definition.
@@ -1419,6 +1518,7 @@ class HDKey(Key):
 
         :return HDKey:
         """
+        # TODO: Derive witness_type from HDKey info
         script_type = 0
         if self.key_type == 'single':
             return self
