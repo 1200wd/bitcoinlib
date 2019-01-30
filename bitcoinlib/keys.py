@@ -1462,6 +1462,7 @@ class HDKey(Key):
                     key = key.child_private(index=index, hardened=hardened, network=network)
         return key
 
+    @deprecated  # In version 0.4.5
     def account_key(self, account_id=0, purpose=44, set_network=None):
         """
         Derive account BIP44 key for current master key
@@ -1476,7 +1477,6 @@ class HDKey(Key):
         :return HDKey:
 
         """
-        # TODO: Derive account_id, purpose from HDKey info
         if self.depth == 3:
             return self
         elif self.depth != 0:
@@ -1492,20 +1492,41 @@ class HDKey(Key):
         path.append("%d'" % account_id)
         return self.subkey_for_path(path)
 
-    def public_master(self, account_id=0, purpose=None, encoding=None):
+    def public_master(self, account_id=0, purpose=None, multisig=None, witness_type=None):
+        """
+        Derives a public master key for current HDKey.
+
+        :param account_id: Account ID. Leave empty for account 0
+        :type account_id: int
+        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit.
+        :type purpose: int
+        :param multisig: Key is part of a multisignature wallet?
+        :type multisig: bool
+        :param witness_type: Specify witness type, default is legacy. Use 'segwit' or 'p2sh-segwit' for segregated witness.
+        :type witness_type: str
+
+        :return HDKey:
+        """
+        if multisig:
+            self.multisig = multisig
+        if witness_type:
+            self.witness_type = witness_type
         ks = [k for k in WALLET_KEY_STRUCTURES if
               k['witness_type'] == self.witness_type and k['multisig'] == self.multisig and k['purpose'] is not None]
         if len(ks) > 1:
             raise BKeyError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
-                              "witness_type - multisig combination")
+                            "witness_type - multisig combination")
         if ks and not purpose:
             purpose = ks[0]['purpose']
-        if ks and not encoding:
-            encoding = ks[0]['encoding']
-        key_path = ks[0]['key_path']
-        # key_path = path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None)
+        path_template = ks[0]['key_path']
 
+        # Use last hardened key as public master root
+        pm_depth = path_template.index([x for x in path_template if x[-1:] == "'"][-1]) + 1
+        path = path_expand(path_template[:pm_depth], path_template, account_id=account_id, purpose=purpose,
+                           witness_type=self.witness_type, network=self.network.name)
+        return self.subkey_for_path(path)
 
+    @deprecated  # In version 0.4.5
     def account_multisig_key(self, account_id=0, witness_type='legacy'):
         """
         Derives a multisig account key according to BIP44/45 definition.
@@ -1594,7 +1615,8 @@ class HDKey(Key):
         newkey = change_base(newkey, 10, 256, 32)
 
         return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, network=network)
+                     child_index=index, witness_type=self.witness_type, multisig=self.multisig,
+                     encoding=self.encoding, network=network)
 
     def child_public(self, index=0, network=None):
         """
@@ -1628,7 +1650,8 @@ class HDKey(Key):
         xhex = change_base(ki.x(), 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
-                     child_index=index, is_private=False, network=network)
+                     child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
+                     encoding=self.encoding, network=network)
 
     def public(self):
         """
