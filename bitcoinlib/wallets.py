@@ -1013,14 +1013,6 @@ class HDWallet:
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
         key = ''
 
-        # Try to derive witness_type from key information
-        if witness_type is None:
-            wt_found = list(set([k.witness_type for k in keys]))
-            if len(wt_found) == 1:
-                witness_type = wt_found[0]
-            elif len(wt_found) > 1:
-                raise WalletError("HDKey with different witness types, please specify witness type")
-
         if multisig:
             if password:
                 raise WalletError("Password protected multisig wallets not supported")
@@ -1036,6 +1028,16 @@ class HDWallet:
                     key = keys[0]
                 else:
                     key = keys
+                    keys = [keys]
+
+        # Try to derive witness_type from key information
+        if witness_type is None and keys:
+            wt_found = list(set([k.witness_type for k in keys if isinstance(k, HDKey)]))
+            if len(wt_found) == 1:
+                witness_type = wt_found[0]
+            elif len(wt_found) > 1:
+                raise WalletError("HDKey with different witness types, please specify witness type")
+
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, password=password,
                            witness_type=witness_type, encoding=encoding, multisig=multisig, sigs_required=sigs_required,
