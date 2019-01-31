@@ -1037,6 +1037,10 @@ class HDWallet:
                 witness_type = wt_found[0]
             elif len(wt_found) > 1:
                 raise WalletError("HDKey with different witness types, please specify witness type")
+        if network is None and keys:
+            nw_found = list(set([k.network.name for k in keys if isinstance(k, HDKey)]))
+            if len(nw_found) == 1:
+                network = nw_found[0]
 
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, password=password,
