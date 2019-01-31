@@ -1012,6 +1012,15 @@ class HDWallet:
         if name.isdigit():
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
         key = ''
+
+        # Try to derive witness_type from key information
+        if witness_type is None:
+            wt_found = list(set([k.witness_type for k in keys]))
+            if len(wt_found) == 1:
+                witness_type = wt_found[0]
+            elif len(wt_found) > 1:
+                raise WalletError("HDKey with different witness types, please specify witness type")
+
         if multisig:
             if password:
                 raise WalletError("Password protected multisig wallets not supported")
