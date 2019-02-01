@@ -98,7 +98,7 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 
 def wallet_create_or_open(
-        name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=None,
+        name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
         password='', witness_type='legacy', encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
         key_path=None, databasefile=DEFAULT_DATABASE):
     """
@@ -114,10 +114,13 @@ def wallet_create_or_open(
                                key_path, databasefile=databasefile)
 
 
+@deprecated  # In version 0.4.5
 def wallet_create_or_open_multisig(
         name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None, sort_keys=True,
         witness_type='legacy', encoding=None, cosigner_id=None, key_path=None, databasefile=DEFAULT_DATABASE):
     """
+    Deprecated since version 0.4.5, use wallet_create_or_open instead
+
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
     See Wallets class create method for option documentation
@@ -1022,13 +1025,12 @@ class HDWallet:
                 sigs_required = len(keys)
             if sigs_required > len(keys):
                 raise WalletError("Number of keys required to sign is greater then number of keys provided")
-        else:
-            if keys:
-                if isinstance(keys, list):
-                    key = keys[0]
-                else:
-                    key = keys
-                    keys = [keys]
+        elif keys:
+            if isinstance(keys, list):
+                key = keys[0]
+            else:
+                key = keys
+                keys = [keys]
 
         # Try to derive witness_type from key information
         if witness_type is None and keys:
@@ -1315,6 +1317,7 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
+    @deprecated  # Since 0.4.5 - Use import_key, to import private key for known public key
     def key_add_private(self, wallet_key, private_key):
         """
         Change public key in wallet to private key in current HDWallet object and in database
@@ -1358,15 +1361,14 @@ class HDWallet:
             raise WalletError("Main wallet key is not an HDWalletKey instance. Type %s" % type(self.main_key))
         if not hdkey.is_private or hdkey.depth != 0:
             raise WalletError("Please supply a valid private BIP32 master key with key depth 0")
+        if self.main_key.is_private:
+            raise WalletError("Main key is already a private key, cannot import key")
         if (self.main_key.depth != 1 and self.main_key.depth != 3 and self.main_key.depth != 4) or \
-                self.main_key.is_private or self.main_key.key_type != 'bip32':
+                self.main_key.key_type != 'bip32':
             raise WalletError("Current main key is not a valid BIP32 public account key")
-        # TODO: Enable this check, let it work for multisig / segwit, etc
-        # if self.main_key.wif != \
-        #         hdkey.account_key(purpose=self.purpose).wif_public(witness_type=self.witness_type,multisig=self.multisig) \
-        #         and \
-        #         self.main_key.wif != hdkey.account_multisig_key(witness_type=self.witness_type).wif_public():
-        #     raise WalletError("This key does not correspond to current main account key")
+        if self.main_key.wif != self.public_master().wif:
+            raise WalletError("This key does not correspond to current public master key: %s != %s" %
+                              (self.main_key.wif, self.public_master().wif))
         if not (self.network.name == self.main_key.network.name == hdkey.network.name):
             raise WalletError("Network of Wallet class, main account key and the imported private key must use "
                               "the same network")
@@ -1451,7 +1453,7 @@ class HDWallet:
             self._key_objects.update({mk.key_id: mk})
             return mk
         else:
-            account_key = hdkey.account_multisig_key(witness_type=self.witness_type).wif_public()
+            account_key = hdkey.public_master(witness_type=self.witness_type, multisig=True).wif()
             for w in self.cosigner:
                 if w.main_key.key().wif_public() == account_key:
                     _logger.debug("Import new private cosigner key in this multisig wallet: %s" % account_key)

@@ -109,9 +109,9 @@ Create a Multisig wallet with 2 cosigner which both need to sign a transaction.
     pk2 = HDKey('tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'
                 'MeQHdWDp', network=NETWORK)
     w1 = HDWallet.create_multisig('multisig_2of2_cosigner1', sigs_required=2,
-                                   key_list=[pk1, pk2.account_multisig_key().wif_public()], network=NETWORK)
+                                   key_list=[pk1, pk2.public_master(multisig=True)], network=NETWORK)
     w2 = HDWallet.create_multisig('multisig_2of2_cosigner2',  sigs_required=2,
-                                   key_list=[pk1.account_multisig_key().wif_public(), pk2], network=NETWORK)
+                                   key_list=[pk1.public_master(multisig=True), pk2], network=NETWORK)
     print("Deposit testnet bitcoin to this address to create transaction: ", w1.get_key().address)
 
 Create a transaction in the first wallet

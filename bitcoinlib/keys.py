@@ -1111,7 +1111,8 @@ class HDKey(Key):
     """
 
     @staticmethod
-    def from_seed(import_seed, key_type='bip32', network=DEFAULT_NETWORK):
+    def from_seed(import_seed, key_type='bip32', network=DEFAULT_NETWORK, compressed=True,
+                 encoding='bech32', witness_type='legacy', multisig=False):
         """
         Used by class init function, import key from seed
 
@@ -1121,6 +1122,14 @@ class HDKey(Key):
         :type key_type: str
         :param network: Network to use
         :type network: str, Network
+        :param compressed: Is key compressed or not, default is True
+        :type compressed: bool
+        :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58 or derive from witness type
+        :type encoding: str
+        :param witness_type: Witness type used when creating scripts: legacy, p2sh-segwit or segwit.
+        :type witness_type: str
+        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addreses
+        :type multisig: bool
 
         :return HDKey:
         """
@@ -1128,10 +1137,12 @@ class HDKey(Key):
         I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
-        return HDKey(key=key, chain=chain, network=network, key_type=key_type)
+        return HDKey(key=key, chain=chain, network=network, key_type=key_type, compressed=compressed,
+                     encoding=encoding, witness_type=witness_type, multisig=multisig)
 
     @staticmethod
-    def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK):
+    def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, compressed=True,
+                 encoding='bech32', witness_type='legacy', multisig=False):
         """
         Create key from Mnemonic passphrase
 
@@ -1141,10 +1152,19 @@ class HDKey(Key):
         :type password: str
         :param network: Network to use
         :type network: str, Network
+        :param compressed: Is key compressed or not, default is True
+        :type compressed: bool
+        :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58 or derive from witness type
+        :type encoding: str
+        :param witness_type: Witness type used when creating scripts: legacy, p2sh-segwit or segwit.
+        :type witness_type: str
+        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addreses
+        :type multisig: bool
 
         :return HDKey:
         """
-        return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network)
+        return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network, compressed=compressed,
+                               encoding=encoding, witness_type=witness_type, multisig=multisig)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True,
@@ -1183,7 +1203,6 @@ class HDKey(Key):
         :type witness_type: str
         :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addreses
         :type multisig: bool
-
 
         :return HDKey:
         """
@@ -1465,6 +1484,8 @@ class HDKey(Key):
     @deprecated  # In version 0.4.5
     def account_key(self, account_id=0, purpose=44, set_network=None):
         """
+        Deprecated since version 0.4.5, use public_master() method instead
+
         Derive account BIP44 key for current master key
 
         :param account_id: Account ID. Leave empty for account 0
@@ -1492,7 +1513,7 @@ class HDKey(Key):
         path.append("%d'" % account_id)
         return self.subkey_for_path(path)
 
-    def public_master(self, account_id=0, purpose=None, multisig=None, witness_type=None):
+    def public_master(self, account_id=0, purpose=None, multisig=None, witness_type=None, as_private=False):
         """
         Derives a public master key for current HDKey.
 
@@ -1504,6 +1525,7 @@ class HDKey(Key):
         :type multisig: bool
         :param witness_type: Specify witness type, default is legacy. Use 'segwit' or 'p2sh-segwit' for segregated witness.
         :type witness_type: str
+        :param as_private: Return private key if available. Default is to return public key
 
         :return HDKey:
         """
@@ -1524,11 +1546,16 @@ class HDKey(Key):
         pm_depth = path_template.index([x for x in path_template if x[-1:] == "'"][-1]) + 1
         path = path_expand(path_template[:pm_depth], path_template, account_id=account_id, purpose=purpose,
                            witness_type=self.witness_type, network=self.network.name)
-        return self.subkey_for_path(path)
+        if as_private:
+            return self.subkey_for_path(path)
+        else:
+            return self.subkey_for_path(path).public()
 
     @deprecated  # In version 0.4.5
     def account_multisig_key(self, account_id=0, witness_type='legacy'):
         """
+        Deprecated since version 0.4.5, use public_master() method instead
+
         Derives a multisig account key according to BIP44/45 definition.
         Wrapper for the 'account_key' method.
 

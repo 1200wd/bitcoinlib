@@ -233,7 +233,7 @@ def main():
         print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif())
         print(
             "Public account key, to share with other cosigner multisig wallets: %s" %
-            hdkey.account_multisig_key(witness_type=args.witness_type).wif_public())
+            hdkey.public_master(witness_type=args.witness_type, multisig=True))
         print("Network: %s" % hdkey.network.name)
         clw_exit()
 
