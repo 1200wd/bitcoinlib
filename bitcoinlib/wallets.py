@@ -1762,9 +1762,9 @@ class HDWallet:
 
         if self.scheme != 'bip32':
             raise WalletError("We can only create new accounts for a wallet with a BIP32 key scheme")
-        if self.multisig:
-            raise WalletError("Accounts not supported for multisig wallets")
-        if self.main_key.depth != 0 or self.main_key.is_private is False:
+        # if self.multisig:
+        #     raise WalletError("Accounts not supported for multisig wallets")
+        if self.main_key and (self.main_key.depth != 0 or self.main_key.is_private is False):
             raise WalletError("A master private key of depth 0 is needed to create new accounts (%s)" %
                               self.main_key.wif)
         if "account'" not in self.key_path:
@@ -1779,6 +1779,7 @@ class HDWallet:
                               (network, duplicate_cointypes))
 
         # Determine account_id and name
+        depth_account_keys = self.key_path.index("account'")
         if account_id is None:
             account_id = 0
             qr = self._session.query(DbKey). \
@@ -1786,10 +1787,10 @@ class HDWallet:
                 order_by(DbKey.account_id.desc()).first()
             if qr:
                 account_id = qr.account_id + 1
-        if self.keys(account_id=account_id, depth=3, network=network):
+        if self.keys(account_id=account_id, depth=depth_account_keys, network=network):
             raise WalletError("Account with ID %d already exists for this wallet" % account_id)
 
-        acckey = self.key_for_path([account_id], -2, name=name, network=network)
+        acckey = self.key_for_path([account_id], -self.key_depth + depth_account_keys, name=name, network=network)
         self.key_for_path([account_id, 0, 0], network=network)
         self.key_for_path([account_id, 1, 0], network=network)
         return acckey
