@@ -1460,6 +1460,42 @@ class HDWallet:
                     return w.import_master_key(hdkey)
             raise WalletError("Unknown key: Can only import a private key for a known public key in multisig wallets")
 
+    def _new_key_multisig(self, public_keys, name, account_id, change, cosigner_id, network, address_index):
+        # TODO: Public keys should be list of HD(Wallet)Key's
+        if self.sort_keys:
+            public_keys.sort(key=lambda x: x['public_key'])
+        public_key_list = [x['public_key'] for x in public_keys]
+        public_key_ids = [str(x['key_id']) for x in public_keys]
+        depth = len(self.key_path) - 1
+
+        # Calculate redeemscript and address and add multisig key to database
+        redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
+        script_type = 'p2sh'
+        if self.witness_type == 'p2sh-segwit':
+            script_type = 'p2sh_p2wsh'
+        address = Address(redeemscript, encoding=self.encoding, script_type=script_type, network=self.network).address
+        already_found_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=address).first()
+        if already_found_key:
+            return self.key(already_found_key.id)
+        if len(set([x['path'] for x in public_keys])) == 1:
+            path = public_keys[0]['path']
+        else:
+            path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)
+        if not name:
+            name = "Multisig Key " + '/'.join(public_key_ids)
+        multisig_key = DbKey(
+            name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
+            depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
+            public=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address, cosigner_id=cosigner_id,
+            key_type='multisig', network_name=network)
+        self._session.add(multisig_key)
+        self._session.commit()
+        for child_id in public_key_ids:
+            self._session.add(DbKeyMultisigChildren(key_order=public_key_ids.index(child_id), parent_id=multisig_key.id,
+                                                    child_id=int(child_id)))
+        self._session.commit()
+        return self.key(multisig_key.id)
+
     def new_key(self, name='', account_id=None, change=0, cosigner_id=None, network=None):
         """
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
@@ -1522,52 +1558,19 @@ class HDWallet:
             address_index = 0
             if prevkey:
                 address_index = prevkey.address_index + 1
-
             public_keys = []
             for csw in self.cosigner:
                 if csw.scheme == 'single':
                     wk = csw.main_key
                 else:
-                    wk = csw.key_for_path([change, address_index], cosigner_id=cosigner_id)
+                    wk = csw.key_for_path([change, address_index], account_id=account_id, cosigner_id=cosigner_id)
                 public_keys.append({
-                    'key_id': wk.key_id,
-                    'public_key_uncompressed': wk.key().public_uncompressed(),
-                    'public_key': wk.key().public_hex,
-                    'depth': wk.depth,
-                    'path': wk.path
+                    'key_id': wk.key_id, 'public_key_uncompressed': wk.key().public_uncompressed(),
+                    'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path
                 })
-            if self.sort_keys:
-                public_keys.sort(key=lambda x: x['public_key'])
-            public_key_list = [x['public_key'] for x in public_keys]
-            public_key_ids = [str(x['key_id']) for x in public_keys]
-            # depths = [x['depth'] for x in public_keys]
-            depth = len(self.key_path) - 1
 
-            # Calculate redeemscript and address and add multisig key to database
-            redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
-            script_type = 'p2sh'
-            if self.witness_type == 'p2sh-segwit':
-                script_type = 'p2sh_p2wsh'
-            address = Address(redeemscript, encoding=self.encoding, script_type=script_type,
-                              network=self.network).address
-            if len(set([x['path'] for x in public_keys])) == 1:
-                path = public_keys[0]['path']
-            else:
-                path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)
-            if not name:
-                name = "Multisig Key " + '/'.join(public_key_ids)
-            multisig_key = DbKey(
-                name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
-                depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
-                public=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address,
-                cosigner_id=cosigner_id, key_type='multisig', network_name=network)
-            self._session.add(multisig_key)
-            self._session.commit()
-            for child_id in public_key_ids:
-                self._session.add(DbKeyMultisigChildren(key_order=public_key_ids.index(child_id),
-                                                        parent_id=multisig_key.id, child_id=int(child_id)))
-            self._session.commit()
-            return self.key(multisig_key.id)
+            return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network,
+                                          address_index)
 
     def new_key_change(self, name='', account_id=None, network=None):
         """
@@ -1840,54 +1843,77 @@ class HDWallet:
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
+        # if level_offset is None:
+        #     level_offset = self.main_key.depth - self.key_depth
         path = path_expand(path, self.key_path, level_offset, account_id=account_id, cosigner_id=cosigner_id,
                            purpose=self.purpose, witness_type=self.witness_type, network=network)
 
-        # Check for closest ancestor in wallet
-        spath = normalize_path('/'.join(path))
-        dbkey = None
-        while spath and not dbkey:
-            qr = self._session.query(DbKey).filter_by(path=spath, wallet_id=self.wallet_id)
-            if recreate:
-                qr = qr.filter_by(is_private=True)
-            dbkey = qr.first()
-            spath = '/'.join(spath.split("/")[:-1])
-        if not dbkey:
-            raise WalletError("No master or public master key found in this wallet")
-        topkey = self.key(dbkey.id)
+        if self.multisig and self.cosigner:
+            wlts = self.cosigner
+        else:
+            wlts = [self]
 
-        # Key already found in db, return key
-        if dbkey and dbkey.path == normalize_path('/'.join(path)) and not recreate:
-            return topkey
-
-        # Create 1 or more keys add them to wallet
-        parent_id = topkey.key_id
-        ck = topkey.key()
-        newpath = topkey.path
-        nk = None
-        n_items = len(str(dbkey.path).split('/'))
-        for lvl in path[n_items:]:
-            ck = ck.subkey_for_path(lvl, network=network)
-            newpath += '/' + lvl
-            if not account_id:
-                account_id = 0 if "account'" not in self.key_path or self.key_path.index("account'") >= len(path) \
-                    else int(path[self.key_path.index("account'")][:-1])
-            change = None if "change" not in self.key_path or self.key_path.index("change") >= len(path) \
-                else int(path[self.key_path.index("change")])
-            if name and len(path) == len(newpath.split('/')):
-                key_name = name
+        new_keys = []
+        for wlt in wlts:
+            # Check for closest ancestor in wallet
+            spath = normalize_path('/'.join(path))
+            dbkey = None
+            while spath and not dbkey:
+                qr = self._session.query(DbKey).filter_by(path=spath, wallet_id=wlt.wallet_id)
+                if recreate:
+                    qr = qr.filter_by(is_private=True)
+                dbkey = qr.first()
+                spath = '/'.join(spath.split("/")[:-1])
+            if not dbkey:
+                if wlt.multisig and not wlt.cosigner:
+                    topkey = dbkey = wlt.public_master()
+                else:
+                    raise WalletError("No master or public master key found in this wallet")
             else:
-                key_name = "%s %s" % (self.key_path[len(newpath.split('/'))-1], lvl)
-                key_name = key_name.replace("'", "").replace("_", " ")
-            nk = HDWalletKey.from_key(key=ck, name=key_name, wallet_id=self.wallet_id, account_id=account_id,
-                                      change=change, purpose=self.purpose, path=newpath, parent_id=parent_id,
-                                      encoding=self.encoding, witness_type=self.witness_type, network=network,
-                                      session=self._session)
-            self._key_objects.update({nk.key_id: nk})
-            parent_id = nk.key_id
+                topkey = wlt.key(dbkey.id)
 
-        # Return higest key in hierarchy
-        return nk
+            # Key already found in db, return key
+            if dbkey and dbkey.path == normalize_path('/'.join(path)) and not recreate:
+                new_keys.append(topkey)
+            else:
+                # Create 1 or more keys add them to wallet
+                parent_id = topkey.key_id
+                ck = topkey.key()
+                newpath = topkey.path
+                n_items = len(str(dbkey.path).split('/'))
+                for lvl in path[n_items:]:
+                    ck = ck.subkey_for_path(lvl, network=network)
+                    newpath += '/' + lvl
+                    if not account_id:
+                        account_id = 0 if "account'" not in wlt.key_path or wlt.key_path.index("account'") >= len(path) \
+                            else int(path[self.key_path.index("account'")][:-1])
+                    change = None if "change" not in wlt.key_path or wlt.key_path.index("change") >= len(path) \
+                        else int(path[wlt.key_path.index("change")])
+                    if name and len(path) == len(newpath.split('/')):
+                        key_name = name
+                    else:
+                        key_name = "%s %s" % (wlt.key_path[len(newpath.split('/'))-1], lvl)
+                        key_name = key_name.replace("'", "").replace("_", " ")
+                    nk = HDWalletKey.from_key(key=ck, name=key_name, wallet_id=wlt.wallet_id, account_id=account_id,
+                                              change=change, purpose=wlt.purpose, path=newpath, parent_id=parent_id,
+                                              encoding=wlt.encoding, witness_type=wlt.witness_type, network=network,
+                                              session=self._session)
+                    wlt._key_objects.update({nk.key_id: nk})
+                    parent_id = nk.key_id
+                    new_keys.append(nk)
+        if self.multisig and self.cosigner:
+            public_keys = []
+            for wk in new_keys:
+                if path == wk.path.split("/"):
+                    public_keys.append({
+                        'key_id': wk.key_id, 'public_key_uncompressed': wk.key().public_uncompressed(),
+                        'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path
+                    })
+            change = 0
+            address_index = 0
+            return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index)
+        else:
+            return new_keys[-1]
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
              has_balance=None, is_active=True, network=None, as_dict=False):
