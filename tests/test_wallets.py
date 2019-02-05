@@ -146,7 +146,9 @@ class TestWalletImport(unittest.TestCase):
             account_id=99)
         self.assertEqual(wallet_import.main_key.wif, accountkey)
         self.assertEqual(wallet_import.main_key.address, u'mowRx2TNXTgRSUmepjqhx5C1TTigmHLGRh')
-        self.assertEqual(wallet_import.main_key.path, "m/44'/1'/99'")
+        self.assertEqual(wallet_import.main_key.path, "M")
+        self.assertEqual(wallet_import.main_key.account_id, 99)
+        self.assertEqual(wallet_import.default_account_id, 99)
 
     def test_wallet_import_account_new_keys(self):
         accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
@@ -161,9 +163,11 @@ class TestWalletImport(unittest.TestCase):
         newkey_change = wallet_import.new_key_change(account_id=99, name='change')
         self.assertEqual(wallet_import.main_key.wif, accountkey)
         self.assertEqual(newkey.address, u'mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N')
-        self.assertEqual(newkey.path, "m/44'/1'/99'/0/1")
+        self.assertEqual(newkey.path, "M/0/1")
+        self.assertEqual(newkey.account_id, 99)
         self.assertEqual(newkey_change.address, u'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
-        self.assertEqual(newkey_change.path, "m/44'/1'/99'/1/0")
+        self.assertEqual(newkey_change.path, "M/1/0")
+        self.assertEqual(newkey_change.account_id, 99)
 
     def test_wallet_import_public_wallet(self):
         pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqMwt' \
@@ -1314,7 +1318,7 @@ class TestWalletDash(unittest.TestCase):
         newkey = wallet.get_key()
         self.assertEqual(wallet.main_key.wif, accountkey)
         self.assertEqual(newkey.address, u'XtVa6s1rqo9BNXir1tb6KEXsj5NGogp1QB')
-        self.assertEqual(newkey.path, "m/44'/%d'/0'/0/0" % wallet.network.bip44_cointype)
+        self.assertEqual(newkey.path, "M/0/0")
 
     def test_wallet_multisig_dash(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -1599,8 +1603,8 @@ class TestWalletKeyStructures(unittest.TestCase):
             "long_key_path", keys=[wif1, wif2], witness_type='segwit', cosigner_id=1,
             key_path="m/purpose'/coin_type'/account'/script_type'/cosigner_index/change/address_index",
             databasefile=DATABASEFILE_UNITTESTS)
-        self.assertEqual(w.new_key().path, "m/48'/0'/0'/2'/1/0/0")
-        self.assertEqual(w.new_key_change().path, "m/48'/0'/0'/2'/1/1/0")
+        self.assertEqual(w.new_key().path, "M/1/0/0")
+        self.assertEqual(w.new_key_change().path, "M/1/1/0")
         self.assertEqual(w.public_master()[0].wif, wif1)
         self.assertEqual(w.public_master()[1].wif, wif2)
 

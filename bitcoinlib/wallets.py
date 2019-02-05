@@ -271,6 +271,7 @@ def normalize_path(path):
     return npath
 
 
+@deprecated
 def parse_bip44_path(path):
     """
     Assumes a correct BIP0044 path and returns a dictionary with path items. See Bitcoin improvement proposals
@@ -373,23 +374,24 @@ class HDWalletKey:
 
             if key_type != 'single' and k.depth != len(path.split('/'))-1:
                 if path == 'm' and k.depth == 3:
-                    if purpose == 45:
-                        raise WalletError('Cannot import old style BIP45 account keys, use master key to create new '
-                                          'wallet. Or workaround this issue by specifying key_path such as '
-                                          '["m", "purpose\'", "coin_type\'", "account\'", "change", "address_index"] '
-                                          'and purpose 45 for multisig')
-                    # Create path when importing new account-key
-                    networkcode = Network(network).bip44_cointype
-                    path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
+                    path = "M"
+                    # if purpose == 45:
+                    #     raise WalletError('Cannot import old style BIP45 account keys, use master key to create new '
+                    #                       'wallet. Or workaround this issue by specifying key_path such as '
+                    #                       '["m", "purpose\'", "coin_type\'", "account\'", "change", "address_index"] '
+                    #                       'and purpose 45 for multisig')
+                    # # Create path when importing new account-key
+                    # networkcode = Network(network).bip44_cointype
+                    # path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
                 elif purpose == 45 and path == 'm' and k.depth == 1:
                     path = "m/45'"
                 elif purpose == 48 and path == 'm' and k.depth == 4:
                     networkcode = Network(network).bip44_cointype
                     script_type_id = 1 if witness_type == 'p2sh-segwit' else 2
                     path = "m/%d'/%s'/%d'/%d'" % (purpose, networkcode, account_id, script_type_id)
-                else:
-                    raise WalletError("Key depth of %d does not match path length of %d for path %s" %
-                                      (k.depth, len(path.split('/')) - 1, path))
+                # else:
+                #     raise WalletError("Key depth of %d does not match path length of %d for path %s" %
+                #                       (k.depth, len(path.split('/')) - 1, path))
 
             wk = session.query(DbKey).filter(
                 DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
@@ -405,6 +407,7 @@ class HDWalletKey:
                     wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
                     wk.is_private = True
                     wk.private = k.private_hex
+                    wk.path = path
                     session.commit()
                     return HDWalletKey(wk.id, session, k)
 
@@ -892,8 +895,6 @@ class HDWallet:
                 purpose = 0
         if not encoding:
             encoding = get_encoding_from_witness(witness_type)
-        if isinstance(key_path, list):
-            key_path = '/'.join(key_path)
 
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
@@ -905,6 +906,19 @@ class HDWallet:
         if not name:
             raise WalletError("Please enter wallet name")
 
+        if not isinstance(key_path, list):
+            key_path = key_path.split('/')
+        key_depth = 1 if not key_path else len(key_path) - 1
+        base_path = 'm'
+        if hasattr(key, 'depth'):
+            if key.depth is None:
+                key.depth = key_depth
+            if key.depth > 0:
+                key_path = ['M'] + key_path[key.depth+1:]
+                base_path = 'M'
+
+        if isinstance(key_path, list):
+            key_path = '/'.join(key_path)
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
@@ -912,16 +926,13 @@ class HDWallet:
         session.add(new_wallet)
         session.commit()
         new_wallet_id = new_wallet.id
-        key_depth = 1 if not key_path else len(key_path.split('/')) - 1
-        if hasattr(key, 'depth') and key.depth is None:
-            key.depth = key_depth
 
         if scheme == 'bip32' and multisig and parent_id is None:
             w = cls(new_wallet_id, databasefile=databasefile)
         elif scheme == 'bip32':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
-                                      witness_type=witness_type, multisig=multisig)
+                                      witness_type=witness_type, multisig=multisig, path=base_path)
             if mk.depth > 5:
                 raise WalletError("Cannot create new wallet with main key of depth 5 or more")
             new_wallet.main_key_id = mk.key_id
@@ -1203,7 +1214,15 @@ class HDWallet:
             self.cosigner_id = db_wlt.cosigner_id
             self.script_type = script_type_default(self.witness_type, self.multisig, locking_script=True)
             self.key_path = db_wlt.key_path.split('/')
-            self.key_depth = len(self.key_path) - 1
+            self.depth_public_master = 0
+            if self.main_key and self.main_key.depth > 0:
+                self.depth_public_master = self.main_key.depth
+                self.key_depth = self.depth_public_master + len(self.key_path) - 1
+            else:
+                hardened_keys = [x for x in self.key_path if x[-1:] == "'"]
+                if hardened_keys:
+                    self.depth_public_master = self.key_path.index(hardened_keys[-1])
+                self.key_depth = len(self.key_path) - 1
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -1249,9 +1268,10 @@ class HDWallet:
             network = self.network.name
             if account_id is None:
                 account_id = self.default_account_id
-        depth = len(self.key_path) - 3
+        # depth = len(self.key_path) - 3
         qr = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=depth, network_name=network)
+            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=self.depth_public_master,
+                      network_name=network)
         if account_id is not None:
             qr = qr.filter_by(account_id=account_id)
         acckey = qr.first()
@@ -1366,9 +1386,10 @@ class HDWallet:
         if (self.main_key.depth != 1 and self.main_key.depth != 3 and self.main_key.depth != 4) or \
                 self.main_key.key_type != 'bip32':
             raise WalletError("Current main key is not a valid BIP32 public account key")
-        if self.main_key.wif != self.public_master().wif:
+        pm = self.public_master()
+        if pm and self.main_key.wif != pm.wif:
             raise WalletError("This key does not correspond to current public master key: %s != %s" %
-                              (self.main_key.wif, self.public_master().wif))
+                              (self.main_key.wif, pm.wif))
         if not (self.network.name == self.main_key.network.name == hdkey.network.name):
             raise WalletError("Network of Wallet class, main account key and the imported private key must use "
                               "the same network")
@@ -1382,7 +1403,10 @@ class HDWallet:
             update({DbWallet.main_key_id: self.main_key_id})
 
         for key in self.keys(is_private=False):
-            self.key_for_path(key.path, recreate=True)
+            kp = key.path.split("/")
+            if kp and kp[0] == 'M':
+                kp = self.key_path[:self.depth_public_master+1] + kp[1:]
+            self.key_for_path(kp, recreate=True)
 
         self._session.commit()
         return self.main_key
@@ -1427,6 +1451,13 @@ class HDWallet:
             if self.main_key and self.main_key.depth == 3 and \
                     hdkey.is_private and hdkey.depth == 0 and self.scheme == 'bip32':
                 hdkey.key_type = 'bip32'
+                ks = [k for k in WALLET_KEY_STRUCTURES if
+                      k['witness_type'] == self.witness_type and k['multisig'] == self.multisig and
+                      k['purpose'] is not None]
+                if len(ks) > 1:
+                    raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                                      "witness_type - multisig combination")
+                self.key_path = ks[0]['key_path']
                 return self.import_master_key(hdkey, name)
 
             if key_type is None:
@@ -1457,6 +1488,7 @@ class HDWallet:
             for w in self.cosigner:
                 if w.main_key.key().wif_public() == account_key:
                     _logger.debug("Import new private cosigner key in this multisig wallet: %s" % account_key)
+                    w.key_path = self.key_path
                     return w.import_master_key(hdkey)
             raise WalletError("Unknown key: Can only import a private key for a known public key in multisig wallets")
 
@@ -1477,10 +1509,11 @@ class HDWallet:
         already_found_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=address).first()
         if already_found_key:
             return self.key(already_found_key.id)
-        if len(set([x['path'] for x in public_keys])) == 1:
-            path = public_keys[0]['path']
-        else:
-            path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)
+        path = [x['path'] for x in public_keys if x['cosigner_id'] == self.cosigner_id][0]
+        # if len(set([x['path'] for x in public_keys])) == 1:
+        #     path = public_keys[0]['path']
+        # else:
+        #     path = "multisig-%d-of-" % self.multisig_n_required + '/'.join(public_key_ids)
         if not name:
             name = "Multisig Key " + '/'.join(public_key_ids)
         multisig_key = DbKey(
@@ -1566,7 +1599,8 @@ class HDWallet:
                     wk = csw.key_for_path([change, address_index], account_id=account_id, cosigner_id=cosigner_id)
                 public_keys.append({
                     'key_id': wk.key_id, 'public_key_uncompressed': wk.key().public_uncompressed(),
-                    'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path
+                    'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path,
+                    'cosigner_id': wk.wallet.cosigner_id
                 })
 
             return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network,
@@ -1705,17 +1739,16 @@ class HDWallet:
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
-        keys_depth = len(self.key_path) - 1
         last_used_qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
-                      used=True, change=change, depth=keys_depth).\
+                      used=True, change=change, depth=self.key_depth).\
             order_by(DbKey.id.desc()).first()
         last_used_key_id = 0
         if last_used_qr:
             last_used_key_id = last_used_qr.id
         dbkey = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
-                      used=False, change=change, depth=keys_depth).filter(DbKey.id > last_used_key_id).\
+                      used=False, change=change, depth=self.key_depth).filter(DbKey.id > last_used_key_id).\
             order_by(DbKey.id.desc()).all()
         key_list = []
         for i in range(number_of_keys):
@@ -1842,9 +1875,12 @@ class HDWallet:
         :return HDWalletKey:
         """
 
+        # TODO: Remove next line, should be called in higher level methods?
         network, account_id, _ = self._get_account_defaults(network, account_id)
         # if level_offset is None:
         #     level_offset = self.main_key.depth - self.key_depth
+        cosigner_id = cosigner_id if cosigner_id is not None else self.cosigner_id
+
         path = path_expand(path, self.key_path, level_offset, account_id=account_id, cosigner_id=cosigner_id,
                            purpose=self.purpose, witness_type=self.witness_type, network=network)
 
@@ -1865,10 +1901,11 @@ class HDWallet:
                 dbkey = qr.first()
                 spath = '/'.join(spath.split("/")[:-1])
             if not dbkey:
-                if wlt.multisig and not wlt.cosigner:
-                    topkey = dbkey = wlt.public_master()
-                else:
-                    raise WalletError("No master or public master key found in this wallet")
+                # if wlt.multisig and not wlt.cosigner:
+                #     topkey = dbkey = wlt.public_master()
+                # else:
+                _logger.warning("No master or public master key found in this wallet")
+                return None
             else:
                 topkey = wlt.key(dbkey.id)
 
@@ -2635,13 +2672,13 @@ class HDWallet:
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
-        if depth is None:
-            if self.scheme == 'bip32':
-                depth = len(self.key_path) - 1
-            else:
-                depth = 0
+        # if depth is None:
+        #     if self.scheme == 'bip32':
+        #         depth = len(self.key_path) - 1
+        #     else:
+        #         depth = 0
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
-                                       change=change, depth=depth)
+                                       change=change, depth=self.key_depth)
         srv = Service(network=network, providers=self.providers)
         txs = srv.gettransactions(addresslist)
         if txs is False:
@@ -3319,7 +3356,7 @@ class HDWallet:
                     if self.purpose == 45:
                         ds = [0, self.key_depth]
                     else:
-                        ds = [0, 3, self.key_depth]
+                        ds = [0, self.depth_public_master, self.key_depth]
                 else:
                     ds = range(8)
                 for d in ds:
