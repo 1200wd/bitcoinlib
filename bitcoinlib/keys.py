@@ -392,17 +392,20 @@ def path_expand(path, path_template=None, level_offset=None, account_id=None, co
                         "Wallet key path format is %s" % (len(path_template), path_template))
 
     # If path doesn't start with m/M complement path
+    poppath = deepcopy(path)
     if path == [] or path[0] not in ['m', 'M']:
         wallet_key_path = path_template
         if level_offset:
             wallet_key_path = wallet_key_path[:level_offset]
         new_path = []
         for pi in wallet_key_path[::-1]:
-            if not len(path):
+            if not len(poppath):
                 new_path.append(pi)
             else:
-                new_path.append(path.pop())
-        path = new_path[::-1]
+                new_path.append(poppath.pop())
+        new_path = new_path[::-1]
+    else:
+        new_path = deepcopy(path)
 
     # Replace variable names in path with corresponding values
     # network, account_id, _ = self._get_account_defaults(network, account_id)
@@ -416,8 +419,8 @@ def path_expand(path, path_template=None, level_offset=None, account_id=None, co
         'cosigner_index': cosigner_id,
         'change': 0,
     }
-    npath = deepcopy(path)
-    for i, pi in enumerate(path):
+    npath = new_path
+    for i, pi in enumerate(new_path):
         if not isinstance(pi, TYPE_TEXT):
             pi = str(pi)
         if pi in "mM":
@@ -1420,7 +1423,7 @@ class HDKey(Key):
         """
         return self.wif(is_private=False, prefix=prefix, witness_type=witness_type, multisig=multisig)
 
-    def wif_private(self, prefix=None, witness_type='legacy', multisig=False):
+    def wif_private(self, prefix=None, witness_type=None, multisig=None):
         """
         Get Extended WIF private key. Wrapper for the wif() method
 
