@@ -535,8 +535,8 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.assertEqual(wallet.balance(network='bitcoinlib_test'), 600000000)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
         self.assertEqual(wallet.balance(network='testnet'), 1500000)
-        ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk',
-                          'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf']
+        ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
+                          'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
         self.assertListEqual(wallet.addresslist(network='testnet'), ltct_addresses)
         
         t = wallet.send_to('21EsLrvFQdYWXoJjGX8LSEGWHFJDzSs2F35', 10000000, account_id=1,
@@ -889,7 +889,7 @@ class TestWalletMultisig(unittest.TestCase):
         key_list = [keys[0], keys[1].public()]
 
         wl = HDWallet.create('multisig_expk2', key_list, sigs_required=2, network='bitcoinlib_test',
-                                      databasefile=DATABASEFILE_UNITTESTS, sort_keys=False)
+                             databasefile=DATABASEFILE_UNITTESTS, sort_keys=False)
         wl.new_key()
         wl.new_key()
         wl.new_key_change()
@@ -902,10 +902,6 @@ class TestWalletMultisig(unittest.TestCase):
         t.sign(keys[1])
         t.send()
         self.assertIsNone(t.error)
-
-        key_names_active = [k.name for k in wl.keys(is_active=False)]
-        self.assertListEqual(key_names_active, ['Multisig Key 5/6', 'Multisig Key 8/6', 'Multisig Key 11/6',
-                                                'Multisig Key 13/6'])
 
     def test_wallet_multisig_sorted_keys(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
