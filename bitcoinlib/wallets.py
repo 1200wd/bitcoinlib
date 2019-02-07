@@ -1497,7 +1497,6 @@ class HDWallet:
             public_keys.sort(key=lambda x: x['public_key'])
         public_key_list = [x['public_key'] for x in public_keys]
         public_key_ids = [str(x['key_id']) for x in public_keys]
-        depth = len(self.key_path) - 1
 
         # Calculate redeemscript and address and add multisig key to database
         redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
@@ -1509,6 +1508,7 @@ class HDWallet:
         if already_found_key:
             return self.key(already_found_key.id)
         path = [x['path'] for x in public_keys if x['cosigner_id'] == self.cosigner_id][0]
+        depth = self.cosigner[self.cosigner_id].main_key.depth + len(path.split("/")) - 1
         if not name:
             name = "Multisig Key " + '/'.join(public_key_ids)
 
@@ -1783,17 +1783,17 @@ class HDWallet:
                 order_by(DbKey.account_id.desc()).first()
             if qr:
                 account_id = qr.account_id + 1
-        if self.keys(account_id=account_id, depth=depth_account_keys, network=network):
+        if self.keys(account_id=account_id, depth=self.depth_public_master, network=network):
             raise WalletError("Account with ID %d already exists for this wallet" % account_id)
 
-        acckey = self.public_master(account_id=account_id, name=name)
-        # acckey = self.key_for_path([], level_offset=depth_account_keys-self.key_depth, account_id=account_id,
-        #                            name=name)
+        acckey = self.key_for_path([], level_offset=self.depth_public_master-self.key_depth, account_id=account_id,
+                                   name=name)
         self.key_for_path([0, 0], network=network, account_id=account_id)
         self.key_for_path([1, 0], network=network, account_id=account_id)
         return acckey
 
-    def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None):
+    def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, address_index=None, change=0,
+                    network=None):
         """
         Create key path. Specify part of key path and path settings
 
@@ -1805,6 +1805,10 @@ class HDWallet:
         :type account_id: int
         :param cosigner_id: ID of cosigner
         :type cosigner_id: int
+        :param address_index: Index of key, normally provided to 'path' argument
+        :type address_index: int
+        :param change: Change key = 1 or normal = 0, normally provided to 'path' argument
+        :type change: int
         :param network: Network name. Leave empty for default network
         :type network: str
 
@@ -1812,14 +1816,29 @@ class HDWallet:
         """
         network, account_id, _ = self._get_account_defaults(network, account_id)
         return path_expand(path, self.key_path, level_offset, account_id=account_id, cosigner_id=cosigner_id,
-                           purpose=self.purpose, witness_type=self.witness_type, network=network)
+                           address_index=address_index, change=change, purpose=self.purpose,
+                           witness_type=self.witness_type, network=network)
 
-    def key_for_path(self, path, level_offset=None, name=None, account_id=None, cosigner_id=None, network=None,
-                     recreate=False):
+    def key_for_path(self, path, level_offset=None, name=None, account_id=None, cosigner_id=None,
+                     address_index=0, change=0, network=None, recreate=False):
         """
         Return key for specified path. Derive all wallet keys in path if they not already exists
 
-        :param path: Part of key
+        >>> w = HDWallet.create('key_for_path_example')
+        >>> w.key_for_path([0, 0])
+        <HDWalletKey(key_id=750, name=address index 0, wif=xprv...4Vk2, path=m/44'/0'/0'/0/0)>
+
+        >>> w.key_for_path([], level_offset=-2)
+        <HDWalletKey(key_id=748, name=account 0, wif=xprv...aMo, path=m/44'/0'/0')>
+
+        >>> w.key_for_path([], w.depth_public_master + 1)
+        <HDWalletKey(key_id=748, name=account 0, wif=xprv...aMo, path=m/44'/0'/0')>
+
+        Arguments provided in 'path' take precedence over other arguments. The address_index argument is ignored:
+        >>> w.key_for_path([0, 10], address_index=1000)
+        <HDWalletKey(key_id=751, name=address index 0, wif=xprv...k2Mo, path=m/44'/0'/0'/0/10)>
+
+        :param path: Part of key path, i.e. [0, 0] for [change=0, address_index=0]
         :type path: list, str
         :param level_offset: Just create part of path, when creating keys. For example -2 means create path with the last 2 items (change, address_index) or 1 will return the master key 'm'
         :type level_offset: int
@@ -1829,6 +1848,10 @@ class HDWallet:
         :type account_id: int
         :param cosigner_id: ID of cosigner
         :type cosigner_id: int
+        :param address_index: Index of key, normally provided to 'path' argument
+        :type address_index: int
+        :param change: Change key = 1 or normal = 0, normally provided to 'path' argument
+        :type change: int
         :param network: Network name. Leave empty for default network
         :type network: str
         :param recreate: Recreate key, even if already found in wallet. Can be used to update public key with private key info
@@ -1842,17 +1865,19 @@ class HDWallet:
         # if level_offset is None:
         #     level_offset = self.main_key.depth - self.key_depth
         cosigner_id = cosigner_id if cosigner_id is not None else self.cosigner_id
+        level_offset_key = level_offset
+        if level_offset and self.main_key and level_offset > 0:
+            level_offset_key = level_offset - self.main_key.depth
 
-        fullpath = path_expand(path, self.key_path, level_offset, account_id=account_id, cosigner_id=cosigner_id,
-                               purpose=self.purpose, witness_type=self.witness_type, network=network)
+        fullpath = path_expand(path, self.key_path, level_offset_key, account_id=account_id, cosigner_id=cosigner_id,
+                               purpose=self.purpose, address_index=address_index, change=change,
+                               witness_type=self.witness_type, network=network)
 
         if self.multisig and self.cosigner:
             public_keys = []
             for wlt in self.cosigner:
                 if wlt.scheme == 'single':
                     wk = wlt.main_key
-                # elif path == [] and fullpath[0] == 'M':
-                #     pass
                 else:
                     wk = wlt.key_for_path(path, level_offset=level_offset, account_id=account_id, name=name,
                                           cosigner_id=cosigner_id, network=network, recreate=recreate)
@@ -1861,8 +1886,8 @@ class HDWallet:
                     'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path,
                     'cosigner_id': wlt.cosigner_id
                 })
-            change = 0
-            address_index = 0
+            # change = 0
+            # address_index = 0
             return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index)
 
         # Check for closest ancestor in wallet\

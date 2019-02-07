@@ -1560,9 +1560,12 @@ class TestWalletSegwit(unittest.TestCase):
         w.new_account()
         w.new_account()
         w.new_account(account_id=100)
-        paths = ["m/48'/0'/0'/2'/0/0", "m/48'/0'/0'/2'/1/0", "m/48'/0'/1'/2'/0/0", "m/48'/0'/1'/2'/1/0",
-                 "m/48'/0'/100'/2'/0/0", "m/48'/0'/100'/2'/1/0"]
+        self.assertRaisesRegexp(WalletError, "Account with ID 100 already exists for this wallet",
+                                w.new_account, 'test', 100)
+        paths = ["m/48'/0'/0'/2'", "m/48'/0'/0'/2'/0/0", "m/48'/0'/0'/2'/1/0", "m/48'/0'/1'/2'", "m/48'/0'/1'/2'/0/0",
+                 "m/48'/0'/1'/2'/1/0", "m/48'/0'/100'/2'", "m/48'/0'/100'/2'/0/0", "m/48'/0'/100'/2'/1/0"]
         self.assertListEqual(sorted(paths), sorted([k.path for k in w.keys()]))
+        self.assertListEqual([a.account_id for a in w.accounts()], [0, 1, 100])
 
 
 class TestWalletKeyStructures(unittest.TestCase):

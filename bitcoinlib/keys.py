@@ -357,7 +357,7 @@ def addr_convert(addr, prefix, encoding=None, to_encoding=None):
 
 
 def path_expand(path, path_template=None, level_offset=None, account_id=None, cosigner_id=None, purpose=None,
-                witness_type=None, network=None):
+                address_index=None, change=0, witness_type=None, network=None):
     """
     Create key path. Specify part of key path and path settings
 
@@ -373,6 +373,10 @@ def path_expand(path, path_template=None, level_offset=None, account_id=None, co
     :type cosigner_id: int
     :param purpose: Purpose value
     :type purpose: int
+    :param address_index: Index of key, normally provided to 'path' argument
+    :type address_index: int
+    :param change: Change key = 1 or normal = 0, normally provided to 'path' argument
+    :type change: int
     :param witness_type: Witness type for paths with a script ID, specify 'p2sh-segwit' or 'segwit'
     :type witness_type: str
     :param network: Network name. Leave empty for default network
@@ -417,7 +421,8 @@ def path_expand(path, path_template=None, level_offset=None, account_id=None, co
         'coin_type': Network(network).bip44_cointype,
         'script_type': script_type_id,
         'cosigner_index': cosigner_id,
-        'change': 0,
+        'change': change,
+        'address_index': address_index
     }
     npath = new_path
     for i, pi in enumerate(new_path):
@@ -435,6 +440,8 @@ def path_expand(path, path_template=None, level_offset=None, account_id=None, co
         new_varname = (str(var_defaults[varname]) if varname in var_defaults else varname)
         if new_varname == varname and not new_varname.isdigit():
             raise BKeyError("Variable %s not found in Key structure definitions in main.py" % varname)
+        if varname == 'address_index' and address_index is None:
+            raise BKeyError("Please provide value for 'address_index' or 'path'")
         npath[i] = new_varname + ("'" if hardened else '')
     if "None'" in npath:
         raise BKeyError("Field \"%s\" is None in key_path" % path[npath.index("None'")])
