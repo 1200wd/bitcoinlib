@@ -1548,6 +1548,22 @@ class TestWalletSegwit(unittest.TestCase):
         t.sign(cosigner)
         self.assertTrue(t.verify())
 
+    def test_wallet_segwit_multiple_account_paths(self):
+        pk1 = HDKey(
+            "ZprvAhadJRUYsNge9JCXTr7xphZaR6sW3HEeSQL7wgtEXceG5hoUViB9KQ4EX6hAdgziW7MorQAjyasWYirrCQrb3ySHaPBa8EiLTx"
+            "t4LmqTyzp")
+        pk2 = HDKey(
+            "ZprvAhadJRUYsNgeBbjftwKvAhDEV1hrYBGY19wATHqnEt5jfWXxXChYP8Qfnw3w2zJZskNercma5S1fWYH7e7XwbTVPgbabvs1CfU"
+            "zY2KQD2cB")
+        w = HDWallet.create("account-test", keys=[pk1, pk2.public_master(multisig=True)], witness_type='segwit',
+                            databasefile=DATABASEFILE_UNITTESTS)
+        w.new_account()
+        w.new_account()
+        w.new_account(account_id=100)
+        paths = ["m/48'/0'/0'/2'/0/0", "m/48'/0'/0'/2'/1/0", "m/48'/0'/1'/2'/0/0", "m/48'/0'/1'/2'/1/0",
+                 "m/48'/0'/100'/2'/0/0", "m/48'/0'/100'/2'/1/0"]
+        self.assertListEqual(sorted(paths), sorted([k.path for k in w.keys()]))
+
 
 class TestWalletKeyStructures(unittest.TestCase):
 

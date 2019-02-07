@@ -878,6 +878,7 @@ class HDWallet:
         if not key_path:
             if scheme == 'single':
                 key_path = ['m']
+                purpose = 0
             else:
                 ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
                       k['multisig'] == multisig and k['purpose'] is not None]
@@ -1759,8 +1760,6 @@ class HDWallet:
 
         if self.scheme != 'bip32':
             raise WalletError("We can only create new accounts for a wallet with a BIP32 key scheme")
-        # if self.multisig:
-        #     raise WalletError("Accounts not supported for multisig wallets")
         if self.main_key and (self.main_key.depth != 0 or self.main_key.is_private is False):
             raise WalletError("A master private key of depth 0 is needed to create new accounts (%s)" %
                               self.main_key.wif)
@@ -1787,9 +1786,11 @@ class HDWallet:
         if self.keys(account_id=account_id, depth=depth_account_keys, network=network):
             raise WalletError("Account with ID %d already exists for this wallet" % account_id)
 
-        acckey = self.key_for_path([account_id], -self.key_depth + depth_account_keys, name=name, network=network)
-        self.key_for_path([account_id, 0, 0], network=network)
-        self.key_for_path([account_id, 1, 0], network=network)
+        acckey = self.public_master(account_id=account_id, name=name)
+        # acckey = self.key_for_path([], level_offset=depth_account_keys-self.key_depth, account_id=account_id,
+        #                            name=name)
+        self.key_for_path([0, 0], network=network, account_id=account_id)
+        self.key_for_path([1, 0], network=network, account_id=account_id)
         return acckey
 
     def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, network=None):
@@ -1850,8 +1851,10 @@ class HDWallet:
             for wlt in self.cosigner:
                 if wlt.scheme == 'single':
                     wk = wlt.main_key
+                # elif path == [] and fullpath[0] == 'M':
+                #     pass
                 else:
-                    wk = wlt.key_for_path(path, level_offset=level_offset, account_id=account_id,
+                    wk = wlt.key_for_path(path, level_offset=level_offset, account_id=account_id, name=name,
                                           cosigner_id=cosigner_id, network=network, recreate=recreate)
                 public_keys.append({
                     'key_id': wk.key_id, 'public_key_uncompressed': wk.key().public_uncompressed(),
@@ -1861,24 +1864,10 @@ class HDWallet:
             change = 0
             address_index = 0
             return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index)
-            # public_keys = []
-            # for csw in self.cosigner:
-            #     if csw.scheme == 'single':
-            #         wk = csw.main_key
-            #     else:
-            #         wk = csw.key_for_path([change, address_index], account_id=account_id, cosigner_id=cosigner_id)
-            #     public_keys.append({
-            #         'key_id': wk.key_id, 'public_key_uncompressed': wk.key().public_uncompressed(),
-            #         'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path,
-            #         'cosigner_id': wk.wallet.cosigner_id
-            #     })
-            #
-            # return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network,
-            #                               address_index)
 
         # Check for closest ancestor in wallet\
         wpath = fullpath
-        if self.main_key.depth and fullpath[0] != 'M':
+        if self.main_key.depth and fullpath and fullpath[0] != 'M':
             wpath = ["M"] + fullpath[self.main_key.depth + 1:]
         dbkey = None
         while wpath and not dbkey:
@@ -1898,6 +1887,7 @@ class HDWallet:
             return topkey
         else:
             # Create 1 or more keys add them to wallet
+            nk = None
             parent_id = topkey.key_id
             ck = topkey.key()
             newpath = topkey.path
@@ -2032,9 +2022,11 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        if self.multisig:
-            raise WalletError("Accounts not supported for multisig wallets")
-        return self.keys(account_id, depth=3, network=network, as_dict=as_dict)
+        # if self.multisig and self.cosigner:
+        #     cw = self.cosigner[self.cosigner_id]
+        #     return cw.keys_accounts()
+        # TODO: Support for multisig (segwit sl/bip48)
+        return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
 
     def keys_addresses(self, account_id=None, used=None, network=None, depth=None, as_dict=False):
         """
@@ -2134,7 +2126,9 @@ class HDWallet:
         """
 
         dbkey = None
-        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, purpose=self.purpose)
+        qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id)
+        if self.purpose:
+            qr = qr.filter_by(purpose=self.purpose)
         if isinstance(term, numbers.Number):
             dbkey = qr.filter_by(id=term).scalar()
         if not dbkey:
@@ -2190,19 +2184,7 @@ class HDWallet:
         :return list: List of accounts as HDWalletKey objects
         """
 
-        accounts = []
-        if self.multisig:
-            # FIXME: This should return an error, instead of list of main keys for multisig (?)
-            # raise WalletError("Accounts not supported for multisig wallets")
-            for wlt in self.cosigner:
-                if wlt.main_key.is_private:
-                    accounts.append(self.key(wlt.main_key.key_id))
-        else:
-            wks = self.keys_accounts(network=network)
-
-            for wk in wks:
-                accounts.append(self.key(wk.id))
-        return accounts
+        return [self.key(wk.id) for wk in self.keys_accounts(network=network)]
 
     def networks(self, as_dict=False):
         """
@@ -3259,7 +3241,7 @@ class HDWallet:
                 wiflist.append(cs.wif(is_private=is_private))
             return wiflist
 
-    def public_master(self, account_id=None, network=None):
+    def public_master(self, account_id=None, name=None, network=None):
         """
         Return public master key(s) for this wallet. Use to import in other wallets to sign transactions or create keys.
 
@@ -3268,7 +3250,9 @@ class HDWallet:
         Returns private key information if available.
 
         :param account_id: Account ID of key to export
-        :type account_id: bool
+        :type account_id: int
+        :param name: Optional name for account key
+        :type name: str
         :param network: Network name. Leave empty for default network
         :type network: str
 
@@ -3278,11 +3262,12 @@ class HDWallet:
             return self.main_key
         elif not self.cosigner:
             depth = -self.key_depth + self.depth_public_master
-            return self.key_for_path([], depth, account_id=account_id, network=network, cosigner_id=self.cosigner_id)
+            return self.key_for_path([], depth, name=name, account_id=account_id, network=network,
+                                     cosigner_id=self.cosigner_id)
         else:
             pm_list = []
             for cs in self.cosigner:
-                pm_list.append(cs.public_master(account_id, network))
+                pm_list.append(cs.public_master(account_id, name, network))
             return pm_list
 
     def info(self, detail=3):
