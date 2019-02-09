@@ -1071,9 +1071,11 @@ class HDWallet:
                         hdkeyinfo = wif_prefix_search(cokey, network=network)
                         k = HDKey(cokey, network=network)
                         if hdkeyinfo:
-                            hdpm.witness_type = hdkeyinfo[0]['witness_type']
+                            # hdpm.witness_type = hdkeyinfo[0]['witness_type']
                             if hdkeyinfo[0]['multisig']:
                                 hdpm.purpose = 48
+                                key_path = ["m", "purpose'", "coin_type'", "account'", "script_type'", "change",
+                                            "address_index"]
                             if hdkeyinfo[0]['script_type'] == 'p2wsh':
                                 hdpm.encoding = 'bech32'
                     hdkey_list.append(k)
@@ -1503,7 +1505,7 @@ class HDWallet:
         script_type = 'p2sh'
         if self.witness_type == 'p2sh-segwit':
             script_type = 'p2sh_p2wsh'
-        address = Address(redeemscript, encoding=self.encoding, script_type=script_type, network=self.network).address
+        address = Address(redeemscript, encoding=self.encoding, script_type=script_type, network=network).address
         already_found_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=address).first()
         if already_found_key:
             return self.key(already_found_key.id)
@@ -1548,9 +1550,9 @@ class HDWallet:
             return self.main_key
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
+        if network != self.network.name and "coin_type'" not in self.key_path:
+            raise WalletError("Multiple networks not supported by wallet key structure")
         if self.multisig:
-            if self.network.name != network:
-                raise WalletError("Multiple networks is currently not supported for multisig")
             if not self.multisig_n_required:
                 raise WalletError("Multisig_n_required not set, cannot create new key")
         if cosigner_id is None:
@@ -1768,6 +1770,9 @@ class HDWallet:
                               self.key_path)
         if network is None:
             network = self.network.name
+        elif network != self.network.name and "coin_type'" not in self.key_path:
+            raise WalletError("Multiple networks not supported by wallet key structure")
+
         duplicate_cointypes = [Network(x).name for x in self.network_list() if Network(x).name != network and
                                Network(x).bip44_cointype == Network(network).bip44_cointype]
         if duplicate_cointypes:
@@ -1775,7 +1780,6 @@ class HDWallet:
                               (network, duplicate_cointypes))
 
         # Determine account_id and name
-        depth_account_keys = self.key_path.index("account'")
         if account_id is None:
             account_id = 0
             qr = self._session.query(DbKey). \
@@ -1886,8 +1890,6 @@ class HDWallet:
                     'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path,
                     'cosigner_id': wlt.cosigner_id
                 })
-            # change = 0
-            # address_index = 0
             return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index)
 
         # Check for closest ancestor in wallet\
@@ -2031,6 +2033,8 @@ class HDWallet:
             depth = self.key_path.index("coin_type'")
         except ValueError:
             return []
+        if self.multisig and self.cosigner:
+            _logger.warning("No network keys available for multisig wallet, use networks() method for list of networks")
         return self.keys(depth=depth, used=used, as_dict=as_dict)
 
     def keys_accounts(self, account_id=None, network=None, as_dict=False):
@@ -2221,13 +2225,25 @@ class HDWallet:
         :return list of (Network, dict):
         """
 
-        if self.scheme == 'single' or self.multisig:
+        if self.scheme == 'single':
             if as_dict:
                 nw_dict = self.network.__dict__
                 nw_dict['network_name'] = nw_dict['name']
                 return [nw_dict]
             else:
                 return [self.network]
+
+        # TODO: Rewrite and compact this
+        if self.multisig and self.cosigner:
+            self.get_key()  # Need at least one key for this query to work
+            keys_qr = self._session.query(DbKey.network_name).\
+                filter_by(wallet_id=self.wallet_id, depth=self.key_depth).\
+                group_by(DbKey.network_name).all()
+            networks = [Network(nw[0]) for nw in keys_qr]
+            if not as_dict:
+                return networks
+            else:
+                return [nw.__dict__ for nw in networks]
         else:
             wks = self.keys_networks(as_dict=as_dict)
             networks = []
