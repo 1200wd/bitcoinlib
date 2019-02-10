@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2016 - 2019 January - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2019 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -302,7 +302,7 @@ class TestWalletExport(unittest.TestCase):
             'Ypub6jVwyh6yYiRoA5zAnGY1g88G5LdaxkHX65d2kSW97yTBAF1RQwAs3UGPz8bX7LvQfg8tc9MQz7eZ79qVigELqSJzfFbGmPak4PZr'
             'vW8fZXy']
         w = HDWallet.create("wif_import_p2sh_p2wsh", [p1, p2, p3], sigs_required=2, witness_type='p2sh-segwit',
-                            databasefile=DATABASEFILE_UNITTESTS)
+                            network='bitcoin', databasefile=DATABASEFILE_UNITTESTS)
         for wif in w.wif(is_private=False):
             self.assertIn(wif, wifs)
 

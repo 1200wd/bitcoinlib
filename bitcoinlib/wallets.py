@@ -26,7 +26,7 @@ import json
 
 from bitcoinlib.db import *
 from bitcoinlib.encoding import to_hexstring, to_bytes
-from bitcoinlib.keys import HDKey, check_network_and_key, Address, deserialize_address, path_expand
+from bitcoinlib.keys import HDKey, check_network_and_key, Address, deserialize_address, path_expand, BKeyError
 from bitcoinlib.networks import Network, wif_prefix_search
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
@@ -840,62 +840,6 @@ class HDWallet:
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys, password,
                 witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, databasefile):
 
-        if isinstance(key, HDKey):
-            network = key.network.name
-        elif key:
-            # If key consists of several words assume it is a passphrase and convert it to a HDKey object
-            if len(key.split(" ")) > 1:
-                if not network:
-                    raise WalletError("Please specify network when using passphrase to create a key")
-                key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network)
-            else:
-                network = check_network_and_key(key, network)
-                hdkeyinfo = wif_prefix_search(key, network=network)
-                if hdkeyinfo:
-                    key = HDKey(key, network=network)
-                    if witness_type is None:
-                        witness_type = hdkeyinfo[0]['witness_type']
-                    if hdkeyinfo[0]['multisig']:
-                        raise WalletError("Imported key is for multisig wallets, use create_multisig instead")
-                else:
-                    try:
-                        da = deserialize_address(key, network=network)
-                        encoding = da['encoding']
-                        network = da['network']
-                        scheme = 'single'
-                        key = Address.import_address(key, encoding=encoding, network=network)
-                        # TODO: witness_type
-                    except Exception:
-                        pass
-
-        elif network is None:
-            network = DEFAULT_NETWORK
-        if witness_type is None:
-            witness_type = 'legacy'
-        if (network == 'dash' or network == 'dash_testnet') and witness_type != 'legacy':
-            raise WalletError("Segwit is not supported for Dash wallets")
-
-        if not key_path:
-            if scheme == 'single':
-                key_path = ['m']
-                purpose = 0
-            else:
-                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
-                      k['multisig'] == multisig and k['purpose'] is not None]
-                if len(ks) > 1:
-                    raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
-                                      "witness_type - multisig combination")
-                if ks and not purpose:
-                    purpose = ks[0]['purpose']
-                if ks and not encoding:
-                    encoding = ks[0]['encoding']
-                key_path = ks[0]['key_path']
-        else:
-            if purpose is None:
-                purpose = 0
-        if not encoding:
-            encoding = get_encoding_from_witness(witness_type)
-
         if databasefile is None:
             databasefile = DEFAULT_DATABASE
         session = DbInit(databasefile=databasefile).session
@@ -1025,7 +969,6 @@ class HDWallet:
             raise WalletError("Witness type %s not supported at the moment" % witness_type)
         if name.isdigit():
             raise WalletError("Wallet name '%s' invalid, please include letter characters" % name)
-        key = ''
 
         if multisig:
             if password:
@@ -1036,24 +979,76 @@ class HDWallet:
                 sigs_required = len(keys)
             if sigs_required > len(keys):
                 raise WalletError("Number of keys required to sign is greater then number of keys provided")
-        elif keys:
-            if isinstance(keys, list):
-                key = keys[0]
-            else:
-                key = keys
-                keys = [keys]
+        elif not isinstance(keys, list):
+            keys = [keys]
 
-        # Try to derive witness_type from key information
-        if witness_type is None and keys:
-            wt_found = list(set([k.witness_type for k in keys if isinstance(k, HDKey)]))
-            if len(wt_found) == 1:
-                witness_type = wt_found[0]
-            elif len(wt_found) > 1:
-                raise WalletError("HDKey with different witness types, please specify witness type")
-        if network is None and keys:
-            nw_found = list(set([k.network.name for k in keys if isinstance(k, HDKey)]))
-            if len(nw_found) == 1:
-                network = nw_found[0]
+        hdkey_list = []
+        for key in keys:
+            if isinstance(key, HDKey):
+                network = key.network.name
+                if witness_type is None:
+                    witness_type = key.witness_type
+            elif key:
+                # If key consists of several words assume it is a passphrase and convert it to a HDKey object
+                if len(key.split(" ")) > 1:
+                    if not network:
+                        raise WalletError("Please specify network when using passphrase to create a key")
+                    key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network)
+                else:
+                    try:
+                        key = HDKey(key, network=network)
+                    except BKeyError:
+                        try:
+                            da = deserialize_address(key, network=network)
+                            encoding = da['encoding']
+                            network = da['network']
+                            scheme = 'single'
+                            key = Address.import_address(key, encoding=encoding, network=network)
+                            # TODO: witness_type
+                        except Exception:
+                            pass
+                    else:
+                        if network is None:
+                            network = key.network.name
+                        elif network != key.network.name:
+                            raise BKeyError("Specified key %s is from different network then specified: %s" %
+                                            (key.network.name, network))
+                        if witness_type is None:
+                            witness_type = key.witness_type
+            hdkey_list.append(key)
+
+        if network is None:
+            network = DEFAULT_NETWORK
+        if witness_type is None:
+            witness_type = 'legacy'
+        if (network == 'dash' or network == 'dash_testnet') and witness_type != 'legacy':
+            raise WalletError("Segwit is not supported for Dash wallets")
+
+        if not key_path:
+            if scheme == 'single':
+                key_path = ['m']
+                purpose = 0
+            else:
+                ks = [k for k in WALLET_KEY_STRUCTURES if k['witness_type'] == witness_type and
+                      k['multisig'] == multisig and k['purpose'] is not None]
+                if len(ks) > 1:
+                    raise WalletError("Please check definitions in WALLET_KEY_STRUCTURES. Multiple options found for "
+                                      "witness_type - multisig combination")
+                if ks and not purpose:
+                    purpose = ks[0]['purpose']
+                if ks and not encoding:
+                    encoding = ks[0]['encoding']
+                key_path = ks[0]['key_path']
+        else:
+            if purpose is None:
+                purpose = 0
+        if not encoding:
+            encoding = get_encoding_from_witness(witness_type)
+
+        if multisig:
+            key = ''
+        else:
+            key = hdkey_list[0]
 
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, password=password,
@@ -1061,26 +1056,6 @@ class HDWallet:
                            cosigner_id=cosigner_id, key_path=key_path, databasefile=databasefile)
 
         if multisig:
-            hdkey_list = []
-            for cokey in keys:
-                if not isinstance(cokey, HDKey):
-                    if len(cokey.split(' ')) > 5:
-                        k = HDKey.from_passphrase(cokey, network=network)
-                    else:
-                        network = check_network_and_key(cokey, network)
-                        hdkeyinfo = wif_prefix_search(cokey, network=network)
-                        k = HDKey(cokey, network=network)
-                        if hdkeyinfo:
-                            # hdpm.witness_type = hdkeyinfo[0]['witness_type']
-                            if hdkeyinfo[0]['multisig']:
-                                hdpm.purpose = 48
-                                key_path = ["m", "purpose'", "coin_type'", "account'", "script_type'", "change",
-                                            "address_index"]
-                            if hdkeyinfo[0]['script_type'] == 'p2wsh':
-                                hdpm.encoding = 'bech32'
-                    hdkey_list.append(k)
-                else:
-                    hdkey_list.append(cokey)
             if sort_keys:
                 hdkey_list.sort(key=lambda x: x.public_byte)
             cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
@@ -1864,10 +1839,7 @@ class HDWallet:
         :return HDWalletKey:
         """
 
-        # TODO: Remove next line, should be called in higher level methods?
         network, account_id, _ = self._get_account_defaults(network, account_id)
-        # if level_offset is None:
-        #     level_offset = self.main_key.depth - self.key_depth
         cosigner_id = cosigner_id if cosigner_id is not None else self.cosigner_id
         level_offset_key = level_offset
         if level_offset and self.main_key and level_offset > 0:
@@ -2235,11 +2207,12 @@ class HDWallet:
 
         # TODO: Rewrite and compact this
         if self.multisig and self.cosigner:
-            self.get_key()  # Need at least one key for this query to work
             keys_qr = self._session.query(DbKey.network_name).\
                 filter_by(wallet_id=self.wallet_id, depth=self.key_depth).\
                 group_by(DbKey.network_name).all()
             networks = [Network(nw[0]) for nw in keys_qr]
+            if not networks:
+                return [self.network]
             if not as_dict:
                 return networks
             else:
