@@ -1565,7 +1565,7 @@ class TestWalletSegwit(unittest.TestCase):
         paths = ["m/48'/0'/0'/2'", "m/48'/0'/0'/2'/0/0", "m/48'/0'/0'/2'/1/0", "m/48'/0'/1'/2'", "m/48'/0'/1'/2'/0/0",
                  "m/48'/0'/1'/2'/1/0", "m/48'/0'/100'/2'", "m/48'/0'/100'/2'/0/0", "m/48'/0'/100'/2'/1/0"]
         self.assertListEqual(sorted(paths), sorted([k.path for k in w.keys()]))
-        self.assertListEqual([a.account_id for a in w.accounts()], [0, 1, 100])
+        self.assertListEqual(w.accounts(), [0, 1, 100])
 
     def test_wallet_segwit_multiple_networks_accounts(self):
         pk1 = 'surround vacant shoot aunt acoustic liar barely you expand rug industry grain'
@@ -1582,7 +1582,7 @@ class TestWalletSegwit(unittest.TestCase):
 
         networks_expected = ['bitcoin', 'litecoin', 'testnet']
         self.assertListEqual([nw.name for nw in wallet.networks()], networks_expected)
-        self.assertListEqual([k.path for k in wallet.accounts()], ["m/48'/0'/0'/2'", "m/48'/0'/1'/2'"])
+        self.assertListEqual([k.path for k in wallet.keys_accounts()], ["m/48'/0'/0'/2'", "m/48'/0'/1'/2'"])
         self.assertEqual(wallet.keys(network='litecoin')[0].address, "M9YP2WY8tf9V98ysLVo5h4c9JaUFYM4bz8")
         self.assertEqual(wallet.keys(network='bitcoin')[0].address, "3L6XFzC6RPeXSFpZS8v4S86v4gsNmKFnFT")
 

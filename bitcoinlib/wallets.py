@@ -2185,7 +2185,13 @@ class HDWallet:
         :return list: List of accounts as HDWalletKey objects
         """
 
-        return [self.key(wk.id) for wk in self.keys_accounts(network=network)]
+        if self.multisig and self.cosigner:
+            accounts = [wk.account_id for wk in self.cosigner[self.cosigner_id].keys_accounts(network=network)]
+        else:
+            accounts = [wk.account_id for wk in self.keys_accounts(network=network)]
+        if not accounts:
+            accounts = [self.default_account_id]
+        return accounts
 
     def networks(self, as_dict=False):
         """
@@ -2437,9 +2443,7 @@ class HDWallet:
         count_utxos = 0
         for network in networks:
             if account_id is None and not self.multisig:
-                accounts = [k.account_id for k in self.accounts(network=network)]
-                if not accounts:
-                    accounts = [self.default_account_id]
+                accounts = self.accounts(network=network)
             else:
                 accounts = [account_id]
             for account_id in accounts:
