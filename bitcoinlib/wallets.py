@@ -2204,45 +2204,30 @@ class HDWallet:
         """
 
         if self.scheme == 'single':
-            if as_dict:
-                nw_dict = self.network.__dict__
-                nw_dict['network_name'] = nw_dict['name']
-                return [nw_dict]
-            else:
-                return [self.network]
-
-        # TODO: Rewrite and compact this
-        if self.multisig and self.cosigner:
+            nw_list = [self.network]
+        elif self.multisig and self.cosigner:
             keys_qr = self._session.query(DbKey.network_name).\
                 filter_by(wallet_id=self.wallet_id, depth=self.key_depth).\
                 group_by(DbKey.network_name).all()
-            networks = [Network(nw[0]) for nw in keys_qr]
-            if not networks:
-                return [self.network]
-            if not as_dict:
-                return networks
-            else:
-                return [nw.__dict__ for nw in networks]
+            nw_list = [Network(nw[0]) for nw in keys_qr]
         else:
-            wks = self.keys_networks(as_dict=as_dict)
-            networks = []
-            if not wks:
-                if as_dict:
-                    nw_dict = self.network.__dict__
-                    nw_dict['network_name'] = nw_dict['name']
-                    return [nw_dict]
-                else:
-                    return [self.network]
-            if as_dict:
-                for wk in wks:
-                    if '_sa_instance_state' in wk:
-                        del wk['_sa_instance_state']
-                networks = wks
-            else:
-                for wk in wks:
-                    networks.append(Network(wk.network_name))
+            wks = self.keys_networks()
+            nw_list = []
+            for wk in wks:
+                nw_list.append(Network(wk.network_name))
 
-            return networks
+        if not nw_list:
+            nw_list = [self.network]
+
+        networks = []
+        for nw in nw_list:
+            if as_dict:
+                nw = nw.__dict__
+                if '_sa_instance_state' in nw:
+                    del nw['_sa_instance_state']
+            networks.append(nw)
+
+        return networks
 
     def network_list(self, field='name'):
         """
@@ -3361,14 +3346,8 @@ class HDWallet:
                         accounts = self.accounts(network=nw.name)
                         if not accounts:
                             accounts = [0]
-                        for account in accounts:
-                            if account == 0:
-                                print("\n- - Transactions")
-                                account_id = 0
-                            else:
-                                account_id = account.account_id
-                                print("\n- - Transactions (Account %d, %s)" %
-                                      (account_id, account.key().wif_public(witness_type=self.witness_type)))
+                        for account_id in accounts:
+                            print("\n- - Transactions Account %d" % account_id)
                             for t in self.transactions(include_new=include_new, account_id=account_id,
                                                        network=nw.name):
                                 spent = ""
