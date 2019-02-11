@@ -401,7 +401,8 @@ class HDWalletKey:
                 wk = session.query(DbKey).filter(
                     DbKey.wallet_id == wallet_id,
                     or_(DbKey.public == k.public_hex,
-                        DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False))).first()
+                        DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
+                        DbKey.address == k.address())).first()
                 if wk:
                     wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
                     wk.is_private = True
@@ -1459,6 +1460,8 @@ class HDWallet:
                 account_id=account_id, purpose=purpose, session=self._session, path=ik_path,
                 witness_type=self.witness_type)
             self._key_objects.update({mk.key_id: mk})
+            if mk.key_id == self.main_key.key_id:
+                self.main_key = mk
             return mk
         else:
             account_key = hdkey.public_master(witness_type=self.witness_type, multisig=True).wif()

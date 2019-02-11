@@ -1665,3 +1665,16 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         # FIXME: Value should be greater then 10000000000, but some service providers do not return all utxo's
         self.assertGreater(w.balance(), 1000000)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
+
+    def test_wallet_address_import_public_key_segwit(self):
+        pass  # TODO
+
+    def test_wallet_address_import_private_key(self):
+        wif = 'xprv9s21ZrQH143K2irnebDnjwxHwCtJBoJ3iF9C2jkdkVXBiY46PQJX9kxCRMVcM1YXLERWUiUBoxQEUDqFAKbrTaL9FB4HfRY' \
+              'jsGgCGpRPWTy'
+        address = '1EJiPa66sT4PCDCFnc7oRnpWebAogPqppr'
+        w = HDWallet.create('test_wallet_address_import_public_key', address, databasefile=DATABASEFILE_UNITTESTS)
+        self.assertListEqual(w.addresslist(), [address])
+        self.assertFalse(w.main_key.is_private)
+        w.import_key(wif)
+        self.assertTrue(w.main_key.is_private)
