@@ -397,7 +397,7 @@ class HDWalletKey:
                     witness_type=witness_type, multisig=multisig, is_private=True)).first()
             if wk:
                 return HDWalletKey(wk.id, session, k)
-            elif k.is_private:  # Look for public version of key, and convert to private if possible
+            else:  # Look for public version of key, and convert to private if possible
                 wk = session.query(DbKey).filter(
                     DbKey.wallet_id == wallet_id,
                     or_(DbKey.public == k.public_hex,
@@ -407,6 +407,7 @@ class HDWalletKey:
                     wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
                     wk.is_private = True
                     wk.private = k.private_hex
+                    wk.public = k.public_hex
                     wk.path = path
                     session.commit()
                     return HDWalletKey(wk.id, session, k)
@@ -859,6 +860,13 @@ class HDWallet:
             if key.depth is None:
                 key.depth = key_depth
             if key.depth > 0:
+                hardened_keys = [x for x in key_path if x[-1:] == "'"]
+                if hardened_keys:
+                    depth_public_master = key_path.index(hardened_keys[-1])
+                    if depth_public_master != key.depth:
+                        raise WalletError("Depth of provided public master key %d does not correspond with key path "
+                                          "%s. Did you provide correct witness_type and multisig attribute?" %
+                                          (key.depth, key_path))
                 key_path = ['M'] + key_path[key.depth+1:]
                 base_path = 'M'
 

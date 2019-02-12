@@ -1666,14 +1666,31 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         self.assertGreater(w.balance(), 1000000)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
 
+    def test_wallet_address_import_public_key(self):
+        wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \
+              'DAY95TfYH6H6'
+        address = '1EJiPa66sT4PCDCFnc7oRnpWebAogPqppr'
+        w = HDWallet.create('test_wallet_address_import_public_key', address, databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.addresslist(), [address])
+        self.assertIsNone(w.main_key.key_public)
+        w.import_key(wif)
+        self.assertEqual(w.main_key.key_public, '0225248feed626f2496276109329f1ce30225e7a3153fe24b5c56828b0773bae75')
+
     def test_wallet_address_import_public_key_segwit(self):
-        pass  # TODO
+        wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \
+              'DAY95TfYH6H6'
+        address = '1EJiPa66sT4PCDCFnc7oRnpWebAogPqppr'
+        w = HDWallet.create('test_wallet_address_import_public_key_segwit', address, databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w.addresslist(), [address])
+        self.assertIsNone(w.main_key.key_public)
+        w.import_key(wif)
+        self.assertEqual(w.main_key.key_public, '0225248feed626f2496276109329f1ce30225e7a3153fe24b5c56828b0773bae75')
 
     def test_wallet_address_import_private_key(self):
         wif = 'xprv9s21ZrQH143K2irnebDnjwxHwCtJBoJ3iF9C2jkdkVXBiY46PQJX9kxCRMVcM1YXLERWUiUBoxQEUDqFAKbrTaL9FB4HfRY' \
               'jsGgCGpRPWTy'
         address = '1EJiPa66sT4PCDCFnc7oRnpWebAogPqppr'
-        w = HDWallet.create('test_wallet_address_import_public_key', address, databasefile=DATABASEFILE_UNITTESTS)
+        w = HDWallet.create('test_wallet_address_import_private_key', address, databasefile=DATABASEFILE_UNITTESTS)
         self.assertListEqual(w.addresslist(), [address])
         self.assertFalse(w.main_key.is_private)
         w.import_key(wif)

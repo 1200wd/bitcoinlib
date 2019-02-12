@@ -1474,7 +1474,7 @@ class HDKey(Key):
             first_public = True
         if path:
             if len(path) > 1:
-                _logger.warning("Path length > 1 can be slow for larger paths, use Wallet Class to generate keys paths")
+                _logger.info("Path length > 1 can be slow for larger paths, use Wallet Class to generate keys paths")
             for item in path:
                 if not item:
                     raise BKeyError("Could not parse path. Index is empty.")
@@ -1560,6 +1560,24 @@ class HDKey(Key):
             return self.subkey_for_path(path)
         else:
             return self.subkey_for_path(path).public()
+
+    def public_master_multisig(self, account_id=0, purpose=None, witness_type=None, as_private=False):
+        """
+        Derives a public master key for current HDKey for use with multi signature wallets. Wrapper for the
+        public_master() method.
+
+        :param account_id: Account ID. Leave empty for account 0
+        :type account_id: int
+        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit.
+        :type purpose: int
+        :param witness_type: Specify witness type, default is legacy. Use 'segwit' or 'p2sh-segwit' for segregated witness.
+        :type witness_type: str
+        :param as_private: Return private key if available. Default is to return public key
+
+        :return HDKey:
+        """
+
+        return self.public_master(account_id, purpose, True, witness_type, as_private)
 
     @deprecated  # In version 0.4.5
     def account_multisig_key(self, account_id=0, witness_type='legacy'):
