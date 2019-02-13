@@ -214,7 +214,7 @@ def get_key_format(key, is_private=None):
         except (EncodingError, TypeError):
             pass
     if not key_format:
-        raise BKeyError("Key: %s. Unrecognised key format" % key)
+        raise BKeyError("Unrecognised key format")
     else:
         return {
             "format": key_format,

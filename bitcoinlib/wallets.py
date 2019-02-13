@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for Key and Transaction management
-#    © 2016 - 2019 January - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2019 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -367,30 +367,12 @@ class HDWalletKey:
                 filter(DbKey.wallet_id == wallet_id,
                        DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=True)).first()
             if keyexists:
-                _logger.warning("Key %s already exists" % (key or k.wif(witness_type=witness_type, multisig=multisig,
-                                                                        is_private=True)))
+                _logger.warning("Key already exists in this wallet. Key ID: %d" % keyexists.id)
                 return HDWalletKey(keyexists.id, session, k)
 
             if key_type != 'single' and k.depth != len(path.split('/'))-1:
-                if path == 'm' and k.depth == 3:
+                if path == 'm' and k.depth > 1:
                     path = "M"
-                    # if purpose == 45:
-                    #     raise WalletError('Cannot import old style BIP45 account keys, use master key to create new '
-                    #                       'wallet. Or workaround this issue by specifying key_path such as '
-                    #                       '["m", "purpose\'", "coin_type\'", "account\'", "change", "address_index"] '
-                    #                       'and purpose 45 for multisig')
-                    # # Create path when importing new account-key
-                    # networkcode = Network(network).bip44_cointype
-                    # path = "m/%d'/%s'/%d'" % (purpose, networkcode, account_id)
-                elif purpose == 45 and path == 'm' and k.depth == 1:
-                    path = "m/45'"
-                elif purpose == 48 and path == 'm' and k.depth == 4:
-                    networkcode = Network(network).bip44_cointype
-                    script_type_id = 1 if witness_type == 'p2sh-segwit' else 2
-                    path = "m/%d'/%s'/%d'/%d'" % (purpose, networkcode, account_id, script_type_id)
-                # else:
-                #     raise WalletError("Key depth of %d does not match path length of %d for path %s" %
-                #                       (k.depth, len(path.split('/')) - 1, path))
 
             wk = session.query(DbKey).filter(
                 DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
@@ -424,7 +406,7 @@ class HDWalletKey:
                 filter(DbKey.wallet_id == wallet_id,
                        DbKey.address == k.address).first()
             if keyexists:
-                _logger.warning("Key %s already exists" % key)
+                _logger.warning("Key with ID %s already exists" % keyexists.id)
                 return HDWalletKey(keyexists.id, session, k)
             nk = DbKey(name=name, wallet_id=wallet_id, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address=k.address,
@@ -1076,7 +1058,7 @@ class HDWallet:
             for cokey in hdkey_list:
                 if hdpm.network.name != cokey.network.name:
                     raise WalletError("Network for key %s (%s) is different then network specified: %s/%s" %
-                                      (cokey.wif(), cokey.network.name, network, hdpm.network.name))
+                                      (cokey.wif(is_private=False), cokey.network.name, network, hdpm.network.name))
                 scheme = 'bip32'
                 wn = name + '-cosigner-%d' % wlt_cos_id
                 if cokey.key_type == 'single':
@@ -1377,8 +1359,7 @@ class HDWallet:
             raise WalletError("Current main key is not a valid BIP32 public account key")
         pm = self.public_master()
         if pm and self.main_key.wif != pm.wif:
-            raise WalletError("This key does not correspond to current public master key: %s != %s" %
-                              (self.main_key.wif, pm.wif))
+            raise WalletError("This key does not correspond to current public master key")
         if not (self.network.name == self.main_key.network.name == hdkey.network.name):
             raise WalletError("Network of Wallet class, main account key and the imported private key must use "
                               "the same network")
@@ -1751,8 +1732,8 @@ class HDWallet:
         if self.scheme != 'bip32':
             raise WalletError("We can only create new accounts for a wallet with a BIP32 key scheme")
         if self.main_key and (self.main_key.depth != 0 or self.main_key.is_private is False):
-            raise WalletError("A master private key of depth 0 is needed to create new accounts (%s)" %
-                              self.main_key.wif)
+            raise WalletError("A master private key of depth 0 is needed to create new accounts (depth: %d)" %
+                              self.main_key.depth)
         if "account'" not in self.key_path:
             raise WalletError("Accounts are not supported for this wallet. Account not found in key path %s" %
                               self.key_path)
@@ -1968,7 +1949,7 @@ class HDWallet:
         if change is not None:
             qr = qr.filter(DbKey.change == change)
             if self.scheme == 'bip32' and depth is None:
-                qr = qr.filter(DbKey.depth > 4)
+                qr = qr.filter(DbKey.depth > self.key_depth - 1)
         if depth is not None:
             qr = qr.filter(DbKey.depth == depth)
         if name is not None:
