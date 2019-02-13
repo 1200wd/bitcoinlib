@@ -356,8 +356,8 @@ def addr_convert(addr, prefix, encoding=None, to_encoding=None):
     return pubkeyhash_to_addr(pkh, prefix=prefix, encoding=to_encoding)
 
 
-def path_expand(path, path_template=None, level_offset=None, account_id=None, cosigner_id=None, purpose=None,
-                address_index=None, change=0, witness_type=None, network=None):
+def path_expand(path, path_template=None, level_offset=None, account_id=0, cosigner_id=0, purpose=44,
+                address_index=0, change=0, witness_type='legacy', multisig=False, network=DEFAULT_NETWORK):
     """
     Create key path. Specify part of key path and path settings
 
@@ -387,7 +387,11 @@ def path_expand(path, path_template=None, level_offset=None, account_id=None, co
     if isinstance(path, TYPE_TEXT):
         path = path.split('/')
     if not path_template:
-        path_template = ["m", "purpose'", "coin_type'",  "account'", "change", "address_index"]
+        ks = [k for k in WALLET_KEY_STRUCTURES if
+              k['witness_type'] == witness_type and k['multisig'] == multisig and k['purpose'] is not None]
+        if ks:
+            purpose = ks[0]['purpose']
+            path_template = ks[0]['key_path']
     if not isinstance(path, list):
         raise BKeyError("Please provide path as list with at least 1 item. Wallet key path format is %s" %
                         path_template)
@@ -443,10 +447,8 @@ def path_expand(path, path_template=None, level_offset=None, account_id=None, co
         if varname == 'address_index' and address_index is None:
             raise BKeyError("Please provide value for 'address_index' or 'path'")
         npath[i] = new_varname + ("'" if hardened else '')
-    if "None'" in npath:
-        raise BKeyError("Field \"%s\" is None in key_path" % path[npath.index("None'")])
-    if "None" in npath:
-        raise BKeyError("Field \"%s\" is None in key_path" % path[npath.index("None")])
+    if "None'" in npath or "None" in npath:
+        raise BKeyError("Could not parse all variables in path %s" % npath)
     return npath
 
 
@@ -1122,7 +1124,7 @@ class HDKey(Key):
 
     @staticmethod
     def from_seed(import_seed, key_type='bip32', network=DEFAULT_NETWORK, compressed=True,
-                 encoding='bech32', witness_type='legacy', multisig=False):
+                  encoding='bech32', witness_type='legacy', multisig=False):
         """
         Used by class init function, import key from seed
 
@@ -1152,7 +1154,7 @@ class HDKey(Key):
 
     @staticmethod
     def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, compressed=True,
-                 encoding='bech32', witness_type='legacy', multisig=False):
+                        encoding='bech32', witness_type='legacy', multisig=False):
         """
         Create key from Mnemonic passphrase
 

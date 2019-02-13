@@ -1610,8 +1610,8 @@ class TestWalletKeyStructures(unittest.TestCase):
         self.assertListEqual(wlt.path_expand(['m', "purpose", "coin_type'", "1", 2, 3]),
                              ['m', "44'", "0'", "1'", '2', '3'])
         self.assertListEqual(wlt.path_expand([100], -2), ['m', "44'", "0'", "100'"])
-        self.assertRaisesRegexp(BKeyError, "Field \"cosigner_index\" is None in key_path",
-                                wlt.path_expand, ['m', 45, "cosigner_index", 55, 1000])
+        self.assertRaisesRegexp(BKeyError, "Please provide value for 'address_index'",
+                                wlt.path_expand, ['m', 45, "cosigner_index", 55, "address_index"])
         self.assertRaisesRegexp(BKeyError, "Variable bestaatnie not found in Key structure definitions in main.py",
                                 wlt.path_expand, ['m', "bestaatnie'", "coin_type'", "1", 2, 3])
 

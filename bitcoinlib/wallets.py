@@ -1784,8 +1784,8 @@ class HDWallet:
         self.key_for_path([1, 0], network=network, account_id=account_id)
         return acckey
 
-    def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=None, address_index=None, change=0,
-                    network=None):
+    def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=0, address_index=None, change=0,
+                    network=DEFAULT_NETWORK):
         """
         Create key path. Specify part of key path and path settings
 

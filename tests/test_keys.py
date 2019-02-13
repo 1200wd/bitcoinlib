@@ -55,6 +55,14 @@ class TestKeyClasses(unittest.TestCase):
         self.assertTrue(isinstance(json.loads(k.as_json()), dict))
         self.assertTrue(isinstance(k.as_dict(), dict))
 
+    def test_path_expand(self):
+        self.assertListEqual(path_expand([0]), ['m', "44'", "0'", "0'", '0', '0'])
+        self.assertListEqual(path_expand([10, 20]), ['m', "44'", "0'", "0'", '10', '20'])
+        self.assertListEqual(path_expand([10, 20], witness_type='segwit'), ['m', "84'", "0'", "0'", '10', '20'])
+        self.assertListEqual(path_expand([], witness_type='p2sh-segwit'), ['m', "49'", "0'", "0'", '0', '0'])
+        self.assertListEqual(path_expand([99], witness_type='p2sh-segwit', multisig=True),
+                             ['m', "48'", "0'", "0'", "1'", '0', '99'])
+
 
 class TestGetKeyFormat(unittest.TestCase):
 
