@@ -1417,12 +1417,17 @@ class HDWallet:
             if network not in self.network_list():
                 raise WalletError("Network %s not found in this wallet" % network)
         else:
-            if network is None:
-                network = check_network_and_key(key, default_network=self.network.name)
-            if network not in self.network_list():
-                raise WalletError("Network %s not available in this wallet, please create an account for this "
-                                  "network first." % network)
-            hdkey = HDKey(key, network=network, key_type=key_type)
+            if len(key.split(" ")) > 1:
+                if network is None:
+                    network = self.network
+                hdkey = HDKey.from_seed(Mnemonic().to_seed(key), network=network)
+            else:
+                if network is None:
+                    network = check_network_and_key(key, default_network=self.network.name)
+                if network not in self.network_list():
+                    raise WalletError("Network %s not available in this wallet, please create an account for this "
+                                      "network first." % network)
+                hdkey = HDKey(key, network=network, key_type=key_type)
 
         if not self.multisig:
             if self.main_key and self.main_key.depth == self.depth_public_master and \
