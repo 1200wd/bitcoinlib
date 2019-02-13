@@ -1103,8 +1103,11 @@ class TestWalletKeyImport(unittest.TestCase):
         wk = w.new_key()
         self.assertEqual(wk.address, 'bc1qr7r7zpr5gqnz0zs39ve7c0g54gwe7h7322lt3kae6gh8tzc5epts0j9rhm')
         self.assertFalse(w.public_master()[1].is_private)
+        self.assertEqual(w.public_master()[1].wif, wif2)
         w.import_key(p2)
         self.assertTrue(w.public_master()[1].is_private)
+        self.assertEqual(w.public_master()[1].wif, 'ZprvArYK8TRL84162ECqZEwt8NsCRdN43ZVVPYTfPsKw5YfiRGWtx3AC3eXvTuk'
+                                                   'CqUsKCLKQNGDV11hHi3FUQbcD9wc9g8ro64kK6H2MP4jaM7K')
         w.transactions_update()
         tx_hashes = sorted([t['tx_hash'] for t in w.transactions()])
         tx_hashes_expected = ['53b35eca3f2e767db02e4acc6c224d7a45f32158c8063f53c3d3660ab12d53ba',

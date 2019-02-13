@@ -604,6 +604,14 @@ class TestKeysAddress(unittest.TestCase):
         addr = Address(HDKey(pk).public_hex, witness_type='segwit')
         self.assertEqual(deserialize_address(addr.address, encoding='bech32')['encoding'], 'bech32')
 
+    def test_keys_hdkey_segwit(self):
+        k1 = HDKey('L1TZxZ9RgwFKiGPm6P7J9REQFKG9ymwLSsTwQSwxzLyDJs3CcRkF', witness_type='segwit')
+        self.assertEqual(k1.address(), 'bc1qmk9myu4zf590ae2mfq3m63rlfhd5scatl4ckmw')
+
+        phrase = 'scan display embark segment deputy lesson vanish second wonder erase crumble swing'
+        k2 = HDKey.from_passphrase(phrase, witness_type='segwit', multisig=True)
+        self.assertEqual(k2.address(), 'bc1qvj6c7n0hpl9t5r80zya4uukf0zens8ulxgwc0avnxsengtr5juss4pqeqy')
+
 
 class TestKeysDash(unittest.TestCase):
     def test_format_wif_compressed_private_dash(self):

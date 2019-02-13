@@ -1448,6 +1448,29 @@ class HDKey(Key):
         """
         return self.wif(is_private=True, prefix=prefix, witness_type=witness_type, multisig=multisig)
 
+    def address(self, compressed=None, prefix=None, script_type=None, encoding=None):
+        """
+        Get address derived from public key
+
+        :param compressed: Always return compressed address
+        :type compressed: bool
+        :param prefix: Specify versionbyte prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
+        :type prefix: str, bytes
+        :param script_type: Type of script, i.e. p2sh or p2pkh.
+        :type script_type: str
+        :param encoding: Address encoding. Default is base58 encoding, for segwit you can specify bech32 encoding
+        :type encoding: str
+
+        :return str: Base58 encoded address
+        """
+        if compressed is None:
+            compressed = self.compressed
+        if script_type is None:
+            script_type = self.script_type
+        if encoding is None:
+            encoding = self.encoding
+        return super(HDKey, self).address(compressed, prefix, script_type, encoding)
+
     def subkey_for_path(self, path, network=None):
         """
         Determine subkey for HD Key for given path.

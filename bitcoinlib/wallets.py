@@ -384,7 +384,7 @@ class HDWalletKey:
                     DbKey.wallet_id == wallet_id,
                     or_(DbKey.public == k.public_hex,
                         DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
-                        DbKey.address == k.address())).first()
+                        DbKey.address == k.address())).first()  # FIXME: Test with segwit, p2sh-segwit addresses
                 if wk:
                     wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
                     wk.is_private = True
