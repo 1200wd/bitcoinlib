@@ -1085,6 +1085,32 @@ class TestWalletKeyImport(unittest.TestCase):
         self.assertTrue(t3.verify())
         self.assertAlmostEqual(t3.outputs[0].value, 198981935, delta=100000)
 
+    def test_wallet_import_private_for_known_public_segwit_passphrases(self):
+        witness_type = 'segwit'
+        p1 = 'scan display embark segment deputy lesson vanish second wonder erase crumble swing'
+        p2 = 'private school road sight weapon where wreck glory lazy weapon silent print'
+        wif1 = 'Zpub74zBTMSW6uSE3nFTJbxxvyF3P169wy9N3WzMzFBwWV56sj2NTsGEXAcj6HeLwAhsbs6Ca7Gx7JY1McV2CA1eANi2ubuQA34j' \
+               'CxbEPR7eLPm'
+        wif2 = 'Zpub75XfXxxDxRZPEiHJfGUtVWovyfCYT2DLkmPGCFjYdtChJ4r3VaUSbSrQKCVezZuZ6wiJ8UvuG3QPAJdKxB9iY9zUTZ9VLLMw' \
+               'jTF9ghGRx1Q'
+        k1 = HDKey.from_passphrase(p1)
+        k2 = HDKey.from_passphrase(p2)
+        pubk1 = k1.public_master_multisig(witness_type=witness_type)
+        pubk2 = k2.public_master_multisig(witness_type=witness_type)
+        self.assertEqual(pubk1.wif(), wif1)
+        self.assertEqual(pubk2.wif(), wif2)
+        w = HDWallet.create('mswlt', [p1, pubk2], databasefile=DATABASEFILE_UNITTESTS, witness_type=witness_type)
+        wk = w.new_key()
+        self.assertEqual(wk.address, 'bc1qr7r7zpr5gqnz0zs39ve7c0g54gwe7h7322lt3kae6gh8tzc5epts0j9rhm')
+        self.assertFalse(w.public_master()[1].is_private)
+        w.import_key(p2)
+        self.assertTrue(w.public_master()[1].is_private)
+        w.transactions_update()
+        tx_hashes = sorted([t['tx_hash'] for t in w.transactions()])
+        tx_hashes_expected = ['53b35eca3f2e767db02e4acc6c224d7a45f32158c8063f53c3d3660ab12d53ba',
+                              'b6c4f286e8883927c26ce91e6cc89c7a8dd88223c111635e8e53f78c4573712a']
+        self.assertListEqual(tx_hashes, tx_hashes_expected)
+
 
 class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 
