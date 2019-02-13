@@ -992,6 +992,8 @@ class HDWallet:
             keys = [keys]
 
         hdkey_list = []
+        if keys and isinstance(keys, list) and sort_keys:
+            keys.sort(key=lambda x: ('0' if isinstance(x, HDKey) else '1'))
         for key in keys:
             if isinstance(key, HDKey):
                 network = key.network.name
