@@ -1124,7 +1124,7 @@ class HDKey(Key):
 
     @staticmethod
     def from_seed(import_seed, key_type='bip32', network=DEFAULT_NETWORK, compressed=True,
-                  encoding='bech32', witness_type='legacy', multisig=False):
+                  encoding=None, witness_type='legacy', multisig=False):
         """
         Used by class init function, import key from seed
 
@@ -1154,7 +1154,7 @@ class HDKey(Key):
 
     @staticmethod
     def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, compressed=True,
-                        encoding='bech32', witness_type='legacy', multisig=False):
+                        encoding=None, witness_type='legacy', multisig=False):
         """
         Create key from Mnemonic passphrase
 
@@ -1180,7 +1180,7 @@ class HDKey(Key):
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True,
-                 encoding='bech32', witness_type='legacy', multisig=False):
+                 encoding=None, witness_type='legacy', multisig=False):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with systems cryptographically random function.

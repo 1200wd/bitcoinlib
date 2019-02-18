@@ -1356,7 +1356,7 @@ class HDWallet:
             raise WalletError("Main key is already a private key, cannot import key")
         if (self.main_key.depth != 1 and self.main_key.depth != 3 and self.main_key.depth != 4) or \
                 self.main_key.key_type != 'bip32':
-            raise WalletError("Current main key is not a valid BIP32 public account key")
+            raise WalletError("Current main key is not a valid BIP32 public master key")
         pm = self.public_master()
         if pm and self.main_key.wif != pm.wif:
             raise WalletError("This key does not correspond to current public master key")
@@ -2153,7 +2153,7 @@ class HDWallet:
 
         Account keys have a BIP44 path depth of 3 and have the format m/purpose'/network'/account'
 
-        I.e: Use account(0).key().wif_public() to get wallet's public account key
+        I.e: Use account(0).key().wif_public() to get wallet's public master key
 
         :param account_id: ID of account. Default is 0
         :type account_id: int
@@ -3292,7 +3292,7 @@ class HDWallet:
         print(" Main network                   %s" % self.network.name)
 
         if self.multisig:
-            print("\n= Multisig Public Account Keys =")
+            print("\n= Multisig Public Master Keys =")
             for cs in self.cosigner:
                 print("%5s %-70s %-10s" % (cs.main_key.key_id, cs.wif(is_private=False),
                                            "main" if cs.main_key.is_private else "cosigner"))
