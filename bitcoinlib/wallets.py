@@ -25,9 +25,9 @@ from operator import itemgetter
 import json
 
 from bitcoinlib.db import *
-from bitcoinlib.encoding import to_hexstring, to_bytes
-from bitcoinlib.keys import HDKey, check_network_and_key, Address, deserialize_address, path_expand, BKeyError
-from bitcoinlib.networks import Network, wif_prefix_search
+from bitcoinlib.encoding import to_hexstring, to_bytes, EncodingError
+from bitcoinlib.keys import HDKey, check_network_and_key, Address, path_expand, BKeyError
+from bitcoinlib.networks import Network
 from bitcoinlib.services.services import Service
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, \
@@ -377,6 +377,7 @@ class HDWalletKey:
             wk = session.query(DbKey).filter(
                 DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
                     witness_type=witness_type, multisig=multisig, is_private=True)).first()
+            address = k.address(encoding=encoding, script_type=script_type)
             if wk:
                 return HDWalletKey(wk.id, session, k)
             else:  # Look for public version of key, and convert to private if possible
@@ -384,7 +385,7 @@ class HDWalletKey:
                     DbKey.wallet_id == wallet_id,
                     or_(DbKey.public == k.public_hex,
                         DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
-                        DbKey.address == k.address())).first()  # FIXME: Test with segwit, p2sh-segwit addresses
+                        DbKey.address == address)).first()  # FIXME: Test with segwit, p2sh-segwit addresses
                 if wk:
                     wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
                     wk.is_private = True
@@ -393,8 +394,6 @@ class HDWalletKey:
                     wk.path = path
                     session.commit()
                     return HDWalletKey(wk.id, session, k)
-
-            address = k.address(encoding=encoding, script_type=script_type)
 
             nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
@@ -992,13 +991,9 @@ class HDWallet:
                         key = HDKey(key, network=network)
                     except BKeyError:
                         try:
-                            da = deserialize_address(key, network=network)
-                            encoding = da['encoding']
-                            network = da['network']
                             scheme = 'single'
                             key = Address.import_address(key, encoding=encoding, network=network)
-                            # TODO: witness_type
-                        except Exception:
+                        except EncodingError:
                             pass
                     else:
                         if network is None:

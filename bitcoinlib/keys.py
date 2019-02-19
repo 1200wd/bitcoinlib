@@ -1057,13 +1057,13 @@ class Key(object):
         else:
             data = self.public_uncompressed_byte
             self.compressed = False
-        if not self.compressed and encoding == 'bech32':
-            raise BKeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
         if encoding is None:
             if self._address_obj:
                 encoding = self._address_obj.encoding
             else:
                 encoding = 'base58'
+        if not self.compressed and encoding == 'bech32':
+            raise BKeyError("Uncompressed keys are non-standard for segwit/bech32 encoded addresses")
         if self._address_obj and script_type is None:
             script_type = self._address_obj.script_type
         if not(self._address_obj and self._address_obj.prefix == prefix and self._address_obj.encoding == encoding):
