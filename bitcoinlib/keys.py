@@ -23,8 +23,6 @@ import hashlib
 import hmac
 import numbers
 import random
-import struct
-import sys
 from copy import deepcopy
 import collections
 import json
@@ -453,7 +451,7 @@ def path_expand(path, path_template=None, level_offset=None, account_id=0, cosig
     return npath
 
 
-class Address:
+class Address(object):
     """
     Class to store, convert and analyse various address types as representation of public keys or scripts hashes
     """

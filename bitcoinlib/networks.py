@@ -183,7 +183,7 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     return matches
 
 
-class Network:
+class Network(object):
     """
     Network class with all network definitions. 
     

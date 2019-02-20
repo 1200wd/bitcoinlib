@@ -298,7 +298,7 @@ def parse_bip44_path(path):
     }
 
 
-class HDWalletKey:
+class HDWalletKey(object):
     """
     Normally only used as attribute of HDWallet class. Contains HDKey class, and adds extra information such as
     key ID, name, path and balance.
@@ -808,7 +808,7 @@ class HDWalletTransaction(Transaction):
         print("\n")
 
 
-class HDWallet:
+class HDWallet(object):
     """
     Class to create and manage keys Using the BIP0044 Hierarchical Deterministic wallet definitions, so you can 
     use one Masterkey to generate as much child keys as you want in a structured manner.

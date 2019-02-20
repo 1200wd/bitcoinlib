@@ -23,7 +23,7 @@ from bitcoinlib.encoding import change_base, normalize_string, to_bytes
 from bitcoinlib.main import *
 
 
-class Mnemonic:
+class Mnemonic(object):
     """
     Class to convert, generate and parse Mnemonic sentences
     

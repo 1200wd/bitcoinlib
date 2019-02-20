@@ -636,7 +636,7 @@ def verify_signature(transaction_to_sign, signature, public_key):
     return True
 
 
-class Input:
+class Input(object):
     """
     Transaction Input class, used by Transaction class
     
@@ -1014,7 +1014,7 @@ class Input:
                (self.prev_hash, self.output_n_int, self.address, self.index_n, self.script_type)
 
 
-class Output:
+class Output(object):
     """
     Transaction Output class, normally part of Transaction class.
     
@@ -1174,7 +1174,7 @@ class Output:
         return "<Output(value=%d, address=%s, type=%s)>" % (self.value, self.address, self.script_type)
 
 
-class Transaction:
+class Transaction(object):
     """
     Transaction Class
     
