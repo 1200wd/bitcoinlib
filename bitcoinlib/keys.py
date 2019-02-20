@@ -174,6 +174,7 @@ def get_key_format(key, is_private=None):
         try:
             key_hex = change_base(key, 58, 16)
             networks = network_by_value('prefix_wif', key_hex[:2])
+            # TODO: First search for longer prefix, to avoid wrong matches
             if networks:
                 if key_hex[-10:-8] == '01':
                     key_format = 'wif_compressed'

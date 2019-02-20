@@ -308,7 +308,7 @@ class HDWalletKey:
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0, purpose=44, parent_id=0,
-                 path='m', key_type=None, encoding=None, witness_type='legacy', multisig=False):
+                 path='m', key_type=None, encoding=None, witness_type='legacy', multisig=False, cosigner_id=None):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -340,6 +340,8 @@ class HDWalletKey:
         :type witness_type: str
         :param multisig: Specify if key is part of multisig wallet, used for create keys and key representations such as WIF and addreses
         :type multisig: bool
+        :param cosigner_id: Set this if you would like to create keys for other cosigners.
+        :type cosigner_id: int
 
         :return HDWalletKey: HDWalletKey object
         """
@@ -385,7 +387,7 @@ class HDWalletKey:
                     DbKey.wallet_id == wallet_id,
                     or_(DbKey.public == k.public_hex,
                         DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
-                        DbKey.address == address)).first()  # FIXME: Test with segwit, p2sh-segwit addresses
+                        DbKey.address == address)).first()
                 if wk:
                     wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
                     wk.is_private = True
@@ -399,7 +401,7 @@ class HDWalletKey:
                        account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                        wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
                        parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path,
-                       key_type=key_type, network_name=network, encoding=encoding)
+                       key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id)
         else:
             keyexists = session.query(DbKey).\
                 filter(DbKey.wallet_id == wallet_id,
@@ -410,7 +412,7 @@ class HDWalletKey:
             nk = DbKey(name=name, wallet_id=wallet_id, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address=k.address,
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
-                       key_type=key_type, network_name=network, encoding=encoding)
+                       key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id)
 
         session.add(nk)
         session.commit()
@@ -458,7 +460,8 @@ class HDWalletKey:
             self.key_type = wk.key_type
             self.compressed = wk.compressed
             self.encoding = wk.encoding
-            # TODO: Add multisig, witness_Type, script_type ??? or part of wallet?
+            self.cosigner_id = wk.cosigner_id
+            self.used = wk.used
         else:
             raise WalletError("Key with id %s not found" % key_id)
 
@@ -1463,11 +1466,10 @@ class HDWallet:
             raise WalletError("Unknown key: Can only import a private key for a known public key in multisig wallets")
 
     def _new_key_multisig(self, public_keys, name, account_id, change, cosigner_id, network, address_index):
-        # TODO: Public keys should be list of HD(Wallet)Key's
         if self.sort_keys:
-            public_keys.sort(key=lambda x: x['public_key'])
-        public_key_list = [x['public_key'] for x in public_keys]
-        public_key_ids = [str(x['key_id']) for x in public_keys]
+            public_keys.sort(key=lambda pubk: pubk.key_public)
+        public_key_list = [pubk.key_public for pubk in public_keys]
+        public_key_ids = [str(x.key_id) for x in public_keys]
 
         # Calculate redeemscript and address and add multisig key to database
         redeemscript = serialize_multisig_redeemscript(public_key_list, n_required=self.multisig_n_required)
@@ -1478,7 +1480,7 @@ class HDWallet:
         already_found_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=address).first()
         if already_found_key:
             return self.key(already_found_key.id)
-        path = [x['path'] for x in public_keys if x['cosigner_id'] == self.cosigner_id][0]
+        path = [pubk.path for pubk in public_keys if pubk.wallet.cosigner_id == self.cosigner_id][0]
         depth = self.cosigner[self.cosigner_id].main_key.depth + len(path.split("/")) - 1
         if not name:
             name = "Multisig Key " + '/'.join(public_key_ids)
@@ -1851,11 +1853,12 @@ class HDWallet:
                 else:
                     wk = wlt.key_for_path(path, level_offset=level_offset, account_id=account_id, name=name,
                                           cosigner_id=cosigner_id, network=network, recreate=recreate)
-                public_keys.append({
-                    'key_id': wk.key_id, 'public_key_uncompressed': wk.key().public_uncompressed(),
-                    'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path,
-                    'cosigner_id': wlt.cosigner_id
-                })
+                # public_keys.append({
+                #     'key_id': wk.key_id, 'public_key_uncompressed': wk.key().public_uncompressed(),
+                #     'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path,
+                #     'cosigner_id': wlt.cosigner_id
+                # })
+                public_keys.append(wk)
             return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index)
 
         # Check for closest ancestor in wallet\
@@ -1901,8 +1904,8 @@ class HDWallet:
                     key_name = key_name.replace("'", "").replace("_", " ")
                 nk = HDWalletKey.from_key(key=ck, name=key_name, wallet_id=self.wallet_id, account_id=account_id,
                                           change=change, purpose=self.purpose, path=newpath, parent_id=parent_id,
-                                          encoding=self.encoding, witness_type=self.witness_type, network=network,
-                                          session=self._session)
+                                          encoding=self.encoding, witness_type=self.witness_type,
+                                          cosigner_id=cosigner_id, network=network, session=self._session)
                 self._key_objects.update({nk.key_id: nk})
                 parent_id = nk.key_id
             return nk
