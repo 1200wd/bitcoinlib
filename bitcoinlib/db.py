@@ -104,6 +104,7 @@ class DbWallet(Base):
     multisig = Column(Boolean, default=True)
     cosigner_id = Column(Integer)
     key_path = Column(String(100))
+    default_account_id = Column(Integer)
 
     __table_args__ = (
         CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),

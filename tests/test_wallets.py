@@ -560,16 +560,18 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
 
     def test_wallet_update_attributes(self):
         w = HDWallet.create('test_wallet_set_attributes', databasefile=DATABASEFILE_UNITTESTS)
-        w.new_account(network='litecoin')
+        w.new_account(network='litecoin', account_id=1200)
         owner = 'Satoshi'
         w.owner = owner
-        self.assertEqual(w.owner, owner)
         w.default_network_set('litecoin')
+        w.default_account_id = 1200
         del w
 
         w2 = HDWallet('test_wallet_set_attributes', databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(w2.owner, owner)
         self.assertEqual(w2.network.name, 'litecoin')
+        nk = w2.new_key()
+        self.assertEqual(nk.path, "m/44'/2'/1200'/0/1")
 
 
 class TestWalletBitcoinlibTestnet(unittest.TestCase):

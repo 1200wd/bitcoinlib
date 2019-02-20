@@ -1161,7 +1161,7 @@ class HDWallet:
             self._balances = []
             self.main_key_id = db_wlt.main_key_id
             self.main_key = None
-            self.default_account_id = 0
+            self._default_account_id = db_wlt.default_account_id
             self.multisig_n_required = db_wlt.multisig_n_required
             co_sign_wallets = self._session.query(DbWallet).\
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
@@ -1169,8 +1169,8 @@ class HDWallet:
             self.sort_keys = db_wlt.sort_keys
             if db_wlt.main_key_id:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
-            if self.main_key:
-                self.default_account_id = self.main_key.account_id
+            if self.main_key and self._default_account_id is None:
+                self._default_account_id = self.main_key.account_id
             _logger.info("Opening wallet '%s'" % self.name)
             self._key_objects = {
                 self.main_key_id: self.main_key
@@ -1253,6 +1253,17 @@ class HDWallet:
             else:
                 account_id = 0
         return network, account_id, acckey
+
+    @property
+    def default_account_id(self):
+        return self._default_account_id
+
+    @default_account_id.setter
+    def default_account_id(self, value):
+        self._default_account_id = value
+        self._dbwallet = self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id). \
+            update({DbWallet.default_account_id: value})
+        self._session.commit()
 
     @property
     def owner(self):
