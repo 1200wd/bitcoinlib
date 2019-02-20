@@ -1620,7 +1620,6 @@ class HDKey(Key):
 
         :return HDKey:
         """
-        # TODO: Derive witness_type from HDKey info
         script_type = 0
         if self.key_type == 'single':
             return self

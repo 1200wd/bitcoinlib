@@ -1575,11 +1575,12 @@ class HDWallet:
 
         if _keys_ignore is None:
             _keys_ignore = []
-
         if _recursion_depth > 10:
             raise WalletError("UTXO scanning has reached a recursion depth of more then 10")
         if self.scheme != 'bip32' and self.scheme != 'multisig':
             raise WalletError("The wallet scan() method is only available for BIP32 wallets")
+        if scan_gap_limit < 2:
+            raise WalletError("Scan gap limit must be 2 or higher")
 
         # Update number of confirmations
         txs = self._session.query(DbTransaction). \
@@ -1591,7 +1592,7 @@ class HDWallet:
         current_block_height = srv.block_count()
         for tx in txs:
             tx.confirmations = current_block_height - tx.block_height
-        if txs:
+        if txs.count():
             self._session.commit()
 
         # Check unconfirmed
@@ -1599,20 +1600,16 @@ class HDWallet:
             filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransaction.status == 'unconfirmed')
         if account_id is not None:
             utxos.filter(DbKey.account_id == account_id)
-        # TODO: Use tx hash instead of key to avoid multiple queries for the same tx
-        unconf_key_ids = list(set([utxo.key_id for utxo in utxos]))
-        for key_id in unconf_key_ids:
-            self.transactions_update(key_id=key_id)
+        txids = list(set([utxo.transaction.hash for utxo in utxos]))
+        self.transactions_update_by_txids(txids)
 
         # Check UTXO's
         utxos = self._session.query(DbTransactionOutput).join(DbTransaction). \
             filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransactionOutput.spent.op("IS")(False))
         if account_id is not None:
             utxos.filter(DbKey.account_id == account_id)
-        # TODO: Use tx hash instead of key to avoid multiple queries for the same tx
-        utxo_key_ids = list(set([utxo.key_id for utxo in utxos]))
-        for key_id in utxo_key_ids:
-            self.utxos_update(key_id=key_id)
+        txids = list(set([utxo.transaction.hash for utxo in utxos]))
+        self.transactions_update_by_txids(txids)
 
         _recursion_depth += 1
         if change != 1:
@@ -1762,7 +1759,7 @@ class HDWallet:
             raise WalletError("Account with ID %d already exists for this wallet" % account_id)
 
         acckey = self.key_for_path([], level_offset=self.depth_public_master-self.key_depth, account_id=account_id,
-                                   name=name)
+                                   name=name, network=network)
         self.key_for_path([0, 0], network=network, account_id=account_id)
         self.key_for_path([1, 0], network=network, account_id=account_id)
         return acckey
@@ -2006,9 +2003,11 @@ class HDWallet:
             _logger.warning("No network keys available for multisig wallet, use networks() method for list of networks")
         return self.keys(depth=depth, used=used, as_dict=as_dict)
 
-    def keys_accounts(self, account_id=None, network=None, as_dict=False):
+    def keys_accounts(self, account_id=None, network=DEFAULT_NETWORK, as_dict=False):
         """
         Get Database records of account key(s) with for current wallet. Wrapper for the keys() method.
+        
+        Returns nothing if no account keys are available for instance in multisig or single account wallets. In this case use accounts() method instead.
         
         :param account_id: Search for Account ID
         :type account_id: int
@@ -2020,10 +2019,6 @@ class HDWallet:
         :return list: DbKey or dictionaries
         """
 
-        # if self.multisig and self.cosigner:
-        #     cw = self.cosigner[self.cosigner_id]
-        #     return cw.keys_accounts()
-        # TODO: Support for multisig (segwit sl/bip48)
         return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
 
     def keys_addresses(self, account_id=None, used=None, network=None, depth=None, as_dict=False):
@@ -2172,11 +2167,11 @@ class HDWallet:
         key_id = qr.id
         return self.key(key_id)
 
-    def accounts(self, network=None):
+    def accounts(self, network=DEFAULT_NETWORK):
         """
         Get list of accounts for this wallet
         
-        :param network: Network name filter
+        :param network: Network name filter. Default filter is DEFAULT_NETWORK
         :type network: str
                 
         :return list: List of accounts as HDWalletKey objects
@@ -2200,23 +2195,19 @@ class HDWallet:
         :return list of (Network, dict):
         """
 
-        if self.scheme == 'single':
-            nw_list = [self.network]
-        elif self.multisig and self.cosigner:
+        nw_list = [self.network]
+        if self.multisig and self.cosigner:
             keys_qr = self._session.query(DbKey.network_name).\
                 filter_by(wallet_id=self.wallet_id, depth=self.key_depth).\
                 group_by(DbKey.network_name).all()
-            nw_list = [Network(nw[0]) for nw in keys_qr]
-        else:
+            nw_list += [Network(nw[0]) for nw in keys_qr]
+        elif self.main_key.key_type != 'single':
             wks = self.keys_networks()
-            nw_list = []
             for wk in wks:
                 nw_list.append(Network(wk.network_name))
 
-        if not nw_list:
-            nw_list = [self.network]
-
         networks = []
+        nw_list = list(set(nw_list))
         for nw in nw_list:
             if as_dict:
                 nw = nw.__dict__
@@ -2603,6 +2594,33 @@ class HDWallet:
         }
         return self.utxos_update(utxos=[utxo])
 
+    def transactions_update_by_txids(self, txids):
+        if not isinstance(txids, list):
+            txids = [txids]
+        txids = list(set(txids))
+
+        txs = []
+        srv = Service(network=self.network.name, providers=self.providers)
+        for txid in txids:
+            txs.append(srv.gettransaction(txid))
+
+        # TODO: Avoid duplicate code in this method and transaction_update()
+        utxo_set = set()
+        for t in txs:
+            wt = HDWalletTransaction.from_transaction(self, t)
+            wt.save()
+            utxos = [(to_hexstring(ti.prev_hash), ti.output_n_int) for ti in wt.inputs]
+            utxo_set.update(utxos)
+
+        for utxo in list(utxo_set):
+            tos = self._session.query(DbTransactionOutput).join(DbTransaction). \
+                filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
+                       DbTransactionOutput.spent.op("IS")(False)).all()
+            for u in tos:
+                u.spent = True
+        self._session.commit()
+        # self._balance_update(account_id=account_id, network=network, key_id=key_id)
+
     def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet.
@@ -2626,13 +2644,10 @@ class HDWallet:
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
-        # if depth is None:
-        #     if self.scheme == 'bip32':
-        #         depth = len(self.key_path) - 1
-        #     else:
-        #         depth = 0
+        if depth is None:
+            depth = self.key_depth
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
-                                       change=change, depth=self.key_depth)
+                                       change=change, depth=depth)
         srv = Service(network=network, providers=self.providers)
         txs = srv.gettransactions(addresslist)
         if txs is False:

@@ -222,6 +222,12 @@ class Network:
     def __repr__(self):
         return "<Network: %s>" % self.name
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
     def print_value(self, value):
         """
         Return the value as string with currency symbol
