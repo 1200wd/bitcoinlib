@@ -995,14 +995,14 @@ class HDWallet:
                             key = Address.import_address(key, encoding=encoding, network=network)
                         except EncodingError:
                             pass
-                    else:
-                        if network is None:
-                            network = key.network.name
-                        elif network != key.network.name:
-                            raise BKeyError("Specified key %s is from different network then specified: %s" %
-                                            (key.network.name, network))
-                        if witness_type is None:
-                            witness_type = key.witness_type
+                    # else:
+                    if network is None:
+                        network = key.network.name
+                    elif network != key.network.name:
+                        raise BKeyError("Specified key %s is from different network then specified: %s" %
+                                        (key.network.name, network))
+                    if witness_type is None:
+                        witness_type = key.witness_type
             hdkey_list.append(key)
 
         if network is None:
