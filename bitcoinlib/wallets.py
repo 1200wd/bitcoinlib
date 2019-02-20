@@ -1276,7 +1276,8 @@ class HDWallet:
         """
 
         self._owner = value
-        self._dbwallet.owner = value
+        self._dbwallet = self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id).\
+            update({DbWallet.owner: value})
         self._session.commit()
 
     @property
@@ -1303,15 +1304,15 @@ class HDWallet:
         if wallet_exists(value):
             raise WalletError("Wallet with name '%s' already exists" % value)
         self._name = value
-        self._dbwallet.name = value
+        self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id).update({DbWallet.name: value})
         self._session.commit()
-
 
     def default_network_set(self, network):
         if not isinstance(network, Network):
             network = Network(network)
         self.network = network
-        self._dbwallet.network_name = network.name
+        self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id).\
+            update({DbWallet.network_name: network.name})
         self._session.commit()
 
     @deprecated  # Since 0.4.5 - Use import_key, to import private key for known public key

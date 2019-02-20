@@ -558,6 +558,19 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.assertEqual(account_id, 100)
         self.assertIn('account', account_key.name)
 
+    def test_wallet_update_attributes(self):
+        w = HDWallet.create('test_wallet_set_attributes', databasefile=DATABASEFILE_UNITTESTS)
+        w.new_account(network='litecoin')
+        owner = 'Satoshi'
+        w.owner = owner
+        self.assertEqual(w.owner, owner)
+        w.default_network_set('litecoin')
+        del w
+
+        w2 = HDWallet('test_wallet_set_attributes', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(w2.owner, owner)
+        self.assertEqual(w2.network.name, 'litecoin')
+
 
 class TestWalletBitcoinlibTestnet(unittest.TestCase):
 
