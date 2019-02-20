@@ -1306,6 +1306,14 @@ class HDWallet:
         self._dbwallet.name = value
         self._session.commit()
 
+
+    def default_network_set(self, network):
+        if not isinstance(network, Network):
+            network = Network(network)
+        self.network = network
+        self._dbwallet.network_name = network.name
+        self._session.commit()
+
     @deprecated  # Since 0.4.5 - Use import_key, to import private key for known public key
     def key_add_private(self, wallet_key, private_key):
         """
@@ -1850,11 +1858,6 @@ class HDWallet:
                 else:
                     wk = wlt.key_for_path(path, level_offset=level_offset, account_id=account_id, name=name,
                                           cosigner_id=cosigner_id, network=network, recreate=recreate)
-                # public_keys.append({
-                #     'key_id': wk.key_id, 'public_key_uncompressed': wk.key().public_uncompressed(),
-                #     'public_key': wk.key().public_hex, 'depth': wk.depth, 'path': wk.path,
-                #     'cosigner_id': wlt.cosigner_id
-                # })
                 public_keys.append(wk)
             return self._new_key_multisig(public_keys, name, account_id, change, cosigner_id, network, address_index)
 
@@ -3296,7 +3299,7 @@ class HDWallet:
         print("=== WALLET ===")
         print(" ID                             %s" % self.wallet_id)
         print(" Name                           %s" % self.name)
-        print(" Owner                          %s" % self._owner)
+        print(" Owner                          %s" % self.owner)
         print(" Scheme                         %s" % self.scheme)
         print(" Multisig                       %s" % self.multisig)
         if self.multisig:
