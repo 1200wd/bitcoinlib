@@ -2,9 +2,9 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
-#    Command line wallet manager. Use for testing and very basic (user unfriendly) wallet management
+#    Command line wallet manager. Manage BitcoinLib legacy/segwit single and multisignatures wallet from the commandline
 #
-#    © 2018 May - 1200 Web Development <http://1200wd.com/>
+#    © 2019 February - 1200 Web Development <http://1200wd.com/>
 #
 
 import sys
@@ -156,11 +156,10 @@ def create_wallet(wallet_name, args, databasefile):
                 passphrase = ' '.join(passphrase)
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
                 key_list.append(HDKey.from_seed(seed, network=args.network))
-        return HDWallet.create_multisig(name=wallet_name, keys=key_list, sigs_required=sigs_required,
-                                        network=args.network, databasefile=databasefile, sort_keys=True,
-                                        witness_type=args.witness_type)
+        return HDWallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
+                               databasefile=databasefile, witness_type=args.witness_type)
     elif args.create_from_key:
-        return HDWallet.create(name=wallet_name, network=args.network, keys=args.create_from_key,
+        return HDWallet.create(wallet_name, args.create_from_key, network=args.network,
                                databasefile=databasefile, witness_type=args.witness_type)
     else:
         passphrase = args.passphrase
@@ -177,7 +176,7 @@ def create_wallet(wallet_name, args, databasefile):
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey.from_seed(seed, network=args.network)
-        return HDWallet.create(name=wallet_name, network=args.network, keys=hdkey, witness_type=args.witness_type,
+        return HDWallet.create(wallet_name, hdkey, network=args.network, witness_type=args.witness_type,
                                databasefile=databasefile)
 
 
@@ -249,7 +248,7 @@ def main():
     # Delete specified wallet, then exit
     if args.wallet_remove:
         if not wallet_exists(args.wallet_name, databasefile=databasefile):
-            clw_exit("Wallet '%s' not found" % args.wallet_remove)
+            clw_exit("Wallet '%s' not found" % args.wallet_name)
         inp = input("\nWallet '%s' with all keys and will be removed, without private key it cannot be restored."
                     "\nPlease retype exact name of wallet to proceed: " % args.wallet_name)
         if inp == args.wallet_name:

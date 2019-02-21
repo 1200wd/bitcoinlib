@@ -136,6 +136,30 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         poutput = process.communicate(input=b'ltcsw')
         self.assertIn(output_wlt_delete, normalize_string(poutput[0]))
 
+    def test_tools_clw_create_multisig_wallet_p2sh_segwit(self):
+        key_list = [
+            'YprvANkMzkodih9AKnvFGXTm8Fid3b6wDWoRq5GxmoFb8Rwoa4YsJvoHtbd6jFhCiCzG8Da3bFbkBeQq7Lz1YDAqufAZB5paBaZTEv8'
+            'A1Yxfi5R',
+            'YprvANkMzkodih9AJ6UamjW9rTWqBDMm5Be3M2cKybivd6V1MSMnKnGDkUXsVkz1hPKKNPFRZS9fFchRGKTgKdyTsppMuHjQQMVFBLY'
+            'Ghp5MTsC',
+            'YprvANkMzkodih9AKQ8evAkiDWCzpQsU6N1uasNtWznNj44Y2X6FJqkv9wcfavxVEkz9qru7VKRhzmQXqy562b9Tk4JGdsaVazByzmX'
+            '7FW6wpKW'
+        ]
+        cmd_wlt_create = "%s %s testms-p2sh-segwit -m 3 2 %s -r -y p2sh-segwit -d %s" % \
+                         (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
+        print(cmd_wlt_create)
+        cmd_wlt_delete = "%s %s testms-p2sh-segwit --wallet-remove -d %s" % \
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        output_wlt_create = "3MtNi5U2cjs3EcPizzjarSz87pU9DTANge"
+        output_wlt_delete = "Wallet testms-p2sh-segwit has been removed"
+
+        process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
+        poutput = process.communicate(input=b'y')
+        self.assertIn(output_wlt_create, normalize_string(poutput[0]))
+        process = Popen(cmd_wlt_delete, stdin=PIPE, stdout=PIPE, shell=True)
+        poutput = process.communicate(input=b'testms-p2sh-segwit')
+        self.assertIn(output_wlt_delete, normalize_string(poutput[0]))
+
 
 if __name__ == '__main__':
     unittest.main()
