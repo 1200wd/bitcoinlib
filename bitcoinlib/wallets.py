@@ -1235,9 +1235,8 @@ class HDWallet(object):
             account_id = kobj.account_id
         if network is None:
             network = self.network.name
-            if account_id is None:
-                account_id = self.default_account_id
-        # depth = len(self.key_path) - 3
+        if account_id is None and network == self.network.name:
+            account_id = self.default_account_id
         qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, depth=self.depth_public_master,
                       network_name=network)

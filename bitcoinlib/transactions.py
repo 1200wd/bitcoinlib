@@ -1681,8 +1681,8 @@ class Transaction(object):
         elif not isinstance(keys, list):
             keys = [keys]
 
-        # n_signs = 0
         for tid in tids:
+            n_signs = 0
             tid_keys = [k if isinstance(k, (HDKey, Key)) else Key(k, compressed=self.inputs[tid].compressed)
                         for k in keys]
             for k in self.inputs[tid].keys:
@@ -1699,9 +1699,15 @@ class Transaction(object):
             n_total_sigs = len(pub_key_list)
             sig_domain = [''] * n_total_sigs
 
-            tsig = None
+            tsig = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
             for key in tid_keys:
-                tsig = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
+                # Check if signature signs known key and is not already in list
+                if key.public_byte not in pub_key_list:
+                    raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
+                if key.public_byte in [x['pub_key'] for x in self.inputs[tid].signatures]:
+                    _logger.warning("Key %s already signed" % key.public_hex)
+                    break
+
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
                 sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
@@ -1721,18 +1727,12 @@ class Transaction(object):
                     'pub_key': key.public_byte,
                     'transaction_id': tid
                 }
-
-                # Check if signature signs known key and is not already in list
-                # if pub_key not in pub_key_list and pub_key not in pub_key_list_uncompressed:
-                if key.public_byte not in pub_key_list:
-                    raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
-                if key.public_byte in [x['pub_key'] for x in self.inputs[tid].signatures]:
-                    _logger.warning("Key %s already signed" % key.public_hex)
-                    break
-
                 newsig_pos = pub_key_list.index(key.public_byte)
                 sig_domain[newsig_pos] = newsig
-                # n_signs += 1
+                n_signs += 1
+
+            if not n_signs:
+                break
 
             # Add already known signatures on correct position
             n_sigs_to_insert = len(self.inputs[tid].signatures)
@@ -1756,7 +1756,6 @@ class Transaction(object):
                         break
             if n_sigs_to_insert:
                 _logger.info("Some signatures are replaced with the signatures of the provided keys")
-                # n_signs -= n_sigs_to_insert
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
 
         self.inputs[tid].update_scripts(hash_type)
