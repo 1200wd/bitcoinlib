@@ -87,7 +87,7 @@ def parse_args():
                                     'key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
-    group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default='legacy',
+    group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default=None,
                                help='Witness type of wallet: lecacy (default), p2sh-segwit or segwit')
     group_transaction = parser.add_argument_group("Transactions")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
