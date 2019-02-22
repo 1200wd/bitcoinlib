@@ -1272,8 +1272,8 @@ class Transaction(object):
                 input_total = sum([i.value for i in inputs])
         id_list = [i.index_n for i in self.inputs]
         if list(set(id_list)) != id_list:
-            _logger.warning("Identical transaction indexes (tid) found in inputs, please specify unique index. "
-                            "Indexes will be automatically recreated")
+            _logger.info("Identical transaction indexes (tid) found in inputs, please specify unique index. "
+                         "Indexes will be automatically recreated")
             index_n = 0
             for inp in self.inputs:
                 inp.index_n = index_n
@@ -1705,7 +1705,7 @@ class Transaction(object):
                 if key.public_byte not in pub_key_list:
                     raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
                 if key.public_byte in [x['pub_key'] for x in self.inputs[tid].signatures]:
-                    _logger.warning("Key %s already signed" % key.public_hex)
+                    _logger.info("Key %s already signed" % key.public_hex)
                     break
 
                 if not key.private_byte:
