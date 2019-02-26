@@ -95,6 +95,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         cmd_wlt_create = '%s test2 --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
                          'actual chicken obscure spray" -r -n bitcoinlib_test -d %s' % \
                          (python_executable, DATABASEFILE_UNITTESTS)
+        print(cmd_wlt_create)
         cmd_wlt_update = "%s test2 -d %s" % \
                          (python_executable, DATABASEFILE_UNITTESTS)
         cmd_wlt_transaction = "%s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \

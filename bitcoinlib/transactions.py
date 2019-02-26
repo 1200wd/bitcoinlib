@@ -648,7 +648,7 @@ class Input(object):
 
     def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
-                 sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=0,
+                 sequence=0xffffffff, compressed=None, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
                  encoding=None, network=DEFAULT_NETWORK):
         """
@@ -811,11 +811,13 @@ class Input(object):
             else:
                 kobj = key
             if kobj not in self.keys:
-                if kobj.compressed != self.compressed:
-                    self.compressed = kobj.compressed
+                if self.compressed is not None and kobj.compressed != self.compressed:
                     _logger.warning("Key compressed is %s but Input class compressed argument is %s " %
                                     (kobj.compressed, self.compressed))
+                self.compressed = kobj.compressed
                 self.keys.append(kobj)
+        if self.compressed is None:
+            self.compressed = True
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
         for sig in signatures:
