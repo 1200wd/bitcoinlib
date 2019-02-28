@@ -1250,6 +1250,7 @@ class HDKey(Key):
                     self.script_type = kf['script_types'][0]
                 if len(kf['witness_types']) == 1:
                     witness_type = kf['witness_types'][0]
+                    encoding = get_encoding_from_witness(witness_type)
                 if len(kf['multisig']) == 1:
                     multisig = kf['multisig'][0]
                 network = Network(check_network_and_key(import_key, network, kf["networks"]))
