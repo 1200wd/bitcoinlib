@@ -124,3 +124,6 @@ t2 = wl1.transaction_import(t)
 t2.sign()
 print("%s == %s: %s" % (t.outputs[1].address, t2.outputs[1].address, t.outputs[1].address == t2.outputs[1].address))
 print("Verified (True): ", t2.verify())
+
+
+# TODO: Segwit ms wallet

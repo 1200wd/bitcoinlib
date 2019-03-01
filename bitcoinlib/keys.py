@@ -1179,7 +1179,7 @@ class HDKey(Key):
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True,
-                 encoding=None, witness_type='legacy', multisig=False):
+                 encoding=None, witness_type=None, multisig=False):
         """
         Hierarchical Deterministic Key class init function.
         If no import_key is specified a key will be generated with systems cryptographically random function.
@@ -1248,7 +1248,7 @@ class HDKey(Key):
                     raise BKeyError("Can not create HDKey object from address")
                 if len(kf['script_types']) == 1:
                     self.script_type = kf['script_types'][0]
-                if len(kf['witness_types']) == 1:
+                if len(kf['witness_types']) == 1 and not witness_type:
                     witness_type = kf['witness_types'][0]
                     encoding = get_encoding_from_witness(witness_type)
                 if len(kf['multisig']) == 1:
@@ -1276,6 +1276,9 @@ class HDKey(Key):
                     key = import_key
                     chain = b'\0' * 32
                     key_type = 'private'
+
+        if witness_type is None:
+            witness_type = 'legacy'
 
         Key.__init__(self, key, network, compressed, passphrase, is_private)
 

@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Network class
 #
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 February - 1200 Web Development <http://1200wd.com/>
 #
 
 from bitcoinlib.networks import *
@@ -18,13 +18,13 @@ print("\n=== Get all WIF prefixes ===")
 print("WIF Prefixes: %s" % network_values_for('prefix_wif'))
 
 print("\n=== Get all HDkey private prefixes ===")
-print("HDkey private prefixes: %s" % network_values_for('prefix_hdkey_private', output_as='str'))
+print("HDkey private prefixes: %s" % network_values_for('prefix_wif', output_as='str'))
 
 print("\n=== Get network(s) for WIF prefix B0 ===")
 print("WIF Prefixes: %s" % network_by_value('prefix_wif', 'B0'))
 
 print("\n=== Get HD key private prefix for current network ===")
-print("self.prefix_hdkey_private: %s" % network.prefix_hdkey_private)
+print("self.prefix_hdkey_private: %s" % network.wif_prefix())
 
 print("\n=== Network parameters ===")
 for k in network.__dir__():
@@ -37,4 +37,4 @@ wif = 'Zpub74CSuvLPQxWkdW7bivQAhomXZTzbE8quAakKRg1C3x7uDcCCeh7zPp1tZrtJrscihJRAS
       'MbMQLFwMKVV'
 print("\n=== Search for WIF prefix ===")
 print("WIF: %s" % wif)
-print(prefix_search(wif))
+print(wif_prefix_search(wif))

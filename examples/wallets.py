@@ -63,11 +63,10 @@ testnet_wallet.info(detail=3)
 # Using wallets
 #
 
-# Three ways of getting the a HDWalletKey, with ID, address and name:
-# print(testnet_wallet.key(1).address)
-print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
-print(testnet_wallet.key('TestNetWallet').address)
-print(testnet_wallet.key(testnet_wallet.key('TestNetWallet').key_id).address)
+print("\n=== Three ways of getting the a HDWalletKey, with ID, address and name: ===")
+print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw'))
+print(testnet_wallet.key('TestNetWallet'))
+print(testnet_wallet.key(testnet_wallet.key('TestNetWallet').key_id))
 
 print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
 accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
@@ -167,6 +166,8 @@ except WalletError as e:
 except Exception as e:
     print(e)
     
+# TODO: Segwit wallet
+
 
 #
 # Manage Wallets
