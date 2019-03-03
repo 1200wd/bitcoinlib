@@ -165,14 +165,25 @@ except WalletError as e:
     print("TX not send, error: %s" % e.msg)
 except Exception as e:
     print(e)
-    
-# TODO: Segwit wallet
 
+#
+# Segwit wallets
+#
+print("\n=== Create a Segwit Bitcoin and Litecoin Wallet ===")
+w = HDWallet.create('SW-Wallet', witness_type='segwit', databasefile=test_database)
+w.new_key()
+w.new_key(network='litecoin')
+w.info()
+
+print("\n=== Create a P2SH Segwit Bitcoin and Litecoin Wallet ===")
+w = HDWallet.create('P2SH-segwit-Wallet', witness_type='p2sh-segwit', databasefile=test_database)
+w.new_key()
+w.new_key(network='litecoin')
+w.info()
 
 #
 # Manage Wallets
 #
-
 print("\n=== List wallets & delete a wallet ===")
 print(','.join([w['name'] for w in wallets_list(databasefile=test_database)]))
 res = wallet_delete('Personal', databasefile=test_database, force=True)
