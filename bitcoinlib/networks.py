@@ -40,7 +40,7 @@ class NetworkError(Exception):
         return self.msg
 
 
-def read_network_definitions():
+def _read_network_definitions():
     """
     Returns network definitions from json file in settings dir
 
@@ -63,7 +63,7 @@ def read_network_definitions():
     return network_definitions
 
 
-NETWORK_DEFINITIONS = read_network_definitions()
+NETWORK_DEFINITIONS = _read_network_definitions()
 
 
 def _format_value(field, value):
@@ -77,8 +77,13 @@ def _format_value(field, value):
 
 def network_values_for(field, output_as='default'):
     """
-    Return all prefixes mentioned field, i.e.: prefix_wif, prefix_address_p2sh, prefix_hdkey_public, etc
-    
+    Return all prefixes mentioned field, i.e.: prefix_wif, prefix_address_p2sh, etc
+
+    >>> network_values_for('prefix_wif')
+    [b'\x99', b'\x80', b'\xef', b'\xb0', b'\xb0', b'\xef', b'\xcc', b'\xef']
+    >>> network_values_for('prefix_address_p2sh')
+    [b'\x95', b'\x05', b'\xc4', b'2', b'\x05', b':', b'\x10', b'\x13']
+
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
     :param output_as: Output as string or hexstring. Default is string or hexstring depending on field type.
@@ -99,11 +104,15 @@ def network_by_value(field, value):
     """
     Return all networks for field and (prefix) value.
     
-    For Example:
-        network_by_value('prefix_wif', 'B0')
-        
-    Returns:
-        ['litecoin']
+    Example, get available networks for WIF or adress prefix
+    >>> network_by_value('prefix_wif', 'B0')
+    ['litecoin', 'litecoin_legacy']
+    >>> network_by_value('prefix_address', '6f')
+    ['testnet', 'litecoin_testnet']
+
+    This method does not work for HD prefixes, use 'wif_prefix_search' instead
+    >>> network_by_value('prefix_address', '043587CF')
+    []
     
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
@@ -129,6 +138,11 @@ def network_defined(network):
     Is network defined?
     
     Networks of this library are defined in networks.json in the operating systems user path.
+
+    >>> network_defined('bitcoin')
+    True
+    >>> network_defined('ethereum')
+    False
     
     :param network: Network name
     :type network: str
@@ -142,7 +156,19 @@ def network_defined(network):
 
 def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     """
-    Extract network, script type and public/private information from WIF prefix.
+    Extract network, script type and public/private information from HDKey WIF or WIF prefix.
+
+    Example, get bitcoin 'xprv' info:
+    >>> wif_prefix_search('0488ADE4', network='bitcoin', multisig=False)
+    [{'prefix': '0488ADE4', 'is_private': True, 'prefix_str': 'xprv', 'network': 'bitcoin', 'witness_type': 'legacy', 'multisig': False, 'script_type': 'p2pkh'}]
+
+    Or retreive info with full WIF string:
+    >>> wif_prefix_search('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM1h3BoPuEJzsgeypdKj', network='bitcoin', multisig=False)
+    [{'prefix': '0488ADE4', 'is_private': True, 'prefix_str': 'xprv', 'network': 'bitcoin', 'witness_type': 'legacy', 'multisig': False, 'script_type': 'p2pkh'}]
+
+    Can return multiple items if no network is specified:
+    >>> [nw['network'] for nw in wif_prefix_search('0488ADE4', multisig=True)]
+    ['bitcoin', 'dash']
 
     :param wif: WIF string or prefix in bytes or hexadecimal string
     :type wif: str, bytes
@@ -231,7 +257,11 @@ class Network(object):
     def print_value(self, value):
         """
         Return the value as string with currency symbol
-        
+
+        Print value for 100000 satoshi as string in human readable format
+        >>> Network('bitcoin').print_value(100000)
+        '0.00100000 BTC'
+
         :param value: Value in smallest denominitor such as Satoshi
         :type value: int, float
         
@@ -247,6 +277,11 @@ class Network(object):
     def wif_prefix(self, is_private=False, witness_type='legacy', multisig=False):
         """
         Get WIF prefix for this network and specifications in arguments
+
+        >>> Network('bitcoin').wif_prefix()
+        b'\x04\x88\xb2\x1e'  # xpub
+        >>> Network('bitcoin').wif_prefix(is_private=True, witness_type='segwit', multisig=True)
+        b'\x02\xaaz\x99'     # Zprv
 
         :param is_private: Private or public key, default is True
         :type is_private: bool

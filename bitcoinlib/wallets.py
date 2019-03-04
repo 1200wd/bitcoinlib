@@ -823,7 +823,7 @@ class HDWallet(object):
     """
 
     @classmethod
-    def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys, password,
+    def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
                 witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, databasefile):
 
         if databasefile is None:
@@ -1042,9 +1042,9 @@ class HDWallet(object):
             key = hdkey_list[0]
 
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                           scheme=scheme, parent_id=None, sort_keys=sort_keys, password=password,
-                           witness_type=witness_type, encoding=encoding, multisig=multisig, sigs_required=sigs_required,
-                           cosigner_id=cosigner_id, key_path=key_path, databasefile=databasefile)
+                           scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
+                           encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
+                           key_path=key_path, databasefile=databasefile)
 
         if multisig:
             if sort_keys:
@@ -1067,7 +1067,7 @@ class HDWallet(object):
 
                 w = cls._create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
-                                password='', witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
+                                witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
                                 sigs_required=None, cosigner_id=wlt_cos_id, key_path=key_path,
                                 databasefile=databasefile)
                 hdpm.cosigner.append(w)
