@@ -1061,6 +1061,9 @@ class HDWallet(object):
                 wn = name + '-cosigner-%d' % wlt_cos_id
                 if cokey.key_type == 'single':
                     scheme = 'single'
+                    # Adjust key depth of main wallet if main key is a single private key
+                    if cokey.is_private:
+                        hdpm.key_depth = cokey.depth
 
                 w = cls._create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,

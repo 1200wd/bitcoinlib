@@ -386,6 +386,12 @@ class TestWalletKeys(unittest.TestCase):
                                     witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(wlt.addresslist()[0][:5], 'tltc1')
 
+    def test_wallet_single_key_main_key(self):
+        w = HDWallet.create('multisig_with_single_key', [HDKey().public_master_multisig(), HDKey(key_type='single')],
+                            sigs_required=2, databasefile=DATABASEFILE_UNITTESTS)
+        w.new_key()
+        self.assertEqual(len(w.keys_addresses()), 1)
+
 
 class TestWalletElectrum(unittest.TestCase):
 
