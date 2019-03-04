@@ -659,7 +659,7 @@ class Input(object):
         :param output_n: Output number in previous transaction.
         :type output_n: bytes, int
         :param keys: A list of Key objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
-        :type keys: list (bytes, str)
+        :type keys: list (bytes, str, Key)
         :param signatures: Specify optional signatures
         :type signatures: bytes, str
         :param public_hash: Public key or script hash. Specify if key is not available
@@ -1072,6 +1072,8 @@ class Output(object):
         elif isinstance(address, HDKey):
             self.address = address.address()
             self.address_obj = address.address_obj
+            public_key = address.public_byte
+            self.public_hash = address.hash160()
         else:
             self.address = address
             self.address_obj = None
@@ -1090,7 +1092,7 @@ class Output(object):
         self.output_n = output_n
 
         if self.address_obj:
-            self.script_type = self.address_obj.script_type
+            self.script_type = self.address_obj.script_type if script_type is None else script_type
             self.public_hash = self.address_obj.hash_bytes
             self.network = self.address_obj.network
             self.encoding = self.address_obj.encoding
@@ -1099,9 +1101,9 @@ class Output(object):
             self.public_hash = k.hash160()
         elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self.address, self.encoding, self.network.name)
-            if address_dict['script_type']:
+            if address_dict['script_type'] and not script_type:
                 self.script_type = address_dict['script_type']
-            else:
+            if not self.script_type:
                 raise TransactionError("Could not determine script type of address %s" % self.address)
             self.encoding = address_dict['encoding']
             network_guesses = address_dict['networks']
@@ -1226,9 +1228,9 @@ class Transaction(object):
         
         :rtype:
         :param inputs: Array of Input objects. Leave empty to add later
-        :type inputs: Input, list
+        :type inputs: list (Input)
         :param outputs: Array of Output object. Leave empty to add later
-        :type outputs: Output, list
+        :type outputs: list (Output)
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
         :param version: Version rules. Defaults to 1 in bytes 
