@@ -10,9 +10,9 @@
 from pprint import pprint
 from bitcoinlib.keys import *
 
-#
+
 # Key Class Examples
-#
+
 print("\n=== Generate random key ===")
 k = Key()
 k.info()
@@ -96,8 +96,8 @@ k = HDKey('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXsc
           '1h3BoPuEJzsgeypdKj')
 
 index = 1000
-pub_with_pubparent = K.child_public(index).key.address()
-pub_with_privparent = k.child_private(index).key.address()
+pub_with_pubparent = K.child_public(index).address()
+pub_with_privparent = k.child_private(index).address()
 if pub_with_privparent != pub_with_pubparent:
     print("Error index %4d: pub-child %s, priv-child %s" % (index, pub_with_privparent, pub_with_pubparent))
 else:
@@ -123,3 +123,22 @@ print(Address(pk, encoding='bech32').address)
 print(Address(pk, script_type='p2sh', encoding='bech32').address)
 print(Address(pk, encoding='bech32', network='litecoin').address)
 print(Address(pk, encoding='bech32', network='dash').address)
+
+
+#
+# Multisig and segwit WIF key import
+#
+
+print("\n=== Import Segwit p2wpkh WIF key ===")
+wif = 'zprvAWgYBBk7JR8GkLNSb2QvWhAjydfXoCkSBhvHichpYbqXHDYECcySV5dg1Bw2ybwfJmoLfU1NVzbiD95DVwP34nXPScCzUrLCa3c3WXtkNri'
+k = HDKey(wif)
+print("Witness type derived from wif %s is segwit (%s)" % (wif, k.witness_type))
+print("Encoding derived from wif is bech32 (%s)" % k.encoding)
+print("Segwit bech32 encoded address is %s" % k.address())
+
+
+wif = 'Ypub6bjiQGLXZ4hTYTQY8eTwC82WSegNDbRiEaYpZQCekjpWqcD7CDU3NnX9SZuzqEUvnTum7X3ixhdMNmpBDTCsGkq38h2kWaGrHXouh7QV1Wx'
+k = HDKey(wif)
+print("\nWitness type derived from wif %s is p2sh-segwit (%s)" % (wif, k.witness_type))
+print("Encoding derived from wif is base58 (%s)" % k.encoding)
+print("Segwit P2SH base58 encoded address is %s" % k.address())

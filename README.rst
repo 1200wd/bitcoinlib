@@ -104,14 +104,14 @@ Create a Multisig wallet with 2 cosigner which both need to sign a transaction.
     from bitcoinlib.keys import HDKey
 
     NETWORK = 'testnet'
-    pk1 = HDKey('tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK'
+    k1 = HDKey('tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK'
                 '5zNYeiX8', network=NETWORK)
-    pk2 = HDKey('tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'
+    k2 = HDKey('tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'
                 'MeQHdWDp', network=NETWORK)
-    w1 = HDWallet.create_multisig('multisig_2of2_cosigner1', sigs_required=2,
-                                   key_list=[pk1, pk2.account_multisig_key().wif_public()], network=NETWORK)
-    w2 = HDWallet.create_multisig('multisig_2of2_cosigner2',  sigs_required=2,
-                                   key_list=[pk1.account_multisig_key().wif_public(), pk2], network=NETWORK)
+    w1 = HDWallet.create('multisig_2of2_cosigner1', sigs_required=2,
+                         keys=[k1, k2.public_master(multisig=True)], network=NETWORK)
+    w2 = HDWallet.create('multisig_2of2_cosigner2',  sigs_required=2,
+                         keys=[k1.public_master(multisig=True), k2], network=NETWORK)
     print("Deposit testnet bitcoin to this address to create transaction: ", w1.get_key().address)
 
 Create a transaction in the first wallet
@@ -285,9 +285,10 @@ Tested on Windows 10 with Python 3.6 and pip installed. No special requirements 
 Troubleshooting
 ---------------
 
-When you experience issues with the scrypt package when installing you can try to solve this by installing
-scrypt seperately:
- pip intall scrypt
+When you experience issues with the scrypt package when installing you can try to solve this by removing and reinstall
+scrypt:
+ pip uninstall scrypt
+ pip install scrypt
 
 Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
 above.
@@ -321,4 +322,5 @@ Future / Roadmap
 * Support for Trezor wallet
 * Support and extensively test other databases
 * Improve speed and security
-* Integrate in ERP solutions such as Odoo
+* Integrate in ERP and shopping solutions such as Odoo, Magento, Shopware
+* Support for lightning network
