@@ -11,6 +11,7 @@ RELEASE 0.4.5 - Rewrite Wallet, Key and Transaction Classes
 * Fix issues with key_depths and paths in wallets
 * Update network definitions, add segwit WIFs
 * Rename account_key and account_multisig_key methods to public_master()
+* Performance improvements in encoding
 * Many other code cleanups and bug fixes
 
 RELEASE 0.4.4 - Fix utxo and provider issues, add pyscrypt support
