@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    NETWORK class reads network definitions and with helper methods
-#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@ import json
 import binascii
 import math
 from bitcoinlib.main import *
-from bitcoinlib.encoding import to_hexstring, normalize_var, change_base, to_bytes, EncodingError
+from bitcoinlib.encoding import to_hexstring, normalize_var, change_base, to_bytes
 
 
 _logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class NetworkError(Exception):
         return self.msg
 
 
-def read_network_definitions():
+def _read_network_definitions():
     """
     Returns network definitions from json file in settings dir
 
@@ -63,7 +63,7 @@ def read_network_definitions():
     return network_definitions
 
 
-NETWORK_DEFINITIONS = read_network_definitions()
+NETWORK_DEFINITIONS = _read_network_definitions()
 
 
 def _format_value(field, value):
@@ -77,8 +77,13 @@ def _format_value(field, value):
 
 def network_values_for(field, output_as='default'):
     """
-    Return all prefixes mentioned field, i.e.: prefix_wif, prefix_address_p2sh, prefix_hdkey_public, etc
-    
+    Return all prefixes mentioned field, i.e.: prefix_wif, prefix_address_p2sh, etc
+
+    >>> network_values_for('prefix_wif')
+    [b'\x99', b'\x80', b'\xef', b'\xb0', b'\xb0', b'\xef', b'\xcc', b'\xef']
+    >>> network_values_for('prefix_address_p2sh')
+    [b'\x95', b'\x05', b'\xc4', b'2', b'\x05', b':', b'\x10', b'\x13']
+
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
     :param output_as: Output as string or hexstring. Default is string or hexstring depending on field type.
@@ -99,11 +104,15 @@ def network_by_value(field, value):
     """
     Return all networks for field and (prefix) value.
     
-    For Example:
-        network_by_value('prefix_wif', 'B0')
-        
-    Returns:
-        ['litecoin']
+    Example, get available networks for WIF or adress prefix
+    >>> network_by_value('prefix_wif', 'B0')
+    ['litecoin', 'litecoin_legacy']
+    >>> network_by_value('prefix_address', '6f')
+    ['testnet', 'litecoin_testnet']
+
+    This method does not work for HD prefixes, use 'wif_prefix_search' instead
+    >>> network_by_value('prefix_address', '043587CF')
+    []
     
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
@@ -129,6 +138,11 @@ def network_defined(network):
     Is network defined?
     
     Networks of this library are defined in networks.json in the operating systems user path.
+
+    >>> network_defined('bitcoin')
+    True
+    >>> network_defined('ethereum')
+    False
     
     :param network: Network name
     :type network: str
@@ -140,19 +154,38 @@ def network_defined(network):
     return True
 
 
-def prefix_search(wif, network=None):
+def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     """
-    Extract network, script type and public/private information from WIF prefix.
+    Extract network, script type and public/private information from HDKey WIF or WIF prefix.
+
+    Example, get bitcoin 'xprv' info:
+    >>> wif_prefix_search('0488ADE4', network='bitcoin', multisig=False)
+    [{'prefix': '0488ADE4', 'is_private': True, 'prefix_str': 'xprv', 'network': 'bitcoin', 'witness_type': 'legacy', 'multisig': False, 'script_type': 'p2pkh'}]
+
+    Or retreive info with full WIF string:
+    >>> wif_prefix_search('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM1h3BoPuEJzsgeypdKj', network='bitcoin', multisig=False)
+    [{'prefix': '0488ADE4', 'is_private': True, 'prefix_str': 'xprv', 'network': 'bitcoin', 'witness_type': 'legacy', 'multisig': False, 'script_type': 'p2pkh'}]
+
+    Can return multiple items if no network is specified:
+    >>> [nw['network'] for nw in wif_prefix_search('0488ADE4', multisig=True)]
+    ['bitcoin', 'dash']
 
     :param wif: WIF string or prefix in bytes or hexadecimal string
     :type wif: str, bytes
+    :param witness_type: Limit search to specific witness type
+    :type witness_type: str
+    :param multisig: Limit search to multisig: false, true or None for both. Default is both
+    :type multisig: bool
     :param network: Limit search to specified network
     :type network: str
 
     :return dict:
     """
 
-    key_hex = change_base(wif, 58, 16)
+    if len(wif) > 8:
+        key_hex = change_base(wif, 58, 16)
+    else:
+        key_hex = wif
     if not key_hex:
         key_hex = to_hexstring(wif)
     prefix = key_hex[:8].upper()
@@ -162,18 +195,21 @@ def prefix_search(wif, network=None):
             continue
         data = NETWORK_DEFINITIONS[nw]
         for pf in data['prefixes_wif']:
-            if pf[1] == prefix:
+            if pf[0] == prefix and (multisig is None or pf[3] is None or pf[3] == multisig) and \
+                    (witness_type is None or pf[4] is None or pf[4] == witness_type):
                 matches.append({
                     'prefix': prefix,
-                    'is_private': True if pf[0] == 'private' else False,
-                    'prefix_str': pf[2],
+                    'is_private': True if pf[2] == 'private' else False,
+                    'prefix_str': pf[1],
                     'network': nw,
-                    'script_types': pf[3]
+                    'witness_type': pf[4],
+                    'multisig': pf[3],
+                    'script_type': pf[5]
                 })
     return matches
 
 
-class Network:
+class Network(object):
     """
     Network class with all network definitions. 
     
@@ -196,8 +232,6 @@ class Network:
         self.prefix_address = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address'])
         self.prefix_bech32 = NETWORK_DEFINITIONS[network_name]['prefix_bech32']
         self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
-        self.prefix_hdkey_public = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_public'])
-        self.prefix_hdkey_private = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_hdkey_private'])
         self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
         self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']
         self.dust_amount = NETWORK_DEFINITIONS[network_name]['dust_amount']
@@ -214,10 +248,20 @@ class Network:
     def __repr__(self):
         return "<Network: %s>" % self.name
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
     def print_value(self, value):
         """
         Return the value as string with currency symbol
-        
+
+        Print value for 100000 satoshi as string in human readable format
+        >>> Network('bitcoin').print_value(100000)
+        '0.00100000 BTC'
+
         :param value: Value in smallest denominitor such as Satoshi
         :type value: int, float
         
@@ -233,6 +277,11 @@ class Network:
     def wif_prefix(self, is_private=False, witness_type='legacy', multisig=False):
         """
         Get WIF prefix for this network and specifications in arguments
+
+        >>> Network('bitcoin').wif_prefix()
+        b'\x04\x88\xb2\x1e'  # xpub
+        >>> Network('bitcoin').wif_prefix(is_private=True, witness_type='segwit', multisig=True)
+        b'\x02\xaaz\x99'     # Zprv
 
         :param is_private: Private or public key, default is True
         :type is_private: bool
@@ -250,7 +299,7 @@ class Network:
             ip = 'private'
         else:
             ip = 'public'
-        found_prefixes = [to_bytes(pf[1]) for pf in self.prefixes_wif if pf[0] == ip and script_type in pf[3]]
+        found_prefixes = [to_bytes(pf[0]) for pf in self.prefixes_wif if pf[2] == ip and script_type == pf[5]]
         if found_prefixes:
             return found_prefixes[0]
         else:

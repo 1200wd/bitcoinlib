@@ -27,7 +27,7 @@ print("Found %d transactions" % len(transactions))
 
 srv = Service(network='bitcoin')
 
-MAX_TRANSACTIONS = 10000
+MAX_TRANSACTIONS = 100
 count = 0
 count_segwit = 0
 for txid in transactions[:MAX_TRANSACTIONS]:

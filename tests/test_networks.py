@@ -22,7 +22,7 @@ class TestNetworks(unittest.TestCase):
 
     def test_networks_prefix_hdkey_wif(self):
         network = Network('bitcoin')
-        self.assertEqual(network.prefix_hdkey_private, b'\x04\x88\xad\xe4')
+        self.assertEqual(network.wif_prefix(is_private=True), b'\x04\x88\xad\xe4')
 
     def test_networks_print_value(self):
         network = Network('dash')

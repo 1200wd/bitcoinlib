@@ -21,7 +21,7 @@
 import unittest
 import json
 from bitcoinlib.transactions import *
-from bitcoinlib.keys import HDKey
+from bitcoinlib.keys import HDKey, BKeyError
 from tests.test_custom import CustomAssertions
 
 
@@ -61,7 +61,7 @@ class TestTransactionInputs(unittest.TestCase):
             'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
             'script_type': 'sig_pubkey'
         }
-        ti_dict = {key: ti.dict()[key] for key in
+        ti_dict = {key: ti.as_dict()[key] for key in
                    ['output_n', 'script', 'sequence', 'prev_hash', 'index_n', 'address', 'script_type']}
         self.assertDictEqual(expected_dict, ti_dict)
 
@@ -133,7 +133,7 @@ class TestTransactions(unittest.TestCase):
                 u'733deffffffff02be9d9600000000001976a914b66e314587c282d5ce290918228e390c0279884688ace280590b0b0000' \
                 u'001976a914f2ea76adc2345f3591ce997def9043fbe68ecc1a88ac00000000'
         self.assertEqual('1P9RQEr2XeE3PEb44ZE35sfZRRW1JHU8qx',
-                         Transaction.import_raw(rawtx).dict()['outputs'][1]['address'])
+                         Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
 
     def test_transactions_deserialize_raw_bytearray(self):
         rawtx = bytearray(b'0100000001685c7c35aabe690cc99f947a8172ad075d4401448a212b9f26607d6ec5530915010000006a4730'
@@ -143,7 +143,7 @@ class TestTransactions(unittest.TestCase):
                           b'a772f8ffd62391190388ac442d0304000000001976a9145b92b92ddd598d2d4977b3c4e5f552332aed743188'
                           b'ac00000000')
         self.assertEqual('19MCFyVmyEhFjYNS8aKJT454jm4YZQjbqm',
-                         Transaction.import_raw(rawtx).dict()['outputs'][1]['address'])
+                         Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
 
     def test_transactions_deserialize_p2sh_output(self):
         rawtx = '01000000011a422ceb2104d9c3ace9fcbda16b9a9f12a1a93c389a0740c70c9b56d3a0c7bf00000000fd4501004730440220' \
@@ -183,8 +183,8 @@ class TestTransactions(unittest.TestCase):
         t = Transaction([inp], [out], network='testnet')
         t.sign(pk)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")
-        self.assertEqual(t.dict()['inputs'][0]['address'], 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
-        self.assertEqual(t.dict()['outputs'][0]['address'], 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
+        self.assertEqual(t.as_dict()['inputs'][0]['address'], 'n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw')
+        self.assertEqual(t.as_dict()['outputs'][0]['address'], 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2')
 
     def test_transactions_sign_2(self):
         pk = Key('KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4')  # Private key for import
@@ -921,8 +921,20 @@ class TestTransactions(unittest.TestCase):
 
     def test_transaction_sendto_wrong_address(self):
         t = Transaction(network='bitcoin')
-        self.assertRaisesRegexp(KeyError, 'Network bitcoin not found in extracted networks*',
+        self.assertRaisesRegexp(BKeyError, 'Network bitcoin not found in extracted networks*',
                                 t.add_output, 100000, 'LTK1nK5TyGALmSup5SzhgkX1cnVQrC4cLd')
+
+    def test_transaction_create_with_address_objects(self):
+        ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
+        txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
+        ki.address()
+        transaction_input = Input(prev_hash=txid, output_n=0, address=ki.address_obj)
+        pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
+        addr = Address(hashed_data=pkh)
+        transaction_output = Output(value=91234, address=addr)
+        t = Transaction([transaction_input], [transaction_output])
+        self.assertEqual(t.inputs[0].address, "1MMMMSUb1piy2ufrSguNUdFmAcvqrQF8M5")
+        self.assertEqual(t.outputs[0].address, "1KKKK6N21XKo48zWKuQKXdvSsCf95ibHFa")
 
 
 class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
@@ -1034,6 +1046,15 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t.sign(ki.private_byte)
         self.assertTrue(t.verify())
 
+    def test_transaction_p2pk_script(self):
+        rawtx = '0100000001db1a1774240cb1bd39d6cd6df0c57d5624fd2bd25b8b1be471714ab00e1a8b5d00000000484730440220592ce8' \
+                '5d3b79509499c9832699c591fc0fd92208bfe20c67d655497c388b3cc50220134e367276b285c35692bcfc832afdc5c27729' \
+                '0a5e02c78f4c3f96f5a393f7cd01ffffffff0278270b0000000000232103b907bb026b78706e612df821c66c6d86b3881d45' \
+                '382f359e92e7c3418cacb8edac0000000000000000226a2012a4aba1a3909f8ad69e2a9f1f0e90346b0fef1f9c5b373dc2ec' \
+                '7be3f3e457b000000000'
+        t = Transaction.import_raw(rawtx)
+        self.assertEqual(t.inputs[0].script_type, 'signature')
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
@@ -1072,8 +1093,10 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
     def test_transaction_multisig_p2sh_sign_separate(self):
         t = Transaction()
         t.add_output(55600, '18tiB1yNTzJMCg6bQS1Eh29dvJngq8QTfx')
+        pubk0 = Key(self.keylist[0]).public()
+        pubk2 = Key(self.keylist[2]).public()
         t.add_input('02b082113e35d5386285094c2829e7e2963fa0b5369fb7f4b79c4c90877dcd3d', 0,
-                    keys=[self.keylist[0], self.keylist[1], self.keylist[2]], script_type='p2sh_multisig',
+                    keys=[pubk0, self.keylist[0], pubk2], script_type='p2sh_multisig',
                     sigs_required=2, compressed=False, sort=False)
         pk1 = Key(self.keylist[0]).private_byte
         pk2 = Key(self.keylist[2]).private_byte
@@ -1111,7 +1134,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         # Create 2-of-2 multisig transaction with 1 input and 1 output
         t = Transaction(network='testnet')
         t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
-                    [pk1.key.public_byte, pk2.key.public_byte], script_type='p2sh_multisig', sigs_required=2)
+                    [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2)
         t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
 
         # Sign with private key and verify
@@ -1161,8 +1184,10 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_output(100000, 'mi1Lxs5boL6nDM3teraP3moVfLXJXWrWSK')
         t.add_output(self.utxo_tbtcleft - 110000, '2Mt1veesS36nYspXhkMXYKGHRAbtEYF6b8W')
 
-        self.assertEqual(t.sign(self.pk1), 1)
-        self.assertEqual(t.sign(self.pk1), 0)
+        t.sign(self.pk1)
+        self.assertEqual(len(t.inputs[0].signatures), 1)
+        t.sign(self.pk1)  # Sign again with same key
+        self.assertEqual(len(t.inputs[0].signatures), 1)
 
     def test_transaction_multisig_sign_extra_sig(self):
         t = Transaction(network='testnet')

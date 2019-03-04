@@ -63,11 +63,10 @@ testnet_wallet.info(detail=3)
 # Using wallets
 #
 
-# Three ways of getting the a HDWalletKey, with ID, address and name:
-# print(testnet_wallet.key(1).address)
-print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw').address)
-print(testnet_wallet.key('TestNetWallet').address)
-print(testnet_wallet.key(testnet_wallet.key('TestNetWallet').key_id).address)
+print("\n=== Three ways of getting the a HDWalletKey, with ID, address and name: ===")
+print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw'))
+print(testnet_wallet.key('TestNetWallet'))
+print(testnet_wallet.key(testnet_wallet.key('TestNetWallet').key_id))
 
 print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
 accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
@@ -128,7 +127,7 @@ words = 'blind frequent camera goddess pottery repair skull year mistake wrist l
 #   words = Mnemonic('english').generate()
 print("Generated Passphrase: %s" % words)
 seed = Mnemonic().to_seed(words)
-hdkey = HDKey().from_seed(seed, network='litecoin_testnet')
+hdkey = HDKey.from_seed(seed, network='litecoin_testnet')
 wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
                          keys=hdkey.wif(), databasefile=test_database)
 wallet.new_key("Input", 0)
@@ -164,12 +163,27 @@ try:
         print("TX not send, result:", res.errors)
 except WalletError as e:
     print("TX not send, error: %s" % e.msg)
-    
+except Exception as e:
+    print(e)
+
+#
+# Segwit wallets
+#
+print("\n=== Create a Segwit Bitcoin and Litecoin Wallet ===")
+w = HDWallet.create('SW-Wallet', witness_type='segwit', databasefile=test_database)
+w.new_key()
+w.new_key(network='litecoin')
+w.info()
+
+print("\n=== Create a P2SH Segwit Bitcoin and Litecoin Wallet ===")
+w = HDWallet.create('P2SH-segwit-Wallet', witness_type='p2sh-segwit', databasefile=test_database)
+w.new_key()
+w.new_key(network='litecoin')
+w.info()
 
 #
 # Manage Wallets
 #
-
 print("\n=== List wallets & delete a wallet ===")
 print(','.join([w['name'] for w in wallets_list(databasefile=test_database)]))
 res = wallet_delete('Personal', databasefile=test_database, force=True)

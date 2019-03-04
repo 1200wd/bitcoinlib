@@ -22,7 +22,7 @@ txid = 'd323c517751b118984bb3f709d762cd17e55326f2bcb4e8b82a9145b361a6ff2'
 rt = bdc.getrawtransaction(txid)
 print("Raw: %s" % rt)
 t = Transaction.import_raw(rt)
-pprint(t.dict())
+pprint(t.as_dict())
 print("Verified: %s" % t.verify())
 
 # Deserialize transactions in latest block with bitcoind client
@@ -41,8 +41,11 @@ if MAX_TRANSACTIONS_VIEW:
         rt = bdc.getrawtransaction(txid)
         print("Raw: %s" % rt)
         t = Transaction.import_raw(rt)
-        pprint(t.dict())
-        print("Verified: %s" % t.verify())
+        pprint(t.as_dict())
+        try:
+            print("Verified: %s" % t.verify())
+        except TransactionError as Err:
+            print("Verification Error:", Err)
         if ci > MAX_TRANSACTIONS_VIEW:
             break
     print("===   %d raw transactions deserialised   ===" %
@@ -63,7 +66,7 @@ if MAX_TRANSACTIONS_VIEW:
             rt = bdc.getrawtransaction(txid)
             print("- raw %s" % rt)
             t = Transaction.import_raw(rt)
-            pprint(t.dict())
+            pprint(t.as_dict())
         except Exception as e:
             print("Error when importing raw transaction %d, error %s", (txid, e))
             error_count += 1

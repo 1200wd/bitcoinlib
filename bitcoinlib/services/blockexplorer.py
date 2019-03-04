@@ -45,7 +45,7 @@ class BlockExplorerClient(BaseClient):
             txs.append({
                 'address': tx['address'],
                 'tx_hash': tx['txid'],
-                'confirmations': 0 if tx['confirmations'] < 0 else tx['confirmations'],
+                'confirmations': 3 if tx['confirmations'] < 0 else tx['confirmations'],
                 'output_n': tx['vout'],
                 'input_n': 0,
                 'block_height': None,
@@ -58,7 +58,7 @@ class BlockExplorerClient(BaseClient):
         return txs
 
     def _convert_to_transaction(self, tx):
-        if tx['confirmations']:
+        if tx['confirmations'] > 0:
             status = 'confirmed'
         else:
             status = 'unconfirmed'
@@ -69,11 +69,13 @@ class BlockExplorerClient(BaseClient):
             value_in = tx['valueOut']
             isCoinbase = True
         if tx['confirmations'] < 0:
-            tx['confirmations'] = None
+            tx['confirmations'] = 0
+        blocktime = datetime.fromtimestamp(tx['blocktime']) if 'blocktime' in tx else 0
+        blockhash = tx['blockhash'] if 'blockhash' in tx else ''
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],
-                        date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
-                        block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
+                        date=blocktime, confirmations=tx['confirmations'],
+                        block_height=tx['blockheight'], block_hash=blockhash, status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
         for ti in tx['vin']:

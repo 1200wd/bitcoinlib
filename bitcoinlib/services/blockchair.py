@@ -165,7 +165,10 @@ class BlockChairClient(BaseClient):
         mempool_feekb = ((memtotfee / price * 100000000) / memtx) * medfee/avgfee
         avgfeekb_24h = avgtxsize * (medfee / 1000)
         fee_estimate = (mempool_feekb + avgfeekb_24h) / 2
-        return int(fee_estimate * (1 / math.log(blocks+2, 6)))
+        estimated_fee = int(fee_estimate * (1 / math.log(blocks+2, 6)))
+        if estimated_fee < self.network.dust_amount:
+            estimated_fee = self.network.dust_amount
+        return estimated_fee
 
     def block_count(self):
         """

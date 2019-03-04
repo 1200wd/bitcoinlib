@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MAIN - Load configs, initialize logging and database
-#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 import os
 import sys
 import locale
+import functools
 import logging
 from logging.handlers import RotatingFileHandler
 from bitcoinlib.config.opcodes import *
@@ -28,6 +29,9 @@ from bitcoinlib.config.opcodes import *
 
 # General defaults
 PY3 = sys.version_info[0] == 3
+TYPE_TEXT = str
+if not PY3:
+    TYPE_TEXT = (str, unicode)
 
 # File locations
 DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
@@ -48,7 +52,7 @@ SCRIPT_TYPES_LOCKING = {
     'p2wpkh': ['OP_0', 'hash-20'],
     'p2wsh': ['OP_0', 'hash-32'],
     'multisig': ['op_m', 'multisig', 'op_n', 'OP_CHECKMULTISIG'],
-    'pubkey': ['signature', 'OP_CHECKSIG'],
+    'p2pk': ['public_key', 'OP_CHECKSIG'],
     'nulldata': ['OP_RETURN', 'return_data'],
 }
 SCRIPT_TYPES_UNLOCKING = {
@@ -59,6 +63,7 @@ SCRIPT_TYPES_UNLOCKING = {
     'p2sh_p2wsh': ['OP_0', 'push_size', 'redeemscript'],
     'locktime_cltv': ['locktime_cltv', 'OP_CHECKLOCKTIMEVERIFY', 'OP_DROP'],
     'locktime_csv': ['locktime_csv', 'OP_CHECKSEQUENCEVERIFY', 'OP_DROP'],
+    'signature': ['signature']
 }
 
 SIGHASH_ALL = 1
@@ -101,6 +106,7 @@ elif locale.getpreferredencoding() != 'UTF-8':
 
 # Keys / Addresses
 SUPPORTED_ADDRESS_ENCODINGS = ['base58', 'bech32']
+ENCODING_BECH32_PREFIXES = ['bc', 'tb', 'ltc', 'tltc', 'tdash', 'tdash', 'blt']
 
 
 # Wallets
@@ -201,8 +207,13 @@ logger = logging.getLogger()
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
                               datefmt='%Y/%m/%d %H:%M:%S')
 handler.setFormatter(formatter)
+handler.setLevel(logging.DEBUG)
 logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
@@ -210,7 +221,7 @@ logging.info('Logger name: %s' % logging.__name__)
 logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
 
 
-def script_type_default(witness_type, multisig=False, locking_script=False):
+def script_type_default(witness_type=None, multisig=False, locking_script=False):
     """
     Determine default script type for provided witness type and key type combination used in this library.
 
@@ -224,6 +235,8 @@ def script_type_default(witness_type, multisig=False, locking_script=False):
     :return str: Default script type
     """
 
+    if not witness_type:
+        return None
     if witness_type == 'legacy' and not multisig:
         return 'p2pkh' if locking_script else 'sig_pubkey'
     elif witness_type == 'legacy' and multisig:
@@ -237,4 +250,34 @@ def script_type_default(witness_type, multisig=False, locking_script=False):
     elif witness_type == 'p2sh-segwit' and multisig:
         return 'p2sh' if locking_script else 'p2sh_p2wsh'
     else:
-        raise KeyError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))
+        raise ValueError("Wallet and key type combination not supported: %s / %s" % (witness_type, multisig))
+
+
+def get_encoding_from_witness(witness_type=None):
+    """
+    Derive address encoding (base58 or bech32) from transaction witness type
+
+    :param witness_type: Witness type: legacy, p2sh-segwit or segwit
+    :type witness_type: str
+
+    :return str:
+    """
+
+    if witness_type == 'segwit':
+        return 'bech32'
+    elif witness_type in [None, 'legacy', 'p2sh-segwit']:
+        return 'base58'
+    else:
+        raise ValueError("Unknown witness type %s" % witness_type)
+
+
+def deprecated(func):
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used."""
+
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        logging.warning("Call to deprecated function {}.".format(func.__name__))
+        return func(*args, **kwargs)
+    return new_func

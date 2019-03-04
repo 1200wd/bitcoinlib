@@ -23,7 +23,7 @@ ki = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, com
 t.add_input(prev_hash=prev_tx, output_n=1, keys=ki.public_hex, compressed=False)
 t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
 t.sign(ki.private_byte)
-pprint(t.dict())
+pprint(t.as_dict())
 print("Raw:", binascii.hexlify(t.raw()))
 print("Verified %s " % t.verify())
 print(t.raw_hex())
@@ -38,7 +38,7 @@ transaction_output = Output(value=91234, public_hash=pkh)
 t = Transaction([transaction_input], [transaction_output])
 t.sign(ki.private_byte)
 print("Raw:", binascii.hexlify(t.raw()))
-pprint(t.dict())
+pprint(t.as_dict())
 print("Verified %s " % t.verify())
 
 print("\n=== Create and sign Testnet Transaction with Multiple OUTPUTS using keys from Wallet class "
@@ -56,7 +56,7 @@ for output_address in output_addresses:
     transaction_outputs.append(Output(amount_per_address, address=output_address, network='testnet'))
 t = Transaction([transaction_input], transaction_outputs, network='testnet')
 t.sign(ki.private_byte)
-pprint(t.dict())
+pprint(t.as_dict())
 print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
 print("Verified %s" % t.verify())
 
@@ -85,7 +85,7 @@ for ti in transaction_inputs:
     ki = Key(ti[2], network='testnet')
     t.sign(ki.private_byte, icount)
     icount += 1
-pprint(t.dict())
+pprint(t.as_dict())
 print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
 print("Verified %s" % t.verify())
 
@@ -107,7 +107,7 @@ t.add_output(100000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
 t.sign(pk3.private_byte)
 t.sign(pk1.private_byte)
 print("Transaction:")
-pprint(t.dict())
+pprint(t.as_dict())
 print("Verified %s" % t.verify())
 
 #
@@ -165,7 +165,7 @@ rawtx = '0100000001eccf7e3034189b851985d871f91384b8ee357cd47c3024736e5676eb2debb
         '3582895e102add2e189188b9ab3779b20ae9535f5444196b150489c022042b1db0a2a76a75985264c0eb967af849a22e2af79c3' \
         '8048457dbc6c3d97c3e801210250863ad64a87ae8a2fe83c1af1a8403cb53f53e486d8511dad8a04887e5b2352ffffffff01605' \
         'af405000000001976a914097072524438d003d23a2f23edb65aae1bb3e46988ac00000000'
-pprint(Transaction.import_raw(rawtx).dict())
+pprint(Transaction.import_raw(rawtx).as_dict())
 
 print("\nDeserialize Multisig Transaction")
 rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d9f300000000fdfd0000473044022026c' \
@@ -175,7 +175,7 @@ rawtx = '0100000001181685d3ed6b5f40057810ea3724a224ba4283d1a166caaa313687bd8db0d
         '8a12658c75763feb3d8f3cf7be2236f231cd157e932103c0007ae565abf62a9005801b0dad123e307ab3826b7ad7511f113db9c' \
         '8bae26a2102d132eab76542dfaae8e824ec553f20a8f11c10960203cd581428f66e2b4a98f853aeffffffff01a0860100000000' \
         '001976a91413d215d212cd5188ae02c5635faabdc4d7d4ec9188ac00000000'
-pprint(Transaction.import_raw(rawtx).dict())
+pprint(Transaction.import_raw(rawtx).as_dict())
 
 print("\nDeserialize SegWit Transaction")
 rawtx = "01000000000102d6ff09fefa22fabd07306d9185da3cdefbed208d949fdc9985a164dd2ddde097000000006a4730440220385bd" \
@@ -190,4 +190,4 @@ t = Transaction.import_raw(rawtx)
 t.inputs[0].value = 2197812
 t.inputs[1].value = 2080188
 t.verify()
-pprint(t.dict())
+pprint(t.as_dict())

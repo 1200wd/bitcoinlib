@@ -2,9 +2,9 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
-#    Command line wallet manager. Use for testing and very basic (user unfriendly) wallet management
+#    Command line wallet manager. Manage BitcoinLib legacy/segwit single and multisignatures wallet from the commandline
 #
-#    © 2018 May - 1200 Web Development <http://1200wd.com/>
+#    © 2019 February - 1200 Web Development <http://1200wd.com/>
 #
 
 import sys
@@ -87,7 +87,7 @@ def parse_args():
                                     'key: -m 2 2 tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQ'
                                     'EAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK5zNYeiX8 tprv8ZgxMBicQKsPeUbMS6kswJc11zgV'
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
-    group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default='legacy',
+    group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default=None,
                                help='Witness type of wallet: lecacy (default), p2sh-segwit or segwit')
     group_transaction = parser.add_argument_group("Transactions")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
@@ -155,12 +155,11 @@ def create_wallet(wallet_name, args, databasefile):
                 passphrase = get_passphrase(args)
                 passphrase = ' '.join(passphrase)
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
-                key_list.append(HDKey().from_seed(seed, network=args.network))
-        return HDWallet.create_multisig(name=wallet_name, keys=key_list, sigs_required=sigs_required,
-                                        network=args.network, databasefile=databasefile, sort_keys=True,
-                                        witness_type=args.witness_type)
+                key_list.append(HDKey.from_seed(seed, network=args.network))
+        return HDWallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
+                               databasefile=databasefile, witness_type=args.witness_type)
     elif args.create_from_key:
-        return HDWallet.create(name=wallet_name, network=args.network, keys=args.create_from_key,
+        return HDWallet.create(wallet_name, args.create_from_key, network=args.network,
                                databasefile=databasefile, witness_type=args.witness_type)
     else:
         passphrase = args.passphrase
@@ -176,8 +175,8 @@ def create_wallet(wallet_name, args, databasefile):
             clw_exit("Please specify passphrase with 12 words or more")
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
-        hdkey = HDKey().from_seed(seed, network=args.network)
-        return HDWallet.create(name=wallet_name, network=args.network, keys=hdkey, witness_type=args.witness_type,
+        hdkey = HDKey.from_seed(seed, network=args.network)
+        return HDWallet.create(wallet_name, hdkey, network=args.network, witness_type=args.witness_type,
                                databasefile=databasefile)
 
 
@@ -229,12 +228,11 @@ def main():
         passphrase = get_passphrase(args)
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
-        hdkey = HDKey().from_seed(seed, network=args.network)
+        hdkey = HDKey.from_seed(seed, network=args.network)
         print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif())
         print(
-            "Public account key, to share with other cosigner multisig wallets: %s" % hdkey.account_multisig_key(
-
-            ).wif_public())
+            "Public account key, to share with other cosigner multisig wallets: %s" %
+            hdkey.public_master(witness_type=args.witness_type, multisig=True))
         print("Network: %s" % hdkey.network.name)
         clw_exit()
 
@@ -250,7 +248,7 @@ def main():
     # Delete specified wallet, then exit
     if args.wallet_remove:
         if not wallet_exists(args.wallet_name, databasefile=databasefile):
-            clw_exit("Wallet '%s' not found" % args.wallet_remove)
+            clw_exit("Wallet '%s' not found" % args.wallet_name)
         inp = input("\nWallet '%s' with all keys and will be removed, without private key it cannot be restored."
                     "\nPlease retype exact name of wallet to proceed: " % args.wallet_name)
         if inp == args.wallet_name:
@@ -330,7 +328,7 @@ def main():
         if isinstance(tx_import, dict):
             wt = wlt.transaction_import(tx_import)
         else:
-            wt = wlt.transaction_import_raw(tx_import)
+            wt = wlt.transaction_import_raw(tx_import, network=args.network)
         wt.sign()
         if args.push:
             res = wt.send()
@@ -371,8 +369,8 @@ def main():
         print("Transaction created")
         wt.info()
         if args.push:
-            res = wt.send()
-            if res:
+            wt.send()
+            if wt.pushed:
                 print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
             else:
                 print("Error creating transaction: %s" % wt.error)
@@ -392,7 +390,7 @@ def main():
             clw_exit("Error occurred when sweeping wallet: %s. Are UTXO's available and updated?" % wt)
         wt.info()
         if args.push:
-            if wt and wt.pushed:
+            if wt.pushed:
                 print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
             elif not wt:
                 print("Cannot sweep wallet, are UTXO's updated and available?")

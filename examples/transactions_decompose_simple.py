@@ -46,7 +46,7 @@ rt += 'b7740f00'  # Locktime
 
 print("\nImport and deserialize raw transaction")
 t = Transaction.import_raw(rt)
-pprint(t.dict())
+pprint(t.as_dict())
 output_script = t.outputs[0].lock_script
 print("\nOutput 1st Script Type: %s " % script_deserialize(output_script)['script_type'])
 print("Output 1st Script String: %s" % script_to_string(output_script))

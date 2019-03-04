@@ -175,7 +175,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     # Use binascii and int for standard conversions to speedup things
     if not min_length:
         if base_from == 256 and base_to == 16:
-            return to_hexstring(binascii.hexlify(inp))
+            return to_hexstring(inp)
         elif base_from == 16 and base_to == 256:
             return binascii.unhexlify(inp)
     if base_from == 16 and base_to == 10:
@@ -597,7 +597,7 @@ def to_bytearray(string):
 
     :return bytearray:
     """
-    if isinstance(string, (str, unicode if not PY3 else str)):
+    if isinstance(string, TYPE_TEXT):
         try:
             string = binascii.unhexlify(string)
         except (TypeError, binascii.Error):
@@ -666,7 +666,7 @@ def normalize_string(string):
     """
     if isinstance(string, str if sys.version < '3' else bytes):
         utxt = string.decode('utf8')
-    elif isinstance(string, unicode if sys.version < '3' else str):
+    elif isinstance(string, TYPE_TEXT):
         utxt = string
     else:
         raise TypeError("String value expected")
