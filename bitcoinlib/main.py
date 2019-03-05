@@ -44,8 +44,6 @@ DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
 DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
 TIMEOUT_REQUESTS = 5
 
-print(CURRENT_INSTALLDIR)
-
 version_file = open(os.path.join(CURRENT_INSTALLDIR, 'config/VERSION'))
 BITCOINLIB_VERSION = version_file.read().strip()
 

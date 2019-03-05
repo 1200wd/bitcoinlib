@@ -19,7 +19,7 @@
 
 import numbers
 import random
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from itertools import groupby
 from operator import itemgetter
 import json
