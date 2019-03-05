@@ -22,7 +22,7 @@ from setuptools import setup
 from codecs import open
 import os
 import sys
-from bitcoinlib.config import __version__
+from bitcoinlib.config.version import __version__
 
 here = os.path.abspath(os.path.dirname(__file__))
 

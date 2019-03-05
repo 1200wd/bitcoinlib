@@ -29,7 +29,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
 from bitcoinlib.main import *
-from bitcoinlib.config import __version__
+from bitcoinlib.config.version import __version__
 
 _logger = logging.getLogger(__name__)
 _logger.info("Using Database %s" % DEFAULT_DATABASE)

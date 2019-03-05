@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    © 2016 November - 1200 Web Development <http://1200wd.com/>
+#    Script opcode definitions
+#    © 2017 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -17,7 +18,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import bitcoinlib.config.secp256k1
-import bitcoinlib.config.opcodes
-
-__all__ = ["secp256k1", "opcodes"]
+__version__ = '0.4.6'
