@@ -22,9 +22,10 @@ from setuptools import setup
 from codecs import open
 import os
 import sys
-from bitcoinlib.config.version import __version__
 
 here = os.path.abspath(os.path.dirname(__file__))
+version_file = open(os.path.join(here, 'bitcoinlib/config/VERSION'))
+version = version_file.read().strip()
 
 # Get the long description from the relevant file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:

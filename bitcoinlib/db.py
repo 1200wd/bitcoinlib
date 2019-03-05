@@ -29,7 +29,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
 from bitcoinlib.main import *
-from bitcoinlib.config.version import __version__
 
 _logger = logging.getLogger(__name__)
 _logger.info("Using Database %s" % DEFAULT_DATABASE)
@@ -59,17 +58,17 @@ class DbInit:
         # TODO: Upgrade database automatically
         try:
             version_db = self.session.query(DbConfig.value).filter_by(variable='version').scalar()
-            if __version__ != version_db:
+            if BITCOINLIB_VERSION != version_db:
                 _logger.warning("BitcoinLib database (%s) is from different version then library code (%s), "
-                                "run updatedb.py script to upgrade database" % (version_db, __version__))
+                                "run updatedb.py script to upgrade database" % (version_db, BITCOINLIB_VERSION))
         except:
             _logger.warning("BitcoinLib database is from older version then library code (%s), "
-                            "run updatedb.py script to upgrade database" % __version__)
+                            "run updatedb.py script to upgrade database" % BITCOINLIB_VERSION)
 
     @staticmethod
     def _import_config_data(ses):
         session = ses()
-        session.add(DbConfig(variable='version', value=__version__))
+        session.add(DbConfig(variable='version', value=BITCOINLIB_VERSION))
         session.add(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
         url = ''
         try:
