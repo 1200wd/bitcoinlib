@@ -17,6 +17,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+__version__ = '0.4.5'
+
 import bitcoinlib.config.secp256k1
 import bitcoinlib.config.opcodes
 
