@@ -17,6 +17,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+__version__ = '0.4.5'
+
 import bitcoinlib.encoding
 import bitcoinlib.mnemonic
 import bitcoinlib.keys
@@ -25,4 +27,4 @@ import bitcoinlib.wallets
 import bitcoinlib.config
 import bitcoinlib.tools
 
-__all__ = ["keys", "transactions", "wallets", "encoding", "mnemonic", "config", "tools"]
+__all__ = ["keys", "transactions", "wallets", "encoding", "mnemonic", "config", "tools", __version__]

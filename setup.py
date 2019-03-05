@@ -20,13 +20,14 @@
 
 from setuptools import setup
 from codecs import open
-from os import path
+import os
 import sys
+from bitcoinlib import __version__
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
 
 # Get the long description from the relevant file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     readmetxt = f.read()
 
 kwargs = {}
@@ -44,7 +45,7 @@ kwargs['install_requires'] = install_requires
 
 setup(
       name='bitcoinlib',
-      version='0.4.5',
+      version=__version__,
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[

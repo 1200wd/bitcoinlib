@@ -18,18 +18,18 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import csv
 try:
     import enum
 except ImportError:
     import enum34 as enum
 import datetime
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
 from bitcoinlib.main import *
+from bitcoinlib import __version__
 
 _logger = logging.getLogger(__name__)
 _logger.info("Using Database %s" % DEFAULT_DATABASE)
@@ -59,20 +59,27 @@ class DbInit:
 
     @staticmethod
     def _import_config_data(ses):
-        for fn in os.listdir(DEFAULT_SETTINGSDIR):
-            if fn.endswith(".csv"):
-                with open('%s%s' % (DEFAULT_SETTINGSDIR, fn), 'r') as csvfile:
-                    session = ses()
-                    tablename = fn.split('.')[0]
-                    reader = csv.DictReader(csvfile)
-                    for row in reader:
-                        if tablename == 'networks':
-                            session.add(DbNetwork(**row))
-                        else:
-                            raise ImportError(
-                                "Unrecognised table '%s', please update import mapping or remove file" % tablename)
-                    session.commit()
-                    session.close()
+        session = ses()
+        session.add(DbConfig(variable='version', value=__version__))
+        session.add(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
+        url = ''
+        try:
+            url = str(session.bind.url)
+        except:
+            pass
+        session.add(DbConfig(variable='installation_url', value=url))
+        session.commit()
+        session.close()
+
+
+class DbConfig(Base):
+    """
+    BitcoinLib configuration variables
+
+    """
+    __tablename__ = 'config'
+    variable = Column(String(30), primary_key=True)
+    value = Column(String(255))
 
 
 class DbWallet(Base):
