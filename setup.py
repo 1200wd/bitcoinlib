@@ -46,7 +46,7 @@ kwargs['install_requires'] = install_requires
 
 setup(
       name='bitcoinlib',
-      version=__version__,
+      version=version,
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[
