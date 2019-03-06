@@ -43,6 +43,7 @@ CURRENT_INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
 DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
 TIMEOUT_REQUESTS = 5
+WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
 
 version_file = open(os.path.join(CURRENT_INSTALLDIR, 'config/VERSION'))
 BITCOINLIB_VERSION = version_file.read().strip()
@@ -86,7 +87,6 @@ SIGNATURE_VERSION_SEGWIT = 1
 
 # Mnemonics
 DEFAULT_LANGUAGE = 'english'
-WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
 
 # Networks
 DEFAULT_NETWORK = 'bitcoin'
