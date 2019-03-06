@@ -249,17 +249,23 @@ Install with pip
 ``pip install bitcoinlib``
 
 
-Package dependencies
---------------------
+Install develop environment
+---------------------------
 
-Required Python Packages, are automatically installed upon installing bitcoinlib:
+First create a virtual environment for instance on linux with virtualenv:
 
-* ecdsa
-* pyaes
-* scrypt
-* sqlalchemy
-* requests
-* enum34 (for older python installations)
+.. code-block:: bash
+
+    $ virtualenv -p python3 venv/bitcoinlib
+    $ source venv/bitcoinlib/bin/activate
+
+Then clone the repository and run setup.py to install dependencies:
+
+.. code-block:: bash
+
+    $ git clone https://github.com/1200wd/bitcoinlib.git
+    $ cd bitcoinlib
+    $ python3 setup.py install
 
 
 Other requirements Linux
@@ -287,8 +293,11 @@ Troubleshooting
 
 When you experience issues with the scrypt package when installing you can try to solve this by removing and reinstall
 scrypt:
- pip uninstall scrypt
- pip install scrypt
+
+.. code-block:: bash
+
+    $ pip uninstall scrypt
+    $ pip install scrypt
 
 Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
 above.

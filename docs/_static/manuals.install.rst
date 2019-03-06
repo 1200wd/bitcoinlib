@@ -16,11 +16,20 @@ Package can be found at https://pypi.python.org/pypi/bitcoinlib/
 Install from source
 ~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: none
+First create a virtual environment for instance on Linux with virtualenv:
 
-    $ git clone https://github.com/1200wd/bitcoinlib
+.. code-block:: bash
+
+    $ virtualenv -p python3 venv/bitcoinlib
+    $ source venv/bitcoinlib/bin/activate
+
+Then clone the repository and run setup.py to install dependencies:
+
+.. code-block:: bash
+
+    $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
-    $ python setup.py install
+    $ python3 setup.py install
 
 Package dependencies
 ~~~~~~~~~~~~~~~~~~~~
@@ -29,7 +38,7 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 
 * ecdsa
 * pyaes
-* scrypt
+* scrypt (or much slower pyscript)
 * sqlalchemy
 * requests
 * enum34 (for older python installations)
@@ -95,14 +104,21 @@ Troubleshooting
 
 When you experience issues with the scrypt package when installing you can try to solve this by installing
 scrypt seperately:
- pip intall scrypt
+
+.. code-block:: bash
+
+    $ pip uninstall scrypt
+    $ pip install scrypt
 
 Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
 above.
 
 You can also use pyscrypt instead of scrypt. Pyscrypt is a pure Python scrypt password-based key derivation library.
 It works but it is slow when using BIP38 password protected keys.
- pip install pyscrypt
+
+.. code-block:: none
+
+    $ pip install pyscrypt
 
 If you run into issues to not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 

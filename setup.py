@@ -37,7 +37,7 @@ install_requires = [
       'requests>=2.20.0',
       'ecdsa==0.13',
       'pyaes==1.6.1',
-      'scrypt==0.8.6',
+      'scrypt>=0.8.13',
       'SQLAlchemy>=1.2.12'
 ]
 if sys.version_info < (3, 4):
