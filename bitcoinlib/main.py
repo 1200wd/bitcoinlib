@@ -27,18 +27,31 @@ from logging.handlers import RotatingFileHandler
 from bitcoinlib.config.opcodes import *
 
 
+
+
 # General defaults
 PY3 = sys.version_info[0] == 3
 TYPE_TEXT = str
 if not PY3:
     TYPE_TEXT = (str, unicode)
 
+if PY3:
+    import configparser
+else:
+    import ConfigParser as configparser
+config = configparser.ConfigParser()
+config.read(os.path.join(os.path.dirname(__file__), 'config.ini'))
+print(config.get('locations', 'datadir'))
+
+print("file:", __file__)
+print("name:", __name__)
 # File locations
 DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
 DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database/')
 DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log/')
 DEFAULT_SETTINGSDIR = os.path.join(DEFAULT_DOCDIR, 'config/')
 CURRENT_INSTALLDIR = os.path.dirname(__file__)
+print(CURRENT_INSTALLDIR)
 CURRENT_INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data')
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
 DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
@@ -284,3 +297,7 @@ def deprecated(func):
         logging.warning("Call to deprecated function {}.".format(func.__name__))
         return func(*args, **kwargs)
     return new_func
+
+
+# if __name__ == '__main__':
+#     print("running.main")

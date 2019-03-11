@@ -124,6 +124,9 @@ def wallet_create_or_open_multisig(
 
     See Wallets class create method for option documentation
     """
+    # TODO
+    #import warnings
+    #warnings.warn("Deprecated since version 0.4.5, use wallet_create_or_open instead", DeprecationWarning)
     if wallet_exists(name, databasefile=databasefile):
         return HDWallet(name, databasefile=databasefile)
     else:
