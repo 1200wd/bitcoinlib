@@ -40,4 +40,4 @@
 
 [logs]
 # Loglevel for this library, options: CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET
-loglevel=DEBUG
+;loglevel=WARNING
