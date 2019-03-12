@@ -26,8 +26,8 @@ from bitcoinlib.keys import HDKey, BKeyError
 from tests.test_custom import CustomAssertions
 
 
-DATABASEFILE_UNITTESTS = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest.sqlite'
-DATABASEFILE_UNITTESTS_2 = DEFAULT_DATABASEDIR + 'bitcoinlib.unittest2.sqlite'
+DATABASEFILE_UNITTESTS = BCL_DATABASE_DIR + 'bitcoinlib.unittest.sqlite'
+DATABASEFILE_UNITTESTS_2 = BCL_DATABASE_DIR + 'bitcoinlib.unittest2.sqlite'
 
 
 class TestWalletCreate(unittest.TestCase):

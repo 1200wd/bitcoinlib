@@ -10,7 +10,7 @@ import sys
 import unittest
 from subprocess import Popen, PIPE
 from bitcoinlib.encoding import normalize_string
-from bitcoinlib.db import DEFAULT_DATABASEDIR
+from bitcoinlib.db import BCL_DATABASE_DIR
 
 
 DATABASEFILE_UNITTESTS = 'bitcoinlib.unittest.sqlite'
@@ -19,7 +19,7 @@ DATABASEFILE_UNITTESTS = 'bitcoinlib.unittest.sqlite'
 class TestToolsCommandLineWallet(unittest.TestCase):
 
     def setUp(self):
-        full_db_filename = os.path.join(DEFAULT_DATABASEDIR, DATABASEFILE_UNITTESTS)
+        full_db_filename = os.path.join(BCL_DATABASE_DIR, DATABASEFILE_UNITTESTS)
         if os.path.isfile(full_db_filename):
             os.remove(full_db_filename)
         self.python_executable = sys.executable

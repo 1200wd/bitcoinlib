@@ -76,7 +76,7 @@ class LitecoindClient(BaseClient):
                                   "default. Or place a config file in .bitcoinlib/config/litecoin.conf to reference to "
                                   "an external server.")
         else:
-            cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
+            cfn = os.path.join(BCL_CONFIG_DIR, configfile)
             if not os.path.isfile(cfn):
                 raise ConfigError("Config file %s not found" % cfn)
         with open(cfn, 'r') as f:

@@ -46,12 +46,8 @@ def _read_network_definitions():
 
     :return dict: Network definitions
     """
-    try:
-        fn = DEFAULT_SETTINGSDIR + "/networks.json"
-        f = open(fn)
-    except FileNotFoundError:
-        fn = CURRENT_INSTALLDIR_DATA + "/networks.json"
-        f = open(fn)
+    fn = os.path.join(BCL_DATA_DIR, "networks.json")
+    f = open(fn)
 
     try:
         network_definitions = json.loads(f.read())

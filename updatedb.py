@@ -17,7 +17,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from shutil import move
-from bitcoinlib.main import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
+from bitcoinlib.main import DEFAULT_DATABASE, BCL_DATABASE_DIR
 from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren
 try:
     input = raw_input
@@ -36,8 +36,8 @@ def parse_args():
 args = parse_args()
 database_file = args.database
 if not os.path.isfile(database_file):
-    database_file = os.path.join(DEFAULT_DATABASEDIR, database_file)
-database_backup_file = os.path.join(DEFAULT_DATABASEDIR, "%s.backup-%s" %
+    database_file = os.path.join(BCL_DATABASE_DIR, database_file)
+database_backup_file = os.path.join(BCL_DATABASE_DIR, "%s.backup-%s" %
                                     (database_file, datetime.now().strftime("%Y%m%d-%I:%M")))
 
 print("Wallet and Key data will be copied to new database. Transaction data will NOT be copied")

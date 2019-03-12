@@ -12,7 +12,7 @@ from pprint import pprint
 from bitcoinlib.wallets import *
 
 test_databasefile = 'bitcoinlib.test.sqlite'
-test_database = DEFAULT_DATABASEDIR + test_databasefile
+test_database = BCL_DATABASE_DIR + test_databasefile
 if os.path.isfile(test_database):
     os.remove(test_database)
 

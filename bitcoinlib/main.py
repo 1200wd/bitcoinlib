@@ -27,8 +27,6 @@ from logging.handlers import RotatingFileHandler
 from bitcoinlib.config.opcodes import *
 
 
-
-
 # General defaults
 PY3 = sys.version_info[0] == 3
 TYPE_TEXT = str
@@ -39,27 +37,67 @@ if PY3:
     import configparser
 else:
     import ConfigParser as configparser
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), 'config.ini'))
-print(config.get('locations', 'datadir'))
 
-print("file:", __file__)
-print("name:", __name__)
-# File locations
-DEFAULT_DOCDIR = os.path.join(os.path.expanduser("~"), '.bitcoinlib/')
-DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database/')
-DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log/')
-DEFAULT_SETTINGSDIR = os.path.join(DEFAULT_DOCDIR, 'config/')
-CURRENT_INSTALLDIR = os.path.dirname(__file__)
-print(CURRENT_INSTALLDIR)
-CURRENT_INSTALLDIR_DATA = os.path.join(os.path.dirname(__file__), 'data')
-DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
-DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
-TIMEOUT_REQUESTS = 5
-WORDLIST_DIR = os.path.join(os.path.dirname(__file__), 'wordlist')
+BCL_INSTALL_DIR = os.path.dirname(__file__)
+BCL_DATABASE_DIR = None
+DEFAULT_DATABASE = None
+BCL_LOG_DIR = None
+BCL_CONFIG_DIR = None
+BCL_DATA_DIR = None
+BCL_WORDLIST_DIR = None
+LOGLEVEL = 'WARNING'
 
-version_file = open(os.path.join(CURRENT_INSTALLDIR, 'config/VERSION'))
+def _read_config():
+    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR
+    global BCL_DATA_DIR, BCL_WORDLIST_DIR
+    global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL
+    config = configparser.ConfigParser()
+    data = config.read(os.path.join(BCL_INSTALL_DIR, 'config.ini'))
+
+    BCL_DATABASE_DIR = config.get('locations', 'database_dir', fallback='.bitcoinlib/database')
+    if not os.path.isabs(BCL_DATABASE_DIR):
+        BCL_DATABASE_DIR = os.path.join(os.path.expanduser("~"), BCL_DATABASE_DIR)
+    if not os.path.exists(BCL_DATABASE_DIR):
+        os.makedirs(BCL_DATABASE_DIR)
+    default_databasefile = config.get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
+    DEFAULT_DATABASE = os.path.join(BCL_DATABASE_DIR, default_databasefile)
+
+    BCL_LOG_DIR = config.get('locations', 'log_dir', fallback='.bitcoinlib/log')
+    if not os.path.isabs(BCL_LOG_DIR):
+        BCL_LOG_DIR = os.path.join(os.path.expanduser("~"), BCL_LOG_DIR)
+    if not os.path.exists(BCL_LOG_DIR):
+        os.makedirs(BCL_LOG_DIR)
+
+    BCL_CONFIG_DIR= config.get('locations', 'config_dir', fallback='.bitcoinlib/config')
+    if not os.path.isabs(BCL_CONFIG_DIR):
+        BCL_CONFIG_DIR = os.path.join(os.path.expanduser("~"), BCL_CONFIG_DIR)
+    if not os.path.exists(BCL_CONFIG_DIR):
+        os.makedirs(BCL_CONFIG_DIR)
+
+    BCL_DATA_DIR = config.get('locations', 'data_dir', fallback='data')
+    if not os.path.isabs(BCL_DATA_DIR):
+        BCL_DATA_DIR = os.path.join(BCL_INSTALL_DIR, BCL_DATA_DIR)
+
+    BCL_WORDLIST_DIR = config.get('locations', 'wordlist_dir', fallback='wordlist')
+    if not os.path.isabs(BCL_WORDLIST_DIR):
+        BCL_WORDLIST_DIR = os.path.join(BCL_INSTALL_DIR, BCL_WORDLIST_DIR)
+
+    TIMEOUT_REQUESTS = config.get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS)
+    DEFAULT_LANGUAGE = config.get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
+    DEFAULT_NETWORK = config.get('common', 'default_network', fallback=DEFAULT_NETWORK)
+
+    LOGLEVEL = config.get('logs', 'loglevel', fallback=LOGLEVEL)
+
+    if not data:
+        return False
+    return True
+
+
+version_file = open(os.path.join(BCL_INSTALL_DIR, 'config/VERSION'))
 BITCOINLIB_VERSION = version_file.read().strip()
+
+# Services
+TIMEOUT_REQUESTS = 5
 
 # Transactions
 SCRIPT_TYPES_LOCKING = {
@@ -105,12 +143,7 @@ DEFAULT_LANGUAGE = 'english'
 DEFAULT_NETWORK = 'bitcoin'
 
 
-if not os.path.exists(DEFAULT_DOCDIR):
-    os.makedirs(DEFAULT_DOCDIR)
-if not os.path.exists(DEFAULT_LOGDIR):
-    os.makedirs(DEFAULT_LOGDIR)
-if not os.path.exists(DEFAULT_SETTINGSDIR):
-    os.makedirs(DEFAULT_SETTINGSDIR)
+
 if os.name == 'nt' and locale.getpreferredencoding() != 'UTF-8':
     # TODO: Find a better windows hack
     import _locale
@@ -195,7 +228,8 @@ WALLET_KEY_STRUCTURES = [
 
 # Copy data and settings to default settings directory if install.log is not found
 def _initialize_lib():
-    instlogfile = os.path.join(DEFAULT_LOGDIR, 'install.log')
+    global BCL_LOG_DIR, BCL_DATA_DIR, BCL_CONFIG_DIR
+    instlogfile = os.path.join(BCL_LOG_DIR, 'install.log')
     if os.path.isfile(instlogfile):
         return
 
@@ -207,34 +241,41 @@ def _initialize_lib():
 
     # Copy data and settings file
     from shutil import copyfile
-    src_files = os.listdir(CURRENT_INSTALLDIR_DATA)
+    src_files = os.listdir(BCL_DATA_DIR)
     for file_name in src_files:
-        full_file_name = os.path.join(CURRENT_INSTALLDIR_DATA, file_name)
+        full_file_name = os.path.join(BCL_DATA_DIR, file_name)
         if os.path.isfile(full_file_name):
-            copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
+            copyfile(full_file_name, os.path.join(BCL_CONFIG_DIR, file_name))
 
 
+_read_config()
 _initialize_lib()
 
 # Initialize logging to bitcoinlib.log
-logfile = os.path.join(DEFAULT_LOGDIR, 'bitcoinlib.log')
+logfile = os.path.join(BCL_LOG_DIR, 'bitcoinlib.log')
 handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
 logger = logging.getLogger()
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
                               datefmt='%Y/%m/%d %H:%M:%S')
 handler.setFormatter(formatter)
-handler.setLevel(logging.DEBUG)
 logger.addHandler(handler)
+logger.setLevel(LOGLEVEL)
 
 stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.INFO)
+stream_handler.setLevel(LOGLEVEL)
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
+logging.info('Directory databases: %s' % BCL_DATABASE_DIR)
+logging.info('Default database: %s' % DEFAULT_DATABASE)
+logging.info('Directory logs: %s' % BCL_LOG_DIR)
+logging.info('Directory for BCL configuration: %s' % BCL_CONFIG_DIR)
+logging.info('Directory for BCL data files: %s' % BCL_DATA_DIR)
+logging.info('Directory wordlists: %s' % BCL_WORDLIST_DIR)
 
-logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy.engine').setLevel('WARNING')
 
 
 def script_type_default(witness_type=None, multisig=False, locking_script=False):
@@ -297,7 +338,3 @@ def deprecated(func):
         logging.warning("Call to deprecated function {}.".format(func.__name__))
         return func(*args, **kwargs)
     return new_func
-
-
-# if __name__ == '__main__':
-#     print("running.main")
