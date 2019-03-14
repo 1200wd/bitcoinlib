@@ -111,8 +111,6 @@ class BitcoindClient(BaseClient):
             server = config.get('rpc', 'bind')
         elif 'externalip' in config['rpc']:
             server = config.get('rpc', 'externalip')
-        elif 'server' in config['rpc']:
-            server = config.get('rpc', 'server')
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return BitcoindClient(network, url)
 

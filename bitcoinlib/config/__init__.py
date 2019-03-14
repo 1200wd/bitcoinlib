@@ -17,7 +17,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import bitcoinlib.config.config
 import bitcoinlib.config.secp256k1
 import bitcoinlib.config.opcodes
 
-__all__ = ["secp256k1", "opcodes"]
+__all__ = ["config", "secp256k1", "opcodes"]

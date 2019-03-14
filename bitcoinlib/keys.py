@@ -38,7 +38,7 @@ except ImportError as scrypt_error:
 import pyaes
 
 from bitcoinlib.main import *
-from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
+from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
     secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_to_pubkeyhash, \
