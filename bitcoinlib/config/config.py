@@ -63,7 +63,9 @@ def read_config():
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL
 
     data = config.read(os.path.join(BCL_INSTALL_DIR, 'config.ini'))
-
+    if not data:
+        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config'))
+        
     BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
     if not os.path.isabs(BCL_DATABASE_DIR):
         BCL_DATABASE_DIR = os.path.join(os.path.expanduser("~"), BCL_DATABASE_DIR)
@@ -78,7 +80,7 @@ def read_config():
     if not os.path.exists(BCL_LOG_DIR):
         os.makedirs(BCL_LOG_DIR)
 
-    BCL_CONFIG_DIR= config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
+    BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
     if not os.path.isabs(BCL_CONFIG_DIR):
         BCL_CONFIG_DIR = os.path.join(os.path.expanduser("~"), BCL_CONFIG_DIR)
     if not os.path.exists(BCL_CONFIG_DIR):
