@@ -91,17 +91,15 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         self.assertIn(output_wlt_create, normalize_string(poutput[0]))
 
     def test_tools_clw_transaction_with_script(self):
-        python_executable = "cli-wallet"
-        cmd_wlt_create = '%s test2 --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
+        cmd_wlt_create = '%s %s test2 --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
                          'actual chicken obscure spray" -r -n bitcoinlib_test -d %s' % \
-                         (python_executable, DATABASEFILE_UNITTESTS)
-        print(cmd_wlt_create)
-        cmd_wlt_update = "%s test2 -d %s" % \
-                         (python_executable, DATABASEFILE_UNITTESTS)
-        cmd_wlt_transaction = "%s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
-                              (python_executable, DATABASEFILE_UNITTESTS)
-        cmd_wlt_delete = "%s test2 --wallet-remove -d %s" % \
-                         (python_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        cmd_wlt_update = "%s %s test2 -d %s" % \
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        cmd_wlt_transaction = "%s %s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
+                              (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+        cmd_wlt_delete = "%s %s test2 --wallet-remove -d %s" % \
+                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
         output_wlt_create = "21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
         output_wlt_transaction = 'Transaction pushed to network'
         output_wlt_delete = "Wallet test2 has been removed"
