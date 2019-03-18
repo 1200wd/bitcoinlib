@@ -35,7 +35,7 @@ else:
     import ConfigParser as configparser
 
 
-BCL_INSTALL_DIR = os.path.join(os.path.dirname(__file__), '../')
+BCL_INSTALL_DIR = os.path.dirname(os.path.dirname(__file__))
 BCL_DATABASE_DIR = ''
 DEFAULT_DATABASE = None
 BCL_LOG_DIR = ''
@@ -64,8 +64,10 @@ def read_config():
 
     data = config.read(os.path.join(BCL_INSTALL_DIR, 'config.ini'))
     if not data:
-        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config'))
-        
+        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/config.ini'))
+    if not data:
+        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config.ini'))
+
     BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
     if not os.path.isabs(BCL_DATABASE_DIR):
         BCL_DATABASE_DIR = os.path.join(os.path.expanduser("~"), BCL_DATABASE_DIR)
