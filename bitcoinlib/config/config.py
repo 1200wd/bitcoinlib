@@ -28,13 +28,14 @@ PY3 = sys.version_info[0] == 3
 TYPE_TEXT = str
 if not PY3:
     TYPE_TEXT = (str, unicode)
-
+LOGLEVEL = 'WARNING'
 if PY3:
     import configparser
 else:
     import ConfigParser as configparser
 
 
+# File locations
 BCL_INSTALL_DIR = os.path.dirname(os.path.dirname(__file__))
 BCL_DATABASE_DIR = ''
 DEFAULT_DATABASE = None
@@ -42,73 +43,7 @@ BCL_LOG_DIR = ''
 BCL_CONFIG_DIR = ''
 BCL_DATA_DIR = ''
 BCL_WORDLIST_DIR = ''
-LOGLEVEL = 'WARNING'
 
-
-def read_config():
-    config = configparser.ConfigParser()
-
-    def config_get(section, var, fallback):
-        try:
-            if PY3:
-                val = config.get(section, var, fallback=fallback)
-            else:
-                val = config.get(section, var)
-            return val
-        except Exception:
-            return fallback
-
-    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR
-    global BCL_DATA_DIR, BCL_WORDLIST_DIR
-    global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL
-
-    data = config.read(os.path.join(BCL_INSTALL_DIR, 'config.ini'))
-    if not data:
-        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/config.ini'))
-    if not data:
-        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config.ini'))
-
-    BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
-    if not os.path.isabs(BCL_DATABASE_DIR):
-        BCL_DATABASE_DIR = os.path.join(os.path.expanduser("~"), BCL_DATABASE_DIR)
-    if not os.path.exists(BCL_DATABASE_DIR):
-        os.makedirs(BCL_DATABASE_DIR)
-    default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
-    DEFAULT_DATABASE = os.path.join(BCL_DATABASE_DIR, default_databasefile)
-
-    BCL_LOG_DIR = config_get('locations', 'log_dir', fallback='.bitcoinlib/log')
-    if not os.path.isabs(BCL_LOG_DIR):
-        BCL_LOG_DIR = os.path.join(os.path.expanduser("~"), BCL_LOG_DIR)
-    if not os.path.exists(BCL_LOG_DIR):
-        os.makedirs(BCL_LOG_DIR)
-
-    BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
-    if not os.path.isabs(BCL_CONFIG_DIR):
-        BCL_CONFIG_DIR = os.path.join(os.path.expanduser("~"), BCL_CONFIG_DIR)
-    if not os.path.exists(BCL_CONFIG_DIR):
-        os.makedirs(BCL_CONFIG_DIR)
-
-    BCL_DATA_DIR = config_get('locations', 'data_dir', fallback='data')
-    if not os.path.isabs(BCL_DATA_DIR):
-        BCL_DATA_DIR = os.path.join(BCL_INSTALL_DIR, BCL_DATA_DIR)
-
-    BCL_WORDLIST_DIR = config_get('locations', 'wordlist_dir', fallback='wordlist')
-    if not os.path.isabs(BCL_WORDLIST_DIR):
-        BCL_WORDLIST_DIR = os.path.join(BCL_INSTALL_DIR, BCL_WORDLIST_DIR)
-
-    TIMEOUT_REQUESTS = config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS)
-    DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
-    DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
-
-    LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
-
-    if not data:
-        return False
-    return True
-
-
-version_file = open(os.path.join(BCL_INSTALL_DIR, 'config/VERSION'))
-BITCOINLIB_VERSION = version_file.read().strip()
 
 # Services
 TIMEOUT_REQUESTS = 5
@@ -169,7 +104,7 @@ elif locale.getpreferredencoding() != 'UTF-8':
 # Keys / Addresses
 SUPPORTED_ADDRESS_ENCODINGS = ['base58', 'bech32']
 ENCODING_BECH32_PREFIXES = ['bc', 'tb', 'ltc', 'tltc', 'tdash', 'tdash', 'blt']
-
+DEFAULT_WITNESS_TYPE = 'legacy'
 
 # Wallets
 WALLET_KEY_STRUCTURES = [
@@ -239,6 +174,71 @@ WALLET_KEY_STRUCTURES = [
 ]
 
 
+def read_config():
+    config = configparser.ConfigParser()
+
+    def config_get(section, var, fallback):
+        if os.environ.get("BCL_DEFAULT_CONFIG"):
+            return fallback
+        try:
+            if PY3:
+                val = config.get(section, var, fallback=fallback)
+            else:
+                val = config.get(section, var)
+            return val
+        except Exception:
+            return fallback
+
+    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR
+    global BCL_DATA_DIR, BCL_WORDLIST_DIR
+    global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
+
+    data = config.read(os.path.join(BCL_INSTALL_DIR, 'config.ini'))
+    if not data:
+        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/config.ini'))
+    if not data:
+        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config.ini'))
+
+    BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
+    if not os.path.isabs(BCL_DATABASE_DIR):
+        BCL_DATABASE_DIR = os.path.join(os.path.expanduser("~"), BCL_DATABASE_DIR)
+    if not os.path.exists(BCL_DATABASE_DIR):
+        os.makedirs(BCL_DATABASE_DIR)
+    default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
+    DEFAULT_DATABASE = os.path.join(BCL_DATABASE_DIR, default_databasefile)
+
+    BCL_LOG_DIR = config_get('locations', 'log_dir', fallback='.bitcoinlib/log')
+    if not os.path.isabs(BCL_LOG_DIR):
+        BCL_LOG_DIR = os.path.join(os.path.expanduser("~"), BCL_LOG_DIR)
+    if not os.path.exists(BCL_LOG_DIR):
+        os.makedirs(BCL_LOG_DIR)
+
+    BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
+    if not os.path.isabs(BCL_CONFIG_DIR):
+        BCL_CONFIG_DIR = os.path.join(os.path.expanduser("~"), BCL_CONFIG_DIR)
+    if not os.path.exists(BCL_CONFIG_DIR):
+        os.makedirs(BCL_CONFIG_DIR)
+
+    BCL_DATA_DIR = config_get('locations', 'data_dir', fallback='data')
+    if not os.path.isabs(BCL_DATA_DIR):
+        BCL_DATA_DIR = os.path.join(BCL_INSTALL_DIR, BCL_DATA_DIR)
+
+    BCL_WORDLIST_DIR = config_get('locations', 'wordlist_dir', fallback='wordlist')
+    if not os.path.isabs(BCL_WORDLIST_DIR):
+        BCL_WORDLIST_DIR = os.path.join(BCL_INSTALL_DIR, BCL_WORDLIST_DIR)
+
+    TIMEOUT_REQUESTS = config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS)
+    DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
+    DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
+    DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
+
+    LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
+
+    if not data:
+        return False
+    return True
+
+
 # Copy data and settings to default settings directory if install.log is not found
 def initialize_lib():
     global BCL_LOG_DIR, BCL_DATA_DIR, BCL_CONFIG_DIR
@@ -261,5 +261,9 @@ def initialize_lib():
             copyfile(full_file_name, os.path.join(BCL_CONFIG_DIR, file_name))
 
 
+# Initialize library
 read_config()
+version_file = open(os.path.join(BCL_INSTALL_DIR, 'config/VERSION'))
+BITCOINLIB_VERSION = version_file.read().strip()
+
 initialize_lib()

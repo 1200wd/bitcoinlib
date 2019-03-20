@@ -19,6 +19,7 @@
 
 import numbers
 import random
+import warnings
 from sqlalchemy import or_, func
 from itertools import groupby
 from operator import itemgetter
@@ -98,7 +99,7 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
-        password='', witness_type='legacy', encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
+        password='', witness_type=DEFAULT_WITNESS_TYPE, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
         key_path=None, databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
@@ -116,7 +117,7 @@ def wallet_create_or_open(
 @deprecated  # In version 0.4.5
 def wallet_create_or_open_multisig(
         name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None, sort_keys=True,
-        witness_type='legacy', encoding=None, cosigner_id=None, key_path=None, databasefile=DEFAULT_DATABASE):
+        witness_type=DEFAULT_WITNESS_TYPE, encoding=None, cosigner_id=None, key_path=None, databasefile=DEFAULT_DATABASE):
     """
     Deprecated since version 0.4.5, use wallet_create_or_open instead
 
@@ -124,9 +125,8 @@ def wallet_create_or_open_multisig(
 
     See Wallets class create method for option documentation
     """
-    # TODO
-    #import warnings
-    #warnings.warn("Deprecated since version 0.4.5, use wallet_create_or_open instead", DeprecationWarning)
+
+    # warnings.warn("Deprecated since version 0.4.5, use wallet_create_or_open instead", DeprecationWarning)
     if wallet_exists(name, databasefile=databasefile):
         return HDWallet(name, databasefile=databasefile)
     else:
@@ -311,7 +311,7 @@ class HDWalletKey(object):
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0, purpose=44, parent_id=0,
-                 path='m', key_type=None, encoding=None, witness_type='legacy', multisig=False, cosigner_id=None):
+                 path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False, cosigner_id=None):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -1015,7 +1015,7 @@ class HDWallet(object):
         if network is None:
             network = DEFAULT_NETWORK
         if witness_type is None:
-            witness_type = 'legacy'
+            witness_type = DEFAULT_WITNESS_TYPE
         if (network == 'dash' or network == 'dash_testnet') and witness_type != 'legacy':
             raise WalletError("Segwit is not supported for Dash wallets")
 
@@ -1081,7 +1081,7 @@ class HDWallet(object):
 
     @classmethod
     def create_multisig(cls, name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None,
-                        sort_keys=True, witness_type='legacy', encoding=None, key_path=None, cosigner_id=None,
+                        sort_keys=True, witness_type=DEFAULT_WITNESS_TYPE, encoding=None, key_path=None, cosigner_id=None,
                         databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more

@@ -22,7 +22,7 @@ import os
 import logging
 import json
 import random
-from bitcoinlib.main import BCL_DATA_DIR, TYPE_TEXT
+from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
@@ -70,7 +70,9 @@ class Service(object):
             self.network = Network(network)
         if min_providers > max_providers:
             max_providers = min_providers
-        fn = os.path.join(BCL_DATA_DIR, "providers.json")
+        fn = os.path.join(BCL_CONFIG_DIR, "providers.json")
+        if not os.path.isfile(fn):
+            fn = os.path.join(BCL_DATA_DIR, "providers.json")
         f = open(fn, "r")
 
         try:

@@ -32,11 +32,15 @@
 # Time for request to service providers in seconds
 ;timeout_requests=5
 
+
 # Default language for Mnemonic passphrases
 ;default_language=english
 
 # Default network when creating wallets, transaction, keys, etc.
 ;default_network=bitcoin
+
+# Default witness_type for new wallets and keys
+;default_witness_type=legacy
 
 [logs]
 # Loglevel for this library, options: CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET

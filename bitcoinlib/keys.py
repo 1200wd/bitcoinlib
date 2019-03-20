@@ -356,7 +356,7 @@ def addr_convert(addr, prefix, encoding=None, to_encoding=None):
 
 
 def path_expand(path, path_template=None, level_offset=None, account_id=0, cosigner_id=0, purpose=44,
-                address_index=0, change=0, witness_type='legacy', multisig=False, network=DEFAULT_NETWORK):
+                address_index=0, change=0, witness_type=DEFAULT_WITNESS_TYPE, multisig=False, network=DEFAULT_NETWORK):
     """
     Create key path. Specify part of key path and path settings
 
@@ -378,6 +378,8 @@ def path_expand(path, path_template=None, level_offset=None, account_id=0, cosig
     :type change: int
     :param witness_type: Witness type for paths with a script ID, specify 'p2sh-segwit' or 'segwit'
     :type witness_type: str
+    :param multisig: Is path for multisig keys?
+    :type multisig: bool
     :param network: Network name. Leave empty for default network
     :type network: str
 
@@ -1123,7 +1125,7 @@ class HDKey(Key):
 
     @staticmethod
     def from_seed(import_seed, key_type='bip32', network=DEFAULT_NETWORK, compressed=True,
-                  encoding=None, witness_type='legacy', multisig=False):
+                  encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False):
         """
         Used by class init function, import key from seed
 
@@ -1153,7 +1155,7 @@ class HDKey(Key):
 
     @staticmethod
     def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, compressed=True,
-                        encoding=None, witness_type='legacy', multisig=False):
+                        encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False):
         """
         Create key from Mnemonic passphrase
 
@@ -1278,7 +1280,7 @@ class HDKey(Key):
                     key_type = 'private'
 
         if witness_type is None:
-            witness_type = 'legacy'
+            witness_type = DEFAULT_WITNESS_TYPE
 
         Key.__init__(self, key, network, compressed, passphrase, is_private)
 
@@ -1385,7 +1387,7 @@ class HDKey(Key):
         """
 
         if not witness_type:
-            witness_type = 'legacy' if not self.witness_type else self.witness_type
+            witness_type = DEFAULT_WITNESS_TYPE if not self.witness_type else self.witness_type
         if not multisig:
             multisig = False if not self.multisig else self.multisig
 
@@ -1608,7 +1610,7 @@ class HDKey(Key):
         return self.public_master(account_id, purpose, True, witness_type, as_private)
 
     @deprecated  # In version 0.4.5
-    def account_multisig_key(self, account_id=0, witness_type='legacy'):
+    def account_multisig_key(self, account_id=0, witness_type=DEFAULT_WITNESS_TYPE):
         """
         Deprecated since version 0.4.5, use public_master() method instead
 

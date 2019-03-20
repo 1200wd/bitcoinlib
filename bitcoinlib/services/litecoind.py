@@ -62,7 +62,10 @@ class LitecoindClient(BaseClient):
 
         :return LitecoindClient:
         """
-        config = configparser.ConfigParser(strict=False)
+        if PY3:
+            config = configparser.ConfigParser(strict=False)
+        else:
+            config = configparser.ConfigParser()
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/litecoin.conf')
             if not os.path.isfile(cfn):  # Try Linux path
