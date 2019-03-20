@@ -23,6 +23,7 @@ import hashlib
 import hmac
 import numbers
 import random
+import warnings
 from copy import deepcopy
 import collections
 import json
@@ -1538,6 +1539,7 @@ class HDKey(Key):
         :return HDKey:
 
         """
+        warnings.warn("Deprecated since version 0.4.5, use public_master() method instead", DeprecationWarning)
         if self.depth == 3:
             return self
         elif self.depth != 0:
@@ -1624,6 +1626,7 @@ class HDKey(Key):
 
         :return HDKey:
         """
+        warnings.warn("Deprecated since version 0.4.5, use public_master() method instead", DeprecationWarning)
         script_type = 0
         if self.key_type == 'single':
             return self

@@ -126,7 +126,7 @@ def wallet_create_or_open_multisig(
     See Wallets class create method for option documentation
     """
 
-    # warnings.warn("Deprecated since version 0.4.5, use wallet_create_or_open instead", DeprecationWarning)
+    warnings.warn("Deprecated since version 0.4.5, use wallet_create_or_open instead", DeprecationWarning)
     if wallet_exists(name, databasefile=databasefile):
         return HDWallet(name, databasefile=databasefile)
     else:
@@ -288,6 +288,7 @@ def parse_bip44_path(path):
     :return dict: Dictionary with path items: is_private, purpose, cointype, account, change and address_index
     """
 
+    warnings.warn("Deprecated since version 0.4.5", DeprecationWarning)
     pathl = normalize_path(path).split('/')
     if not 0 < len(pathl) <= 6:
         raise WalletError("Not a valid BIP0044 path. Path length (depth) must be between 1 and 6 not %d" % len(pathl))
@@ -1346,6 +1347,8 @@ class HDWallet(object):
         :return HDWalletKey:
         """
 
+        warnings.warn("Deprecated since version 0.4.5. Use import_key, to import private key for known public key",
+                      DeprecationWarning)
         assert isinstance(wallet_key, HDWalletKey)
         if not isinstance(private_key, HDKey):
             private_key = HDKey(private_key, network=self.network.name)
