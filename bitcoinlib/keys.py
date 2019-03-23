@@ -32,6 +32,7 @@ from fastecdsa import _ecdsa
 from fastecdsa.util import RFC6979
 from fastecdsa.curve import secp256k1
 from fastecdsa import keys
+from fastecdsa import point
 
 try:
     import scrypt
@@ -1815,14 +1816,15 @@ class HDKey(Key):
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
         x, y = self.public_point()
-        ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
+        # ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
+        ki = ec_point2(key) + point.Point(x, y, secp256k1)
 
         # if change_base(Ki.y(), 16, 10) % 2:
-        if ki.y() % 2:
+        if ki.y % 2:
             prefix = '03'
         else:
             prefix = '02'
-        xhex = change_base(ki.x(), 10, 16, 64)
+        xhex = change_base(ki.x, 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
