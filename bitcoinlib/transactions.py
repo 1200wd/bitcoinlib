@@ -834,9 +834,9 @@ class Input(object):
                     # If signature ends with Hashtype, remove hashtype and continue
                     # TODO: support for other hashtypes
                     if sig.endswith(b'\x01'):
-                        _, junk = ecdsa.der.remove_sequence(sig)
-                        if junk == b'\x01':
-                            sig_der = sig[:-1]
+                        # _, junk = ecdsa.der.remove_sequence(sig)
+                        # if junk == b'\x01':
+                        sig_der = sig[:-1]
                     else:
                         sig_der = sig
                     try:

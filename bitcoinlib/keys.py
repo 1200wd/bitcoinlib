@@ -27,9 +27,9 @@ from copy import deepcopy
 import collections
 import json
 
-import ecdsa
+# import ecdsa
 from fastecdsa import _ecdsa
-from fastecdsa.util import RFC6979
+from fastecdsa.util import RFC6979, mod_sqrt
 from fastecdsa.curve import secp256k1
 from fastecdsa import keys
 from fastecdsa import point
@@ -45,8 +45,7 @@ import pyaes
 
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
-from bitcoinlib.config.secp256k1 import secp256k1_generator as generator, secp256k1_curve as curve, \
-    secp256k1_p, secp256k1_n
+from bitcoinlib.config.secp256k1 import secp256k1_p, secp256k1_n
 from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_to_pubkeyhash, \
     pubkeyhash_to_addr, varstr, double_sha256, hash160
 from bitcoinlib.mnemonic import Mnemonic
@@ -809,7 +808,8 @@ class Key(object):
                 sign = pub_key[:2] == '03'
                 x = int(self._x, 16)
                 ys = (x**3+7) % secp256k1_p
-                y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
+                # y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
+                y = mod_sqrt(ys, secp256k1_p)[0]
                 if y & 1 != sign:
                     y = secp256k1_p - y
                 self._y = change_base(y, 10, 16, 64)

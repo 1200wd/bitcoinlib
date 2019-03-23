@@ -25,7 +25,7 @@ import json
 from bitcoinlib.networks import NETWORK_DEFINITIONS
 from bitcoinlib.keys import *
 
-# Number of bulktests for generation of private, public keys and hdkeys. Set to 0 to disable
+# Number of bulktests for generation of private, public keys and HDKeys. Set to 0 to disable
 # WARNING: Can be slow for a larger number of tests
 BULKTESTCOUNT = 10
 

@@ -21,11 +21,12 @@
 import math
 import numbers
 from copy import deepcopy
-import ecdsa
+#import ecdsa
 import hashlib
 import binascii
 import unicodedata
 from bitcoinlib.main import *
+from fastecdsa.encoding.der import DEREncoder
 
 _logger = logging.getLogger(__name__)
 
@@ -324,14 +325,16 @@ def convert_der_sig(signature, as_hex=True):
 
     :return bytes, str: Signature
     """
-    if not signature:
-        return ""
-    sg, junk = ecdsa.der.remove_sequence(signature)
-    if junk != b'':
-        raise EncodingError("Junk found in encoding sequence %s" % junk)
-    x, sg = ecdsa.der.remove_integer(sg)
-    y, sg = ecdsa.der.remove_integer(sg)
-    sig = '%064x%064x' % (x, y)
+
+    r, s = DEREncoder.decode_signature(signature)
+    # if not signature:
+    #     return ""
+    # sg, junk = ecdsa.der.remove_sequence(signature)
+    # if junk != b'':
+    #     raise EncodingError("Junk found in encoding sequence %s" % junk)
+    # x, sg = ecdsa.der.remove_integer(sg)
+    # y, sg = ecdsa.der.remove_integer(sg)
+    sig = '%064x%064x' % (r, s)
     if as_hex:
         return sig
     else:
