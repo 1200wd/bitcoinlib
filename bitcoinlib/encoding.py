@@ -326,7 +326,7 @@ def convert_der_sig(signature, as_hex=True):
     :return bytes, str: Signature
     """
 
-    r, s = DEREncoder.decode_signature(signature)
+    r, s = DEREncoder.decode_signature(bytes(signature))
     # if not signature:
     #     return ""
     # sg, junk = ecdsa.der.remove_sequence(signature)

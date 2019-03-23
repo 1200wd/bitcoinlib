@@ -36,7 +36,8 @@ install_requires = [
       'fastecdsa>=1.7.1',
       'pyaes==1.6.1',
       'scrypt==0.8.6',
-      'SQLAlchemy>=1.2.12'
+      'SQLAlchemy>=1.2.12',
+      'six>=1.12'
 ]
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
