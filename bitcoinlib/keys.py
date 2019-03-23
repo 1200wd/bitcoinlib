@@ -28,6 +28,11 @@ import collections
 import json
 
 import ecdsa
+from fastecdsa import _ecdsa
+from fastecdsa.util import RFC6979
+from fastecdsa.curve import secp256k1
+from fastecdsa import keys
+
 try:
     import scrypt
     USING_MODULE_SCRYPT = True
@@ -237,6 +242,94 @@ def ec_point(p):
     point = generator
     point *= p
     return point
+    # return keys.get_public_key(p, secp256k1)
+
+
+def ec_point2(p):
+    """
+    Method for elliptic curve multiplication
+
+    :param p: A point on the elliptic curve
+
+    :return Point: Point multiplied by generator G
+    """
+    p = int(p)
+    return keys.get_public_key(p, secp256k1)
+
+
+def sign(hashed, d, curve=secp256k1):
+    """Sign a message using the elliptic curve digital signature algorithm.
+
+    The elliptic curve signature algorithm is described in full in FIPS 186-4 Section 6. Please
+    refer to http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf for more information.
+
+    Args:
+        |  msg (str|bytes|bytearray): A message to be signed.
+        |  d (long): The ECDSA private key of the signer.
+        |  curve (fastecdsa.curve.Curve): The curve to be used to sign the message.
+        |  hashfunc (_hashlib.HASH): The hash function used to compress the message.
+    """
+    # generate a deterministic nonce per RFC6979
+    # rfc6979 = RFC6979(msg, d, curve.q, hashfunc)
+    # k = rfc6979.gen_nonce()
+    k = random.SystemRandom().randint(1, secp256k1_n)
+    # k = 1234567893
+    if isinstance(hashed, bytes):
+        hashed = to_hexstring(hashed)
+
+    # hashed = hashfunc(msg_bytes(msg)).hexdigest()
+    r, s = _ecdsa.sign(
+        hashed,
+        str(d),
+        str(k),
+        str(curve.p),
+        str(curve.a),
+        str(curve.b),
+        str(curve.q),
+        str(curve.gx),
+        str(curve.gy)
+    )
+    if int(s) > secp256k1_n / 2:
+        s = secp256k1_n - int(s)
+    return (int(r), int(s))
+
+
+def verify(signature, hashed, public_key, curve=secp256k1):
+    # if isinstance(Q, tuple):
+    #     Q = Point(Q[0], Q[1], curve)
+    # r, s = sig
+
+    # validate Q, r, s (Q should be validated in constructor of Point already but double check)
+    # if not curve.is_point_on_curve((Q.x, Q.y)):
+    #     raise EcdsaError('Invalid public key, point is not on curve {}'.format(curve.name))
+    # elif r > curve.q or r < 1:
+    #     raise EcdsaError(
+    #         'Invalid Signature: r is not a positive integer smaller than the curve order')
+    # elif s > curve.q or s < 1:
+    #     raise EcdsaError(
+    #         'Invalid Signature: s is not a positive integer smaller than the curve order')
+
+    # hashed = hashfunc(msg_bytes(msg)).hexdigest()
+    if isinstance(hashed, bytes):
+        hashed = to_hexstring(hashed)
+    r = int(to_hexstring(signature[:32]), 16)
+    s = int(to_hexstring(signature[32:]), 16)
+    x = int(to_hexstring(public_key[:32]), 16)
+    y = int(to_hexstring(public_key[32:]), 16)
+
+    return _ecdsa.verify(
+        str(r),
+        str(s),
+        hashed,
+        str(x),
+        str(y),
+        str(curve.p),
+        str(curve.a),
+        str(curve.b),
+        str(curve.q),
+        str(curve.gx),
+        str(curve.gy)
+)
 
 
 def deserialize_address(address, encoding=None, network=None):
@@ -787,10 +880,10 @@ class Key(object):
         if self.is_private and not (self.public_byte or self.public_hex):
             if not self.is_private:
                 raise BKeyError("Private key has no known secret number")
-            point = ec_point(self.secret)
-            self._x = change_base(point.x(), 10, 16, 64)
-            self._y = change_base(point.y(), 10, 16, 64)
-            if point.y() % 2:
+            point = ec_point2(self.secret)
+            self._x = change_base(point.x, 10, 16, 64)
+            self._y = change_base(point.y, 10, 16, 64)
+            if point.y % 2:
                 prefix = '03'
             else:
                 prefix = '02'

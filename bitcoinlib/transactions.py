@@ -22,8 +22,9 @@ from datetime import datetime
 import json
 
 from bitcoinlib.encoding import *
-from bitcoinlib.keys import HDKey, Key, deserialize_address, Address
+from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify
 from bitcoinlib.networks import Network
+from fastecdsa.encoding.der import DEREncoder
 
 
 _logger = logging.getLogger(__name__)
@@ -619,21 +620,22 @@ def verify_signature(transaction_to_sign, signature, public_key):
         transaction_to_sign = double_sha256(transaction_to_sign)
     if len(public_key) == 65:
         public_key = public_key[1:]
-    ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
-    try:
-        if signature.startswith(b'\x30'):
-            try:
-                signature = convert_der_sig(signature[:-1], as_hex=False)
-            except Exception:
-                pass
-        ver_key.verify_digest(signature, transaction_to_sign)
-    except ecdsa.keys.BadSignatureError:
-        return False
-    except ecdsa.keys.BadDigestError as e:
-        _logger.info("Bad Digest %s (error %s)" %
-                     (binascii.hexlify(signature), e))
-        return False
-    return True
+    # ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
+    # try:
+    if signature.startswith(b'\x30'):
+        try:
+            signature = convert_der_sig(signature[:-1], as_hex=False)
+        except Exception:
+            pass
+        # ver_key.verify_digest(signature, transaction_to_sign)
+    # except ecdsa.keys.BadSignatureError:
+    #     return False
+    # except ecdsa.keys.BadDigestError as e:
+    #     _logger.info("Bad Digest %s (error %s)" %
+    #                  (binascii.hexlify(signature), e))
+    #     return False
+    # return True
+    return verify(signature, transaction_to_sign, public_key)
 
 
 class Input(object):
@@ -1716,16 +1718,21 @@ class Transaction(object):
 
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
-                sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
-                while True:
-                    sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der)
-                    # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
-                    # TODO: Recalc 's' instead, see:
-                    #       https://github.com/richardkiss/pycoin/pull/24/files#diff-12d8832e97767321d1f3c40909be8b23
-                    signature = convert_der_sig(sig_der)
-                    s = int(signature[64:], 16)
-                    if s < ecdsa.SECP256k1.order / 2:
-                        break
+                # sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
+                (r, s) = sign(tsig, key.secret)
+                sig_der = DEREncoder.encode_signature(r, s)
+                signature = convert_der_sig(sig_der)
+                # print(s)
+                # print(encoded)
+                # while True:
+                #     sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der, k=1234567893)
+                #     # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
+                #     # TODO: Recalc 's' instead, see:
+                #     #       https://github.com/richardkiss/pycoin/pull/24/files#diff-12d8832e97767321d1f3c40909be8b23
+                #     signature = convert_der_sig(sig_der)
+                #     s = int(signature[64:], 16)
+                #     if s < ecdsa.SECP256k1.order / 2:
+                #         break
                 newsig = {
                     'sig_der': to_bytes(sig_der),
                     'signature': to_bytes(signature),
