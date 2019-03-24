@@ -622,7 +622,7 @@ def verify_signature(transaction_to_sign, signature, public_key):
         public_key = public_key[1:]
     # ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
     # try:
-    if signature.startswith(b'\x30'):
+    if len(signature) > 64 and signature.startswith(b'\x30'):
         # try:
         signature = convert_der_sig(signature[:-1], as_hex=False)
         # except Exception:
