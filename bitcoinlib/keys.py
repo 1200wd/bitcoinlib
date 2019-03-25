@@ -1753,7 +1753,7 @@ class Signature(object):
     @staticmethod
     def from_str(signature, public_key=None):
         der_signature = ''
-        if isinstance(signature, bytes):
+        if isinstance(signature, (bytes, bytearray)):
             if len(signature) > 64 and signature.startswith(b'\x30'):
                 # if sig.startswith(b'\x30'):
                 #     # If signature ends with Hashtype, remove hashtype and continue
@@ -1768,7 +1768,7 @@ class Signature(object):
                 signature = convert_der_sig(signature[:-1], as_hex=False)
             signature = to_hexstring(signature)
         if len(signature) != 128:
-            raise BKeyError("Signature lenght must be 64 bytes or 128 character hexstring")
+            raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
         r = int(signature[:64], 16)
         s = int(signature[64:], 16)
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key)

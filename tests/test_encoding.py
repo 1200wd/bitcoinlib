@@ -156,8 +156,8 @@ class TestEncodingMethodsStructures(unittest.TestCase):
         self.assertEqual(b'\xff\xff\xff\xff\xff\xff\xff\xff\xff', int_to_varbyteint(18446744073709551615))
 
     def test_varstr(self):
-        self.assertEqual(b'\x1eThis string has a lenght of 30',
-                         varstr('This string has a lenght of 30'))
+        self.assertEqual(b'\x1eThis string has a length of 30',
+                         varstr('This string has a length of 30'))
 
     def test_convert_der_sig(self):
         sig = b'0E\x02!\x00\xe7\x1a\x8d\xd8>y\xfb\xd6/r\xa3\xd0\xd8\xa8\x1f\xdd\xbaS[\xd0\xf0\x88\xfa\x8b\xe1L' \
