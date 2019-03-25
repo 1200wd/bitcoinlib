@@ -341,6 +341,10 @@ def convert_der_sig(signature, as_hex=True):
         return binascii.unhexlify(sig)
 
 
+def der_encode_sig(r, s):
+    return DEREncoder.encode_signature(r, s)
+
+
 def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):
     """
     Convert base58 or bech32 address to public key hash

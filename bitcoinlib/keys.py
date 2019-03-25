@@ -45,9 +45,8 @@ import pyaes
 
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
-from bitcoinlib.config.secp256k1 import secp256k1_p, secp256k1_n
-from bitcoinlib.encoding import change_base, to_bytes, to_hexstring, EncodingError, addr_to_pubkeyhash, \
-    pubkeyhash_to_addr, varstr, double_sha256, hash160
+from bitcoinlib.config.secp256k1 import *
+from bitcoinlib.encoding import *
 from bitcoinlib.mnemonic import Mnemonic
 
 
@@ -228,108 +227,6 @@ def get_key_format(key, is_private=None):
             "witness_types": witness_types,
             "multisig": multisig
         }
-
-
-def ec_point(p):
-    """
-    Method for elliptic curve multiplication
-
-    :param p: A point on the elliptic curve
-    
-    :return Point: Point multiplied by generator G
-    """
-    p = int(p)
-    point = generator
-    point *= p
-    return point
-    # return keys.get_public_key(p, secp256k1)
-
-
-def ec_point2(p):
-    """
-    Method for elliptic curve multiplication
-
-    :param p: A point on the elliptic curve
-
-    :return Point: Point multiplied by generator G
-    """
-    p = int(p)
-    return keys.get_public_key(p, secp256k1)
-
-
-def sign(hashed, d, curve=secp256k1):
-    """Sign a message using the elliptic curve digital signature algorithm.
-
-    The elliptic curve signature algorithm is described in full in FIPS 186-4 Section 6. Please
-    refer to http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf for more information.
-
-    Args:
-        |  msg (str|bytes|bytearray): A message to be signed.
-        |  d (long): The ECDSA private key of the signer.
-        |  curve (fastecdsa.curve.Curve): The curve to be used to sign the message.
-        |  hashfunc (_hashlib.HASH): The hash function used to compress the message.
-    """
-    # generate a deterministic nonce per RFC6979
-    # rfc6979 = RFC6979(msg, d, curve.q, hashfunc)
-    # k = rfc6979.gen_nonce()
-    k = random.SystemRandom().randint(1, secp256k1_n)
-    # k = 1234567893
-    if isinstance(hashed, bytes):
-        hashed = to_hexstring(hashed)
-
-    # hashed = hashfunc(msg_bytes(msg)).hexdigest()
-    r, s = _ecdsa.sign(
-        hashed,
-        str(d),
-        str(k),
-        str(curve.p),
-        str(curve.a),
-        str(curve.b),
-        str(curve.q),
-        str(curve.gx),
-        str(curve.gy)
-    )
-    if int(s) > secp256k1_n / 2:
-        s = secp256k1_n - int(s)
-    return (int(r), int(s))
-
-
-def verify(signature, hashed, public_key, curve=secp256k1):
-    # if isinstance(Q, tuple):
-    #     Q = Point(Q[0], Q[1], curve)
-    # r, s = sig
-
-    # validate Q, r, s (Q should be validated in constructor of Point already but double check)
-    # if not curve.is_point_on_curve((Q.x, Q.y)):
-    #     raise EcdsaError('Invalid public key, point is not on curve {}'.format(curve.name))
-    # elif r > curve.q or r < 1:
-    #     raise EcdsaError(
-    #         'Invalid Signature: r is not a positive integer smaller than the curve order')
-    # elif s > curve.q or s < 1:
-    #     raise EcdsaError(
-    #         'Invalid Signature: s is not a positive integer smaller than the curve order')
-
-    # hashed = hashfunc(msg_bytes(msg)).hexdigest()
-    if isinstance(hashed, bytes):
-        hashed = to_hexstring(hashed)
-    r = int(to_hexstring(signature[:32]), 16)
-    s = int(to_hexstring(signature[32:]), 16)
-    x = int(to_hexstring(public_key[:32]), 16)
-    y = int(to_hexstring(public_key[32:]), 16)
-
-    return _ecdsa.verify(
-        str(r),
-        str(s),
-        hashed,
-        str(x),
-        str(y),
-        str(curve.p),
-        str(curve.a),
-        str(curve.b),
-        str(curve.q),
-        str(curve.gx),
-        str(curve.gy)
-)
 
 
 def deserialize_address(address, encoding=None, network=None):
@@ -881,7 +778,7 @@ class Key(object):
         if self.is_private and not (self.public_byte or self.public_hex):
             if not self.is_private:
                 raise BKeyError("Private key has no known secret number")
-            point = ec_point2(self.secret)
+            point = ec_point(self.secret)
             self._x = change_base(point.x, 10, 16, 64)
             self._y = change_base(point.y, 10, 16, 64)
             if point.y % 2:
@@ -1817,7 +1714,7 @@ class HDKey(Key):
 
         x, y = self.public_point()
         # ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
-        ki = ec_point2(key) + point.Point(x, y, secp256k1)
+        ki = ec_point(key) + point.Point(x, y, secp256k1)
 
         # if change_base(Ki.y(), 16, 10) % 2:
         if ki.y % 2:
@@ -1846,3 +1743,175 @@ class HDKey(Key):
         hdkey.key_hex = hdkey.public_hex
         # hdkey.key = self.key.public()
         return hdkey
+
+
+class Signature(object):
+    """
+    Signature class for transaction signatures
+    """
+
+    @staticmethod
+    def from_str(signature, public_key=None):
+        der_signature = ''
+        if isinstance(signature, bytes):
+            if len(signature) > 64 and signature.startswith(b'\x30'):
+                der_signature = signature
+                signature = convert_der_sig(signature[:-1], as_hex=False)
+            signature = to_hexstring(signature)
+        if len(signature) != 128:
+            raise BKeyError("Signature lenght must be 64 bytes or 128 character hexstring")
+        r = int(signature[:64], 16)
+        s = int(signature[64:], 16)
+        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key)
+
+    def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None):
+        self.r = int(r)
+        self.s = int(s)
+        self.x = None
+        self.y = None
+        if 1 > self.r > secp256k1_n:
+            raise BKeyError('Invalid Signature: r is not a positive integer smaller than the curve order')
+        elif 1 > self.s > secp256k1_n:
+            raise BKeyError('Invalid Signature: s is not a positive integer smaller than the curve order')
+        # if isinstance(tx_hash, bytes):
+        #     tx_hash = to_hexstring(tx_hash)
+        self._tx_hash = None
+        self.tx_hash = tx_hash
+        self.secret = None if not secret else int(secret)
+        self.der_encoded = der_signature
+        self.signature = signature
+        self._public_key = None
+        self.public_key = public_key
+
+        # self.priv_key = priv_key
+        # if self.priv_key is not None:
+        #     if not isinstance(self.priv_key, (Key, HDKey)):
+        #         self.priv_key = HDKey(self.priv_key)
+        #     self.secret = self.priv_key.secret
+
+    def __repr__(self):
+        return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
+               (self.r, self.s, self.signature, self.der_encoded)
+
+    @property
+    def tx_hash(self):
+        return self._tx_hash
+
+    @tx_hash.setter
+    def tx_hash(self, value):
+        if value is not None:
+            self._tx_hash = value
+            if isinstance(value, bytes):
+                self._tx_hash = to_hexstring(value)
+
+    @property
+    def public_key(self):
+        return self._public_key
+
+    @public_key.setter
+    def public_key(self, value):
+        if value is None:
+            return
+        if isinstance(value, bytes):
+            if len(value) == 65 or len(value) == 33:
+                value = value[1:]
+            value = to_hexstring(value)
+        if isinstance(value, (Key, HDKey)):
+            self.x, self.y = value.public_point()
+        else:
+            self.x = int(value[:64], 16)
+            if len(value) > 64:
+                self.y = int(value[64:], 16)
+            else:
+                ys = (self.x ** 3 + 7) % secp256k1_p
+                self.y = mod_sqrt(ys, secp256k1_p)[0]
+        if not secp256k1.is_point_on_curve((self.x, self.y)):
+            raise BKeyError('Invalid public key, point is not on secp256k1 curve')
+        self._public_key = value
+
+    def as_der_encoded(self):
+        if not self.der_encoded:
+            self.der_encoded = DEREncoder.encode_signature(self.r, self.s)
+        return self.der_encoded
+
+    def as_bytes(self):
+        if not self.signature:
+            self.signature = '%064x%064x' % (self.r, self.s)
+        return self.signature
+
+    def verify(self, tx_hash=None, public_key=None):
+        if tx_hash is not None:
+            self.tx_hash = tx_hash
+        if public_key is not None:
+            self.public_key = public_key
+
+        return _ecdsa.verify(
+            str(self.r),
+            str(self.s),
+            self.tx_hash,
+            str(self.x),
+            str(self.y),
+            str(secp256k1_p),
+            str(secp256k1_a),
+            str(secp256k1_b),
+            str(secp256k1_n),
+            str(secp256k1_Gx),
+            str(secp256k1_Gy)
+    )
+
+
+def sign(tx_hash, secret, use_rfc6979=False):
+    pub_key = None
+    if isinstance(tx_hash, bytes):
+        tx_hash = to_hexstring(tx_hash)
+    if isinstance(secret, (Key, HDKey)):
+        pub_key = secret.public()
+        secret = secret.secret
+    elif not isinstance(secret, numbers.Number):
+        raise BKeyError("Please provide secret key as 256-bit number or Key/HDKey class")
+
+    # TODO: Implement RFC6979
+    # if use_rfc6979:
+    #     generate a deterministic nonce per RFC6979
+    #     rfc6979 = RFC6979(tx_hash, secret, curve.q, hashfunc)
+    #     k = rfc6979.gen_nonce()
+    # else:
+    k = random.SystemRandom().randint(1, secp256k1_n)
+
+    r, s = _ecdsa.sign(
+        tx_hash,
+        str(secret),
+        str(k),
+        str(secp256k1_p),
+        str(secp256k1_a),
+        str(secp256k1_b),
+        str(secp256k1_n),
+        str(secp256k1_Gx),
+        str(secp256k1_Gy)
+    )
+    if int(s) > secp256k1_n / 2:
+        s = secp256k1_n - int(s)
+    # __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None)
+    return Signature(r, s, tx_hash, secret, public_key=pub_key)
+
+
+def verify(tx_hash, signature, public_key=None):
+    if not isinstance(signature, Signature):
+        signature = Signature.from_str(signature, public_key=public_key)
+    return signature.verify(tx_hash, public_key)
+
+
+def ec_point(p):
+    """
+    Method for elliptic curve multiplication
+
+    :param p: A point on the elliptic curve
+
+    :return Point: Point multiplied by generator G
+    """
+    p = int(p)
+    return keys.get_public_key(p, secp256k1)
+    # p = int(p)
+    # point = generator
+    # point *= p
+    # return point

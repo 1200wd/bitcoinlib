@@ -24,7 +24,6 @@ import json
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify
 from bitcoinlib.networks import Network
-from fastecdsa.encoding.der import DEREncoder
 
 
 _logger = logging.getLogger(__name__)
@@ -597,45 +596,6 @@ def get_unlocking_script_type(locking_script_type, witness_type='legacy', multis
         return 'signature'
     else:
         raise TransactionError("Unknown locking script type %s" % locking_script_type)
-
-
-def verify_signature(transaction_to_sign, signature, public_key):
-    """
-    Verify if signatures signs provided transaction hash and corresponds with public key
-
-    :param transaction_to_sign: Raw transaction to sign
-    :type transaction_to_sign: bytes, str
-    :param signature: A signature
-    :type signature: bytes, str
-    :param public_key: The public key
-    :type public_key: bytes, str
-
-    :return bool: Return True if verified
-    """
-
-    transaction_to_sign = to_bytes(transaction_to_sign)
-    signature = to_bytes(signature)
-    public_key = to_bytes(public_key)
-    if len(transaction_to_sign) != 32:
-        transaction_to_sign = double_sha256(transaction_to_sign)
-    if len(public_key) == 65:
-        public_key = public_key[1:]
-    # ver_key = ecdsa.VerifyingKey.from_string(public_key, curve=ecdsa.SECP256k1)
-    # try:
-    if len(signature) > 64 and signature.startswith(b'\x30'):
-        # try:
-        signature = convert_der_sig(signature[:-1], as_hex=False)
-        # except Exception:
-        #     pass
-        # ver_key.verify_digest(signature, transaction_to_sign)
-    # except ecdsa.keys.BadSignatureError:
-    #     return False
-    # except ecdsa.keys.BadDigestError as e:
-    #     _logger.info("Bad Digest %s (error %s)" %
-    #                  (binascii.hexlify(signature), e))
-    #     return False
-    # return True
-    return verify(signature, transaction_to_sign, public_key)
 
 
 class Input(object):
@@ -1650,8 +1610,7 @@ class Transaction(object):
                     _logger.info("Need at least 1 key to create segwit transaction signature")
                     return False
                 key_n += 1
-                if verify_signature(transaction_hash, i.signatures[sig_id]['signature'],
-                                    key.public_uncompressed_byte[1:]):
+                if verify(transaction_hash, i.signatures[sig_id]['signature'], key):
                     sig_id += 1
                     i.valid = True
                 else:
@@ -1707,7 +1666,7 @@ class Transaction(object):
             n_total_sigs = len(pub_key_list)
             sig_domain = [''] * n_total_sigs
 
-            tsig = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
+            tx_hash = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
             for key in tid_keys:
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
@@ -1719,11 +1678,11 @@ class Transaction(object):
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
                 # sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
-                (r, s) = sign(tsig, key.secret)
-                sig_der = DEREncoder.encode_signature(r, s)
-                signature = convert_der_sig(sig_der)
-                # print(s)
-                # print(encoded)
+                sig = sign(tx_hash, key.secret)
+                sig_der = sig.as_der_encoded()
+                signature = sig.as_bytes()
+                # sig_der = der_encode_sig(sig.r, sig.s)
+                # signature = convert_der_sig(sig_der)
                 # while True:
                 #     sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der, k=1234567893)
                 #     # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
@@ -1752,7 +1711,7 @@ class Transaction(object):
             for sig in self.inputs[tid].signatures:
                 free_positions = [i for i, s in enumerate(sig_domain) if s == '']
                 for pos in free_positions:
-                    if verify_signature(tsig, sig['signature'], pub_key_list_uncompressed[pos]):
+                    if verify(tx_hash, sig['signature'], pub_key_list_uncompressed[pos]):
                         if not sig['pub_key']:
                             sig['pub_key'] = pub_key_list[pos]
                         if not sig['sig_der']:
