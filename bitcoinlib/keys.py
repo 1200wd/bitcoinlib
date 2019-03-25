@@ -1747,7 +1747,7 @@ class HDKey(Key):
 
 class Signature(object):
     """
-    Signature class for transaction signatures
+    Signature class for transaction signatures.
     """
 
     @staticmethod
@@ -1755,13 +1755,6 @@ class Signature(object):
         der_signature = ''
         if isinstance(signature, (bytes, bytearray)):
             if len(signature) > 64 and signature.startswith(b'\x30'):
-                # if sig.startswith(b'\x30'):
-                #     # If signature ends with Hashtype, remove hashtype and continue
-                #     # TODO: support for other hashtypes
-                #     if sig.endswith(b'\x01'):
-                #         # _, junk = ecdsa.der.remove_sequence(sig)
-                #         # if junk == b'\x01':
-                #         sig_der = sig[:-1]
                 der_signature = signature
                 if der_signature.endswith(b'\x01'):
                     der_signature = der_signature[:-1]
@@ -1773,6 +1766,39 @@ class Signature(object):
         s = int(signature[64:], 16)
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key)
 
+    @staticmethod
+    def create(tx_hash, private, use_rfc6979=False):
+        if isinstance(tx_hash, bytes):
+            tx_hash = to_hexstring(tx_hash)
+        if not isinstance(private, (Key, HDKey)):
+            private = HDKey(private)
+        pub_key = private.public()
+        secret = private.secret
+
+        # TODO: Implement RFC6979
+        # if use_rfc6979:
+        #     generate a deterministic nonce per RFC6979
+        #     rfc6979 = RFC6979(tx_hash, secret, curve.q, hashfunc)
+        #     k = rfc6979.gen_nonce()
+        # else:
+        k = random.SystemRandom().randint(1, secp256k1_n)
+
+        r, s = _ecdsa.sign(
+            tx_hash,
+            str(secret),
+            str(k),
+            str(secp256k1_p),
+            str(secp256k1_a),
+            str(secp256k1_b),
+            str(secp256k1_n),
+            str(secp256k1_Gx),
+            str(secp256k1_Gy)
+        )
+        if int(s) > secp256k1_n / 2:
+            s = secp256k1_n - int(s)
+        # __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None)
+        return Signature(r, s, tx_hash, secret, public_key=pub_key)
+
     def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None):
         self.r = int(r)
         self.s = int(s)
@@ -1782,8 +1808,6 @@ class Signature(object):
             raise BKeyError('Invalid Signature: r is not a positive integer smaller than the curve order')
         elif 1 > self.s > secp256k1_n:
             raise BKeyError('Invalid Signature: s is not a positive integer smaller than the curve order')
-        # if isinstance(tx_hash, bytes):
-        #     tx_hash = to_hexstring(tx_hash)
         self._tx_hash = None
         self.tx_hash = tx_hash
         self.secret = None if not secret else int(secret)
@@ -1871,39 +1895,7 @@ class Signature(object):
 
 
 def sign(tx_hash, private, use_rfc6979=False):
-    pub_key = None
-    if isinstance(tx_hash, bytes):
-        tx_hash = to_hexstring(tx_hash)
-    secret = private
-    if isinstance(private, (Key, HDKey)):
-        pub_key = private.public()
-        secret = private.secret
-    elif not isinstance(private, numbers.Number):
-        raise BKeyError("Please provide secret key as 256-bit number or Key/HDKey class")
-
-    # TODO: Implement RFC6979
-    # if use_rfc6979:
-    #     generate a deterministic nonce per RFC6979
-    #     rfc6979 = RFC6979(tx_hash, secret, curve.q, hashfunc)
-    #     k = rfc6979.gen_nonce()
-    # else:
-    k = random.SystemRandom().randint(1, secp256k1_n)
-
-    r, s = _ecdsa.sign(
-        tx_hash,
-        str(secret),
-        str(k),
-        str(secp256k1_p),
-        str(secp256k1_a),
-        str(secp256k1_b),
-        str(secp256k1_n),
-        str(secp256k1_Gx),
-        str(secp256k1_Gy)
-    )
-    if int(s) > secp256k1_n / 2:
-        s = secp256k1_n - int(s)
-    # __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None)
-    return Signature(r, s, tx_hash, secret, public_key=pub_key)
+    return Signature.create(tx_hash, private, use_rfc6979)
 
 
 def verify(tx_hash, signature, public_key=None):
