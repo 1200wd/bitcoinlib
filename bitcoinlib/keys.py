@@ -1755,7 +1755,16 @@ class Signature(object):
         der_signature = ''
         if isinstance(signature, bytes):
             if len(signature) > 64 and signature.startswith(b'\x30'):
+                # if sig.startswith(b'\x30'):
+                #     # If signature ends with Hashtype, remove hashtype and continue
+                #     # TODO: support for other hashtypes
+                #     if sig.endswith(b'\x01'):
+                #         # _, junk = ecdsa.der.remove_sequence(sig)
+                #         # if junk == b'\x01':
+                #         sig_der = sig[:-1]
                 der_signature = signature
+                if der_signature.endswith(b'\x01'):
+                    der_signature = der_signature[:-1]
                 signature = convert_der_sig(signature[:-1], as_hex=False)
             signature = to_hexstring(signature)
         if len(signature) != 128:
@@ -1778,8 +1787,8 @@ class Signature(object):
         self._tx_hash = None
         self.tx_hash = tx_hash
         self.secret = None if not secret else int(secret)
-        self.der_encoded = der_signature
-        self.signature = signature
+        self._der_encoded = der_signature
+        self._signature = signature
         self._public_key = None
         self.public_key = public_key
 
@@ -1791,7 +1800,7 @@ class Signature(object):
 
     def __repr__(self):
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
-               (self.r, self.s, self.signature, self.der_encoded)
+               (self.r, self.s, self._signature, self._der_encoded)
 
     @property
     def tx_hash(self):
@@ -1818,6 +1827,7 @@ class Signature(object):
             value = to_hexstring(value)
         if isinstance(value, (Key, HDKey)):
             self.x, self.y = value.public_point()
+            value = value.public_hex
         else:
             self.x = int(value[:64], 16)
             if len(value) > 64:
@@ -1830,14 +1840,14 @@ class Signature(object):
         self._public_key = value
 
     def as_der_encoded(self):
-        if not self.der_encoded:
-            self.der_encoded = DEREncoder.encode_signature(self.r, self.s)
-        return self.der_encoded
+        if not self._der_encoded:
+            self._der_encoded = DEREncoder.encode_signature(self.r, self.s)
+        return self._der_encoded
 
     def as_bytes(self):
-        if not self.signature:
-            self.signature = '%064x%064x' % (self.r, self.s)
-        return self.signature
+        if not self._signature:
+            self._signature = '%064x%064x' % (self.r, self.s)
+        return self._signature
 
     def verify(self, tx_hash=None, public_key=None):
         if tx_hash is not None:
@@ -1860,14 +1870,15 @@ class Signature(object):
     )
 
 
-def sign(tx_hash, secret, use_rfc6979=False):
+def sign(tx_hash, private, use_rfc6979=False):
     pub_key = None
     if isinstance(tx_hash, bytes):
         tx_hash = to_hexstring(tx_hash)
-    if isinstance(secret, (Key, HDKey)):
-        pub_key = secret.public()
-        secret = secret.secret
-    elif not isinstance(secret, numbers.Number):
+    secret = private
+    if isinstance(private, (Key, HDKey)):
+        pub_key = private.public()
+        secret = private.secret
+    elif not isinstance(private, numbers.Number):
         raise BKeyError("Please provide secret key as 256-bit number or Key/HDKey class")
 
     # TODO: Implement RFC6979

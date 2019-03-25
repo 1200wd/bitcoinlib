@@ -22,7 +22,7 @@ from datetime import datetime
 import json
 
 from bitcoinlib.encoding import *
-from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify
+from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
 from bitcoinlib.networks import Network
 
 
@@ -526,7 +526,7 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=
     if not isinstance(sigs, list):
         sigs = [sigs]
     for sig in sigs:
-        s = to_bytes(sig)
+        s = sig
         if hash_type:
             s += struct.pack('B', hash_type)
         if as_list:
@@ -623,7 +623,7 @@ class Input(object):
         :param keys: A list of Key objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
         :type keys: list (bytes, str, Key)
         :param signatures: Specify optional signatures
-        :type signatures: bytes, str
+        :type signatures: list (bytes, str, Signature)
         :param public_hash: Public key or script hash. Specify if key is not available
         :type public_hash: bytes, str
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
@@ -783,33 +783,37 @@ class Input(object):
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
         for sig in signatures:
-            if isinstance(sig, dict):
-                if sig['sig_der'] not in [x['sig_der'] for x in self.signatures]:
+            # if isinstance(sig, dict):
+            #     if sig['sig_der'] not in [x['sig_der'] for x in self.signatures]:
+            #         self.signatures.append(sig)
+            if isinstance(sig, Signature):
+                if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
                     self.signatures.append(sig)
             else:
-                if not isinstance(sig, bytes):
-                    sig = to_bytes(sig)
-                sig_der = ''
-                if sig.startswith(b'\x30'):
-                    # If signature ends with Hashtype, remove hashtype and continue
-                    # TODO: support for other hashtypes
-                    if sig.endswith(b'\x01'):
-                        # _, junk = ecdsa.der.remove_sequence(sig)
-                        # if junk == b'\x01':
-                        sig_der = sig[:-1]
-                    else:
-                        sig_der = sig
-                    try:
-                        sig = convert_der_sig(sig[:-1], as_hex=False)
-                    except Exception:
-                        pass
-                self.signatures.append(
-                    {
-                        'sig_der': sig_der,
-                        'signature': to_bytes(sig),
-                        'priv_key': b'',
-                        'pub_key': b''
-                    })
+                self.signatures.append(Signature.from_str(sig))
+                # if not isinstance(sig, bytes):
+                #     sig = to_bytes(sig)
+                # sig_der = ''
+                # if sig.startswith(b'\x30'):
+                #     # If signature ends with Hashtype, remove hashtype and continue
+                #     # TODO: support for other hashtypes
+                #     if sig.endswith(b'\x01'):
+                #         # _, junk = ecdsa.der.remove_sequence(sig)
+                #         # if junk == b'\x01':
+                #         sig_der = sig[:-1]
+                #     else:
+                #         sig_der = sig
+                #     try:
+                #         sig = convert_der_sig(sig[:-1], as_hex=False)
+                #     except Exception:
+                #         pass
+                # self.signatures.append(
+                #     {
+                #         'sig_der': sig_der,
+                #         'signature': to_bytes(sig),
+                #         'priv_key': b'',
+                #         'pub_key': b''
+                #     })
         self.update_scripts()
 
     # TODO: Remove / replace?
@@ -858,7 +862,7 @@ class Input(object):
                                    script_type=self.script_type, witness_type=self.witness_type).address
             self.witnesses = []
             if self.signatures and self.keys:
-                self.witnesses = [self.signatures[0]['sig_der'] + struct.pack('B', hash_type), self.keys[0].public_byte]
+                self.witnesses = [self.signatures[0].as_der_encoded() + struct.pack('B', hash_type), self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
@@ -887,7 +891,7 @@ class Input(object):
                 if not isinstance(n_tag, int):
                     n_tag = struct.unpack('B', n_tag)[0]
                 self.sigs_required = n_tag - 80
-                signatures = [s['sig_der'] for s in self.signatures[:self.sigs_required]]
+                signatures = [s.as_der_encoded() for s in self.signatures[:self.sigs_required]]
                 if b'' in signatures:
                     raise TransactionError("Empty signature found in signature list when signing. "
                                            "Is DER encoded version of signature defined?")
@@ -920,7 +924,7 @@ class Input(object):
                 self.script_code = self.keys[0].public_byte + b'\xac'
                 self.unlocking_script_unsigned = self.script_code
             if self.signatures:
-                self.unlocking_script = varstr(self.signatures[0]['sig_der'] + struct.pack('B', hash_type))
+                self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + struct.pack('B', hash_type))
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:
@@ -962,7 +966,7 @@ class Input(object):
             'script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
             'sequence': self.sequence,
-            'signatures': [to_hexstring(s['signature']) for s in self.signatures],
+            'signatures': [to_hexstring(s.as_bytes()) for s in self.signatures],
             'sigs_required': self.sigs_required,
             'locktime_cltv': self.locktime_cltv,
             'locktime_csv': self.locktime_csv, 'public_hash': to_hexstring(self.public_hash),
@@ -1610,7 +1614,7 @@ class Transaction(object):
                     _logger.info("Need at least 1 key to create segwit transaction signature")
                     return False
                 key_n += 1
-                if verify(transaction_hash, i.signatures[sig_id]['signature'], key):
+                if verify(transaction_hash, i.signatures[sig_id], key):
                     sig_id += 1
                     i.valid = True
                 else:
@@ -1671,16 +1675,16 @@ class Transaction(object):
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
                     raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
-                if key.public_byte in [x['pub_key'] for x in self.inputs[tid].signatures]:
+                if key.public_hex in [x.public_key for x in self.inputs[tid].signatures]:
                     _logger.info("Key %s already signed" % key.public_hex)
                     break
 
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
                 # sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
-                sig = sign(tx_hash, key.secret)
-                sig_der = sig.as_der_encoded()
-                signature = sig.as_bytes()
+                sig = sign(tx_hash, key)
+                # sig_der = sig.as_as_der_encoded()
+                # signature = sig.as_bytes()
                 # sig_der = der_encode_sig(sig.r, sig.s)
                 # signature = convert_der_sig(sig_der)
                 # while True:
@@ -1692,15 +1696,15 @@ class Transaction(object):
                 #     s = int(signature[64:], 16)
                 #     if s < ecdsa.SECP256k1.order / 2:
                 #         break
-                newsig = {
-                    'sig_der': to_bytes(sig_der),
-                    'signature': to_bytes(signature),
-                    'priv_key': key.private_byte,
-                    'pub_key': key.public_byte,
-                    'transaction_id': tid
-                }
+                # newsig = {
+                #     'sig_der': to_bytes(sig_der),
+                #     'signature': to_bytes(signature),
+                #     'priv_key': key.private_byte,
+                #     'pub_key': key.public_byte,
+                #     'transaction_id': tid
+                # }
                 newsig_pos = pub_key_list.index(key.public_byte)
-                sig_domain[newsig_pos] = newsig
+                sig_domain[newsig_pos] = sig
                 n_signs += 1
 
             if not n_signs:
@@ -1711,10 +1715,10 @@ class Transaction(object):
             for sig in self.inputs[tid].signatures:
                 free_positions = [i for i, s in enumerate(sig_domain) if s == '']
                 for pos in free_positions:
-                    if verify(tx_hash, sig['signature'], pub_key_list_uncompressed[pos]):
-                        if not sig['pub_key']:
-                            sig['pub_key'] = pub_key_list[pos]
-                        if not sig['sig_der']:
+                    if verify(tx_hash, sig, pub_key_list_uncompressed[pos]):
+                        if not sig.public_key:
+                            sig.public_ket = pub_key_list[pos]
+                        if not sig.as_der_encoded():
                             raise TransactionError("Missing DER encoded signature in input %d" % tid)
                         sig_domain[pos] = sig
                         n_sigs_to_insert -= 1
