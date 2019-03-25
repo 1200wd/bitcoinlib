@@ -1775,13 +1775,11 @@ class Signature(object):
         pub_key = private.public()
         secret = private.secret
 
-        # TODO: Implement RFC6979
-        # if use_rfc6979:
-        #     generate a deterministic nonce per RFC6979
-        #     rfc6979 = RFC6979(tx_hash, secret, curve.q, hashfunc)
-        #     k = rfc6979.gen_nonce()
-        # else:
-        k = random.SystemRandom().randint(1, secp256k1_n)
+        if use_rfc6979:
+            rfc6979 = RFC6979(tx_hash, secret, secp256k1_n, hashlib.sha256)
+            k = rfc6979.gen_nonce()
+        else:
+            k = random.SystemRandom().randint(1, secp256k1_n)
 
         r, s = _ecdsa.sign(
             tx_hash,
@@ -1796,7 +1794,6 @@ class Signature(object):
         )
         if int(s) > secp256k1_n / 2:
             s = secp256k1_n - int(s)
-        # __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None)
         return Signature(r, s, tx_hash, secret, public_key=pub_key)
 
     def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None):
@@ -1815,12 +1812,6 @@ class Signature(object):
         self._signature = signature
         self._public_key = None
         self.public_key = public_key
-
-        # self.priv_key = priv_key
-        # if self.priv_key is not None:
-        #     if not isinstance(self.priv_key, (Key, HDKey)):
-        #         self.priv_key = HDKey(self.priv_key)
-        #     self.secret = self.priv_key.secret
 
     def __repr__(self):
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
