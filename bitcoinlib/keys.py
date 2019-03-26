@@ -27,13 +27,6 @@ from copy import deepcopy
 import collections
 import json
 
-# import ecdsa
-from fastecdsa import _ecdsa
-from fastecdsa.util import RFC6979, mod_sqrt
-from fastecdsa.curve import secp256k1
-from fastecdsa import keys
-from fastecdsa import point
-
 try:
     import scrypt
     USING_MODULE_SCRYPT = True
@@ -48,6 +41,19 @@ from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_
 from bitcoinlib.config.secp256k1 import *
 from bitcoinlib.encoding import *
 from bitcoinlib.mnemonic import Mnemonic
+
+USE_FASTECDSA = False
+try:
+    from fastecdsa import _ecdsa
+    from fastecdsa.util import RFC6979, mod_sqrt as fastecdsa_mod_sqrt
+    from fastecdsa.curve import secp256k1 as fastecdsa_secp256k1
+    from fastecdsa import keys as fastecdsa_keys
+    from fastecdsa import point as fastecdsa_point
+    USE_FASTECDSA = True
+except ImportError as ecdsa_error:
+    import ecdsa
+    secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
+    secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
 
 
 _logger = logging.getLogger(__name__)
@@ -705,8 +711,10 @@ class Key(object):
                 sign = pub_key[:2] == '03'
                 x = int(self._x, 16)
                 ys = (x**3+7) % secp256k1_p
-                # y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
-                y = mod_sqrt(ys, secp256k1_p)[0]
+                if USE_FASTECDSA:
+                    y = fastecdsa_mod_sqrt(ys, secp256k1_p)[0]
+                else:
+                    y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
                 if y & 1 != sign:
                     y = secp256k1_p - y
                 self._y = change_base(y, 10, 16, 64)
@@ -778,10 +786,16 @@ class Key(object):
         if self.is_private and not (self.public_byte or self.public_hex):
             if not self.is_private:
                 raise BKeyError("Private key has no known secret number")
-            point = ec_point(self.secret)
-            self._x = change_base(point.x, 10, 16, 64)
-            self._y = change_base(point.y, 10, 16, 64)
-            if point.y % 2:
+            p = ec_point(self.secret)
+            if USE_FASTECDSA:
+                point_x = p.x
+                point_y = p.y
+            else:
+                point_x = p.x()
+                point_y = p.y()
+            self._x = change_base(point_x, 10, 16, 64)
+            self._y = change_base(point_y, 10, 16, 64)
+            if point_y % 2:
                 prefix = '03'
             else:
                 prefix = '02'
@@ -807,6 +821,8 @@ class Key(object):
             return self.public_hex
 
     def __eq__(self, other):
+        if other is None:
+            return False
         if self.is_private and other.is_private:
             return self.private_hex == other.private_hex
         else:
@@ -1713,15 +1729,21 @@ class HDKey(Key):
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
         x, y = self.public_point()
-        # ki = ec_point(key) + ecdsa.ellipticcurve.Point(curve, x, y, secp256k1_n)
-        ki = ec_point(key) + point.Point(x, y, secp256k1)
+        if USE_FASTECDSA:
+            ki = ec_point(key) + fastecdsa_point.Point(x, y, fastecdsa_secp256k1)
+            ki_x = ki.x
+            ki_y = ki.y
+        else:
+            ki = ec_point(key) + ecdsa.ellipticcurve.Point(secp256k1_curve, x, y, secp256k1_n)
+            ki_x = ki.x()
+            ki_y = ki.y()
 
         # if change_base(Ki.y(), 16, 10) % 2:
-        if ki.y % 2:
+        if ki_y % 2:
             prefix = '03'
         else:
             prefix = '02'
-        xhex = change_base(ki.x, 10, 16, 64)
+        xhex = change_base(ki_x, 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
                      child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
@@ -1753,13 +1775,14 @@ class Signature(object):
     @staticmethod
     def from_str(signature, public_key=None):
         der_signature = ''
-        if isinstance(signature, (bytes, bytearray)):
-            if len(signature) > 64 and signature.startswith(b'\x30'):
-                der_signature = signature
-                if der_signature.endswith(b'\x01'):
-                    der_signature = der_signature[:-1]
-                signature = convert_der_sig(signature[:-1], as_hex=False)
-            signature = to_hexstring(signature)
+        signature = to_bytes(signature)
+        # if isinstance(signature, (bytes, bytearray)):
+        if len(signature) > 64 and signature.startswith(b'\x30'):
+            der_signature = signature
+            if der_signature.endswith(b'\x01'):
+                der_signature = der_signature[:-1]
+            signature = convert_der_sig(signature[:-1], as_hex=False)
+        signature = to_hexstring(signature)
         if len(signature) != 128:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
         r = int(signature[:64], 16)
@@ -1770,31 +1793,48 @@ class Signature(object):
     def create(tx_hash, private, use_rfc6979=True):
         if isinstance(tx_hash, bytes):
             tx_hash = to_hexstring(tx_hash)
+        if len(tx_hash) > 64:
+            tx_hash = to_hexstring(double_sha256(binascii.unhexlify(tx_hash)))
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
         pub_key = private.public()
         secret = private.secret
 
-        if use_rfc6979:
+        if use_rfc6979 and USE_FASTECDSA:
             rfc6979 = RFC6979(tx_hash, secret, secp256k1_n, hashlib.sha256)
             k = rfc6979.gen_nonce()
         else:
+            if not USE_FASTECDSA:
+                _logger.warning("RFC6979 only supported when fastecdsa library is used")
             k = random.SystemRandom().randint(1, secp256k1_n)
 
-        r, s = _ecdsa.sign(
-            tx_hash,
-            str(secret),
-            str(k),
-            str(secp256k1_p),
-            str(secp256k1_a),
-            str(secp256k1_b),
-            str(secp256k1_n),
-            str(secp256k1_Gx),
-            str(secp256k1_Gy)
-        )
-        if int(s) > secp256k1_n / 2:
-            s = secp256k1_n - int(s)
-        return Signature(r, s, tx_hash, secret, public_key=pub_key)
+        if USE_FASTECDSA:
+            r, s = _ecdsa.sign(
+                tx_hash,
+                str(secret),
+                str(k),
+                str(secp256k1_p),
+                str(secp256k1_a),
+                str(secp256k1_b),
+                str(secp256k1_n),
+                str(secp256k1_Gx),
+                str(secp256k1_Gy)
+            )
+            if int(s) > secp256k1_n / 2:
+                s = secp256k1_n - int(s)
+            return Signature(r, s, tx_hash, secret, public_key=pub_key)
+        else:
+            sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
+            tx_hash_bytes = to_bytes(tx_hash)
+            while True:
+                sig_der = sk.sign_digest(tx_hash_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
+                signature = convert_der_sig(sig_der)
+                r = int(signature[:64], 16)
+                s = int(signature[64:], 16)
+                if s < ecdsa.SECP256k1.order / 2:
+                    break
+                k += 1
+            return Signature(r, s, tx_hash, secret, public_key=pub_key, der_signature=sig_der, signature=signature)
 
     def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None):
         self.r = int(r)
@@ -1808,14 +1848,16 @@ class Signature(object):
         self._tx_hash = None
         self.tx_hash = tx_hash
         self.secret = None if not secret else int(secret)
-        self._der_encoded = der_signature
-        self._signature = signature
+        self._der_encoded = to_bytes(der_signature)
+        self._signature = to_bytes(signature)
         self._public_key = None
         self.public_key = public_key
 
     def __repr__(self):
+        sig = '' if not self._signature else to_hexstring(self._signature)
+        der_sig = '' if not self._der_encoded else to_hexstring(self._der_encoded)
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
-               (self.r, self.s, self._signature, self._der_encoded)
+               (self.r, self.s, sig, der_sig)
 
     @property
     def tx_hash(self):
@@ -1837,21 +1879,14 @@ class Signature(object):
         if value is None:
             return
         if isinstance(value, bytes):
-            if len(value) == 65 or len(value) == 33:
-                value = value[1:]
-            value = to_hexstring(value)
-        if isinstance(value, (Key, HDKey)):
-            self.x, self.y = value.public_point()
-            value = value.public_hex
-        else:
-            self.x = int(value[:64], 16)
-            if len(value) > 64:
-                self.y = int(value[64:], 16)
-            else:
-                ys = (self.x ** 3 + 7) % secp256k1_p
-                self.y = mod_sqrt(ys, secp256k1_p)[0]
-        if not secp256k1.is_point_on_curve((self.x, self.y)):
-            raise BKeyError('Invalid public key, point is not on secp256k1 curve')
+            value = HDKey(value)
+        if value.is_private:
+            value = value.public()
+        self.x, self.y = value.public_point()
+
+        if USE_FASTECDSA:
+            if not fastecdsa_secp256k1.is_point_on_curve((self.x, self.y)):
+                raise BKeyError('Invalid public key, point is not on secp256k1 curve')
         self._public_key = value
 
     def as_der_encoded(self):
@@ -1861,31 +1896,52 @@ class Signature(object):
 
     def as_bytes(self):
         if not self._signature:
-            self._signature = '%064x%064x' % (self.r, self.s)
+            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
         return self._signature
 
     def verify(self, tx_hash=None, public_key=None):
         if tx_hash is not None:
-            self.tx_hash = tx_hash
+            self.tx_hash = to_hexstring(tx_hash)
         if public_key is not None:
             self.public_key = public_key
 
-        return _ecdsa.verify(
-            str(self.r),
-            str(self.s),
-            self.tx_hash,
-            str(self.x),
-            str(self.y),
-            str(secp256k1_p),
-            str(secp256k1_a),
-            str(secp256k1_b),
-            str(secp256k1_n),
-            str(secp256k1_Gx),
-            str(secp256k1_Gy)
-    )
+        if USE_FASTECDSA:
+            return _ecdsa.verify(
+                str(self.r),
+                str(self.s),
+                self.tx_hash,
+                str(self.x),
+                str(self.y),
+                str(secp256k1_p),
+                str(secp256k1_a),
+                str(secp256k1_b),
+                str(secp256k1_n),
+                str(secp256k1_Gx),
+                str(secp256k1_Gy)
+            )
+        else:
+            transaction_to_sign = to_bytes(self.tx_hash)
+            signature = to_bytes(self.as_bytes())
+            if len(transaction_to_sign) != 32:
+                transaction_to_sign = double_sha256(transaction_to_sign)
+            ver_key = ecdsa.VerifyingKey.from_string(self.public_key.public_uncompressed_byte[1:],
+                                                     curve=ecdsa.SECP256k1)
+            try:
+                if signature.startswith(b'\x30'):
+                    try:
+                        signature = convert_der_sig(signature[:-1], as_hex=False)
+                    except Exception:
+                        pass
+                ver_key.verify_digest(signature, transaction_to_sign)
+            except ecdsa.keys.BadSignatureError:
+                return False
+            except ecdsa.keys.BadDigestError as e:
+                _logger.info("Bad Digest %s (error %s)" % (binascii.hexlify(signature), e))
+                return False
+            return True
 
 
-def sign(tx_hash, private, use_rfc6979=False):
+def sign(tx_hash, private, use_rfc6979=True):
     return Signature.create(tx_hash, private, use_rfc6979)
 
 
@@ -1904,8 +1960,9 @@ def ec_point(p):
     :return Point: Point multiplied by generator G
     """
     p = int(p)
-    return keys.get_public_key(p, secp256k1)
-    # p = int(p)
-    # point = generator
-    # point *= p
-    # return point
+    if USE_FASTECDSA:
+        return fastecdsa_keys.get_public_key(p, fastecdsa_secp256k1)
+    else:
+        point = secp256k1_generator
+        point *= p
+        return point

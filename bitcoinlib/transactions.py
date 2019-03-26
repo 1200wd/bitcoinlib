@@ -1665,9 +1665,8 @@ class Transaction(object):
                 self.inputs[tid].update_scripts(hash_type=hash_type)
             if self.inputs[tid].script_type == 'coinbase':
                 raise TransactionError("Can not sign coinbase transactions")
-            pub_key_list = [x.public_byte for x in self.inputs[tid].keys]
-            pub_key_list_uncompressed = [x.public_uncompressed_byte for x in self.inputs[tid].keys]
-            n_total_sigs = len(pub_key_list)
+            pub_key_list = [k.public_byte for k in self.inputs[tid].keys]
+            n_total_sigs = len(self.inputs[tid].keys)
             sig_domain = [''] * n_total_sigs
 
             tx_hash = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
@@ -1675,34 +1674,13 @@ class Transaction(object):
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
                     raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
-                if key.public_hex in [x.public_key for x in self.inputs[tid].signatures]:
+                if key in [x.public_key for x in self.inputs[tid].signatures]:
                     _logger.info("Key %s already signed" % key.public_hex)
                     break
 
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
-                # sk = ecdsa.SigningKey.from_string(key.private_byte, curve=ecdsa.SECP256k1)
                 sig = sign(tx_hash, key)
-                # sig_der = sig.as_as_der_encoded()
-                # signature = sig.as_bytes()
-                # sig_der = der_encode_sig(sig.r, sig.s)
-                # signature = convert_der_sig(sig_der)
-                # while True:
-                #     sig_der = sk.sign_digest(tsig, sigencode=ecdsa.util.sigencode_der, k=1234567893)
-                #     # Test if signature has low S value, to prevent 'Non-canonical signature: High S Value' errors
-                #     # TODO: Recalc 's' instead, see:
-                #     #       https://github.com/richardkiss/pycoin/pull/24/files#diff-12d8832e97767321d1f3c40909be8b23
-                #     signature = convert_der_sig(sig_der)
-                #     s = int(signature[64:], 16)
-                #     if s < ecdsa.SECP256k1.order / 2:
-                #         break
-                # newsig = {
-                #     'sig_der': to_bytes(sig_der),
-                #     'signature': to_bytes(signature),
-                #     'priv_key': key.private_byte,
-                #     'pub_key': key.public_byte,
-                #     'transaction_id': tid
-                # }
                 newsig_pos = pub_key_list.index(key.public_byte)
                 sig_domain[newsig_pos] = sig
                 n_signs += 1
@@ -1715,11 +1693,7 @@ class Transaction(object):
             for sig in self.inputs[tid].signatures:
                 free_positions = [i for i, s in enumerate(sig_domain) if s == '']
                 for pos in free_positions:
-                    if verify(tx_hash, sig, pub_key_list_uncompressed[pos]):
-                        if not sig.public_key:
-                            sig.public_ket = pub_key_list[pos]
-                        if not sig.as_der_encoded():
-                            raise TransactionError("Missing DER encoded signature in input %d" % tid)
+                    if verify(tx_hash, sig, self.inputs[tid].keys[pos].public()):
                         sig_domain[pos] = sig
                         n_sigs_to_insert -= 1
                         break
