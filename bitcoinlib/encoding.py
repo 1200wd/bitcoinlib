@@ -29,7 +29,8 @@ USE_FASTECDSA = False
 try:
     from fastecdsa.encoding.der import DEREncoder
     USE_FASTECDSA = True
-except ImportError:
+except ImportError as err:
+    print(err)
     import ecdsa
 
 _logger = logging.getLogger(__name__)

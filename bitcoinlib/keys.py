@@ -43,7 +43,6 @@ from bitcoinlib.config.secp256k1 import *
 from bitcoinlib.encoding import *
 from bitcoinlib.mnemonic import Mnemonic
 
-USE_FASTECDSA = False
 if USE_FASTECDSA:
     from fastecdsa import _ecdsa
     from fastecdsa.util import RFC6979, mod_sqrt as fastecdsa_mod_sqrt
