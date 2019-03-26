@@ -1691,17 +1691,12 @@ class Transaction(object):
             # Add already known signatures on correct position
             n_sigs_to_insert = len(self.inputs[tid].signatures)
             for sig in self.inputs[tid].signatures:
-                free_positions = [i for i, s in enumerate(sig_domain) if s == '']
-                for pos in free_positions:
-                    newsig_pos = pub_key_list.index(sig.public_key.public_byte)
-                    if newsig_pos in free_positions:
-                        sig_domain[newsig_pos] = sig
-                        n_sigs_to_insert -= 1
-                        break
-                    # elif verify(tx_hash, sig, self.inputs[tid].keys[pos].public()):
-                    #     sig_domain[pos] = sig
-                    #     n_sigs_to_insert -= 1
-                    #     break
+                if not sig.public_key:
+                    break
+                newsig_pos = pub_key_list.index(sig.public_key.public_byte)
+                if sig_domain[newsig_pos] == '':
+                    sig_domain[newsig_pos] = sig
+                    n_sigs_to_insert -= 1
             if n_sigs_to_insert:
                 for sig in self.inputs[tid].signatures:
                     free_positions = [i for i, s in enumerate(sig_domain) if s == '']
