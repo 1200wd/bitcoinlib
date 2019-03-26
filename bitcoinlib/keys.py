@@ -1792,7 +1792,7 @@ class Signature(object):
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key)
 
     @staticmethod
-    def create(tx_hash, private, use_rfc6979=True):
+    def create(tx_hash, private, use_rfc6979=True, k=None):
         if isinstance(tx_hash, bytes):
             tx_hash = to_hexstring(tx_hash)
         if len(tx_hash) > 64:
@@ -1802,13 +1802,14 @@ class Signature(object):
         pub_key = private.public()
         secret = private.secret
 
-        if use_rfc6979 and USE_FASTECDSA:
-            rfc6979 = RFC6979(tx_hash, secret, secp256k1_n, hashlib.sha256)
-            k = rfc6979.gen_nonce()
-        else:
-            if not USE_FASTECDSA:
-                _logger.warning("RFC6979 only supported when fastecdsa library is used")
-            k = random.SystemRandom().randint(1, secp256k1_n)
+        if not k:
+            if use_rfc6979 and USE_FASTECDSA:
+                rfc6979 = RFC6979(tx_hash, secret, secp256k1_n, hashlib.sha256)
+                k = rfc6979.gen_nonce()
+            else:
+                if not USE_FASTECDSA:
+                    _logger.warning("RFC6979 only supported when fastecdsa library is used")
+                k = random.SystemRandom().randint(1, secp256k1_n)
 
         if USE_FASTECDSA:
             r, s = _ecdsa.sign(
@@ -1856,10 +1857,9 @@ class Signature(object):
         self.public_key = public_key
 
     def __repr__(self):
-        sig = '' if not self._signature else to_hexstring(self._signature)
         der_sig = '' if not self._der_encoded else to_hexstring(self._der_encoded)
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
-               (self.r, self.s, sig, der_sig)
+               (self.r, self.s, self.as_hex(), der_sig)
 
     @property
     def tx_hash(self):
@@ -1901,6 +1901,11 @@ class Signature(object):
             self._signature = to_bytes('%064x%064x' % (self.r, self.s))
         return self._signature
 
+    def as_hex(self):
+        if not self._signature:
+            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
+        return to_hexstring(self._signature)
+
     def verify(self, tx_hash=None, public_key=None):
         if tx_hash is not None:
             self.tx_hash = to_hexstring(tx_hash)
@@ -1923,7 +1928,7 @@ class Signature(object):
             )
         else:
             transaction_to_sign = to_bytes(self.tx_hash)
-            signature = to_bytes(self.as_bytes())
+            signature = self.as_bytes()
             if len(transaction_to_sign) != 32:
                 transaction_to_sign = double_sha256(transaction_to_sign)
             ver_key = ecdsa.VerifyingKey.from_string(self.public_key.public_uncompressed_byte[1:],
@@ -1943,8 +1948,8 @@ class Signature(object):
             return True
 
 
-def sign(tx_hash, private, use_rfc6979=True):
-    return Signature.create(tx_hash, private, use_rfc6979)
+def sign(tx_hash, private, use_rfc6979=True, k=None):
+    return Signature.create(tx_hash, private, use_rfc6979, k)
 
 
 def verify(tx_hash, signature, public_key=None):

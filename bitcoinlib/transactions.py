@@ -966,7 +966,7 @@ class Input(object):
             'script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
             'sequence': self.sequence,
-            'signatures': [to_hexstring(s.as_bytes()) for s in self.signatures],
+            'signatures': [s.as_hex() for s in self.signatures],
             'sigs_required': self.sigs_required,
             'locktime_cltv': self.locktime_cltv,
             'locktime_csv': self.locktime_csv, 'public_hash': to_hexstring(self.public_hash),

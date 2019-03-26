@@ -654,5 +654,50 @@ class TestKeysDash(unittest.TestCase):
                          'ozuqu8c2n3d7sjbmyPdFC', str(k.subkey_for_path('3H/1').wif(is_private=True)))
 
 
+class TestKeysSignatures(unittest.TestCase):
+
+    def test_signatures(self):
+        sig_tests = [
+            # tx_hash, key_hex, k, signature, DER encoded sign.
+            ('0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c',
+             'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b', 1002,
+             '70b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df5da0917d7bd645c2a09671894375e3d353313'
+             '8e8de09bc89cb251cbfae4cc523',
+             '3044022070b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df02205da0917d7bd645c2a09671894'
+             '375e3d3533138e8de09bc89cb251cbfae4cc523'),
+            (b'\r\x12\xfd\xc4\xaa\xc9\xea\xaa\xb9s\t\x99\xe0\xce\x84\xc3\xbd[\xb3\x8d\xfd\x1fL\x90\xc6\x13\xee\x17y'
+             b'\x87B\x9c',
+             'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b', 1002,
+             '70b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df5da0917d7bd645c2a09671894375e3d353313'
+             '8e8de09bc89cb251cbfae4cc523',
+             '3044022070b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df02205da0917d7bd645c2a09671894'
+             '375e3d3533138e8de09bc89cb251cbfae4cc523'),
+            ('01000000978ee762c58d54f55f604c666218620cc3e665180f45098bb329d2a3d873cb733bb13029ce7b1f559ef5e747fcac4'
+             '39f1455a2ec7c5f09b72290795e70665044babdf37f9e78ce9886cf8814d6c2fa590ade790dc7177da742867b3c5b35a81d00'
+             '0000001976a91478fa2e39b03d5e98027665c3a69371c01ee031ee88aca086010000000000ffffffff98c930a52608751d9dd'
+             '31d63c3ce09deb473e8de5c0a6ed2e3273dc6747d7bc60000000001000000',
+             'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b', 1002,
+             '70b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df5da0917d7bd645c2a09671894375e3d353313'
+             '8e8de09bc89cb251cbfae4cc523',
+             '3044022070b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df02205da0917d7bd645c2a09671894'
+             '375e3d3533138e8de09bc89cb251cbfae4cc523'),
+            ('e63be0b7ef061a60dd03fab16c19c496a0f4905639413d41a8fd3a705f2e486b',
+             'fd4b7465dadd8e8fe2dd8b8fa505c619e2959d5a6438daf7716a47e4617524a2', 1234567890,
+             '2b698a0f0a4041b77e63488ad48c23e8e8838dd1fb7520408b121697b782ef226875b0fec3497d7cd812912003d5a44ed2965'
+             '0d339299081debf75c29dc4dbc6',
+             '304402202b698a0f0a4041b77e63488ad48c23e8e8838dd1fb7520408b121697b782ef2202206875b0fec3497d7cd81291200'
+             '3d5a44ed29650d339299081debf75c29dc4dbc6')
+        ]
+        sig_method1 = sign(sig_tests[0][0], sig_tests[0][1], k=sig_tests[0][2])
+        self.assertEqual(sig_method1.as_hex(), sig_tests[0][3])
+        self.assertEqual(to_hexstring(sig_method1.as_der_encoded()), sig_tests[0][4])
+        count = 0
+        for case in sig_tests:
+            sig = Signature.create(case[0], case[1], k=case[2])
+            self.assertEqual(sig.as_hex(), case[3], msg="Error in #%d: %s != %s" % (count, sig.as_hex(), case[3]))
+            self.assertEqual(to_hexstring(sig.as_der_encoded()), case[4])
+            count += 1
+
+
 if __name__ == '__main__':
     unittest.main()
