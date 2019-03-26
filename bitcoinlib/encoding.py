@@ -21,12 +21,16 @@
 import math
 import numbers
 from copy import deepcopy
-#import ecdsa
 import hashlib
 import binascii
 import unicodedata
 from bitcoinlib.main import *
-from fastecdsa.encoding.der import DEREncoder
+USE_FASTECDSA = False
+try:
+    from fastecdsa.encoding.der import DEREncoder
+    USE_FASTECDSA = True
+except ImportError:
+    import ecdsa
 
 _logger = logging.getLogger(__name__)
 
@@ -316,7 +320,7 @@ def int_to_varbyteint(inp):
 
 def convert_der_sig(signature, as_hex=True):
     """
-    Convert DER encoded signature to signature
+    Convert DER encoded signature to signature string
 
     :param signature: DER signature
     :type signature: bytes
@@ -326,14 +330,16 @@ def convert_der_sig(signature, as_hex=True):
     :return bytes, str: Signature
     """
 
-    r, s = DEREncoder.decode_signature(bytes(signature))
-    # if not signature:
-    #     return ""
-    # sg, junk = ecdsa.der.remove_sequence(signature)
-    # if junk != b'':
-    #     raise EncodingError("Junk found in encoding sequence %s" % junk)
-    # x, sg = ecdsa.der.remove_integer(sg)
-    # y, sg = ecdsa.der.remove_integer(sg)
+    if not signature:
+        return ""
+    if USE_FASTECDSA:
+        r, s = DEREncoder.decode_signature(bytes(signature))
+    else:
+        sg, junk = ecdsa.der.remove_sequence(signature)
+        if junk != b'':
+            raise EncodingError("Junk found in encoding sequence %s" % junk)
+        r, sg = ecdsa.der.remove_integer(sg)
+        s, sg = ecdsa.der.remove_integer(sg)
     sig = '%064x%064x' % (r, s)
     if as_hex:
         return sig
@@ -342,7 +348,20 @@ def convert_der_sig(signature, as_hex=True):
 
 
 def der_encode_sig(r, s):
-    return DEREncoder.encode_signature(r, s)
+    """
+    Create DER encoded signature string with signature r and s value
+
+    :param r: r value of signature
+    :type r: int
+    :param s: s value of signature
+    :type s: int
+
+    :return bytes:
+    """
+    if USE_FASTECDSA:
+        return DEREncoder.encode_signature(r, s)
+    else:
+        ecdsa.der.sigencode_der(r, s)
 
 
 def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):

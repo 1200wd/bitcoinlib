@@ -27,6 +27,7 @@ from copy import deepcopy
 import collections
 import json
 
+scrypt_error = None
 try:
     import scrypt
     USING_MODULE_SCRYPT = True
@@ -43,14 +44,13 @@ from bitcoinlib.encoding import *
 from bitcoinlib.mnemonic import Mnemonic
 
 USE_FASTECDSA = False
-try:
+if USE_FASTECDSA:
     from fastecdsa import _ecdsa
     from fastecdsa.util import RFC6979, mod_sqrt as fastecdsa_mod_sqrt
     from fastecdsa.curve import secp256k1 as fastecdsa_secp256k1
     from fastecdsa import keys as fastecdsa_keys
     from fastecdsa import point as fastecdsa_point
-    USE_FASTECDSA = True
-except ImportError as ecdsa_error:
+else:
     import ecdsa
     secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
@@ -62,6 +62,9 @@ if not USING_MODULE_SCRYPT:
     _logger.warning("Error when trying to import scrypt module", scrypt_error)
     _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
                     "protected keys.")
+if not USE_FASTECDSA:
+    _logger.warning("Error when trying to import fastecdsa module")
+    _logger.warning("Using slower 'ecdsa' module instead of 'fastecdsa'")
 
 
 class BKeyError(Exception):
