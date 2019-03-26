@@ -1767,7 +1767,7 @@ class Signature(object):
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key)
 
     @staticmethod
-    def create(tx_hash, private, use_rfc6979=False):
+    def create(tx_hash, private, use_rfc6979=True):
         if isinstance(tx_hash, bytes):
             tx_hash = to_hexstring(tx_hash)
         if not isinstance(private, (Key, HDKey)):
