@@ -686,7 +686,12 @@ class TestKeysSignatures(unittest.TestCase):
              '2b698a0f0a4041b77e63488ad48c23e8e8838dd1fb7520408b121697b782ef226875b0fec3497d7cd812912003d5a44ed2965'
              '0d339299081debf75c29dc4dbc6',
              '304402202b698a0f0a4041b77e63488ad48c23e8e8838dd1fb7520408b121697b782ef2202206875b0fec3497d7cd81291200'
-             '3d5a44ed29650d339299081debf75c29dc4dbc6')
+             '3d5a44ed29650d339299081debf75c29dc4dbc6'),
+            ('',
+             HDKey('xprv9s21ZrQH143K2YEun3sBzwSaFLn6bnBa6nkodJrDfZSty6L7Ba9JR5tMdhc7viB9dPu6LpQ9UqrsDsrJ8GNLQHf4SKA'
+                   'zGrXL6Pp5kjojqzi'), None,
+             '',
+             '')
         ]
         sig_method1 = sign(sig_tests[0][0], sig_tests[0][1], k=sig_tests[0][2])
         self.assertEqual(sig_method1.as_hex(), sig_tests[0][3])
@@ -697,6 +702,15 @@ class TestKeysSignatures(unittest.TestCase):
             self.assertEqual(sig.as_hex(), case[3], msg="Error in #%d: %s != %s" % (count, sig.as_hex(), case[3]))
             self.assertEqual(to_hexstring(sig.as_der_encoded()), case[4])
             count += 1
+
+    def test_rfc6979(self):
+        # source: https://bitcointalk.org/index.php?topic=285142.40
+        msg = b'Satoshi Nakamoto'
+        x = 0x1
+        rfc6979 = RFC6979(msg, x, secp256k1_n, hashlib.sha256)
+        k = rfc6979.gen_nonce()
+        expected = 0x8F8A276C19F4149656B280621E358CCE24F5F52542772691EE69063B74F15D15
+        self.assertEqual(k, expected)
 
 
 if __name__ == '__main__':
