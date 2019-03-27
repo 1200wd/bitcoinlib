@@ -34,7 +34,7 @@ class TestMnemonics(unittest.TestCase):
         mnemo = Mnemonic(language)
         for v in vectors:
             if v[0]:
-                phrase = mnemo.to_mnemonic(v[0])
+                phrase = mnemo.to_mnemonic(v[0], check_on_curve=False)
             else:
                 phrase = v[1]
             seed = change_base(mnemo.to_seed(phrase, v[4]), 256, 16)

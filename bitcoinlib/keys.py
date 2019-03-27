@@ -1154,6 +1154,9 @@ class HDKey(Key):
         I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
+        key_int = change_base(key, 256, 10)
+        if key_int >= secp256k1_n:
+            raise BKeyError("Key int value cannot be greater than secp256k1_n")
         return HDKey(key=key, chain=chain, network=network, key_type=key_type, compressed=compressed,
                      encoding=encoding, witness_type=witness_type, multisig=multisig)
 
