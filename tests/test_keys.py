@@ -696,13 +696,14 @@ class TestKeysSignatures(unittest.TestCase):
              '56fda036f06d293d02fc9b0f9d49e09d8149e9d')
         ]
         sig_method1 = sign(sig_tests[0][0], sig_tests[0][1], k=sig_tests[0][2])
-        self.assertEqual(sig_method1.as_hex(), sig_tests[0][3])
-        self.assertEqual(to_hexstring(sig_method1.as_der_encoded()), sig_tests[0][4])
+        self.assertEqual(sig_method1.as_hex, sig_tests[0][3])
+        self.assertEqual(to_hexstring(sig_method1.as_der_encoded), sig_tests[0][4])
         count = 0
         for case in sig_tests:
             sig = Signature.create(case[0], case[1], k=case[2])
-            self.assertEqual(sig.as_hex(), case[3], msg="Error in #%d: %s != %s" % (count, sig.as_hex(), case[3]))
-            self.assertEqual(to_hexstring(sig.as_der_encoded()), case[4])
+            self.assertEqual(sig.as_hex, case[3], msg="Error in #%d: %s != %s" % (count, sig.as_hex, case[3]))
+            self.assertEqual(to_hexstring(sig.as_der_encoded), case[4])
+            self.assertTrue(sig.verify())
             count += 1
 
     def test_rfc6979(self):
@@ -778,7 +779,7 @@ class TestKeysSignatures(unittest.TestCase):
                 self.assertEqual(k, expected)
             msg_hash = hashlib.sha256(to_bytes(vector[1])).digest()
             sig = sign(msg_hash, x, k=k)
-            self.assertEqual(sig.as_hex(), vector[3])
+            self.assertEqual(sig.as_hex, vector[3])
 
 
 if __name__ == '__main__':

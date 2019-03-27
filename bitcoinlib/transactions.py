@@ -787,7 +787,7 @@ class Input(object):
             #     if sig['sig_der'] not in [x['sig_der'] for x in self.signatures]:
             #         self.signatures.append(sig)
             if isinstance(sig, Signature):
-                if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
+                if sig.as_der_encoded not in [x.as_der_encoded for x in self.signatures]:
                     self.signatures.append(sig)
             else:
                 self.signatures.append(Signature.from_str(sig))
@@ -862,7 +862,7 @@ class Input(object):
                                    script_type=self.script_type, witness_type=self.witness_type).address
             self.witnesses = []
             if self.signatures and self.keys:
-                self.witnesses = [self.signatures[0].as_der_encoded() + struct.pack('B', hash_type), self.keys[0].public_byte]
+                self.witnesses = [self.signatures[0].as_der_encoded + struct.pack('B', hash_type), self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
@@ -891,7 +891,7 @@ class Input(object):
                 if not isinstance(n_tag, int):
                     n_tag = struct.unpack('B', n_tag)[0]
                 self.sigs_required = n_tag - 80
-                signatures = [s.as_der_encoded() for s in self.signatures[:self.sigs_required]]
+                signatures = [s.as_der_encoded for s in self.signatures[:self.sigs_required]]
                 if b'' in signatures:
                     raise TransactionError("Empty signature found in signature list when signing. "
                                            "Is DER encoded version of signature defined?")
@@ -924,7 +924,7 @@ class Input(object):
                 self.script_code = self.keys[0].public_byte + b'\xac'
                 self.unlocking_script_unsigned = self.script_code
             if self.signatures:
-                self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + struct.pack('B', hash_type))
+                self.unlocking_script = varstr(self.signatures[0].as_der_encoded + struct.pack('B', hash_type))
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:
