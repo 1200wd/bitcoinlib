@@ -25,15 +25,17 @@ import hashlib
 import binascii
 import unicodedata
 from bitcoinlib.main import *
-USE_FASTECDSA = False
-try:
-    from fastecdsa.encoding.der import DEREncoder
-    USE_FASTECDSA = True
-except ImportError as err:
-    print(err)
-    import ecdsa
-
 _logger = logging.getLogger(__name__)
+
+USE_FASTECDSA = None
+try:
+    if USE_FASTECDSA != False:
+        from fastecdsa.encoding.der import DEREncoder
+        USE_FASTECDSA = True
+except ImportError as err:
+    _logger.warning("Could not include fastecdsa library, using slower ecdsa instead. Error: %s " % err)
+    USE_FASTECDSA = False
+    import ecdsa
 
 
 class EncodingError(Exception):

@@ -687,11 +687,13 @@ class TestKeysSignatures(unittest.TestCase):
              '0d339299081debf75c29dc4dbc6',
              '304402202b698a0f0a4041b77e63488ad48c23e8e8838dd1fb7520408b121697b782ef2202206875b0fec3497d7cd81291200'
              '3d5a44ed29650d339299081debf75c29dc4dbc6'),
-            ('',
+            ('c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70',
              HDKey('xprv9s21ZrQH143K2YEun3sBzwSaFLn6bnBa6nkodJrDfZSty6L7Ba9JR5tMdhc7viB9dPu6LpQ9UqrsDsrJ8GNLQHf4SKA'
-                   'zGrXL6Pp5kjojqzi'), None,
-             '',
-             '')
+                   'zGrXL6Pp5kjojqzi'), 92517795607469467391485978923218300650097355078673652603133403767271895603938,
+             '40aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea2226efba29871477ab925e75356fda036f06d'
+             '293d02fc9b0f9d49e09d8149e9d',
+             '3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e753'
+             '56fda036f06d293d02fc9b0f9d49e09d8149e9d')
         ]
         sig_method1 = sign(sig_tests[0][0], sig_tests[0][1], k=sig_tests[0][2])
         self.assertEqual(sig_method1.as_hex(), sig_tests[0][3])
@@ -704,13 +706,79 @@ class TestKeysSignatures(unittest.TestCase):
             count += 1
 
     def test_rfc6979(self):
+        if not USE_FASTECDSA:
+            # This test are only usefull when fastecdsa library is used
+            return True
+
         # source: https://bitcointalk.org/index.php?topic=285142.40
-        msg = b'Satoshi Nakamoto'
-        x = 0x1
-        rfc6979 = RFC6979(msg, x, secp256k1_n, hashlib.sha256)
-        k = rfc6979.gen_nonce()
-        expected = 0x8F8A276C19F4149656B280621E358CCE24F5F52542772691EE69063B74F15D15
-        self.assertEqual(k, expected)
+        # Test Vectors for RFC 6979 ECDSA, secp256k1, SHA-256
+        # (private key, message, expected k, expected signature)
+        test_vectors = [
+            (0x1, "Satoshi Nakamoto", 0x8F8A276C19F4149656B280621E358CCE24F5F52542772691EE69063B74F15D15,
+             "934b1ea10a4b3c1757e2b0c017d0b6143ce3c9a7e6a4a49860d7a6ab210ee3d82442ce9d2b916064108014783e923ec36b4974"
+             "3e2ffa1c4496f01a512aafd9e5"),
+            (0x1, "All those moments will be lost in time, like tears in rain. Time to die...",
+             0x38AA22D72376B4DBC472E06C3BA403EE0A394DA63FC58D88686C611ABA98D6B3,
+             "8600dbd41e348fe5c9465ab92d23e3db8b98b873beecd930736488696438cb6b547fe64427496db33bf66019dacbf0039c04199"
+             "abb0122918601db38a72cfc21"),
+            (0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364140, "Satoshi Nakamoto",
+             0x33A19B60E25FB6F4435AF53A3D42D493644827367E6453928554F43E49AA6F90,
+             "fd567d121db66e382991534ada77a6bd3106f0a1098c231e47993447cd6af2d06b39cd0eb1bc8603e159ef5c20a5c8ad685a45b"
+             "06ce9bebed3f153d10d93bed5"),
+            (0xf8b8af8ce3c7cca5e300d33939540c10d45ce001b8f252bfbc57ba0342904181, "Alan Turing",
+             0x525A82B70E67874398067543FD84C83D30C175FDC45FDEEE082FE13B1D7CFDF1,
+             "7063ae83e7f62bbb171798131b4a0564b956930092b33b07b395615d9ec7e15c58dfcc1e00a35e1572f366ffe34ba0fc47db1e7"
+             "189759b9fb233c5b05ab388ea"),
+            (0xe91671c46231f833a6406ccbea0e3e392c76c167bac1cb013f6f1013980455c2,
+             "There is a computer disease that anybody who works with computers knows about. It's a very serious "
+             "disease and it interferes completely with the work. The trouble with computers is that you 'play' with "
+             "them!",
+             0x1F4B84C23A86A221D233F2521BE018D9318639D5B8BBD6374A8A59232D16AD3D,
+             "b552edd27580141f3b2a5463048cb7cd3e047b97c9f98076c32dbdf85a68718b279fa72dd19bfae05577e06c7c0c1900c371fc"
+             "d5893f7e1d56a37d30174671f6"),
+            (0x69ec59eaa1f4f2e36b639716b7c30ca86d9a5375c7b38d8918bd9c0ebc80ba64,
+             "Computer science is no more about computers than astronomy is about telescopes.", None,
+             "7186363571d65e084e7f02b0b77c3ec44fb1b257dee26274c38c928986fea45d0de0b38e06807e46bda1f1e293f4f6323e854c"
+             "86d58abdd00c46c16441085df6"),
+            (0x0000000000000000000000000000000000000000000000000000000000000001,
+             "Everything should be made as simple as possible, but not simpler.", None,
+             "33a69cd2065432a30f3d1ce4eb0d59b8ab58c74f27c41a7fdb5696ad4e6108c96f807982866f785d3f6418d24163ddae117b7d"
+             "b4d5fdf0071de069fa54342262"),
+            (0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140,
+             "Equations are more important to me, because politics is for the present, but an equation is something "
+             "for eternity.", None,
+             "54c4a33c6423d689378f160a7ff8b61330444abb58fb470f96ea16d99d4a2fed07082304410efa6b2943111b6a4e0aaa7b7db5"
+             "5a07e9861d1fb3cb1f421044a5"),
+            (0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140,
+             "Not only is the Universe stranger than we think, it is stranger than we can think.", None,
+             "ff466a9f1b7b273e2f4c3ffe032eb2e814121ed18ef84665d0f515360dab3dd06fc95f5132e5ecfdc8e5e6e616cc77151455d"
+             "46ed48f5589b7db7771a332b283"),
+            (0x0000000000000000000000000000000000000000000000000000000000000001,
+             "How wonderful that we have met with a paradox. Now we have some hope of making progress.", None,
+             "c0dafec8251f1d5010289d210232220b03202cba34ec11fec58b3e93a85b91d375afdc06b7d6322a590955bf264e7aaa15584"
+             "7f614d80078a90292fe205064d3"),
+            (0x00000000000000000000000000007246174ab1e92e9149c6e446fe194d072637,
+             "...if you aren't, at any given time, scandalized by code you wrote five or even three years ago, you're "
+             "not learning anywhere near enough", None,
+             "fbfe5076a15860ba8ed00e75e9bd22e05d230f02a936b653eb55b61c99dda4870e68880ebb0050fe4312b1b1eb0899e1b82da89"
+             "baa5b895f612619edf34cbd37"),
+            (0x000000000000000000000000000000000000000000056916d0f9b31dc9b637f3,
+             "The question of whether computers can think is like the question of whether submarines can swim.", None,
+             "cde1302d83f8dd835d89aef803c74a119f561fbaef3eb9129e45f30de86abbf906ce643f5049ee1f27890467b77a6a8e11ec46"
+             "61cc38cd8badf90115fbd03cef")
+        ]
+
+        for vector in test_vectors:
+            msg = to_bytes(vector[1])
+            x = int(vector[0])
+            rfc6979 = RFC6979(msg, x, secp256k1_n, hashlib.sha256)
+            k = rfc6979.gen_nonce()
+            expected = vector[2]
+            if expected is not None:
+                self.assertEqual(k, expected)
+            msg_hash = hashlib.sha256(to_bytes(vector[1])).digest()
+            sig = sign(msg_hash, x, k=k)
+            self.assertEqual(sig.as_hex(), vector[3])
 
 
 if __name__ == '__main__':

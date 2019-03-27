@@ -61,9 +61,6 @@ if not USING_MODULE_SCRYPT:
     _logger.warning("Error when trying to import scrypt module", scrypt_error)
     _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
                     "protected keys.")
-if not USE_FASTECDSA:
-    _logger.warning("Error when trying to import fastecdsa module")
-    _logger.warning("Using slower 'ecdsa' module instead of 'fastecdsa'")
 
 
 class BKeyError(Exception):
@@ -1825,7 +1822,7 @@ class Signature(object):
             )
             if int(s) > secp256k1_n / 2:
                 s = secp256k1_n - int(s)
-            return Signature(r, s, tx_hash, secret, public_key=pub_key)
+            return Signature(r, s, tx_hash, secret, public_key=pub_key, k=k)
         else:
             sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
             tx_hash_bytes = to_bytes(tx_hash)
@@ -1837,9 +1834,9 @@ class Signature(object):
                 if s < ecdsa.SECP256k1.order / 2:
                     break
                 k += 1
-            return Signature(r, s, tx_hash, secret, public_key=pub_key, der_signature=sig_der, signature=signature)
+            return Signature(r, s, tx_hash, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
 
-    def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None):
+    def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None, k=None):
         self.r = int(r)
         self.s = int(s)
         self.x = None
@@ -1855,6 +1852,7 @@ class Signature(object):
         self._signature = to_bytes(signature)
         self._public_key = None
         self.public_key = public_key
+        self.k = k
 
     def __repr__(self):
         der_sig = '' if not self._der_encoded else to_hexstring(self._der_encoded)
