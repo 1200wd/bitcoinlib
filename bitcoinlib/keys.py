@@ -655,7 +655,7 @@ class Key(object):
         self.compressed = compressed
         self._hash160 = None
         if not import_key:
-            import_key = random.SystemRandom().randint(0, secp256k1_n)
+            import_key = random.SystemRandom().randint(1, secp256k1_n - 1)
             self.key_format = 'decimal'
             networks_extracted = network
             assert is_private is True or is_private is None
@@ -1234,8 +1234,9 @@ class HDKey(Key):
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
-                seedbits = random.SystemRandom().getrandbits(512)
-                seed = change_base(str(seedbits), 10, 256, 64)
+                # seedbits = random.SystemRandom().randint(512)
+                # seed = change_base(str(seedbits), 10, 256, 64)
+                seed = os.urandom(64)
                 key, chain = self._key_derivation(seed)
             elif isinstance(import_key, (bytearray, bytes if sys.version > '3' else bytearray)) \
                     and len(import_key) == 64:
@@ -1361,6 +1362,9 @@ class HDKey(Key):
         I = hmac.new(chain, seed, hashlib.sha512).digest()
         key = I[:32]
         chain = I[32:]
+        key_int = change_base(key, 256, 10)
+        if key_int >= secp256k1_n:
+            raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
         return key, chain
 
     def fingerprint(self):
@@ -1695,7 +1699,7 @@ class HDKey(Key):
         key, chain = self._key_derivation(data)
 
         key = change_base(key, 256, 10)
-        if key > secp256k1_n:
+        if key >= secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
         newkey = (key + self.secret) % secp256k1_n
         if newkey == 0:
@@ -1724,7 +1728,7 @@ class HDKey(Key):
         data = self.public_byte + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
         key = change_base(key, 256, 10)
-        if key > secp256k1_n:
+        if key >= secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
         x, y = self.public_point()
@@ -1839,7 +1843,7 @@ class Signature(object):
             else:
                 if not USE_FASTECDSA:
                     _logger.warning("RFC6979 only supported when fastecdsa library is used")
-                k = random.SystemRandom().randint(1, secp256k1_n)
+                k = random.SystemRandom().randint(1, secp256k1_n - 1)
 
         if USE_FASTECDSA:
             r, s = _ecdsa.sign(
@@ -1893,9 +1897,9 @@ class Signature(object):
         self.s = int(s)
         self.x = None
         self.y = None
-        if 1 > self.r > secp256k1_n:
+        if 1 > self.r >= secp256k1_n:
             raise BKeyError('Invalid Signature: r is not a positive integer smaller than the curve order')
-        elif 1 > self.s > secp256k1_n:
+        elif 1 > self.s >= secp256k1_n:
             raise BKeyError('Invalid Signature: s is not a positive integer smaller than the curve order')
         self._tx_hash = None
         self.tx_hash = tx_hash
