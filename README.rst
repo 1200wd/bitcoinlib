@@ -254,18 +254,19 @@ Package dependencies
 
 Required Python Packages, are automatically installed upon installing bitcoinlib:
 
-* ecdsa
+* fastecdsa
 * pyaes
 * scrypt
 * sqlalchemy
 * requests
 * enum34 (for older python installations)
+* six
 
 
 Other requirements Linux
 ------------------------
 
-``sudo apt install python-dev python3-dev``
+``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
 
 To install OpenSSL development package on Debian, Ubuntu or their derivatives
 
@@ -273,7 +274,7 @@ To install OpenSSL development package on Debian, Ubuntu or their derivatives
 
 To install OpenSSL development package on Fedora, CentOS or RHEL
 
-``sudo yum install openssl-devel``
+``sudo yum install gcc openssl-devel``
 
 
 Other requirements Windows
