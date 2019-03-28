@@ -20,6 +20,7 @@
 
 import hashlib
 from bitcoinlib.encoding import change_base, normalize_string, to_bytes
+from bitcoinlib.config.secp256k1 import secp256k1_n
 from bitcoinlib.main import *
 
 
@@ -118,7 +119,7 @@ class Mnemonic(object):
         data = os.urandom(strength // 8)
         return self.to_mnemonic(data, add_checksum=add_checksum)
 
-    def to_mnemonic(self, data, add_checksum=True):
+    def to_mnemonic(self, data, add_checksum=True, check_on_curve=True):
         """
         Convert key data entropy to Mnemonic sentence
         
@@ -126,15 +127,20 @@ class Mnemonic(object):
         :type data: bytes, hexstring
         :param add_checksum: Included a checksum? Default is True
         :type add_checksum: bool
+        :param check_on_curve: Check if data integer value is on secp256k1 curve. Should be enabled when not testing and working with crypto
+        :type check_on_curve: bool
         
         :return str: Mnemonic passphrase consisting of a space seperated list of words
         """
         data = to_bytes(data)
+        data_int = change_base(data, 256, 10)
+        if check_on_curve and not 0 < data_int < secp256k1_n:
+            raise ValueError("Integer value of data should be in secp256k1 domain between 1 and secp256k1_n-1")
         if add_checksum:
-            binresult = change_base(data, 256, 2, len(data) * 8) + self.checksum(data)
+            binresult = change_base(data_int, 10, 2, len(data) * 8) + self.checksum(data)
             wi = change_base(binresult, 2, 2048)
         else:
-            wi = change_base(data, 256, 2048)
+            wi = change_base(data_int, 10, 2048)
         return normalize_string(' '.join([self._wordlist[i] for i in wi]))
 
     def to_entropy(self, words, includes_checksum=True):
