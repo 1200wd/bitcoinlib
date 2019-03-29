@@ -55,8 +55,6 @@ To install OpenSSL development package on Fedora, CentOS or RHEL
 Other requirements Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Tested on Windows 10 with Python 3.6 and pip installed.
-
 This library required a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
 See https://wiki.python.org/moin/WindowsCompilers
 

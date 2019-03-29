@@ -6,6 +6,7 @@
 #
 #    © 2017 November - 1200 Web Development <http://1200wd.com/>
 #
+# TODO: Outdated, need to update example
 
 from bitcoinlib.wallets import HDWallet
 try:

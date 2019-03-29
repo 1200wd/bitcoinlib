@@ -2031,7 +2031,7 @@ class Signature(object):
             ver_key = ecdsa.VerifyingKey.from_string(self.public_key.public_uncompressed_byte[1:],
                                                      curve=ecdsa.SECP256k1)
             try:
-                if signature.startswith(b'\x30'):
+                if len(signature) > 64 and signature.startswith(b'\x30'):
                     try:
                         signature = convert_der_sig(signature[:-1], as_hex=False)
                     except Exception:
