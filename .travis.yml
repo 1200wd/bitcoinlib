@@ -22,6 +22,7 @@ matrix:
         - python -m pip install --upgrade pip wheel
 
 install:
+  - pip install scrypt
   - python setup.py install
 
 script: python setup.py test
