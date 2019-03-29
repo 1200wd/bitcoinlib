@@ -6,6 +6,7 @@
 #
 #    © 2017 November - 1200 Web Development <http://1200wd.com/>
 #
+# TODO: Outdated, need to update example
 
 from pprint import pprint
 from bitcoinlib.wallets import wallet_exists, HDWallet, wallet_delete_if_exists
@@ -57,7 +58,7 @@ if not wallet_exists(WALLET_NAME):
         if not cosigner['key']:
             raise ValueError("Please create private keys with mnemonic_key_create.py and add to COSIGNERS definitions")
         hdkey = HDKey(cosigner['key'], key_type=cosigner['key_type'])
-        if hdkey.isprivate:
+        if hdkey.is_private:
             cosigners_private.append(cosigner['name'])
         cosigner['hdkey'] = hdkey
         key_list.append(hdkey)

@@ -248,6 +248,15 @@ Install with pip
 
 ``pip install bitcoinlib``
 
+These packages will be installed
+* fastecdsa (or ecdsa on Windows)
+* pyaes
+* scrypt
+* sqlalchemy
+* requests
+* enum34 (for older python installations)
+* six
+
 
 Install development environment
 -------------------------------
@@ -271,7 +280,7 @@ Then clone the repository and install dependencies:
 Other requirements Linux
 ------------------------
 
-``sudo apt install python-dev python3-dev``
+``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
 
 To install OpenSSL development package on Debian, Ubuntu or their derivatives
 
@@ -279,13 +288,16 @@ To install OpenSSL development package on Debian, Ubuntu or their derivatives
 
 To install OpenSSL development package on Fedora, CentOS or RHEL
 
-``sudo yum install openssl-devel``
+``sudo yum install gcc openssl-devel``
 
 
 Other requirements Windows
 --------------------------
 
-Tested on Windows 10 with Python 3.6 and pip installed. No special requirements needed.
+This library required a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
+See https://wiki.python.org/moin/WindowsCompilers
+
+The fastecdsa library is not working at this moment on windows, so the slower ecdsa library is installed.
 
 
 Troubleshooting

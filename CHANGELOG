@@ -1,3 +1,12 @@
+RELEASE 0.4.6 - Use fastecdsa library
+=====================================
+* Use fastecda library instead of ecdsa
+* Still support ecdsa library as fallback and for Windows
+* Use RFC6979 deterministic signatures (from fastecdsa)
+* Add support and Travis CI tests for Windows OS
+* Add new Signature class to manage and create signatures
+* Fix some private key generation issues and add extra tests
+
 RELEASE 0.4.5 - Rewrite Wallet, Key and Transaction Classes
 ===========================================================
 * Add support for accounts in Segwit wallets
@@ -36,7 +45,6 @@ RELEASE 0.4.2 - Segwit update
 * Allow to import ypub/yprv/zpub/zprv keys
 * Fixed fee and transaction size estimation issues
 * Fixed litecoind issues thanks to @slush0
-
 
 RELEASE 0.4.0 - Segwit release
 ==============================

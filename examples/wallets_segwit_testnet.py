@@ -64,6 +64,10 @@ if not w1.utxos():
     print("No UTXO'S found, please make a test-bitcoin deposit to %s. Minimum amount needed is %d sathosi" %
           (w1_key.address, (4 * (tx_fee + tx_amount))))
 else:
+    print("Open balance: %s" % w1.balance())
+    if w1.balance() < ((tx_fee+tx_amount)*4):
+        print("Balance to low, please deposit at least %s to %s" %
+              (((tx_fee+tx_amount)*4)-w1.balance(), w1_key.address))
     print("Sending transaction from wallet #1 to wallet #2:")
     t = w1.send_to(w2_key.address, 4 * tx_amount, fee=tx_fee)
     t.info()

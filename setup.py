@@ -35,10 +35,12 @@ kwargs = {}
 
 install_requires = [
       'requests>=2.20.0',
-      'ecdsa==0.13',
+      'fastecdsa>=1.7.1;platform_system!="Windows"',
+      'ecdsa>=0.13;platform_system=="Windows"',
       'pyaes==1.6.1',
       'scrypt>=0.8.13',
-      'SQLAlchemy>=1.2.12'
+      'SQLAlchemy>=1.2.12',
+      'six>=1.10'
 ]
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
@@ -55,6 +57,9 @@ setup(
             'Intended Audience :: Developers',
             'Intended Audience :: Financial and Insurance Industry',
             'Intended Audience :: Information Technology',
+            'Operating System :: OS Independent',
+            'Operating System :: Microsoft :: Windows',
+            'Operating System :: POSIX',
             'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3.4',
             'Programming Language :: Python :: 3.5',
@@ -74,7 +79,7 @@ setup(
       },
       test_suite='tests',
       include_package_data=True,
-      keywords='bitcoin library cryptocurrency tools wallet crypto keys',
+      keywords='bitcoin library cryptocurrency wallet crypto keys segwit litecoin dash',
       zip_safe=False,
       **kwargs
 )

@@ -13,10 +13,13 @@ matrix:
     - python: 3.7.1
       dist: xenial
       sudo: true
-
-before_script:
-  - sudo apt-get install libssl-dev
-  - sudo apt-get install python-dev python3-dev
+    - os: windows
+      language: sh
+      python: "3.7"
+      before_install:
+        - choco install python3
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+        - python -m pip install --upgrade pip wheel
 
 install:
   - pip install scrypt
