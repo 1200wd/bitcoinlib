@@ -1363,8 +1363,6 @@ class TestWalletDash(unittest.TestCase):
         self.assertEqual(newkey.path, "M/0/0")
 
     def test_wallet_multisig_dash(self):
-        if os.path.isfile(DATABASEFILE_UNITTESTS):
-            os.remove(DATABASEFILE_UNITTESTS)
         network = 'dash'
         pk1 = HDKey(network=network)
         pk2 = HDKey(network=network)
