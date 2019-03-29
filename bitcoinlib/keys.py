@@ -43,6 +43,7 @@ from bitcoinlib.config.secp256k1 import *
 from bitcoinlib.encoding import *
 from bitcoinlib.mnemonic import Mnemonic
 
+rfc6979_warning_given = False
 if USE_FASTECDSA:
     from fastecdsa import _ecdsa
     from fastecdsa.util import RFC6979, mod_sqrt as fastecdsa_mod_sqrt
@@ -53,6 +54,7 @@ else:
     import ecdsa
     secp256k1_curve = ecdsa.ellipticcurve.CurveFp(secp256k1_p, secp256k1_a, secp256k1_b)
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
+
 
 
 _logger = logging.getLogger(__name__)
@@ -1844,8 +1846,10 @@ class Signature(object):
                 rfc6979 = RFC6979(tx_hash, secret, secp256k1_n, hashlib.sha256)
                 k = rfc6979.gen_nonce()
             else:
-                if not USE_FASTECDSA:
+                global rfc6979_warning_given
+                if not USE_FASTECDSA and not rfc6979_warning_given:
                     _logger.warning("RFC6979 only supported when fastecdsa library is used")
+                    rfc6979_warning_given = True
                 k = random.SystemRandom().randint(1, secp256k1_n - 1)
 
         if USE_FASTECDSA:
