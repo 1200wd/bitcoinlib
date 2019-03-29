@@ -46,7 +46,7 @@ kwargs['install_requires'] = install_requires
 
 setup(
       name='bitcoinlib',
-      version='0.4.5',
+      version='0.4.6',
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[
@@ -55,6 +55,9 @@ setup(
             'Intended Audience :: Developers',
             'Intended Audience :: Financial and Insurance Industry',
             'Intended Audience :: Information Technology',
+            'Operating System :: OS Independent',
+            'Operating System :: Microsoft :: Windows',
+            'Operating System :: POSIX',
             'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3.4',
             'Programming Language :: Python :: 3.5',
@@ -74,7 +77,7 @@ setup(
       },
       test_suite='tests',
       include_package_data=True,
-      keywords='bitcoin library cryptocurrency tools wallet crypto keys',
+      keywords='bitcoin library cryptocurrency wallet crypto keys segwit litecoin dash',
       zip_safe=False,
       **kwargs
 )
