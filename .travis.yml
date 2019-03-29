@@ -21,12 +21,7 @@ matrix:
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
 
-before_script:
-  - sudo apt-get install libssl-dev
-  - sudo apt-get install python-dev python3-dev
-
 install:
-  - pip install scrypt
   - python setup.py install
 
 script: python setup.py test
