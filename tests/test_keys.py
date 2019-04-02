@@ -796,7 +796,6 @@ class TestKeysSignatures(unittest.TestCase):
         sig = Signature(r, s)
         self.assertEqual(to_hexstring(sig.as_der_encoded()), expected_der)
         self.assertEqual(sig.bytes(), expected_sig_bytes)
-        self.assertEqual(bytes(sig), expected_sig_bytes)
         self.assertEqual(sig.hex(), expected_sig_hex)
 
 

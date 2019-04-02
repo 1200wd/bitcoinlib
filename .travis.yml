@@ -26,7 +26,10 @@ install:
   - pip install coveralls
   - python setup.py install
 
-script: coverage run --source=bitcoinlib setup.py test
+script:
+  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; coverage run --source=bitcoinlib setup.py test; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; python setup.py test; fi
+
 
 after_script:
-  - coveralls
+  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; coveralls; fi

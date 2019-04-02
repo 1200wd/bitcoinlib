@@ -1928,16 +1928,6 @@ class Signature(object):
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
                (self.r, self.s, self.hex(), der_sig)
 
-    def __bytes__(self):
-        """
-        Signature r and s value as single bytes string
-
-        :return bytes:
-        """
-        if not self._signature:
-            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
-        return self._signature
-
     @property
     def tx_hash(self):
         return self._tx_hash
@@ -1979,7 +1969,7 @@ class Signature(object):
 
         :return hexstring:
         """
-        return to_hexstring(self.__bytes__())
+        return to_hexstring(self.bytes())
 
     def bytes(self):
         """
@@ -1988,7 +1978,9 @@ class Signature(object):
         :return bytes:
         """
 
-        return bytes(self)
+        if not self._signature:
+            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
+        return self._signature
 
     def as_der_encoded(self):
         """
