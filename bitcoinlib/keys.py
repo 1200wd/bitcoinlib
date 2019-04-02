@@ -57,7 +57,6 @@ else:
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
 
 
-
 _logger = logging.getLogger(__name__)
 
 if not USING_MODULE_SCRYPT:
@@ -836,7 +835,7 @@ class Key(object):
         if self.is_private:
             return self.secret
         else:
-            raise BKeyError("Public key has no secret integer attribute")
+            return None
 
     def as_dict(self):
         """
@@ -1788,7 +1787,7 @@ class Signature(object):
     >>> sk = HDKey()
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
-    >>> to_hexstring(signature.as_der_encoded)
+    >>> to_hexstring(signature.as_der_encoded())
     3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e75356fda036f06d293d02fc9b0f9d49e09d8149e9d
     
     """
@@ -1925,7 +1924,17 @@ class Signature(object):
     def __repr__(self):
         der_sig = '' if not self._der_encoded else to_hexstring(self._der_encoded)
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
-               (self.r, self.s, self.as_hex(), der_sig)
+               (self.r, self.s, self.hex(), der_sig)
+
+    def __bytes__(self):
+        """
+        Signature r and s value as single bytes string
+
+        :return bytes:
+        """
+        if not self._signature:
+            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
+        return self._signature
 
     @property
     def tx_hash(self):
@@ -1962,7 +1971,23 @@ class Signature(object):
                 raise BKeyError('Invalid public key, point is not on secp256k1 curve')
         self._public_key = value
 
-    @property
+    def hex(self):
+        """
+        Signature r and s value as single hexstring
+
+        :return hexstring:
+        """
+        return to_hexstring(bytes(self))
+
+    def bytes(self):
+        """
+        Signature r and s value as single bytes string
+
+        :return bytes:
+        """
+
+        return bytes(self)
+
     def as_der_encoded(self):
         """
         DER encoded signature in bytes
@@ -1972,28 +1997,6 @@ class Signature(object):
         if not self._der_encoded:
             self._der_encoded = DEREncoder.encode_signature(self.r, self.s)
         return self._der_encoded
-
-    @property
-    def as_bytes(self):
-        """
-        Signature r and s value as single bytes string
-        
-        :return bytes: 
-        """
-        if not self._signature:
-            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
-        return self._signature
-
-    @property
-    def as_hex(self):
-        """
-        Signature r and s value as single hexstring
-        
-        :return hexstring: 
-        """
-        if not self._signature:
-            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
-        return to_hexstring(self._signature)
 
     def verify(self, tx_hash=None, public_key=None):
         """
@@ -2030,7 +2033,7 @@ class Signature(object):
             )
         else:
             transaction_to_sign = to_bytes(self.tx_hash)
-            signature = self.as_bytes
+            signature = self.bytes()
             if len(transaction_to_sign) != 32:
                 transaction_to_sign = double_sha256(transaction_to_sign)
             ver_key = ecdsa.VerifyingKey.from_string(self.public_key.public_uncompressed_byte[1:],
@@ -2058,7 +2061,7 @@ def sign(tx_hash, private, use_rfc6979=True, k=None):
     >>> sk = HDKey()
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
-    >>> to_hexstring(signature.as_der_encoded)
+    >>> to_hexstring(signature.as_der_encoded())
     3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e75356fda036f06d293d02fc9b0f9d49e09d8149e9d
 
     :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.

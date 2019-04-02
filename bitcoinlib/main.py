@@ -43,6 +43,7 @@ logger.addHandler(stream_handler)
 
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Logger name: %s' % logging.__name__)
+logging.info('Read config from: %s' % BCL_CONFIG_FILE)
 logging.info('Directory databases: %s' % BCL_DATABASE_DIR)
 logging.info('Default database: %s' % DEFAULT_DATABASE)
 logging.info('Directory logs: %s' % BCL_LOG_DIR)

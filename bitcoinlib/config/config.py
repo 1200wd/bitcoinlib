@@ -43,6 +43,7 @@ BCL_LOG_DIR = ''
 BCL_CONFIG_DIR = ''
 BCL_DATA_DIR = ''
 BCL_WORDLIST_DIR = ''
+BCL_CONFIG_FILE = ''
 
 
 # Services
@@ -189,15 +190,18 @@ def read_config():
         except Exception:
             return fallback
 
-    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR
+    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
     global BCL_DATA_DIR, BCL_WORDLIST_DIR
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
 
-    data = config.read(os.path.join(BCL_INSTALL_DIR, 'config.ini'))
+    BCL_CONFIG_FILE = os.path.join(BCL_INSTALL_DIR, 'config.ini')
+    data = config.read(BCL_CONFIG_FILE)
     if not data:
-        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/config.ini'))
+        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/config.ini')
+        data = config.read(BCL_CONFIG_FILE)
     if not data:
-        data = config.read(os.path.join(os.path.expanduser("~"), '.bitcoinlib/config.ini'))
+        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config.ini')
+        data = config.read(BCL_CONFIG_FILE)
 
     BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
     if not os.path.isabs(BCL_DATABASE_DIR):
