@@ -1979,7 +1979,7 @@ class Signature(object):
 
         :return hexstring:
         """
-        return to_hexstring(bytes(self))
+        return to_hexstring(self.__bytes__())
 
     def bytes(self):
         """
@@ -1997,7 +1997,7 @@ class Signature(object):
         :return bytes: 
         """
         if not self._der_encoded:
-            self._der_encoded = DEREncoder.encode_signature(self.r, self.s)
+            self._der_encoded = der_encode_sig(self.r, self.s)
         return self._der_encoded
 
     def verify(self, tx_hash=None, public_key=None):
