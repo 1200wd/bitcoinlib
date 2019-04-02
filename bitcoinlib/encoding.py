@@ -364,7 +364,9 @@ def der_encode_sig(r, s):
     if USE_FASTECDSA:
         return DEREncoder.encode_signature(r, s)
     else:
-        ecdsa.der.sigencode_der(r, s)
+        rb = ecdsa.der.encode_integer(r)
+        sb = ecdsa.der.encode_integer(s)
+        return ecdsa.der.encode_sequence(rb, sb)
 
 
 def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):
