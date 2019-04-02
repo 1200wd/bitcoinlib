@@ -27,9 +27,9 @@ install:
   - python setup.py install
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; coverage run --source=bitcoinlib setup.py test; fi
-  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; python setup.py test; fi
+  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then coverage run --source=bitcoinlib setup.py test ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then python setup.py test ; fi
 
 
 after_script:
-  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; coveralls; fi
+  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then coveralls ; fi
