@@ -197,10 +197,10 @@ class TestPublicKeyConversion(unittest.TestCase):
                          self.K.public_point())
 
     def test_public_key_get_hash160_uncompressed(self):
-        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', to_hexstring(self.K.hash160()))
+        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', to_hexstring(self.K.hash160))
 
     def test_public_key_get_hash160(self):
-        self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', to_hexstring(self.KC.hash160()))
+        self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', to_hexstring(self.KC.hash160))
 
     def test_public_key_try_private(self):
         self.assertFalse(self.K.private_hex)
@@ -798,7 +798,6 @@ class TestKeysSignatures(unittest.TestCase):
         self.assertEqual(sig.bytes(), expected_sig_bytes)
         self.assertEqual(bytes(sig), expected_sig_bytes)
         self.assertEqual(sig.hex(), expected_sig_hex)
-
 
 
 if __name__ == '__main__':

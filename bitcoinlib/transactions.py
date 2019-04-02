@@ -855,7 +855,7 @@ class Input(object):
                 else:
                     return
             if not self.public_hash:
-                self.public_hash = self.keys[0].hash160()
+                self.public_hash = self.keys[0].hash160
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
             self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
@@ -1039,7 +1039,7 @@ class Output(object):
             self.address = address.address()
             self.address_obj = address.address_obj
             public_key = address.public_byte
-            self.public_hash = address.hash160()
+            self.public_hash = address.hash160
         else:
             self.address = address
             self.address_obj = None
@@ -1064,7 +1064,7 @@ class Output(object):
             self.encoding = self.address_obj.encoding
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
-            self.public_hash = k.hash160()
+            self.public_hash = k.hash160
         elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self.address, self.encoding, self.network.name)
             if address_dict['script_type'] and not script_type:
@@ -1094,7 +1094,7 @@ class Output(object):
             if ss['keys']:
                 self.public_key = ss['keys'][0]
                 k = Key(self.public_key, is_private=False, network=network)
-                self.public_hash = k.hash160()
+                self.public_hash = k.hash160
         if self.script_type is None:
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':

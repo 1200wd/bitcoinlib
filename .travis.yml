@@ -23,6 +23,10 @@ matrix:
 
 install:
   - pip install scrypt
+  - pip install coveralls
   - python setup.py install
 
-script: python setup.py test
+script: coverage run --source=bitcoinlib setup.py test
+
+after_script:
+  - coveralls

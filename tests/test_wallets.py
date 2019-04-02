@@ -1352,7 +1352,7 @@ class TestWalletSegwit(unittest.TestCase):
 
         k1 = w.get_key()
         address = '3Disr2CmERuYuuMkkfGrjRUHqDENQvtNep'
-        self.assertEqual(Address(b'\x00\x14' + k1.key().hash160(), script_type='p2sh').address, address)
+        self.assertEqual(Address(b'\x00\x14' + k1.key().hash160, script_type='p2sh').address, address)
         self.assertEqual(Address(k1.key().public_byte, script_type='p2sh_p2wpkh').address, address)
         self.assertEqual(k1.address, address)
 

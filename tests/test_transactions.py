@@ -78,7 +78,7 @@ class TestTransactionInputs(unittest.TestCase):
         ki = Key('cTuDU2P6AhB72ZrhHRnFTcZRoHdnoWkp7sSMPCBnrMG23nRNnjUX', network='dash_testnet', compressed=False)
         prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
         output_n = 0
-        ki_public_hash = ki.hash160()
+        ki_public_hash = ki.hash160
         ti = Input(prev_hash=prev_tx, output_n=output_n, public_hash=ki_public_hash, network='dash_testnet',
                    compressed=False)
         self.assertEqual(ti.address, 'yWut2kHY6nXbpgqatMCNkwsxoYHcpWeF6Q')
@@ -178,7 +178,7 @@ class TestTransactions(unittest.TestCase):
                     keys=pk.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
-        out = Output(880000, public_hash=pubkey.hash160(), network='testnet')
+        out = Output(880000, public_hash=pubkey.hash160, network='testnet')
         t = Transaction([inp], [out], network='testnet')
         t.sign(pk)
         self.assertTrue(t.verify(), msg="Can not verify transaction '%s'")

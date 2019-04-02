@@ -854,7 +854,7 @@ class Key(object):
         key_dict['wif'] = self.wif()
         key_dict['public_hex'] = self.public_hex
         key_dict['public_uncompressed_hex'] = self.public_uncompressed_hex
-        key_dict['hash160'] = to_hexstring(self.hash160())
+        key_dict['hash160'] = to_hexstring(self.hash160)
         key_dict['address'] = self.address()
         x, y = self.public_point()
         key_dict['point_x'] = x
@@ -1020,6 +1020,7 @@ class Key(object):
         y = self._y and int(self._y, 16)
         return (x, y)
 
+    @property
     def hash160(self):
         """
         Get public key in RIPEMD-160 + SHA256 format
@@ -1114,7 +1115,7 @@ class Key(object):
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
-        print(" Public Key Hash160          %s" % to_hexstring(self.hash160()))
+        print(" Public Key Hash160          %s" % to_hexstring(self.hash160))
         print(" Address (b58)               %s" % self.address())
         point_x, point_y = self.public_point()
         print(" Point x                     %s" % point_x)
@@ -1339,7 +1340,7 @@ class HDKey(Key):
         """
 
         key_dict = super(HDKey, self).as_dict()
-        key_dict['fingerprint'] = to_hexstring(self.fingerprint())
+        key_dict['fingerprint'] = to_hexstring(self.fingerprint)
         key_dict['chain_code'] = to_hexstring(self.chain)
         key_dict['child_index'] = self.child_index
         key_dict['fingerprint_parent'] = to_hexstring(self.parent_fingerprint)
@@ -1374,6 +1375,7 @@ class HDKey(Key):
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
         return key, chain
 
+    @property
     def fingerprint(self):
         """
         Get key fingerprint: the last for bytes of the hash160 of this key.
@@ -1381,7 +1383,7 @@ class HDKey(Key):
         :return bytes:
         """
 
-        return self.hash160()[:4]
+        return self.hash160[:4]
 
     def wif(self, is_private=None, child_index=None, prefix=None, witness_type=None, multisig=None):
         """
@@ -1715,7 +1717,7 @@ class HDKey(Key):
             raise BKeyError("Key cannot be zero. Try another index number.")
         newkey = change_base(newkey, 10, 256, 32)
 
-        return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
+        return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
                      child_index=index, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
 
@@ -1757,7 +1759,7 @@ class HDKey(Key):
             prefix = '02'
         xhex = change_base(ki_x, 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
-        return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
+        return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
                      child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
 
