@@ -23,8 +23,8 @@ matrix:
         - pip install bitcoinlib
         - pip uninstall fastecdsa -y
         - pip uninstall scrypt -y
-        USING_MODULE_SCRYPT = False
-        USE_FASTECDSA = False
+        - USING_MODULE_SCRYPT = False
+        - USE_FASTECDSA = False
     - os: windows
       language: sh
       python: "3.7"
