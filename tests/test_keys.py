@@ -281,9 +281,10 @@ class TestHDKeysImport(unittest.TestCase):
             'j6SqMFd', self.k.wif(is_private=True))
 
     def test_hdkey_import_bip38_key(self):
-        self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo',
-                       passphrase='TestingOneTwoThree')
-        self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.wif_key())
+        if USING_MODULE_SCRYPT:
+            self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo',
+                           passphrase='TestingOneTwoThree')
+            self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.wif_key())
 
     def test_hdkey_import_public(self):
         self.assertEqual('15mKKb2eos1hWa6tisdPwwDC1a5J1y9nma', self.xpub.address())
@@ -468,6 +469,10 @@ class TestHDKeys(unittest.TestCase):
                     self.assertTrue(kwif[:4] == hdkey[0]['prefix_str'])
                     self.assertTrue(pwif[:4] == hdkey_pub[0]['prefix_str'])
 
+    def test_hdkey_info(self):
+        k = HDKey()
+        self.assertIsNone(k.info())
+
 
 class TestBip38(unittest.TestCase):
 
@@ -477,18 +482,24 @@ class TestBip38(unittest.TestCase):
             self.vectors = json.load(f)
 
     def test_encrypt_private_key(self):
+        if not USING_MODULE_SCRYPT:
+            return
         for v in self.vectors["valid"]:
             k = Key(v['wif'])
             print("Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38']))
             self.assertEqual(str(v['bip38']), k.bip38_encrypt(str(v['passphrase'])))
 
     def test_decrypt_bip38_key(self):
+        if not USING_MODULE_SCRYPT:
+            return
         for v in self.vectors["valid"]:
             k = Key(v['bip38'], passphrase=str(v['passphrase']))
             print("Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif']))
             self.assertEqual(str(v['wif']), k.wif())
 
     def test_bip38_invalid_keys(self):
+        if not USING_MODULE_SCRYPT:
+            return
         for v in self.vectors["invalid"]["verify"]:
             print("Checking invalid key %s" % v['base58'])
             self.assertRaisesRegexp(BKeyError, "Unrecognised key format", Key, [str(v['base58'])])

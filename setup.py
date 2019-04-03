@@ -31,6 +31,8 @@ version = version_file.read().strip()
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     readmetxt = f.read()
 
+print(os.environ['HOME'])
+
 kwargs = {}
 
 install_requires = [

@@ -52,7 +52,7 @@ class TestWalletCreate(unittest.TestCase):
         self.assertTrue(isinstance(self.wallet, HDWallet))
 
     def test_wallet_info(self):
-        self.assertIsNot(self.wallet.info(), "")
+        self.assertIsNone(self.wallet.info())
 
     def test_wallet_key_info(self):
         self.assertIsNot(self.wallet.main_key.as_dict(), "")
@@ -1257,8 +1257,8 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
             t.sign(p2)
             t.estimate_size()
             size2 = t.size
-            self.assertAlmostEqual(size1, size2, delta=3)
-            self.assertAlmostEqual(len(t.raw()), size2, delta=3)
+            self.assertAlmostEqual(size1, size2, delta=4)
+            self.assertAlmostEqual(len(t.raw()), size2, delta=4)
 
 
 class TestWalletDash(unittest.TestCase):
