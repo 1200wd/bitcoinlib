@@ -52,7 +52,7 @@ class TestWalletCreate(unittest.TestCase):
         self.assertTrue(isinstance(self.wallet, HDWallet))
 
     def test_wallet_info(self):
-        self.assertIsNot(self.wallet.info(), "")
+        self.assertIsNone(self.wallet.info())
 
     def test_wallet_key_info(self):
         self.assertIsNot(self.wallet.main_key.as_dict(), "")

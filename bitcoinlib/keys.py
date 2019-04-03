@@ -27,16 +27,15 @@ import warnings
 from copy import deepcopy
 import collections
 import json
+import pyaes
 
-scrypt_error = None
+SCRYPT_ERROR = None
 try:
     import scrypt
     USING_MODULE_SCRYPT = True
-except ImportError as scrypt_error:
+except ImportError as SCRYPT_ERROR:
     import pyscrypt as scrypt
     USING_MODULE_SCRYPT = False
-
-import pyaes
 
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
@@ -60,7 +59,7 @@ else:
 _logger = logging.getLogger(__name__)
 
 if not USING_MODULE_SCRYPT:
-    _logger.warning("Error when trying to import scrypt module", scrypt_error)
+    _logger.warning("Error when trying to import scrypt module")
     _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
                     "protected keys.")
 
@@ -1539,7 +1538,7 @@ class HDKey(Key):
         return key
 
     @deprecated  # In version 0.4.5
-    def account_key(self, account_id=0, purpose=44, set_network=None):
+    def account_key(self, account_id=0, purpose=44, set_network=None):  # pragma: no cover
         """
         Deprecated since version 0.4.5, use public_master() method instead
 
@@ -1628,7 +1627,7 @@ class HDKey(Key):
         return self.public_master(account_id, purpose, True, witness_type, as_private)
 
     @deprecated  # In version 0.4.5
-    def account_multisig_key(self, account_id=0, witness_type=DEFAULT_WITNESS_TYPE):
+    def account_multisig_key(self, account_id=0, witness_type=DEFAULT_WITNESS_TYPE):  # pragma: no cover
         """
         Deprecated since version 0.4.5, use public_master() method instead
 
