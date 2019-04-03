@@ -4,9 +4,7 @@ language: python
 
 python:
     - 2.7
-    - 3.4
     - 3.5
-    - 3.6
 matrix:
   include:
     # Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
@@ -17,14 +15,15 @@ matrix:
     - python: 3.6
       dist: bionic
       sudo: true
+      env:
+        - USING_MODULE_SCRYPT=False
+        - USE_FASTECDSA=False
       before_script:
         - pip install ecdsa
         - pip install pyscrypt
         - pip install bitcoinlib
         - pip uninstall fastecdsa -y
         - pip uninstall scrypt -y
-        - USING_MODULE_SCRYPT = False
-        - USE_FASTECDSA = False
     - os: windows
       language: sh
       python: "3.7"
