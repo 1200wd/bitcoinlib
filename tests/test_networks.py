@@ -28,6 +28,12 @@ class TestNetworks(unittest.TestCase):
         network = Network('dash')
         self.assertEqual(network.print_value(10000), '0.00010000 DASH')
 
+    def test_networks_network_value_for(self):
+        prefixes = network_values_for('prefix_wif')
+        expected_prefixes = [b'\xb0', b'\xef', b'\x99', b'\x80', b'\xcc']
+        for expected in expected_prefixes:
+            self.assertIn(expected, prefixes)
+
 
 if __name__ == '__main__':
     unittest.main()
