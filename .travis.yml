@@ -20,8 +20,11 @@ matrix:
       before_script:
         - pip install ecdsa
         - pip install pyscrypt
+        - pip install bitcoinlib
         - pip uninstall fastecdsa -y
         - pip uninstall scrypt -y
+      script:
+        - coverage run --source=bitcoinlib --omit=*bitcoinlib/tools/* -m unittest
     - os: windows
       language: sh
       python: "3.7"
@@ -31,12 +34,11 @@ matrix:
         - python -m pip install --upgrade pip wheel
 
 install:
-  - pip install scrypt
   - pip install coveralls
   - python setup.py install
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then coverage run --source=bitcoinlib --omit=*bitcoinlib/tools/* -m unittest ; fi
+  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then coverage run --source=bitcoinlib --omit=*bitcoinlib/tools/* setup.py test ; fi
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then python setup.py test ; fi
 
 
