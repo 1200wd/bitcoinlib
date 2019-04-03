@@ -7,12 +7,21 @@ python:
     - 3.4
     - 3.5
     - 3.6
-# Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
 matrix:
   include:
+    # Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
     - python: 3.7.1
       dist: xenial
       sudo: true
+    # Test ecdsa and pyscrypt for systems where fastecdsa and/or scrypt are not available
+    - python: 3.6
+      dist: bionic
+      sudo: true
+      before_script:
+        - pip install ecdsa
+        - pip install pyscrypt
+        - pip uninstall fastecdsa
+        - pip uninstall scrypt
     - os: windows
       language: sh
       python: "3.7"
@@ -27,7 +36,7 @@ install:
   - python setup.py install
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then coverage run --source=bitcoinlib --omit=tools/* setup.py test ; fi
+  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then coverage run --source=bitcoinlib --omit=/bitcoinlib/tools/* setup.py test ; fi
   - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then python setup.py test ; fi
 
 
