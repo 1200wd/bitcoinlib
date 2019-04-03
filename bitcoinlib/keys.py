@@ -65,7 +65,6 @@ else:
 _logger = logging.getLogger(__name__)
 
 if not USING_MODULE_SCRYPT:
-    _logger.warning("Error when trying to import scrypt module")
     _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
                     "protected keys.")
 
