@@ -20,6 +20,8 @@
 
 import binascii
 import hashlib
+import sys
+import os
 import hmac
 import numbers
 import random
@@ -30,10 +32,14 @@ import json
 import pyaes
 
 SCRYPT_ERROR = None
+USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
 try:
-    import scrypt
-    USING_MODULE_SCRYPT = True
+    if USING_MODULE_SCRYPT != False:
+        import scrypt
+        USING_MODULE_SCRYPT = True
 except ImportError as SCRYPT_ERROR:
+    pass
+if 'scrypt' not in sys.modules:
     import pyscrypt as scrypt
     USING_MODULE_SCRYPT = False
 

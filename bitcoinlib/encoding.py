@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os
 import math
 import numbers
 from copy import deepcopy
@@ -27,13 +28,16 @@ import unicodedata
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
 
-USE_FASTECDSA = None
+USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
     if USE_FASTECDSA != False:
         from fastecdsa.encoding.der import DEREncoder
         USE_FASTECDSA = True
-except ImportError as err:
-    _logger.warning("Could not include fastecdsa library, using slower ecdsa instead. Error: %s " % err)
+except ImportError:
+    pass
+if 'fastecdsa' not in sys.modules:
+    _logger.warning("Could not include fastecdsa library, using slower ecdsa instead. ")
+                    # "Error: %s " % FASTECDSA_IMPORT_ERROR)
     USE_FASTECDSA = False
     import ecdsa
 

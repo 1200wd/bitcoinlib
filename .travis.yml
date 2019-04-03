@@ -23,8 +23,8 @@ matrix:
         - pip install bitcoinlib
         - pip uninstall fastecdsa -y
         - pip uninstall scrypt -y
-      script:
-        - coverage run --source=bitcoinlib --omit=*bitcoinlib/tools/* -m unittest
+        USING_MODULE_SCRYPT = False
+        USE_FASTECDSA = False
     - os: windows
       language: sh
       python: "3.7"
@@ -35,6 +35,7 @@ matrix:
 
 install:
   - pip install coveralls
+  - pip install scrypt
   - python setup.py install
 
 script:
