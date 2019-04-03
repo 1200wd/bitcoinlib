@@ -32,4 +32,4 @@ script:
 
 
 after_script:
-  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then coveralls -e  ; fi
+  - if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then coveralls ; fi
