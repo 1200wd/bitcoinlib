@@ -52,10 +52,13 @@ class TestWalletCreate(unittest.TestCase):
         self.assertTrue(isinstance(self.wallet, HDWallet))
 
     def test_wallet_info(self):
-        self.assertIsNot(self.wallet.info(), "")
+        self.assertIsNone(self.wallet.info())
+        self.assertTrue(self.wallet.as_dict())
+        self.assertTrue(self.wallet.as_json())
 
     def test_wallet_key_info(self):
-        self.assertIsNot(self.wallet.main_key.as_dict(), "")
+        self.assertIsNone(self.wallet.main_key.key().info())
+        self.assertTrue(self.wallet.main_key.as_dict())
 
     def test_wallet_create_account(self):
         new_account = self.wallet.new_account(account_id=100)

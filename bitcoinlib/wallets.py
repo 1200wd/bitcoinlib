@@ -2193,7 +2193,7 @@ class HDWallet(object):
         :param network: Network name filter. Default filter is DEFAULT_NETWORK
         :type network: str
                 
-        :return list: List of accounts as HDWalletKey objects
+        :return list of HDWalletKey: List of accounts as HDWalletKey objects
         """
 
         if self.multisig and self.cosigner:
@@ -3407,15 +3407,15 @@ class HDWallet(object):
 
         keys = []
         transactions = []
-        for nw in self.networks():
-            for key in self.keys(network=nw['network_name'], as_dict=True):
+        for netw in self.networks():
+            for key in self.keys(network=netw.name, as_dict=True):
                 keys.append(key)
 
             if self.multisig:
-                for t in self.transactions(include_new=True, account_id=0, network=nw['network_name']):
+                for t in self.transactions(include_new=True, account_id=0, network=netw.name):
                     transactions.append(t)
             else:
-                accounts = self.accounts(network=nw['network_name'])
+                accounts = self.accounts(network=netw.name)
                 if not accounts:
                     accounts = [0]
                 for account in accounts:
@@ -3423,7 +3423,7 @@ class HDWallet(object):
                         account_id = 0
                     else:
                         account_id = account.account_id
-                    for t in self.transactions(include_new=True, account_id=account_id, network=nw['network_name']):
+                    for t in self.transactions(include_new=True, account_id=account_id, network=netw.name):
                         transactions.append(t)
 
         return {
