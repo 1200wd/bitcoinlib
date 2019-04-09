@@ -1981,7 +1981,7 @@ class HDWallet(object):
         if is_private is not None:
             qr = qr.filter(DbKey.is_private == is_private)
         if has_balance is True and is_active is True:
-            raise WalletError("Cannot use has_balance and hide_unused parameter together")
+            raise WalletError("Cannot use has_balance and is_active parameter together")
         if has_balance is not None:
             if has_balance:
                 qr = qr.filter(DbKey.balance != 0)
