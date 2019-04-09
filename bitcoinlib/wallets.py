@@ -2157,7 +2157,7 @@ class HDWallet(object):
                 self._key_objects.update({dbkey.id: hdwltkey})
                 return hdwltkey
         else:
-            raise KeyError("Key '%s' not found" % term)
+            raise BKeyError("Key '%s' not found" % term)
 
     def account(self, account_id):
         """
@@ -2193,7 +2193,7 @@ class HDWallet(object):
         :param network: Network name filter. Default filter is DEFAULT_NETWORK
         :type network: str
                 
-        :return list of HDWalletKey: List of accounts as HDWalletKey objects
+        :return list of integers: List of accounts IDs
         """
 
         if self.multisig and self.cosigner:
@@ -3418,11 +3418,7 @@ class HDWallet(object):
                 accounts = self.accounts(network=netw.name)
                 if not accounts:
                     accounts = [0]
-                for account in accounts:
-                    if account == 0:
-                        account_id = 0
-                    else:
-                        account_id = account.account_id
+                for account_id in accounts:
                     for t in self.transactions(include_new=True, account_id=account_id, network=netw.name):
                         transactions.append(t)
 
