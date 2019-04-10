@@ -378,6 +378,47 @@ class TestWalletKeys(unittest.TestCase):
         w.new_key()
         self.assertEqual(len(w.keys_addresses()), 1)
 
+    def test_wallet_private_parts(self):
+        # as_json and as_dict should contain no private keys in any form
+        wif = 'xprv9s21ZrQH143K3uhe9xrPfYfhvFBMARCjWjrgDZFJn7Nk5Gd6fzscc4U6wnFbhA989AN3V6hmPWZfGDi1ZTastgT1FmzLy8Nf5fJpZjqA8k7'
+        private_hex = 'ffbf97886300c36e747a71d227a3132b209109a9e5296659f5aa03356ca27e1f'
+        secret = 115678290018782943471210007860528561263328164009987126706295777426273334361631
+        k = HDKey(wif)
+        w = wallet_create_or_open('wlttest', k, databasefile=DATABASEFILE_UNITTESTS)
+        w_json = w.as_json()
+        self.assertFalse(wif in w_json)
+        self.assertFalse(private_hex in w_json)
+        self.assertFalse(str(secret) in w_json)
+
+        wmk_json = w.main_key.key().as_json()
+        self.assertFalse(wif in wmk_json)
+        self.assertFalse(private_hex in wmk_json)
+        self.assertFalse(str(secret) in wmk_json)
+        self.assertTrue(wif in w.main_key.key().as_json(include_private=True))
+
+        w.utxo_add(w.main_key.address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
+        t = w.sweep(w.get_key().address, offline=True, fee=2000)
+        t_json = t.as_json()
+        self.assertFalse(wif in t_json)
+        self.assertFalse(private_hex in t_json)
+        self.assertFalse(str(secret) in t_json)
+
+        wif2 = 'xprv9s21ZrQH143K3mEc645dz1wEo4F1Sy8mNKdXZxFWniS7ZNqSgo2CS7chiDxqvVHJbQeR7RsMPaUaeTL6nwD9ChnwJw4LHz' \
+               'Ni2xTDTQ8t1Hn'
+        private_hex2 = 'e68f716a02929e29c5b9b3d8a1a1b5424dc63ea03eb9b9990cf0ffaf396789fc'
+        secret2 = 104285397059777051994770481926675935425657204513917549168323819901909731871228
+        k2 = HDKey(wif2)
+
+        wms = wallet_create_or_open('wlttest_ms', [k, k2], databasefile=DATABASEFILE_UNITTESTS)
+        w_json = wms.as_json()
+        self.assertFalse('"xprv' in w_json)
+        self.assertFalse(wif in w_json)
+        self.assertFalse(private_hex in w_json)
+        self.assertFalse(str(secret) in w_json)
+        self.assertFalse(wif2 in w_json)
+        self.assertFalse(private_hex2 in w_json)
+        self.assertFalse(str(secret2) in w_json)
+
 
 class TestWalletElectrum(unittest.TestCase):
 

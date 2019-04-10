@@ -2003,8 +2003,12 @@ class HDWallet(object):
         if as_dict:
             keys = [x.__dict__ for x in keys]
             keys2 = []
+            private_fields = []
+            if not include_private:
+                private_fields += ['private', 'wif']
             for key in keys:
-                keys2.append({k: v for (k, v) in key.items() if k[:1] != '_' and k != 'wallet'})
+                keys2.append({k: v for (k, v) in key.items()
+                              if k[:1] != '_' and k != 'wallet' and k not in private_fields})
             return keys2
         qr.session.close()
         return keys
@@ -3405,7 +3409,7 @@ class HDWallet(object):
                   Network(na_balance['network']).print_value(na_balance['balance'])))
         print("\n")
 
-    def as_dict(self, include_private=False):
+    def as_dict(self):
         """
         Return wallet information in dictionary format
 
@@ -3445,7 +3449,7 @@ class HDWallet(object):
             'default_account_id': self.default_account_id,
             'multisig_n_required': self.multisig_n_required,
             'cosigner_wallet_ids': [w.wallet_id for w in self.cosigner],
-            'cosigner_mainkey_wifs': [w.main_key.wif for w in self.cosigner],
+            'cosigner_public_masters': [w.public_master().key().wif() for w in self.cosigner],
             'sort_keys': self.sort_keys,
             'main_key_id': self.main_key_id,
             'encoding': self.encoding,

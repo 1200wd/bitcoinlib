@@ -1358,13 +1358,16 @@ class HDKey(Key):
             key_dict['extended_wif_private'] = self.wif(is_private=True)
         return key_dict
 
-    def as_json(self):
+    def as_json(self, include_private=False):
         """
         Get current key as json formatted string
 
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
+        
         :return str:
         """
-        return json.dumps(self.as_dict(), indent=4)
+        return json.dumps(self.as_dict(include_private=include_private), indent=4)
 
     def _key_derivation(self, seed):
         """
