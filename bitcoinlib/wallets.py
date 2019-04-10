@@ -520,20 +520,21 @@ class HDWalletKey(object):
         else:
             return self._balance
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Return current key information as dictionary
 
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
+
         """
 
-        return {
+        kdict = {
             'id': self.key_id,
             'key_type': self.key_type,
             'is_private': self.is_private,
             'name': self.name,
-            'key_private': self.key_private,
             'key_public': self.key_public,
-            'wif': self.wif,
             'account_id':  self.account_id,
             'parent_id': self.parent_id,
             'depth': self.depth,
@@ -545,6 +546,12 @@ class HDWalletKey(object):
             'balance': self.balance(),
             'balance_str': self.balance(fmt='string')
         }
+        if include_private:
+            kdict.update({
+                'key_private': self.key_private,
+                'wif': self.wif,
+            })
+        return kdict
 
 
 class HDWalletTransaction(Transaction):
@@ -1927,7 +1934,7 @@ class HDWallet(object):
             return nk
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
-             has_balance=None, is_active=True, network=None, as_dict=False):
+             has_balance=None, is_active=True, network=None, include_private=False, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -1953,7 +1960,10 @@ class HDWallet(object):
         :type is_active: bool
         :param network: Network name filter
         :type network: str
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
+        :type as_dict: bool
         
         :return list: List of Keys
         """
@@ -3395,12 +3405,12 @@ class HDWallet(object):
                   Network(na_balance['network']).print_value(na_balance['balance'])))
         print("\n")
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Return wallet information in dictionary format
 
-        :param detail: Level of detail to show, from 0 to 6. With 0 no details and 6 most details
-        :type detail: int
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
 
         :return dict:
         """

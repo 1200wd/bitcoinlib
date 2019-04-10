@@ -835,9 +835,12 @@ class Key(object):
         else:
             raise BKeyError("Public key has no secret integer attribute")
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Get current Key class as dictionary. Byte values are represented by hexadecimal strings.
+
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
 
         :return collections.OrderedDict:
         """
@@ -847,9 +850,10 @@ class Key(object):
         key_dict['key_format'] = self.key_format
         key_dict['compressed'] = self.compressed
         key_dict['is_private'] = self.is_private
-        key_dict['private_hex'] = self.private_hex
-        key_dict['secret'] = self.secret
-        key_dict['wif'] = self.wif()
+        if include_private:
+            key_dict['private_hex'] = self.private_hex
+            key_dict['secret'] = self.secret
+            key_dict['wif'] = self.wif()
         key_dict['public_hex'] = self.public_hex
         key_dict['public_uncompressed_hex'] = self.public_uncompressed_hex
         key_dict['hash160'] = to_hexstring(self.hash160())
@@ -859,13 +863,16 @@ class Key(object):
         key_dict['point_y'] = y
         return key_dict
 
-    def as_json(self):
+    def as_json(self, include_private=False):
         """
         Get current key as json formatted string
 
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
+
         :return str:
         """
-        return json.dumps(self.as_dict(), indent=4)
+        return json.dumps(self.as_dict(include_private=include_private), indent=4)
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
@@ -1329,21 +1336,26 @@ class HDKey(Key):
             print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
         print("\n")
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Get current HDKey class as dictionary. Byte values are represented by hexadecimal strings.
+
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
 
         :return collections.OrderedDict:
         """
 
         key_dict = super(HDKey, self).as_dict()
-        key_dict['fingerprint'] = to_hexstring(self.fingerprint())
-        key_dict['chain_code'] = to_hexstring(self.chain)
+        if include_private:
+            key_dict['fingerprint'] = to_hexstring(self.fingerprint())
+            key_dict['chain_code'] = to_hexstring(self.chain)
+            key_dict['fingerprint_parent'] = to_hexstring(self.parent_fingerprint)
         key_dict['child_index'] = self.child_index
-        key_dict['fingerprint_parent'] = to_hexstring(self.parent_fingerprint)
         key_dict['depth'] = self.depth
         key_dict['extended_wif_public'] = self.wif_public()
-        key_dict['extended_wif_private'] = self.wif(is_private=True)
+        if include_private:
+            key_dict['extended_wif_private'] = self.wif(is_private=True)
         return key_dict
 
     def as_json(self):

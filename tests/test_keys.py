@@ -54,6 +54,8 @@ class TestKeyClasses(unittest.TestCase):
         k = Key()
         self.assertTrue(isinstance(json.loads(k.as_json()), dict))
         self.assertTrue(isinstance(k.as_dict(), dict))
+        self.assertTrue(isinstance(json.loads(k.as_json(include_private=True)), dict))
+        self.assertTrue(isinstance(k.as_dict(include_private=True), dict))
 
     def test_path_expand(self):
         self.assertListEqual(path_expand([0]), ['m', "44'", "0'", "0'", '0', '0'])
