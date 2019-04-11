@@ -2628,6 +2628,14 @@ class HDWallet(object):
         return self.utxos_update(utxos=[utxo])
 
     def transactions_update_by_txids(self, txids):
+        """
+        Update transaction or list or transaction for this wallet with provided transaction ID
+
+        :param txids: Transaction ID, or list of transaction IDs
+        :type txids: str, list of str
+
+        :return:
+        """
         if not isinstance(txids, list):
             txids = [txids]
         txids = list(set(txids))
@@ -2635,7 +2643,9 @@ class HDWallet(object):
         txs = []
         srv = Service(network=self.network.name, providers=self.providers)
         for txid in txids:
-            txs.append(srv.gettransaction(txid))
+            tx = srv.gettransaction(txid)
+            if tx:
+                txs.append(tx)
 
         # TODO: Avoid duplicate code in this method and transaction_update()
         utxo_set = set()
