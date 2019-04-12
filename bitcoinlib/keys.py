@@ -711,12 +711,9 @@ class Key(object):
                 # Calculate y from x with y=x^3 + 7 function
                 sign = pub_key[:2] == '03'
                 x = int(self._x, 16)
-                ys = (x**3+7) % secp256k1_p
+                # ys = (x**3+7) % secp256k1_p
+                ys = pow(x, 3, secp256k1_p) + 7 % secp256k1_p
                 y = mod_sqrt(ys)
-                # if USE_FASTECDSA:
-                #     y = fastecdsa_mod_sqrt(ys, secp256k1_p)[0]
-                # else:
-                #     y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
                 if y & 1 != sign:
                     y = secp256k1_p - y
                 self._y = change_base(y, 10, 16, 64)
@@ -2124,15 +2121,20 @@ def ec_point(m):
         point *= m
         return point
 
+
 def mod_sqrt(a):
     """
     Compute the square root of 'a' using the secp256k1 'bitcoin' curve
+
+    Used to calculate y-coordinate if only x-coordinate from public key point is known.
+    Formula: y ** 2 == x ** 3 + 7
     
     :param a: Number to calculate square root
     :type a: int
     
     :return int: 
     """
-    k = 28948022309329048855892746252171976963317496166410141009864396001977208667915  # == (secp256k1_p - 3) // 4
-    print(k)
+
+    # k = (secp256k1_p - 3) // 4
+    k = 28948022309329048855892746252171976963317496166410141009864396001977208667915
     return pow(a, k + 1, secp256k1_p)
