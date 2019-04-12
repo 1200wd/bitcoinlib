@@ -49,12 +49,14 @@ class WalletError(Exception):
         return self.msg
 
 
-def wallets_list(include_cosigners=False, databasefile=DEFAULT_DATABASE):
+def wallets_list(databasefile=DEFAULT_DATABASE, include_cosigners=False):
     """
     List Wallets from database
     
     :param databasefile: Location of Sqlite database. Leave empty to use default
     :type databasefile: str
+    :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
+    :type include_cosigners: bool
     
     :return dict: Dictionary of wallets defined in database
     """
@@ -662,7 +664,7 @@ class HDWalletTransaction(Transaction):
 
     def send(self, offline=False):
         """
-        Verify and push transaction to network. Update UTXO's in database after successfull send
+        Verify and push transaction to network. Update UTXO's in database after successful send
 
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool

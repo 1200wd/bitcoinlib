@@ -250,7 +250,7 @@ def deserialize_address(address, encoding=None, network=None):
     :type address: str
     :param encoding: Encoding scheme used for address encoding. Attempts to guess encoding if not specified.
     :type encoding: str
-    :param network: Bitcoin, testnet, litecoin or other network
+    :param network: Specify network filter, i.e.: bitcoin, testnet, litecoin, etc. Wil trigger check if address is valid for this network
     :type network: str
 
     :return dict: with information about this address
@@ -466,7 +466,13 @@ class Address(object):
         :type compressed: bool
         :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding. Leave empty to derive from address
         :type encoding: str
-        :param network: Bitcoin, testnet, litecoin or other network
+        :param depth: Level of depth in BIP32 key path
+        :type depth: int
+        :param change: Use 0 for normal address/key, and 1 for change address (for returned/change payments)
+        :type change: int
+        :param address_index: Index of address. Used in BIP32 key paths
+        :type address_index: int
+        :param network: Specify network filter, i.e.: bitcoin, testnet, litecoin, etc. Wil trigger check if address is valid for this network
         :type network: str
         :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
         :type network_overrides: dict
@@ -475,7 +481,7 @@ class Address(object):
         """
         if encoding is None and address[:3].split("1")[0] in ENCODING_BECH32_PREFIXES:
             encoding = 'bech32'
-        addr_dict = deserialize_address(address, encoding=encoding)
+        addr_dict = deserialize_address(address, encoding=encoding, network=network)
         public_key_hash_bytes = addr_dict['public_key_hash_bytes']
         prefix = addr_dict['prefix']
         if network is None:
