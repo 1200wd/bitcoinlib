@@ -49,7 +49,7 @@ class WalletError(Exception):
         return self.msg
 
 
-def wallets_list(databasefile=DEFAULT_DATABASE):
+def wallets_list(include_cosigners=False, databasefile=DEFAULT_DATABASE):
     """
     List Wallets from database
     
@@ -63,6 +63,8 @@ def wallets_list(databasefile=DEFAULT_DATABASE):
     wallets = session.query(DbWallet).all()
     wlst = []
     for w in wallets:
+        if w.parent_id and not include_cosigners:
+            continue
         wlst.append({
             'id': w.id,
             'name': w.name,
