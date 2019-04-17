@@ -610,6 +610,24 @@ class HDWalletTransaction(Transaction):
                    block_hash=t.block_hash, input_total=t.input_total, output_total=t.output_total,
                    rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, verified=t.verified, flag=t.flag)
 
+    @classmethod
+    def from_txid(cls, hdwallet, txid):
+        sess = hdwallet._session
+        # If tx_hash is unknown add it to database, else update
+        db_tx_query = sess.query(DbTransaction). \
+            filter(DbTransaction.wallet_id == hdwallet.wallet_id, DbTransaction.hash == txid)
+        db_tx = db_tx_query.scalar()
+        if not db_tx:
+            return
+
+        return db_tx
+        # return cls(hdwallet=hdwallet, inputs=t.inputs, outputs=t.outputs, locktime=t.locktime, version=t.version,
+        #            network=t.network.name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size,
+        #            hash=t.hash, date=t.date, confirmations=t.confirmations, block_height=t.block_height,
+        #            block_hash=t.block_hash, input_total=t.input_total, output_total=t.output_total,
+        #            rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, verified=t.verified, flag=t.flag)
+
+
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL):
         """
         Sign this transaction. Use existing keys from wallet or use keys argument for extra keys.
@@ -1196,7 +1214,7 @@ class HDWallet(object):
             self.multisig = db_wlt.multisig
             self.cosigner_id = db_wlt.cosigner_id
             self.script_type = script_type_default(self.witness_type, self.multisig, locking_script=True)
-            self.key_path = db_wlt.key_path.split('/')
+            self.key_path = [] if not db_wlt.key_path else db_wlt.key_path.split('/')
             self.depth_public_master = 0
             self.parent_id = db_wlt.parent_id
             if self.main_key and self.main_key.depth > 0:

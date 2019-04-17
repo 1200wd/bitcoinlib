@@ -1765,7 +1765,6 @@ class HDKey(Key):
             ki_x = ki.x()
             ki_y = ki.y()
 
-        # if change_base(Ki.y(), 16, 10) % 2:
         if ki_y % 2:
             prefix = '03'
         else:
