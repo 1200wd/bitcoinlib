@@ -246,6 +246,7 @@ class DbTransaction(Base):
     network_name = Column(String, ForeignKey('networks.name'))
     network = relationship("DbNetwork")
     raw = Column(String)
+    verified = Column(Boolean, default=False)
 
     __table_args__ = (
         UniqueConstraint('wallet_id', 'hash', name='constraint_wallet_transaction_hash_unique'),

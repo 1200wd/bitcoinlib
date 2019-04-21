@@ -52,7 +52,7 @@ from bitcoinlib.mnemonic import Mnemonic
 rfc6979_warning_given = False
 if USE_FASTECDSA:
     from fastecdsa import _ecdsa
-    from fastecdsa.util import RFC6979, mod_sqrt as fastecdsa_mod_sqrt
+    from fastecdsa.util import RFC6979
     from fastecdsa.curve import secp256k1 as fastecdsa_secp256k1
     from fastecdsa import keys as fastecdsa_keys
     from fastecdsa import point as fastecdsa_point
@@ -65,8 +65,9 @@ else:
 _logger = logging.getLogger(__name__)
 
 if not USING_MODULE_SCRYPT:
-    _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
-                    "protected keys.")
+    if 'scrypt_error' not in locals():
+        scrypt_error = 'unknown'
+    _logger.warning("Error when trying to import scrypt module", scrypt_error)
 
 
 class BKeyError(Exception):
@@ -254,7 +255,7 @@ def deserialize_address(address, encoding=None, network=None):
     :type address: str
     :param encoding: Encoding scheme used for address encoding. Attempts to guess encoding if not specified.
     :type encoding: str
-    :param network: Bitcoin, testnet, litecoin or other network
+    :param network: Specify network filter, i.e.: bitcoin, testnet, litecoin, etc. Wil trigger check if address is valid for this network
     :type network: str
 
     :return dict: with information about this address
@@ -262,7 +263,7 @@ def deserialize_address(address, encoding=None, network=None):
 
     if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
         raise BKeyError("Encoding '%s' not found in supported address encodings %s" %
-                       (encoding, SUPPORTED_ADDRESS_ENCODINGS))
+                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     if encoding is None or encoding == 'base58':
         address_bytes = change_base(address, 58, 256, 25)
         if address_bytes:
@@ -472,7 +473,13 @@ class Address(object):
         :type compressed: bool
         :param encoding: Address encoding. Default is base58 encoding, for native segwit addresses specify bech32 encoding. Leave empty to derive from address
         :type encoding: str
-        :param network: Bitcoin, testnet, litecoin or other network
+        :param depth: Level of depth in BIP32 key path
+        :type depth: int
+        :param change: Use 0 for normal address/key, and 1 for change address (for returned/change payments)
+        :type change: int
+        :param address_index: Index of address. Used in BIP32 key paths
+        :type address_index: int
+        :param network: Specify network filter, i.e.: bitcoin, testnet, litecoin, etc. Wil trigger check if address is valid for this network
         :type network: str
         :param network_overrides: Override network settings for specific prefixes, i.e.: {"prefix_address_p2sh": "32"}. Used by settings in providers.json
         :type network_overrides: dict
@@ -481,7 +488,7 @@ class Address(object):
         """
         if encoding is None and address[:3].split("1")[0] in ENCODING_BECH32_PREFIXES:
             encoding = 'bech32'
-        addr_dict = deserialize_address(address, encoding=encoding)
+        addr_dict = deserialize_address(address, encoding=encoding, network=network)
         public_key_hash_bytes = addr_dict['public_key_hash_bytes']
         prefix = addr_dict['prefix']
         if network is None:
@@ -717,11 +724,8 @@ class Key(object):
                 # Calculate y from x with y=x^3 + 7 function
                 sign = pub_key[:2] == '03'
                 x = int(self._x, 16)
-                ys = (x**3+7) % secp256k1_p
-                if USE_FASTECDSA:
-                    y = fastecdsa_mod_sqrt(ys, secp256k1_p)[0]
-                else:
-                    y = ecdsa.numbertheory.square_root_mod_prime(ys, secp256k1_p)
+                ys = pow(x, 3, secp256k1_p) + 7 % secp256k1_p
+                y = mod_sqrt(ys)
                 if y & 1 != sign:
                     y = secp256k1_p - y
                 self._y = change_base(y, 10, 16, 64)
@@ -841,9 +845,12 @@ class Key(object):
         else:
             return None
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Get current Key class as dictionary. Byte values are represented by hexadecimal strings.
+
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
 
         :return collections.OrderedDict:
         """
@@ -853,9 +860,10 @@ class Key(object):
         key_dict['key_format'] = self.key_format
         key_dict['compressed'] = self.compressed
         key_dict['is_private'] = self.is_private
-        key_dict['private_hex'] = self.private_hex
-        key_dict['secret'] = self.secret
-        key_dict['wif'] = self.wif()
+        if include_private:
+            key_dict['private_hex'] = self.private_hex
+            key_dict['secret'] = self.secret
+            key_dict['wif'] = self.wif()
         key_dict['public_hex'] = self.public_hex
         key_dict['public_uncompressed_hex'] = self.public_uncompressed_hex
         key_dict['hash160'] = to_hexstring(self.hash160)
@@ -865,13 +873,16 @@ class Key(object):
         key_dict['point_y'] = y
         return key_dict
 
-    def as_json(self):
+    def as_json(self, include_private=False):
         """
         Get current key as json formatted string
 
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
+
         :return str:
         """
-        return json.dumps(self.as_dict(), indent=4)
+        return json.dumps(self.as_dict(include_private=include_private), indent=4)
 
     @staticmethod
     def _bip38_decrypt(encrypted_privkey, passphrase):
@@ -1160,9 +1171,9 @@ class HDKey(Key):
         :return HDKey:
         """
         seed = to_bytes(import_seed)
-        I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
-        key = I[:32]
-        chain = I[32:]
+        i = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
+        key = i[:32]
+        chain = i[32:]
         key_int = change_base(key, 256, 10)
         if key_int >= secp256k1_n:
             raise BKeyError("Key int value cannot be greater than secp256k1_n")
@@ -1336,30 +1347,38 @@ class HDKey(Key):
             print(" Extended Private Key (wif)  %s" % self.wif(is_private=True))
         print("\n")
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Get current HDKey class as dictionary. Byte values are represented by hexadecimal strings.
+
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
 
         :return collections.OrderedDict:
         """
 
         key_dict = super(HDKey, self).as_dict()
-        key_dict['fingerprint'] = to_hexstring(self.fingerprint)
-        key_dict['chain_code'] = to_hexstring(self.chain)
+        if include_private:
+            key_dict['fingerprint'] = to_hexstring(self.fingerprint)
+            key_dict['chain_code'] = to_hexstring(self.chain)
+            key_dict['fingerprint_parent'] = to_hexstring(self.parent_fingerprint)
         key_dict['child_index'] = self.child_index
-        key_dict['fingerprint_parent'] = to_hexstring(self.parent_fingerprint)
         key_dict['depth'] = self.depth
         key_dict['extended_wif_public'] = self.wif_public()
-        key_dict['extended_wif_private'] = self.wif(is_private=True)
+        if include_private:
+            key_dict['extended_wif_private'] = self.wif(is_private=True)
         return key_dict
 
-    def as_json(self):
+    def as_json(self, include_private=False):
         """
         Get current key as json formatted string
 
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
+        
         :return str:
         """
-        return json.dumps(self.as_dict(), indent=4)
+        return json.dumps(self.as_dict(include_private=include_private), indent=4)
 
     def _key_derivation(self, seed):
         """
@@ -1371,9 +1390,9 @@ class HDKey(Key):
         :return tuple: key and chain bytes
         """
         chain = hasattr(self, 'chain') and self.chain or b"Bitcoin seed"
-        I = hmac.new(chain, seed, hashlib.sha512).digest()
-        key = I[:32]
-        chain = I[32:]
+        i = hmac.new(chain, seed, hashlib.sha512).digest()
+        key = i[:32]
+        chain = i[32:]
         key_int = change_base(key, 256, 10)
         if key_int >= secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
@@ -1756,7 +1775,6 @@ class HDKey(Key):
             ki_x = ki.x()
             ki_y = ki.y()
 
-        # if change_base(Ki.y(), 16, 10) % 2:
         if ki_y % 2:
             prefix = '03'
         else:
@@ -2113,3 +2131,21 @@ def ec_point(m):
         point = secp256k1_generator
         point *= m
         return point
+
+
+def mod_sqrt(a):
+    """
+    Compute the square root of 'a' using the secp256k1 'bitcoin' curve
+
+    Used to calculate y-coordinate if only x-coordinate from public key point is known.
+    Formula: y ** 2 == x ** 3 + 7
+    
+    :param a: Number to calculate square root
+    :type a: int
+    
+    :return int: 
+    """
+
+    # k = (secp256k1_p - 3) // 4
+    k = 28948022309329048855892746252171976963317496166410141009864396001977208667915
+    return pow(a, k + 1, secp256k1_p)

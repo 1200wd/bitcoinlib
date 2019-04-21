@@ -50,12 +50,14 @@ class WalletError(Exception):
         return self.msg
 
 
-def wallets_list(databasefile=DEFAULT_DATABASE):
+def wallets_list(databasefile=DEFAULT_DATABASE, include_cosigners=False):
     """
     List Wallets from database
     
     :param databasefile: Location of Sqlite database. Leave empty to use default
     :type databasefile: str
+    :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
+    :type include_cosigners: bool
     
     :return dict: Dictionary of wallets defined in database
     """
@@ -64,6 +66,8 @@ def wallets_list(databasefile=DEFAULT_DATABASE):
     wallets = session.query(DbWallet).all()
     wlst = []
     for w in wallets:
+        if w.parent_id and not include_cosigners:
+            continue
         wlst.append({
             'id': w.id,
             'name': w.name,
@@ -524,20 +528,21 @@ class HDWalletKey(object):
         else:
             return self._balance
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Return current key information as dictionary
 
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
+
         """
 
-        return {
+        kdict = {
             'id': self.key_id,
             'key_type': self.key_type,
             'is_private': self.is_private,
             'name': self.name,
-            'key_private': self.key_private,
             'key_public': self.key_public,
-            'wif': self.wif,
             'account_id':  self.account_id,
             'parent_id': self.parent_id,
             'depth': self.depth,
@@ -549,6 +554,12 @@ class HDWalletKey(object):
             'balance': self.balance(),
             'balance_str': self.balance(fmt='string')
         }
+        if include_private:
+            kdict.update({
+                'key_private': self.key_private,
+                'wif': self.wif,
+            })
+        return kdict
 
 
 class HDWalletTransaction(Transaction):
@@ -602,6 +613,60 @@ class HDWalletTransaction(Transaction):
                    hash=t.hash, date=t.date, confirmations=t.confirmations, block_height=t.block_height,
                    block_hash=t.block_hash, input_total=t.input_total, output_total=t.output_total,
                    rawtx=t.rawtx, status=t.status, coinbase=t.coinbase, verified=t.verified, flag=t.flag)
+
+    @classmethod
+    def from_txid(cls, hdwallet, txid):
+        sess = hdwallet._session
+        # If tx_hash is unknown add it to database, else update
+        db_tx_query = sess.query(DbTransaction). \
+            filter(DbTransaction.wallet_id == hdwallet.wallet_id, DbTransaction.hash == txid)
+        db_tx = db_tx_query.scalar()
+        if not db_tx:
+            return
+
+        fee_per_kb = None
+        if db_tx.fee and db_tx.size:
+            fee_per_kb = int((db_tx.fee / db_tx.size) * 1024)
+        network = Network(db_tx.network_name)
+
+        inputs = []
+        for inp in db_tx.inputs:
+            key = hdwallet.key(inp.key_id)
+            sequence = 0xffffffff
+            if inp.sequence:
+                sequence = inp.sequence
+            inputs.append(Input(
+                prev_hash=inp.prev_hash, output_n=inp.output_n, keys=key.key(), unlocking_script=inp.script,
+                script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
+                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network))
+        # TODO / FIXME: Field in Input object, but not in database:
+        # def __init__(signatures=None, public_hash=b'',
+        #              unlocking_script_unsigned=None, compressed=None, sigs_required=None, sort=False,
+        #              locktime_cltv=None, locktime_csv=None, key_path='',
+        #              encoding=None, network=DEFAULT_NETWORK):
+
+        outputs = []
+        for out in db_tx.outputs:
+            address = ''
+            public_key=''
+            if out.key_id:
+                key = hdwallet.key(out.key_id)
+                address = key.address
+                public_key = key.key().public_hex
+            outputs.append(Output(value=out.value, address=address, public_key=public_key,
+                                  lock_script=out.script, spent=out.spent, output_n=out.output_n,
+                                  script_type=out.script_type, network=network))
+
+        # TODO / FIXME: Field in Output object, but not in database:
+        # def __init__(address, public_hex, public_hash=b'', encoding=None, network=DEFAULT_NETWORK):
+
+        return cls(hdwallet=hdwallet, inputs=inputs, outputs=outputs, locktime=db_tx.locktime,
+                   version=db_tx.version, network=network, fee=db_tx.fee, fee_per_kb=fee_per_kb,
+                   size=db_tx.size, hash=txid, date=db_tx.date, confirmations=db_tx.confirmations,
+                   block_height=db_tx.block_height, block_hash=db_tx.block_hash, input_total=db_tx.input_total,
+                   output_total=db_tx.output_total, rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
+                   verified=db_tx.verified)  # flag=db_tx.flag
+    
 
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL):
         """
@@ -657,7 +722,7 @@ class HDWalletTransaction(Transaction):
 
     def send(self, offline=False):
         """
-        Verify and push transaction to network. Update UTXO's in database after successfull send
+        Verify and push transaction to network. Update UTXO's in database after successful send
 
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
@@ -728,7 +793,7 @@ class HDWalletTransaction(Transaction):
                 wallet_id=self.hdwallet.wallet_id, hash=self.hash, block_height=self.block_height,
                 size=self.size, confirmations=self.confirmations, date=self.date, fee=self.fee, status=self.status,
                 input_total=self.input_total, output_total=self.output_total, network_name=self.network.name,
-                block_hash=self.block_hash, raw=self.rawtx)
+                block_hash=self.block_hash, raw=self.rawtx, verified=self.verified)
             sess.add(new_tx)
             sess.commit()
             tx_id = new_tx.id
@@ -743,6 +808,7 @@ class HDWalletTransaction(Transaction):
             db_tx.output_total = self.output_total if self.output_total else db_tx.output_total
             db_tx.network_name = self.network.name if self.network.name else db_tx.name
             db_tx.raw = self.rawtx if self.rawtx else db_tx.raw
+            db_tx.verified = self.verified
             sess.commit()
 
         assert tx_id
@@ -1189,7 +1255,7 @@ class HDWallet(object):
             self.multisig = db_wlt.multisig
             self.cosigner_id = db_wlt.cosigner_id
             self.script_type = script_type_default(self.witness_type, self.multisig, locking_script=True)
-            self.key_path = db_wlt.key_path.split('/')
+            self.key_path = [] if not db_wlt.key_path else db_wlt.key_path.split('/')
             self.depth_public_master = 0
             self.parent_id = db_wlt.parent_id
             if self.main_key and self.main_key.depth > 0:
@@ -1599,6 +1665,8 @@ class HDWallet(object):
         :param change: Filter by change addresses. Set to True to include only change addresses, False to only include regular addresses. None (default) to disable filter and include both
         :param network: Network name. Leave empty for default network
         :type network: str
+        :param _keys_ignore: Id's of keys to ignore, for internal function use only
+        :param _recursion_depth: Counter for recursion depth, for internal function use only
 
         :return:
         """
@@ -1933,7 +2001,7 @@ class HDWallet(object):
             return nk
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
-             has_balance=None, is_active=True, network=None, as_dict=False):
+             has_balance=None, is_active=True, network=None, include_private=False, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -1959,7 +2027,10 @@ class HDWallet(object):
         :type is_active: bool
         :param network: Network name filter
         :type network: str
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
+        :type as_dict: bool
         
         :return list: List of Keys
         """
@@ -1987,7 +2058,7 @@ class HDWallet(object):
         if is_private is not None:
             qr = qr.filter(DbKey.is_private == is_private)
         if has_balance is True and is_active is True:
-            raise WalletError("Cannot use has_balance and hide_unused parameter together")
+            raise WalletError("Cannot use has_balance and is_active parameter together")
         if has_balance is not None:
             if has_balance:
                 qr = qr.filter(DbKey.balance != 0)
@@ -1999,8 +2070,12 @@ class HDWallet(object):
         if as_dict:
             keys = [x.__dict__ for x in keys]
             keys2 = []
+            private_fields = []
+            if not include_private:
+                private_fields += ['private', 'wif']
             for key in keys:
-                keys2.append({k: v for (k, v) in key.items() if k[:1] != '_' and k != 'wallet'})
+                keys2.append({k: v for (k, v) in key.items()
+                              if k[:1] != '_' and k != 'wallet' and k not in private_fields})
             return keys2
         qr.session.close()
         return keys
@@ -2163,7 +2238,7 @@ class HDWallet(object):
                 self._key_objects.update({dbkey.id: hdwltkey})
                 return hdwltkey
         else:
-            raise KeyError("Key '%s' not found" % term)
+            raise BKeyError("Key '%s' not found" % term)
 
     def account(self, account_id):
         """
@@ -2199,7 +2274,7 @@ class HDWallet(object):
         :param network: Network name filter. Default filter is DEFAULT_NETWORK
         :type network: str
                 
-        :return list: List of accounts as HDWalletKey objects
+        :return list of integers: List of accounts IDs
         """
 
         if self.multisig and self.cosigner:
@@ -2620,6 +2695,14 @@ class HDWallet(object):
         return self.utxos_update(utxos=[utxo])
 
     def transactions_update_by_txids(self, txids):
+        """
+        Update transaction or list or transaction for this wallet with provided transaction ID
+
+        :param txids: Transaction ID, or list of transaction IDs
+        :type txids: str, list of str
+
+        :return:
+        """
         if not isinstance(txids, list):
             txids = [txids]
         txids = list(set(txids))
@@ -2627,7 +2710,9 @@ class HDWallet(object):
         txs = []
         srv = Service(network=self.network.name, providers=self.providers)
         for txid in txids:
-            txs.append(srv.gettransaction(txid))
+            tx = srv.gettransaction(txid)
+            if tx:
+                txs.append(tx)
 
         # TODO: Avoid duplicate code in this method and transaction_update()
         utxo_set = set()
@@ -3401,35 +3486,31 @@ class HDWallet(object):
                   Network(na_balance['network']).print_value(na_balance['balance'])))
         print("\n")
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Return wallet information in dictionary format
 
-        :param detail: Level of detail to show, from 0 to 6. With 0 no details and 6 most details
-        :type detail: int
+        :param include_private: Include private key information in dictionary
+        :type include_private: bool
 
         :return dict:
         """
 
         keys = []
         transactions = []
-        for nw in self.networks():
-            for key in self.keys(network=nw['network_name'], as_dict=True):
+        for netw in self.networks():
+            for key in self.keys(network=netw.name, include_private=include_private, as_dict=True):
                 keys.append(key)
 
             if self.multisig:
-                for t in self.transactions(include_new=True, account_id=0, network=nw['network_name']):
+                for t in self.transactions(include_new=True, account_id=0, network=netw.name):
                     transactions.append(t)
             else:
-                accounts = self.accounts(network=nw['network_name'])
+                accounts = self.accounts(network=netw.name)
                 if not accounts:
                     accounts = [0]
-                for account in accounts:
-                    if account == 0:
-                        account_id = 0
-                    else:
-                        account_id = account.account_id
-                    for t in self.transactions(include_new=True, account_id=account_id, network=nw['network_name']):
+                for account_id in accounts:
+                    for t in self.transactions(include_new=True, account_id=account_id, network=netw.name):
                         transactions.append(t)
 
         return {
@@ -3445,7 +3526,7 @@ class HDWallet(object):
             'default_account_id': self.default_account_id,
             'multisig_n_required': self.multisig_n_required,
             'cosigner_wallet_ids': [w.wallet_id for w in self.cosigner],
-            'cosigner_mainkey_wifs': [w.main_key.wif for w in self.cosigner],
+            'cosigner_public_masters': [w.public_master().key().wif() for w in self.cosigner],
             'sort_keys': self.sort_keys,
             'main_key_id': self.main_key_id,
             'encoding': self.encoding,
@@ -3453,11 +3534,14 @@ class HDWallet(object):
             'transactions': transactions,
         }
 
-    def as_json(self):
+    def as_json(self, include_private=False):
         """
         Get current key as json formatted string
 
+        :param include_private: Include private key information in JSON
+        :type include_private: bool
+
         :return str:
         """
-        adict = self.as_dict()
+        adict = self.as_dict(include_private=include_private)
         return json.dumps(adict, indent=4)
