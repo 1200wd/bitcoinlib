@@ -1659,6 +1659,8 @@ class HDWallet(object):
         :param change: Filter by change addresses. Set to True to include only change addresses, False to only include regular addresses. None (default) to disable filter and include both
         :param network: Network name. Leave empty for default network
         :type network: str
+        :param _keys_ignore: Id's of keys to ignore, for internal function use only
+        :param _recursion_depth: Counter for recursion depth, for internal function use only
 
         :return:
         """
@@ -3478,7 +3480,7 @@ class HDWallet(object):
                   Network(na_balance['network']).print_value(na_balance['balance'])))
         print("\n")
 
-    def as_dict(self):
+    def as_dict(self, include_private=False):
         """
         Return wallet information in dictionary format
 
@@ -3491,7 +3493,7 @@ class HDWallet(object):
         keys = []
         transactions = []
         for netw in self.networks():
-            for key in self.keys(network=netw.name, as_dict=True):
+            for key in self.keys(network=netw.name, include_private=include_private, as_dict=True):
                 keys.append(key)
 
             if self.multisig:
@@ -3526,11 +3528,14 @@ class HDWallet(object):
             'transactions': transactions,
         }
 
-    def as_json(self):
+    def as_json(self, include_private=False):
         """
         Get current key as json formatted string
 
+        :param include_private: Include private key information in JSON
+        :type include_private: bool
+
         :return str:
         """
-        adict = self.as_dict()
+        adict = self.as_dict(include_private=include_private)
         return json.dumps(adict, indent=4)

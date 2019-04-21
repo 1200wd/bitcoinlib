@@ -360,7 +360,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             if found and not len(script[cur:]):  # Found is True and no remaining script to parse
                 break
 
-        if found  and not len(script[cur:]):
+        if found and not len(script[cur:]):
             return data, script[cur:]
         data = _get_empty_data()
         data['result'] = 'Script not recognised'

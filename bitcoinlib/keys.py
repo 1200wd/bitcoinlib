@@ -27,7 +27,6 @@ from copy import deepcopy
 import collections
 import json
 
-scrypt_error = None
 try:
     import scrypt
     USING_MODULE_SCRYPT = True
@@ -56,10 +55,11 @@ else:
     secp256k1_generator = ecdsa.ellipticcurve.Point(secp256k1_curve, secp256k1_Gx, secp256k1_Gy, secp256k1_n)
 
 
-
 _logger = logging.getLogger(__name__)
 
 if not USING_MODULE_SCRYPT:
+    if 'scrypt_error' not in locals():
+        scrypt_error = 'unknown'
     _logger.warning("Error when trying to import scrypt module", scrypt_error)
     _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
                     "protected keys.")
@@ -258,7 +258,7 @@ def deserialize_address(address, encoding=None, network=None):
 
     if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
         raise BKeyError("Encoding '%s' not found in supported address encodings %s" %
-                       (encoding, SUPPORTED_ADDRESS_ENCODINGS))
+                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     if encoding is None or encoding == 'base58':
         address_bytes = change_base(address, 58, 256, 25)
         if address_bytes:
@@ -717,7 +717,6 @@ class Key(object):
                 # Calculate y from x with y=x^3 + 7 function
                 sign = pub_key[:2] == '03'
                 x = int(self._x, 16)
-                # ys = (x**3+7) % secp256k1_p
                 ys = pow(x, 3, secp256k1_p) + 7 % secp256k1_p
                 y = mod_sqrt(ys)
                 if y & 1 != sign:
@@ -1164,9 +1163,9 @@ class HDKey(Key):
         :return HDKey:
         """
         seed = to_bytes(import_seed)
-        I = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
-        key = I[:32]
-        chain = I[32:]
+        i = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
+        key = i[:32]
+        chain = i[32:]
         key_int = change_base(key, 256, 10)
         if key_int >= secp256k1_n:
             raise BKeyError("Key int value cannot be greater than secp256k1_n")
@@ -1383,9 +1382,9 @@ class HDKey(Key):
         :return tuple: key and chain bytes
         """
         chain = hasattr(self, 'chain') and self.chain or b"Bitcoin seed"
-        I = hmac.new(chain, seed, hashlib.sha512).digest()
-        key = I[:32]
-        chain = I[32:]
+        i = hmac.new(chain, seed, hashlib.sha512).digest()
+        key = i[:32]
+        chain = i[32:]
         key_int = change_base(key, 256, 10)
         if key_int >= secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
