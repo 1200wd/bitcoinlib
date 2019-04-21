@@ -360,7 +360,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             if found and not len(script[cur:]):  # Found is True and no remaining script to parse
                 break
 
-        if found  and not len(script[cur:]):
+        if found and not len(script[cur:]):
             return data, script[cur:]
         data = _get_empty_data()
         data['result'] = 'Script not recognised'
@@ -783,37 +783,11 @@ class Input(object):
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
         for sig in signatures:
-            # if isinstance(sig, dict):
-            #     if sig['sig_der'] not in [x['sig_der'] for x in self.signatures]:
-            #         self.signatures.append(sig)
             if isinstance(sig, Signature):
                 if sig.as_der_encoded not in [x.as_der_encoded for x in self.signatures]:
                     self.signatures.append(sig)
             else:
                 self.signatures.append(Signature.from_str(sig))
-                # if not isinstance(sig, bytes):
-                #     sig = to_bytes(sig)
-                # sig_der = ''
-                # if sig.startswith(b'\x30'):
-                #     # If signature ends with Hashtype, remove hashtype and continue
-                #     # TODO: support for other hashtypes
-                #     if sig.endswith(b'\x01'):
-                #         # _, junk = ecdsa.der.remove_sequence(sig)
-                #         # if junk == b'\x01':
-                #         sig_der = sig[:-1]
-                #     else:
-                #         sig_der = sig
-                #     try:
-                #         sig = convert_der_sig(sig[:-1], as_hex=False)
-                #     except Exception:
-                #         pass
-                # self.signatures.append(
-                #     {
-                #         'sig_der': sig_der,
-                #         'signature': to_bytes(sig),
-                #         'priv_key': b'',
-                #         'pub_key': b''
-                #     })
         self.update_scripts()
 
     # TODO: Remove / replace?
@@ -1192,7 +1166,6 @@ class Transaction(object):
         To verify and sign transactions all inputs and outputs need to be included in transaction. Any modification 
         after signing makes the transaction invalid.
         
-        :rtype:
         :param inputs: Array of Input objects. Leave empty to add later
         :type inputs: list (Input)
         :param outputs: Array of Output object. Leave empty to add later
