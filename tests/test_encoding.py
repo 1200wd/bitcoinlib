@@ -311,5 +311,12 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             self.assertFalse(addr_bech32_to_pubkeyhash("tb", test))
 
 
+class TestEncodingConfig(unittest.TestCase):
+
+    def test_config_opcodes(self):
+        self.assertEqual(opcode('OP_CHECKLOCKTIMEVERIFY'), b'\xb1')
+        self.assertEqual(opcode('OP_CHECKLOCKTIMEVERIFY', as_bytes=False), 177)
+
+
 if __name__ == '__main__':
     unittest.main()

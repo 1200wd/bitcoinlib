@@ -6,3 +6,4 @@ omit =
     *bitcoind.py
     *litecoind.py
     *authproxy.py
+    *cryptoid.py
