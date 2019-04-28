@@ -146,14 +146,14 @@ class Mnemonic(object):
 
     def to_entropy(self, words, includes_checksum=True):
         """
-        Convert Mnemonic words back to key data entrophy
+        Convert Mnemonic words back to key data entropy
 
         :param words: Mnemonic words as string of list of words
         :type words: str
         :param includes_checksum: Boolean to specify if checksum is used. Default is True
         :type includes_checksum: bool
         
-        :return bytes: Entrophy seed
+        :return bytes: Entropy seed
         """
         words = self.sanitize_mnemonic(words)
         if isinstance(words, TYPE_TEXT):

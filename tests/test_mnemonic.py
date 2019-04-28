@@ -27,7 +27,6 @@ from bitcoinlib.encoding import change_base
 from bitcoinlib.mnemonic import Mnemonic
 
 
-# From Copyright (c) 2013 Pavol Rusnak <https://github.com/trezor/python-mnemonic>
 class TestMnemonics(unittest.TestCase):
 
     def _check_list(self, language, vectors):
@@ -44,6 +43,7 @@ class TestMnemonics(unittest.TestCase):
             k = HDKey.from_seed(seed)
             self.assertEqual(k.wif(is_private=True), v[3])
 
+    # From Copyright (c) 2013 Pavol Rusnak <https://github.com/trezor/python-mnemonic>
     def test_vectors(self):
         workdir = os.path.dirname(__file__)
         with open('%s/%s' % (workdir, 'mnemonics_tests.json')) as f:
@@ -51,7 +51,17 @@ class TestMnemonics(unittest.TestCase):
         for lang in vectors.keys():
             self._check_list(lang, vectors[lang])
 
-    # TODO tests for sanitize_mnemonic, detect language etc
+    def test_mnemonic_generate(self):
+        phrase = Mnemonic(language='dutch').generate()
+        self.assertEqual(len(phrase.split(' ')), 12)
+        self.assertEqual(Mnemonic.detect_language(phrase), 'dutch')
+
+    def test_mnemonic_generate_eror(self):
+        self.assertRaisesRegexp(ValueError, 'Strenght should be divisible by 32', Mnemonic().generate, 11)
+
+    def test_mnemonic_to_entropy(self):
+        phrase = 'usage grid neither voice worry armor sudden core excuse keen stand pudding'
+        self.assertEqual(Mnemonic().to_entropy(phrase), b'\xef\x8c\xceP\xfa\xbf\xdc\x17\xf6!\x82O\x0f7RV')
 
 
 if __name__ == '__main__':
