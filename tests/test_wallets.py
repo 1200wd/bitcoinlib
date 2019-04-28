@@ -82,6 +82,15 @@ class TestWalletCreate(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(wallet_delete('wallet_to_remove', databasefile=DATABASEFILE_UNITTESTS), 1)
 
+    def test_wallet_empty(self):
+        w = HDWallet.create('empty_wallet_test', databasefile=DATABASEFILE_UNITTESTS)
+        master_key = w.public_master().key()
+        w2 = HDWallet.create('empty_wallet_test2', keys=master_key, databasefile=DATABASEFILE_UNITTESTS)
+        wallet_empty('empty_wallet_test', databasefile=DATABASEFILE_UNITTESTS)
+        wallet_empty('empty_wallet_test2', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(len(w.keys()), 1)
+        self.assertEqual(len(w2.keys()), 1)
+
     def test_delete_wallet_exception(self):
         self.assertRaisesRegexp(WalletError, '', wallet_delete, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
 
@@ -255,7 +264,7 @@ class TestWalletExport(unittest.TestCase):
                             databasefile=DATABASEFILE_UNITTESTS)
         wif = 'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmx' \
               'CKkXdDAXN'
-        # self.assertEqual(w.account(0).key().wif_public(script_type=w.script_type), wif)
+        self.assertEqual(w.account(0).key().wif_public(witness_type=w.witness_type), wif)
         self.assertEqual(w.wif(is_private=False), wif)
 
         # # p2sh_p2wpkh
@@ -1200,7 +1209,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
 
     def test_wallet_balance_update_multi_network(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("wallet-passphrase", keys=passphrase, network='testnet',
+        wlt = HDWallet.create("test_wallet_balance_update_multi_network", keys=passphrase, network='testnet',
                               databasefile=DATABASEFILE_UNITTESTS)
         wlt.get_key()
         wlt.new_account(network='bitcoinlib_test')
@@ -1210,6 +1219,13 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertEqual(wlt.balance(network='testnet'), 900)
         self.assertEqual(wlt.balance(network='bitcoinlib_test'), 400000000)
         del wlt
+
+    def test_wallet_balance_update_total(self):
+        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
+        wlt = HDWallet.create("test_wallet_balance_update_total", keys=passphrase, network='testnet',
+                              databasefile=DATABASEFILE_UNITTESTS)
+        wlt.get_key()
+        self.assertEqual(wlt.balance_update_from_serviceprovider(), 900)
 
     def test_wallet_add_dust_to_fee(self):
         # Send bitcoinlib test transaction and check if dust resume amount is added to fee

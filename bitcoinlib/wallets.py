@@ -121,7 +121,8 @@ def wallet_create_or_open(
 @deprecated  # In version 0.4.5
 def wallet_create_or_open_multisig(
         name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None, sort_keys=True,
-        witness_type=DEFAULT_WITNESS_TYPE, encoding=None, cosigner_id=None, key_path=None, databasefile=DEFAULT_DATABASE):
+        witness_type=DEFAULT_WITNESS_TYPE, encoding=None, cosigner_id=None, key_path=None,
+        databasefile=DEFAULT_DATABASE):  # pragma: no cover
     """
     Deprecated since version 0.4.5, use wallet_create_or_open instead
 
@@ -214,7 +215,7 @@ def wallet_empty(wallet, databasefile=DEFAULT_DATABASE):
     wallet_id = w.first().id
 
     # Delete keys from this wallet and update transactions (remove key_id)
-    ks = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.depth > 3)
+    ks = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.parent_id.isnot(0))
     for k in ks:
         session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
         session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
@@ -278,7 +279,7 @@ def normalize_path(path):
 
 
 @deprecated
-def parse_bip44_path(path):
+def parse_bip44_path(path):  # pragma: no cover
     """
     Assumes a correct BIP0044 path and returns a dictionary with path items. See Bitcoin improvement proposals
     BIP0043 and BIP0044.
@@ -666,7 +667,6 @@ class HDWalletTransaction(Transaction):
                    block_height=db_tx.block_height, block_hash=db_tx.block_hash, input_total=db_tx.input_total,
                    output_total=db_tx.output_total, rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)  # flag=db_tx.flag
-    
 
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL):
         """
@@ -1401,7 +1401,7 @@ class HDWallet(object):
         self._session.commit()
 
     @deprecated  # Since 0.4.5 - Use import_key, to import private key for known public key
-    def key_add_private(self, wallet_key, private_key):
+    def key_add_private(self, wallet_key, private_key):  # pragma: no cover
         """
         Change public key in wallet to private key in current HDWallet object and in database
 
@@ -2343,9 +2343,9 @@ class HDWallet(object):
         :return int: Total balance
         """
 
+        network, account_id, acckey = self._get_account_defaults(network, account_id)
         balance = Service(network=network, providers=self.providers).getbalance(self.addresslist(account_id=account_id,
                                                                                                  network=network))
-        network, account_id, acckey = self._get_account_defaults(network, account_id)
         if balance:
             new_balance = {
                 'account_id': account_id,
