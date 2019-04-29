@@ -617,6 +617,17 @@ class HDWalletTransaction(Transaction):
 
     @classmethod
     def from_txid(cls, hdwallet, txid):
+        """
+        Read single transaction from database with given transaction ID / transaction hash
+
+        :param hdwallet: HDWallet object
+        :type hdwallet: HDWallet
+        :param txid: Transaction hash as hexadecimal string
+        :type txid: str
+
+        :return HDWalletClass:
+
+        """
         sess = hdwallet._session
         # If tx_hash is unknown add it to database, else update
         db_tx_query = sess.query(DbTransaction). \
@@ -636,8 +647,14 @@ class HDWalletTransaction(Transaction):
             sequence = 0xffffffff
             if inp.sequence:
                 sequence = inp.sequence
+            if key.key_type == 'multisig':
+                inp_keys = ''
+                inp_script = key.key_public
+            else:
+                inp_keys = key.key()
+                inp_script = inp.script
             inputs.append(Input(
-                prev_hash=inp.prev_hash, output_n=inp.output_n, keys=key.key(), unlocking_script=inp.script,
+                prev_hash=inp.prev_hash, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp_script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
                 double_spend=inp.double_spend, witness_type=inp.witness_type, network=network))
         # TODO / FIXME: Field in Input object, but not in database:
@@ -649,11 +666,12 @@ class HDWalletTransaction(Transaction):
         outputs = []
         for out in db_tx.outputs:
             address = ''
-            public_key=''
+            public_key = b''
             if out.key_id:
                 key = hdwallet.key(out.key_id)
                 address = key.address
-                public_key = key.key().public_hex
+                if key.key_type != 'multisig':
+                    public_key = key.key().public_hex
             outputs.append(Output(value=out.value, address=address, public_key=public_key,
                                   lock_script=out.script, spent=out.spent, output_n=out.output_n,
                                   script_type=out.script_type, network=network))
@@ -2780,7 +2798,7 @@ class HDWallet(object):
 
         return len(txs)
 
-    def transactions(self, account_id=None, network=None, include_new=False, key_id=None):
+    def transactions(self, account_id=None, network=None, include_new=False, key_id=None, as_dict=False):
         """
         :param account_id: Filter by Account ID. Leave empty for default account_id
         :type account_id: int
@@ -2790,6 +2808,8 @@ class HDWallet(object):
         :type include_new: bool
         :param key_id: Filter by key ID
         :type key_id: int
+        :param as_dict: Output as dictionary or HDWalletTransaction object
+        :type as_dict: bool
 
         :return list: List of transactions as dictionary
         """
@@ -2826,18 +2846,34 @@ class HDWallet(object):
 
         res = []
         for tx in txs:
-            u = tx[0].__dict__
-            if '_sa_instance_state' in u:
-                del u['_sa_instance_state']
-            u['address'] = tx[1]
-            u['confirmations'] = int(tx[2])
-            u['tx_hash'] = tx[3]
-            u['network_name'] = tx[4]
-            u['status'] = tx[5]
-            if 'index_n' in u:
-                u['value'] = -u['value']
+            txid = tx[3]
+
+            if as_dict:
+                u = tx[0].__dict__
+                if '_sa_instance_state' in u:
+                    del u['_sa_instance_state']
+                u['address'] = tx[1]
+                u['confirmations'] = int(tx[2])
+                u['tx_hash'] = txid
+                u['network_name'] = tx[4]
+                u['status'] = tx[5]
+                if 'index_n' in u:
+                    u['value'] = -u['value']
+            else:
+                u = self.transaction(txid)
             res.append(u)
         return res
+
+    def transaction(self, txid):
+        """
+        Get HDWalletTransaction object for given transaction ID (transaction hash)
+
+        :param txid: Hexadecimal transaction hash
+        :type txid: str
+
+        :return HDWalletTransaction:
+        """
+        return HDWalletTransaction.from_txid(self, txid)
 
     def _objects_by_key_id(self, key_id):
         key = self._session.query(DbKey).filter_by(id=key_id).scalar()
@@ -3453,33 +3489,35 @@ class HDWallet(object):
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    if self.multisig:
-                        for t in self.transactions(include_new=include_new, account_id=0, network=nw.name):
-                            print("\n- - Transactions")
+                    # if self.multisig:
+                    #     for t in self.transactions(include_new=include_new, account_id=0, network=nw.name):
+                    #         print("\n- - Transactions")
+                    #         spent = ""
+                    #         if 'spent' in t and t['spent'] is False:
+                    #             spent = "U"
+                    #         status = ""
+                    #         if t['status'] not in ['confirmed', 'unconfirmed']:
+                    #             status = t['status']
+                    #         print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
+                    #                                                 t['confirmations'], t['value'], spent, status))
+                    # else:
+                    accounts = self.accounts(network=nw.name)
+                    if not accounts:
+                        accounts = [0]
+                    for account_id in accounts:
+                        print("\n- - Transactions Account %d" % account_id)
+                        for t in self.transactions(include_new=include_new, account_id=account_id,
+                                                   network=nw.name):
                             spent = ""
-                            if 'spent' in t and t['spent'] is False:
-                                spent = "U"
+                            address = ""
+                            value = 0
+                            # if 'spent' in t and t['spent'] is False:
+                            #     spent = "U"
                             status = ""
-                            if t['status'] not in ['confirmed', 'unconfirmed']:
-                                status = t['status']
-                            print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
-                                                                    t['confirmations'], t['value'], spent, status))
-                    else:
-                        accounts = self.accounts(network=nw.name)
-                        if not accounts:
-                            accounts = [0]
-                        for account_id in accounts:
-                            print("\n- - Transactions Account %d" % account_id)
-                            for t in self.transactions(include_new=include_new, account_id=account_id,
-                                                       network=nw.name):
-                                spent = ""
-                                if 'spent' in t and t['spent'] is False:
-                                    spent = "U"
-                                status = ""
-                                if t['status'] not in ['confirmed', 'unconfirmed']:
-                                    status = t['status']
-                                print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
-                                                                        t['confirmations'], t['value'], spent, status))
+                            if t.status not in ['confirmed', 'unconfirmed']:
+                                status = t.status
+                            print("%64s %36s %8d %13d %s %s" % (t.hash, address, t.confirmations, value,
+                                                                spent, status))
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],

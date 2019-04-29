@@ -707,10 +707,10 @@ class Input(object):
             self.script_type = 'coinbase'
         if not sigs_required:
             if self.script_type == 'p2sh_multisig':
-                raise TransactionError("Please specify number of signatures required (sigs_required) parameter")
+                # raise TransactionError("Please specify number of signatures required (sigs_required) parameter")
+                pass
             else:
                 sigs_required = 1
-        self.sigs_required = sigs_required
         self.double_spend = double_spend
         self.locktime_cltv = locktime_cltv
         self.locktime_csv = locktime_csv
@@ -736,6 +736,7 @@ class Input(object):
                 self.redeemscript = us_dict['redeemscript']
                 signatures += us_dict['signatures']
                 keys += us_dict['keys']
+                sigs_required = us_dict['number_of_sigs_m']
                 if not signatures and not self.public_hash:
                     self.public_hash = us_dict['hashes'][0]
                 # Determine locking script type for unlocking script type
@@ -745,6 +746,9 @@ class Input(object):
                         self.script_type = 'p2sh_p2wsh'
                     elif us_dict['script_type'] == 'p2wpkh':
                         self.script_type = 'p2sh_p2wpkh'
+            elif not sigs_required:
+                raise TransactionError("Could not parse script. Please specify number of signatures required "
+                                       "(sigs_required) parameter")
                 # elif self.script_type != us_dict['script_type']:
                 #     raise TransactionError("Address script type %s is different from script type provided %s" %
                 #                            (us_dict['script_type'], self.script_type))
@@ -755,6 +759,7 @@ class Input(object):
                 if ls_dict['script_type'] in ['p2wpkh', 'p2wsh']:
                     self.witness_type = 'segwit'
                 self.script_type = get_unlocking_script_type(ls_dict['script_type'])
+        self.sigs_required = sigs_required
         if self.witness_type is None or self.witness_type == 'legacy':
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'

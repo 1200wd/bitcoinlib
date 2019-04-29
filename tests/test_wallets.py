@@ -1116,7 +1116,7 @@ class TestWalletKeyImport(unittest.TestCase):
         self.assertEqual(w.public_master()[1].wif, 'ZprvArYK8TRL84162ECqZEwt8NsCRdN43ZVVPYTfPsKw5YfiRGWtx3AC3eXvTuk'
                                                    'CqUsKCLKQNGDV11hHi3FUQbcD9wc9g8ro64kK6H2MP4jaM7K')
         w.transactions_update()
-        tx_hashes = sorted([t['tx_hash'] for t in w.transactions()])
+        tx_hashes = sorted([t.hash for t in w.transactions()])
         tx_hashes_expected = ['53b35eca3f2e767db02e4acc6c224d7a45f32158c8063f53c3d3660ab12d53ba',
                               'b6c4f286e8883927c26ce91e6cc89c7a8dd88223c111635e8e53f78c4573712a']
         self.assertListEqual(tx_hashes, tx_hashes_expected)
@@ -1319,6 +1319,16 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
             size2 = t.size
             self.assertAlmostEqual(size1, size2, delta=4)
             self.assertAlmostEqual(len(t.raw()), size2, delta=4)
+
+    def test_wallet_transaction_method(self):
+        pk1 = HDKey(network='bitcoinlib_test')
+        pk2 = HDKey(network='bitcoinlib_test')
+        w = HDWallet.create('wallet_transaction_tests', keys=[pk1, pk2], databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key()
+        w.utxos_update()
+        self.assertEqual(len(w.transactions()), 2)
+        self.assertEqual(type(w.transactions(as_dict=True)[0]), dict)
+        self.assertEqual(type(w.transactions()[0].as_dict()), dict)
 
 
 class TestWalletDash(unittest.TestCase):
