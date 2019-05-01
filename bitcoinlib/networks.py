@@ -74,7 +74,7 @@ def _format_value(field, value):
         return value
 
 
-def network_values_for(field, output_as='default'):
+def network_values_for(field):
     """
     Return all prefixes mentioned field, i.e.: prefix_wif, prefix_address_p2sh, etc
 
@@ -85,18 +85,10 @@ def network_values_for(field, output_as='default'):
 
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
-    :param output_as: Output as string or hexstring. Default is string or hexstring depending on field type.
-    :type output_as: str
-    
+
     :return str: 
     """
-    r = [_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]
-    if output_as == 'str':
-        return [normalize_var(i) for i in r]
-    elif output_as == 'hex':
-        return [to_hexstring(i) for i in r]
-    else:
-        return r
+    return [_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]
 
 
 def network_by_value(field, value):

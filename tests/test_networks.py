@@ -34,6 +34,11 @@ class TestNetworks(unittest.TestCase):
         for expected in expected_prefixes:
             self.assertIn(expected, prefixes)
 
+    def test_network_defined(self):
+        self.assertTrue(network_defined('bitcoin'))
+        self.assertFalse(network_defined('bitcoiiin'))
+        self.assertRaisesRegexp(NetworkError, "Network bitcoiin not found in network definitions", Network, 'bitcoiin')
+
 
 if __name__ == '__main__':
     unittest.main()
