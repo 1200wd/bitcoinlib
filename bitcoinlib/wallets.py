@@ -509,9 +509,14 @@ class HDWalletKey(object):
         """
 
         if self.key_type == 'multisig':
+            # self._dbkey.multisig_children[0].child_key.wif / network_name
+            # self._hdkey_object = []
+            # for kc in self._dbkey.multisig_children:
+            #     self._hdkey_object.append(HDKey(import_key=kc.child_key.wif, network=kc.child_key.network_name))
+            # TODO: Return list of HDKeys for multisig
             raise WalletError("HDWalletKey of type multisig has no single hdkey object, use cosigner attribute")
         if self._hdkey_object is None:
-            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name, )
+            self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
         return self._hdkey_object
 
     def balance(self, fmt=''):
@@ -643,18 +648,21 @@ class HDWalletTransaction(Transaction):
 
         inputs = []
         for inp in db_tx.inputs:
-            key = hdwallet.key(inp.key_id)
             sequence = 0xffffffff
             if inp.sequence:
                 sequence = inp.sequence
-            if key.key_type == 'multisig':
-                inp_keys = ''
-                inp_script = key.key_public
-            else:
-                inp_keys = key.key()
-                inp_script = inp.script
+            inp_keys = []
+            if inp.key_id:
+                key = hdwallet.key(inp.key_id)
+                if key.key_type == 'multisig':
+                    db_key = sess.query(DbKey).filter_by(id=key.key_id).scalar()
+                    for ck in db_key.multisig_children:
+                        inp_keys.append(ck.child_key.public)
+
+                else:
+                    inp_keys = key.key()
             inputs.append(Input(
-                prev_hash=inp.prev_hash, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp_script,
+                prev_hash=inp.prev_hash, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
                 double_spend=inp.double_spend, witness_type=inp.witness_type, network=network))
         # TODO / FIXME: Field in Input object, but not in database:
