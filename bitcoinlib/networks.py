@@ -55,9 +55,7 @@ def _read_network_definitions():
     try:
         network_definitions = json.loads(f.read())
     except json.decoder.JSONDecodeError as e:
-        errstr = "Error reading provider definitions from %s: %s" % (fn, e)
-        _logger.warning(errstr)
-        raise NetworkError(errstr)
+        raise NetworkError("Error reading provider definitions from %s: %s" % (fn, e))
     f.close()
     return network_definitions
 

@@ -33,6 +33,8 @@ class TestNetworks(unittest.TestCase):
         expected_prefixes = [b'\xb0', b'\xef', b'\x99', b'\x80', b'\xcc']
         for expected in expected_prefixes:
             self.assertIn(expected, prefixes)
+        self.assertEqual(network_values_for('denominator')[0], 1e-8)
+        self.assertIn('BTC', network_values_for('currency_code'))
 
     def test_network_defined(self):
         self.assertTrue(network_defined('bitcoin'))
