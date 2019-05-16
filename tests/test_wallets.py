@@ -1330,6 +1330,16 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertEqual(type(w.transactions(as_dict=True)[0]), dict)
         self.assertEqual(type(w.transactions()[0].as_dict()), dict)
 
+    def test_wallet(self):
+        w = HDWallet.create('testwltbcl', keys='dda84e87df25f32d73a7f7d008ed2b89fc00d9d07fde588d1b8af0af297023de',
+                            network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        w.utxos_update()
+        wts = w.transactions()
+        txid = wts[0].hash
+        self.assertEqual(txid, '86eebbefb1062b45b19bc1bbc3fbe044fadcf592dc4e64f1a13a58ac362123ef')
+        wt0 = HDWalletTransaction.from_txid(w, txid)
+        self.assertEqual(wt0.outputs[0].address, 'zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y1')
+
 
 class TestWalletDash(unittest.TestCase):
 

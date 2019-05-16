@@ -2819,7 +2819,7 @@ class HDWallet(object):
         :param as_dict: Output as dictionary or HDWalletTransaction object
         :type as_dict: bool
 
-        :return list: List of transactions as dictionary
+        :return list of HDWalletTransaction: List of HDWalletTransaction or transactions as dictionary
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
