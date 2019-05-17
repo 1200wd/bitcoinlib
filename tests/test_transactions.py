@@ -935,6 +935,10 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(t.inputs[0].address, "1MMMMSUb1piy2ufrSguNUdFmAcvqrQF8M5")
         self.assertEqual(t.outputs[0].address, "1KKKK6N21XKo48zWKuQKXdvSsCf95ibHFa")
 
+    def test_transaction_info(self):
+        t = Transaction()
+        self.assertIsNone(t.info())
+
 
 class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
     def test_transaction_script_type_p2pkh(self):

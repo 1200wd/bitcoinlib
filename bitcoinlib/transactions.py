@@ -412,25 +412,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     return {'result': wrn_msg}
 
 
-def script_deserialize_sigpk(script):
-    """
-    Deserialize a unlocking script (scriptSig) with a signature and public key. The DER encoded signature is
-    decoded to a normal signature with point x and y in 64 bytes total.
-    
-    Returns signature and public key.
-    
-    :param script: A unlocking script
-    :type script: bytes
-
-    :return tuple: Tuple with a signature and public key in bytes
-    """
-
-    data = script_deserialize(script, ['sig_pubkey'])
-    assert(len(data['signatures']) == 1)
-    assert(len(data['keys']) == 1)
-    return data['signatures'][0], data['keys'][0]
-
-
 def script_to_string(script):
     """
     Convert script to human readable string format with OP-codes, signatures, keys, etc
