@@ -78,15 +78,16 @@ class TestService(unittest.TestCase, CustomAssertions):
         except ServiceError:
             pass
         for provider in srv.errors:
-            if isinstance(srv.errors[provider], Exception) or 'response [429]' in srv.errors[provider] \
-                    or 'response [503]' in srv.errors[provider]:
+            prov_error = str(srv.errors[provider])
+            if isinstance(srv.errors[provider], Exception) or 'response [429]' in prov_error \
+                    or 'response [503]' in prov_error:
                 pass
             elif provider == 'blockcypher.testnet':
-                self.assertIn('has already been spent', srv.errors['blockcypher.testnet'])
-            elif provider == 'blockexplorer.testnet' or provider == 'bitcoind.testnet':
-                self.assertIn('Missing inputs', srv.errors['blockexplorer.testnet'])
+                self.assertIn('has already been spent', prov_error)
+            elif provider == 'blockexplorer.testnet':
+                self.assertIn('Missing inputs', prov_error)
             elif provider == 'chain.so':
-                self.assertIn('are still available to spend', srv.errors['chain.so'])
+                self.assertIn('are still available to spend', prov_error)
 
     def test_get_balance(self):
         srv = Service(min_providers=5)
