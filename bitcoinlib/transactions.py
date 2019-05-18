@@ -265,9 +265,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     if not key:
                         found = False
                         break
-                    # if key[0] == '0x30':
-                    #     data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
-                    # else:
                     data['keys'].append(key)
                     cur += size + pk_size
                 elif ch == 'OP_RETURN':
@@ -324,7 +321,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     else:
                         found = False
                         break
-                        # raise TransactionError("%s is not an op_n code" % cur_char)
                     if data['number_of_sigs_m'] > data['number_of_sigs_n']:
                         raise TransactionError("Number of signatures to sign (%s) is higher then actual "
                                                "amount of signatures (%s)" %
@@ -730,9 +726,6 @@ class Input(object):
             elif not sigs_required:
                 raise TransactionError("Could not parse script. Please specify number of signatures required "
                                        "(sigs_required) parameter")
-                # elif self.script_type != us_dict['script_type']:
-                #     raise TransactionError("Address script type %s is different from script type provided %s" %
-                #                            (us_dict['script_type'], self.script_type))
         elif unlocking_script_unsigned and not signatures:
             ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
             if ls_dict['hashes']:
@@ -777,17 +770,17 @@ class Input(object):
         self.update_scripts()
 
     # TODO: Remove / replace?
-    def sequence_timelock_blocks(self, blocks):
-        if blocks > SEQUENCE_LOCKTIME_MASK:
-            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = blocks
-
-    def sequence_timelock_time(self, seconds):
-        if seconds % 512:
-            raise TransactionError("Seconds must be a multiply of 512")
-        if seconds > SEQUENCE_LOCKTIME_MASK:
-            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+    # def sequence_timelock_blocks(self, blocks):
+    #     if blocks > SEQUENCE_LOCKTIME_MASK:
+    #         raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+    #     self.sequence = blocks
+    #
+    # def sequence_timelock_time(self, seconds):
+    #     if seconds % 512:
+    #         raise TransactionError("Seconds must be a multiply of 512")
+    #     if seconds > SEQUENCE_LOCKTIME_MASK:
+    #         raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+    #     self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
 
     def update_scripts(self, hash_type=SIGHASH_ALL):
         """
@@ -1835,21 +1828,7 @@ class Transaction(object):
             if outp.lock_script:
                 est_size += len(varstr(outp.lock_script))
             else:
-                if outp.script_type == 'p2sh':
-                    est_size += 24
-                elif outp.script_type == 'p2pkh':
-                    est_size += 26
-                elif outp.script_type == 'p2wpkh':
-                    est_size += 21
-                elif outp.script_type == 'p2wsh':
-                    est_size += 33
-                elif outp.script_type == 'p2pk':
-                    est_size += 35
-                elif outp.script_type == 'nulldata':
-                    est_size += len(outp.lock_script) + 1
-                else:
-                    raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
-                                           outp.script_type)
+                raise TransactionError("Need locking script for output %d to estimate size" % outp.output_n)
         if add_change_output:
             is_multisig = True if self.inputs and self.inputs[0].script_type == 'p2sh_multisig' else False
             est_size += 8
@@ -1886,6 +1865,6 @@ class Transaction(object):
         :return int:
         """
 
-        self.input_total = sum([i.value for i in self.inputs])
-        self.output_total = sum([o.value for o in self.outputs])
+        self.input_total = sum([i.value for i in self.inputs if i.value])
+        self.output_total = sum([o.value for o in self.outputs if o.value])
         self.fee = self.input_total - self.output_total

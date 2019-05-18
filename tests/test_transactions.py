@@ -236,6 +236,9 @@ class TestTransactions(unittest.TestCase):
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
         self.assertEqual(t.estimate_size(), 225)
 
+        t2 = Transaction(network='litecoin')
+
+
     def test_transactions_estimate_size_nulldata(self):
         t = Transaction()
         lock_script = b'j' + varstr(b'Please leave a message after the beep')
@@ -937,6 +940,9 @@ class TestTransactions(unittest.TestCase):
 
     def test_transaction_info(self):
         t = Transaction()
+        t.add_input('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd', 0)
+        t.add_output(1000000, '1MMMMSUb1piy2ufrSguNUdFmAcvqrQF8M5')
+        t.update_totals()
         self.assertIsNone(t.info())
 
 
@@ -1057,6 +1063,14 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                 '7be3f3e457b000000000'
         t = Transaction.import_raw(rawtx)
         self.assertEqual(t.inputs[0].script_type, 'signature')
+
+    def test_transaction_locktime(self):
+        # FIXME: Add more usefull unittests for locktime
+        s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
+        s_cltv = script_add_locktime_cltv(10000, s)
+        s_csv = script_add_locktime_csv(600000, s)
+        self.assertIsNotNone(s_cltv)
+        self.assertIsNotNone(s_csv)
 
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
