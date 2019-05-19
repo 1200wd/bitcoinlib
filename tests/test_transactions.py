@@ -29,6 +29,8 @@ class TestTransactionInputs(unittest.TestCase):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ti = Input(ph, 0)
         self.assertEqual(ph, to_hexstring(ti.prev_hash))
+        self.assertEqual(repr(ti), "<Input(prev_hash='81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d"
+                                   "48', output_n=0, address='', index_n=0, type='sig_pubkey')>")
 
     def test_transaction_input_add_bytes(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
@@ -85,10 +87,12 @@ class TestTransactionInputs(unittest.TestCase):
 
 
 class TestTransactionOutputs(unittest.TestCase):
+
     def test_transaction_output_add_address(self):
         to = Output(1000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
         self.assertEqual(b'v\xa9\x14\x13\xd2\x15\xd2\x12\xcdQ\x88\xae\x02\xc5c_\xaa\xbd\xc4\xd7\xd4\xec\x91\x88\xac',
                          to.lock_script)
+        self.assertEqual(repr(to), '<Output(value=1000, address=12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH, type=p2pkh)>')
 
     def test_transaction_output_add_address_p2sh(self):
         to = Output(1000, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK', network='testnet')
@@ -948,6 +952,8 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(t.output_total, 4534776015)
         self.assertEqual(t.size, 523)
         self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
+        self.assertEqual(repr(t), '<Transaction(input_count=3, output_count=2, status=new, network=bitcoin)>')
+        self.assertEqual(str(t), '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
 
     def test_transaction_sendto_wrong_address(self):
         t = Transaction(network='bitcoin')
@@ -972,6 +978,11 @@ class TestTransactions(unittest.TestCase):
         t.add_output(1000000, '1MMMMSUb1piy2ufrSguNUdFmAcvqrQF8M5')
         t.update_totals()
         self.assertIsNone(t.info())
+
+    def test_transaction_errors(self):
+        self.assertRaisesRegexp(TransactionError, "Please specify a valid witness type: legacy or segwit",
+                                Transaction, witness_type='error')
+
 
 
 class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
@@ -1034,11 +1045,24 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual('Empty script', script_deserialize(b'')['result'])
 
     def test_transaction_script_type_string(self):
+        # Locking script
         s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
                                '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
         os = "OP_1 032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca33016 " \
              "02308673d16987eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a OP_2 OP_CHECKMULTISIG"
         self.assertEqual(os, str(script_to_string(s)))
+        # Signature unlocking script
+        sig = '304402203359857b3bc3409c161a3b9570306bde53f21a15fcf3d3946d8ddfc94dd6ff35022024dc076c7014ee199831079cc0f' \
+              'df5e55aeebee7e90f4d51a2d923cc57f9173a01'
+        self.assertEqual(script_to_string(sig), sig)
+        # Multisig redeemscript
+        script = '52210294d7bf6363ab715168e812dd5b64d1f503ba707746b55535b7ee8afadd979c0e21024b68079ccf41b9df944f4aa37' \
+                 '7a2431a8df6efd7d7939d1f4d4f17376dc3434d21028885aad1fe0ad25ba2d9a0917a415f035e83e2c1a149904006f2d1dd' \
+                 '63676d0e53ae'
+        script_string = 'OP_2 0294d7bf6363ab715168e812dd5b64d1f503ba707746b55535b7ee8afadd979c0e ' \
+                        '024b68079ccf41b9df944f4aa377a2431a8df6efd7d7939d1f4d4f17376dc3434d ' \
+                        '028885aad1fe0ad25ba2d9a0917a415f035e83e2c1a149904006f2d1dd63676d0e OP_3 OP_CHECKMULTISIG'
+        self.assertEqual(script_to_string(script), script_string)
 
     def test_transaction_script_deserialize_sig_pk(self):
         spk = '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a' \
@@ -1190,7 +1214,7 @@ class TestTransactionsMultisig(unittest.TestCase):
         t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
                     [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2)
         t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
-
+        print(to_hexstring(t.inputs[0].unlocking_script_unsigned))
         # Sign with private key and verify
         t.sign(pk1)
         t.sign(pk2)

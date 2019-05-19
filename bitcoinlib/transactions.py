@@ -933,8 +933,8 @@ class Input(object):
         }
 
     def __repr__(self):
-        return "<Input(prev_hash=%s, output_n=%d, address=%s, index_n=%s, type=%s)>" % \
-               (self.prev_hash, self.output_n_int, self.address, self.index_n, self.script_type)
+        return "<Input(prev_hash='%s', output_n=%d, address='%s', index_n=%s, type='%s')>" % \
+               (to_hexstring(self.prev_hash), self.output_n_int, self.address, self.index_n, self.script_type)
 
 
 class Output(object):
@@ -992,6 +992,7 @@ class Output(object):
             self.address = address.address()
             self.address_obj = address.address_obj
             public_key = address.public_byte
+            script_type = script_type_default(address.witness_type, address.multisig, True)
             self.public_hash = address.hash160
         else:
             self.address = address
