@@ -268,9 +268,6 @@ class TestTransactions(unittest.TestCase):
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
         self.assertEqual(t.estimate_size(), 225)
 
-        t2 = Transaction(network='litecoin')
-
-
     def test_transactions_estimate_size_nulldata(self):
         t = Transaction()
         lock_script = b'j' + varstr(b'Please leave a message after the beep')
@@ -984,8 +981,8 @@ class TestTransactions(unittest.TestCase):
                                 Transaction, witness_type='error')
 
 
-
 class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
+
     def test_transaction_script_type_p2pkh(self):
         s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
@@ -1123,15 +1120,26 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         s_csv = script_add_locktime_csv(600000, s)
         self.assertIsNotNone(s_cltv)
         self.assertIsNotNone(s_csv)
-
-        # Test deserialize and info methods
+        # Test deserialize locktime transactions
         rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044022003ea734e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b161ffb654be7e89c84de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d0977337376868b033029ba49cc64765dfdffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a327696a70a000000006a47304402207758c05e849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef98a21a3c567b4c6defe8ffca06012103ab51db28d30d3ac99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdffffff029b040000000000001976a91406d66adea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a9140614a615ee10d84a1e6d85ec1ff7fff527757d5987b0cc0800'
         t = Transaction.import_raw(rawtx)
-        t.info()
         self.assertEqual(t.locktime, 576688)
         rawtx = '010000000159dc9ad3dc18cd76827f107a50fd96981e323aec7be4cbf982df176b9ab64f4900000000fd17014730440220797987a17ee28181a94437e20c60b9d8da8974e68f91f250c424b623f06aeea9022036faa2834da6f883078abc3dd2fb48c19fc17097aa5b87fa11d00385fd21740b0121025c8ee352e8b0d12aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac800bd206a9068119b30840206281418227f33f76c53c43fa59fad748d2954e6ecd595a94c8aa6140d424014e59608dae01e97700da0b53b3095a1af882102ef7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d1187632102ef7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d11ac670475f2df5cb17521025c8ee352e8b0d12aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac800bdac68feffffff011f000200000000001976a91436963a21b49f701acf03dd1e778ab5774017b53c88ac75f2df5c'
         t = Transaction.import_raw(rawtx)
         self.assertEqual(t.locktime, 1558180469)
+        # Input level locktimes
+        t = Transaction()
+        t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df49453e', 0, locktime_cltv=10000)
+        t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494511', 0, locktime_csv=20000)
+        t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494522', 0,
+                    locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG+30000)
+        t.add_input('f601e39f6b99b64fc2e98beb706ec7f14d114db7e61722c0313b0048df494533', 0,
+                    locktime_csv=SEQUENCE_LOCKTIME_TYPE_FLAG+40000)
+        self.assertIsNone(t.info())
+
+    def test_transaction_get_unlocking_script_type(self):
+        self.assertEqual(get_unlocking_script_type('p2pk'), 'signature')
+        self.assertRaisesRegexp(TransactionError, "Unknown locking script type troep", get_unlocking_script_type, 'troep')
 
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
@@ -1152,6 +1160,12 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
             'e913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c70776538d079fbae117dc38effafb33304' \
             'af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea600bd217870a8b4f1f09f3a8e8353ae'
         self.assertEqual(to_hexstring(redeemscript), expected_redeemscript)
+        self.assertEqual(serialize_multisig_redeemscript([]), b'')
+        self.assertRaisesRegexp(TransactionError, "Argument public_key_list must be of type list",
+                                serialize_multisig_redeemscript, 2)
+        k = '02600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f49584'
+        self.assertEqual(to_hexstring(serialize_multisig_redeemscript([k])),
+                         '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
 
     def test_transaction_multisig_p2sh_sign(self):
         t = Transaction()

@@ -1335,19 +1335,19 @@ class Transaction(object):
                 replace_by_fee = True
             if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
                 if ti.sequence & SEQUENCE_LOCKTIME_TYPE_FLAG:
-                    print("  Relative timelock for %d seconds" % 512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                    print("  Relative timelock for %d seconds" % (512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG)))
                 else:
                     print("  Relative timelock for %d blocks" % ti.sequence)
             if ti.locktime_cltv:
                 if ti.locktime_cltv & SEQUENCE_LOCKTIME_TYPE_FLAG:
                     print("  Check Locktime Verify (CLTV) for %d seconds" %
-                          512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                          (512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG)))
                 else:
                     print("  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
             if ti.locktime_csv:
                 if ti.locktime_csv & SEQUENCE_LOCKTIME_TYPE_FLAG:
                     print("  Check Sequence Verify Timelock (CSV) for %d seconds" %
-                          512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                          (512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG)))
                 else:
                     print("  Check Sequence Verify Timelock (CSV) for %d blocks" % ti.locktime_csv)
 
