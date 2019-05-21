@@ -1056,8 +1056,8 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
     def test_transaction_script_type_multisig_empty_data(self):
         s = binascii.unhexlify('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
         data = script_deserialize(s)
-        data_expected = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime_cltv': 0,
-                         'locktime_csv': 0, 'number_of_sigs_n': 1, 'number_of_sigs_m': 1}
+        data_expected = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime_cltv': None,
+                         'locktime_csv': None, 'number_of_sigs_n': 1, 'number_of_sigs_m': 1}
         self.assertDictEqualExt(data, data_expected)
 
     def test_transaction_script_type_empty_unknown(self):
@@ -1101,7 +1101,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         spk = '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a' \
               '715cf7c938e238afde90207e9d103dd9018e12cb7180e0101'
         ds = script_deserialize(spk)
-        self.assertEqual(ds['result'], 'Script not recognised')
+        self.assertEqual(ds['result'], 'Could not parse script, unrecognized script')
 
     def test_transaction_script_deserialize_sig_pk2(self):
         spk = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5' \
@@ -1198,9 +1198,9 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         k = '02600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f49584'
         self.assertEqual(to_hexstring(serialize_multisig_redeemscript([k])),
                          '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
-        k = to_bytes(k)
-        print(to_hexstring(serialize_multisig_redeemscript([k])),
-              '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
+        # k = to_bytes(k)
+        # print(to_hexstring(serialize_multisig_redeemscript([k])),
+        #       '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
 
     def test_transaction_multisig_p2sh_sign(self):
         t = Transaction()

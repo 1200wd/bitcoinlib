@@ -487,7 +487,7 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
         elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
             public_key_list.append(k)
         elif len(k) == 132 and k[0:2] == '04' or len(k) == 66 and k[0:2] in ['02', '03']:
-            public_key_list.append(k)
+            public_key_list.append(to_bytes(k))
         else:
             kobj = Key(k)
             if compressed:
