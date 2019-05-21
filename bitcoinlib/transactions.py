@@ -204,9 +204,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             # TODO: Rethink and rewrite this:
             if not item_length and itemlen not in [20, 33, 65, 70, 71, 72, 73]:
                 break
-            # TODO: Does this have influence?
-            if len(scr) < itemlen:
-                break
             if redeemscript_expected and len(scr[itemlen + 1:]) < 20:
                 break
             items.append(scr[1:itemlen + 1])
@@ -251,8 +248,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     cur += total_length
                 elif ch == 'signature':
                     signature_length = 0
-                    if len(ch) > 10:
-                        signature_length = int(ch.split("-")[1])
                     s, total_length = _parse_data(script[cur:], 1, item_length=signature_length)
                     if not s:
                         found = False
@@ -303,11 +298,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     data['number_of_sigs_m'] = data2['number_of_sigs_m']
                     data['number_of_sigs_n'] = data2['number_of_sigs_n']
                     cur = len(script)
-                elif ch == 'push_size':
-                    push_size, size = varbyteint_to_int(script[cur:cur + 9])
-                    found = bool(len(script[cur:]) - size == push_size)
-                    if not found:
-                        break
                 elif ch == 'op_m':
                     if cur_char in OP_N_CODES:
                         data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
@@ -477,6 +467,9 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
         return b''
     if not isinstance(key_list, list):
         raise TransactionError("Argument public_key_list must be of type list")
+    if len(key_list) > 15:
+        raise TransactionError("Redeemscripts with more then 15 keys are non-standard and could result in "
+                               "locked up funds")
     public_key_list = []
     for k in key_list:
         if isinstance(k, Key):

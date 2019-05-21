@@ -1022,7 +1022,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual('multisig', res['script_type'])
         self.assertEqual(1, res['number_of_sigs_m'])
 
-    def test_transaction_script_type_multisig_error_count(self):
+    def test_transaction_script_multisig_errors(self):
         s = binascii.unhexlify('51'
                                '4104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426'
                                'd1b1ec45d76724f26901099416b9265b76ba67c8b0b73d'
@@ -1030,6 +1030,18 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                                '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')
         self.assertRaisesRegexp(TransactionError, '3 signatures found, but 2 sigs expected',
                                 script_deserialize, s)
+        self.assertRaisesRegexp(TransactionError, "Number of signatures to sign (3) is higher then actual amount "
+                                                  "of signatures (2)script_deserialize", script_deserialize,
+                                '532102d9d64770e0510c650cfaa0c05ba34f6faa35a18defcf9f2d493c4c225d93fbf221020c39c418c2'
+                                '38ba876d09c4529bdafb2a1295c57ece923997ab693bf0a84189b852ae')
+
+    def test_transaction_redeemscript_errors(self):
+        exp_error = "Redeemscripts with more then 15 keys are non-standard and could result in locked up funds"
+        keys = []
+        for n in range(20):
+            keys.append(HDKey().public_hex)
+        self.assertRaisesRegexp(TransactionError, exp_error, serialize_multisig_redeemscript, keys)
+
 
     def test_transaction_script_type_multisig_empty_data(self):
         s = binascii.unhexlify('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
@@ -1075,6 +1087,11 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                          bytearray(b'\x04-\xaa\x931^\xeb\xbe,\xb9\xb5\xc3P]\xf4\xc6\xfbl\xac\xa8\xb7Vx`\x98'
                                    b'VuP\xd4\x82\x0c\t\xdb\x98\x8f\xe9\x99}\x04\x9dhr\x92\xf8\x15\xcc\xd6'
                                    b'\xe7\xfb\\\x1b\x1a\x91\x13y\x99\x81\x8d\x17\xc7=\x0f\x80\xae\xf9'))
+        # sig_pk with missing public key
+        spk = '493046022100cf4d7571dd47a4d47f5cb767d54d6702530a3555726b27b6ac56117f5e7808fe0221008cbb42233bb04d7f28a' \
+              '715cf7c938e238afde90207e9d103dd9018e12cb7180e0101'
+        ds = script_deserialize(spk)
+        self.assertEqual(ds['result'], 'Script not recognised')
 
     def test_transaction_script_deserialize_sig_pk2(self):
         spk = '473044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e002207345fcb5a62deeb8d9d80e5' \
