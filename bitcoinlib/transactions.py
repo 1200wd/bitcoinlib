@@ -393,14 +393,16 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             locktime_cltv = data['locktime_cltv']
         if script and data['script_type'] == 'locktime_csv':
             locktime_csv = data['locktime_csv']
-    if data:
+    if data and data['result'] != 'Script not recognised':
         data['locktime_cltv'] = locktime_cltv
         data['locktime_csv'] = locktime_csv
         return data
 
-    wrn_msg = "Could not parse script, unrecognized script. Script: %s" % to_hexstring(script)
+    wrn_msg = "Could not parse script, unrecognized script"
     _logger.warning(wrn_msg)
-    return {'result': wrn_msg}
+    data = _get_empty_data()
+    data['result'] = wrn_msg
+    return data
 
 
 def script_to_string(script):
@@ -483,6 +485,8 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
             else:
                 public_key_list.append(k.public_uncompressed_byte)
         elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
+            public_key_list.append(k)
+        elif len(k) == 132 and k[0:2] == '04' or len(k) == 66 and k[0:2] in ['02', '03']:
             public_key_list.append(k)
         else:
             kobj = Key(k)
@@ -603,6 +607,8 @@ class Input(object):
         :type public_hash: bytes, str
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
+        :param unlocking_script_unsigned: Unlocking script for signing transaction
+        :type unlocking_script_unsigned: bytes, hexstring
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param address: Address string or object for input
@@ -721,9 +727,6 @@ class Input(object):
                         self.script_type = 'p2sh_p2wsh'
                     elif us_dict['script_type'] == 'p2wpkh':
                         self.script_type = 'p2sh_p2wpkh'
-            elif not sigs_required:
-                raise TransactionError("Could not parse script. Please specify number of signatures required "
-                                       "(sigs_required) parameter")
         elif unlocking_script_unsigned and not signatures:
             ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
             if ls_dict['hashes']:

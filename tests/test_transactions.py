@@ -85,6 +85,17 @@ class TestTransactionInputs(unittest.TestCase):
                    compressed=False)
         self.assertEqual(ti.address, 'yWut2kHY6nXbpgqatMCNkwsxoYHcpWeF6Q')
 
+    def test_transaction_input_locking_script(self):
+        ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
+        ti = Input(ph, 0, unlocking_script_unsigned='76a91423e102597c4a99516f851406f935a6e634dbccec88ac')
+        self.assertEqual(ti.address, '14GiCdJHj3bznWpcocjcu9ByCmDPEhEoP8')
+
+    def test_transaction_compressed_mixup_error(self):
+        k = HDKey(compressed=False)
+        ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
+        ti = Input(ph, 0, keys=k, compressed=True)
+        self.assertFalse(ti.compressed)
+
 
 class TestTransactionOutputs(unittest.TestCase):
 
@@ -1157,6 +1168,11 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(get_unlocking_script_type('p2pk'), 'signature')
         self.assertRaisesRegexp(TransactionError, "Unknown locking script type troep", get_unlocking_script_type, 'troep')
 
+    def test_transaction_redeemscript(self):
+        redeemscript = '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09e63975a1700c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff90e28da1848f640de68c2fe913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c70776538d079fbae117dc38effafb33304af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea600bd217870a8b4f1f09f3a8e8353ae'
+        sd = script_deserialize('00c9' + redeemscript)
+        self.assertEqual(to_hexstring(sd['redeemscript']), redeemscript)
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
@@ -1182,6 +1198,9 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
         k = '02600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f49584'
         self.assertEqual(to_hexstring(serialize_multisig_redeemscript([k])),
                          '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
+        k = to_bytes(k)
+        print(to_hexstring(serialize_multisig_redeemscript([k])),
+              '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
 
     def test_transaction_multisig_p2sh_sign(self):
         t = Transaction()
