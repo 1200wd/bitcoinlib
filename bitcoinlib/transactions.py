@@ -298,6 +298,11 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     data['number_of_sigs_m'] = data2['number_of_sigs_m']
                     data['number_of_sigs_n'] = data2['number_of_sigs_n']
                     cur = len(script)
+                elif ch == 'push_size':
+                    push_size, size = varbyteint_to_int(script[cur:cur + 9])
+                    found = bool(len(script[cur:]) - size == push_size)
+                    if not found:
+                        break
                 elif ch == 'op_m':
                     if cur_char in OP_N_CODES:
                         data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
