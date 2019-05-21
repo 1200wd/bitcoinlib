@@ -1030,8 +1030,8 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                                '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')
         self.assertRaisesRegexp(TransactionError, '3 signatures found, but 2 sigs expected',
                                 script_deserialize, s)
-        self.assertRaisesRegexp(TransactionError, "Number of signatures to sign (3) is higher then actual amount "
-                                                  "of signatures (2)script_deserialize", script_deserialize,
+        self.assertRaisesRegexp(TransactionError, 'Number of signatures to sign \(3\) is higher then actual amount '
+                                                  'of signatures \(2\)', script_deserialize,
                                 '532102d9d64770e0510c650cfaa0c05ba34f6faa35a18defcf9f2d493c4c225d93fbf221020c39c418c2'
                                 '38ba876d09c4529bdafb2a1295c57ece923997ab693bf0a84189b852ae')
 
@@ -1041,7 +1041,6 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         for n in range(20):
             keys.append(HDKey().public_hex)
         self.assertRaisesRegexp(TransactionError, exp_error, serialize_multisig_redeemscript, keys)
-
 
     def test_transaction_script_type_multisig_empty_data(self):
         s = binascii.unhexlify('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
