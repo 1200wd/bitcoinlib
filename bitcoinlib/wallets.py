@@ -161,6 +161,7 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
     else:
         w = session.query(DbWallet).filter_by(name=wallet)
     if not w or not w.first():
+        session.close()
         raise WalletError("Wallet '%s' not found" % wallet)
     wallet_id = w.first().id
 
@@ -168,6 +169,7 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
     ks = session.query(DbKey).filter_by(wallet_id=wallet_id)
     for k in ks:
         if not force and k.balance:
+            session.close()
             raise WalletError("Key %d (%s) still has unspent outputs. Use 'force=True' to delete this wallet" %
                               (k.id, k.address))
         session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})

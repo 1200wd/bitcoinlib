@@ -106,6 +106,7 @@ class TestWalletCreate(unittest.TestCase):
         w.utxos_update()
         self.assertRaisesRegexp(WalletError, "still has unspent outputs. Use 'force=True' to delete this wallet",
                                 wallet_delete, 'unempty_wallet_test', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertTrue(wallet_delete('unempty_wallet_test', databasefile=DATABASEFILE_UNITTESTS, force=True))
 
     def test_delete_wallet_exception(self):
         self.assertRaisesRegexp(WalletError, '', wallet_delete, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
