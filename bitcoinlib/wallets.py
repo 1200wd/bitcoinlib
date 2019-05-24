@@ -319,7 +319,8 @@ class HDWalletKey(object):
 
     @staticmethod
     def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0, purpose=44, parent_id=0,
-                 path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False, cosigner_id=None):
+                 path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False,
+                 cosigner_id=None):
         """
         Create HDWalletKey from a HDKey object or key
         
@@ -391,26 +392,20 @@ class HDWalletKey(object):
                 if path == 'm' and k.depth > 1:
                     path = "M"
 
-            wk = session.query(DbKey).filter(
-                DbKey.wallet_id == wallet_id, DbKey.wif == k.wif(
-                    witness_type=witness_type, multisig=multisig, is_private=True)).first()
             address = k.address(encoding=encoding, script_type=script_type)
+            wk = session.query(DbKey).filter(
+                DbKey.wallet_id == wallet_id,
+                or_(DbKey.public == k.public_hex,
+                    DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
+                    DbKey.address == address)).first()
             if wk:
+                wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
+                wk.is_private = True
+                wk.private = k.private_hex
+                wk.public = k.public_hex
+                wk.path = path
+                session.commit()
                 return HDWalletKey(wk.id, session, k)
-            else:  # Look for public version of key, and convert to private if possible
-                wk = session.query(DbKey).filter(
-                    DbKey.wallet_id == wallet_id,
-                    or_(DbKey.public == k.public_hex,
-                        DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
-                        DbKey.address == address)).first()
-                if wk:
-                    wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
-                    wk.is_private = True
-                    wk.private = k.private_hex
-                    wk.public = k.public_hex
-                    wk.path = path
-                    session.commit()
-                    return HDWalletKey(wk.id, session, k)
 
             nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
@@ -1419,7 +1414,7 @@ class HDWallet(object):
         :return str: 
         """
 
-        if wallet_exists(value):
+        if wallet_exists(value, databasefile=self.databasefile):
             raise WalletError("Wallet with name '%s' already exists" % value)
         self._name = value
         self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id).update({DbWallet.name: value})

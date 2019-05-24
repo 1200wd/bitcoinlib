@@ -135,6 +135,12 @@ class TestWalletCreate(unittest.TestCase):
         keys = wlt.get_key(number_of_keys=5)
         self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
 
+    def test_wallet_create_change_name(self):
+        wlt = HDWallet.create('test_wallet_create_change_name', databasefile=DATABASEFILE_UNITTESTS)
+        wlt.name = 'wallet_renamed'
+        wlt2 = HDWallet('wallet_renamed', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wlt2.name, 'wallet_renamed')
+
 
 class TestWalletImport(unittest.TestCase):
 
@@ -445,7 +451,7 @@ class TestWalletKeys(unittest.TestCase):
         self.assertFalse(private_hex2 in w_json)
         self.assertFalse(str(secret2) in w_json)
 
-    def test_wallet_key_network_mixups(self):
+    def test_wallet_key_create_from_key(self):
         k1 = HDKey(network='dash')
         k2 = HDKey(network='dash')
         w1 = HDWallet.create('network_mixup_test_wallet', network='litecoin', databasefile=DATABASEFILE_UNITTESTS)
@@ -460,6 +466,20 @@ class TestWalletKeys(unittest.TestCase):
         self.assertRaisesRegexp(WalletError, "Specified network and key network should be the same",
                                 HDWalletKey.from_key, 'key2', w2.wallet_id, w2._session, key=k2,
                                 network='bitcoin')
+        wk3 = HDWalletKey.from_key('key3', w2.wallet_id, w2._session, key=k1)
+        self.assertEqual(wk3.name, 'key1')
+        wk4 = HDWalletKey.from_key('key4', w2.wallet_id, w2._session, key=k1.address_obj)
+        self.assertEqual(wk4.name, 'key1')
+        k = HDKey().public_master()
+        w = HDWallet.create('pmtest', network='litecoin', databasefile=DATABASEFILE_UNITTESTS)
+        wk1 = HDWalletKey.from_key('key', w.wallet_id, w._session, key=k)
+        self.assertEqual(wk1.path, 'M')
+        # Test __repr__ method
+        print(wk1)
+
+    def test_wallet_key_not_found(self):
+        w = HDWallet.create('test_wallet_key_not_found', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', HDWalletKey, 1000000, w._session)
 
 
 class TestWalletElectrum(unittest.TestCase):
