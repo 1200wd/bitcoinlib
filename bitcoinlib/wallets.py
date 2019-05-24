@@ -360,11 +360,15 @@ class HDWalletKey(object):
             k = key
             if network is None:
                 network = k.network.name
+            elif network != k.network.name:
+                raise WalletError("Specified network and key network should be the same")
         elif isinstance(key, Address):
             k = key
             key_is_address = True
             if network is None:
                 network = k.network.name
+            elif network != k.network.name:
+                raise WalletError("Specified network and key network should be the same")
         else:
             if network is None:
                 network = DEFAULT_NETWORK
@@ -546,6 +550,7 @@ class HDWalletKey(object):
         kdict = {
             'id': self.key_id,
             'key_type': self.key_type,
+            'network': self.network.name,
             'is_private': self.is_private,
             'name': self.name,
             'key_public': self.key_public,
@@ -3497,18 +3502,6 @@ class HDWallet(object):
                     include_new = False
                     if detail > 3:
                         include_new = True
-                    # if self.multisig:
-                    #     for t in self.transactions(include_new=include_new, account_id=0, network=nw.name):
-                    #         print("\n- - Transactions")
-                    #         spent = ""
-                    #         if 'spent' in t and t['spent'] is False:
-                    #             spent = "U"
-                    #         status = ""
-                    #         if t['status'] not in ['confirmed', 'unconfirmed']:
-                    #             status = t['status']
-                    #         print("%4d %64s %36s %8d %13d %s %s" % (t['transaction_id'], t['tx_hash'], t['address'],
-                    #                                                 t['confirmations'], t['value'], spent, status))
-                    # else:
                     accounts = self.accounts(network=nw.name)
                     if not accounts:
                         accounts = [0]

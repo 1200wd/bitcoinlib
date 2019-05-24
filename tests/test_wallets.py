@@ -56,6 +56,10 @@ class TestWalletCreate(unittest.TestCase):
         self.assertTrue(self.wallet.as_dict())
         self.assertTrue(self.wallet.as_json())
 
+    def test_wallet_exists(self):
+        self.assertTrue(wallet_exists(self.wallet.wallet_id, databasefile=DATABASEFILE_UNITTESTS))
+        self.assertTrue(wallet_exists('test_wallet_create', databasefile=DATABASEFILE_UNITTESTS))
+
     def test_wallet_key_info(self):
         self.assertIsNone(self.wallet.main_key.key().info())
         self.assertTrue(self.wallet.main_key.as_dict())
@@ -84,12 +88,24 @@ class TestWalletCreate(unittest.TestCase):
 
     def test_wallet_empty(self):
         w = HDWallet.create('empty_wallet_test', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertNotEqual(len(w.keys()), 1)
         master_key = w.public_master().key()
         w2 = HDWallet.create('empty_wallet_test2', keys=master_key, databasefile=DATABASEFILE_UNITTESTS)
+        w3 = HDWallet.create('empty_wallet_test3', keys=master_key, databasefile=DATABASEFILE_UNITTESTS)
         wallet_empty('empty_wallet_test', databasefile=DATABASEFILE_UNITTESTS)
         wallet_empty('empty_wallet_test2', databasefile=DATABASEFILE_UNITTESTS)
+        wallet_empty(w3.wallet_id, databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(len(w.keys()), 1)
         self.assertEqual(len(w2.keys()), 1)
+        self.assertEqual(len(w3.keys()), 1)
+        # Test exceptions
+        self.assertRaisesRegexp(WalletError, "Wallet 'unknown_wallet_2' not found", wallet_empty, 'unknown_wallet_2')
+
+    def test_wallet_delete_not_empty(self):
+        w = HDWallet.create('unempty_wallet_test', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        w.utxos_update()
+        self.assertRaisesRegexp(WalletError, "still has unspent outputs. Use 'force=True' to delete this wallet",
+                                wallet_delete, 'unempty_wallet_test', databasefile=DATABASEFILE_UNITTESTS)
 
     def test_delete_wallet_exception(self):
         self.assertRaisesRegexp(WalletError, '', wallet_delete, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
@@ -427,6 +443,22 @@ class TestWalletKeys(unittest.TestCase):
         self.assertFalse(wif2 in w_json)
         self.assertFalse(private_hex2 in w_json)
         self.assertFalse(str(secret2) in w_json)
+
+    def test_wallet_key_network_mixups(self):
+        k1 = HDKey(network='dash')
+        k2 = HDKey(network='dash')
+        w1 = HDWallet.create('network_mixup_test_wallet', network='litecoin', databasefile=DATABASEFILE_UNITTESTS)
+        wk1 = HDWalletKey.from_key('key1', w1.wallet_id, w1._session, key=k1.address_obj)
+        self.assertEqual(wk1.network.name, 'dash')
+        self.assertRaisesRegexp(WalletError, "Specified network and key network should be the same",
+                                HDWalletKey.from_key, 'key2', w1.wallet_id, w1._session, key=k2.address_obj,
+                                network='bitcoin')
+        w2 = HDWallet.create('network_mixup_test_wallet2', network='litecoin', databasefile=DATABASEFILE_UNITTESTS)
+        wk2 = HDWalletKey.from_key('key1', w2.wallet_id, w2._session, key=k1)
+        self.assertEqual(wk2.network.name, 'dash')
+        self.assertRaisesRegexp(WalletError, "Specified network and key network should be the same",
+                                HDWalletKey.from_key, 'key2', w2.wallet_id, w2._session, key=k2,
+                                network='bitcoin')
 
 
 class TestWalletElectrum(unittest.TestCase):
@@ -1682,6 +1714,10 @@ class TestWalletKeyStructures(unittest.TestCase):
         self.assertEqual(w.new_key_change().path, "M/1/1/0")
         self.assertEqual(w.public_master()[0].wif, wif1)
         self.assertEqual(w.public_master()[1].wif, wif2)
+
+    def test_wallet_normalize_path(self):
+        self.assertEqual(normalize_path("m/48h/0p/100H/1200'/1234555"), "m/48'/0'/100'/1200'/1234555")
+        self.assertRaisesRegexp(WalletError, 'Could not parse path. Index is empty.', normalize_path, "m/44h/0p/100H//1201")
 
 
 class TestWalletReadonlyAddress(unittest.TestCase):
