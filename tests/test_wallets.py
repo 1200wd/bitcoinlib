@@ -55,6 +55,8 @@ class TestWalletCreate(unittest.TestCase):
         self.assertIsNone(self.wallet.info())
         self.assertTrue(self.wallet.as_dict())
         self.assertTrue(self.wallet.as_json())
+        self.assertIn("<HDWallet(name=test_wallet_create, databasefile=", repr(self.wallet))
+        print(self.wallet)
 
     def test_wallet_exists(self):
         self.assertTrue(wallet_exists(self.wallet.wallet_id, databasefile=DATABASEFILE_UNITTESTS))
@@ -428,6 +430,9 @@ class TestWalletKeys(unittest.TestCase):
         self.assertFalse(str(secret) in wmk_json)
         self.assertTrue(wif in w.main_key.key().as_json(include_private=True))
 
+        self.assertFalse(wif in str(w.main_key.as_dict()))
+        self.assertTrue(wif in str(w.main_key.as_dict(include_private=True)))
+
         w.utxo_add(w.main_key.address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
         t = w.sweep(w.get_key().address, offline=True, fee=2000)
         t_json = t.as_json()
@@ -476,6 +481,9 @@ class TestWalletKeys(unittest.TestCase):
         self.assertEqual(wk1.path, 'M')
         # Test __repr__ method
         print(wk1)
+        # Test change key name
+        wk1.name = 'new_name'
+        self.assertEqual(wk1.name, 'new_name')
 
     def test_wallet_key_not_found(self):
         w = HDWallet.create('test_wallet_key_not_found', databasefile=DATABASEFILE_UNITTESTS)
@@ -1392,6 +1400,10 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertEqual(txid, '86eebbefb1062b45b19bc1bbc3fbe044fadcf592dc4e64f1a13a58ac362123ef')
         wt0 = HDWalletTransaction.from_txid(w, txid)
         self.assertEqual(wt0.outputs[0].address, 'zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y1')
+        # Test __repr__
+        print(wt0)
+        # Test info()
+        wt0.info()
 
 
 class TestWalletDash(unittest.TestCase):
