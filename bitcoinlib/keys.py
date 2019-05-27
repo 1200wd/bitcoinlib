@@ -313,7 +313,7 @@ def deserialize_address(address, encoding=None, network=None):
                 script_type = 'p2wsh'
             else:
                 raise BKeyError("Unknown script type for address %s. Invalid length %d" %
-                               (address, len(public_key_hash)))
+                                (address, len(public_key_hash)))
             return {
                 'address': address,
                 'encoding': 'bech32',
