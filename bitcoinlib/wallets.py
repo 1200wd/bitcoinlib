@@ -2897,8 +2897,8 @@ class HDWallet(object):
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
 
-    def select_inputs(self, amount, variance=None, account_id=None, network=None, min_confirms=0, max_utxos=None,
-                      return_input_obj=True):
+    def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=0,
+                      max_utxos=None, return_input_obj=True):
         """
         Select available inputs for given amount
 
@@ -2927,9 +2927,10 @@ class HDWallet(object):
         utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
             filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
                    DbKey.network_name == network, DbKey.public != '',
-                   DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms). \
-            order_by(DbTransaction.confirmations.desc())
-        utxos = utxo_query.all()
+                   DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms)
+        if input_key_id:
+            utxo_query.filter(DbKey.id == input_key_id)
+        utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found")
 
@@ -2981,7 +2982,7 @@ class HDWallet(object):
                               compressed=key.compressed, value=utxo.value))
             return inputs
 
-    def transaction_create(self, output_arr, input_arr=None, account_id=None, network=None, fee=None,
+    def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
                            min_confirms=0, max_utxos=None, locktime=0):
         """
         Create new transaction with specified outputs.
@@ -3050,8 +3051,9 @@ class HDWallet(object):
             sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount,
-                                                account_id, network, min_confirms, max_utxos, False)
+            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, input_key_id,
+                                                self.network.dust_amount, account_id, network, min_confirms, max_utxos,
+                                                False)
             if not selected_utxos:
                 logger.warning("Not enough unspent transaction outputs found")
                 return False
@@ -3243,8 +3245,8 @@ class HDWallet(object):
         rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
         return rt
 
-    def send(self, output_arr, input_arr=None, account_id=None, network=None, fee=None, min_confirms=0,
-             priv_keys=None, max_utxos=None, locktime=0, offline=False):
+    def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
+             min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False):
         """
         Create new transaction with specified outputs and push it to the network. 
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
@@ -3254,6 +3256,8 @@ class HDWallet(object):
         :type output_arr: list 
         :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_id, value)]
         :type input_arr: list
+        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
+        :type input_key_id: int
         :param account_id: Account ID
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3279,7 +3283,7 @@ class HDWallet(object):
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
 
-        transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee,
+        transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network, fee,
                                               min_confirms, max_utxos, locktime)
         if not transaction:
             return False
