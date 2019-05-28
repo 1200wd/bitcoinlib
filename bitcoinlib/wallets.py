@@ -718,8 +718,8 @@ class HDWalletTransaction(Transaction):
                 keys = [keys]
             for priv_key in keys:
                 if not isinstance(priv_key, HDKey):
-                    priv_key = HDKey(priv_key, network=self.network.name)
-                if not key_paths or priv_key.depth != 0 or priv_key.key_type == "single":
+                    priv_key_list_arg.append((None, HDKey(priv_key, network=self.network.name)))
+                elif not key_paths or priv_key.depth != 0 or priv_key.key_type == "single":
                     priv_key_list_arg.append((None, priv_key))
                 else:
                     for key_path in key_paths:
@@ -731,12 +731,7 @@ class HDWalletTransaction(Transaction):
                     priv_key_list.append(priv_key)
             for k in ti.keys:
                 if k.is_private:
-                    if isinstance(k, HDKey):
-                        hdkey = k
-                    else:
-                        hdkey = HDKey(k, network=self.network.name)
-                    if hdkey not in priv_key_list:
-                        priv_key_list.append(hdkey)
+                    priv_key_list.append(k)
                 elif self.hdwallet.cosigner:
                     # Check if private key is available in wallet
                     cosign_wallet_ids = [w.wallet_id for w in self.hdwallet.cosigner]

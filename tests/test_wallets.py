@@ -914,7 +914,7 @@ class TestWalletMultisig(unittest.TestCase):
     def test_wallet_multisig_2of2_different_database(self):
         """
         Same unittest as before (test_wallet_multisig_sign_2_different_wallets) but now with 2
-        separate databases to check for database inteference.
+        separate databases to check for database interference.
 
         """
         db_remove()
@@ -1459,6 +1459,16 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wt0.info()
         # Unknown txid
         self.assertIsNone(HDWalletTransaction.from_txid(w, '112233'))
+
+    def test_wallet_transaction_sign_with_hex(self):
+        k = HDKey(network='bitcoinlib_test')
+        pmk = k.public_master()
+        w = HDWallet.create('wallet_tx_tests', keys=pmk, network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        w.utxos_update()
+        wt = w.transaction_create([(w.get_key(), 190000000)])
+        sk = k.subkey_for_path("m/44'/9999999'/0'/0/0")
+        wt.sign(sk.private_hex)
+        self.assertTrue(wt.verified)
 
 
 class TestWalletDash(unittest.TestCase):
