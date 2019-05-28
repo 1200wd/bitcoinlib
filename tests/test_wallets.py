@@ -113,6 +113,10 @@ class TestWalletCreate(unittest.TestCase):
     def test_delete_wallet_exception(self):
         self.assertRaisesRegexp(WalletError, '', wallet_delete, 'unknown_wallet', databasefile=DATABASEFILE_UNITTESTS)
 
+    def test_wallet_unknown_error(self):
+        self.assertRaisesRegexp(WalletError, "Wallet 'test_wallet_create_errors10' not found",
+                                HDWallet, 'test_wallet_create_errors10', databasefile=DATABASEFILE_UNITTESTS)
+
     def test_wallet_duplicate_key_for_path(self):
         nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
         nkfp2 = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
@@ -142,6 +146,54 @@ class TestWalletCreate(unittest.TestCase):
         wlt.name = 'wallet_renamed'
         wlt2 = HDWallet('wallet_renamed', databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(wlt2.name, 'wallet_renamed')
+
+    def test_wallet_create_errors(self):
+        HDWallet.create('test_wallet_create_errors', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_create_errors' already exists",
+                                HDWallet.create, 'test_wallet_create_errors', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Only bip32 or single key scheme's are supported at the moment",
+                                HDWallet.create, 'test_wallet_create_errors2', scheme='raar',
+                                databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Wallet name '123' invalid, please include letter characters",
+                                HDWallet.create, '123', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Please enter wallet name",
+                                HDWallet.create, '', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Witness type unknown not supported at the moment",
+                                HDWallet.create, '', witness_type='unknown', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Multisig wallets should use bip32 scheme not single",
+                                HDWallet.create, 'test_wallet_create_errors_multisig', keys=[HDKey(), HDKey()],
+                                scheme='single', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Password protected multisig wallets not supported",
+                                HDWallet.create, 'test_wallet_create_errors_multisig2', keys=[HDKey(), HDKey()],
+                                password='geheim', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Number of keys required to sign is greater then number of keys provided",
+                                HDWallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
+                                sigs_required=3, databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, ".*\(bitcoin\) is different then network specified: dash",
+                                HDWallet.create, 'test_wallet_create_errors_multisig4',
+                                keys=[HDKey(), HDKey(network='dash')], databasefile=DATABASEFILE_UNITTESTS)
+        passphrase = 'usual olympic ride small mix follow trend baby stereo sweet lucky lend'
+        self.assertRaisesRegexp(WalletError, "Please specify network when using passphrase to create a key",
+                                HDWallet.create, 'test_wallet_create_errors3', keys=passphrase,
+                                databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
+                                HDWallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
+                                databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
+                                HDWallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
+                                databasefile=DATABASEFILE_UNITTESTS)
+        k = HDKey(network='litecoin').wif_private()
+        self.assertRaisesRegexp(BKeyError, "Network bitcoin not found in extracted networks",
+                                HDWallet.create, 'test_wallet_create_errors5', keys=k, network='bitcoin',
+                                databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Segwit is not supported for Dash wallets",
+                                HDWallet.create, 'test_wallet_create_errors6', keys=HDKey(network='dash'),
+                                witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
+        k = HDKey().subkey_for_path('m/1/2/3/4/5/6/7')
+        self.assertRaisesRegexp(WalletError, "Depth of provided public master key 7 does not correspond with key path",
+                                HDWallet.create, 'test_wallet_create_errors7', keys=k,
+                                databasefile=DATABASEFILE_UNITTESTS)
+
 
 
 class TestWalletImport(unittest.TestCase):
@@ -758,8 +810,8 @@ class TestWalletMultisig(unittest.TestCase):
         ]
 
         # Create wallet and generate key
-        wl = HDWallet.create('multisig_test_simple', key_list, sigs_required=2, network='bitcoinlib_test',
-                             databasefile=DATABASEFILE_UNITTESTS)
+        wl = HDWallet.create_multisig('multisig_test_simple', key_list, sigs_required=2, network='bitcoinlib_test',
+                                      databasefile=DATABASEFILE_UNITTESTS)
         wl.new_key()
 
         # Sign, verify and send transaction
@@ -1407,53 +1459,6 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wt0.info()
         # Unknown txid
         self.assertIsNone(HDWalletTransaction.from_txid(w, '112233'))
-
-    def test_wallet_create_errors(self):
-        HDWallet.create('test_wallet_create_errors', databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_create_errors' already exists",
-                                HDWallet.create, 'test_wallet_create_errors', databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Only bip32 or single key scheme's are supported at the moment",
-                                HDWallet.create, 'test_wallet_create_errors2', scheme='raar',
-                                databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Wallet name '123' invalid, please include letter characters",
-                                HDWallet.create, '123', databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Please enter wallet name",
-                                HDWallet.create, '', databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Witness type unknown not supported at the moment",
-                                HDWallet.create, '', witness_type='unknown', databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Multisig wallets should use bip32 scheme not single",
-                                HDWallet.create, 'test_wallet_create_errors_multisig', keys=[HDKey(), HDKey()],
-                                scheme='single', databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Password protected multisig wallets not supported",
-                                HDWallet.create, 'test_wallet_create_errors_multisig2', keys=[HDKey(), HDKey()],
-                                password='geheim', databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Number of keys required to sign is greater then number of keys provided",
-                                HDWallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
-                                sigs_required=3, databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, ".*\(bitcoin\) is different then network specified: dash",
-                                HDWallet.create, 'test_wallet_create_errors_multisig4',
-                                keys=[HDKey(), HDKey(network='dash')], databasefile=DATABASEFILE_UNITTESTS)
-        passphrase = 'usual olympic ride small mix follow trend baby stereo sweet lucky lend'
-        self.assertRaisesRegexp(WalletError, "Please specify network when using passphrase to create a key",
-                                HDWallet.create, 'test_wallet_create_errors3', keys=passphrase,
-                                databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
-                                HDWallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
-                                databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
-                                HDWallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
-                                databasefile=DATABASEFILE_UNITTESTS)
-        k = HDKey(network='litecoin').wif_private()
-        self.assertRaisesRegexp(BKeyError, "Network bitcoin not found in extracted networks",
-                                HDWallet.create, 'test_wallet_create_errors5', keys=k, network='bitcoin',
-                                databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, "Segwit is not supported for Dash wallets",
-                                HDWallet.create, 'test_wallet_create_errors6', keys=HDKey(network='dash'),
-                                witness_type='segwit', databasefile=DATABASEFILE_UNITTESTS)
-        k = HDKey().subkey_for_path('m/1/2/3/4/5/6/7')
-        self.assertRaisesRegexp(WalletError, "Depth of provided public master key 7 does not correspond with key path",
-                                HDWallet.create, 'test_wallet_create_errors7', keys=k,
-                                databasefile=DATABASEFILE_UNITTESTS)
 
 
 class TestWalletDash(unittest.TestCase):

@@ -985,8 +985,6 @@ class HDWallet(object):
             new_wallet.main_key_id = mk.key_id
             session.commit()
             w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
-        else:
-            raise WalletError("Wallet with scheme %s not supported at the moment" % scheme)
 
         session.close()
         return w
@@ -1099,9 +1097,6 @@ class HDWallet(object):
                             raise WalletError("Invalid key or address: %s" % key)
                     if network is None:
                         network = key.network.name
-                    elif network != key.network.name:
-                        raise WalletError("Specified key %s is from different network then specified: %s" %
-                                          (key.network.name, network))
                     if witness_type is None:
                         witness_type = key.witness_type
             hdkey_list.append(key)
@@ -1175,8 +1170,8 @@ class HDWallet(object):
 
     @classmethod
     def create_multisig(cls, name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None,
-                        sort_keys=True, witness_type=DEFAULT_WITNESS_TYPE, encoding=None, key_path=None, cosigner_id=None,
-                        databasefile=None):
+                        sort_keys=True, witness_type=DEFAULT_WITNESS_TYPE, encoding=None, key_path=None,
+                        cosigner_id=None, databasefile=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
         public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
