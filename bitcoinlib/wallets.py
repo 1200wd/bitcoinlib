@@ -204,7 +204,7 @@ def wallet_empty(wallet, databasefile=DEFAULT_DATABASE):
     :param databasefile: Location of Sqlite database. Leave empty to use default
     :type databasefile: str
 
-    :return bool: True if succesfull
+    :return bool: True if successful
     """
 
     session = DbInit(databasefile=databasefile).session
@@ -732,13 +732,6 @@ class HDWalletTransaction(Transaction):
             for k in ti.keys:
                 if k.is_private:
                     priv_key_list.append(k)
-                elif self.hdwallet.cosigner:
-                    # Check if private key is available in wallet
-                    cosign_wallet_ids = [w.wallet_id for w in self.hdwallet.cosigner]
-                    db_pk = self.hdwallet._session.query(DbKey).filter_by(public=k.public_hex, is_private=True). \
-                        filter(DbKey.wallet_id.in_(cosign_wallet_ids + [self.hdwallet.wallet_id])).first()
-                    if db_pk:
-                        priv_key_list.append(HDKey(db_pk.wif, network=self.network.name))
             Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type)
         self.verify()
         self.error = ""
@@ -789,7 +782,6 @@ class HDWalletTransaction(Transaction):
             self.hdwallet._session.commit()
             self.hdwallet._balance_update(network=self.network.name)
             return None
-
         self.error = "Transaction not send, unknown response from service providers"
 
     def save(self):
@@ -844,18 +836,9 @@ class HDWalletTransaction(Transaction):
             tx_input = sess.query(DbTransactionInput). \
                 filter_by(transaction_id=tx_id, index_n=ti.index_n).scalar()
             if not tx_input:
-                index_n = ti.index_n
-                if index_n is None:
-                    last_index_n = sess.query(DbTransactionInput.index_n).\
-                        filter_by(transaction_id=tx_id). \
-                        order_by(DbTransactionInput.index_n.desc()).first()
-                    index_n = 0
-                    if last_index_n:
-                        index_n = last_index_n[0] + 1
-
                 new_tx_item = DbTransactionInput(
                     transaction_id=tx_id, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
-                    prev_hash=to_hexstring(ti.prev_hash), index_n=index_n, double_spend=ti.double_spend,
+                    prev_hash=to_hexstring(ti.prev_hash), index_n=ti.index_n, double_spend=ti.double_spend,
                     script=to_hexstring(ti.unlocking_script), script_type=ti.script_type)
                 sess.add(new_tx_item)
             elif key_id:
@@ -964,8 +947,6 @@ class HDWallet(object):
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
                                       witness_type=witness_type, multisig=multisig, path=base_path)
-            if mk.depth > 5:
-                raise WalletError("Cannot create new wallet with main key of depth 5 or more")
             new_wallet.main_key_id = mk.key_id
             session.commit()
 
