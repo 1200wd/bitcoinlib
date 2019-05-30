@@ -767,6 +767,8 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.utxos_update()
         self.assertIsNone(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo').error)
         self.assertEqual(w.utxos(), [])
+        self.assertRaisesRegexp(WalletError, "Cannot sweep wallet, no UTXO's found",
+                                w.sweep, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo')
 
 
 class TestWalletMultisig(unittest.TestCase):
@@ -1013,13 +1015,6 @@ class TestWalletMultisig(unittest.TestCase):
         t = self._multisig_test(3, 5, False, 'bitcoinlib_test')
         self.assertTrue(t.verify())
 
-    # Disable for now takes about 46 seconds because it needs to create 9 * 9 wallets and lots of keys
-    # def test_wallet_multisig_5of9(self):
-    #     if os.path.isfile(DATABASEFILE_UNITTESTS):
-    #         os.remove(DATABASEFILE_UNITTESTS)
-    #     t = self._multisig_test(5, 9, 'bitcoinlib_test')
-    #     self.assertTrue(t.verify())
-
     def test_wallet_multisig_2of2_with_single_key(self):
         db_remove()
         keys = [HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test', key_type='single')]
@@ -1128,6 +1123,11 @@ class TestWalletMultisig(unittest.TestCase):
             sort_keys=False)
         self.assertEqual(wlt.get_key().address, 'QjecchURWzhzUzLkhJ8Xijnm29Z9PscSqD')
         self.assertEqual(wlt.get_key().network.name, network)
+
+    def test_wallet_multisig_info(self):
+        w = HDWallet.create('test_wallet_multisig_info', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        w.utxos_update()
+        w.info(detail=6)
 
 
 class TestWalletKeyImport(unittest.TestCase):
@@ -1275,6 +1275,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         hdkey = HDKey(hdkey_wif)
         wlt = wallet_create_or_open('offline-create-transaction', keys=hdkey, network='testnet',
                                     databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wlt.wif(is_private=True), hdkey_wif)
         wlt.get_key()
         utxos = [{
             'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
