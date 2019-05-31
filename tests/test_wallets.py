@@ -334,6 +334,36 @@ class TestWalletImport(unittest.TestCase):
         self.assertEqual(w.get_key().address, "3BeYQTUgrGPQMHDJcch6mF7G7sRrNYkRhP")
         self.assertEqual(w.get_key_change().address, "3PFD1qkgbaeeDnX38Smerb5vAPBkDVkhcm")
 
+    def test_wallet_import_master_key(self):
+        k = HDKey()
+        w = HDWallet.create('test_wallet_import_master_key', keys=k.public_master(),
+                            databasefile=DATABASEFILE_UNITTESTS)
+        self.assertFalse(w.main_key.is_private)
+        self.assertRaisesRegexp(WalletError, "Please supply a valid private BIP32 master key with key depth 0",
+                                w.import_master_key, k.public())
+        self.assertRaisesRegexp(WalletError, "Network of Wallet class, main account key and the imported private "
+                                             "key must use the same network",
+                                w.import_master_key, HDKey(network='litecoin'))
+        self.assertRaisesRegexp(WalletError, "This key does not correspond to current public master key",
+                                w.import_master_key, HDKey())
+        w.import_master_key(k.wif_private())
+        self.assertTrue(w.main_key.is_private)
+
+        k2 = HDKey()
+        w2 = HDWallet.create('test_wallet_import_master_key2', keys=k2.subkey_for_path("m/32'"), scheme='single',
+                             databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Main key is already a private key, cannot import key",
+                                w2.import_master_key, k2)
+        w2.main_key = None
+        self.assertRaisesRegexp(WalletError, "Main wallet key is not an HDWalletKey instance",
+                                w2.import_master_key, k2)
+
+        k3 = HDKey()
+        w3 = HDWallet.create('test_wallet_import_master_key3', keys=k3.subkey_for_path("m/32'").public(),
+                             scheme='single', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Current main key is not a valid BIP32 public master key",
+                                w3.import_master_key, k3)
+
 
 class TestWalletExport(unittest.TestCase):
 
@@ -1125,7 +1155,8 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertEqual(wlt.get_key().network.name, network)
 
     def test_wallet_multisig_info(self):
-        w = HDWallet.create('test_wallet_multisig_info', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        w = HDWallet.create('test_wallet_multisig_info', keys=[HDKey(), HDKey()],
+                            network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
         w.utxos_update()
         w.info(detail=6)
 

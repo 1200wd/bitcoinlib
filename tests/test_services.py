@@ -125,16 +125,18 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(srv.results[r], exp_dict[r])
 
     def test_get_utxos(self):
-        srv = Service()
-        utxos = srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
+        srv = Service(min_providers=10)
+        srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
         tx_hash = '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8'
-        self.assertEqual(tx_hash, utxos[0]['tx_hash'])
+        for provider in srv.results:
+            self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_get_utxos_litecoin(self):
-        srv = Service(network='litecoin')
-        utxos = srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
+        srv = Service(network='litecoin', min_providers=10)
+        srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
-        self.assertEqual(tx_hash, utxos[0]['tx_hash'])
+        for provider in srv.results:
+            self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_estimatefee(self):
         srv = Service(min_providers=5)
@@ -544,3 +546,23 @@ class TestService(unittest.TestCase, CustomAssertions):
                 self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
                                        msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
             n_blocks = srv.results[provider]
+        # Test Litecoin network
+        srv = Service(min_providers=10, network='litecoin')
+        srv.block_count()
+        n_blocks = None
+        for provider in srv.results:
+            if n_blocks is not None:
+                self.assertAlmostEqual(srv.results[provider], n_blocks, delta=5000,
+                                       msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
+            n_blocks = srv.results[provider]
+
+    def test_service_max_providers(self):
+        srv = Service(max_providers=1)
+        srv.block_count()
+        self.assertEqual(srv.resultcount, 1)
+
+    def test_service_errors(self):
+        self.assertRaisesRegexp(ServiceError, "Provider 'unknown_provider' not found in provider definitions",
+                                Service, providers='unknown_provider')
+        self.assertRaisesRegexp(ServiceError, "Network unknown_network not found in network definitions",
+                                Service, network='unknown_network')

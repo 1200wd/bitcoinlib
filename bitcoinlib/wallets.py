@@ -1449,12 +1449,12 @@ class HDWallet(object):
         if (self.main_key.depth != 1 and self.main_key.depth != 3 and self.main_key.depth != 4) or \
                 self.main_key.key_type != 'bip32':
             raise WalletError("Current main key is not a valid BIP32 public master key")
-        pm = self.public_master()
-        if pm and self.main_key.wif != pm.wif:
-            raise WalletError("This key does not correspond to current public master key")
+        # pm = self.public_master()
         if not (self.network.name == self.main_key.network.name == hdkey.network.name):
             raise WalletError("Network of Wallet class, main account key and the imported private key must use "
                               "the same network")
+        if self.main_key.wif != hdkey.public_master().wif():
+            raise WalletError("This key does not correspond to current public master key")
 
         hdkey.key_type = 'bip32'
         ks = [k for k in WALLET_KEY_STRUCTURES if

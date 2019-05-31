@@ -77,7 +77,7 @@ class Service(object):
 
         try:
             self.providers_defined = json.loads(f.read())
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError as e:  # pragma: no cover
             errstr = "Error reading provider definitions from %s: %s" % (fn, e)
             _logger.warning(errstr)
             raise ServiceError(errstr)
@@ -128,7 +128,7 @@ class Service(object):
                     continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(*arguments)
-                if res is False:
+                if res is False:  # pragma: no cover
                     self.errors.update(
                         {sp: 'Received empty response'}
                     )
@@ -282,7 +282,7 @@ class Service(object):
         :return int: Fee in smallest network denominator (satoshi)
         """
         fee = self._provider_execute('estimatefee', blocks)
-        if not fee:
+        if not fee:  # pragma: no cover
             if self.network.fee_default:
                 fee = self.network.fee_default
             else:
