@@ -564,5 +564,3 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_errors(self):
         self.assertRaisesRegexp(ServiceError, "Provider 'unknown_provider' not found in provider definitions",
                                 Service, providers='unknown_provider')
-        self.assertRaisesRegexp(ServiceError, "Network unknown_network not found in network definitions",
-                                Service, network='unknown_network')
