@@ -194,6 +194,13 @@ class TestWalletCreate(unittest.TestCase):
                                 HDWallet.create, 'test_wallet_create_errors7', keys=k,
                                 databasefile=DATABASEFILE_UNITTESTS)
 
+    def test_wallet_rename_duplicate(self):
+        HDWallet.create('test_wallet_rename_duplicate1', databasefile=DATABASEFILE_UNITTESTS)
+        w2 = HDWallet.create('test_wallet_rename_duplicate2', databasefile=DATABASEFILE_UNITTESTS)
+
+        def test_func():
+            w2.name = 'test_wallet_rename_duplicate1'
+        self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_rename_duplicate1' already exists", test_func)
 
 
 class TestWalletImport(unittest.TestCase):
@@ -326,6 +333,36 @@ class TestWalletImport(unittest.TestCase):
                             databasefile=DATABASEFILE_UNITTESTS)
         self.assertEqual(w.get_key().address, "3BeYQTUgrGPQMHDJcch6mF7G7sRrNYkRhP")
         self.assertEqual(w.get_key_change().address, "3PFD1qkgbaeeDnX38Smerb5vAPBkDVkhcm")
+
+    def test_wallet_import_master_key(self):
+        k = HDKey()
+        w = HDWallet.create('test_wallet_import_master_key', keys=k.public_master(),
+                            databasefile=DATABASEFILE_UNITTESTS)
+        self.assertFalse(w.main_key.is_private)
+        self.assertRaisesRegexp(WalletError, "Please supply a valid private BIP32 master key with key depth 0",
+                                w.import_master_key, k.public())
+        self.assertRaisesRegexp(WalletError, "Network of Wallet class, main account key and the imported private "
+                                             "key must use the same network",
+                                w.import_master_key, HDKey(network='litecoin'))
+        self.assertRaisesRegexp(WalletError, "This key does not correspond to current public master key",
+                                w.import_master_key, HDKey())
+        w.import_master_key(k.wif_private())
+        self.assertTrue(w.main_key.is_private)
+
+        k2 = HDKey()
+        w2 = HDWallet.create('test_wallet_import_master_key2', keys=k2.subkey_for_path("m/32'"), scheme='single',
+                             databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Main key is already a private key, cannot import key",
+                                w2.import_master_key, k2)
+        w2.main_key = None
+        self.assertRaisesRegexp(WalletError, "Main wallet key is not an HDWalletKey instance",
+                                w2.import_master_key, k2)
+
+        k3 = HDKey()
+        w3 = HDWallet.create('test_wallet_import_master_key3', keys=k3.subkey_for_path("m/32'").public(),
+                             scheme='single', databasefile=DATABASEFILE_UNITTESTS)
+        self.assertRaisesRegexp(WalletError, "Current main key is not a valid BIP32 public master key",
+                                w3.import_master_key, k3)
 
 
 class TestWalletExport(unittest.TestCase):
@@ -760,6 +797,8 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
         w.utxos_update()
         self.assertIsNone(w.sweep('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo').error)
         self.assertEqual(w.utxos(), [])
+        self.assertRaisesRegexp(WalletError, "Cannot sweep wallet, no UTXO's found",
+                                w.sweep, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo')
 
 
 class TestWalletMultisig(unittest.TestCase):
@@ -914,7 +953,7 @@ class TestWalletMultisig(unittest.TestCase):
     def test_wallet_multisig_2of2_different_database(self):
         """
         Same unittest as before (test_wallet_multisig_sign_2_different_wallets) but now with 2
-        separate databases to check for database inteference.
+        separate databases to check for database interference.
 
         """
         db_remove()
@@ -1005,13 +1044,6 @@ class TestWalletMultisig(unittest.TestCase):
         db_remove()
         t = self._multisig_test(3, 5, False, 'bitcoinlib_test')
         self.assertTrue(t.verify())
-
-    # Disable for now takes about 46 seconds because it needs to create 9 * 9 wallets and lots of keys
-    # def test_wallet_multisig_5of9(self):
-    #     if os.path.isfile(DATABASEFILE_UNITTESTS):
-    #         os.remove(DATABASEFILE_UNITTESTS)
-    #     t = self._multisig_test(5, 9, 'bitcoinlib_test')
-    #     self.assertTrue(t.verify())
 
     def test_wallet_multisig_2of2_with_single_key(self):
         db_remove()
@@ -1121,6 +1153,12 @@ class TestWalletMultisig(unittest.TestCase):
             sort_keys=False)
         self.assertEqual(wlt.get_key().address, 'QjecchURWzhzUzLkhJ8Xijnm29Z9PscSqD')
         self.assertEqual(wlt.get_key().network.name, network)
+
+    def test_wallet_multisig_info(self):
+        w = HDWallet.create('test_wallet_multisig_info', keys=[HDKey(), HDKey()],
+                            network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        w.utxos_update()
+        w.info(detail=6)
 
 
 class TestWalletKeyImport(unittest.TestCase):
@@ -1268,6 +1306,7 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         hdkey = HDKey(hdkey_wif)
         wlt = wallet_create_or_open('offline-create-transaction', keys=hdkey, network='testnet',
                                     databasefile=DATABASEFILE_UNITTESTS)
+        self.assertEqual(wlt.wif(is_private=True), hdkey_wif)
         wlt.get_key()
         utxos = [{
             'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
@@ -1459,6 +1498,33 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wt0.info()
         # Unknown txid
         self.assertIsNone(HDWalletTransaction.from_txid(w, '112233'))
+
+    def test_wallet_transaction_sign_with_hex(self):
+        k = HDKey(network='bitcoinlib_test')
+        pmk = k.public_master()
+        w = HDWallet.create('wallet_tx_tests', keys=pmk, network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
+        w.utxos_update()
+        wt = w.transaction_create([(w.get_key(), 190000000)])
+        sk = k.subkey_for_path("m/44'/9999999'/0'/0/0")
+        wt.sign(sk.private_hex)
+        self.assertTrue(wt.verified)
+
+    def test_wallet_transaction_restore_saved_tx(self):
+        w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
+                                  databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key(number_of_keys=2)
+        w.utxos_update()
+        to = w.get_key_change()
+        t = w.sweep(to.address, offline=True)
+        tx_id = t.save()
+        wallet_empty('test_wallet_transaction_restore', databasefile=DATABASEFILE_UNITTESTS)
+        w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
+                                  databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key(number_of_keys=2)
+        w.utxos_update()
+        to = w.get_key_change()
+        t = w.sweep(to.address, offline=True)
+        self.assertEqual(t.save(), tx_id)
 
 
 class TestWalletDash(unittest.TestCase):
