@@ -2878,6 +2878,8 @@ class HDWallet(object):
         :type amount: int
         :param variance: Allowed difference in total input value. Default is dust amount of selected network.
         :type variance: int
+        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
+        :type input_key_id: int
         :param account_id: Account ID
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -2901,7 +2903,7 @@ class HDWallet(object):
                    DbKey.network_name == network, DbKey.public != '',
                    DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms)
         if input_key_id:
-            utxo_query.filter(DbKey.id == input_key_id)
+            utxo_query = utxo_query.filter(DbKey.id == input_key_id)
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found")
@@ -2965,6 +2967,8 @@ class HDWallet(object):
         :type output_arr: list
         :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
         :type input_arr: list
+        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
+        :type input_key_id: int
         :param account_id: Account ID
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3023,9 +3027,8 @@ class HDWallet(object):
             sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, input_key_id,
-                                                self.network.dust_amount, account_id, network, min_confirms, max_utxos,
-                                                False)
+            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount, input_key_id,
+                                                account_id, network, min_confirms, max_utxos, False)
             if not selected_utxos:
                 logger.warning("Not enough unspent transaction outputs found")
                 return False
@@ -3275,7 +3278,7 @@ class HDWallet(object):
         transaction.send(offline)
         return transaction
 
-    def send_to(self, to_address, amount, account_id=None, network=None, fee=None, min_confirms=0,
+    def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=0,
                 priv_keys=None, locktime=0, offline=False):
         """
         Create transaction and send it with default Service objects sendrawtransaction method
@@ -3284,6 +3287,8 @@ class HDWallet(object):
         :type to_address: str, Address, HDKey, HDWalletKey
         :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin)
         :type amount: int
+        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
+        :type input_key_id: int
         :param account_id: Account ID, default is last used
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3303,7 +3308,7 @@ class HDWallet(object):
         """
 
         outputs = [(to_address, amount)]
-        return self.send(outputs, account_id=account_id, network=network, fee=fee,
+        return self.send(outputs, input_key_id=input_key_id, account_id=account_id, network=network, fee=fee,
                          min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,

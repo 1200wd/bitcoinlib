@@ -1526,6 +1526,17 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = w.sweep(to.address, offline=True)
         self.assertEqual(t.save(), tx_id)
 
+    def test_wallet_transaction_send_keyid(self):
+        w = HDWallet.create('wallet_send_key_id', witness_type='segwit', network='bitcoinlib_test',
+                            databasefile=DATABASEFILE_UNITTESTS)
+        keys = w.get_key(number_of_keys=2)
+        w.utxos_update()
+        t = w.send_to('blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 150000000, input_key_id=keys[1].key_id)
+        self.assertEqual(t.inputs[0].address, keys[1].address)
+        self.assertTrue(t.verified)
+        self.assertFalse(w.send_to('blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 250000000,
+                                   input_key_id=keys[0].key_id))
+
 
 class TestWalletDash(unittest.TestCase):
 
