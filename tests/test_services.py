@@ -82,8 +82,8 @@ class TestService(unittest.TestCase, CustomAssertions):
                 pass
             if provider == 'blockcypher.testnet':
                 self.assertIn('has already been spent', srv.errors['blockcypher.testnet'])
-            elif provider == 'blockexplorer.testnet' or provider == 'bitcoind.testnet':
-                self.assertIn('Missing inputs', srv.errors['blockexplorer.testnet'])
+            # elif provider == 'blockexplorer.testnet' or provider == 'bitcoind.testnet':
+            #     self.assertIn('Missing inputs', srv.errors['blockexplorer.testnet'])
             elif provider == 'chain.so':
                 self.assertIn('are still available to spend', srv.errors['chain.so'])
 
