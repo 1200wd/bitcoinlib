@@ -175,9 +175,9 @@ class BitcoindClient(BaseClient):
         txs = []
 
         for addr in addresslist:
-            res = self.proxy.validateaddress(addr)
+            res = self.proxy.getaddressinfo(addr)
             if not (res['ismine'] or res['iswatchonly']):
-                raise ClientError("Address %s not found in Litecoind wallet, use 'importaddress' to add address to "
+                raise ClientError("Address %s not found in bitcoind wallet, use 'importaddress' to add address to "
                                   "wallet." % addr)
             
         for t in self.proxy.listunspent(0, 99999999, addresslist):
