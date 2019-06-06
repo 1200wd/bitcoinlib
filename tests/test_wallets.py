@@ -938,6 +938,7 @@ class TestWalletMultisig(unittest.TestCase):
                                network='bitcoinlib_test', sort_keys=False, sigs_required=2,
                                databasefile=DATABASEFILE_UNITTESTS)
         msw1.new_key()
+        self.assertEqual(len(msw1.get_key().key()), 2)
         msw2.new_key(cosigner_id=0)
         msw1.utxos_update()
         msw2.utxos_update()
