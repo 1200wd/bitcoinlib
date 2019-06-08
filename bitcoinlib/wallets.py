@@ -535,6 +535,13 @@ class HDWalletKey(object):
         else:
             return self._balance
 
+    def public(self):
+        pub_key = self
+        pub_key.is_private = False
+        pub_key.key_private = None
+        pub_key.wif = self.key().wif()
+        return pub_key
+
     def as_dict(self, include_private=False):
         """
         Return current key information as dictionary
@@ -3391,7 +3398,7 @@ class HDWallet(object):
                 wiflist.append(cs.wif(is_private=is_private))
             return wiflist
 
-    def public_master(self, account_id=None, name=None, network=None):
+    def public_master(self, account_id=None, name=None, as_private=False, network=None):
         """
         Return public master key(s) for this wallet. Use to import in other wallets to sign transactions or create keys.
 
@@ -3409,15 +3416,17 @@ class HDWallet(object):
         :return list of HDWalletKey, HDWalletKey:
         """
         if self.main_key and self.main_key.key_type == 'single':
-            return self.main_key
+            key = self.main_key
+            return key if as_private else key.public()
         elif not self.cosigner:
             depth = -self.key_depth + self.depth_public_master
-            return self.key_for_path([], depth, name=name, account_id=account_id, network=network,
+            key = self.key_for_path([], depth, name=name, account_id=account_id, network=network,
                                      cosigner_id=self.cosigner_id)
+            return key if as_private else key.public()
         else:
             pm_list = []
             for cs in self.cosigner:
-                pm_list.append(cs.public_master(account_id, name, network))
+                pm_list.append(cs.public_master(account_id, name, as_private, network))
             return pm_list
 
     def info(self, detail=3):
