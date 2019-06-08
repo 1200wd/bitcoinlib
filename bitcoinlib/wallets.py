@@ -2889,7 +2889,8 @@ class HDWallet(object):
         :param return_input_obj: Return inputs as Input class object. Default is True
         :type return_input_obj: bool
 
-        :return list of DbTransactionOutput, Input: List of previous outputs
+        :return: List of previous outputs
+        :rtype: list of DbTransactionOutput, list of Input
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
