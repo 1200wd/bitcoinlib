@@ -66,8 +66,8 @@ _logger = logging.getLogger(__name__)
 
 if not USING_MODULE_SCRYPT:
     if 'scrypt_error' not in locals():
-        scrypt_error = 'unknown'
-    _logger.warning("Error when trying to import scrypt module", scrypt_error)
+        SCRYPT_ERROR = 'unknown'
+    _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
 
 
 class BKeyError(Exception):

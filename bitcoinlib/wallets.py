@@ -510,12 +510,9 @@ class HDWalletKey(object):
         """
 
         if self.key_type == 'multisig':
-            # self._dbkey.multisig_children[0].child_key.wif / network_name
-            # self._hdkey_object = []
-            # for kc in self._dbkey.multisig_children:
-            #     self._hdkey_object.append(HDKey(import_key=kc.child_key.wif, network=kc.child_key.network_name))
-            # TODO: Return list of HDKeys for multisig
-            raise WalletError("HDWalletKey of type multisig has no single hdkey object, use cosigner attribute")
+            self._hdkey_object = []
+            for kc in self._dbkey.multisig_children:
+                self._hdkey_object.append(HDKey(import_key=kc.child_key.wif, network=kc.child_key.network_name))
         if self._hdkey_object is None:
             self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
         return self._hdkey_object
@@ -2879,9 +2876,10 @@ class HDWallet(object):
     def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=0,
                       max_utxos=None, return_input_obj=True):
         """
-        Select available inputs for given amount
+        Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
+        the specified amount.
 
-        :param amount: Total value of inputs to select
+        :param amount: Total value of inputs in smallest denominator (sathosi) to select
         :type amount: int
         :param variance: Allowed difference in total input value. Default is dust amount of selected network.
         :type variance: int
@@ -2898,7 +2896,8 @@ class HDWallet(object):
         :param return_input_obj: Return inputs as Input class object. Default is True
         :type return_input_obj: bool
 
-        :return list of DbTransactionOutput, Input: List of previous outputs
+        :return: List of previous outputs
+        :rtype: list of DbTransactionOutput, list of Input
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
