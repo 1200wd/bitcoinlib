@@ -20,9 +20,10 @@
 # kind of segwit wallet
 #
 
-from bitcoinlib.wallets import wallet_create_or_open, wallet_create_or_open_multisig
+from bitcoinlib.wallets import *
 from bitcoinlib.keys import HDKey
 from time import sleep
+
 
 
 tx_fee = 500
@@ -43,15 +44,15 @@ w2 = wallet_create_or_open('segwit_testnet_p2wpkh', keys=wif, witness_type='segw
 w2_key = w2.get_key()
 
 # Segwit Native P2WSH Wallet
-w3 = wallet_create_or_open_multisig('segwit_testnet_p2wsh',
-                                    keys=[wif, HDKey(wif2).account_multisig_key(witness_type='segwit').public()],
-                                    witness_type='segwit', network='testnet')
+w3 = wallet_create_or_open('segwit_testnet_p2wsh',
+                           keys=[wif, HDKey(wif2).public_master_multisig(witness_type='segwit').public()],
+                           witness_type='segwit', network='testnet')
 w3_key = w3.get_key()
 
 # Segwit P2SH-P2WSH Wallet
-w4 = wallet_create_or_open_multisig('segwit_testnet_p2sh_p2wsh',
-                                    keys=[wif, HDKey(wif2).account_multisig_key(witness_type='p2sh-segwit').public()],
-                                    witness_type='p2sh-segwit', network='testnet')
+w4 = wallet_create_or_open('segwit_testnet_p2sh_p2wsh',
+                           keys=[wif, HDKey(wif2).public_master_multisig(witness_type='p2sh-segwit').public()],
+                           witness_type='p2sh-segwit', network='testnet')
 w4_key = w4.get_key()
 
 

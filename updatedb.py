@@ -17,8 +17,8 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from shutil import move
-from bitcoinlib.main import DEFAULT_DATABASE, BCL_DATABASE_DIR
-from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren
+from bitcoinlib.main import DEFAULT_DATABASE, BCL_DATABASE_DIR, BITCOINLIB_VERSION
+from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren, DbConfig
 try:
     input = raw_input
 except NameError:
@@ -117,6 +117,11 @@ try:
     for keysub in keysubs:
         fields = dict(keysub)
         session.add(DbKeyMultisigChildren(**fields))
+    session.commit()
+
+    session.query(DbConfig).filter(DbConfig.variable == 'version').update({DbConfig.value: BITCOINLIB_VERSION})
+    session.add(DbConfig(variable='version', value=BITCOINLIB_VERSION))
+    session.add(DbConfig(variable='upgrade_date', value=str(datetime.now())))
     session.commit()
 
     print("Database %s has been updated, backup of old database has been created at %s" %

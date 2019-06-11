@@ -866,8 +866,6 @@ class Input(object):
                         self.witnesses = unlock_script
                 elif self.witness_type == 'p2sh-segwit':
                     self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
-                    # FIXME: First line is old code causing error in as_dict(), is script_code needed???
-                    # self.script_code = unlock_script
                     self.script_code = self.unlocking_script
                     if signatures:
                         self.witnesses = unlock_script
