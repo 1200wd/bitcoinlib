@@ -717,7 +717,7 @@ class HDWalletTransaction(Transaction):
         """
         priv_key_list_arg = []
         if keys:
-            key_paths = list(set([ti.key_path for ti in self.inputs]))
+            key_paths = list(set([ti.key_path for ti in self.inputs if ti.key_path[0] == 'm']))
             if not isinstance(keys, list):
                 keys = [keys]
             for priv_key in keys:

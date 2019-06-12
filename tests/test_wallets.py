@@ -1261,11 +1261,11 @@ class TestWalletKeyImport(unittest.TestCase):
         w = HDWallet.create('mswlt', [p1, pubk2], databasefile=DATABASEFILE_UNITTESTS, witness_type=witness_type)
         wk = w.new_key()
         self.assertEqual(wk.address, 'bc1qr7r7zpr5gqnz0zs39ve7c0g54gwe7h7322lt3kae6gh8tzc5epts0j9rhm')
-        self.assertFalse(w.public_master()[1].is_private)
-        self.assertEqual(w.public_master()[1].wif, wif2)
+        self.assertFalse(w.public_master(as_private=True)[1].is_private)
+        self.assertEqual(w.public_master(as_private=True)[1].wif, wif2)
         w.import_key(p2)
-        self.assertTrue(w.public_master()[1].is_private)
-        self.assertEqual(w.public_master()[1].wif, 'ZprvArYK8TRL84162ECqZEwt8NsCRdN43ZVVPYTfPsKw5YfiRGWtx3AC3eXvTuk'
+        self.assertTrue(w.public_master(as_private=True)[1].is_private)
+        self.assertEqual(w.public_master(as_private=True)[1].wif, 'ZprvArYK8TRL84162ECqZEwt8NsCRdN43ZVVPYTfPsKw5YfiRGWtx3AC3eXvTuk'
                                                    'CqUsKCLKQNGDV11hHi3FUQbcD9wc9g8ro64kK6H2MP4jaM7K')
         w.transactions_update()
         tx_hashes = sorted([t.hash for t in w.transactions()])
