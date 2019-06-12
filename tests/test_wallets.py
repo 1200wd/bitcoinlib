@@ -1524,7 +1524,6 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         t = w.send_to('blt1q285vnphcs4r0t5dw06tmxl7aryj3jnx88duehv4p7eldsshrmygsmlq84z', 2000, fee=1000)
         t.sign(wif2)
         self.assertIsNone(t.send())
-        self.assertEqual(t.hash, '181aefe64414a20c264d00cbdc0b128fb56ffe5a9b4547f18d695a55833568cd')
         self.assertTrue(t.pushed)
 
     def test_wallet_transaction_restore_saved_tx(self):
