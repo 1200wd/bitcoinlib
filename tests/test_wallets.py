@@ -1510,6 +1510,23 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         wt.sign(sk.private_hex)
         self.assertTrue(wt.verified)
 
+    def test_wallet_transaction_sign_with_wif(self):
+        wif = 'YXscyqNJ5YK411nwB4eU6PmyGTJkBUHjgXEf53z4TTjHCDXPPXKJD2PyfXonwtT7VwSdqcZJS2oeDbvg531tEsx3yq4425Mfrb9aS' \
+              'PyNQ5bUGFwu'
+        wif2 = 'YXscyqNJ5YK411nwB4UK8ScMahPWewyKrTBjgM5BZKRkPg8B2HmKT3r8yc2GFg9GqgFXaWmxkTRhNkRGVxbzUREMH8L5HxoKGCY8' \
+               'WDdf1GcW2k8q'
+        w = wallet_create_or_open('test_wallet_transaction_sign_with_wif',
+                                  keys=[wif, HDKey(wif2).public_master_multisig(witness_type='segwit')],
+                                  witness_type='segwit', network='bitcoinlib_test',
+                                  databasefile=DATABASEFILE_UNITTESTS)
+        w.get_key()
+        w.utxos_update()
+        t = w.send_to('blt1q285vnphcs4r0t5dw06tmxl7aryj3jnx88duehv4p7eldsshrmygsmlq84z', 2000, fee=1000)
+        t.sign(wif2)
+        self.assertIsNone(t.send())
+        self.assertEqual(t.hash, '181aefe64414a20c264d00cbdc0b128fb56ffe5a9b4547f18d695a55833568cd')
+        self.assertTrue(t.pushed)
+
     def test_wallet_transaction_restore_saved_tx(self):
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
                                   databasefile=DATABASEFILE_UNITTESTS)
