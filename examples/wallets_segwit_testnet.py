@@ -25,7 +25,6 @@ from bitcoinlib.keys import HDKey
 from time import sleep
 
 
-
 tx_fee = 500
 tx_amount = 1000
 wif = 'tprv8ZgxMBicQKsPdd7kWYnxC5BTucY6fESWSA9tWwtKiSpasvL1WDbtHNEU8sZDTWcoxG2qYzBA5HFWzR2NoxgG2MTyR8PeCry266DbmjF8pT4'

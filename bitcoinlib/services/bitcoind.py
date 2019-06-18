@@ -203,9 +203,12 @@ class BitcoindClient(BaseClient):
         }
     
     def estimatefee(self, blocks):
+        pres = ''
         try:
-            res = self.proxy.estimatesmartfee(blocks)['feerate']
-        except KeyError:
+            pres = self.proxy.estimatesmartfee(blocks)
+            res = pres['feerate']
+        except KeyError as e:
+            _logger.warning("bitcoind error: %s, %s" % (e, pres))
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
