@@ -17,8 +17,8 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from shutil import move
-from bitcoinlib.main import DEFAULT_DATABASE, DEFAULT_DATABASEDIR
-from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren
+from bitcoinlib.main import DEFAULT_DATABASE, BCL_DATABASE_DIR, BITCOINLIB_VERSION
+from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren, DbConfig
 try:
     input = raw_input
 except NameError:
@@ -36,8 +36,8 @@ def parse_args():
 args = parse_args()
 database_file = args.database
 if not os.path.isfile(database_file):
-    database_file = os.path.join(DEFAULT_DATABASEDIR, database_file)
-database_backup_file = os.path.join(DEFAULT_DATABASEDIR, "%s.backup-%s" %
+    database_file = os.path.join(BCL_DATABASE_DIR, database_file)
+database_backup_file = os.path.join(BCL_DATABASE_DIR, "%s.backup-%s" %
                                     (database_file, datetime.now().strftime("%Y%m%d-%I:%M")))
 
 print("Wallet and Key data will be copied to new database. Transaction data will NOT be copied")
@@ -117,6 +117,11 @@ try:
     for keysub in keysubs:
         fields = dict(keysub)
         session.add(DbKeyMultisigChildren(**fields))
+    session.commit()
+
+    session.query(DbConfig).filter(DbConfig.variable == 'version').update({DbConfig.value: BITCOINLIB_VERSION})
+    session.add(DbConfig(variable='version', value=BITCOINLIB_VERSION))
+    session.add(DbConfig(variable='upgrade_date', value=str(datetime.now())))
     session.commit()
 
     print("Database %s has been updated, backup of old database has been created at %s" %

@@ -199,10 +199,10 @@ class TestPublicKeyConversion(unittest.TestCase):
                          self.K.public_point())
 
     def test_public_key_get_hash160_uncompressed(self):
-        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', to_hexstring(self.K.hash160()))
+        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', to_hexstring(self.K.hash160))
 
     def test_public_key_get_hash160(self):
-        self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', to_hexstring(self.KC.hash160()))
+        self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', to_hexstring(self.KC.hash160))
 
     def test_public_key_try_private(self):
         self.assertFalse(self.K.private_hex)
@@ -283,9 +283,10 @@ class TestHDKeysImport(unittest.TestCase):
             'j6SqMFd', self.k.wif(is_private=True))
 
     def test_hdkey_import_bip38_key(self):
-        self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo',
-                       passphrase='TestingOneTwoThree')
-        self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.wif_key())
+        if USING_MODULE_SCRYPT:
+            self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo',
+                           passphrase='TestingOneTwoThree')
+            self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.wif_key())
 
     def test_hdkey_import_public(self):
         self.assertEqual('15mKKb2eos1hWa6tisdPwwDC1a5J1y9nma', self.xpub.address())
@@ -470,6 +471,10 @@ class TestHDKeys(unittest.TestCase):
                     self.assertTrue(kwif[:4] == hdkey[0]['prefix_str'])
                     self.assertTrue(pwif[:4] == hdkey_pub[0]['prefix_str'])
 
+    def test_hdkey_info(self):
+        k = HDKey()
+        self.assertIsNone(k.info())
+
 
 class TestBip38(unittest.TestCase):
 
@@ -479,18 +484,24 @@ class TestBip38(unittest.TestCase):
             self.vectors = json.load(f)
 
     def test_encrypt_private_key(self):
+        if not USING_MODULE_SCRYPT:
+            return
         for v in self.vectors["valid"]:
             k = Key(v['wif'])
             print("Check %s + %s = %s " % (v['wif'], v['passphrase'], v['bip38']))
             self.assertEqual(str(v['bip38']), k.bip38_encrypt(str(v['passphrase'])))
 
     def test_decrypt_bip38_key(self):
+        if not USING_MODULE_SCRYPT:
+            return
         for v in self.vectors["valid"]:
             k = Key(v['bip38'], passphrase=str(v['passphrase']))
             print("Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif']))
             self.assertEqual(str(v['wif']), k.wif())
 
     def test_bip38_invalid_keys(self):
+        if not USING_MODULE_SCRYPT:
+            return
         for v in self.vectors["invalid"]["verify"]:
             print("Checking invalid key %s" % v['base58'])
             self.assertRaisesRegexp(BKeyError, "Unrecognised key format", Key, [str(v['base58'])])
@@ -691,20 +702,21 @@ class TestKeysSignatures(unittest.TestCase):
              '3d5a44ed29650d339299081debf75c29dc4dbc6'),
             ('c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70',
              HDKey('xprv9s21ZrQH143K2YEun3sBzwSaFLn6bnBa6nkodJrDfZSty6L7Ba9JR5tMdhc7viB9dPu6LpQ9UqrsDsrJ8GNLQHf4SKA'
-                   'zGrXL6Pp5kjojqzi'), 92517795607469467391485978923218300650097355078673652603133403767271895603938,
+                   'zGrXL6Pp5kjojqzi', network='bitcoin'),
+             92517795607469467391485978923218300650097355078673652603133403767271895603938,
              '40aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea2226efba29871477ab925e75356fda036f06d'
              '293d02fc9b0f9d49e09d8149e9d',
              '3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e753'
              '56fda036f06d293d02fc9b0f9d49e09d8149e9d')
         ]
         sig_method1 = sign(sig_tests[0][0], sig_tests[0][1], k=sig_tests[0][2])
-        self.assertEqual(sig_method1.as_hex, sig_tests[0][3])
-        self.assertEqual(to_hexstring(sig_method1.as_der_encoded), sig_tests[0][4])
+        self.assertEqual(sig_method1.hex(), sig_tests[0][3])
+        self.assertEqual(to_hexstring(sig_method1.as_der_encoded()), sig_tests[0][4])
         count = 0
         for case in sig_tests:
             sig = Signature.create(case[0], case[1], k=case[2])
-            self.assertEqual(sig.as_hex, case[3], msg="Error in #%d: %s != %s" % (count, sig.as_hex, case[3]))
-            self.assertEqual(to_hexstring(sig.as_der_encoded), case[4])
+            self.assertEqual(sig.hex(), case[3], msg="Error in #%d: %s != %s" % (count, sig.hex(), case[3]))
+            self.assertEqual(to_hexstring(sig.as_der_encoded()), case[4])
             self.assertTrue(sig.verify())
             count += 1
 
@@ -781,7 +793,23 @@ class TestKeysSignatures(unittest.TestCase):
                 self.assertEqual(k, expected)
             msg_hash = hashlib.sha256(to_bytes(vector[1])).digest()
             sig = sign(msg_hash, x, k=k)
-            self.assertEqual(sig.as_hex, vector[3])
+            self.assertEqual(sig.hex(), vector[3])
+
+    def test_sig_from_r_and_s(self):
+        r = 0x657912a72d3ac8169fe8eaecd5ab401c94fc9981717e3e6dd4971889f785790c
+        s = 0x00ed3bf3456eb76677fd899c8ccd1cc6d1ebc631b94c42f7c4578f28590d651c6e
+        expected_der = '30450220657912a72d3ac8169fe8eaecd5ab401c94fc9981717e3e6dd4971889f785790c022100ed3bf345' \
+                       '6eb76677fd899c8ccd1cc6d1ebc631b94c42f7c4578f28590d651c6e'
+        expected_sig_bytes = b'ey\x12\xa7-:\xc8\x16\x9f\xe8\xea\xec\xd5\xab@\x1c\x94\xfc\x99\x81q~>m\xd4\x97\x18' \
+                             b'\x89\xf7\x85y\x0c\xed;\xf3En\xb7fw\xfd\x89\x9c\x8c\xcd\x1c\xc6\xd1\xeb\xc61\xb9LB' \
+                             b'\xf7\xc4W\x8f(Y\re\x1cn'
+        expected_sig_hex = '657912a72d3ac8169fe8eaecd5ab401c94fc9981717e3e6dd4971889f785790ced3bf3456eb76677fd899' \
+                           'c8ccd1cc6d1ebc631b94c42f7c4578f28590d651c6e'
+
+        sig = Signature(r, s)
+        self.assertEqual(to_hexstring(sig.as_der_encoded()), expected_der)
+        self.assertEqual(sig.bytes(), expected_sig_bytes)
+        self.assertEqual(sig.hex(), expected_sig_hex)
 
 
 if __name__ == '__main__':

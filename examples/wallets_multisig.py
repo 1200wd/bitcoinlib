@@ -12,7 +12,7 @@ from pprint import pprint
 from bitcoinlib.wallets import *
 
 test_databasefile = 'bitcoinlib.test.sqlite'
-test_database = DEFAULT_DATABASEDIR + test_databasefile
+test_database = BCL_DATABASE_DIR + test_databasefile
 if os.path.isfile(test_database):
     os.remove(test_database)
 
@@ -89,9 +89,9 @@ if not utxos:
 else:
     print("Utxo found, sweep address to testnet faucet address")
     res = wl1.sweep('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', min_confirms=0)
-    assert 'transaction' in res
+    assert res.hash
     wl2.utxos_update()
-    t2 = wl2.transaction_import(res['transaction'])
+    t2 = wl2.transaction_import(res)
     t2.sign()
     print("Verified (True): ", t2.verify())
     print("Push transaction result: ", t2.send())

@@ -62,7 +62,10 @@ class LitecoindClient(BaseClient):
 
         :return LitecoindClient:
         """
-        config = configparser.ConfigParser(strict=False)
+        if PY3:
+            config = configparser.ConfigParser(strict=False)
+        else:
+            config = configparser.ConfigParser()
         if not configfile:
             cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/litecoin.conf')
             if not os.path.isfile(cfn):  # Try Linux path
@@ -76,7 +79,7 @@ class LitecoindClient(BaseClient):
                                   "default. Or place a config file in .bitcoinlib/config/litecoin.conf to reference to "
                                   "an external server.")
         else:
-            cfn = os.path.join(DEFAULT_SETTINGSDIR, configfile)
+            cfn = os.path.join(BCL_CONFIG_DIR, configfile)
             if not os.path.isfile(cfn):
                 raise ConfigError("Config file %s not found" % cfn)
         with open(cfn, 'r') as f:

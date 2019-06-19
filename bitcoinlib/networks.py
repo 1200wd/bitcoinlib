@@ -46,19 +46,16 @@ def _read_network_definitions():
 
     :return dict: Network definitions
     """
-    try:
-        fn = DEFAULT_SETTINGSDIR + "/networks.json"
-        f = open(fn)
-    except FileNotFoundError:
-        fn = CURRENT_INSTALLDIR_DATA + "/networks.json"
-        f = open(fn)
+
+    fn = os.path.join(BCL_CONFIG_DIR, "networks.json")
+    if not os.path.isfile(fn):
+        fn = os.path.join(BCL_DATA_DIR, "networks.json")
+    f = open(fn)
 
     try:
         network_definitions = json.loads(f.read())
     except json.decoder.JSONDecodeError as e:
-        errstr = "Error reading provider definitions from %s: %s" % (fn, e)
-        _logger.warning(errstr)
-        raise NetworkError(errstr)
+        raise NetworkError("Error reading provider definitions from %s: %s" % (fn, e))
     f.close()
     return network_definitions
 
@@ -75,7 +72,7 @@ def _format_value(field, value):
         return value
 
 
-def network_values_for(field, output_as='default'):
+def network_values_for(field):
     """
     Return all prefixes mentioned field, i.e.: prefix_wif, prefix_address_p2sh, etc
 
@@ -86,31 +83,25 @@ def network_values_for(field, output_as='default'):
 
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
-    :param output_as: Output as string or hexstring. Default is string or hexstring depending on field type.
-    :type output_as: str
-    
+
     :return str: 
     """
-    r = [_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]
-    if output_as == 'str':
-        return [normalize_var(i) for i in r]
-    elif output_as == 'hex':
-        return [to_hexstring(i) for i in r]
-    else:
-        return r
+    return [_format_value(field, nv[field]) for nv in NETWORK_DEFINITIONS.values()]
 
 
 def network_by_value(field, value):
     """
     Return all networks for field and (prefix) value.
     
-    Example, get available networks for WIF or adress prefix
+    Example, get available networks for WIF or address prefix
+
     >>> network_by_value('prefix_wif', 'B0')
     ['litecoin', 'litecoin_legacy']
     >>> network_by_value('prefix_address', '6f')
     ['testnet', 'litecoin_testnet']
 
     This method does not work for HD prefixes, use 'wif_prefix_search' instead
+
     >>> network_by_value('prefix_address', '043587CF')
     []
     
@@ -159,14 +150,17 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     Extract network, script type and public/private information from HDKey WIF or WIF prefix.
 
     Example, get bitcoin 'xprv' info:
+
     >>> wif_prefix_search('0488ADE4', network='bitcoin', multisig=False)
     [{'prefix': '0488ADE4', 'is_private': True, 'prefix_str': 'xprv', 'network': 'bitcoin', 'witness_type': 'legacy', 'multisig': False, 'script_type': 'p2pkh'}]
 
     Or retreive info with full WIF string:
+
     >>> wif_prefix_search('xprv9wTYmMFdV23N21MM6dLNavSQV7Sj7meSPXx6AV5eTdqqGLjycVjb115Ec5LgRAXscPZgy5G4jQ9csyyZLN3PZLxoM1h3BoPuEJzsgeypdKj', network='bitcoin', multisig=False)
     [{'prefix': '0488ADE4', 'is_private': True, 'prefix_str': 'xprv', 'network': 'bitcoin', 'witness_type': 'legacy', 'multisig': False, 'script_type': 'p2pkh'}]
 
     Can return multiple items if no network is specified:
+
     >>> [nw['network'] for nw in wif_prefix_search('0488ADE4', multisig=True)]
     ['bitcoin', 'dash']
 
@@ -259,6 +253,7 @@ class Network(object):
         Return the value as string with currency symbol
 
         Print value for 100000 satoshi as string in human readable format
+
         >>> Network('bitcoin').print_value(100000)
         '0.00100000 BTC'
 
@@ -279,7 +274,7 @@ class Network(object):
         Get WIF prefix for this network and specifications in arguments
 
         >>> Network('bitcoin').wif_prefix()
-        b'\x04\x88\xb2\x1e'  # xpub
+        b'x04\x88\xb2\x1e'  # xpub
         >>> Network('bitcoin').wif_prefix(is_private=True, witness_type='segwit', multisig=True)
         b'\x02\xaaz\x99'     # Zprv
 

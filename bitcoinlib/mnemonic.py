@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os
 import hashlib
 from bitcoinlib.encoding import change_base, normalize_string, to_bytes
 from bitcoinlib.config.secp256k1 import secp256k1_n
@@ -42,7 +43,7 @@ class Mnemonic(object):
         
         """
         self._wordlist = []
-        with open('%s/%s.txt' % (WORDLIST_DIR, language)) as f:
+        with open(os.path.join(BCL_WORDLIST_DIR, '%s.txt' % language)) as f:
             self._wordlist = [w.strip() for w in f.readlines()]
 
     @staticmethod
@@ -145,14 +146,14 @@ class Mnemonic(object):
 
     def to_entropy(self, words, includes_checksum=True):
         """
-        Convert Mnemonic words back to key data entrophy
+        Convert Mnemonic words back to key data entropy
 
         :param words: Mnemonic words as string of list of words
         :type words: str
         :param includes_checksum: Boolean to specify if checksum is used. Default is True
         :type includes_checksum: bool
         
-        :return bytes: Entrophy seed
+        :return bytes: Entropy seed
         """
         words = self.sanitize_mnemonic(words)
         if isinstance(words, TYPE_TEXT):
@@ -187,9 +188,9 @@ class Mnemonic(object):
             words = words.split(' ')
 
         wlcount = {}
-        for fn in os.listdir(WORDLIST_DIR):
+        for fn in os.listdir(BCL_WORDLIST_DIR):
             if fn.endswith(".txt"):
-                with open('%s/%s' % (WORDLIST_DIR, fn)) as f:
+                with open(os.path.join(BCL_WORDLIST_DIR, fn)) as f:
                     wordlist = [w.strip() for w in f.readlines()]
                     language = fn.split('.')[0]
                     wlcount[language] = 0
@@ -218,7 +219,7 @@ class Mnemonic(object):
         language = self.detect_language(words)
         if isinstance(words, TYPE_TEXT):
             words = words.split(' ')
-        with open('%s/%s.txt' % (WORDLIST_DIR, language)) as f:
+        with open(os.path.join(BCL_WORDLIST_DIR, '%s.txt' % language)) as f:
             wordlist = [w.strip() for w in f.readlines()]
             for word in words:
                 if sys.version < '3':

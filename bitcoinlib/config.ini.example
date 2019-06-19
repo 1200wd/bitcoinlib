@@ -10,16 +10,16 @@
 
 [locations]
 # Default directory for database files. Relative paths will be based in user home directory
-database_dir=.bitcoinlib_dev
+;database_dir=.bitcoinlib/database
 
 # Default database file for wallets, keys and transactions. Relative paths will be based in 'database_dir'
-default_databasefile=bcldev.sqlite
+;default_databasefile=bitcoinlib.sqlite
 
 # Log files location. Relative paths will be based in user home directory
-log_dir=.bitcoinlib_dev
+;log_dir=.bitcoinlib/log
 
 # Location of BitcoinLib config files. Relative paths will be based in installation directory
-config_dir=.bitcoinlib_dev
+;config_dir=.bitcoinlib/config
 
 # Location of data files such as provider and network definitions.
 # Relative paths will be based in installation directory
@@ -32,15 +32,16 @@ config_dir=.bitcoinlib_dev
 # Time for request to service providers in seconds
 ;timeout_requests=5
 
+
 # Default language for Mnemonic passphrases
-default_language=dutch
+;default_language=english
 
 # Default network when creating wallets, transaction, keys, etc.
-default_network=litecoin
+;default_network=bitcoin
 
 # Default witness_type for new wallets and keys
-default_witness_type=segwit
+;default_witness_type=legacy
 
 [logs]
 # Loglevel for this library, options: CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET
-loglevel=DEBUG
+;loglevel=WARNING

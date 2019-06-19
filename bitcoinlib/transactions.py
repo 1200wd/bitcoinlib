@@ -204,9 +204,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             # TODO: Rethink and rewrite this:
             if not item_length and itemlen not in [20, 33, 65, 70, 71, 72, 73]:
                 break
-            # TODO: Does this have influence?
-            if len(scr) < itemlen:
-                break
             if redeemscript_expected and len(scr[itemlen + 1:]) < 20:
                 break
             items.append(scr[1:itemlen + 1])
@@ -251,8 +248,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     cur += total_length
                 elif ch == 'signature':
                     signature_length = 0
-                    if len(ch) > 10:
-                        signature_length = int(ch.split("-")[1])
                     s, total_length = _parse_data(script[cur:], 1, item_length=signature_length)
                     if not s:
                         found = False
@@ -265,9 +260,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     if not key:
                         found = False
                         break
-                    # if key[0] == '0x30':
-                    #     data['keys'].append(binascii.unhexlify(convert_der_sig(key[:-1])))
-                    # else:
                     data['keys'].append(key)
                     cur += size + pk_size
                 elif ch == 'OP_RETURN':
@@ -324,7 +316,6 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     else:
                         found = False
                         break
-                        # raise TransactionError("%s is not an op_n code" % cur_char)
                     if data['number_of_sigs_m'] > data['number_of_sigs_n']:
                         raise TransactionError("Number of signatures to sign (%s) is higher then actual "
                                                "amount of signatures (%s)" %
@@ -402,33 +393,16 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
             locktime_cltv = data['locktime_cltv']
         if script and data['script_type'] == 'locktime_csv':
             locktime_csv = data['locktime_csv']
-    if data:
+    if data and data['result'] != 'Script not recognised':
         data['locktime_cltv'] = locktime_cltv
         data['locktime_csv'] = locktime_csv
         return data
 
-    wrn_msg = "Could not parse script, unrecognized script. Script: %s" % to_hexstring(script)
+    wrn_msg = "Could not parse script, unrecognized script"
     _logger.warning(wrn_msg)
-    return {'result': wrn_msg}
-
-
-def script_deserialize_sigpk(script):
-    """
-    Deserialize a unlocking script (scriptSig) with a signature and public key. The DER encoded signature is
-    decoded to a normal signature with point x and y in 64 bytes total.
-    
-    Returns signature and public key.
-    
-    :param script: A unlocking script
-    :type script: bytes
-
-    :return tuple: Tuple with a signature and public key in bytes
-    """
-
-    data = script_deserialize(script, ['sig_pubkey'])
-    assert(len(data['signatures']) == 1)
-    assert(len(data['keys']) == 1)
-    return data['signatures'][0], data['keys'][0]
+    data = _get_empty_data()
+    data['result'] = wrn_msg
+    return data
 
 
 def script_to_string(script):
@@ -500,6 +474,9 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
         return b''
     if not isinstance(key_list, list):
         raise TransactionError("Argument public_key_list must be of type list")
+    if len(key_list) > 15:
+        raise TransactionError("Redeemscripts with more then 15 keys are non-standard and could result in "
+                               "locked up funds")
     public_key_list = []
     for k in key_list:
         if isinstance(k, Key):
@@ -509,6 +486,8 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
                 public_key_list.append(k.public_uncompressed_byte)
         elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
             public_key_list.append(k)
+        elif len(k) == 132 and k[0:2] == '04' or len(k) == 66 and k[0:2] in ['02', '03']:
+            public_key_list.append(to_bytes(k))
         else:
             kobj = Key(k)
             if compressed:
@@ -628,6 +607,8 @@ class Input(object):
         :type public_hash: bytes, str
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
+        :param unlocking_script_unsigned: Unlocking script for signing transaction
+        :type unlocking_script_unsigned: bytes, hexstring
         :param script_type: Type of unlocking script used, i.e. p2pkh or p2sh_multisig. Default is p2pkh
         :type script_type: str
         :param address: Address string or object for input
@@ -707,10 +688,10 @@ class Input(object):
             self.script_type = 'coinbase'
         if not sigs_required:
             if self.script_type == 'p2sh_multisig':
-                raise TransactionError("Please specify number of signatures required (sigs_required) parameter")
+                # raise TransactionError("Please specify number of signatures required (sigs_required) parameter")
+                pass
             else:
                 sigs_required = 1
-        self.sigs_required = sigs_required
         self.double_spend = double_spend
         self.locktime_cltv = locktime_cltv
         self.locktime_csv = locktime_csv
@@ -736,6 +717,7 @@ class Input(object):
                 self.redeemscript = us_dict['redeemscript']
                 signatures += us_dict['signatures']
                 keys += us_dict['keys']
+                sigs_required = us_dict['number_of_sigs_m']
                 if not signatures and not self.public_hash:
                     self.public_hash = us_dict['hashes'][0]
                 # Determine locking script type for unlocking script type
@@ -745,9 +727,6 @@ class Input(object):
                         self.script_type = 'p2sh_p2wsh'
                     elif us_dict['script_type'] == 'p2wpkh':
                         self.script_type = 'p2sh_p2wpkh'
-                # elif self.script_type != us_dict['script_type']:
-                #     raise TransactionError("Address script type %s is different from script type provided %s" %
-                #                            (us_dict['script_type'], self.script_type))
         elif unlocking_script_unsigned and not signatures:
             ls_dict = script_deserialize(unlocking_script_unsigned, locking_script=True)
             if ls_dict['hashes']:
@@ -755,6 +734,7 @@ class Input(object):
                 if ls_dict['script_type'] in ['p2wpkh', 'p2wsh']:
                     self.witness_type = 'segwit'
                 self.script_type = get_unlocking_script_type(ls_dict['script_type'])
+        self.sigs_required = sigs_required
         if self.witness_type is None or self.witness_type == 'legacy':
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
@@ -784,24 +764,24 @@ class Input(object):
             self.keys.sort(key=lambda k: k.public_byte)
         for sig in signatures:
             if isinstance(sig, Signature):
-                if sig.as_der_encoded not in [x.as_der_encoded for x in self.signatures]:
+                if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
                     self.signatures.append(sig)
             else:
                 self.signatures.append(Signature.from_str(sig))
         self.update_scripts()
 
     # TODO: Remove / replace?
-    def sequence_timelock_blocks(self, blocks):
-        if blocks > SEQUENCE_LOCKTIME_MASK:
-            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = blocks
-
-    def sequence_timelock_time(self, seconds):
-        if seconds % 512:
-            raise TransactionError("Seconds must be a multiply of 512")
-        if seconds > SEQUENCE_LOCKTIME_MASK:
-            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+    # def sequence_timelock_blocks(self, blocks):
+    #     if blocks > SEQUENCE_LOCKTIME_MASK:
+    #         raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+    #     self.sequence = blocks
+    #
+    # def sequence_timelock_time(self, seconds):
+    #     if seconds % 512:
+    #         raise TransactionError("Seconds must be a multiply of 512")
+    #     if seconds > SEQUENCE_LOCKTIME_MASK:
+    #         raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+    #     self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
 
     def update_scripts(self, hash_type=SIGHASH_ALL):
         """
@@ -829,14 +809,14 @@ class Input(object):
                 else:
                     return
             if not self.public_hash:
-                self.public_hash = self.keys[0].hash160()
+                self.public_hash = self.keys[0].hash160
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
             self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
                                    script_type=self.script_type, witness_type=self.witness_type).address
             self.witnesses = []
             if self.signatures and self.keys:
-                self.witnesses = [self.signatures[0].as_der_encoded + struct.pack('B', hash_type), self.keys[0].public_byte]
+                self.witnesses = [self.signatures[0].as_der_encoded() + struct.pack('B', hash_type), self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
@@ -865,7 +845,7 @@ class Input(object):
                 if not isinstance(n_tag, int):
                     n_tag = struct.unpack('B', n_tag)[0]
                 self.sigs_required = n_tag - 80
-                signatures = [s.as_der_encoded for s in self.signatures[:self.sigs_required]]
+                signatures = [s.as_der_encoded() for s in self.signatures[:self.sigs_required]]
                 if b'' in signatures:
                     raise TransactionError("Empty signature found in signature list when signing. "
                                            "Is DER encoded version of signature defined?")
@@ -886,8 +866,6 @@ class Input(object):
                         self.witnesses = unlock_script
                 elif self.witness_type == 'p2sh-segwit':
                     self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
-                    # FIXME: First line is old code causing error in as_dict(), is script_code needed???
-                    # self.script_code = unlock_script
                     self.script_code = self.unlocking_script
                     if signatures:
                         self.witnesses = unlock_script
@@ -898,7 +876,7 @@ class Input(object):
                 self.script_code = self.keys[0].public_byte + b'\xac'
                 self.unlocking_script_unsigned = self.script_code
             if self.signatures:
-                self.unlocking_script = varstr(self.signatures[0].as_der_encoded + struct.pack('B', hash_type))
+                self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + struct.pack('B', hash_type))
         elif self.script_type != 'coinbase':
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:
@@ -940,7 +918,7 @@ class Input(object):
             'script': to_hexstring(self.unlocking_script),
             'redeemscript': to_hexstring(self.redeemscript),
             'sequence': self.sequence,
-            'signatures': [s.as_hex for s in self.signatures],
+            'signatures': [s.hex() for s in self.signatures],
             'sigs_required': self.sigs_required,
             'locktime_cltv': self.locktime_cltv,
             'locktime_csv': self.locktime_csv, 'public_hash': to_hexstring(self.public_hash),
@@ -954,8 +932,8 @@ class Input(object):
         }
 
     def __repr__(self):
-        return "<Input(prev_hash=%s, output_n=%d, address=%s, index_n=%s, type=%s)>" % \
-               (self.prev_hash, self.output_n_int, self.address, self.index_n, self.script_type)
+        return "<Input(prev_hash='%s', output_n=%d, address='%s', index_n=%s, type='%s')>" % \
+               (to_hexstring(self.prev_hash), self.output_n_int, self.address, self.index_n, self.script_type)
 
 
 class Output(object):
@@ -1013,7 +991,8 @@ class Output(object):
             self.address = address.address()
             self.address_obj = address.address_obj
             public_key = address.public_byte
-            self.public_hash = address.hash160()
+            script_type = script_type_default(address.witness_type, address.multisig, True)
+            self.public_hash = address.hash160
         else:
             self.address = address
             self.address_obj = None
@@ -1038,7 +1017,7 @@ class Output(object):
             self.encoding = self.address_obj.encoding
         if self.public_key and not self.public_hash:
             k = Key(self.public_key, is_private=False, network=network)
-            self.public_hash = k.hash160()
+            self.public_hash = k.hash160
         elif self.address and (not self.public_hash or not self.script_type or not self.encoding):
             address_dict = deserialize_address(self.address, self.encoding, self.network.name)
             if address_dict['script_type'] and not script_type:
@@ -1068,7 +1047,7 @@ class Output(object):
             if ss['keys']:
                 self.public_key = ss['keys'][0]
                 k = Key(self.public_key, is_private=False, network=network)
-                self.public_hash = k.hash160()
+                self.public_hash = k.hash160
         if self.script_type is None:
             self.script_type = 'p2pkh'
             if self.encoding == 'bech32':
@@ -1355,19 +1334,19 @@ class Transaction(object):
                 replace_by_fee = True
             if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
                 if ti.sequence & SEQUENCE_LOCKTIME_TYPE_FLAG:
-                    print("  Relative timelock for %d seconds" % 512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                    print("  Relative timelock for %d seconds" % (512 * (ti.sequence - SEQUENCE_LOCKTIME_TYPE_FLAG)))
                 else:
                     print("  Relative timelock for %d blocks" % ti.sequence)
             if ti.locktime_cltv:
                 if ti.locktime_cltv & SEQUENCE_LOCKTIME_TYPE_FLAG:
                     print("  Check Locktime Verify (CLTV) for %d seconds" %
-                          512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                          (512 * (ti.locktime_cltv - SEQUENCE_LOCKTIME_TYPE_FLAG)))
                 else:
                     print("  Check Locktime Verify (CLTV) for %d blocks" % ti.locktime_cltv)
             if ti.locktime_csv:
                 if ti.locktime_csv & SEQUENCE_LOCKTIME_TYPE_FLAG:
                     print("  Check Sequence Verify Timelock (CSV) for %d seconds" %
-                          512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG))
+                          (512 * (ti.locktime_csv - SEQUENCE_LOCKTIME_TYPE_FLAG)))
                 else:
                     print("  Check Sequence Verify Timelock (CSV) for %d blocks" % ti.locktime_csv)
 
@@ -1849,21 +1828,7 @@ class Transaction(object):
             if outp.lock_script:
                 est_size += len(varstr(outp.lock_script))
             else:
-                if outp.script_type == 'p2sh':
-                    est_size += 24
-                elif outp.script_type == 'p2pkh':
-                    est_size += 26
-                elif outp.script_type == 'p2wpkh':
-                    est_size += 21
-                elif outp.script_type == 'p2wsh':
-                    est_size += 33
-                elif outp.script_type == 'p2pk':
-                    est_size += 35
-                elif outp.script_type == 'nulldata':
-                    est_size += len(outp.lock_script) + 1
-                else:
-                    raise TransactionError("Unknown output script type %s cannot estimate transaction size" %
-                                           outp.script_type)
+                raise TransactionError("Need locking script for output %d to estimate size" % outp.output_n)
         if add_change_output:
             is_multisig = True if self.inputs and self.inputs[0].script_type == 'p2sh_multisig' else False
             est_size += 8
@@ -1900,6 +1865,6 @@ class Transaction(object):
         :return int:
         """
 
-        self.input_total = sum([i.value for i in self.inputs])
-        self.output_total = sum([o.value for o in self.outputs])
+        self.input_total = sum([i.value for i in self.inputs if i.value])
+        self.output_total = sum([o.value for o in self.outputs if o.value])
         self.fee = self.input_total - self.output_total

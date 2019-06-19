@@ -18,7 +18,7 @@ print("\n=== Get all WIF prefixes ===")
 print("WIF Prefixes: %s" % network_values_for('prefix_wif'))
 
 print("\n=== Get all HDkey private prefixes ===")
-print("HDkey private prefixes: %s" % network_values_for('prefix_wif', output_as='str'))
+print("HDkey private prefixes: %s" % network_values_for('prefix_wif'))
 
 print("\n=== Get network(s) for WIF prefix B0 ===")
 print("WIF Prefixes: %s" % network_by_value('prefix_wif', 'B0'))

@@ -18,13 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import csv
 try:
     import enum
 except ImportError:
     import enum34 as enum
 import datetime
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -44,35 +43,49 @@ class DbInit:
 
     """
     def __init__(self, databasefile=DEFAULT_DATABASE):
+        if not os.path.isabs(databasefile):
+            databasefile = os.path.join(BCL_DATABASE_DIR, databasefile)
         self.engine = create_engine('sqlite:///%s' % databasefile)
         Session = sessionmaker(bind=self.engine)
 
         if not os.path.exists(databasefile):
-            if not os.path.exists(DEFAULT_DATABASEDIR):
-                os.makedirs(DEFAULT_DATABASEDIR)
-            if not os.path.exists(DEFAULT_SETTINGSDIR):
-                os.makedirs(DEFAULT_SETTINGSDIR)
             Base.metadata.create_all(self.engine)
             self._import_config_data(Session)
 
         self.session = Session()
+        # TODO: Upgrade database automatically
+        try:
+            version_db = self.session.query(DbConfig.value).filter_by(variable='version').scalar()
+            if BITCOINLIB_VERSION != version_db:
+                _logger.warning("BitcoinLib database (%s) is from different version then library code (%s), "
+                                "run updatedb.py script to upgrade database" % (version_db, BITCOINLIB_VERSION))
+        except:
+            _logger.warning("BitcoinLib database is from older version then library code (%s), "
+                            "run updatedb.py script to upgrade database" % BITCOINLIB_VERSION)
 
     @staticmethod
     def _import_config_data(ses):
-        for fn in os.listdir(DEFAULT_SETTINGSDIR):
-            if fn.endswith(".csv"):
-                with open('%s%s' % (DEFAULT_SETTINGSDIR, fn), 'r') as csvfile:
-                    session = ses()
-                    tablename = fn.split('.')[0]
-                    reader = csv.DictReader(csvfile)
-                    for row in reader:
-                        if tablename == 'networks':
-                            session.add(DbNetwork(**row))
-                        else:
-                            raise ImportError(
-                                "Unrecognised table '%s', please update import mapping or remove file" % tablename)
-                    session.commit()
-                    session.close()
+        session = ses()
+        session.add(DbConfig(variable='version', value=BITCOINLIB_VERSION))
+        session.add(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
+        url = ''
+        try:
+            url = str(session.bind.url)
+        except:
+            pass
+        session.add(DbConfig(variable='installation_url', value=url))
+        session.commit()
+        session.close()
+
+
+class DbConfig(Base):
+    """
+    BitcoinLib configuration variables
+
+    """
+    __tablename__ = 'config'
+    variable = Column(String(30), primary_key=True)
+    value = Column(String(255))
 
 
 class DbWallet(Base):

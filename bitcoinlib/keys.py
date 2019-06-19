@@ -20,21 +20,28 @@
 
 import binascii
 import hashlib
+import sys
+import os
 import hmac
 import numbers
 import random
+import warnings
 from copy import deepcopy
 import collections
 import json
+import pyaes
 
+SCRYPT_ERROR = None
+USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
 try:
-    import scrypt
-    USING_MODULE_SCRYPT = True
-except ImportError as scrypt_error:
+    if USING_MODULE_SCRYPT != False:
+        import scrypt
+        USING_MODULE_SCRYPT = True
+except ImportError as SCRYPT_ERROR:
+    pass
+if 'scrypt' not in sys.modules:
     import pyscrypt as scrypt
     USING_MODULE_SCRYPT = False
-
-import pyaes
 
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
@@ -59,10 +66,8 @@ _logger = logging.getLogger(__name__)
 
 if not USING_MODULE_SCRYPT:
     if 'scrypt_error' not in locals():
-        scrypt_error = 'unknown'
-    _logger.warning("Error when trying to import scrypt module", scrypt_error)
-    _logger.warning("Using 'pyscrypt' module instead of 'scrypt' which could result in slow hashing of BIP38 password "
-                    "protected keys.")
+        SCRYPT_ERROR = 'unknown'
+    _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
 
 
 class BKeyError(Exception):
@@ -308,7 +313,7 @@ def deserialize_address(address, encoding=None, network=None):
                 script_type = 'p2wsh'
             else:
                 raise BKeyError("Unknown script type for address %s. Invalid length %d" %
-                               (address, len(public_key_hash)))
+                                (address, len(public_key_hash)))
             return {
                 'address': address,
                 'encoding': 'bech32',
@@ -353,7 +358,7 @@ def addr_convert(addr, prefix, encoding=None, to_encoding=None):
 
 
 def path_expand(path, path_template=None, level_offset=None, account_id=0, cosigner_id=0, purpose=44,
-                address_index=0, change=0, witness_type='legacy', multisig=False, network=DEFAULT_NETWORK):
+                address_index=0, change=0, witness_type=DEFAULT_WITNESS_TYPE, multisig=False, network=DEFAULT_NETWORK):
     """
     Create key path. Specify part of key path and path settings
 
@@ -375,6 +380,8 @@ def path_expand(path, path_template=None, level_offset=None, account_id=0, cosig
     :type change: int
     :param witness_type: Witness type for paths with a script ID, specify 'p2sh-segwit' or 'segwit'
     :type witness_type: str
+    :param multisig: Is path for multisig keys?
+    :type multisig: bool
     :param network: Network name. Leave empty for default network
     :type network: str
 
@@ -836,7 +843,7 @@ class Key(object):
         if self.is_private:
             return self.secret
         else:
-            raise BKeyError("Public key has no secret integer attribute")
+            return None
 
     def as_dict(self, include_private=False):
         """
@@ -859,7 +866,7 @@ class Key(object):
             key_dict['wif'] = self.wif()
         key_dict['public_hex'] = self.public_hex
         key_dict['public_uncompressed_hex'] = self.public_uncompressed_hex
-        key_dict['hash160'] = to_hexstring(self.hash160())
+        key_dict['hash160'] = to_hexstring(self.hash160)
         key_dict['address'] = self.address()
         x, y = self.public_point()
         key_dict['point_x'] = x
@@ -1028,6 +1035,7 @@ class Key(object):
         y = self._y and int(self._y, 16)
         return (x, y)
 
+    @property
     def hash160(self):
         """
         Get public key in RIPEMD-160 + SHA256 format
@@ -1122,7 +1130,7 @@ class Key(object):
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
-        print(" Public Key Hash160          %s" % to_hexstring(self.hash160()))
+        print(" Public Key Hash160          %s" % to_hexstring(self.hash160))
         print(" Address (b58)               %s" % self.address())
         point_x, point_y = self.public_point()
         print(" Point x                     %s" % point_x)
@@ -1141,7 +1149,7 @@ class HDKey(Key):
 
     @staticmethod
     def from_seed(import_seed, key_type='bip32', network=DEFAULT_NETWORK, compressed=True,
-                  encoding=None, witness_type='legacy', multisig=False):
+                  encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False):
         """
         Used by class init function, import key from seed
 
@@ -1174,7 +1182,7 @@ class HDKey(Key):
 
     @staticmethod
     def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, compressed=True,
-                        encoding=None, witness_type='legacy', multisig=False):
+                        encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False):
         """
         Create key from Mnemonic passphrase
 
@@ -1300,7 +1308,7 @@ class HDKey(Key):
                     key_type = 'private'
 
         if witness_type is None:
-            witness_type = 'legacy'
+            witness_type = DEFAULT_WITNESS_TYPE
 
         Key.__init__(self, key, network, compressed, passphrase, is_private)
 
@@ -1351,7 +1359,7 @@ class HDKey(Key):
 
         key_dict = super(HDKey, self).as_dict()
         if include_private:
-            key_dict['fingerprint'] = to_hexstring(self.fingerprint())
+            key_dict['fingerprint'] = to_hexstring(self.fingerprint)
             key_dict['chain_code'] = to_hexstring(self.chain)
             key_dict['fingerprint_parent'] = to_hexstring(self.parent_fingerprint)
         key_dict['child_index'] = self.child_index
@@ -1390,6 +1398,7 @@ class HDKey(Key):
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
         return key, chain
 
+    @property
     def fingerprint(self):
         """
         Get key fingerprint: the last for bytes of the hash160 of this key.
@@ -1397,7 +1406,7 @@ class HDKey(Key):
         :return bytes:
         """
 
-        return self.hash160()[:4]
+        return self.hash160[:4]
 
     def wif(self, is_private=None, child_index=None, prefix=None, witness_type=None, multisig=None):
         """
@@ -1418,7 +1427,7 @@ class HDKey(Key):
         """
 
         if not witness_type:
-            witness_type = 'legacy' if not self.witness_type else self.witness_type
+            witness_type = DEFAULT_WITNESS_TYPE if not self.witness_type else self.witness_type
         if not multisig:
             multisig = False if not self.multisig else self.multisig
 
@@ -1553,7 +1562,7 @@ class HDKey(Key):
         return key
 
     @deprecated  # In version 0.4.5
-    def account_key(self, account_id=0, purpose=44, set_network=None):
+    def account_key(self, account_id=0, purpose=44, set_network=None):  # pragma: no cover
         """
         Deprecated since version 0.4.5, use public_master() method instead
 
@@ -1569,6 +1578,7 @@ class HDKey(Key):
         :return HDKey:
 
         """
+        warnings.warn("Deprecated since version 0.4.5, use public_master() method instead", DeprecationWarning)
         if self.depth == 3:
             return self
         elif self.depth != 0:
@@ -1641,7 +1651,7 @@ class HDKey(Key):
         return self.public_master(account_id, purpose, True, witness_type, as_private)
 
     @deprecated  # In version 0.4.5
-    def account_multisig_key(self, account_id=0, witness_type='legacy'):
+    def account_multisig_key(self, account_id=0, witness_type=DEFAULT_WITNESS_TYPE):  # pragma: no cover
         """
         Deprecated since version 0.4.5, use public_master() method instead
 
@@ -1655,6 +1665,7 @@ class HDKey(Key):
 
         :return HDKey:
         """
+        warnings.warn("Deprecated since version 0.4.5, use public_master() method instead", DeprecationWarning)
         script_type = 0
         if self.key_type == 'single':
             return self
@@ -1729,7 +1740,7 @@ class HDKey(Key):
             raise BKeyError("Key cannot be zero. Try another index number.")
         newkey = change_base(newkey, 10, 256, 32)
 
-        return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
+        return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
                      child_index=index, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
 
@@ -1770,7 +1781,7 @@ class HDKey(Key):
             prefix = '02'
         xhex = change_base(ki_x, 10, 16, 64)
         secret = binascii.unhexlify(prefix + xhex)
-        return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint(),
+        return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
                      child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
 
@@ -1800,7 +1811,7 @@ class Signature(object):
     >>> sk = HDKey()
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
-    >>> to_hexstring(signature.as_der_encoded)
+    >>> to_hexstring(signature.as_der_encoded())
     3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e75356fda036f06d293d02fc9b0f9d49e09d8149e9d
     
     """
@@ -1937,7 +1948,7 @@ class Signature(object):
     def __repr__(self):
         der_sig = '' if not self._der_encoded else to_hexstring(self._der_encoded)
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
-               (self.r, self.s, self.as_hex(), der_sig)
+               (self.r, self.s, self.hex(), der_sig)
 
     @property
     def tx_hash(self):
@@ -1974,7 +1985,25 @@ class Signature(object):
                 raise BKeyError('Invalid public key, point is not on secp256k1 curve')
         self._public_key = value
 
-    @property
+    def hex(self):
+        """
+        Signature r and s value as single hexstring
+
+        :return hexstring:
+        """
+        return to_hexstring(self.bytes())
+
+    def bytes(self):
+        """
+        Signature r and s value as single bytes string
+
+        :return bytes:
+        """
+
+        if not self._signature:
+            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
+        return self._signature
+
     def as_der_encoded(self):
         """
         DER encoded signature in bytes
@@ -1982,30 +2011,8 @@ class Signature(object):
         :return bytes: 
         """
         if not self._der_encoded:
-            self._der_encoded = DEREncoder.encode_signature(self.r, self.s)
+            self._der_encoded = der_encode_sig(self.r, self.s)
         return self._der_encoded
-
-    @property
-    def as_bytes(self):
-        """
-        Signature r and s value as single bytes string
-        
-        :return bytes: 
-        """
-        if not self._signature:
-            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
-        return self._signature
-
-    @property
-    def as_hex(self):
-        """
-        Signature r and s value as single hexstring
-        
-        :return hexstring: 
-        """
-        if not self._signature:
-            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
-        return to_hexstring(self._signature)
 
     def verify(self, tx_hash=None, public_key=None):
         """
@@ -2042,7 +2049,7 @@ class Signature(object):
             )
         else:
             transaction_to_sign = to_bytes(self.tx_hash)
-            signature = self.as_bytes
+            signature = self.bytes()
             if len(transaction_to_sign) != 32:
                 transaction_to_sign = double_sha256(transaction_to_sign)
             ver_key = ecdsa.VerifyingKey.from_string(self.public_key.public_uncompressed_byte[1:],
@@ -2070,7 +2077,7 @@ def sign(tx_hash, private, use_rfc6979=True, k=None):
     >>> sk = HDKey()
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
-    >>> to_hexstring(signature.as_der_encoded)
+    >>> to_hexstring(signature.as_der_encoded())
     3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e75356fda036f06d293d02fc9b0f9d49e09d8149e9d
 
     :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.

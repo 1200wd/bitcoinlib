@@ -20,6 +20,9 @@ blockchain information. It does currently not parse the blockchain itself.
 .. image:: https://readthedocs.org/projects/bitcoinlib/badge/?version=latest
     :target: http://bitcoinlib.readthedocs.io/en/latest/?badge=latest
     :alt: RTD
+.. image:: https://coveralls.io/repos/github/1200wd/bitcoinlib/badge.svg?branch=installation-documentation-update
+    :target: https://coveralls.io/github/1200wd/bitcoinlib?branch=master
+    :alt: Coveralls
 
 
 Documentation
@@ -248,19 +251,33 @@ Install with pip
 
 ``pip install bitcoinlib``
 
-
-Package dependencies
---------------------
-
-Required Python Packages, are automatically installed upon installing bitcoinlib:
-
-* fastecdsa
+These packages will be installed
+* fastecdsa (or ecdsa on Windows)
 * pyaes
 * scrypt
 * sqlalchemy
 * requests
 * enum34 (for older python installations)
 * six
+
+
+Install development environment
+-------------------------------
+
+First create a virtual environment for instance on linux with virtualenv:
+
+.. code-block:: bash
+
+    $ virtualenv -p python3 venv/bitcoinlib
+    $ source venv/bitcoinlib/bin/activate
+
+Then clone the repository and install dependencies:
+
+.. code-block:: bash
+
+    $ git clone https://github.com/1200wd/bitcoinlib.git
+    $ cd bitcoinlib
+    $ pip install -r docs/requirements.txt
 
 
 Other requirements Linux
@@ -291,8 +308,11 @@ Troubleshooting
 
 When you experience issues with the scrypt package when installing you can try to solve this by removing and reinstall
 scrypt:
- pip uninstall scrypt
- pip install scrypt
+
+.. code-block:: bash
+
+    $ pip uninstall scrypt
+    $ pip install scrypt
 
 Please make sure you also have the Python development and SSL development packages installed, see 'Other requirements'
 above.

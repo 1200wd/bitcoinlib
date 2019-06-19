@@ -9,7 +9,7 @@
 
 import os
 from pprint import pprint
-from bitcoinlib.wallets import HDWallet, DEFAULT_DATABASEDIR
+from bitcoinlib.wallets import HDWallet, BCL_DATABASE_DIR
 
 
 #
@@ -18,7 +18,7 @@ from bitcoinlib.wallets import HDWallet, DEFAULT_DATABASEDIR
 
 # First recreate database to avoid already exist errors
 test_databasefile = 'bitcoinlib.test.sqlite'
-test_database = DEFAULT_DATABASEDIR + test_databasefile
+test_database = BCL_DATABASE_DIR + test_databasefile
 if os.path.isfile(test_database):
     os.remove(test_database)
 

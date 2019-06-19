@@ -74,10 +74,4 @@ def opcode(name, as_bytes=True):
 
 opcodenames, opcodes = _set_opcodes()
 
-
 OP_N_CODES = range(opcodes['OP_1'], opcodes['OP_16'])
-
-
-if __name__ == '__main__':
-    print("Opcodename for opcode 173 is", opcodenames[173])
-    print("Opcode for OP_CHECKSIG is", opcodes['OP_CHECKSIG'])

@@ -20,14 +20,18 @@
 
 from setuptools import setup
 from codecs import open
-from os import path
+import os
 import sys
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
+version_file = open(os.path.join(here, 'bitcoinlib/config/VERSION'))
+version = version_file.read().strip()
 
 # Get the long description from the relevant file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     readmetxt = f.read()
+
+print(os.environ['HOME'])
 
 kwargs = {}
 
@@ -37,7 +41,7 @@ install_requires = [
       'ecdsa>=0.13;platform_system=="Windows"',
       'pyaes==1.6.1',
       'scrypt>=0.8.13',
-      'SQLAlchemy>=1.2.12',
+      'SQLAlchemy>=1.3.2',
       'six>=1.10'
 ]
 if sys.version_info < (3, 4):
@@ -46,7 +50,7 @@ kwargs['install_requires'] = install_requires
 
 setup(
       name='bitcoinlib',
-      version='0.4.7',
+      version=version,
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[

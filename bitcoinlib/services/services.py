@@ -18,11 +18,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
+import os
 import logging
 import json
 import random
-from bitcoinlib.main import DEFAULT_SETTINGSDIR, CURRENT_INSTALLDIR_DATA, TYPE_TEXT
+from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
@@ -70,16 +70,14 @@ class Service(object):
             self.network = Network(network)
         if min_providers > max_providers:
             max_providers = min_providers
-        try:
-            fn = DEFAULT_SETTINGSDIR + "providers.json"
-            f = open(fn, "r")
-        except FileNotFoundError:
-            fn = CURRENT_INSTALLDIR_DATA + "providers.json"
-            f = open(fn, "r")
+        fn = os.path.join(BCL_CONFIG_DIR, "providers.json")
+        if not os.path.isfile(fn):
+            fn = os.path.join(BCL_DATA_DIR, "providers.json")
+        f = open(fn, "r")
 
         try:
             self.providers_defined = json.loads(f.read())
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError as e:  # pragma: no cover
             errstr = "Error reading provider definitions from %s: %s" % (fn, e)
             _logger.warning(errstr)
             raise ServiceError(errstr)
@@ -130,7 +128,7 @@ class Service(object):
                     continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(*arguments)
-                if res is False:
+                if res is False:  # pragma: no cover
                     self.errors.update(
                         {sp: 'Received empty response'}
                     )
@@ -284,7 +282,7 @@ class Service(object):
         :return int: Fee in smallest network denominator (satoshi)
         """
         fee = self._provider_execute('estimatefee', blocks)
-        if not fee:
+        if not fee:  # pragma: no cover
             if self.network.fee_default:
                 fee = self.network.fee_default
             else:
