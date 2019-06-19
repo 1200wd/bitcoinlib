@@ -20,6 +20,9 @@ blockchain information. It does currently not parse the blockchain itself.
 .. image:: https://readthedocs.org/projects/bitcoinlib/badge/?version=latest
     :target: http://bitcoinlib.readthedocs.io/en/latest/?badge=latest
     :alt: RTD
+.. image:: https://coveralls.io/repos/github/1200wd/bitcoinlib/badge.svg?branch=installation-documentation-update
+    :target: https://coveralls.io/github/1200wd/bitcoinlib?branch=master
+    :alt: Coveralls
 
 
 Documentation

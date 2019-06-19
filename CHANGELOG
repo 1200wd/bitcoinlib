@@ -1,3 +1,12 @@
+RELEASE 0.4.8 - Use coverage, improve testing and fix issues
+============================================================
+* Add many unittests and increase coverage > 90%
+* Update documentation, docstrings
+* Rewrite HDWalletTransaction classes
+* Improve bitcoind Service client
+* Partially remove blockexplorer support and unittests
+
+
 RELEASE 0.4.7 - ECDSA updates and minor fixes
 =============================================
 * Improve and speed up use of ECDSA cryptography methods
