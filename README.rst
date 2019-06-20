@@ -319,7 +319,10 @@ above.
 
 You can also use pyscrypt instead of scrypt. Pyscrypt is a pure Python scrypt password-based key derivation library.
 It works but it is slow when using BIP38 password protected keys.
- pip install pyscrypt
+
+.. code-block:: bash
+
+    $ pip install pyscrypt
 
 If you run into issues to not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
@@ -328,7 +331,10 @@ Update library
 --------------
 
 Update to the latest version of the library with
- pip install bitcoinlib --upgrade
+
+.. code-block:: bash
+
+    $ pip install bitcoinlib --upgrade
 
 To upgrade make sure everything is backuped and run updatedb.py from the installation directory.
  python updatedb.py -d [<link-to-database-if-not-standard>]
