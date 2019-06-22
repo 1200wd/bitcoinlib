@@ -337,7 +337,10 @@ Update to the latest version of the library with
     $ pip install bitcoinlib --upgrade
 
 To upgrade make sure everything is backuped and run updatedb.py from the installation directory.
- python updatedb.py -d [<link-to-database-if-not-standard>]
+
+.. code-block:: bash
+
+    $ python updatedb.py -d [<link-to-database-if-not-standard>]
 
 
 For more information on installing, updating and maintenance see
