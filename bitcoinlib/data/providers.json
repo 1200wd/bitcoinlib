@@ -351,5 +351,16 @@
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
+  },
+    "bcoin": {
+    "provider": "bcoin",
+    "network": "bitcoin",
+    "client_class": "BcoinClient",
+    "provider_coin_id": "",
+    "url": "",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000,
+    "network_overrides": null
   }
 }

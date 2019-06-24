@@ -60,9 +60,10 @@ class BaseClient(object):
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
-    def request(self, url_path, variables=None, method='get'):
+    def request(self, url_path, variables=None, method='get', secure=True):
         url_vars = ''
         url = self.base_url + url_path
+        print(url)
         if method == 'get':
             if variables is None:
                 variables = {}
@@ -70,9 +71,9 @@ class BaseClient(object):
                 url_vars = '?' + urlencode(variables)
             url += url_vars
             _logger.debug("Url request %s" % url)
-            self.resp = requests.get(url, timeout=TIMEOUT_REQUESTS)
+            self.resp = requests.get(url, timeout=TIMEOUT_REQUESTS, verify=secure)
         elif method == 'post':
-            self.resp = requests.post(url, json=dict(variables), timeout=TIMEOUT_REQUESTS)
+            self.resp = requests.post(url, json=dict(variables), timeout=TIMEOUT_REQUESTS, verify=secure)
 
         resp_text = self.resp.text
         if len(resp_text) > 1000:
