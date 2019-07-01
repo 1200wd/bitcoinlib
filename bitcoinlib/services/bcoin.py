@@ -86,4 +86,31 @@ class BcoinClient(BaseClient):
                         confirmations=tx['confirmations'], block_height=tx['height'], block_hash=tx['block'],
                         rawtx=tx['hex'], status=status,
                         coinbase=coinbase, witness_type=witness_type)
+
+        for ti in tx['inputs']:
+            # def add_input(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
+            #               unlocking_script_unsigned=None, script_type=None, address='',
+            #               sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
+            #               value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
+            #               key_path='', witness_type=None, encoding=None):
+            witness_type = 'legacy'
+            if ti['witness'] != '00':
+                witness_type = 'segwit'
+            t.add_input(prev_hash=ti['prevout']['hash'], output_n=ti['prevout']['index'],
+                        unlocking_script=ti['script'], address=ti['coin']['address'], value=ti['coin']['value'],
+                        witness_type=witness_type, sequence=ti['sequence'])
+
+        for to in tx['outputs']:
+            t.add_output(value=to['value'], address=to['address'], lock_script=to['script'])
+
+        # for to in res['data'][tx_id]['outputs']:
+        #     try:
+        #         deserialize_address(to['recipient'], network=self.network.name)
+        #         addr = to['recipient']
+        #     except EncodingError:
+        #         addr = ''
+        #     t.add_output(value=to['value'], address=addr, lock_script=to['script_hex'],
+        #                  spent=to['is_spent'], output_n=to['index'])
+
+
         return t
