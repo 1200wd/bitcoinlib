@@ -59,3 +59,31 @@ class BcoinClient(BaseClient):
 
     def block_count(self):
         return self.compose_request('')['chain']['height']
+
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('tx', tx_id)
+        status = 'unconfirmed'
+        if tx['confirmations']:
+            status = 'confirmed'
+        witness_type = 'legacy'
+        # if tx['has_witness']:
+        #     witness_type = 'segwit'
+        # input_total = tx['input_total']
+        # if tx['is_coinbase']:
+        #     input_total = tx['output_total']
+        # def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
+        #              fee=None, fee_per_kb=None, size=None, hash='', date=None, confirmations=None,
+        #              block_height=None, block_hash=None, input_total=0, output_total=0, rawtx='', status='new',
+        #              coinbase=False, verified=False, witness_type='legacy', flag=None):
+        # tx['is_coinbase']
+        coinbase = False
+        # tx['output_total']
+        # output_total = None
+        # input_total = None
+        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
+                        fee=tx['fee'], size=len(tx['hex']), hash=tx['hash'],
+                        date=datetime.fromtimestamp(tx['mtime']),
+                        confirmations=tx['confirmations'], block_height=tx['height'], block_hash=tx['block'],
+                        rawtx=tx['hex'], status=status,
+                        coinbase=coinbase, witness_type=witness_type)
+        return t
