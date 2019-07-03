@@ -24,14 +24,15 @@ import os
 import sys
 
 here = os.path.abspath(os.path.dirname(__file__))
-version_file = open(os.path.join(here, 'bitcoinlib/config/VERSION'))
-version = version_file.read().strip()
+version = '0.4.9'
 
 # Get the long description from the relevant file
-with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-    readmetxt = f.read()
-
-print(os.environ['HOME'])
+readmetxt = ''
+try:
+      with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
+          readmetxt = f.read()
+except:
+      pass
 
 kwargs = {}
 

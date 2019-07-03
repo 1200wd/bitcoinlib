@@ -1,3 +1,7 @@
+RELEASE 0.4.9 - Fix install
+===========================
+* Fix pip install on some platforms
+
 RELEASE 0.4.8 - Use coverage, improve testing and fix issues
 ============================================================
 * Add many unittests and increase coverage > 90%
