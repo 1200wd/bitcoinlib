@@ -1,5 +1,5 @@
-RELEASE 0.4.9 - Fix install
-===========================
+RELEASE 0.4.9, 0.4.10 - Fix install
+===================================
 * Fix pip install on some platforms
 
 RELEASE 0.4.8 - Use coverage, improve testing and fix issues
