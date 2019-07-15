@@ -684,7 +684,7 @@ class Input(object):
         self.signatures = []
         self.redeemscript = b''
         self.script_type = script_type
-        if prev_hash == b'\0' * 32:
+        if self.prev_hash == b'\0' * 32:
             self.script_type = 'coinbase'
         if not sigs_required:
             if self.script_type == 'p2sh_multisig':
@@ -1355,7 +1355,12 @@ class Transaction(object):
             if to.script_type == 'nulldata':
                 print("- NULLDATA ", to.lock_script[2:])
             else:
-                print("-", to.address, to.value, to.script_type)
+                spent_str = ''
+                if to.spent:
+                    spent_str = 'S'
+                elif to.spent is False:
+                    spent_str = 'U'
+                print("-", to.address, to.value, to.script_type, spent_str)
         if replace_by_fee:
             print("Replace by fee: Enabled")
         print("Size: %s" % self.size)
@@ -1752,7 +1757,7 @@ class Transaction(object):
         :param lock_script: Locking script of output. If not provided a default unlocking script will be provided with a public key hash.
         :type lock_script: bytes, str
         :param spent: Has output been spent in new transaction?
-        :type spent: bool
+        :type spent: bool, None
         :param output_n: Index number of output in transaction
         :type output_n: int
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for to derive from script or script type
@@ -1769,8 +1774,8 @@ class Transaction(object):
         if lock_script.startswith(b'\x6a'):
             if value != 0:
                 raise TransactionError("Output value for OP_RETURN script must be 0")
-        elif value < self.network.dust_amount:
-            raise TransactionError("Output must be more then dust amount %d" % self.network.dust_amount)
+        # elif value < self.network.dust_amount and strict:
+        #     raise TransactionError("Output must be more then dust amount %d" % self.network.dust_amount)
         self.outputs.append(Output(value=int(value), address=address, public_hash=public_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    encoding=encoding, network=self.network.name))

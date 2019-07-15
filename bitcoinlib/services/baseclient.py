@@ -63,7 +63,6 @@ class BaseClient(object):
     def request(self, url_path, variables=None, method='get', secure=True):
         url_vars = ''
         url = self.base_url + url_path
-        print(url)
         if method == 'get':
             if variables is None:
                 variables = {}

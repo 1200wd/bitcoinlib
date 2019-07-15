@@ -20,6 +20,7 @@
 
 from datetime import datetime
 import struct
+from requests import ReadTimeout
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
@@ -60,8 +61,7 @@ class BcoinClient(BaseClient):
     def block_count(self):
         return self.compose_request('')['chain']['height']
 
-    def gettransaction(self, tx_id):
-        tx = self.compose_request('tx', tx_id)
+    def _parse_transaction(self, tx):
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
@@ -74,7 +74,6 @@ class BcoinClient(BaseClient):
                         fee=tx['fee'], size=len(tx['hex']), hash=tx['hash'], date=datetime.fromtimestamp(tx['mtime']),
                         confirmations=tx['confirmations'], block_height=tx['height'], block_hash=tx['block'],
                         rawtx=tx['hex'], status=status, coinbase=coinbase, witness_type=witness_type)
-
         for ti in tx['inputs']:
             witness_type = 'legacy'
             if ti['witness'] != '00':
@@ -87,15 +86,69 @@ class BcoinClient(BaseClient):
             t.add_input(prev_hash=ti['prevout']['hash'], output_n=ti['prevout']['index'],
                         unlocking_script=ti['script'], address=address, value=value,
                         witness_type=witness_type, sequence=ti['sequence'])
-
+        output_n = 0
         for to in tx['outputs']:
-            t.add_output(value=to['value'], address=to['address'], lock_script=to['script'])
-
+            # spent = self.isspent(tx['hash'], output_n)
+            t.add_output(value=to['value'], address=to['address'], lock_script=to['script'],
+                         output_n=output_n, spent=None)
+            output_n += 1
         return t
 
-    def getbalance(self, addresslist):
-        balance = 0.0
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('tx', tx_id)
+        return self._parse_transaction(tx)
+
+    # def isspent(self, tx_id, index):
+    #     try:
+    #         self.compose_request('coin', tx_id, str(index))
+    #     except ClientError:
+    #         return True
+    #     return False
+
+    def gettransactions(self, addresslist):
+        txs = []
+        limit = 20
+        last_txid = ''
         for address in addresslist:
-            res = tx = self.compose_request('address', address)
-            balance += int(res['balance'])
-        return int(balance * self.units)
+            address_txs = []
+            while True:
+                variables = {'limit': limit, 'after': last_txid}
+                retries = 0
+                while retries < 3:
+                    try:
+                        res = self.compose_request('tx', 'address', address, variables)
+                    except ReadTimeout as e:
+                        _logger.warning("Bcoin client error: %s" % e)
+                        retries += 1
+                    except Exception as e:
+                        pass
+                    else:
+                        break
+                    finally:
+                        if retries == 3:
+                            raise ClientError("Max retries exceeded with bcoin Client")
+                for tx in res:
+                    address_txs.append(self._parse_transaction(tx))
+                if len(res) == limit:
+                    last_txid = res[limit-1]['hash']
+                else:
+                    break
+
+            # Check which outputs are spent/unspent for this address
+            address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
+                              [t.inputs for t in address_txs] for inp in ti if inp.address == address]
+            for tx in address_txs:
+                for to in tx.outputs:
+                    if to.address != address:
+                        continue
+                    spent = True if (tx.hash, to.output_n) in address_inputs else False
+                    address_txs[address_txs.index(tx)].outputs[to.output_n].spent = spent
+            txs += address_txs
+        return txs
+
+    # def getbalance(self, addresslist):
+    #     balance = 0.0
+    #     for address in addresslist:
+    #         res = tx = self.compose_request('address', address)
+    #         balance += int(res['balance'])
+    #     return int(balance * self.units)

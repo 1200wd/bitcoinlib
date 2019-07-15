@@ -47,7 +47,7 @@ BCL_CONFIG_FILE = ''
 
 
 # Services
-TIMEOUT_REQUESTS = 5
+TIMEOUT_REQUESTS = 20
 
 # Transactions
 SCRIPT_TYPES_LOCKING = {

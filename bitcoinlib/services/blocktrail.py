@@ -87,7 +87,6 @@ class BlockTrail(BaseClient):
     def gettransactions(self, addresslist):
         txs = []
         for address in addresslist:
-            # res = self.compose_request('address', address, 'unspent-outputs')
             current_page = 1
             while len(txs) < 2000:
                 variables = {'page': current_page, 'limit': 200}
