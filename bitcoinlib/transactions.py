@@ -753,9 +753,9 @@ class Input(object):
             else:
                 kobj = key
             if kobj not in self.keys:
-                if self.compressed is not None and kobj.compressed != self.compressed:
-                    _logger.warning("Key compressed is %s but Input class compressed argument is %s " %
-                                    (kobj.compressed, self.compressed))
+                # if self.compressed is not None and kobj.compressed != self.compressed:
+                #     _logger.warning("Key compressed is %s but Input class compressed argument is %s " %
+                #                     (kobj.compressed, self.compressed))
                 self.compressed = kobj.compressed
                 self.keys.append(kobj)
         if self.compressed is None:

@@ -58,9 +58,6 @@ class BcoinClient(BaseClient):
             return False
         return fee
 
-    def block_count(self):
-        return self.compose_request('')['chain']['height']
-
     def _parse_transaction(self, tx):
         status = 'unconfirmed'
         if tx['confirmations']:
@@ -94,8 +91,8 @@ class BcoinClient(BaseClient):
             output_n += 1
         return t
 
-    def gettransaction(self, tx_id):
-        tx = self.compose_request('tx', tx_id)
+    def gettransaction(self, txid):
+        tx = self.compose_request('tx', txid)
         return self._parse_transaction(tx)
 
     # def isspent(self, tx_id, index):
@@ -146,9 +143,28 @@ class BcoinClient(BaseClient):
             txs += address_txs
         return txs
 
+    def getrawtransaction(self, txid):
+        return self.compose_request('tx', txid)['hex']
+
+    def sendrawtransaction(self, rawtx):
+        res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
+        txid = ''
+        if 'success' in res and res['success'] == 'true':
+            t = Transaction.import_raw(rawtx)
+            txid = t.hash
+        return {
+            'txid': txid,
+            'response_dict': res
+        }
+
+    # def getutxos(self, addresslist):
+
     # def getbalance(self, addresslist):
     #     balance = 0.0
     #     for address in addresslist:
     #         res = tx = self.compose_request('address', address)
     #         balance += int(res['balance'])
     #     return int(balance * self.units)
+
+    def block_count(self):
+        return self.compose_request('')['chain']['height']
