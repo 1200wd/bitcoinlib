@@ -70,7 +70,6 @@ class BitGoClient(BaseClient):
                             'value': int(round(unspent['value'] * self.units, 0)),
                             'script': unspent['script'],
                             'date': datetime.strptime(unspent['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
-
                          }
                     )
                 total = res['total']

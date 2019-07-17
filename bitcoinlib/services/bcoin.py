@@ -117,8 +117,6 @@ class BcoinClient(BaseClient):
                     except ReadTimeout as e:
                         _logger.warning("Bcoin client error: %s" % e)
                         retries += 1
-                    except Exception as e:
-                        pass
                     else:
                         break
                     finally:
@@ -157,7 +155,30 @@ class BcoinClient(BaseClient):
             'response_dict': res
         }
 
-    # def getutxos(self, addresslist):
+    def getutxos(self, addresslist):
+        txs = self.gettransactions(addresslist)
+        utxos = []
+        for tx in txs:
+            for unspent in tx.outputs:
+                if unspent.address not in addresslist:
+                    continue
+                if unspent.spent is False:
+                    utxos.append(
+                        {
+                            'address': unspent.address,
+                            'tx_hash': tx.hash,
+                            'confirmations': tx.confirmations,
+                            'output_n': unspent.output_n,
+                            'input_n': 0,
+                            'block_height': tx.block_height,
+                            'fee': tx.fee,
+                            'size': tx.size,
+                            'value': unspent.value,
+                            'script': unspent.lock_script,
+                            'date': tx.date,
+                         }
+                    )
+        return utxos
 
     # def getbalance(self, addresslist):
     #     balance = 0.0

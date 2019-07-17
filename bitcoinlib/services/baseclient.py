@@ -63,6 +63,8 @@ class BaseClient(object):
     def request(self, url_path, variables=None, method='get', secure=True):
         url_vars = ''
         url = self.base_url + url_path
+        if not url or not self.base_url:
+            raise ClientError("No (complete) url provided: %s" % url)
         if method == 'get':
             if variables is None:
                 variables = {}
