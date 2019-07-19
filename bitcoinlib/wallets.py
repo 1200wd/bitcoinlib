@@ -2733,11 +2733,11 @@ class HDWallet(object):
         self._session.commit()
         # self._balance_update(account_id=account_id, network=network, key_id=key_id)
 
-    def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None):
+    def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None,
+                            max_txs=100):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet.
-        The balances and unspent outputs (UTXO's) are updated as well, but for large wallets use the utxo_update
-        method if possible.
+        The balances and unspent outputs (UTXO's) are updated as well.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2799,7 +2799,7 @@ class HDWallet(object):
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
-
+        # Transaction inputs
         qr = self._session.query(DbTransactionInput, DbKey.address, DbTransaction.confirmations,
                                  DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
             join(DbTransaction).join(DbKey). \
@@ -2810,28 +2810,25 @@ class HDWallet(object):
             qr = qr.filter(DbKey.id == key_id)
         if not include_new:
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
-
         txs = qr.all()
-
+        # Transaction outputs
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
                                  DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
             join(DbTransaction).join(DbKey). \
             filter(DbKey.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
                    DbKey.network_name == network)
-        if not include_new:
-            qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
-
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
+        if not include_new:
+            qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
         txs += qr.all()
 
         txs = sorted(txs, key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True)
-
         res = []
+        tx_hashes = []
         for tx in txs:
             txid = tx[3]
-
             if as_dict:
                 u = tx[0].__dict__
                 if '_sa_instance_state' in u:
@@ -2844,6 +2841,9 @@ class HDWallet(object):
                 if 'index_n' in u:
                     u['value'] = -u['value']
             else:
+                if txid in tx_hashes:
+                    continue
+                tx_hashes.append(txid)
                 u = self.transaction(txid)
             res.append(u)
         return res
@@ -3491,18 +3491,16 @@ class HDWallet(object):
                         accounts = [0]
                     for account_id in accounts:
                         print("\n- - Transactions Account %d" % account_id)
-                        for t in self.transactions(include_new=include_new, account_id=account_id,
-                                                   network=nw.name):
-                            spent = ""
-                            address = ""
-                            value = 0
-                            # if 'spent' in t and t['spent'] is False:
-                            #     spent = "U"
+                        for tx in self.transactions(include_new=include_new, account_id=account_id,
+                                                    network=nw.name, as_dict=True):
+                            spent = " "
+                            if 'spent' in tx and tx['spent'] is False:
+                                spent = "U"
                             status = ""
-                            if t.status not in ['confirmed', 'unconfirmed']:
-                                status = t.status
-                            print("%64s %36s %8d %13d %s %s" % (t.hash, address, t.confirmations, value,
-                                                                spent, status))
+                            if tx['status'] not in ['confirmed', 'unconfirmed']:
+                                status = tx['status']
+                            print("%64s %36s %8d %13d %s %s" % (tx['tx_hash'], tx['address'], tx['confirmations'],
+                                                                tx['value'], spent, status))
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
