@@ -60,7 +60,7 @@ class BlockChairClient(BaseClient):
             balance += int(res['data'][address]['address']['balance'])
         return balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         utxos = []
         for address in addresslist:
             offset = 0
@@ -70,6 +70,8 @@ class BlockChairClient(BaseClient):
                 for utxo in res['data']:
                     if utxo['is_spent']:
                         continue
+                    if utxo['transaction_hash'] == after_txid:
+                        break
                     utxos.append({
                         'address': address,
                         'tx_hash': utxo['transaction_hash'],
@@ -86,7 +88,7 @@ class BlockChairClient(BaseClient):
                 if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
                     break
                 offset += REQUEST_LIMIT
-        return utxos
+        return utxos[::-1]
 
     def gettransactions(self, addresslist, after_txid=''):
         txids = []

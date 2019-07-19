@@ -41,13 +41,15 @@ class LitecoreIOClient(BaseClient):
         variables.update({'from': offset, 'to': offset+REQUEST_LIMIT})
         return self.request(url_path, variables, method=method)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         addresslist = self._addresslist_convert(addresslist)
         addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'utxo')
         txs = []
         for tx in res:
             address = [x.address_orig for x in addresslist if x.address == tx['address']][0]
+            if tx['txid'] == after_txid:
+                break
             txs.append({
                 'address': address,
                 'tx_hash': tx['txid'],
@@ -61,7 +63,7 @@ class LitecoreIOClient(BaseClient):
                 'script': tx['scriptPubKey'],
                 'date': None
             })
-        return txs
+        return txs[::-1]
 
     def _convert_to_transaction(self, tx):
         if tx['confirmations']:
@@ -100,11 +102,11 @@ class LitecoreIOClient(BaseClient):
         addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
-        for tx in res['items'][::-1]:
-            txs.append(self._convert_to_transaction(tx))
+        for tx in res['items']:
             if tx['txid'] == after_txid:
-                txs = []
-        return txs
+                break
+            txs.append(self._convert_to_transaction(tx))
+        return txs[::-1]
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)

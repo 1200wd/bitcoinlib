@@ -49,7 +49,7 @@ class BlockchainInfoClient(BaseClient):
             balance += res[address]['final_balance']
         return balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         utxos = []
         for address in addresslist:
             variables = {'active': address, 'limit': 1000}
@@ -57,7 +57,9 @@ class BlockchainInfoClient(BaseClient):
             if len(res['unspent_outputs']) > 299:
                 _logger.warning("BlockchainInfoClient: Large number of outputs for address %s, "
                                 "UTXO list may be incomplete" % address)
-            for utxo in res['unspent_outputs']:
+            for utxo in res['unspent_outputs'][::-1]:
+                if utxo['tx_hash_big_endian'] == after_txid:
+                    break
                 utxos.append({
                     'address': address,
                     'tx_hash': utxo['tx_hash_big_endian'],
@@ -71,7 +73,7 @@ class BlockchainInfoClient(BaseClient):
                     'script': utxo['script'],
                     'date': None
                 })
-        return utxos
+        return utxos[::-1]
 
     def gettransactions(self, addresslist, after_txid=''):
         addresses = "|".join(addresslist)

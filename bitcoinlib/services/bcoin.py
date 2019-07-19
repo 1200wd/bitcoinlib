@@ -22,6 +22,7 @@ from datetime import datetime
 from time import sleep
 from requests import ReadTimeout
 from bitcoinlib.main import *
+from bitcoinlib.encoding import varstr, to_bytes
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
@@ -57,36 +58,45 @@ class BcoinClient(BaseClient):
         return fee
 
     def _parse_transaction(self, tx):
-        status = 'unconfirmed'
-        if tx['confirmations']:
-            status = 'confirmed'
-        # TODO: Segwit
         witness_type = 'legacy'
+        if len([ti['witness'] for ti in tx['inputs'] if ti['witness'] != '00']):
+            witness_type = 'segwit'
         coinbase = False
         if tx['inputs'][0]['prevout']['hash'] == '00' * 32:
             coinbase = True
+        status = 'unconfirmed'
+        if tx['confirmations']:
+            status = 'confirmed'
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=len(tx['hex']), hash=tx['hash'], date=datetime.fromtimestamp(tx['mtime']),
+                        fee=tx['fee'], size=int(len(tx['hex'])/2), hash=tx['hash'], date=datetime.fromtimestamp(tx['time']),
                         confirmations=tx['confirmations'], block_height=tx['height'], block_hash=tx['block'],
                         rawtx=tx['hex'], status=status, coinbase=coinbase, witness_type=witness_type)
         for ti in tx['inputs']:
             witness_type = 'legacy'
+            script = ti['script']
             if ti['witness'] != '00':
                 witness_type = 'segwit'
-            address = None
+                script = ti['witness'][2:]
+            address = ''
             value = 0
             if 'coin' in ti:
                 address = ti['coin']['address']
                 value = ti['coin']['value']
             t.add_input(prev_hash=ti['prevout']['hash'], output_n=ti['prevout']['index'],
-                        unlocking_script=ti['script'], address=address, value=value,
+                        unlocking_script=script, address=address, value=value,
                         witness_type=witness_type, sequence=ti['sequence'])
         output_n = 0
         for to in tx['outputs']:
             # spent = self.isspent(tx['hash'], output_n)
-            t.add_output(value=to['value'], address=to['address'], lock_script=to['script'],
+            address = ''
+            if to['address']:
+                address = to['address']
+            t.add_output(value=to['value'], address=address, lock_script=to['script'],
                          output_n=output_n, spent=None)
             output_n += 1
+        t.update_totals()
+        if t.coinbase:
+            t.input_total = t.output_total
         return t
 
     def gettransaction(self, txid):
@@ -153,8 +163,8 @@ class BcoinClient(BaseClient):
             'response_dict': res
         }
 
-    def getutxos(self, addresslist):
-        txs = self.gettransactions(addresslist)
+    def getutxos(self, addresslist, after_txid=''):
+        txs = self.gettransactions(addresslist, after_txid=after_txid)
         utxos = []
         for tx in txs:
             for unspent in tx.outputs:

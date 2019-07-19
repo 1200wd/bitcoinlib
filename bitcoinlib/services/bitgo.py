@@ -48,7 +48,7 @@ class BitGoClient(BaseClient):
             balance += res['balance']
         return balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         utxos = []
         for address in addresslist:
             skip = 0
@@ -56,20 +56,22 @@ class BitGoClient(BaseClient):
             while total > skip:
                 variables = {'limit': 100, 'skip': skip}
                 res = self.compose_request('address', address, 'unspents', variables)
-                for unspent in res['unspents']:
+                for utxo in res['unspents'][::-1]:
+                    if utxo['tx_hash'] == after_txid:
+                        break
                     utxos.append(
                         {
-                            'address': unspent['address'],
-                            'tx_hash': unspent['tx_hash'],
-                            'confirmations': unspent['confirmations'],
-                            'output_n': unspent['tx_output_n'],
+                            'address': utxo['address'],
+                            'tx_hash': utxo['tx_hash'],
+                            'confirmations': utxo['confirmations'],
+                            'output_n': utxo['tx_output_n'],
                             'input_n': 0,
-                            'block_height': unspent['blockHeight'],
+                            'block_height': utxo['blockHeight'],
                             'fee': None,
                             'size': 0,
-                            'value': int(round(unspent['value'] * self.units, 0)),
-                            'script': unspent['script'],
-                            'date': datetime.strptime(unspent['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                            'value': int(round(utxo['value'] * self.units, 0)),
+                            'script': utxo['script'],
+                            'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
                          }
                     )
                 total = res['total']
@@ -77,7 +79,7 @@ class BitGoClient(BaseClient):
                 if skip > 2000:
                     _logger.warning("BitGoClient: UTXO's list has been truncated, list is incomplete")
                     break
-        return utxos
+        return utxos[::-1]
 
     def gettransactions(self, addresslist, after_txid=''):
         txs = []

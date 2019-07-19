@@ -184,14 +184,17 @@ class Service(object):
             addresslist = addresslist[addresses_per_request:]
         return tot_balance
 
-    def getutxos(self, addresslist, addresses_per_request=5):
+    def getutxos(self, addresslist, addresses_per_request=5, after_txid=''):
         """
-        Get list of unspent outputs (UTXO's) per address
+        Get list of unspent outputs (UTXO's) per address.
+        Sorted from old to new, so highest number of confirmations first.
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
         :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
         :type addresses_per_request: int
+        :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos. If used only provide a single address
+        :type after_txid: str
 
         :return dict: UTXO's per address
         """
@@ -199,10 +202,12 @@ class Service(object):
             return []
         if isinstance(addresslist, TYPE_TEXT):
             addresslist = [addresslist]
+        if len(addresslist) > 1 and after_txid:
+            raise ServiceError("Please use only a single address if 'after_txid' is provided")
 
         utxos = []
         while addresslist:
-            res = self._provider_execute('getutxos', addresslist[:addresses_per_request])
+            res = self._provider_execute('getutxos', addresslist[:addresses_per_request], after_txid)
             if res:
                 utxos += res
             addresslist = addresslist[addresses_per_request:]

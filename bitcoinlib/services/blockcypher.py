@@ -56,11 +56,11 @@ class BlockCypher(BaseClient):
             balance += float(rec['final_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         addresslist = self._addresslist_convert(addresslist)
-        return self._address_transactions(addresslist, unspent_only=True)
+        return self._address_transactions(addresslist, unspent_only=True, after_txid=after_txid)
 
-    def _address_transactions(self, addresslist, unspent_only=False):
+    def _address_transactions(self, addresslist, unspent_only=False, after_txid=''):
         addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
         transactions = []
@@ -74,6 +74,8 @@ class BlockCypher(BaseClient):
                 _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                 "Transaction list may be incomplete" % address)
             for tx in a['txrefs']:
+                if tx['tx_hash'] == after_txid:
+                    break
                 transactions.append({
                     'address': address,
                     'tx_hash': tx['tx_hash'],
@@ -83,14 +85,14 @@ class BlockCypher(BaseClient):
                     'value': int(round(tx['value'] * self.units, 0)),
                     'script': '',
                 })
-        return transactions
+        return transactions[::-1]
 
-    def gettransactions(self, addresslist, after_txid='', unspent_only=False):
+    def gettransactions(self, addresslist, after_txid=''):
         txs = []
         addresslist = self._addresslist_convert(addresslist)
         for address in addresslist:
             res = self.compose_request('addrs', address.address,
-                                       variables={'unspentOnly': int(unspent_only), 'limit': 2000})
+                                       variables={'unspentOnly': 0, 'limit': 2000})
             if not isinstance(res, list):
                 res = [res]
             for a in res:

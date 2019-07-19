@@ -64,11 +64,11 @@ class ChainSo(BaseClient):
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         txs = []
         count = 0
         for address in addresslist:
-            lasttx = ''
+            lasttx = after_txid
             while len(txs) < 1000:
                 res = self.compose_request('get_tx_unspent', address, lasttx)
                 if res['status'] != 'success':

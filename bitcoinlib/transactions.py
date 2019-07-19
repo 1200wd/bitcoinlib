@@ -399,7 +399,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
         return data
 
     wrn_msg = "Could not parse script, unrecognized script"
-    _logger.info(wrn_msg)
+    _logger.warning(wrn_msg)
     data = _get_empty_data()
     data['result'] = wrn_msg
     return data

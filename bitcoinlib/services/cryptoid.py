@@ -59,7 +59,7 @@ class CryptoID(BaseClient):
             balance += float(res)
         return int(balance * self.units)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         if not self.api_key:
             raise ClientError("Method getutxos() is not available for CryptoID without API key")
         utxos = []
@@ -70,7 +70,9 @@ class CryptoID(BaseClient):
             if len(res['unspent_outputs']) > 29:
                 _logger.warning("CryptoID: Large number of outputs for address %s, "
                                 "UTXO list may be incomplete" % a.address)
-            for utxo in res['unspent_outputs']:
+            for utxo in res['unspent_outputs'][::-1]:
+                if utxo['tx_hash'] == after_txid:
+                    break
                 utxos.append({
                     'address': a.address_orig,
                     'tx_hash': utxo['tx_hash'],
@@ -84,7 +86,7 @@ class CryptoID(BaseClient):
                     'script': utxo['script'],
                     'date': None
                 })
-        return utxos
+        return utxos[::-1]
 
     def gettransactions(self, addresslist, after_txid=''):
         addresslist = self._addresslist_convert(addresslist)
