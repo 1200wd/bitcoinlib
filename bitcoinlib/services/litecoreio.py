@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Litecore.io Client
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -24,6 +24,7 @@ from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'litecoreio'
+REQUEST_LIMIT = 50
 
 
 class LitecoreIOClient(BaseClient):
@@ -31,10 +32,13 @@ class LitecoreIOClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, category, data, cmd='', variables=None, method='get'):
+    def compose_request(self, category, data, cmd='', variables=None, method='get', offset=0):
         url_path = category
         if data:
             url_path += '/' + data + '/' + cmd
+        if variables is None:
+            variables = {}
+        variables.update({'from': offset, 'to': offset+REQUEST_LIMIT})
         return self.request(url_path, variables, method=method)
 
     def getutxos(self, addresslist):
@@ -91,13 +95,15 @@ class LitecoreIOClient(BaseClient):
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid=''):
         addresslist = self._addresslist_convert(addresslist)
         addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
-        for tx in res['items']:
+        for tx in res['items'][::-1]:
             txs.append(self._convert_to_transaction(tx))
+            if tx['txid'] == after_txid:
+                txs = []
         return txs
 
     def gettransaction(self, tx_id):

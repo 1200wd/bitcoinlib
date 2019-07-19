@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BlockCypher client
-#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -85,7 +85,7 @@ class BlockCypher(BaseClient):
                 })
         return transactions
 
-    def gettransactions(self, addresslist, unspent_only=False):
+    def gettransactions(self, addresslist, after_txid='', unspent_only=False):
         txs = []
         addresslist = self._addresslist_convert(addresslist)
         for address in addresslist:
@@ -97,13 +97,18 @@ class BlockCypher(BaseClient):
                 address = [x.address_orig for x in addresslist if x.address == a['address']][0]
                 if 'txrefs' not in a:
                     continue
-                if len(a['txrefs']) > 500:
+                txids = []
+                for t in a['txrefs'][::-1]:
+                    if t['tx_hash'] not in txids:
+                        txids.append(t['tx_hash'])
+                    if t['tx_hash'] == after_txid:
+                        txids = []
+                if len(txids) > 500:
                     _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                     "Transaction list may be incomplete" % address)
-                for tx in a['txrefs']:
-                    if tx['tx_hash'] not in [t.hash for t in txs]:
-                        t = self.gettransaction(tx['tx_hash'])
-                        txs.append(t)
+                for txid in txids:
+                    t = self.gettransaction(txid)
+                    txs.append(t)
         return txs
 
     def gettransaction(self, tx_id):

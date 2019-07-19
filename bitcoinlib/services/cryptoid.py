@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    CryptoID Chainz client
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -86,18 +86,19 @@ class CryptoID(BaseClient):
                 })
         return utxos
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid=''):
         addresslist = self._addresslist_convert(addresslist)
         addresses = "|".join([a.address for a in addresslist])
         txs = []
-        tx_ids = []
+        txids = []
         variables = {'active': addresses, 'n': 100}
         res = self.compose_request('multiaddr', variables=variables)
         for tx in res['txs']:
-            if tx['hash'] not in tx_ids:
-                tx_ids.append(tx['hash'])
-        for tx_id in tx_ids:
-            t = self.gettransaction(tx_id)
+            if tx['hash'] not in txids:
+                txids.append(tx['hash'])
+        txids = txids[::-1][txids[::-1].index(after_txid) + 1:]
+        for txid in txids:
+            t = self.gettransaction(txid)
             txs.append(t)
         return txs
 

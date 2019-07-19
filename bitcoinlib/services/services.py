@@ -208,7 +208,7 @@ class Service(object):
             addresslist = addresslist[addresses_per_request:]
         return utxos
 
-    def gettransactions(self, addresslist, addresses_per_request=5):
+    def gettransactions(self, addresslist, addresses_per_request=5, after_txid=''):
         """
         Get all transactions for each address in addresslist
 
@@ -216,6 +216,8 @@ class Service(object):
         :type addresslist: list, str
         :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
         :type addresses_per_request: int
+        :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
+        :type after_txid: str
 
         :return list: List of Transaction objects
         """
@@ -223,10 +225,12 @@ class Service(object):
             return []
         if isinstance(addresslist, TYPE_TEXT):
             addresslist = [addresslist]
+        if len(addresslist) > 1 and after_txid:
+            raise ServiceError("Please use only a single address if 'after_txid' is provided")
 
         transactions = []
         while addresslist:
-            res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
+            res = self._provider_execute('gettransactions', addresslist[:addresses_per_request], after_txid)
             if res is False:
                 break
             for new_t in res:

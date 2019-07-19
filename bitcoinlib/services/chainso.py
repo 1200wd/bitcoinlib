@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BlockTrail client
-#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -132,9 +132,11 @@ class ChainSo(BaseClient):
             t.status = 'unconfirmed'
         return t
 
-    def gettransactions(self, address_list):
+    def gettransactions(self, address_list, after_txid=''):
         txs = []
         addr_txs = []
+        if after_txid:
+            raise ClientError("after_txid parameter not support by chainso Client")
         for address in address_list:
             res = self.compose_request('address', address)
             if res['status'] != 'success':
@@ -145,7 +147,6 @@ class ChainSo(BaseClient):
                         (
                             tx['txid'],
                             [] if 'outgoing' not in tx else tx['outgoing']['outputs'],
-                            # '' if 'incoming' not in tx else tx['incoming'],
                         )
                     )
         for addr_tx in addr_txs:

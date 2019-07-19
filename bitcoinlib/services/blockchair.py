@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Blockchair client
-#    © 2018 October - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -29,7 +29,7 @@ from bitcoinlib.encoding import EncodingError, varstr, to_bytes
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'blockchair'
-REQUEST_LIMIT = 25
+REQUEST_LIMIT = 50
 
 
 class BlockChairClient(BaseClient):
@@ -88,26 +88,23 @@ class BlockChairClient(BaseClient):
                 offset += REQUEST_LIMIT
         return utxos
 
-    def gettransactions(self, addresslist):
-        tx_ids = []
+    def gettransactions(self, addresslist, after_txid=''):
+        txids = []
         for address in addresslist:
-            # offset = 0
-            # transaction_count = None
-            # while transaction_count is100 None or offset < transaction_count:
-            res = self.compose_request('dashboards/address/', data=address)
-            addr = res['data'][address]
-            transaction_count = addr['address']['transaction_count']
-            if transaction_count > REQUEST_LIMIT:
-                _logger.warning("Transactions truncated. Found more transactions for address %s then request limit."
-                                % addr)
-            tx_ids += addr['transactions']
-            # offset += REQUEST_LIMIT
-        tx_ids = list(set(tx_ids))
+            offset = 0
+            while True:
+                res = self.compose_request('dashboards/address/', data=address, offset=offset)
+                addr = res['data'][address]
+                if not addr['transactions']:
+                    break
+                txids += addr['transactions']
+                offset += REQUEST_LIMIT
+        txids = txids[::-1][txids[::-1].index(after_txid)+1:]
         txs = []
-        if len(tx_ids) > REQUEST_LIMIT:
+        if len(txids) > REQUEST_LIMIT:
             _logger.warning("Transactions truncated. Found more transactions for this addresslist then request limit.")
-        for tx_id in tx_ids[:REQUEST_LIMIT]:
-            txs.append(self.gettransaction(tx_id))
+        for txid in txids[:REQUEST_LIMIT]:
+            txs.append(self.gettransaction(txid))
         return txs
 
     def gettransaction(self, tx_id):

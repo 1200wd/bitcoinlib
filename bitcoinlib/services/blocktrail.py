@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BlockTrail client
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -84,7 +84,7 @@ class BlockTrail(BaseClient):
             _logger.warning("BlockTrail: UTXO's list has been truncated, UTXO list is incomplete")
         return utxos
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid=''):
         txs = []
         for address in addresslist:
             current_page = 1

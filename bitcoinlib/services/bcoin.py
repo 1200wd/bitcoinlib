@@ -19,14 +19,12 @@
 #
 
 from datetime import datetime
-import struct
+from time import sleep
 from requests import ReadTimeout
 from bitcoinlib.main import *
-from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
-from bitcoinlib.networks import Network
 
 
 PROVIDERNAME = 'bcoin'
@@ -102,19 +100,19 @@ class BcoinClient(BaseClient):
     #         return True
     #     return False
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid=''):
         txs = []
         limit = 20
-        last_txid = ''
         for address in addresslist:
             address_txs = []
             while True:
-                variables = {'limit': limit, 'after': last_txid}
+                variables = {'limit': limit, 'after': after_txid}
                 retries = 0
                 while retries < 3:
                     try:
                         res = self.compose_request('tx', 'address', address, variables)
                     except ReadTimeout as e:
+                        sleep(3)
                         _logger.warning("Bcoin client error: %s" % e)
                         retries += 1
                     else:
@@ -125,7 +123,7 @@ class BcoinClient(BaseClient):
                 for tx in res:
                     address_txs.append(self._parse_transaction(tx))
                 if len(res) == limit:
-                    last_txid = res[limit-1]['hash']
+                    after_txid = res[limit-1]['hash']
                 else:
                     break
 

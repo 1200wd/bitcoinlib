@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    blockchain_info client
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -73,18 +73,19 @@ class BlockchainInfoClient(BaseClient):
                 })
         return utxos
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid=''):
         addresses = "|".join(addresslist)
         txs = []
-        tx_ids = []
+        txids = []
         variables = {'active': addresses, 'limit': 100}
         res = self.compose_request('multiaddr', variables=variables)
         latest_block = res['info']['latest_block']['height']
         for tx in res['txs']:
-            if tx['id'] not in tx_ids:
-                tx_ids.append(tx['id'])
-        for tx_id in tx_ids:
-            t = self.gettransaction(tx_id)
+            if tx['hash'] not in txids:
+                txids.append(tx['hash'])
+        txids = txids[::-1][txids[::-1].index(after_txid) + 1:]
+        for txid in txids:
+            t = self.gettransaction(txid)
             t.confirmations = latest_block - t.block_height
             txs.append(t)
         return txs

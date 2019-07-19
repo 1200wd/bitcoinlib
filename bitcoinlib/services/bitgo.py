@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BitGo Client
-#    © 2017 May - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -79,9 +79,9 @@ class BitGoClient(BaseClient):
                     break
         return utxos
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid=''):
         txs = []
-        tx_ids = []
+        txids = []
         for address in addresslist:
             skip = 0
             total = 1
@@ -89,15 +89,16 @@ class BitGoClient(BaseClient):
                 variables = {'limit': 100, 'skip': skip}
                 res = self.compose_request('address', address, 'tx', variables)
                 for tx in res['transactions']:
-                    if tx['id'] not in tx_ids:
-                        tx_ids.append(tx['id'])
+                    if tx['id'] not in txids:
+                        txids.append(tx['id'])
                 total = res['total']
                 skip = res['start'] + res['count']
                 if skip > 2000:
                     _logger.warning("BitGoClient: Transactions list has been truncated, list is incomplete")
                     break
-        for tx_id in tx_ids:
-            txs.append(self.gettransaction(tx_id))
+        txids = txids[::-1][txids[::-1].index(after_txid) + 1:]
+        for txid in txids:
+            txs.append(self.gettransaction(txid))
         return txs
 
     def gettransaction(self, tx_id):

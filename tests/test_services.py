@@ -235,6 +235,12 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
 
+    def test_gettransactions_after_addresslist_error(self):
+        self.assertRaisesRegexp(ServiceError, "Please use only a single address if 'after_txid' is provided",
+                                Service().gettransactions,
+                                ['1LGJzocooaciEtsxEVAajLhCymCXNvPoLh', '19KedreX9aR64fN7tnNzVLVFHQAUL6dLzr'],
+                                after_txid='de6b091d3c38c391bf949d2aa3b804f69bd71326f6ebf041cd0b27ad05ae73b2')
+
     def test_gettransaction(self):
         expected_dict = {
             'block_hash': '000000000000000000f3ae4004e9bcc39b3d4dc0f342b76a1830ee8607b7f00a',
