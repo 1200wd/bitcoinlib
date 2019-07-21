@@ -84,8 +84,6 @@ class TestService(unittest.TestCase, CustomAssertions):
                 pass
             elif provider == 'blockcypher.testnet':
                 self.assertIn('has already been spent', prov_error)
-            # elif provider == 'blockexplorer.testnet':
-            #     self.assertIn('Missing inputs', prov_error)
             elif provider == 'chain.so':
                 self.assertIn('are still available to spend', prov_error)
 

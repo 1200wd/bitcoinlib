@@ -54,28 +54,6 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-  "blockexplorer": {
-    "provider": "blockexplorer",
-    "network": "bitcoin",
-    "client_class": "BlockExplorerClient",
-    "provider_coin_id": "",
-    "url": "https://bitcoinlegacy.blockexplorer.com/api/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "blockexplorer.testnet": {
-    "provider": "blockexplorer",
-    "network": "testnet",
-    "client_class": "BlockExplorerClient",
-    "provider_coin_id": "",
-    "url": "https://testnet.blockexplorer.com/api/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
   "blockchaininfo": {
     "provider": "blockchaininfo",
     "network": "bitcoin",
@@ -159,28 +137,6 @@
     "client_class": "BlockCypher",
     "provider_coin_id": "",
     "url": "https://api.blockcypher.com/v1/ltc/main/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 1,
-    "network_overrides": null
-  },
-  "blocktrail": {
-    "provider": "blocktrail",
-    "network": "bitcoin",
-    "client_class": "BlockTrail",
-    "provider_coin_id": "",
-    "url": "https://api.blocktrail.com/v1/BTC/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 1,
-    "network_overrides": null
-  },
-  "blocktrail.testnet": {
-    "provider": "blocktrail",
-    "network": "testnet",
-    "client_class": "BlockTrail",
-    "provider_coin_id": "",
-    "url": "https://api.blocktrail.com/v1/tBTC/",
     "api_key": "",
     "priority": 10,
     "denominator": 1,
