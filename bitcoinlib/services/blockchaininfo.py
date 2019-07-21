@@ -21,6 +21,7 @@
 import logging
 import struct
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
@@ -75,7 +76,7 @@ class BlockchainInfoClient(BaseClient):
                 })
         return utxos[::-1]
 
-    def gettransactions(self, addresslist, after_txid=''):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresses = "|".join(addresslist)
         txs = []
         txids = []
@@ -84,13 +85,14 @@ class BlockchainInfoClient(BaseClient):
         latest_block = res['info']['latest_block']['height']
         for tx in res['txs']:
             if tx['hash'] not in txids:
-                txids.append(tx['hash'])
-        txids = txids[::-1][txids[::-1].index(after_txid) + 1:]
-        for txid in txids:
+                txids.insert(0, tx['hash'])
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
             t = self.gettransaction(txid)
             t.confirmations = latest_block - t.block_height
             txs.append(t)
-        return txs
+        return txs, len(txids) <= max_txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('rawtx', tx_id)

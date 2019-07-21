@@ -716,7 +716,7 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.assertTrue(t.verified)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 589999000)
         self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 6)
-        self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 8)
+        self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 7)
         del wallet
 
     def test_wallet_multi_networks_account_bip44_code_error(self):

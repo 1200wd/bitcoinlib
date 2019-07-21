@@ -37,7 +37,7 @@ class BlockExplorerClient(BaseClient):
             url_path += '/' + data + '/' + cmd
         return self.request(url_path, variables, method=method)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         addresses = ','.join(addresslist)
         res = self.compose_request('addrs', addresses, 'utxo')
         txs = []
@@ -102,7 +102,7 @@ class BlockExplorerClient(BaseClient):
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid='', max_txs=50):
         addresses = ','.join(addresslist)
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []

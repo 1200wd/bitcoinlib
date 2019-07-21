@@ -224,7 +224,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(min_providers=5)
         srv.gettransactions(address)
         for provider in srv.results:
-            res = srv.results[provider]
+            res, _ = srv.results[provider]
             t = [r for r in res if r.hash == tx_hash][0]
 
             # Compare transaction
@@ -426,7 +426,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(min_providers=5, network='litecoin')
         srv.gettransactions(address)
         for provider in srv.results:
-            res = srv.results[provider]
+            res, _ = srv.results[provider]
             txs = [r for r in res if r.hash == tx_hash]
             t = txs[0]
 

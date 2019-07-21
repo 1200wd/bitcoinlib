@@ -20,6 +20,7 @@
 
 from datetime import datetime
 import struct
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
@@ -97,16 +98,19 @@ class LitecoreIOClient(BaseClient):
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
-    def gettransactions(self, addresslist, after_txid=''):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresslist = self._addresslist_convert(addresslist)
         addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
-        for tx in res['items']:
+        txs_dict = res['items'][::-1]
+        if after_txid:
+            txs_dict = txs_dict[[t['txid'] for t in txs_dict].index(after_txid) + 1:]
+        for tx in txs_dict[:max_txs]:
             if tx['txid'] == after_txid:
                 break
             txs.append(self._convert_to_transaction(tx))
-        return txs[::-1]
+        return txs, len(txs_dict) <= max_txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)

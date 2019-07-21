@@ -21,6 +21,7 @@
 import math
 import logging
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.keys import deserialize_address
@@ -90,7 +91,7 @@ class BlockChairClient(BaseClient):
                 offset += REQUEST_LIMIT
         return utxos[::-1]
 
-    def gettransactions(self, addresslist, after_txid=''):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txids = []
         for address in addresslist:
             offset = 0
@@ -99,15 +100,15 @@ class BlockChairClient(BaseClient):
                 addr = res['data'][address]
                 if not addr['transactions']:
                     break
-                txids += addr['transactions']
-                offset += REQUEST_LIMIT
-        txids = txids[::-1][txids[::-1].index(after_txid)+1:]
+                # txids.insert(0, addr['transactions'])
+                txids = addr['transactions'][::-1] + txids
+                offset += 50
+        if after_txid:
+            txids = txids[txids.index(after_txid)+1:]
         txs = []
-        if len(txids) > REQUEST_LIMIT:
-            _logger.warning("Transactions truncated. Found more transactions for this addresslist then request limit.")
-        for txid in txids[:REQUEST_LIMIT]:
+        for txid in txids[:max_txs]:
             txs.append(self.gettransaction(txid))
-        return txs
+        return txs, len(txids) <= max_txs
 
     def gettransaction(self, tx_id):
         res = self.compose_request('dashboards/transaction/', data=tx_id)

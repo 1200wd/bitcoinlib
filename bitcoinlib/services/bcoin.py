@@ -29,6 +29,7 @@ from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'bcoin'
+LIMIT_TX = 20
 
 _logger = logging.getLogger(__name__)
 
@@ -110,13 +111,13 @@ class BcoinClient(BaseClient):
     #         return True
     #     return False
 
-    def gettransactions(self, addresslist, after_txid=''):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        limit = 20
+        complete = False
         for address in addresslist:
             address_txs = []
             while True:
-                variables = {'limit': limit, 'after': after_txid}
+                variables = {'limit': LIMIT_TX, 'after': after_txid}
                 retries = 0
                 while retries < 3:
                     try:
@@ -132,9 +133,13 @@ class BcoinClient(BaseClient):
                             raise ClientError("Max retries exceeded with bcoin Client")
                 for tx in res:
                     address_txs.append(self._parse_transaction(tx))
-                if len(res) == limit:
-                    after_txid = res[limit-1]['hash']
+                if len(address_txs) >= max_txs:
+                    complete = False
+                    break
+                if len(res) == LIMIT_TX:
+                    after_txid = res[LIMIT_TX-1]['hash']
                 else:
+                    complete = True
                     break
 
             # Check which outputs are spent/unspent for this address
@@ -147,7 +152,7 @@ class BcoinClient(BaseClient):
                     spent = True if (tx.hash, to.output_n) in address_inputs else False
                     address_txs[address_txs.index(tx)].outputs[to.output_n].spent = spent
             txs += address_txs
-        return txs
+        return txs, complete
 
     def getrawtransaction(self, txid):
         return self.compose_request('tx', txid)['hex']

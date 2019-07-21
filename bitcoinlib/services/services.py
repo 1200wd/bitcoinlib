@@ -22,7 +22,7 @@ import os
 import logging
 import json
 import random
-from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT
+from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
@@ -105,6 +105,7 @@ class Service(object):
         self.results = {}
         self.errors = {}
         self.resultcount = 0
+        self.complete = None
 
     def _provider_execute(self, method, *arguments):
         self.results = {}
@@ -213,9 +214,10 @@ class Service(object):
             addresslist = addresslist[addresses_per_request:]
         return utxos
 
-    def gettransactions(self, addresslist, addresses_per_request=5, after_txid=''):
+    def gettransactions(self, addresslist, addresses_per_request=5, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
-        Get all transactions for each address in addresslist
+        Get all transactions for each address in addresslist.
+        Sorted from old to new, so highest number of confirmations first.
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
@@ -232,13 +234,19 @@ class Service(object):
             addresslist = [addresslist]
         if len(addresslist) > 1 and after_txid:
             raise ServiceError("Please use only a single address if 'after_txid' is provided")
+        if after_txid is None:
+            after_txid = ''
 
         transactions = []
+        self.complete = True
         while addresslist:
-            res = self._provider_execute('gettransactions', addresslist[:addresses_per_request], after_txid)
-            if res is False:
+            txs, complete = self._provider_execute('gettransactions', addresslist[:addresses_per_request], after_txid,
+                                                   max_txs)
+            if not complete:
+                self.complete = False
+            if txs is False:
                 break
-            for new_t in res:
+            for new_t in txs:
                 if new_t.hash not in [t.hash for t in transactions]:
                     transactions.append(new_t)
             addresslist = addresslist[addresses_per_request:]

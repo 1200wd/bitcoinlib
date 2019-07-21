@@ -21,6 +21,7 @@
 import logging
 import struct
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
@@ -88,7 +89,7 @@ class CryptoID(BaseClient):
                 })
         return utxos[::-1]
 
-    def gettransactions(self, addresslist, after_txid=''):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresslist = self._addresslist_convert(addresslist)
         addresses = "|".join([a.address for a in addresslist])
         txs = []
@@ -97,12 +98,13 @@ class CryptoID(BaseClient):
         res = self.compose_request('multiaddr', variables=variables)
         for tx in res['txs']:
             if tx['hash'] not in txids:
-                txids.append(tx['hash'])
-        txids = txids[::-1][txids[::-1].index(after_txid) + 1:]
-        for txid in txids:
+                txids.insert(0, tx['hash'])
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
             t = self.gettransaction(txid)
             txs.append(t)
-        return txs
+        return txs, len(txids) <= max_txs
 
     def gettransaction(self, tx_id):
         variables = {'id': tx_id, 'hex': None}

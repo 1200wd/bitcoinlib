@@ -509,11 +509,12 @@ class HDWalletKey(object):
         :return HDKey:
         """
 
+        self._hdkey_object = None
         if self.key_type == 'multisig':
             self._hdkey_object = []
             for kc in self._dbkey.multisig_children:
                 self._hdkey_object.append(HDKey(import_key=kc.child_key.wif, network=kc.child_key.network_name))
-        if self._hdkey_object is None:
+        if self._hdkey_object is None and self.wif:
             self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
         return self._hdkey_object
 
@@ -685,7 +686,8 @@ class HDWalletTransaction(Transaction):
                 key = hdwallet.key(out.key_id)
                 address = key.address
                 if key.key_type != 'multisig':
-                    public_key = key.key().public_hex
+                    if key.key() and not isinstance(key.key(), Address):
+                        public_key = key.key().public_hex
             outputs.append(Output(value=out.value, address=address, public_key=public_key,
                                   lock_script=out.script, spent=out.spent, output_n=out.output_n,
                                   script_type=out.script_type, network=network))
@@ -1268,6 +1270,7 @@ class HDWallet(object):
                 if hardened_keys:
                     self.depth_public_master = self.key_path.index(hardened_keys[-1])
                 self.key_depth = len(self.key_path) - 1
+            self.last_updated = None
         else:
             raise WalletError("Wallet '%s' not found, please specify correct wallet ID or name." % wallet)
 
@@ -2734,7 +2737,7 @@ class HDWallet(object):
         # self._balance_update(account_id=account_id, network=network, key_id=key_id)
 
     def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None,
-                            max_txs=100):
+                            max_txs=MAX_TRANSACTIONS):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet.
         The balances and unspent outputs (UTXO's) are updated as well.
@@ -2761,7 +2764,13 @@ class HDWallet(object):
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
         srv = Service(network=network, providers=self.providers)
-        txs = srv.gettransactions(addresslist)
+        txs = []
+        last_updated = datetime.datetime.now()
+        for address in addresslist:
+            txs += srv.gettransactions(address, max_txs=max_txs, after_txid=self.transaction_last(address))
+            if not srv.complete:
+                if txs[-1].date < last_updated:
+                    last_updated = txs[-1].date
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
         utxo_set = set()
@@ -2777,10 +2786,25 @@ class HDWallet(object):
                        DbTransactionOutput.spent.op("IS")(False)).all()
             for u in tos:
                 u.spent = True
+        self.last_updated = last_updated
         self._session.commit()
         self._balance_update(account_id=account_id, network=network, key_id=key_id)
 
         return len(txs)
+
+    def transaction_last(self, address):
+        to = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
+             join(DbTransactionOutput).join(DbKey). \
+             filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id). \
+             order_by(DbTransaction.confirmations).first()
+        ti = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
+             join(DbTransactionInput).join(DbKey). \
+             filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id). \
+             order_by(DbTransaction.confirmations).first()
+        if to and ti and to[1] < ti[1]:
+            return to[0]
+        elif ti:
+            return ti[0]
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None, as_dict=False):
         """
@@ -3446,6 +3470,7 @@ class HDWallet(object):
             print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
         print(" Witness type                   %s" % self.witness_type)
         print(" Main network                   %s" % self.network.name)
+        print(" Latest update                  %s" % self.last_updated)
 
         if self.multisig:
             print("\n= Multisig Public Master Keys =")

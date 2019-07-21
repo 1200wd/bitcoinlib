@@ -20,12 +20,14 @@
 
 import logging
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'bitgo'
+LIMIT_TX = 100
 
 
 class BitGoClient(BaseClient):
@@ -81,27 +83,27 @@ class BitGoClient(BaseClient):
                     break
         return utxos[::-1]
 
-    def gettransactions(self, addresslist, after_txid=''):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
         txids = []
         for address in addresslist:
             skip = 0
             total = 1
             while total > skip:
-                variables = {'limit': 100, 'skip': skip}
+                variables = {'limit': LIMIT_TX, 'skip': skip}
                 res = self.compose_request('address', address, 'tx', variables)
                 for tx in res['transactions']:
                     if tx['id'] not in txids:
-                        txids.append(tx['id'])
+                        txids.insert(0, tx['id'])
                 total = res['total']
+                if total > 2000:
+                    raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
                 skip = res['start'] + res['count']
-                if skip > 2000:
-                    _logger.warning("BitGoClient: Transactions list has been truncated, list is incomplete")
-                    break
-        txids = txids[::-1][txids[::-1].index(after_txid) + 1:]
-        for txid in txids:
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
             txs.append(self.gettransaction(txid))
-        return txs
+        return txs, len(txids) <= max_txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)

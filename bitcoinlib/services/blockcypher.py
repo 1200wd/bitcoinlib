@@ -20,10 +20,10 @@
 
 import logging
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
-from bitcoinlib.keys import Address
 
 PROVIDERNAME = 'blockcypher'
 
@@ -87,8 +87,9 @@ class BlockCypher(BaseClient):
                 })
         return transactions[::-1]
 
-    def gettransactions(self, addresslist, after_txid=''):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
+        txids = []
         addresslist = self._addresslist_convert(addresslist)
         for address in addresslist:
             res = self.compose_request('addrs', address.address,
@@ -108,10 +109,10 @@ class BlockCypher(BaseClient):
                 if len(txids) > 500:
                     _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                     "Transaction list may be incomplete" % address)
-                for txid in txids:
+                for txid in txids[:max_txs]:
                     t = self.gettransaction(txid)
                     txs.append(t)
-        return txs
+        return txs, len(txids) <= max_txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
