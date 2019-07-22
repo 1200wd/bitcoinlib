@@ -21,6 +21,7 @@
 import logging
 import time
 from datetime import datetime
+from itertools import groupby
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -65,35 +66,34 @@ class ChainSo(BaseClient):
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, addresslist, after_txid=''):
+    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        count = 0
+        # count = 0
         for address in addresslist:
             lasttx = after_txid
-            while len(txs) < 1000:
-                res = self.compose_request('get_tx_unspent', address, lasttx)
-                if res['status'] != 'success':
-                    pass
-                for tx in res['data']['txs']:
-                    txs.append({
-                        'address': address,
-                        'tx_hash': tx['txid'],
-                        'confirmations': tx['confirmations'],
-                        'output_n': -1 if 'output_no' not in tx else tx['output_no'],
-                        'input_n': -1 if 'input_no' not in tx else tx['input_no'],
-                        'block_height': None,
-                        'fee': None,
-                        'size': 0,
-                        'value': int(round(float(tx['value']) * self.units, 0)),
-                        'script': tx['script_hex'],
-                        'date': datetime.fromtimestamp(tx['time']),
-                    })
-                    lasttx = tx['txid']
-                if len(res['data']['txs']) < 100:
-                    break
-            count += 1
-            if not count % 10:
-                time.sleep(60)
+            res = self.compose_request('get_tx_unspent', address, lasttx)
+            if res['status'] != 'success':
+                pass
+            for tx in res['data']['txs'][:max_txs]:
+                txs.append({
+                    'address': address,
+                    'tx_hash': tx['txid'],
+                    'confirmations': tx['confirmations'],
+                    'output_n': -1 if 'output_no' not in tx else tx['output_no'],
+                    'input_n': -1 if 'input_no' not in tx else tx['input_no'],
+                    'block_height': None,
+                    'fee': None,
+                    'size': 0,
+                    'value': int(round(float(tx['value']) * self.units, 0)),
+                    'script': tx['script_hex'],
+                    'date': datetime.fromtimestamp(tx['time']),
+                })
+                # lasttx = tx['txid']
+                # if len(res['data']['txs']) < 100:
+                #     break
+            # count += 1
+            # if not count % 10:
+            #     time.sleep(60)
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
@@ -145,8 +145,8 @@ class ChainSo(BaseClient):
                 raise ClientError("Chainso get_tx_spent request unsuccessful, status: %s" % res2['status'])
             res = res1['data']['txs'] + res2['data']['txs']
             tx_conf = [(t['txid'], t['confirmations']) for t in res]
-            tx_conf_sorted = sorted(tx_conf, key=lambda x: x[1])
-            txids += list(set([t[0] for t in tx_conf_sorted]))
+            tx_conf_sorted = sorted(tx_conf, key=lambda x: x[1], reverse=True)
+            txids += [t[0] for t, _ in groupby(tx_conf_sorted)]
         for txid in txids[:max_txs]:
             t = self.gettransaction(txid)
             time.sleep(.4)

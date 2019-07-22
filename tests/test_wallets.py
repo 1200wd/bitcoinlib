@@ -20,6 +20,7 @@
 
 import unittest
 from random import shuffle
+import datetime
 from sqlalchemy.orm import close_all_sessions
 from bitcoinlib.wallets import *
 from bitcoinlib.mnemonic import Mnemonic
@@ -1553,6 +1554,19 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verified)
         self.assertFalse(w.send_to('blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 250000000,
                                    input_key_id=keys[0].key_id))
+
+    def test_wallet_transactions_max_txs(self):
+        address = '15yN7NPEpu82sHhB6TzCW5z5aXoamiKeGy'
+        w = wallet_create_or_open('ftrtxtstwlt', address, databasefile=DATABASEFILE_UNITTESTS)
+        w.transactions_update(max_txs=2)
+        self.assertEqual(w.balance(), 5000010000)
+        expected_last_update = datetime.datetime(2015, 8, 3, 9, 56, 24)
+        self.assertTrue((w.last_updated - expected_last_update) < datetime.timedelta(days=1))
+        self.assertEqual(len(w.transactions()), 2)
+        w.transactions_update(max_txs=2)
+        expected_last_update = datetime.datetime(2019, 2, 14, 11, 21, 33)
+        self.assertTrue((w.last_updated - expected_last_update) < datetime.timedelta(days=1))
+        self.assertEqual(len(w.transactions()), 4)
 
 
 class TestWalletDash(unittest.TestCase):

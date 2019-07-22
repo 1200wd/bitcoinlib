@@ -50,7 +50,7 @@ class BitGoClient(BaseClient):
             balance += res['balance']
         return balance
 
-    def getutxos(self, addresslist, after_txid=''):
+    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         utxos = []
         for address in addresslist:
             skip = 0
@@ -76,12 +76,14 @@ class BitGoClient(BaseClient):
                             'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
                          }
                     )
+                    # if len(utxos) >= max_txs:
+                    #     break
                 total = res['total']
                 skip = res['start'] + res['count']
                 if skip > 2000:
                     _logger.warning("BitGoClient: UTXO's list has been truncated, list is incomplete")
                     break
-        return utxos[::-1]
+        return utxos[::-1][:max_txs]
 
     def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []

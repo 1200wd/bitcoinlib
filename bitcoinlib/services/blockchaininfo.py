@@ -50,7 +50,7 @@ class BlockchainInfoClient(BaseClient):
             balance += res[address]['final_balance']
         return balance
 
-    def getutxos(self, addresslist, after_txid=''):
+    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         utxos = []
         for address in addresslist:
             variables = {'active': address, 'limit': 1000}
@@ -74,7 +74,7 @@ class BlockchainInfoClient(BaseClient):
                     'script': utxo['script'],
                     'date': None
                 })
-        return utxos[::-1]
+        return utxos[::-1][:max_txs]
 
     def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresses = "|".join(addresslist)

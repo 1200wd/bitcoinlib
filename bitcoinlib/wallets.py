@@ -2801,7 +2801,7 @@ class HDWallet(object):
              join(DbTransactionInput).join(DbKey). \
              filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id). \
              order_by(DbTransaction.confirmations).first()
-        if to and ti and to[1] < ti[1]:
+        if to and (ti and to[1] < ti[1] or not ti):
             return to[0]
         elif ti:
             return ti[0]

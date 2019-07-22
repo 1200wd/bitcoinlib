@@ -150,7 +150,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
                      after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
         for provider in srv.results:
-            print(provider)
+            print("Comparing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_estimatefee(self):
@@ -256,9 +256,9 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(res[0].hash, '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803')
 
     def test_gettransactions_after_txid_litecoin(self):
-        res = Service('litecoin').gettransactions('LQxBmj3PeZZa6XhheBEt3eFSfzpVxVKYdj',
-                                                  after_txid='0cea593d489324fb3e1d982b5012b73a08492c4ba65ad3b623f263'
-                                                             '57275f18a5')
+        res = Service('litecoin').gettransactions(
+            'LQxBmj3PeZZa6XhheBEt3eFSfzpVxVKYdj',
+            after_txid='0cea593d489324fb3e1d982b5012b73a08492c4ba65ad3b623f26357275f18a5')
         self.assertEqual(res[0].hash, '3f64dc44fa26bf404dcdf036f8e49e0711c51cee5ff45aa1c649a52de6ec8011')
 
     def test_gettransactions_after_addresslist_error(self):

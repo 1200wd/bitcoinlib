@@ -185,7 +185,7 @@ class Service(object):
             addresslist = addresslist[addresses_per_request:]
         return tot_balance
 
-    def getutxos(self, addresslist, addresses_per_request=5, after_txid=''):
+    def getutxos(self, addresslist, addresses_per_request=5, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
         Get list of unspent outputs (UTXO's) per address.
         Sorted from old to new, so highest number of confirmations first.
@@ -208,7 +208,7 @@ class Service(object):
 
         utxos = []
         while addresslist:
-            res = self._provider_execute('getutxos', addresslist[:addresses_per_request], after_txid)
+            res = self._provider_execute('getutxos', addresslist[:addresses_per_request], after_txid, max_txs)
             if res:
                 utxos += res
             addresslist = addresslist[addresses_per_request:]
