@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    CryptoID Chainz client
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 import logging
 import struct
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
@@ -59,7 +60,7 @@ class CryptoID(BaseClient):
             balance += float(res)
         return int(balance * self.units)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         if not self.api_key:
             raise ClientError("Method getutxos() is not available for CryptoID without API key")
         utxos = []
@@ -70,7 +71,9 @@ class CryptoID(BaseClient):
             if len(res['unspent_outputs']) > 29:
                 _logger.warning("CryptoID: Large number of outputs for address %s, "
                                 "UTXO list may be incomplete" % a.address)
-            for utxo in res['unspent_outputs']:
+            for utxo in res['unspent_outputs'][::-1]:
+                if utxo['tx_hash'] == after_txid:
+                    break
                 utxos.append({
                     'address': a.address_orig,
                     'tx_hash': utxo['tx_hash'],
@@ -84,22 +87,24 @@ class CryptoID(BaseClient):
                     'script': utxo['script'],
                     'date': None
                 })
-        return utxos
+        return utxos[::-1]
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresslist = self._addresslist_convert(addresslist)
         addresses = "|".join([a.address for a in addresslist])
         txs = []
-        tx_ids = []
+        txids = []
         variables = {'active': addresses, 'n': 100}
         res = self.compose_request('multiaddr', variables=variables)
         for tx in res['txs']:
-            if tx['hash'] not in tx_ids:
-                tx_ids.append(tx['hash'])
-        for tx_id in tx_ids:
-            t = self.gettransaction(tx_id)
+            if tx['hash'] not in txids:
+                txids.insert(0, tx['hash'])
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
+            t = self.gettransaction(txid)
             txs.append(t)
-        return txs
+        return txs, len(txids) <= max_txs
 
     def gettransaction(self, tx_id):
         variables = {'id': tx_id, 'hex': None}

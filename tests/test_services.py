@@ -84,8 +84,6 @@ class TestService(unittest.TestCase, CustomAssertions):
                 pass
             elif provider == 'blockcypher.testnet':
                 self.assertIn('has already been spent', prov_error)
-            # elif provider == 'blockexplorer.testnet':
-            #     self.assertIn('Missing inputs', prov_error)
             elif provider == 'chain.so':
                 self.assertIn('are still available to spend', prov_error)
 
@@ -131,11 +129,28 @@ class TestService(unittest.TestCase, CustomAssertions):
         for provider in srv.results:
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
+    def test_get_utxos_after_txid(self):
+        srv = Service(min_providers=10)
+        tx_hash = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
+        srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
+                     after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
+        for provider in srv.results:
+            self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
+
     def test_get_utxos_litecoin(self):
         srv = Service(network='litecoin', min_providers=10)
         srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         for provider in srv.results:
+            self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
+
+    def test_get_utxos_litecoin_after_txid(self):
+        srv = Service(network='litecoin', min_providers=10)
+        tx_hash = '201a27d05a2efa4c72ae5b0b9fe7094350a9d7c503ce022ddc28768196ba1d28'
+        srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
+                     after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
+        for provider in srv.results:
+            print(provider)
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_estimatefee(self):
@@ -207,7 +222,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(min_providers=5)
         srv.gettransactions(address)
         for provider in srv.results:
-            res = srv.results[provider]
+            res, _ = srv.results[provider]
             t = [r for r in res if r.hash == tx_hash][0]
 
             # Compare transaction
@@ -234,6 +249,23 @@ class TestService(unittest.TestCase, CustomAssertions):
                 r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
+
+    def test_gettransactions_after_txid(self):
+        res = Service().gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
+                                        after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
+        self.assertEqual(res[0].hash, '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803')
+
+    def test_gettransactions_after_txid_litecoin(self):
+        res = Service('litecoin').gettransactions('LQxBmj3PeZZa6XhheBEt3eFSfzpVxVKYdj',
+                                                  after_txid='0cea593d489324fb3e1d982b5012b73a08492c4ba65ad3b623f263'
+                                                             '57275f18a5')
+        self.assertEqual(res[0].hash, '3f64dc44fa26bf404dcdf036f8e49e0711c51cee5ff45aa1c649a52de6ec8011')
+
+    def test_gettransactions_after_addresslist_error(self):
+        self.assertRaisesRegexp(ServiceError, "Please use only a single address if 'after_txid' is provided",
+                                Service().gettransactions,
+                                ['1LGJzocooaciEtsxEVAajLhCymCXNvPoLh', '19KedreX9aR64fN7tnNzVLVFHQAUL6dLzr'],
+                                after_txid='de6b091d3c38c391bf949d2aa3b804f69bd71326f6ebf041cd0b27ad05ae73b2')
 
     def test_gettransaction(self):
         expected_dict = {
@@ -327,7 +359,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(network='bitcoin', min_providers=10)
 
         # Get transactions by hash
-        srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700').as_dict()
+        srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
@@ -392,7 +424,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(min_providers=5, network='litecoin')
         srv.gettransactions(address)
         for provider in srv.results:
-            res = srv.results[provider]
+            res, _ = srv.results[provider]
             txs = [r for r in res if r.hash == tx_hash]
             t = txs[0]
 

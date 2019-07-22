@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Litecore.io Client
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -20,10 +20,12 @@
 
 from datetime import datetime
 import struct
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'litecoreio'
+REQUEST_LIMIT = 50
 
 
 class LitecoreIOClient(BaseClient):
@@ -31,19 +33,24 @@ class LitecoreIOClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, category, data, cmd='', variables=None, method='get'):
+    def compose_request(self, category, data, cmd='', variables=None, method='get', offset=0):
         url_path = category
         if data:
             url_path += '/' + data + '/' + cmd
+        if variables is None:
+            variables = {}
+        variables.update({'from': offset, 'to': offset+REQUEST_LIMIT})
         return self.request(url_path, variables, method=method)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         addresslist = self._addresslist_convert(addresslist)
         addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'utxo')
         txs = []
         for tx in res:
             address = [x.address_orig for x in addresslist if x.address == tx['address']][0]
+            if tx['txid'] == after_txid:
+                break
             txs.append({
                 'address': address,
                 'tx_hash': tx['txid'],
@@ -57,7 +64,7 @@ class LitecoreIOClient(BaseClient):
                 'script': tx['scriptPubKey'],
                 'date': None
             })
-        return txs
+        return txs[::-1]
 
     def _convert_to_transaction(self, tx):
         if tx['confirmations']:
@@ -91,14 +98,19 @@ class LitecoreIOClient(BaseClient):
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresslist = self._addresslist_convert(addresslist)
         addresses = ';'.join([a.address for a in addresslist])
         res = self.compose_request('addrs', addresses, 'txs')
         txs = []
-        for tx in res['items']:
+        txs_dict = res['items'][::-1]
+        if after_txid:
+            txs_dict = txs_dict[[t['txid'] for t in txs_dict].index(after_txid) + 1:]
+        for tx in txs_dict[:max_txs]:
+            if tx['txid'] == after_txid:
+                break
             txs.append(self._convert_to_transaction(tx))
-        return txs
+        return txs, len(txs_dict) <= max_txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)

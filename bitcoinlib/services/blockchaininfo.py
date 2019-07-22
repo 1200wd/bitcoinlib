@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    blockchain_info client
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 import logging
 import struct
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
@@ -49,7 +50,7 @@ class BlockchainInfoClient(BaseClient):
             balance += res[address]['final_balance']
         return balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         utxos = []
         for address in addresslist:
             variables = {'active': address, 'limit': 1000}
@@ -57,7 +58,9 @@ class BlockchainInfoClient(BaseClient):
             if len(res['unspent_outputs']) > 299:
                 _logger.warning("BlockchainInfoClient: Large number of outputs for address %s, "
                                 "UTXO list may be incomplete" % address)
-            for utxo in res['unspent_outputs']:
+            for utxo in res['unspent_outputs'][::-1]:
+                if utxo['tx_hash_big_endian'] == after_txid:
+                    break
                 utxos.append({
                     'address': address,
                     'tx_hash': utxo['tx_hash_big_endian'],
@@ -71,23 +74,25 @@ class BlockchainInfoClient(BaseClient):
                     'script': utxo['script'],
                     'date': None
                 })
-        return utxos
+        return utxos[::-1]
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresses = "|".join(addresslist)
         txs = []
-        tx_ids = []
+        txids = []
         variables = {'active': addresses, 'limit': 100}
         res = self.compose_request('multiaddr', variables=variables)
         latest_block = res['info']['latest_block']['height']
         for tx in res['txs']:
-            if tx['id'] not in tx_ids:
-                tx_ids.append(tx['id'])
-        for tx_id in tx_ids:
-            t = self.gettransaction(tx_id)
+            if tx['hash'] not in txids:
+                txids.insert(0, tx['hash'])
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
+            t = self.gettransaction(txid)
             t.confirmations = latest_block - t.block_height
             txs.append(t)
-        return txs
+        return txs, len(txids) <= max_txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('rawtx', tx_id)

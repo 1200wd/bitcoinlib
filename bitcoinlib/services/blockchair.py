@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Blockchair client
-#    © 2018 October - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 import math
 import logging
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.keys import deserialize_address
@@ -29,7 +30,7 @@ from bitcoinlib.encoding import EncodingError, varstr, to_bytes
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'blockchair'
-REQUEST_LIMIT = 25
+REQUEST_LIMIT = 50
 
 
 class BlockChairClient(BaseClient):
@@ -60,7 +61,7 @@ class BlockChairClient(BaseClient):
             balance += int(res['data'][address]['address']['balance'])
         return balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         utxos = []
         for address in addresslist:
             offset = 0
@@ -70,6 +71,8 @@ class BlockChairClient(BaseClient):
                 for utxo in res['data']:
                     if utxo['is_spent']:
                         continue
+                    if utxo['transaction_hash'] == after_txid:
+                        break
                     utxos.append({
                         'address': address,
                         'tx_hash': utxo['transaction_hash'],
@@ -86,29 +89,26 @@ class BlockChairClient(BaseClient):
                 if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
                     break
                 offset += REQUEST_LIMIT
-        return utxos
+        return utxos[::-1]
 
-    def gettransactions(self, addresslist):
-        tx_ids = []
+    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txids = []
         for address in addresslist:
-            # offset = 0
-            # transaction_count = None
-            # while transaction_count is100 None or offset < transaction_count:
-            res = self.compose_request('dashboards/address/', data=address)
-            addr = res['data'][address]
-            transaction_count = addr['address']['transaction_count']
-            if transaction_count > REQUEST_LIMIT:
-                _logger.warning("Transactions truncated. Found more transactions for address %s then request limit."
-                                % addr)
-            tx_ids += addr['transactions']
-            # offset += REQUEST_LIMIT
-        tx_ids = list(set(tx_ids))
+            offset = 0
+            while True:
+                res = self.compose_request('dashboards/address/', data=address, offset=offset)
+                addr = res['data'][address]
+                if not addr['transactions']:
+                    break
+                # txids.insert(0, addr['transactions'])
+                txids = addr['transactions'][::-1] + txids
+                offset += 50
+        if after_txid:
+            txids = txids[txids.index(after_txid)+1:]
         txs = []
-        if len(tx_ids) > REQUEST_LIMIT:
-            _logger.warning("Transactions truncated. Found more transactions for this addresslist then request limit.")
-        for tx_id in tx_ids[:REQUEST_LIMIT]:
-            txs.append(self.gettransaction(tx_id))
-        return txs
+        for txid in txids[:max_txs]:
+            txs.append(self.gettransaction(txid))
+        return txs, len(txids) <= max_txs
 
     def gettransaction(self, tx_id):
         res = self.compose_request('dashboards/transaction/', data=tx_id)

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    BlockTrail client
-#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
+#    Chain.so client
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 import logging
 import time
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
@@ -64,11 +65,11 @@ class ChainSo(BaseClient):
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, addresslist, after_txid=''):
         txs = []
         count = 0
         for address in addresslist:
-            lasttx = ''
+            lasttx = after_txid
             while len(txs) < 1000:
                 res = self.compose_request('get_tx_unspent', address, lasttx)
                 if res['status'] != 'success':
@@ -132,37 +133,25 @@ class ChainSo(BaseClient):
             t.status = 'unconfirmed'
         return t
 
-    def gettransactions(self, address_list):
+    def gettransactions(self, address_list, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        addr_txs = []
+        txids = []
         for address in address_list:
-            res = self.compose_request('address', address)
-            if res['status'] != 'success':
-                pass
-            for tx in res['data']['txs']:
-                if tx['txid'] not in [t[0] for t in addr_txs]:
-                    addr_txs.append(
-                        (
-                            tx['txid'],
-                            [] if 'outgoing' not in tx else tx['outgoing']['outputs'],
-                            # '' if 'incoming' not in tx else tx['incoming'],
-                        )
-                    )
-        for addr_tx in addr_txs:
-            t = self.gettransaction(addr_tx[0])
-            for out in addr_tx[1]:
-                n = out['output_no']
-                if out['address'] == t.outputs[n].address and t.outputs[n].output_n == n:
-                    if t.outputs[n].spent is not None:
-                        continue
-                    if out['spent'] is None:
-                        t.outputs[n].spent = False
-                    else:
-                        t.outputs[n].spent = True
-                else:
-                    raise ValueError("Unexpected output order in gettransaction call")
+            res1 = self.compose_request('get_tx_received', address, after_txid)
+            if res1['status'] != 'success':
+                raise ClientError("Chainso get_tx_received request unsuccessful, status: %s" % res1['status'])
+            res2 = self.compose_request('get_tx_spent', address, after_txid)
+            if res2['status'] != 'success':
+                raise ClientError("Chainso get_tx_spent request unsuccessful, status: %s" % res2['status'])
+            res = res1['data']['txs'] + res2['data']['txs']
+            tx_conf = [(t['txid'], t['confirmations']) for t in res]
+            tx_conf_sorted = sorted(tx_conf, key=lambda x: x[1])
+            txids += list(set([t[0] for t in tx_conf_sorted]))
+        for txid in txids[:max_txs]:
+            t = self.gettransaction(txid)
+            time.sleep(.4)
             txs.append(t)
-        return txs
+        return txs, len(txids) <= max_txs
 
     def block_count(self):
         return self.compose_request('get_info')['data']['blocks']
