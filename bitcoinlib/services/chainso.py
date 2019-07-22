@@ -68,7 +68,6 @@ class ChainSo(BaseClient):
 
     def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        # count = 0
         for address in addresslist:
             lasttx = after_txid
             res = self.compose_request('get_tx_unspent', address, lasttx)
@@ -88,12 +87,6 @@ class ChainSo(BaseClient):
                     'script': tx['script_hex'],
                     'date': datetime.fromtimestamp(tx['time']),
                 })
-                # lasttx = tx['txid']
-                # if len(res['data']['txs']) < 100:
-                #     break
-            # count += 1
-            # if not count % 10:
-            #     time.sleep(60)
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
@@ -136,6 +129,7 @@ class ChainSo(BaseClient):
     def gettransactions(self, address_list, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
         txids = []
+        tx_conf_sorted = []
         for address in address_list:
             res1 = self.compose_request('get_tx_received', address, after_txid)
             if res1['status'] != 'success':
@@ -146,12 +140,11 @@ class ChainSo(BaseClient):
             res = res1['data']['txs'] + res2['data']['txs']
             tx_conf = [(t['txid'], t['confirmations']) for t in res]
             tx_conf_sorted = sorted(tx_conf, key=lambda x: x[1], reverse=True)
-            txids += [t[0] for t, _ in groupby(tx_conf_sorted)]
-        for txid in txids[:max_txs]:
-            t = self.gettransaction(txid)
+        for tx in tx_conf_sorted[:max_txs]:
+            t = self.gettransaction(tx[0])
             time.sleep(.4)
             txs.append(t)
-        return txs, len(txids) <= max_txs
+        return txs
 
     def block_count(self):
         return self.compose_request('get_info')['data']['blocks']

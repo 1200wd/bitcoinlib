@@ -68,11 +68,12 @@ class BlockChairClient(BaseClient):
             while True:
                 res = self.compose_request('outputs', {'recipient': address, 'is_spent': 'false'}, offset=offset)
                 current_block = res['context']['state']
-                for utxo in res['data']:
+                for utxo in res['data'][::-1]:
                     if utxo['is_spent']:
                         continue
                     if utxo['transaction_hash'] == after_txid:
-                        break
+                        utxos = []
+                        continue
                     utxos.append({
                         'address': address,
                         'tx_hash': utxo['transaction_hash'],
@@ -89,7 +90,7 @@ class BlockChairClient(BaseClient):
                 if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
                     break
                 offset += REQUEST_LIMIT
-        return utxos[::-1]  # [:max_txs]
+        return utxos[:max_txs]
 
     def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txids = []
@@ -108,7 +109,7 @@ class BlockChairClient(BaseClient):
         txs = []
         for txid in txids[:max_txs]:
             txs.append(self.gettransaction(txid))
-        return txs, len(txids) <= max_txs
+        return txs
 
     def gettransaction(self, tx_id):
         res = self.compose_request('dashboards/transaction/', data=tx_id)

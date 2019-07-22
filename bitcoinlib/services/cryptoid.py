@@ -60,7 +60,7 @@ class CryptoID(BaseClient):
             balance += float(res)
         return int(balance * self.units)
 
-    def getutxos(self, addresslist, after_txid=''):
+    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         if not self.api_key:
             raise ClientError("Method getutxos() is not available for CryptoID without API key")
         utxos = []
@@ -68,7 +68,7 @@ class CryptoID(BaseClient):
         for a in addresslist:
             variables = {'active': a.address}
             res = self.compose_request('unspent', variables=variables)
-            if len(res['unspent_outputs']) > 29:
+            if len(res['unspent_outputs']) > 50:
                 _logger.warning("CryptoID: Large number of outputs for address %s, "
                                 "UTXO list may be incomplete" % a.address)
             for utxo in res['unspent_outputs'][::-1]:
@@ -87,7 +87,7 @@ class CryptoID(BaseClient):
                     'script': utxo['script'],
                     'date': None
                 })
-        return utxos[::-1]
+        return utxos[::-1][:max_txs]
 
     def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresslist = self._addresslist_convert(addresslist)
@@ -104,7 +104,7 @@ class CryptoID(BaseClient):
         for txid in txids[:max_txs]:
             t = self.gettransaction(txid)
             txs.append(t)
-        return txs, len(txids) <= max_txs
+        return txs
 
     def gettransaction(self, tx_id):
         variables = {'id': tx_id, 'hex': None}

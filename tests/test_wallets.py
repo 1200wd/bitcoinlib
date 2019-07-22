@@ -773,6 +773,7 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
 
         w.utxos_update()
+        w.info()
         self.assertEqual(len(w.utxos()), 2)
         t = w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 10000)
         self.assertTrue(t.pushed)
@@ -1559,14 +1560,10 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         address = '15yN7NPEpu82sHhB6TzCW5z5aXoamiKeGy'
         w = wallet_create_or_open('ftrtxtstwlt', address, databasefile=DATABASEFILE_UNITTESTS)
         w.transactions_update(max_txs=2)
-        self.assertEqual(w.balance(), 5000010000)
-        expected_last_update = datetime.datetime(2015, 8, 3, 9, 56, 24)
-        self.assertTrue((w.last_updated - expected_last_update) < datetime.timedelta(days=1))
-        self.assertEqual(len(w.transactions()), 2)
+        self.assertGreaterEqual(w.balance(), 5000010000)
+        self.assertGreaterEqual(len(w.transactions()), 2)
         w.transactions_update(max_txs=2)
-        expected_last_update = datetime.datetime(2019, 2, 14, 11, 21, 33)
-        self.assertTrue((w.last_updated - expected_last_update) < datetime.timedelta(days=1))
-        self.assertEqual(len(w.transactions()), 4)
+        self.assertGreaterEqual(len(w.transactions()), 4)
 
 
 class TestWalletDash(unittest.TestCase):

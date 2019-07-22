@@ -50,7 +50,7 @@ class BitcoinLibTestClient(BaseClient):
         """
         return self.units * len(addresslist)
 
-    def getutxos(self, addresslist, after_txid='', utxos_per_address=2):
+    def getutxos(self, addresslist, after_txid='', max_txs=10, utxos_per_address=2):
         """
         Dummy method to retreive UTXO's. This method creates a new UTXO for each address provided out of the
         testnet void, which can be used to create test transactions for the bitcoinlib testnet.

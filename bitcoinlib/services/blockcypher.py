@@ -56,9 +56,10 @@ class BlockCypher(BaseClient):
             balance += float(rec['final_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, addresslist, after_txid=''):
+    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         addresslist = self._addresslist_convert(addresslist)
-        return self._address_transactions(addresslist, unspent_only=True, after_txid=after_txid)
+        utxos = self._address_transactions(addresslist, unspent_only=True, after_txid=after_txid)
+        return utxos[:max_txs]
 
     def _address_transactions(self, addresslist, unspent_only=False, after_txid=''):
         addresses = ';'.join([a.address for a in addresslist])
@@ -112,7 +113,7 @@ class BlockCypher(BaseClient):
                 for txid in txids[:max_txs]:
                     t = self.gettransaction(txid)
                     txs.append(t)
-        return txs, len(txids) <= max_txs
+        return txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})

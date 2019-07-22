@@ -113,7 +113,6 @@ class BcoinClient(BaseClient):
 
     def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        complete = False
         for address in addresslist:
             address_txs = []
             while True:
@@ -134,12 +133,10 @@ class BcoinClient(BaseClient):
                 for tx in res:
                     address_txs.append(self._parse_transaction(tx))
                 if len(address_txs) >= max_txs:
-                    complete = False
                     break
                 if len(res) == LIMIT_TX:
                     after_txid = res[LIMIT_TX-1]['hash']
                 else:
-                    complete = True
                     break
 
             # Check which outputs are spent/unspent for this address
@@ -152,7 +149,7 @@ class BcoinClient(BaseClient):
                     spent = True if (tx.hash, to.output_n) in address_inputs else False
                     address_txs[address_txs.index(tx)].outputs[to.output_n].spent = spent
             txs += address_txs
-        return txs, complete
+        return txs
 
     def getrawtransaction(self, txid):
         return self.compose_request('tx', txid)['hex']
@@ -168,7 +165,7 @@ class BcoinClient(BaseClient):
             'response_dict': res
         }
 
-    def getutxos(self, addresslist, after_txid=''):
+    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = self.gettransactions(addresslist, after_txid=after_txid)
         utxos = []
         for tx in txs:

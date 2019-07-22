@@ -2470,7 +2470,7 @@ class HDWallet(object):
         return self._balances
 
     def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None,
-                     utxos=None, update_balance=True):
+                     utxos=None, update_balance=True, max_utxos=MAX_TRANSACTIONS):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
         
@@ -2534,10 +2534,15 @@ class HDWallet(object):
                                                    change=change, depth=depth)
                     random.shuffle(addresslist)
                     srv = Service(network=network, providers=self.providers)
-                    utxos = srv.getutxos(addresslist)
-                    if utxos is False:
-                        raise WalletError("No response from any service provider, could not update UTXO's. "
-                                          "Errors: %s" % srv.errors)
+                    utxos = []
+                    for address in addresslist:
+                        last_txid = self.utxo_last(address)
+                        utxos += srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
+                        if utxos is False:
+                            raise WalletError("No response from any service provider, could not update UTXO's. "
+                                              "Errors: %s" % srv.errors)
+                    if srv.complete:
+                        self.last_updated = datetime.datetime.now()
 
                 # Get current UTXO's from database to compare with Service objects UTXO's
                 current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
@@ -2698,6 +2703,14 @@ class HDWallet(object):
             'value': value
         }
         return self.utxos_update(utxos=[utxo])
+
+    def utxo_last(self, address):
+        to = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
+             join(DbTransactionOutput).join(DbKey). \
+             filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
+                    DbTransactionOutput.spent.op("IS")(False)). \
+             order_by(DbTransaction.confirmations).first()
+        return '' if not to else to[0]
 
     def transactions_update_by_txids(self, txids):
         """

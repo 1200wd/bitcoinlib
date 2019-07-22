@@ -76,8 +76,6 @@ class BitGoClient(BaseClient):
                             'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
                          }
                     )
-                    # if len(utxos) >= max_txs:
-                    #     break
                 total = res['total']
                 skip = res['start'] + res['count']
                 if skip > 2000:
@@ -105,7 +103,7 @@ class BitGoClient(BaseClient):
             txids = txids[txids.index(after_txid) + 1:]
         for txid in txids[:max_txs]:
             txs.append(self.gettransaction(txid))
-        return txs, len(txids) <= max_txs
+        return txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)

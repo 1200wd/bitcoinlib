@@ -207,10 +207,13 @@ class Service(object):
             raise ServiceError("Please use only a single address if 'after_txid' is provided")
 
         utxos = []
+        self.complete = True
         while addresslist:
-            res = self._provider_execute('getutxos', addresslist[:addresses_per_request], after_txid, max_txs)
-            if res:
-                utxos += res
+            new_utxos = self._provider_execute('getutxos', addresslist[:addresses_per_request], after_txid, max_txs)
+            if len(new_utxos) == max_txs:
+                self.complete = False
+            if new_utxos:
+                utxos += new_utxos
             addresslist = addresslist[addresses_per_request:]
         return utxos
 
@@ -240,9 +243,8 @@ class Service(object):
         transactions = []
         self.complete = True
         while addresslist:
-            txs, complete = self._provider_execute('gettransactions', addresslist[:addresses_per_request], after_txid,
-                                                   max_txs)
-            if not complete:
+            txs = self._provider_execute('gettransactions', addresslist[:addresses_per_request], after_txid,  max_txs)
+            if len(txs) == max_txs:
                 self.complete = False
             if txs is False:
                 break

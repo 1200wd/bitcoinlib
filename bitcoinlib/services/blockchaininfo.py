@@ -92,7 +92,7 @@ class BlockchainInfoClient(BaseClient):
             t = self.gettransaction(txid)
             t.confirmations = latest_block - t.block_height
             txs.append(t)
-        return txs, len(txids) <= max_txs
+        return txs
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('rawtx', tx_id)
