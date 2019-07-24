@@ -244,10 +244,10 @@ class Service(object):
         self.complete = True
         while addresslist:
             txs = self._provider_execute('gettransactions', addresslist[:addresses_per_request], after_txid,  max_txs)
-            if len(txs) == max_txs:
-                self.complete = False
             if txs is False:
                 break
+            if len(txs) == max_txs:
+                self.complete = False
             for new_t in txs:
                 if new_t.hash not in [t.hash for t in transactions]:
                     transactions.append(new_t)

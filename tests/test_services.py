@@ -257,9 +257,9 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_gettransactions_after_txid_litecoin(self):
         res = Service('litecoin').gettransactions(
-            'LQxBmj3PeZZa6XhheBEt3eFSfzpVxVKYdj',
-            after_txid='0cea593d489324fb3e1d982b5012b73a08492c4ba65ad3b623f26357275f18a5')
-        self.assertEqual(res[0].hash, '3f64dc44fa26bf404dcdf036f8e49e0711c51cee5ff45aa1c649a52de6ec8011')
+            'LhVR1yL8cEjPJsiuVnqjEfeGCEtS25jE2J',
+            after_txid='c44967c6db6fa3c1307f9a98bbe0308aa29d99330ada866192735b31bcb0d53f')
+        self.assertEqual(res[0].hash, 'e0c1e90fa2195869905e90d4fa644082dfd0523540c13baea0c7a4e246ef40e4')
 
     def test_gettransactions_after_addresslist_error(self):
         self.assertRaisesRegexp(ServiceError, "Please use only a single address if 'after_txid' is provided",
