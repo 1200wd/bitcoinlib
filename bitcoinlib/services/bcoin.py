@@ -139,15 +139,16 @@ class BcoinClient(BaseClient):
                 else:
                     break
 
-            # Check which outputs are spent/unspent for this address
-            address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
-                              [t.inputs for t in address_txs] for inp in ti if inp.address == address]
-            for tx in address_txs:
-                for to in tx.outputs:
-                    if to.address != address:
-                        continue
-                    spent = True if (tx.hash, to.output_n) in address_inputs else False
-                    address_txs[address_txs.index(tx)].outputs[to.output_n].spent = spent
+            # Update spent outputs for this address if list of txs is complete
+            if len(txs) < max_txs:
+                address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
+                                  [t.inputs for t in address_txs] for inp in ti if inp.address == address]
+                for tx in address_txs:
+                    for to in tx.outputs:
+                        if to.address != address:
+                            continue
+                        spent = True if (tx.hash, to.output_n) in address_inputs else False
+                        address_txs[address_txs.index(tx)].outputs[to.output_n].spent = spent
             txs += address_txs
         return txs
 

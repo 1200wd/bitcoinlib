@@ -90,7 +90,6 @@ class BlockCypher(BaseClient):
 
     def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        txids = []
         addresslist = self._addresslist_convert(addresslist)
         for address in addresslist:
             res = self.compose_request('addrs', address.address,

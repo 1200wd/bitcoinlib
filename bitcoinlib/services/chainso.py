@@ -128,7 +128,6 @@ class ChainSo(BaseClient):
 
     def gettransactions(self, address_list, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        txids = []
         tx_conf_sorted = []
         for address in address_list:
             res1 = self.compose_request('get_tx_received', address, after_txid)
