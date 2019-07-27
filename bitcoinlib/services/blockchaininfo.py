@@ -50,39 +50,37 @@ class BlockchainInfoClient(BaseClient):
             balance += res[address]['final_balance']
         return balance
 
-    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         utxos = []
-        for address in addresslist:
-            variables = {'active': address, 'limit': 1000}
-            res = self.compose_request('unspent', variables=variables)
-            if len(res['unspent_outputs']) > 299:
-                _logger.warning("BlockchainInfoClient: Large number of outputs for address %s, "
-                                "UTXO list may be incomplete" % address)
-            for utxo in res['unspent_outputs'][::-1]:
-                if utxo['tx_hash_big_endian'] == after_txid:
-                    break
-                utxos.append({
-                    'address': address,
-                    'tx_hash': utxo['tx_hash_big_endian'],
-                    'confirmations': utxo['confirmations'],
-                    'output_n': utxo['tx_output_n'],
-                    'input_n':  utxo['tx_index'],
-                    'block_height': None,
-                    'fee': None,
-                    'size': 0,
-                    'value': int(round(utxo['value'] * self.units, 0)),
-                    'script': utxo['script'],
-                    'date': None
-                })
+        variables = {'active': address, 'limit': 1000}
+        res = self.compose_request('unspent', variables=variables)
+        if len(res['unspent_outputs']) > 299:
+            _logger.warning("BlockchainInfoClient: Large number of outputs for address %s, "
+                            "UTXO list may be incomplete" % address)
+        for utxo in res['unspent_outputs'][::-1]:
+            if utxo['tx_hash_big_endian'] == after_txid:
+                break
+            utxos.append({
+                'address': address,
+                'tx_hash': utxo['tx_hash_big_endian'],
+                'confirmations': utxo['confirmations'],
+                'output_n': utxo['tx_output_n'],
+                'input_n':  utxo['tx_index'],
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(round(utxo['value'] * self.units, 0)),
+                'script': utxo['script'],
+                'date': None
+            })
         return utxos[::-1][:max_txs]
 
-    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
-        addresses = "|".join(addresslist)
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
         txids = []
-        variables = {'active': addresses, 'limit': 100}
-        res = self.compose_request('multiaddr', variables=variables)
-        latest_block = res['info']['latest_block']['height']
+        variables = {'limit': max_txs}
+        res = self.compose_request('rawaddr', address, variables=variables)
+        latest_block = self.block_count()
         for tx in res['txs']:
             if tx['hash'] not in txids:
                 txids.insert(0, tx['hash'])

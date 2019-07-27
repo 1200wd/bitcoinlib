@@ -2782,7 +2782,7 @@ class HDWallet(object):
         for address in addresslist:
             txs += srv.gettransactions(address, max_txs=max_txs, after_txid=self.transaction_last(address))
             if not srv.complete:
-                if txs[-1].date < last_updated:
+                if txs and txs[-1].date < last_updated:
                     last_updated = txs[-1].date
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")

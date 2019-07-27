@@ -92,10 +92,12 @@ class BaseClient(object):
         except json.decoder.JSONDecodeError:
             return self.resp.text
 
+    def _address_convert(self, address):
+        if not isinstance(address, Address):
+            return Address.import_address(address, network_overrides=self.network_overrides, network=self.network.name)
+
     def _addresslist_convert(self, addresslist):
-        addresslist_class = []
-        for addr in addresslist:
-            if not isinstance(addr, Address):
-                addresslist_class.append(Address.import_address(addr, network_overrides=self.network_overrides,
-                                                                network=self.network.name))
-        return addresslist_class
+        addresslistconv = []
+        for address in addresslist:
+            addresslistconv.append(self._address_convert(address))
+        return addresslistconv

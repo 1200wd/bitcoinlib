@@ -50,7 +50,7 @@ class BitcoinLibTestClient(BaseClient):
         """
         return self.units * len(addresslist)
 
-    def getutxos(self, addresslist, after_txid='', max_txs=10, utxos_per_address=2):
+    def getutxos(self, address, after_txid='', max_txs=10, utxos_per_address=2):
         """
         Dummy method to retreive UTXO's. This method creates a new UTXO for each address provided out of the
         testnet void, which can be used to create test transactions for the bitcoinlib testnet.
@@ -64,22 +64,21 @@ class BitcoinLibTestClient(BaseClient):
         """
         utxos = []
         for n in range(utxos_per_address):
-            for address in addresslist:
-                try:
-                    pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
-                except:
-                    pkh = str(n).encode() + addr_bech32_to_pubkeyhash(address)[1:]
-                utxos.append(
-                    {
-                        'address': address,
-                        'tx_hash': hashlib.sha256(pkh).hexdigest(),
-                        'confirmations': 10,
-                        'output_n': 0,
-                        'index': 0,
-                        'value': 1 * self.units,
-                        'script': '',
-                    }
-                )
+            try:
+                pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
+            except:
+                pkh = str(n).encode() + addr_bech32_to_pubkeyhash(address)[1:]
+            utxos.append(
+                {
+                    'address': address,
+                    'tx_hash': hashlib.sha256(pkh).hexdigest(),
+                    'confirmations': 10,
+                    'output_n': 0,
+                    'index': 0,
+                    'value': 1 * self.units,
+                    'script': '',
+                }
+            )
         return utxos
 
     def estimatefee(self, blocks):

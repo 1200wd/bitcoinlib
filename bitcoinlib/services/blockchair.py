@@ -61,49 +61,46 @@ class BlockChairClient(BaseClient):
             balance += int(res['data'][address]['address']['balance'])
         return balance
 
-    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         utxos = []
-        for address in addresslist:
-            offset = 0
-            while True:
-                res = self.compose_request('outputs', {'recipient': address, 'is_spent': 'false'}, offset=offset)
-                current_block = res['context']['state']
-                for utxo in res['data'][::-1]:
-                    if utxo['is_spent']:
-                        continue
-                    if utxo['transaction_hash'] == after_txid:
-                        utxos = []
-                        continue
-                    utxos.append({
-                        'address': address,
-                        'tx_hash': utxo['transaction_hash'],
-                        'confirmations': current_block - utxo['block_id'],
-                        'output_n': utxo['index'],
-                        'input_n': 0,
-                        'block_height': utxo['block_id'],
-                        'fee': None,
-                        'size': 0,
-                        'value': utxo['value'],
-                        'script': utxo['script_hex'],
-                        'date': datetime.strptime(utxo['time'], "%Y-%m-%d %H:%M:%S")
-                    })
-                if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
-                    break
-                offset += REQUEST_LIMIT
+        offset = 0
+        while True:
+            res = self.compose_request('outputs', {'recipient': address, 'is_spent': 'false'}, offset=offset)
+            current_block = res['context']['state']
+            for utxo in res['data'][::-1]:
+                if utxo['is_spent']:
+                    continue
+                if utxo['transaction_hash'] == after_txid:
+                    utxos = []
+                    continue
+                utxos.append({
+                    'address': address,
+                    'tx_hash': utxo['transaction_hash'],
+                    'confirmations': current_block - utxo['block_id'],
+                    'output_n': utxo['index'],
+                    'input_n': 0,
+                    'block_height': utxo['block_id'],
+                    'fee': None,
+                    'size': 0,
+                    'value': utxo['value'],
+                    'script': utxo['script_hex'],
+                    'date': datetime.strptime(utxo['time'], "%Y-%m-%d %H:%M:%S")
+                })
+            if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
+                break
+            offset += REQUEST_LIMIT
         return utxos[:max_txs]
 
-    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txids = []
-        for address in addresslist:
-            offset = 0
-            while True:
-                res = self.compose_request('dashboards/address/', data=address, offset=offset)
-                addr = res['data'][address]
-                if not addr['transactions']:
-                    break
-                # txids.insert(0, addr['transactions'])
-                txids = addr['transactions'][::-1] + txids
-                offset += 50
+        offset = 0
+        while True:
+            res = self.compose_request('dashboards/address/', data=address, offset=offset)
+            addr = res['data'][address]
+            if not addr['transactions']:
+                break
+            txids = addr['transactions'][::-1] + txids
+            offset += 50
         if after_txid:
             txids = txids[txids.index(after_txid)+1:]
         txs = []
