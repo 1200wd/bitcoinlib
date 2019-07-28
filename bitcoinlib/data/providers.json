@@ -318,5 +318,16 @@
     "priority": 11,
     "denominator": 100000000,
     "network_overrides": null
+  },
+    "bcoin.testnet": {
+    "provider": "bcoin",
+    "network": "testnet",
+    "client_class": "BcoinClient",
+    "provider_coin_id": "",
+    "url": "",
+    "api_key": "",
+    "priority": 11,
+    "denominator": 100000000,
+    "network_overrides": null
   }
 }
