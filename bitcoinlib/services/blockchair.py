@@ -129,6 +129,9 @@ class BlockChairClient(BaseClient):
                         input_total=input_total, coinbase=tx['is_coinbase'],
                         output_total=tx['output_total'], witness_type=witness_type)
         index_n = 0
+        if not res['data'][tx_id]['inputs']:
+            # This is a coinbase transaction, add input
+            t.add_input(prev_hash=b'\00' * 32, output_n=0)
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
                 witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
