@@ -66,27 +66,26 @@ class ChainSo(BaseClient):
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        for address in addresslist:
-            lasttx = after_txid
-            res = self.compose_request('get_tx_unspent', address, lasttx)
-            if res['status'] != 'success':
-                pass
-            for tx in res['data']['txs'][:max_txs]:
-                txs.append({
-                    'address': address,
-                    'tx_hash': tx['txid'],
-                    'confirmations': tx['confirmations'],
-                    'output_n': -1 if 'output_no' not in tx else tx['output_no'],
-                    'input_n': -1 if 'input_no' not in tx else tx['input_no'],
-                    'block_height': None,
-                    'fee': None,
-                    'size': 0,
-                    'value': int(round(float(tx['value']) * self.units, 0)),
-                    'script': tx['script_hex'],
-                    'date': datetime.fromtimestamp(tx['time']),
-                })
+        lasttx = after_txid
+        res = self.compose_request('get_tx_unspent', address, lasttx)
+        if res['status'] != 'success':
+            pass
+        for tx in res['data']['txs'][:max_txs]:
+            txs.append({
+                'address': address,
+                'tx_hash': tx['txid'],
+                'confirmations': tx['confirmations'],
+                'output_n': -1 if 'output_no' not in tx else tx['output_no'],
+                'input_n': -1 if 'input_no' not in tx else tx['input_no'],
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(round(float(tx['value']) * self.units, 0)),
+                'script': tx['script_hex'],
+                'date': datetime.fromtimestamp(tx['time']),
+            })
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
         return txs
@@ -126,19 +125,17 @@ class ChainSo(BaseClient):
             t.status = 'unconfirmed'
         return t
 
-    def gettransactions(self, address_list, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        tx_conf_sorted = []
-        for address in address_list:
-            res1 = self.compose_request('get_tx_received', address, after_txid)
-            if res1['status'] != 'success':
-                raise ClientError("Chainso get_tx_received request unsuccessful, status: %s" % res1['status'])
-            res2 = self.compose_request('get_tx_spent', address, after_txid)
-            if res2['status'] != 'success':
-                raise ClientError("Chainso get_tx_spent request unsuccessful, status: %s" % res2['status'])
-            res = res1['data']['txs'] + res2['data']['txs']
-            tx_conf = [(t['txid'], t['confirmations']) for t in res]
-            tx_conf_sorted = sorted(tx_conf, key=lambda x: x[1], reverse=True)
+        res1 = self.compose_request('get_tx_received', address, after_txid)
+        if res1['status'] != 'success':
+            raise ClientError("Chainso get_tx_received request unsuccessful, status: %s" % res1['status'])
+        res2 = self.compose_request('get_tx_spent', address, after_txid)
+        if res2['status'] != 'success':
+            raise ClientError("Chainso get_tx_spent request unsuccessful, status: %s" % res2['status'])
+        res = res1['data']['txs'] + res2['data']['txs']
+        tx_conf = [(t['txid'], t['confirmations']) for t in res]
+        tx_conf_sorted = sorted(tx_conf, key=lambda x: x[1], reverse=True)
         for tx in tx_conf_sorted[:max_txs]:
             t = self.gettransaction(tx[0])
             time.sleep(.4)

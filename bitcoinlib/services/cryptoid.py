@@ -60,41 +60,39 @@ class CryptoID(BaseClient):
             balance += float(res)
         return int(balance * self.units)
 
-    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         if not self.api_key:
             raise ClientError("Method getutxos() is not available for CryptoID without API key")
         utxos = []
-        addresslist = self._addresslist_convert(addresslist)
-        for a in addresslist:
-            variables = {'active': a.address}
-            res = self.compose_request('unspent', variables=variables)
-            if len(res['unspent_outputs']) > 50:
-                _logger.warning("CryptoID: Large number of outputs for address %s, "
-                                "UTXO list may be incomplete" % a.address)
-            for utxo in res['unspent_outputs'][::-1]:
-                if utxo['tx_hash'] == after_txid:
-                    break
-                utxos.append({
-                    'address': a.address_orig,
-                    'tx_hash': utxo['tx_hash'],
-                    'confirmations': utxo['confirmations'],
-                    'output_n': utxo['tx_output_n'] if 'tx_output_n' in utxo else utxo['tx_ouput_n'],
-                    'input_n': 0,
-                    'block_height': None,
-                    'fee': None,
-                    'size': 0,
-                    'value': int(utxo['value']),
-                    'script': utxo['script'],
-                    'date': None
-                })
+        address = self._address_convert(address)
+        variables = {'active': address.address}
+        res = self.compose_request('unspent', variables=variables)
+        if len(res['unspent_outputs']) > 50:
+            _logger.warning("CryptoID: Large number of outputs for address %s, "
+                            "UTXO list may be incomplete" % address.address)
+        for utxo in res['unspent_outputs'][::-1]:
+            if utxo['tx_hash'] == after_txid:
+                break
+            utxos.append({
+                'address': address.address_orig,
+                'tx_hash': utxo['tx_hash'],
+                'confirmations': utxo['confirmations'],
+                'output_n': utxo['tx_output_n'] if 'tx_output_n' in utxo else utxo['tx_ouput_n'],
+                'input_n': 0,
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(utxo['value']),
+                'script': utxo['script'],
+                'date': None
+            })
         return utxos[::-1][:max_txs]
 
-    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
-        addresslist = self._addresslist_convert(addresslist)
-        addresses = "|".join([a.address for a in addresslist])
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        address = self._address_convert(address)
         txs = []
         txids = []
-        variables = {'active': addresses, 'n': 100}
+        variables = {'active': address.address, 'n': 100}
         res = self.compose_request('multiaddr', variables=variables)
         for tx in res['txs']:
             if tx['hash'] not in txids:

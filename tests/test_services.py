@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Service Class
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -261,11 +261,10 @@ class TestService(unittest.TestCase, CustomAssertions):
             after_txid='c44967c6db6fa3c1307f9a98bbe0308aa29d99330ada866192735b31bcb0d53f')
         self.assertEqual(res[0].hash, 'e0c1e90fa2195869905e90d4fa644082dfd0523540c13baea0c7a4e246ef40e4')
 
-    def test_gettransactions_after_addresslist_error(self):
-        self.assertRaisesRegexp(ServiceError, "Please use only a single address if 'after_txid' is provided",
+    def test_gettransactions_addresslist_error(self):
+        self.assertRaisesRegexp(ServiceError, "Address parameter must be of type text",
                                 Service().gettransactions,
-                                ['1LGJzocooaciEtsxEVAajLhCymCXNvPoLh', '19KedreX9aR64fN7tnNzVLVFHQAUL6dLzr'],
-                                after_txid='de6b091d3c38c391bf949d2aa3b804f69bd71326f6ebf041cd0b27ad05ae73b2')
+                                ['1LGJzocooaciEtsxEVAajLhCymCXNvPoLh', '19KedreX9aR64fN7tnNzVLVFHQAUL6dLzr'])
 
     def test_gettransaction(self):
         expected_dict = {
@@ -464,7 +463,6 @@ class TestService(unittest.TestCase, CustomAssertions):
             'inputs': [
                 {'address': '',
                  'index_n': 0,
-                 'output_n': 4294967295,
                  'prev_hash': '0000000000000000000000000000000000000000000000000000000000000000',
                  'public_key': [],
                  'script_type': 'coinbase',

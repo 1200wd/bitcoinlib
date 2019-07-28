@@ -50,55 +50,53 @@ class BitGoClient(BaseClient):
             balance += res['balance']
         return balance
 
-    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         utxos = []
-        for address in addresslist:
-            skip = 0
-            total = 1
-            while total > skip:
-                variables = {'limit': 100, 'skip': skip}
-                res = self.compose_request('address', address, 'unspents', variables)
-                for utxo in res['unspents'][::-1]:
-                    if utxo['tx_hash'] == after_txid:
-                        break
-                    utxos.append(
-                        {
-                            'address': utxo['address'],
-                            'tx_hash': utxo['tx_hash'],
-                            'confirmations': utxo['confirmations'],
-                            'output_n': utxo['tx_output_n'],
-                            'input_n': 0,
-                            'block_height': utxo['blockHeight'],
-                            'fee': None,
-                            'size': 0,
-                            'value': int(round(utxo['value'] * self.units, 0)),
-                            'script': utxo['script'],
-                            'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
-                         }
-                    )
-                total = res['total']
-                skip = res['start'] + res['count']
-                if skip > 2000:
-                    _logger.warning("BitGoClient: UTXO's list has been truncated, list is incomplete")
+        skip = 0
+        total = 1
+        while total > skip:
+            variables = {'limit': 100, 'skip': skip}
+            res = self.compose_request('address', address, 'unspents', variables)
+            for utxo in res['unspents'][::-1]:
+                if utxo['tx_hash'] == after_txid:
                     break
+                utxos.append(
+                    {
+                        'address': utxo['address'],
+                        'tx_hash': utxo['tx_hash'],
+                        'confirmations': utxo['confirmations'],
+                        'output_n': utxo['tx_output_n'],
+                        'input_n': 0,
+                        'block_height': utxo['blockHeight'],
+                        'fee': None,
+                        'size': 0,
+                        'value': int(round(utxo['value'] * self.units, 0)),
+                        'script': utxo['script'],
+                        'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                     }
+                )
+            total = res['total']
+            skip = res['start'] + res['count']
+            if skip > 2000:
+                _logger.warning("BitGoClient: UTXO's list has been truncated, list is incomplete")
+                break
         return utxos[::-1][:max_txs]
 
-    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
         txids = []
-        for address in addresslist:
-            skip = 0
-            total = 1
-            while total > skip:
-                variables = {'limit': LIMIT_TX, 'skip': skip}
-                res = self.compose_request('address', address, 'tx', variables)
-                for tx in res['transactions']:
-                    if tx['id'] not in txids:
-                        txids.insert(0, tx['id'])
-                total = res['total']
-                if total > 2000:
-                    raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
-                skip = res['start'] + res['count']
+        skip = 0
+        total = 1
+        while total > skip:
+            variables = {'limit': LIMIT_TX, 'skip': skip}
+            res = self.compose_request('address', address, 'tx', variables)
+            for tx in res['transactions']:
+                if tx['id'] not in txids:
+                    txids.insert(0, tx['id'])
+            total = res['total']
+            if total > 2000:
+                raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
+            skip = res['start'] + res['count']
         if after_txid:
             txids = txids[txids.index(after_txid) + 1:]
         for txid in txids[:max_txs]:

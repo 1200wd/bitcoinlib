@@ -111,45 +111,41 @@ class BcoinClient(BaseClient):
     #         return True
     #     return False
 
-    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        for address in addresslist:
-            address_txs = []
-            while True:
-                variables = {'limit': LIMIT_TX, 'after': after_txid}
-                retries = 0
-                while retries < 3:
-                    try:
-                        res = self.compose_request('tx', 'address', address, variables)
-                    except ReadTimeout as e:
-                        sleep(3)
-                        _logger.warning("Bcoin client error: %s" % e)
-                        retries += 1
-                    else:
-                        break
-                    finally:
-                        if retries == 3:
-                            raise ClientError("Max retries exceeded with bcoin Client")
-                for tx in res:
-                    address_txs.append(self._parse_transaction(tx))
-                if len(address_txs) >= max_txs:
-                    break
-                if len(res) == LIMIT_TX:
-                    after_txid = res[LIMIT_TX-1]['hash']
+        while True:
+            variables = {'limit': LIMIT_TX, 'after': after_txid}
+            retries = 0
+            while retries < 3:
+                try:
+                    res = self.compose_request('tx', 'address', address, variables)
+                except ReadTimeout as e:
+                    sleep(3)
+                    _logger.warning("Bcoin client error: %s" % e)
+                    retries += 1
                 else:
                     break
+                finally:
+                    if retries == 3:
+                        raise ClientError("Max retries exceeded with bcoin Client")
+            for tx in res:
+                txs.append(self._parse_transaction(tx))
+            if len(txs) >= max_txs:
+                break
+            if len(res) == LIMIT_TX:
+                after_txid = res[LIMIT_TX-1]['hash']
+            else:
+                break
 
-            # Update spent outputs for this address if list of txs is complete
-            if len(txs) < max_txs:
-                address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
-                                  [t.inputs for t in address_txs] for inp in ti if inp.address == address]
-                for tx in address_txs:
-                    for to in tx.outputs:
-                        if to.address != address:
-                            continue
-                        spent = True if (tx.hash, to.output_n) in address_inputs else False
-                        address_txs[address_txs.index(tx)].outputs[to.output_n].spent = spent
-            txs += address_txs
+        # Check which outputs are spent/unspent for this address
+        address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
+                          [t.inputs for t in txs] for inp in ti if inp.address == address]
+        for tx in txs:
+            for to in tx.outputs:
+                if to.address != address:
+                    continue
+                spent = True if (tx.hash, to.output_n) in address_inputs else False
+                txs[txs.index(tx)].outputs[to.output_n].spent = spent
         return txs
 
     def getrawtransaction(self, txid):
@@ -166,12 +162,12 @@ class BcoinClient(BaseClient):
             'response_dict': res
         }
 
-    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = self.gettransactions(addresslist, after_txid=after_txid)
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = self.gettransactions(address, after_txid=after_txid, max_txs=max_txs)
         utxos = []
         for tx in txs:
             for unspent in tx.outputs:
-                if unspent.address not in addresslist:
+                if unspent.address != address:
                     continue
                 if unspent.spent is False:
                     utxos.append(

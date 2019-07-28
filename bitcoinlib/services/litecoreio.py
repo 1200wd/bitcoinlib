@@ -42,17 +42,16 @@ class LitecoreIOClient(BaseClient):
         variables.update({'from': offset, 'to': offset+REQUEST_LIMIT})
         return self.request(url_path, variables, method=method)
 
-    def getutxos(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
-        addresslist = self._addresslist_convert(addresslist)
-        addresses = ';'.join([a.address for a in addresslist])
-        res = self.compose_request('addrs', addresses, 'utxo')
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        address = self._address_convert(address)
+        # addresses = ';'.join([a.address for a in addresslist])
+        res = self.compose_request('addrs', address.address, 'utxo')
         txs = []
         for tx in res:
-            address = [x.address_orig for x in addresslist if x.address == tx['address']][0]
             if tx['txid'] == after_txid:
                 break
             txs.append({
-                'address': address,
+                'address': address.address_orig,
                 'tx_hash': tx['txid'],
                 'confirmations': tx['confirmations'],
                 'output_n': tx['vout'],
@@ -98,10 +97,9 @@ class LitecoreIOClient(BaseClient):
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
-    def gettransactions(self, addresslist, after_txid='', max_txs=MAX_TRANSACTIONS):
-        addresslist = self._addresslist_convert(addresslist)
-        addresses = ';'.join([a.address for a in addresslist])
-        res = self.compose_request('addrs', addresses, 'txs')
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        address = self._address_convert(address)
+        res = self.compose_request('addrs', address.address, 'txs')
         txs = []
         txs_dict = res['items'][::-1]
         if after_txid:

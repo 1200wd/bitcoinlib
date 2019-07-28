@@ -185,74 +185,57 @@ class Service(object):
             addresslist = addresslist[addresses_per_request:]
         return tot_balance
 
-    def getutxos(self, addresslist, addresses_per_request=5, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
         Get list of unspent outputs (UTXO's) per address.
         Sorted from old to new, so highest number of confirmations first.
 
-        :param addresslist: Address or list of addresses
-        :type addresslist: list, str
-        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
-        :type addresses_per_request: int
+        :param address: Address string
+        :type address: list, str
         :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos. If used only provide a single address
         :type after_txid: str
+        :param max_txs: Maximum number of utxo's to return
+        :type max_txs: int
 
         :return dict: UTXO's per address
         """
-        if not addresslist:
-            return []
-        if isinstance(addresslist, TYPE_TEXT):
-            addresslist = [addresslist]
-        if len(addresslist) > 1 and after_txid:
-            raise ServiceError("Please use only a single address if 'after_txid' is provided")
+        if not isinstance(address, TYPE_TEXT):
+            raise ServiceError("Address parameter must be of type text")
 
         utxos = []
         self.complete = True
-        while addresslist:
-            new_utxos = self._provider_execute('getutxos', addresslist[:addresses_per_request], after_txid, max_txs)
-            if len(new_utxos) == max_txs:
-                self.complete = False
-            if new_utxos:
-                utxos += new_utxos
-            addresslist = addresslist[addresses_per_request:]
+        new_utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
+        if len(new_utxos) == max_txs:
+            self.complete = False
+        if new_utxos:
+            utxos += new_utxos
         return utxos
 
-    def gettransactions(self, addresslist, addresses_per_request=5, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
         Get all transactions for each address in addresslist.
         Sorted from old to new, so highest number of confirmations first.
 
-        :param addresslist: Address or list of addresses
-        :type addresslist: list, str
-        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
-        :type addresses_per_request: int
+        :param address: Address string
+        :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
         :type after_txid: str
+        :param max_txs: Maximum number of transactions to return
+        :type max_txs: int
 
         :return list: List of Transaction objects
         """
-        if not addresslist:
+        if not address:
             return []
-        if isinstance(addresslist, TYPE_TEXT):
-            addresslist = [addresslist]
-        if len(addresslist) > 1 and after_txid:
-            raise ServiceError("Please use only a single address if 'after_txid' is provided")
+        if not isinstance(address, TYPE_TEXT):
+            raise ServiceError("Address parameter must be of type text")
         if after_txid is None:
             after_txid = ''
 
-        transactions = []
-        self.complete = True
-        while addresslist:
-            txs = self._provider_execute('gettransactions', addresslist[:addresses_per_request], after_txid,  max_txs)
-            if txs is False:
-                break
-            if len(txs) == max_txs:
-                self.complete = False
-            for new_t in txs:
-                if new_t.hash not in [t.hash for t in transactions]:
-                    transactions.append(new_t)
-            addresslist = addresslist[addresses_per_request:]
-        return transactions
+        txs = self._provider_execute('gettransactions', address, after_txid,  max_txs)
+        if len(txs) == max_txs:
+            self.complete = False
+        return txs
 
     def gettransaction(self, txid):
         """
