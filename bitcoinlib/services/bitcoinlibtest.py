@@ -55,10 +55,12 @@ class BitcoinLibTestClient(BaseClient):
         Dummy method to retreive UTXO's. This method creates a new UTXO for each address provided out of the
         testnet void, which can be used to create test transactions for the bitcoinlib testnet.
 
-        :param addresslist: List of addresses
-        :type addresslist: list
-        :param utxos_per_address: Number of UTXO's to be created per address
-        :type utxos_per_address: int
+        :param address: Address string
+        :type address: str
+        :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos. If used only provide a single address
+        :type after_txid: str
+        :param max_txs: Maximum number of utxo's to return
+        :type max_txs: int
 
         :return list: The created UTXO set
         """

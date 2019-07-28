@@ -78,7 +78,7 @@ class BlockchainInfoClient(BaseClient):
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
         txids = []
-        variables = {'limit': max_txs}
+        variables = {'limit': 100}
         res = self.compose_request('rawaddr', address, variables=variables)
         latest_block = self.block_count()
         for tx in res['txs']:

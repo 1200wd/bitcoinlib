@@ -191,7 +191,7 @@ class Service(object):
         Sorted from old to new, so highest number of confirmations first.
 
         :param address: Address string
-        :type address: list, str
+        :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos. If used only provide a single address
         :type after_txid: str
         :param max_txs: Maximum number of utxo's to return

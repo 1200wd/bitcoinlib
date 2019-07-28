@@ -156,16 +156,15 @@ class LitecoindClient(BaseClient):
         t.update_totals()
         return t
 
-    def getutxos(self, addresslist):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
 
-        for addr in addresslist:
-            res = self.proxy.validateaddress(addr)
-            if not (res['ismine'] or res['iswatchonly']):
-                raise ClientError("Address %s not found in Litecoind wallet, use 'importaddress' to add address to "
-                                  "wallet." % addr)
+        res = self.proxy.getaddressinfo(address)
+        if not (res['ismine'] or res['iswatchonly']):
+            raise ClientError("Address %s not found in litecoind wallet, use 'importaddress' to add address to "
+                              "wallet." % address)
 
-        for t in self.proxy.listunspent(0, 99999999, addresslist):
+        for t in self.proxy.listunspent(0, 99999999, address):
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
@@ -181,7 +180,6 @@ class LitecoindClient(BaseClient):
             })
 
         return txs
-
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
         return {
