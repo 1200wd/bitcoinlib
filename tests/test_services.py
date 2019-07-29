@@ -29,7 +29,7 @@ MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estim
 
 class TestService(unittest.TestCase, CustomAssertions):
 
-    def test_transaction_get_raw_testnet(self):
+    def test_service_transaction_get_raw_testnet(self):
         tx_id = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'
         raw_tx = '0100000001a3919372c9807d92507289d71bdd38f10682a49c47e50dc0136996b43d8aa54e010000006a47304402201f6e' \
                  '18f4532e14f328bc820cb78c53c57c91b1da9949fecb8cf42318b791fb38022045e78c9e55df1cf3db74bfd52ff2add2b5' \
@@ -38,7 +38,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '76a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
         self.assertEqual(raw_tx, Service(network='testnet').getrawtransaction(tx_id))
 
-    def test_transaction_get_raw_bitcoin(self):
+    def test_service_transaction_get_raw_bitcoin(self):
         tx_id = 'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
         raw_tx = '01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff5d0342fe06244d69' \
                  '6e656420627920416e74506f6f6c20626a31312f4542312f4144362f432058d192b6fabe6d6defcf958e3cf9814240e00f' \
@@ -46,7 +46,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '001976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac00000000'
         self.assertEqual(raw_tx, Service().getrawtransaction(tx_id))
 
-    def test_transaction_get_raw_litecoin(self):
+    def test_service_transaction_get_raw_litecoin(self):
         tx_id = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         raw_tx = '01000000018d3a15210548821144e323b9138226926ec66e5f79a3871d4cdefde479a5e076000000006b48304502201952' \
                  '093e6082574209150659b294c8e634a30c469fd3dff97a38c8e9ea641d9a022100a9621d0f9d05cbbe274309689bc9086b' \
@@ -65,7 +65,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     #              '00001976a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac00000000'
     #     self.assertEqual(raw_tx, Service(network='dash').getrawtransaction(tx_id))
 
-    def test_sendrawtransaction(self):
+    def test_service_sendrawtransaction(self):
         raw_tx = \
          '010000000108004b4c0394a211d4ec0d344b70bf1e3b1ce1731d11d1d30279ab0c0f6d9fd7000000006c493046022100ab18a72f7' \
          '87e4c8ea5d2f983b99df28d27e13482b91fd6d48701c055af92f525022100d1c26b8a779896a53a026248388896501e724e46407f' \
@@ -87,7 +87,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             elif provider == 'chain.so':
                 self.assertIn('are still available to spend', prov_error)
 
-    def test_get_balance(self):
+    def test_service_get_balance(self):
         srv = Service(min_providers=5)
         srv.getbalance('15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd')
         prev = None
@@ -100,7 +100,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             else:
                 prev = balance
 
-    def test_get_balance_litecoin(self):
+    def test_service_get_balance_litecoin(self):
         srv = Service(min_providers=5, network='litecoin')
         srv.getbalance('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         prev = None
@@ -122,14 +122,14 @@ class TestService(unittest.TestCase, CustomAssertions):
                 print("WARNING: Provider %s not found in results" % r)
             self.assertEqual(srv.results[r], exp_dict[r])
 
-    def test_get_utxos(self):
+    def test_service_get_utxos(self):
         srv = Service(min_providers=10)
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
         tx_hash = '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8'
         for provider in srv.results:
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
-    def test_get_utxos_after_txid(self):
+    def test_service_get_utxos_after_txid(self):
         srv = Service(min_providers=10)
         tx_hash = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
@@ -137,14 +137,14 @@ class TestService(unittest.TestCase, CustomAssertions):
         for provider in srv.results:
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
-    def test_get_utxos_litecoin(self):
+    def test_service_get_utxos_litecoin(self):
         srv = Service(network='litecoin', min_providers=10)
         srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         for provider in srv.results:
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
-    def test_get_utxos_litecoin_after_txid(self):
+    def test_service_get_utxos_litecoin_after_txid(self):
         srv = Service(network='litecoin', min_providers=10)
         tx_hash = '201a27d05a2efa4c72ae5b0b9fe7094350a9d7c503ce022ddc28768196ba1d28'
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
@@ -153,7 +153,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             print("Comparing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
-    def test_estimatefee(self):
+    def test_service_estimatefee(self):
         srv = Service(min_providers=5)
         srv.estimatefee()
         if len(srv.results) < 2:
@@ -195,7 +195,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     #             self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
     #                       (provider, fee_difference_from_average * 100))
 
-    def test_gettransactions(self):
+    def test_service_gettransactions(self):
         tx_hash = '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74'
         address = '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w'
         block_height = 300000
@@ -250,23 +250,23 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
 
-    def test_gettransactions_after_txid(self):
+    def test_service_gettransactions_after_txid(self):
         res = Service().gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
                                         after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
         self.assertEqual(res[0].hash, '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803')
 
-    def test_gettransactions_after_txid_litecoin(self):
+    def test_service_gettransactions_after_txid_litecoin(self):
         res = Service('litecoin').gettransactions(
             'LhVR1yL8cEjPJsiuVnqjEfeGCEtS25jE2J',
             after_txid='c44967c6db6fa3c1307f9a98bbe0308aa29d99330ada866192735b31bcb0d53f')
         self.assertEqual(res[0].hash, 'e0c1e90fa2195869905e90d4fa644082dfd0523540c13baea0c7a4e246ef40e4')
 
-    def test_gettransactions_addresslist_error(self):
+    def test_service_gettransactions_addresslist_error(self):
         self.assertRaisesRegexp(ServiceError, "Address parameter must be of type text",
                                 Service().gettransactions,
                                 ['1LGJzocooaciEtsxEVAajLhCymCXNvPoLh', '19KedreX9aR64fN7tnNzVLVFHQAUL6dLzr'])
 
-    def test_gettransaction(self):
+    def test_service_gettransaction(self):
         expected_dict = {
             'block_hash': '000000000000000000f3ae4004e9bcc39b3d4dc0f342b76a1830ee8607b7f00a',
             'inputs': [
@@ -365,7 +365,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
 
-    def test_gettransaction_dash(self):
+    def test_service_gettransaction_dash(self):
         expected_dict = {'block_hash': '000000000000002eddff510f4f6c61243e350102c58bdf8c986430b405ce7a22',
                          'network': 'dash', 'input_total': 2575500000, 'fee_per_kb': None, 'outputs': [
                 {'public_key_hash': 'de4b569d39f05bfc43f56a1b22d7783a7d0661d4', 'output_n': 0, 'spent': None,
@@ -403,7 +403,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
 
-    def test_gettransactions_litecoin(self):
+    def test_service_gettransactions_litecoin(self):
         tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         address = 'Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg'
         block_height = 400003
@@ -451,7 +451,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
 
-    def test_gettransaction_coinbase(self):
+    def test_service_gettransaction_coinbase(self):
         expected_dict = {
             'block_hash': '0000000000000000002d966c99d68245b20468dc9c2a7a776a836add03362199',
             'block_height': 500834,
@@ -502,7 +502,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
-    def test_gettransaction_segwit_p2wpkh(self):
+    def test_service_gettransaction_segwit_p2wpkh(self):
         expected_dict = {
             'block_hash': '00000000000000000006e7007407805af2bfb386439e570f5310bb97cdcf0352',
             'block_height': 547270,
@@ -546,14 +546,14 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
-    def test_gettransaction_segwit_coinbase(self):
+    def test_service_gettransaction_segwit_coinbase(self):
         txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
         srv = Service(network='bitcoin')
         t = srv.gettransaction(txid)
         self.assertTrue(t.verify())
         self.assertTrue(t.inputs[0].valid)
 
-    def test_network_litecoin_legacy(self):
+    def test_service_network_litecoin_legacy(self):
         txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'
         address = 'LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG'
         srv = Service(network='litecoin_legacy')
@@ -567,7 +567,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         utxos = srv.getutxos(address)
         self.assertIn(txid, [utxo['tx_hash'] for utxo in utxos])
 
-    def test_block_count(self):
+    def test_service_block_count(self):
         srv = Service(min_providers=10)
         srv.block_count()
         n_blocks = None

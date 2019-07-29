@@ -104,12 +104,12 @@ class BcoinClient(BaseClient):
         tx = self.compose_request('tx', txid)
         return self._parse_transaction(tx)
 
-    # def isspent(self, tx_id, index):
-    #     try:
-    #         self.compose_request('coin', tx_id, str(index))
-    #     except ClientError:
-    #         return True
-    #     return False
+    def isspent(self, tx_id, index):
+        try:
+            self.compose_request('coin', tx_id, str(index))
+        except ClientError:
+            return True
+        return False
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
@@ -138,14 +138,15 @@ class BcoinClient(BaseClient):
                 break
 
         # Check which outputs are spent/unspent for this address
-        address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
-                          [t.inputs for t in txs] for inp in ti if inp.address == address]
-        for tx in txs:
-            for to in tx.outputs:
-                if to.address != address:
-                    continue
-                spent = True if (tx.hash, to.output_n) in address_inputs else False
-                txs[txs.index(tx)].outputs[to.output_n].spent = spent
+        if not after_txid:
+            address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
+                              [t.inputs for t in txs] for inp in ti if inp.address == address]
+            for tx in txs:
+                for to in tx.outputs:
+                    if to.address != address:
+                        continue
+                    spent = True if (tx.hash, to.output_n) in address_inputs else False
+                    txs[txs.index(tx)].outputs[to.output_n].spent = spent
         return txs
 
     def getrawtransaction(self, txid):
@@ -169,7 +170,7 @@ class BcoinClient(BaseClient):
             for unspent in tx.outputs:
                 if unspent.address != address:
                     continue
-                if unspent.spent is False:
+                if not self.isspent(tx.hash, unspent.output_n):
                     utxos.append(
                         {
                             'address': unspent.address,

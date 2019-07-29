@@ -2502,6 +2502,8 @@ class HDWallet(object):
         :type utxos: list
         :param update_balance: Option to disable balance update after fetching UTXO's, used when utxos_update method is called several times in a row. Default is True
         :type update_balance: bool
+        :param max_utxos: Maximum number of UTXO's to update
+        :type max_utxos: int
 
         :return int: Number of new UTXO's added 
         """
@@ -2544,19 +2546,19 @@ class HDWallet(object):
                     if srv.complete:
                         self.last_updated = datetime.datetime.now()
 
-                # Get current UTXO's from database to compare with Service objects UTXO's
-                current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
+                    # Get current UTXO's from database to compare with Service objects UTXO's
+                    current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
 
-                # Update spent UTXO's (not found in list) and mark key as used
-                utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
-                for current_utxo in current_utxos:
-                    if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
-                        utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction). \
-                            filter(DbTransaction.hash == current_utxo['tx_hash'],
-                                   DbTransactionOutput.output_n == current_utxo['output_n'])
-                        for utxo_record in utxo_in_db.all():
-                            utxo_record.spent = True
-                    self._session.commit()
+                    # Update spent UTXO's (not found in list) and mark key as used
+                    utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
+                    for current_utxo in current_utxos:
+                        if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
+                            utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction). \
+                                filter(DbTransaction.hash == current_utxo['tx_hash'],
+                                       DbTransactionOutput.output_n == current_utxo['output_n'])
+                            for utxo_record in utxo_in_db.all():
+                                utxo_record.spent = True
+                        self._session.commit()
 
                 # If UTXO is new, add to database otherwise update depth (confirmation count)
                 for utxo in utxos:
@@ -2606,7 +2608,8 @@ class HDWallet(object):
                         script_type = script_type_default(self.witness_type, multisig=self.multisig,
                                                           locking_script=True)
                         new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'],
-                                                       value=utxo['value'], key_id=key.id, script=utxo['script'],
+                                                       value=utxo['value'], key_id=key.id,
+                                                       script=to_hexstring(utxo['script']),
                                                        script_type=script_type, spent=False)
                         self._session.add(new_utxo)
                         count_utxos += 1
