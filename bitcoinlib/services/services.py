@@ -202,13 +202,10 @@ class Service(object):
         if not isinstance(address, TYPE_TEXT):
             raise ServiceError("Address parameter must be of type text")
 
-        utxos = []
         self.complete = True
-        new_utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
-        if len(new_utxos) == max_txs:
+        utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
+        if len(utxos) >= max_txs:
             self.complete = False
-        if new_utxos:
-            utxos += new_utxos
         return utxos
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):

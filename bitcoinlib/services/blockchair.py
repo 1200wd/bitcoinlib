@@ -22,7 +22,7 @@ import math
 import logging
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.keys import deserialize_address
 from bitcoinlib.encoding import EncodingError, varstr, to_bytes
@@ -30,7 +30,7 @@ from bitcoinlib.encoding import EncodingError, varstr, to_bytes
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'blockchair'
-REQUEST_LIMIT = 50
+REQUEST_LIMIT = 100
 
 
 class BlockChairClient(BaseClient):
@@ -66,6 +66,8 @@ class BlockChairClient(BaseClient):
         offset = 0
         while True:
             res = self.compose_request('outputs', {'recipient': address, 'is_spent': 'false'}, offset=offset)
+            if len(res['data']) == REQUEST_LIMIT:
+                raise ClientError("Blockchair returned more then maximum of %d data rows" % REQUEST_LIMIT)
             current_block = res['context']['state']
             for utxo in res['data'][::-1]:
                 if utxo['is_spent']:

@@ -2529,7 +2529,6 @@ class HDWallet(object):
             for account_id in accounts:
                 if depth is None:
                     depth = self.key_depth
-
                 if utxos is None:
                     # Get all UTXO's for this wallet from default Service object
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
@@ -2545,20 +2544,8 @@ class HDWallet(object):
                                               "Errors: %s" % srv.errors)
                     if srv.complete:
                         self.last_updated = datetime.datetime.now()
-
-                    # Get current UTXO's from database to compare with Service objects UTXO's
-                    current_utxos = self.utxos(account_id=account_id, network=network, key_id=key_id)
-
-                    # Update spent UTXO's (not found in list) and mark key as used
-                    utxos_tx_hashes = [(x['tx_hash'], x['output_n']) for x in utxos]
-                    for current_utxo in current_utxos:
-                        if (current_utxo['tx_hash'], current_utxo['output_n']) not in utxos_tx_hashes:
-                            utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction). \
-                                filter(DbTransaction.hash == current_utxo['tx_hash'],
-                                       DbTransactionOutput.output_n == current_utxo['output_n'])
-                            for utxo_record in utxo_in_db.all():
-                                utxo_record.spent = True
-                        self._session.commit()
+                    elif utxos and 'date' in utxos[-1:][0]:
+                        self.last_updated = utxos[-1:][0]['date']
 
                 # If UTXO is new, add to database otherwise update depth (confirmation count)
                 for utxo in utxos:
@@ -2580,12 +2567,16 @@ class HDWallet(object):
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == utxo['tx_hash'],
                                DbTransactionOutput.output_n == utxo['output_n'])
+                    spent_in_db = self._session.query(DbTransactionInput).join(DbTransaction).\
+                        filter(DbTransaction.wallet_id == self.wallet_id,
+                               DbTransaction.hash == utxo['tx_hash'],
+                               DbTransactionInput.output_n == utxo['output_n'])
                     if utxo_in_db.count():
                         utxo_record = utxo_in_db.scalar()
                         if not utxo_record.key_id:
                             count_utxos += 1
                         utxo_record.key_id = key.id
-                        utxo_record.spent = False
+                        utxo_record.spent = bool(spent_in_db.count())
                         if transaction_in_db.count():
                             transaction_record = transaction_in_db.scalar()
                             transaction_record.confirmations = utxo['confirmations']
@@ -2610,7 +2601,8 @@ class HDWallet(object):
                         new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'],
                                                        value=utxo['value'], key_id=key.id,
                                                        script=to_hexstring(utxo['script']),
-                                                       script_type=script_type, spent=False)
+                                                       script_type=script_type,
+                                                       spent=bool(spent_in_db.count()))
                         self._session.add(new_utxo)
                         count_utxos += 1
 
@@ -3531,9 +3523,10 @@ class HDWallet(object):
                     if not accounts:
                         accounts = [0]
                     for account_id in accounts:
-                        print("\n- - Transactions Account %d" % account_id)
-                        for tx in self.transactions(include_new=include_new, account_id=account_id,
-                                                    network=nw.name, as_dict=True):
+                        txs = self.transactions(include_new=include_new, account_id=account_id, network=nw.name,
+                                                as_dict=True)
+                        print("\n- - Transactions Account %d (%d)" % (account_id, len(txs)))
+                        for tx in txs:
                             spent = " "
                             if 'spent' in tx and tx['spent'] is False:
                                 spent = "U"
