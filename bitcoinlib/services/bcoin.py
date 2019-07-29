@@ -197,3 +197,11 @@ class BcoinClient(BaseClient):
 
     def block_count(self):
         return self.compose_request('')['chain']['height']
+
+    def mempool(self, txid=''):
+        txids = self.compose_request('mempool')
+        if not txid:
+            return txids
+        elif txid in txids:
+            return [txid]
+        return []

@@ -48,6 +48,8 @@ class BlockChairClient(BaseClient):
         if command:
             url_path += command
         if data:
+            if url_path[-1:] != '/':
+                url_path += '/'
             url_path += data
         if query_vars is not None:
             varstr = ','.join(['%s(%s)' % (qv, query_vars[qv]) for qv in query_vars])
@@ -181,3 +183,11 @@ class BlockChairClient(BaseClient):
         """
         res = self.compose_request('stats')
         return res['context']['state']
+
+    def mempool(self, txid=''):
+        variables = {}
+        if txid:
+            variables = {'hash': txid}
+        res = self.compose_request('mempool', variables, data='transactions')
+        txids = [tx['hash'] for tx in res['data'] if 'hash' in tx]
+        return txids

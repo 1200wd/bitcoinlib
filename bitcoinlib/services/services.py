@@ -295,3 +295,11 @@ class Service(object):
         :return int:
         """
         return self._provider_execute('block_count')
+
+    def mempool(self, txid):
+        """
+        Get list of transaction IDs in the current mempool
+        
+        :return list: 
+        """
+        return self._provider_execute('mempool', txid)

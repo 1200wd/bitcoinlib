@@ -155,5 +155,9 @@ class BitGoClient(BaseClient):
         res = self.compose_request('tx', 'fee', variables={'numBlocks': blocks})
         return res['feePerKb']
 
+    def mempool(self, txid):
+        res = self.gettransaction(txid)
+        return res
+
     # def block_count(self):
     #     return self.proxy.getblockcount()
