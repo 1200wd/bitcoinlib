@@ -2349,8 +2349,8 @@ class HDWallet(object):
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        balance = Service(network=network, providers=self.providers).getbalance(self.addresslist(account_id=account_id,
-                                                                                                 network=network))
+        balance = Service(network=network, providers=self.providers).\
+            getbalance(self.addresslist(account_id=account_id, network=network))
         if balance:
             new_balance = {
                 'account_id': account_id,

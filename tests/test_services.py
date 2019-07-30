@@ -26,6 +26,8 @@ from tests.test_custom import CustomAssertions
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
+TIMEOUT_TEST = 1
+
 
 class TestService(unittest.TestCase, CustomAssertions):
 
@@ -36,7 +38,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '9ba63e068680f0023e6a80ac9f51f401210239a18d586c34e51238a7c9a27a342abfb35e3e4aa5ac6559889db1dab2816e' \
                  '9dfeffffff023ef59804000000001976a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac90940d000000000019' \
                  '76a914f0d34949650af161e7cb3f0325a1a8833075165088acb7740f00'
-        self.assertEqual(raw_tx, Service(network='testnet').getrawtransaction(tx_id))
+        self.assertEqual(raw_tx, Service(network='testnet', timeout=TIMEOUT_TEST).getrawtransaction(tx_id))
 
     def test_service_transaction_get_raw_bitcoin(self):
         tx_id = 'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
@@ -44,7 +46,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '6e656420627920416e74506f6f6c20626a31312f4542312f4144362f432058d192b6fabe6d6defcf958e3cf9814240e00f' \
                  'a5e36e8cc319cd8141e20890607ccb1954e64843d804000000000000003914000057190200ffffffff013b33b158000000' \
                  '001976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac00000000'
-        self.assertEqual(raw_tx, Service().getrawtransaction(tx_id))
+        self.assertEqual(raw_tx, Service(timeout=TIMEOUT_TEST).getrawtransaction(tx_id))
 
     def test_service_transaction_get_raw_litecoin(self):
         tx_id = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
@@ -53,7 +55,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '795bc67751f1572eddb47c6ae029cda0012102461acd52a39d260be22c18780def2bb77255abd4c3ea4fd65673ad302492' \
                  '1c62ffffffff02b5055501000000001976a914cfb8e7aafe540a0b1b56e686145c8bb48d34391588ac00e1f50500000000' \
                  '1976a914c1b1668730f13dd1772977e8ce96e3f5f78d290388ac00000000'
-        self.assertEqual(raw_tx, Service(network='litecoin').getrawtransaction(tx_id))
+        self.assertEqual(raw_tx, Service(network='litecoin', timeout=TIMEOUT_TEST).getrawtransaction(tx_id))
 
     # Disable for now due to lack of working providers
     # def test_transaction_get_raw_dash(self):
@@ -72,7 +74,7 @@ class TestService(unittest.TestCase, CustomAssertions):
          '14a4a1b6478d3293da24012103e428723c145e61c35c070da86faadaf0fab21939223a5e6ce3e1cfd76bad133dffffffff0240420' \
          'f00000000001976a914bbaeed8a02f64c9d40462d323d379b8f27ad9f1a88ac905d1818000000001976a914046858970a72d33817' \
          '474c0e24e530d78716fc9c88ac00000000'
-        srv = Service(network='testnet')
+        srv = Service(network='testnet', timeout=TIMEOUT_TEST)
         try:
             srv.sendrawtransaction(raw_tx)
         except ServiceError:
@@ -88,7 +90,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 self.assertIn('are still available to spend', prov_error)
 
     def test_service_get_balance(self):
-        srv = Service(min_providers=5)
+        srv = Service(min_providers=5, timeout=TIMEOUT_TEST)
         srv.getbalance('15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd')
         prev = None
         if len(srv.results) < 2:
@@ -101,7 +103,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 prev = balance
 
     def test_service_get_balance_litecoin(self):
-        srv = Service(min_providers=5, network='litecoin')
+        srv = Service(min_providers=5, network='litecoin', timeout=TIMEOUT_TEST)
         srv.getbalance('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         prev = None
         if len(srv.results) < 2:
@@ -114,7 +116,8 @@ class TestService(unittest.TestCase, CustomAssertions):
                 prev = balance
 
     def test_service_address_conversion(self):
-        srv = Service(min_providers=2, network='litecoin_legacy', providers=['cryptoid', 'litecoreio'])
+        srv = Service(min_providers=2, network='litecoin_legacy', providers=['cryptoid', 'litecoreio'],
+                      timeout=TIMEOUT_TEST)
         srv.getbalance('3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB')
         exp_dict = {'cryptoid.litecoin.legacy': 95510000, 'litecoreio.litecoin.legacy': 95510000}
         for r in srv.results:
@@ -123,14 +126,14 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(srv.results[r], exp_dict[r])
 
     def test_service_get_utxos(self):
-        srv = Service(min_providers=10)
+        srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
         tx_hash = '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8'
         for provider in srv.results:
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_get_utxos_after_txid(self):
-        srv = Service(min_providers=10)
+        srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
         tx_hash = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
@@ -138,14 +141,14 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_get_utxos_litecoin(self):
-        srv = Service(network='litecoin', min_providers=10)
+        srv = Service(network='litecoin', min_providers=10, timeout=TIMEOUT_TEST)
         srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         for provider in srv.results:
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_get_utxos_litecoin_after_txid(self):
-        srv = Service(network='litecoin', min_providers=10)
+        srv = Service(network='litecoin', min_providers=10, timeout=TIMEOUT_TEST)
         tx_hash = '201a27d05a2efa4c72ae5b0b9fe7094350a9d7c503ce022ddc28768196ba1d28'
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
                      after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
@@ -154,7 +157,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_estimatefee(self):
-        srv = Service(min_providers=5)
+        srv = Service(min_providers=5, timeout=TIMEOUT_TEST)
         srv.estimatefee()
         if len(srv.results) < 2:
             self.fail("Only 1 or less service providers found, no fee estimates to compare")
@@ -219,7 +222,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'value': 4527385460
         }
 
-        srv = Service(min_providers=5)
+        srv = Service(min_providers=5, timeout=TIMEOUT_TEST)
         srv.gettransactions(address)
         for provider in srv.results:
             res = srv.results[provider]
@@ -251,12 +254,12 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
 
     def test_service_gettransactions_after_txid(self):
-        res = Service().gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
+        res = Service(timeout=TIMEOUT_TEST).gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
                                         after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
         self.assertEqual(res[0].hash, '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803')
 
     def test_service_gettransactions_after_txid_litecoin(self):
-        res = Service('litecoin').gettransactions(
+        res = Service('litecoin', timeout=TIMEOUT_TEST).gettransactions(
             'LhVR1yL8cEjPJsiuVnqjEfeGCEtS25jE2J',
             after_txid='c44967c6db6fa3c1307f9a98bbe0308aa29d99330ada866192735b31bcb0d53f')
         self.assertEqual(res[0].hash, 'e0c1e90fa2195869905e90d4fa644082dfd0523540c13baea0c7a4e246ef40e4')
@@ -355,7 +358,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime.datetime(2017, 8, 4)
         }
 
-        srv = Service(network='bitcoin', min_providers=10)
+        srv = Service(network='bitcoin', min_providers=10, timeout=TIMEOUT_TEST)
 
         # Get transactions by hash
         srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
@@ -394,7 +397,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                            '277ad1b331f78add78c6723eed00097520edc21ed2',
                  'value': 2575500000}], 'date': datetime.datetime(2018, 7, 8, 21, 35, 58)}
 
-        srv = Service(network='dash', min_providers=10)
+        srv = Service(network='dash', min_providers=10, timeout=TIMEOUT_TEST)
 
         # Get transactions by hash
         srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf')
@@ -420,7 +423,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'value': 122349237
         }
 
-        srv = Service(min_providers=5, network='litecoin')
+        srv = Service(min_providers=5, network='litecoin', timeout=TIMEOUT_TEST)
         srv.gettransactions(address)
         for provider in srv.results:
             res = srv.results[provider]
@@ -492,7 +495,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'status': 'confirmed',
             'version': 1
         }
-        srv = Service(network='bitcoin', min_providers=10)
+        srv = Service(network='bitcoin', min_providers=10, timeout=TIMEOUT_TEST)
 
         # Get transactions by hash
         srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
@@ -537,7 +540,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 ],
             'size': 191,
         }
-        srv = Service(network='bitcoin', min_providers=10)
+        srv = Service(network='bitcoin', min_providers=10, timeout=TIMEOUT_TEST)
 
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
@@ -548,7 +551,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_gettransaction_segwit_coinbase(self):
         txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
-        srv = Service(network='bitcoin')
+        srv = Service(network='bitcoin', timeout=TIMEOUT_TEST)
         t = srv.gettransaction(txid)
         self.assertTrue(t.verify())
         self.assertTrue(t.inputs[0].valid)
@@ -556,7 +559,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_network_litecoin_legacy(self):
         txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'
         address = 'LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG'
-        srv = Service(network='litecoin_legacy')
+        srv = Service(network='litecoin_legacy', timeout=TIMEOUT_TEST)
 
         tx = srv.gettransaction(txid)
         self.assertEqual(tx.inputs[0].address, '3HbvJBjPxJ1wGYHiUJBkfmZziZohzhQhmy')
@@ -568,7 +571,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertIn(txid, [utxo['tx_hash'] for utxo in utxos])
 
     def test_service_block_count(self):
-        srv = Service(min_providers=10)
+        srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
         srv.block_count()
         n_blocks = None
         for provider in srv.results:
@@ -577,7 +580,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                                        msg="Provider %s value %d != %d" % (provider, srv.results[provider], n_blocks))
             n_blocks = srv.results[provider]
         # Test Litecoin network
-        srv = Service(min_providers=10, network='litecoin')
+        srv = Service(min_providers=10, network='litecoin', timeout=TIMEOUT_TEST)
         srv.block_count()
         n_blocks = None
         for provider in srv.results:
@@ -587,10 +590,21 @@ class TestService(unittest.TestCase, CustomAssertions):
             n_blocks = srv.results[provider]
 
     def test_service_max_providers(self):
-        srv = Service(max_providers=1)
+        srv = Service(max_providers=1, timeout=TIMEOUT_TEST)
         srv.block_count()
         self.assertEqual(srv.resultcount, 1)
 
     def test_service_errors(self):
         self.assertRaisesRegexp(ServiceError, "Provider 'unknown_provider' not found in provider definitions",
                                 Service, providers='unknown_provider')
+
+    def test_service_mempool(self):
+        txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
+        srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
+        srv.mempool(txid)
+        for provider in srv.results:
+            self.assertListEqual(srv.results[provider], [])
+        srv = Service(min_providers=10, network='litecoin', timeout=TIMEOUT_TEST)
+        srv.mempool(txid)
+        for provider in srv.results:
+            self.assertListEqual(srv.results[provider], [])

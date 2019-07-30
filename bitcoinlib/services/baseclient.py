@@ -43,7 +43,7 @@ class ClientError(Exception):
 class BaseClient(object):
 
     def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
-                 network_overrides=None):
+                 network_overrides=None, timeout=TIMEOUT_REQUESTS):
         try:
             self.network = network
             if not isinstance(network, Network):
@@ -55,6 +55,7 @@ class BaseClient(object):
             self.api_key = api_key
             self.provider_coin_id = provider_coin_id
             self.network_overrides = {}
+            self.timeout = timeout
             if network_overrides is not None:
                 self.network_overrides = network_overrides
         except:
@@ -72,10 +73,10 @@ class BaseClient(object):
                 url_vars = '?' + urlencode(variables)
             url += url_vars
             _logger.debug("Url get request %s" % url)
-            self.resp = requests.get(url, timeout=TIMEOUT_REQUESTS, verify=secure)
+            self.resp = requests.get(url, timeout=self.timeout, verify=secure)
         elif method == 'post':
             _logger.debug("Url post request %s" % url)
-            self.resp = requests.post(url, json=dict(variables), timeout=TIMEOUT_REQUESTS, verify=secure)
+            self.resp = requests.post(url, json=dict(variables), timeout=self.timeout, verify=secure)
 
         resp_text = self.resp.text
         if len(resp_text) > 1000:

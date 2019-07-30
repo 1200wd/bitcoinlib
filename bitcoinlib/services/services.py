@@ -22,7 +22,7 @@ import os
 import logging
 import json
 import random
-from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS
+from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
@@ -49,7 +49,8 @@ class Service(object):
 
     """
 
-    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None):
+    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
+                 timeout=TIMEOUT_REQUESTS):
         """
         Open a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -106,6 +107,7 @@ class Service(object):
         self.errors = {}
         self.resultcount = 0
         self.complete = None
+        self.timeout = timeout
 
     def _provider_execute(self, method, *arguments):
         self.results = {}
@@ -124,7 +126,7 @@ class Service(object):
                 pc_instance = providerclient(
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                    self.providers[sp]['network_overrides'])
+                    self.providers[sp]['network_overrides'], self.timeout)
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
