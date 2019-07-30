@@ -1,0 +1,47 @@
+#
+# BITCOINLIB - Configuration file for Unit Testing
+# © 2019 July - 1200 Web Development <http://1200wd.com/>
+#
+# Paths to data, logs and configuration files, all paths are relative to user home dir if no absolute path is provided
+#
+# In this configuration file you can overwrite default settings, for a normal installation it is not necessary to
+# change anything here
+#
+
+[locations]
+# Default directory for database files. Relative paths will be based in user home directory
+;database_dir=.bitcoinlib/database
+
+# Default database file for wallets, keys and transactions. Relative paths will be based in 'database_dir'
+default_databasefile=bitcoinlib-unittest.sqlite
+
+# Log files location. Relative paths will be based in user home directory
+;log_dir=.bitcoinlib/log
+
+# Location of BitcoinLib config files. Relative paths will be based in installation directory
+;config_dir=.bitcoinlib/config
+
+# Location of data files such as provider and network definitions.
+# Relative paths will be based in installation directory
+;data_dir=data
+
+# Location of wordlists for Mnemonic passphrases. Relative to installation directory
+;wordlist_dir=wordlist
+
+[common]
+# Time for request to service providers in seconds
+timeout_requests=1
+
+
+# Default language for Mnemonic passphrases
+;default_language=english
+
+# Default network when creating wallets, transaction, keys, etc.
+;default_network=bitcoin
+
+# Default witness_type for new wallets and keys
+;default_witness_type=legacy
+
+[logs]
+# Loglevel for this library, options: CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET
+;loglevel=WARNING
