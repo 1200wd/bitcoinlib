@@ -204,7 +204,7 @@ class LitecoindClient(BaseClient):
         elif txid in txids:
             return [txid]
         return []
-    
+
 
 if __name__ == '__main__':
     #
