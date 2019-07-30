@@ -136,3 +136,9 @@ class LitecoreIOClient(BaseClient):
     def block_count(self):
         res = self.compose_request('status', '', variables={'q': 'getinfo'})
         return res['info']['blocks']
+
+    def mempool(self, txid):
+        res = self.compose_request('tx', txid)
+        if res['confirmations'] == 0:
+            return res['txid']
+        return []

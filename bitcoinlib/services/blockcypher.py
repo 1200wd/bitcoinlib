@@ -158,3 +158,9 @@ class BlockCypher(BaseClient):
 
     def block_count(self):
         return self.compose_request('', '')['height']
+
+    def mempool(self, txid):
+        tx = self.compose_request('txs', txid)
+        if tx['confirmations'] == 0:
+            return [tx['hash']]
+        return []

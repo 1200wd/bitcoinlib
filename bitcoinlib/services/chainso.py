@@ -144,3 +144,9 @@ class ChainSo(BaseClient):
 
     def block_count(self):
         return self.compose_request('get_info')['data']['blocks']
+
+    def mempool(self, txid):
+        res = self.compose_request('is_tx_confirmed', txid)
+        if res['status'] == 'success' and res['data']['confirmations'] == 0:
+            return [txid]
+        return []

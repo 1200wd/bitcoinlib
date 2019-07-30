@@ -197,6 +197,14 @@ class LitecoindClient(BaseClient):
     def block_count(self):
         return self.proxy.getblockcount()
 
+    def mempool(self, txid=''):
+        txids = self.proxy.getrawmempool()
+        if not txid:
+            return txids
+        elif txid in txids:
+            return [txid]
+        return []
+    
 
 if __name__ == '__main__':
     #

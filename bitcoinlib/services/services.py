@@ -296,9 +296,15 @@ class Service(object):
         """
         return self._provider_execute('block_count')
 
-    def mempool(self, txid):
+    def mempool(self, txid=''):
         """
-        Get list of transaction IDs in the current mempool
+        Get list of all transaction IDs in the current mempool
+
+        A full list of transactions ID's will only be returned if a bcoin or bitcoind client is available. Otherwise
+        specify the txid option to verify if a transaction is added to the mempool.
+
+        :param txid: Check if transaction with this hash exists in memory pool
+        :type txid: str
         
         :return list: 
         """

@@ -103,14 +103,13 @@ class BlockchainInfoClient(BaseClient):
                 input_total += i.value
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
-        # if tx['relayed_by'] == '0.0.0.0':
-        if tx['block_height']:
+        if 'block_height' in tx and tx['block_height']:
             t.status = 'confirmed'
         else:
             t.status = 'unconfirmed'
         t.hash = tx_id
         t.date = datetime.fromtimestamp(tx['time'])
-        t.block_height = tx['block_height']
+        t.block_height = 0 if 'block_height' not in tx else tx['block_height']
         t.rawtx = raw_tx
         t.size = tx['size']
         t.network_name = self.network
@@ -127,3 +126,9 @@ class BlockchainInfoClient(BaseClient):
 
     def block_count(self):
         return self.compose_request('latestblock')['height']
+
+    def mempool(self, txid=''):
+        tx = self.compose_request('rawtx', txid)
+        if 'block_height' not in tx:
+            return [tx['hash']]
+        return []

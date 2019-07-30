@@ -142,3 +142,10 @@ class CryptoID(BaseClient):
     def block_count(self):
         r = self.compose_request('getblockcount', path_type='api')
         return r
+
+    def mempool(self, txid):
+        variables = {'id': txid, 'hex': None}
+        tx = self.compose_request(path_type='explorer', variables=variables)
+        if 'confirmations' not in tx:
+            return [tx['txid']]
+        return []
