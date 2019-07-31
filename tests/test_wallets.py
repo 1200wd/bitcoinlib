@@ -1924,6 +1924,7 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         w = wallet_create_or_open('addrwlt', k, databasefile=DATABASEFILE_UNITTESTS)
         addr = Address.import_address('13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce')
         w.import_key(addr)
+        self.assertEqual(len(w.accounts()), 1)
         w.utxos_update()
         self.assertListEqual(w.addresslist(),
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce'])

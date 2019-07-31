@@ -2288,7 +2288,7 @@ class HDWallet(object):
             accounts = [wk.account_id for wk in self.keys_accounts(network=network)]
         if not accounts:
             accounts = [self.default_account_id]
-        return accounts
+        return list(set(accounts))
 
     def networks(self, as_dict=False):
         """

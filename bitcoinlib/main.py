@@ -26,7 +26,7 @@ from bitcoinlib.config.opcodes import *
 from bitcoinlib.config.config import *
 
 
-# Initialize logging to bitcoi`nlib.log
+# Initialize logging to bitcoinlib.log
 logfile = os.path.join(BCL_LOG_DIR, 'bitcoinlib.log')
 handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
 logger = logging.getLogger()
