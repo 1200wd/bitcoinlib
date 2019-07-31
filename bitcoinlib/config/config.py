@@ -47,7 +47,7 @@ BCL_CONFIG_FILE = ''
 
 
 # Services
-TIMEOUT_REQUESTS = 1
+TIMEOUT_REQUESTS = 5
 MAX_TRANSACTIONS = 20
 
 # Transactions

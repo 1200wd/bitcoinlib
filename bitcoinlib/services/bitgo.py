@@ -27,7 +27,7 @@ from bitcoinlib.transactions import Transaction
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'bitgo'
-LIMIT_TX = 100
+LIMIT_TX = 49
 
 
 class BitGoClient(BaseClient):
@@ -123,6 +123,8 @@ class BitGoClient(BaseClient):
             t.input_total = t.output_total
         else:
             input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
+            if len(input_values) >= 49:
+                raise ClientError("More then 49 transaction inputs not supported by bitgo")
             t.input_total = sum([x[1] for x in input_values])
         for i in t.inputs:
             if not i.address:

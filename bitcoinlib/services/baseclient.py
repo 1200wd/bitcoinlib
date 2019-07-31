@@ -90,7 +90,7 @@ class BaseClient(object):
                               (self.provider, url, self.resp.status_code, resp_text))
         try:
             return json.loads(self.resp.text)
-        except json.decoder.JSONDecodeError:
+        except ValueError or json.decoder.JSONDecodeError:
             return self.resp.text
 
     def _address_convert(self, address):
