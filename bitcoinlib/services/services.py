@@ -64,6 +64,8 @@ class Service(object):
         :type max_providers: int
         :param providers: List of providers to connect to. Default is all providers and select a provider at random.
         :type providers: list, str
+        :param timeout: Timeout for web requests. Leave empty to use default from config settings
+        :type timeout: int
 
         """
         self.network = network

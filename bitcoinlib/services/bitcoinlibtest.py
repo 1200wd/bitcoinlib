@@ -112,3 +112,6 @@ class BitcoinLibTestClient(BaseClient):
 
     def block_count(self):
         return 1
+
+    def mempool(self, txid=''):
+        return [txid]

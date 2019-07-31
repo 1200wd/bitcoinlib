@@ -113,7 +113,6 @@ class CryptoID(BaseClient):
         for n, i in enumerate(t.inputs):
             i.value = int(round(tx_api['inputs'][n]['amount'] * self.units, 0))
         for n, o in enumerate(t.outputs):
-            # TODO: Check if output is spent (still neccessary?)
             o.spent = None
         if tx['confirmations']:
             t.status = 'confirmed'

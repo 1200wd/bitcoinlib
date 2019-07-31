@@ -22,7 +22,6 @@ from datetime import datetime
 from time import sleep
 from requests import ReadTimeout
 from bitcoinlib.main import *
-from bitcoinlib.encoding import varstr, to_bytes
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
@@ -88,7 +87,6 @@ class BcoinClient(BaseClient):
                         witness_type=witness_type, sequence=ti['sequence'])
         output_n = 0
         for to in tx['outputs']:
-            # spent = self.isspent(tx['hash'], output_n)
             address = ''
             if to['address']:
                 address = to['address']

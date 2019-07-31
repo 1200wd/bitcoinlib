@@ -105,7 +105,6 @@ class ChainSo(BaseClient):
             i.value = int(round(float(tx['inputs'][n]['value']) * self.units, 0))
             input_total += i.value
         for o in t.outputs:
-            # TODO: Check if output is spent (still neccessary?)
             o.spent = None
             output_total += o.value
         t.hash = tx_id
@@ -138,7 +137,6 @@ class ChainSo(BaseClient):
         tx_conf_sorted = sorted(tx_conf, key=lambda x: x[1], reverse=True)
         for tx in tx_conf_sorted[:max_txs]:
             t = self.gettransaction(tx[0])
-            time.sleep(.4)
             txs.append(t)
         return txs
 

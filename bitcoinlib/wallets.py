@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for Key and Transaction management
-#    © 2016 - 2019 February - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -3410,8 +3410,8 @@ class HDWallet(object):
 
         A list of keys will be exported for a multisig wallet.
 
-        :param is_private: Export public or private key
-        :type is_private: Public or private, default is True
+        :param is_private: Export public or private key, default is False
+        :type is_private: bool
         :param account_id: Account ID of key to export
         :type account_id: bool
 
@@ -3441,6 +3441,8 @@ class HDWallet(object):
         :type account_id: int
         :param name: Optional name for account key
         :type name: str
+        :param as_private: Export public or private key, default is False
+        :type as_private: bool
         :param network: Network name. Leave empty for default network
         :type network: str
 
@@ -3452,7 +3454,7 @@ class HDWallet(object):
         elif not self.cosigner:
             depth = -self.key_depth + self.depth_public_master
             key = self.key_for_path([], depth, name=name, account_id=account_id, network=network,
-                                     cosigner_id=self.cosigner_id)
+                                    cosigner_id=self.cosigner_id)
             return key if as_private else key.public()
         else:
             pm_list = []
