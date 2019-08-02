@@ -47,11 +47,11 @@ except ImportError:
     import ConfigParser as configparser
 
 
-    def _read_from_config(configparser, section, value, fallback=None):
-        try:
-            return configparser.get(section, value)
-        except Exception:
-            return fallback
+def _read_from_config(configparser, section, value, fallback=None):
+    try:
+        return configparser.get(section, value)
+    except Exception:
+        return fallback
 
 
 class BitcoindClient(BaseClient):
