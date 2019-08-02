@@ -47,6 +47,13 @@ except ImportError:
     import ConfigParser as configparser
 
 
+    def _read_from_config(configparser, section, value, fallback=None):
+        try:
+            return configparser.get(section, value)
+        except Exception:
+            return fallback
+
+
 class BitcoindClient(BaseClient):
     """
     Class to interact with bitcoind, the Bitcoin deamon
@@ -87,32 +94,29 @@ class BitcoindClient(BaseClient):
             cfn = os.path.join(BCL_CONFIG_DIR, configfile)
             if not os.path.isfile(cfn):
                 raise ConfigError("Config file %s not found" % cfn)
-        with open(cfn, 'r') as f:
-            config_string = '[rpc]\n' + f.read()
-        config.read_string(config_string)
         try:
-            if int(config.get('rpc', 'testnet')):
-                network = 'testnet'
-        except configparser.NoOptionError:
-            pass
-        if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
+            config.read(cfn)
+        except Exception:
+            with open(cfn, 'r') as f:
+                config_string = '[rpc]\n' + f.read()
+            config.read_string(config_string)
+
+        testnet = _read_from_config(config, 'rpc', 'testnet')
+        if testnet:
+            network = 'testnet'
+        if _read_from_config(config, 'rpc', 'rpcpassword') == 'specify_rpc_password':
             raise ConfigError("Please update config settings in %s" % cfn)
-        try:
-            port = config.get('rpc', 'rpcport')
-        except configparser.NoOptionError:
-            if network == 'testnet':
-                port = 18332
-            else:
-                port = 8332
+        if network == 'testnet':
+            port = 18332
+        else:
+            port = 8332
+        port = _read_from_config(config, 'rpc', 'rpcport', port)
         server = '127.0.0.1'
-        if 'rpcconnect' in config['rpc']:
-            server = config.get('rpc', 'rpcconnect')
-        elif 'bind' in config['rpc']:
-            server = config.get('rpc', 'bind')
-        elif 'externalip' in config['rpc']:
-            server = config.get('rpc', 'externalip')
-        elif 'server' in config['rpc']:
-            server = config.get('rpc', 'server')
+        server = _read_from_config(config, 'rpc', 'rpcconnect', server)
+        server = _read_from_config(config, 'rpc', 'bind', server)
+        server = _read_from_config(config, 'rpc', 'externalip', server)
+        server = _read_from_config(config, 'rpc', 'server', server)
+
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return BitcoindClient(network, url)
 

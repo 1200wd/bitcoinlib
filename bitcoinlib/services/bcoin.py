@@ -28,7 +28,7 @@ from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'bcoin'
-LIMIT_TX = 20
+LIMIT_TX = 10
 
 _logger = logging.getLogger(__name__)
 

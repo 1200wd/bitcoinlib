@@ -1927,11 +1927,11 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         w = wallet_create_or_open('addrwlt', k, databasefile=DATABASEFILE_UNITTESTS)
         addr = Address.import_address('13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce')
         w.import_key(addr)
+        self.assertEqual(len(w.accounts()), 1)
         w.utxos_update()
         self.assertListEqual(w.addresslist(),
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce'])
-        # FIXME: Value should be greater then 10000000000, but some service providers do not return all utxo's
-        self.assertGreater(w.balance(), 1000000)
+        self.assertGreaterEqual(w.balance(), 10004533579)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
 
     def test_wallet_address_import_public_key(self):

@@ -53,15 +53,25 @@ class DbInit:
             self._import_config_data(Session)
 
         self.session = Session()
-        # TODO: Upgrade database automatically
+
+        # VERIFY AND UPDATE DATABASE
+        # Just a very simple database update script, without any external libraries for now
+        #
         try:
             version_db = self.session.query(DbConfig.value).filter_by(variable='version').scalar()
             if BITCOINLIB_VERSION != version_db:
-                _logger.warning("BitcoinLib database (%s) is from different version then library code (%s), "
-                                "run updatedb.py script to upgrade database" % (version_db, BITCOINLIB_VERSION))
-        except:
-            _logger.warning("BitcoinLib database is from older version then library code (%s), "
-                            "run updatedb.py script to upgrade database" % BITCOINLIB_VERSION)
+                _logger.warning("BitcoinLib database (%s) is from different version then library code (%s). "
+                                "Let's try to update database." % (version_db, BITCOINLIB_VERSION))
+
+                if version_db == '0.4.10' and BITCOINLIB_VERSION == '0.4.11':
+                    column = Column('latest_txid', String(32))
+                    add_column(self.engine, 'keys', column)
+                    _logger.info("Updated BitcoinLib database from version 0.4.10 to 0.4.11")
+                    self.session.query(DbConfig).filter(DbConfig.variable == 'version').update(
+                        {DbConfig.value: BITCOINLIB_VERSION})
+                    self.session.commit()
+        except Exception as e:
+            _logger.warning("Error when verifying version or updating database: %s" % e)
 
     @staticmethod
     def _import_config_data(ses):
@@ -76,6 +86,11 @@ class DbInit:
         session.add(DbConfig(variable='installation_url', value=url))
         session.commit()
         session.close()
+
+def add_column(engine, table_name, column):
+    column_name = column.compile(dialect=engine.dialect)
+    column_type = column.type.compile(engine.dialect)
+    engine.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table_name, column_name, column_type))
 
 
 class DbConfig(Base):
@@ -181,6 +196,7 @@ class DbKey(Base):
     multisig_children = relationship("DbKeyMultisigChildren", backref='parent_key',
                                      order_by="DbKeyMultisigChildren.key_order",
                                      primaryjoin=id == DbKeyMultisigChildren.parent_id)
+    latest_txid = Column(String(32))
 
     __table_args__ = (
         CheckConstraint(key_type.in_(['single', 'bip32', 'multisig']), name='constraint_key_types_allowed'),

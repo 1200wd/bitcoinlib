@@ -1680,8 +1680,8 @@ class HDWallet(object):
             _keys_ignore = []
         if _recursion_depth > 10:
             raise WalletError("UTXO scanning has reached a recursion depth of more then 10")
-        if self.scheme != 'bip32' and self.scheme != 'multisig':
-            raise WalletError("The wallet scan() method is only available for BIP32 wallets")
+        # if self.scheme != 'bip32' and self.scheme != 'multisig':
+        #     raise WalletError("The wallet scan() method is only available for BIP32 wallets")
         if scan_gap_limit < 2:
             raise WalletError("Scan gap limit must be 2 or higher")
 
@@ -2288,7 +2288,7 @@ class HDWallet(object):
             accounts = [wk.account_id for wk in self.keys_accounts(network=network)]
         if not accounts:
             accounts = [self.default_account_id]
-        return accounts
+        return list(set(accounts))
 
     def networks(self, as_dict=False):
         """
@@ -2779,6 +2779,9 @@ class HDWallet(object):
             if not srv.complete:
                 if txs and txs[-1].date < last_updated:
                     last_updated = txs[-1].date
+            if txs:
+                self._session.query(DbKey).filter(DbKey.address == address).\
+                    update({DbKey.latest_txid: txs[-1].hash})
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
         utxo_set = set()
@@ -2801,18 +2804,9 @@ class HDWallet(object):
         return len(txs)
 
     def transaction_last(self, address):
-        to = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
-             join(DbTransactionOutput).join(DbKey). \
-             filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id). \
-             order_by(DbTransaction.confirmations).first()
-        ti = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
-             join(DbTransactionInput).join(DbKey). \
-             filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id). \
-             order_by(DbTransaction.confirmations).first()
-        if to and (ti and to[1] < ti[1] or not ti):
-            return to[0]
-        elif ti:
-            return ti[0]
+        txid = self._session.query(DbKey.latest_txid). \
+             filter(DbKey.address == address, DbKey.wallet_id == self.wallet_id).scalar()
+        return txid if txid else ''
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None, as_dict=False):
         """
@@ -2944,7 +2938,7 @@ class HDWallet(object):
             utxo_query = utxo_query.filter(DbKey.id == input_key_id)
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
         if not utxos:
-            raise WalletError("Create transaction: No unspent transaction outputs found")
+            raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
 
         # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
 
