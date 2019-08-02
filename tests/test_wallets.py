@@ -706,7 +706,7 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         wallet.utxos_update(networks='testnet')
         self.assertEqual(wallet.balance(network='bitcoinlib_test'), 600000000)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
-        self.assertEqual(wallet.balance(network='testnet'), 1500000)
+        self.assertEqual(wallet.balance(network='testnet'), 0)
         ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
                           'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
         self.assertListEqual(wallet.addresslist(network='testnet'), ltct_addresses)
@@ -1363,21 +1363,24 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         del wlt
 
     def test_wallet_balance_update_multi_network(self):
-        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("test_wallet_balance_update_multi_network", keys=passphrase, network='testnet',
+        k = "vpub5dUsjxfTJVDHcAkzs5awKsgLLioKm8RYubRxqVWwGWTnWzuzRK4XHYQNJzAYFiudEukyEstNUPYakcArMhJbY8D9o3jUgZRc9UsF" \
+            "rY5xdBy"
+        wlt = HDWallet.create("test_wallet_balance_update_multi_network", network='bitcoinlib_test',
+                              witness_type='segwit',
                               databasefile=DATABASEFILE_UNITTESTS)
-        wlt.get_key()
-        wlt.new_account(network='bitcoinlib_test')
-        wlt.get_key(network='bitcoinlib_test')
+        wlt.new_key()
+        wlt.new_account(network='testnet')
+        wlt.import_key(k)
         wlt.utxos_update()
-        self.assertEqual(wlt.balance(), 900)
+        self.assertEqual(wlt.balance(), 400000000)
         self.assertEqual(wlt.balance(network='testnet'), 900)
         self.assertEqual(wlt.balance(network='bitcoinlib_test'), 400000000)
         del wlt
 
     def test_wallet_balance_update_total(self):
-        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("test_wallet_balance_update_total", keys=passphrase, network='testnet',
+        k = "vpub5YsdoySPEiFuhXgG3iwtP23zv8DwZVHCqK1jvoGebiPVqeSWbyLQQ2YeiG2nXoS1KHsXRmZApHkuuwNa239kamG3FcVFLcLNWrv" \
+            "sCfNzC3u"
+        wlt = HDWallet.create("test_wallet_balance_update_total", keys=k, network='testnet',
                               databasefile=DATABASEFILE_UNITTESTS)
         wlt.get_key()
         self.assertEqual(wlt.balance_update_from_serviceprovider(), 900)

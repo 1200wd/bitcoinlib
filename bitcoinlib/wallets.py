@@ -103,7 +103,7 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
-        password='', witness_type=DEFAULT_WITNESS_TYPE, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
+        password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
         key_path=None, databasefile=DEFAULT_DATABASE):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
