@@ -76,6 +76,8 @@ class BitcoindClient(BaseClient):
         except TypeError:
             config = configparser.ConfigParser()
         config_fn = 'bitcoin.conf'
+        if isinstance(network, Network):
+            network = network.name
         if network == 'testnet':
             config_fn = 'bitcoin-testnet.conf'
         if not configfile:
@@ -84,7 +86,7 @@ class BitcoindClient(BaseClient):
                 cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/%s' % config_fn)
             if not os.path.isfile(cfn):  # Try Windows path
                 cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Bitcoin/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Try Max path
+            if not os.path.isfile(cfn):  # Try Mac path
                 cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Bitcoin/%s' % config_fn)
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
@@ -115,7 +117,6 @@ class BitcoindClient(BaseClient):
         server = _read_from_config(config, 'rpc', 'rpcconnect', server)
         server = _read_from_config(config, 'rpc', 'bind', server)
         server = _read_from_config(config, 'rpc', 'externalip', server)
-        server = _read_from_config(config, 'rpc', 'server', server)
 
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return BitcoindClient(network, url)
