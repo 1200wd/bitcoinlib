@@ -41,6 +41,9 @@ class CustomAssertions:
                 self.assertDictEqualExt(result_dict[k], expected_dict[k], none_allowed)
             elif isinstance(result_dict[k], list):
                 for i in range(len(result_dict[k])):
+                    if not isinstance(expected_dict[k], list):
+                        raise AssertionError("No list expected for %s attribute, expected '%s' but received: '%s'" %
+                                             (k, expected_dict[k], result_dict[k]))
                     self.assertDictEqualExt(result_dict[k][i], expected_dict[k][i], none_allowed)
             elif result_dict[k] != expected_dict[k]:
                 if isinstance(result_dict[k], datetime.datetime):

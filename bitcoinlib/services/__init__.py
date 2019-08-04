@@ -33,3 +33,4 @@ import bitcoinlib.services.cryptoid
 import bitcoinlib.services.litecoreio
 import bitcoinlib.services.blockchair
 import bitcoinlib.services.bcoin
+import bitcoinlib.services.bitaps
