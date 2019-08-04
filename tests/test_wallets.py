@@ -773,7 +773,6 @@ class TestWalletBitcoinlibTestnet(unittest.TestCase):
             databasefile=DATABASEFILE_UNITTESTS)
 
         w.utxos_update()
-        w.info()
         self.assertEqual(len(w.utxos()), 2)
         t = w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 10000)
         self.assertTrue(t.pushed)
@@ -1363,23 +1362,22 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         del wlt
 
     def test_wallet_balance_update_multi_network(self):
-        k = "vpub5dUsjxfTJVDHcAkzs5awKsgLLioKm8RYubRxqVWwGWTnWzuzRK4XHYQNJzAYFiudEukyEstNUPYakcArMhJbY8D9o3jUgZRc9UsF" \
-            "rY5xdBy"
+        k = "tpubDCutwJADa3iSbFtB2LgnaaqJgZ8FPXRRzcrMq7Tms41QNnTV291rpkps9vRwyss9zgDc7hS5V1aM1by8nFip5VjpGpz1oP54peKt" \
+            "hJzfabX"
         wlt = HDWallet.create("test_wallet_balance_update_multi_network", network='bitcoinlib_test',
-                              witness_type='segwit',
                               databasefile=DATABASEFILE_UNITTESTS)
         wlt.new_key()
         wlt.new_account(network='testnet')
         wlt.import_key(k)
         wlt.utxos_update()
         self.assertEqual(wlt.balance(), 400000000)
-        self.assertEqual(wlt.balance(network='testnet'), 900)
+        self.assertEqual(wlt.balance(network='testnet'), 1800)
         self.assertEqual(wlt.balance(network='bitcoinlib_test'), 400000000)
         del wlt
 
     def test_wallet_balance_update_total(self):
-        k = "vpub5YsdoySPEiFuhXgG3iwtP23zv8DwZVHCqK1jvoGebiPVqeSWbyLQQ2YeiG2nXoS1KHsXRmZApHkuuwNa239kamG3FcVFLcLNWrv" \
-            "sCfNzC3u"
+        k = "tpubDCutwJADa3iSbFtB2LgnaaqJgZ8FPXRRzcrMq7Tms41QNnTV291rpkps9vRwyss9zgDc7hS5V1aM1by8nFip5VjpGpz1oP54peKt" \
+            "hJzfabX"
         wlt = HDWallet.create("test_wallet_balance_update_total", keys=k, network='testnet',
                               databasefile=DATABASEFILE_UNITTESTS)
         wlt.get_key()
