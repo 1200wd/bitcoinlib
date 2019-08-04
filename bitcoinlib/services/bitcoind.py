@@ -47,6 +47,13 @@ except ImportError:
     import ConfigParser as configparser
 
 
+def _read_from_config(configparser, section, value, fallback=None):
+    try:
+        return configparser.get(section, value)
+    except Exception:
+        return fallback
+
+
 class BitcoindClient(BaseClient):
     """
     Class to interact with bitcoind, the Bitcoin deamon
@@ -69,6 +76,8 @@ class BitcoindClient(BaseClient):
         except TypeError:
             config = configparser.ConfigParser()
         config_fn = 'bitcoin.conf'
+        if isinstance(network, Network):
+            network = network.name
         if network == 'testnet':
             config_fn = 'bitcoin-testnet.conf'
         if not configfile:
@@ -77,7 +86,7 @@ class BitcoindClient(BaseClient):
                 cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/%s' % config_fn)
             if not os.path.isfile(cfn):  # Try Windows path
                 cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Bitcoin/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Try Max path
+            if not os.path.isfile(cfn):  # Try Mac path
                 cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Bitcoin/%s' % config_fn)
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
@@ -87,32 +96,28 @@ class BitcoindClient(BaseClient):
             cfn = os.path.join(BCL_CONFIG_DIR, configfile)
             if not os.path.isfile(cfn):
                 raise ConfigError("Config file %s not found" % cfn)
-        with open(cfn, 'r') as f:
-            config_string = '[rpc]\n' + f.read()
-        config.read_string(config_string)
         try:
-            if int(config.get('rpc', 'testnet')):
-                network = 'testnet'
-        except configparser.NoOptionError:
-            pass
-        if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
+            config.read(cfn)
+        except Exception:
+            with open(cfn, 'r') as f:
+                config_string = '[rpc]\n' + f.read()
+            config.read_string(config_string)
+
+        testnet = _read_from_config(config, 'rpc', 'testnet')
+        if testnet:
+            network = 'testnet'
+        if _read_from_config(config, 'rpc', 'rpcpassword') == 'specify_rpc_password':
             raise ConfigError("Please update config settings in %s" % cfn)
-        try:
-            port = config.get('rpc', 'rpcport')
-        except configparser.NoOptionError:
-            if network == 'testnet':
-                port = 18332
-            else:
-                port = 8332
+        if network == 'testnet':
+            port = 18332
+        else:
+            port = 8332
+        port = _read_from_config(config, 'rpc', 'rpcport', port)
         server = '127.0.0.1'
-        if 'rpcconnect' in config['rpc']:
-            server = config.get('rpc', 'rpcconnect')
-        elif 'bind' in config['rpc']:
-            server = config.get('rpc', 'bind')
-        elif 'externalip' in config['rpc']:
-            server = config.get('rpc', 'externalip')
-        elif 'server' in config['rpc']:
-            server = config.get('rpc', 'server')
+        server = _read_from_config(config, 'rpc', 'rpcconnect', server)
+        server = _read_from_config(config, 'rpc', 'bind', server)
+        server = _read_from_config(config, 'rpc', 'externalip', server)
+
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return BitcoindClient(network, url)
 
@@ -171,16 +176,15 @@ class BitcoindClient(BaseClient):
         t.update_totals()
         return t
 
-    def getutxos(self, addresslist):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
 
-        for addr in addresslist:
-            res = self.proxy.getaddressinfo(addr)
-            if not (res['ismine'] or res['iswatchonly']):
-                raise ClientError("Address %s not found in bitcoind wallet, use 'importaddress' to add address to "
-                                  "wallet." % addr)
+        res = self.proxy.getaddressinfo(address)
+        if not (res['ismine'] or res['iswatchonly']):
+            raise ClientError("Address %s not found in bitcoind wallet, use 'importaddress' to add address to "
+                              "wallet." % address)
             
-        for t in self.proxy.listunspent(0, 99999999, addresslist):
+        for t in self.proxy.listunspent(0, 99999999, address):
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
@@ -216,6 +220,14 @@ class BitcoindClient(BaseClient):
 
     def block_count(self):
         return self.proxy.getblockcount()
+
+    def mempool(self, txid=''):
+        txids = self.proxy.getrawmempool()
+        if not txid:
+            return txids
+        elif txid in txids:
+            return [txid]
+        return []
 
 
 if __name__ == '__main__':

@@ -20,6 +20,7 @@
 
 from datetime import datetime
 from bitcoinlib.main import *
+from bitcoinlib.networks import Network
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -45,6 +46,13 @@ except ImportError:
     import ConfigParser as configparser
 
 
+def _read_from_config(configparser, section, value, fallback=None):
+    try:
+        return configparser.get(section, value)
+    except Exception:
+        return fallback
+
+
 class LitecoindClient(BaseClient):
     """
     Class to interact with litecoind, the Litecoin deamon
@@ -66,14 +74,19 @@ class LitecoindClient(BaseClient):
             config = configparser.ConfigParser(strict=False)
         else:
             config = configparser.ConfigParser()
+        config_fn = 'litecoin.conf'
+        if isinstance(network, Network):
+            network = network.name
+        if network == 'testnet':
+            config_fn = 'litecoin-testnet.conf'
         if not configfile:
-            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/litecoin.conf')
-            if not os.path.isfile(cfn):  # Try Linux path
-                cfn = os.path.join(os.path.expanduser("~"), '.litecoin/litecoin.conf')
+            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/%s' % config_fn)
+            if not os.path.isfile(cfn):  # Linux
+                cfn = os.path.join(os.path.expanduser("~"), '.litecoin/%s' % config_fn)
             if not os.path.isfile(cfn):  # Try Windows path
-                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Litecoin/litecoin.conf')
-            if not os.path.isfile(cfn):  # Try Max path
-                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Litecoin/litecoin.conf')
+                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Litecoin/%s' % config_fn)
+            if not os.path.isfile(cfn):  # Try Mac path
+                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Litecoin/%s' % config_fn)
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install litecoin client and specify a path to config file if path is not "
                                   "default. Or place a config file in .bitcoinlib/config/litecoin.conf to reference to "
@@ -82,30 +95,27 @@ class LitecoindClient(BaseClient):
             cfn = os.path.join(BCL_CONFIG_DIR, configfile)
             if not os.path.isfile(cfn):
                 raise ConfigError("Config file %s not found" % cfn)
-        with open(cfn, 'r') as f:
-            config_string = '[rpc]\n' + f.read()
-        config.read_string(config_string)
         try:
-            if int(config.get('rpc', 'testnet')):
-                network = 'testnet'
-        except configparser.NoOptionError:
-            pass
-        if config.get('rpc', 'rpcpassword') == 'specify_rpc_password':
+            config.read(cfn)
+        except Exception:
+            with open(cfn, 'r') as f:
+                config_string = '[rpc]\n' + f.read()
+            config.read_string(config_string)
+        
+        testnet = _read_from_config(config, 'rpc', 'testnet')
+        if testnet:
+            network = 'testnet'
+        if _read_from_config(config, 'rpc', 'rpcpassword') == 'specify_rpc_password':
             raise ConfigError("Please update config settings in %s" % cfn)
-        try:
-            port = config.get('rpc', 'rpcport')
-        except configparser.NoOptionError:
-            if network == 'testnet':
-                port = 19332
-            else:
-                port = 9332
+        if network == 'testnet':
+            port = 19332
+        else:
+            port = 9332
+        port = _read_from_config(config, 'rpc', 'rpcport', port)
         server = '127.0.0.1'
-        if 'rpcconnect' in config['rpc']:
-            server = config.get('rpc', 'rpcconnect')
-        elif 'bind' in config['rpc']:
-            server = config.get('rpc', 'bind')
-        elif 'externalip' in config['rpc']:
-            server = config.get('rpc', 'externalip')
+        server = _read_from_config(config, 'rpc', 'rpcconnect', server)
+        server = _read_from_config(config, 'rpc', 'bind', server)
+        server = _read_from_config(config, 'rpc', 'externalip', server)
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
         return LitecoindClient(network, url)
 
@@ -120,6 +130,8 @@ class LitecoindClient(BaseClient):
         :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for litecoin
         :type: str
         """
+        if isinstance(network, Network):
+            network = network.name
         if not base_url:
             bdc = self.from_config('', network)
             base_url = bdc.base_url
@@ -141,31 +153,36 @@ class LitecoindClient(BaseClient):
 
     def gettransaction(self, txid):
         tx = self.proxy.getrawtransaction(txid, 1)
-        t = Transaction.import_raw(tx['hex'], network='litecoin')
+        t = Transaction.import_raw(tx['hex'], network=self.network)
         t.confirmations = tx['confirmations']
         if t.confirmations:
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
+            if i.prev_hash == b'\x00' * 32:
+                i.value = t.output_total
+                i.script_type = 'coinbase'
+                continue
             txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            value = int(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
-            i.value = value
+            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+        for o in t.outputs:
+            o.spent = None
         t.block_hash = tx['blockhash']
-        t.version = tx['version']
+        t.version = struct.pack('>L', tx['version'])        
         t.date = datetime.fromtimestamp(tx['blocktime'])
         t.update_totals()
+        t.hash = txid
         return t
 
-    def getutxos(self, addresslist):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
 
-        for addr in addresslist:
-            res = self.proxy.validateaddress(addr)
-            if not (res['ismine'] or res['iswatchonly']):
-                raise ClientError("Address %s not found in Litecoind wallet, use 'importaddress' to add address to "
-                                  "wallet." % addr)
+        res = self.proxy.getaddressinfo(address)
+        if not (res['ismine'] or res['iswatchonly']):
+            raise ClientError("Address %s not found in litecoind wallet, use 'importaddress' to add address to "
+                              "wallet." % address)
 
-        for t in self.proxy.listunspent(0, 99999999, addresslist):
+        for t in self.proxy.listunspent(0, 99999999, address):
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
@@ -181,7 +198,7 @@ class LitecoindClient(BaseClient):
             })
 
         return txs
-
+    
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
         return {
@@ -190,14 +207,25 @@ class LitecoindClient(BaseClient):
         }
     
     def estimatefee(self, blocks):
+        pres = ''
         try:
-            res = self.proxy.estimatesmartfee(blocks)['feerate']
-        except KeyError:
+            pres = self.proxy.estimatesmartfee(blocks)
+            res = pres['feerate']
+        except KeyError as e:
+            _logger.warning("litecoind error: %s, %s" % (e, pres))
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
     def block_count(self):
         return self.proxy.getblockcount()
+
+    def mempool(self, txid=''):
+        txids = self.proxy.getrawmempool()
+        if not txid:
+            return txids
+        elif txid in txids:
+            return [txid]
+        return []
 
 
 if __name__ == '__main__':

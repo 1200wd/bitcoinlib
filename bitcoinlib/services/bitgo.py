@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BitGo Client
-#    © 2017 May - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -20,12 +20,14 @@
 
 import logging
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'bitgo'
+LIMIT_TX = 49
 
 
 class BitGoClient(BaseClient):
@@ -48,57 +50,57 @@ class BitGoClient(BaseClient):
             balance += res['balance']
         return balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         utxos = []
-        for address in addresslist:
-            skip = 0
-            total = 1
-            while total > skip:
-                variables = {'limit': 100, 'skip': skip}
-                res = self.compose_request('address', address, 'unspents', variables)
-                for unspent in res['unspents']:
-                    utxos.append(
-                        {
-                            'address': unspent['address'],
-                            'tx_hash': unspent['tx_hash'],
-                            'confirmations': unspent['confirmations'],
-                            'output_n': unspent['tx_output_n'],
-                            'input_n': 0,
-                            'block_height': unspent['blockHeight'],
-                            'fee': None,
-                            'size': 0,
-                            'value': int(round(unspent['value'] * self.units, 0)),
-                            'script': unspent['script'],
-                            'date': datetime.strptime(unspent['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
-
-                         }
-                    )
-                total = res['total']
-                skip = res['start'] + res['count']
-                if skip > 2000:
-                    _logger.warning("BitGoClient: UTXO's list has been truncated, list is incomplete")
+        skip = 0
+        total = 1
+        while total > skip:
+            variables = {'limit': 100, 'skip': skip}
+            res = self.compose_request('address', address, 'unspents', variables)
+            for utxo in res['unspents'][::-1]:
+                if utxo['tx_hash'] == after_txid:
                     break
-        return utxos
+                utxos.append(
+                    {
+                        'address': utxo['address'],
+                        'tx_hash': utxo['tx_hash'],
+                        'confirmations': utxo['confirmations'],
+                        'output_n': utxo['tx_output_n'],
+                        'input_n': 0,
+                        'block_height': utxo['blockHeight'],
+                        'fee': None,
+                        'size': 0,
+                        'value': int(round(utxo['value'] * self.units, 0)),
+                        'script': utxo['script'],
+                        'date': datetime.strptime(utxo['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                     }
+                )
+            total = res['total']
+            skip = res['start'] + res['count']
+            if skip > 2000:
+                _logger.warning("BitGoClient: UTXO's list has been truncated, list is incomplete")
+                break
+        return utxos[::-1][:max_txs]
 
-    def gettransactions(self, addresslist):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        tx_ids = []
-        for address in addresslist:
-            skip = 0
-            total = 1
-            while total > skip:
-                variables = {'limit': 100, 'skip': skip}
-                res = self.compose_request('address', address, 'tx', variables)
-                for tx in res['transactions']:
-                    if tx['id'] not in tx_ids:
-                        tx_ids.append(tx['id'])
-                total = res['total']
-                skip = res['start'] + res['count']
-                if skip > 2000:
-                    _logger.warning("BitGoClient: Transactions list has been truncated, list is incomplete")
-                    break
-        for tx_id in tx_ids:
-            txs.append(self.gettransaction(tx_id))
+        txids = []
+        skip = 0
+        total = 1
+        while total > skip:
+            variables = {'limit': LIMIT_TX, 'skip': skip}
+            res = self.compose_request('address', address, 'tx', variables)
+            for tx in res['transactions']:
+                if tx['id'] not in txids:
+                    txids.insert(0, tx['id'])
+            total = res['total']
+            if total > 2000:
+                raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
+            skip = res['start'] + res['count']
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
+            txs.append(self.gettransaction(txid))
         return txs
 
     def gettransaction(self, tx_id):
@@ -121,6 +123,8 @@ class BitGoClient(BaseClient):
             t.input_total = t.output_total
         else:
             input_values = [(inp['account'], -inp['value']) for inp in tx['entries'] if inp['value'] < 0]
+            if len(input_values) >= 49:
+                raise ClientError("More then 49 transaction inputs not supported by bitgo")
             t.input_total = sum([x[1] for x in input_values])
         for i in t.inputs:
             if not i.address:

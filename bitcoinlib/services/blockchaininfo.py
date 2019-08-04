@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    blockchain_info client
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 import logging
 import struct
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
@@ -49,42 +50,44 @@ class BlockchainInfoClient(BaseClient):
             balance += res[address]['final_balance']
         return balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         utxos = []
-        for address in addresslist:
-            variables = {'active': address, 'limit': 1000}
-            res = self.compose_request('unspent', variables=variables)
-            if len(res['unspent_outputs']) > 299:
-                _logger.warning("BlockchainInfoClient: Large number of outputs for address %s, "
-                                "UTXO list may be incomplete" % address)
-            for utxo in res['unspent_outputs']:
-                utxos.append({
-                    'address': address,
-                    'tx_hash': utxo['tx_hash_big_endian'],
-                    'confirmations': utxo['confirmations'],
-                    'output_n': utxo['tx_output_n'],
-                    'input_n':  utxo['tx_index'],
-                    'block_height': None,
-                    'fee': None,
-                    'size': 0,
-                    'value': int(round(utxo['value'] * self.units, 0)),
-                    'script': utxo['script'],
-                    'date': None
-                })
-        return utxos
+        variables = {'active': address, 'limit': 1000}
+        res = self.compose_request('unspent', variables=variables)
+        if len(res['unspent_outputs']) > 299:
+            _logger.warning("BlockchainInfoClient: Large number of outputs for address %s, "
+                            "UTXO list may be incomplete" % address)
+        for utxo in res['unspent_outputs'][::-1]:
+            if utxo['tx_hash_big_endian'] == after_txid:
+                break
+            utxos.append({
+                'address': address,
+                'tx_hash': utxo['tx_hash_big_endian'],
+                'confirmations': utxo['confirmations'],
+                'output_n': utxo['tx_output_n'],
+                'input_n':  utxo['tx_index'],
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(round(utxo['value'] * self.units, 0)),
+                'script': utxo['script'],
+                'date': None
+            })
+        return utxos[::-1][:max_txs]
 
-    def gettransactions(self, addresslist):
-        addresses = "|".join(addresslist)
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        tx_ids = []
-        variables = {'active': addresses, 'limit': 100}
-        res = self.compose_request('multiaddr', variables=variables)
-        latest_block = res['info']['latest_block']['height']
+        txids = []
+        variables = {'limit': 100}
+        res = self.compose_request('rawaddr', address, variables=variables)
+        latest_block = self.block_count()
         for tx in res['txs']:
-            if tx['id'] not in tx_ids:
-                tx_ids.append(tx['id'])
-        for tx_id in tx_ids:
-            t = self.gettransaction(tx_id)
+            if tx['hash'] not in txids:
+                txids.insert(0, tx['hash'])
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
+            t = self.gettransaction(txid)
             t.confirmations = latest_block - t.block_height
             txs.append(t)
         return txs
@@ -100,14 +103,13 @@ class BlockchainInfoClient(BaseClient):
                 input_total += i.value
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
-        # if tx['relayed_by'] == '0.0.0.0':
-        if tx['block_height']:
+        if 'block_height' in tx and tx['block_height']:
             t.status = 'confirmed'
         else:
             t.status = 'unconfirmed'
         t.hash = tx_id
         t.date = datetime.fromtimestamp(tx['time'])
-        t.block_height = tx['block_height']
+        t.block_height = 0 if 'block_height' not in tx else tx['block_height']
         t.rawtx = raw_tx
         t.size = tx['size']
         t.network_name = self.network
@@ -124,3 +126,9 @@ class BlockchainInfoClient(BaseClient):
 
     def block_count(self):
         return self.compose_request('latestblock')['height']
+
+    def mempool(self, txid=''):
+        tx = self.compose_request('rawtx', txid)
+        if 'block_height' not in tx:
+            return [tx['hash']]
+        return []

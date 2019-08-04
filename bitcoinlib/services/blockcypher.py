@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    BlockCypher client
-#    © 2017-2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -20,10 +20,10 @@
 
 import logging
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
-from bitcoinlib.keys import Address
 
 PROVIDERNAME = 'blockcypher'
 
@@ -56,54 +56,49 @@ class BlockCypher(BaseClient):
             balance += float(rec['final_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, addresslist):
-        addresslist = self._addresslist_convert(addresslist)
-        return self._address_transactions(addresslist, unspent_only=True)
-
-    def _address_transactions(self, addresslist, unspent_only=False):
-        addresses = ';'.join([a.address for a in addresslist])
-        res = self.compose_request('addrs', addresses, variables={'unspentOnly': int(unspent_only), 'limit': 2000})
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        address = self._address_convert(address)
+        res = self.compose_request('addrs', address.address, variables={'unspentOnly': 1, 'limit': 2000})
         transactions = []
         if not isinstance(res, list):
             res = [res]
         for a in res:
-            address = [x.address_orig for x in addresslist if x.address == a['address']][0]
             if 'txrefs' not in a:
                 continue
             if len(a['txrefs']) > 500:
                 _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                 "Transaction list may be incomplete" % address)
             for tx in a['txrefs']:
+                if tx['tx_hash'] == after_txid:
+                    break
                 transactions.append({
-                    'address': address,
-                    'tx_hash': tx['tx_hash'],
-                    'confirmations': tx['confirmations'],
-                    'output_n': tx['tx_output_n'],
-                    'index': 0,
-                    'value': int(round(tx['value'] * self.units, 0)),
+                    'address': address.address_orig, 'tx_hash': tx['tx_hash'], 'confirmations': tx['confirmations'],
+                    'output_n': tx['tx_output_n'], 'index': 0, 'value': int(round(tx['value'] * self.units, 0)),
                     'script': '',
                 })
-        return transactions
+        return transactions[::-1][:max_txs]
 
-    def gettransactions(self, addresslist, unspent_only=False):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
-        addresslist = self._addresslist_convert(addresslist)
-        for address in addresslist:
-            res = self.compose_request('addrs', address.address,
-                                       variables={'unspentOnly': int(unspent_only), 'limit': 2000})
-            if not isinstance(res, list):
-                res = [res]
-            for a in res:
-                address = [x.address_orig for x in addresslist if x.address == a['address']][0]
-                if 'txrefs' not in a:
-                    continue
-                if len(a['txrefs']) > 500:
-                    _logger.warning("BlockCypher: Large number of transactions for address %s, "
-                                    "Transaction list may be incomplete" % address)
-                for tx in a['txrefs']:
-                    if tx['tx_hash'] not in [t.hash for t in txs]:
-                        t = self.gettransaction(tx['tx_hash'])
-                        txs.append(t)
+        address = self._address_convert(address)
+        res = self.compose_request('addrs', address.address, variables={'unspentOnly': 0, 'limit': 2000})
+        if not isinstance(res, list):
+            res = [res]
+        for a in res:
+            if 'txrefs' not in a:
+                continue
+            txids = []
+            for t in a['txrefs'][::-1]:
+                if t['tx_hash'] not in txids:
+                    txids.append(t['tx_hash'])
+                if t['tx_hash'] == after_txid:
+                    txids = []
+            if len(txids) > 500:
+                _logger.warning("BlockCypher: Large number of transactions for address %s, "
+                                "Transaction list may be incomplete" % address.address_orig)
+            for txid in txids[:max_txs]:
+                t = self.gettransaction(txid)
+                txs.append(t)
         return txs
 
     def gettransaction(self, tx_id):
@@ -163,3 +158,9 @@ class BlockCypher(BaseClient):
 
     def block_count(self):
         return self.compose_request('', '')['height']
+
+    def mempool(self, txid):
+        tx = self.compose_request('txs', txid)
+        if tx['confirmations'] == 0:
+            return [tx['hash']]
+        return []

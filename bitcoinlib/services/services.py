@@ -22,7 +22,7 @@ import os
 import logging
 import json
 import random
-from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT
+from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
@@ -49,7 +49,8 @@ class Service(object):
 
     """
 
-    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None):
+    def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
+                 timeout=TIMEOUT_REQUESTS):
         """
         Open a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -63,6 +64,8 @@ class Service(object):
         :type max_providers: int
         :param providers: List of providers to connect to. Default is all providers and select a provider at random.
         :type providers: list, str
+        :param timeout: Timeout for web requests. Leave empty to use default from config settings
+        :type timeout: int
 
         """
         self.network = network
@@ -105,6 +108,8 @@ class Service(object):
         self.results = {}
         self.errors = {}
         self.resultcount = 0
+        self.complete = None
+        self.timeout = timeout
 
     def _provider_execute(self, method, *arguments):
         self.results = {}
@@ -123,7 +128,7 @@ class Service(object):
                 pc_instance = providerclient(
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                    self.providers[sp]['network_overrides'])
+                    self.providers[sp]['network_overrides'], self.timeout)
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
@@ -184,56 +189,54 @@ class Service(object):
             addresslist = addresslist[addresses_per_request:]
         return tot_balance
 
-    def getutxos(self, addresslist, addresses_per_request=5):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
-        Get list of unspent outputs (UTXO's) per address
+        Get list of unspent outputs (UTXO's) per address.
+        Sorted from old to new, so highest number of confirmations first.
 
-        :param addresslist: Address or list of addresses
-        :type addresslist: list, str
-        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
-        :type addresses_per_request: int
+        :param address: Address string
+        :type address: str
+        :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos. If used only provide a single address
+        :type after_txid: str
+        :param max_txs: Maximum number of utxo's to return
+        :type max_txs: int
 
         :return dict: UTXO's per address
         """
-        if not addresslist:
-            return []
-        if isinstance(addresslist, TYPE_TEXT):
-            addresslist = [addresslist]
+        if not isinstance(address, TYPE_TEXT):
+            raise ServiceError("Address parameter must be of type text")
 
-        utxos = []
-        while addresslist:
-            res = self._provider_execute('getutxos', addresslist[:addresses_per_request])
-            if res:
-                utxos += res
-            addresslist = addresslist[addresses_per_request:]
+        self.complete = True
+        utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
+        if len(utxos) >= max_txs:
+            self.complete = False
         return utxos
 
-    def gettransactions(self, addresslist, addresses_per_request=5):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
-        Get all transactions for each address in addresslist
+        Get all transactions for each address in addresslist.
+        Sorted from old to new, so highest number of confirmations first.
 
-        :param addresslist: Address or list of addresses
-        :type addresslist: list, str
-        :param addresses_per_request: Maximum number of addresses per request. Default is 5. Use lower setting when you experience timeouts or service request errors, or higher when possible.
-        :type addresses_per_request: int
+        :param address: Address string
+        :type address: str
+        :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
+        :type after_txid: str
+        :param max_txs: Maximum number of transactions to return
+        :type max_txs: int
 
         :return list: List of Transaction objects
         """
-        if not addresslist:
+        if not address:
             return []
-        if isinstance(addresslist, TYPE_TEXT):
-            addresslist = [addresslist]
+        if not isinstance(address, TYPE_TEXT):
+            raise ServiceError("Address parameter must be of type text")
+        if after_txid is None:
+            after_txid = ''
 
-        transactions = []
-        while addresslist:
-            res = self._provider_execute('gettransactions', addresslist[:addresses_per_request])
-            if res is False:
-                break
-            for new_t in res:
-                if new_t.hash not in [t.hash for t in transactions]:
-                    transactions.append(new_t)
-            addresslist = addresslist[addresses_per_request:]
-        return transactions
+        txs = self._provider_execute('gettransactions', address, after_txid,  max_txs)
+        if len(txs) == max_txs:
+            self.complete = False
+        return txs
 
     def gettransaction(self, txid):
         """
@@ -296,3 +299,17 @@ class Service(object):
         :return int:
         """
         return self._provider_execute('block_count')
+
+    def mempool(self, txid=''):
+        """
+        Get list of all transaction IDs in the current mempool
+
+        A full list of transactions ID's will only be returned if a bcoin or bitcoind client is available. Otherwise
+        specify the txid option to verify if a transaction is added to the mempool.
+
+        :param txid: Check if transaction with this hash exists in memory pool
+        :type txid: str
+        
+        :return list: 
+        """
+        return self._provider_execute('mempool', txid)

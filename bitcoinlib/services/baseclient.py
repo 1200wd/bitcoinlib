@@ -43,7 +43,7 @@ class ClientError(Exception):
 class BaseClient(object):
 
     def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
-                 network_overrides=None):
+                 network_overrides=None, timeout=TIMEOUT_REQUESTS):
         try:
             self.network = network
             if not isinstance(network, Network):
@@ -55,24 +55,28 @@ class BaseClient(object):
             self.api_key = api_key
             self.provider_coin_id = provider_coin_id
             self.network_overrides = {}
+            self.timeout = timeout
             if network_overrides is not None:
                 self.network_overrides = network_overrides
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
-    def request(self, url_path, variables=None, method='get'):
+    def request(self, url_path, variables=None, method='get', secure=True):
         url_vars = ''
         url = self.base_url + url_path
+        if not url or not self.base_url:
+            raise ClientError("No (complete) url provided: %s" % url)
         if method == 'get':
             if variables is None:
                 variables = {}
             if variables:
                 url_vars = '?' + urlencode(variables)
             url += url_vars
-            _logger.debug("Url request %s" % url)
-            self.resp = requests.get(url, timeout=TIMEOUT_REQUESTS)
+            _logger.debug("Url get request %s" % url)
+            self.resp = requests.get(url, timeout=self.timeout, verify=secure)
         elif method == 'post':
-            self.resp = requests.post(url, json=dict(variables), timeout=TIMEOUT_REQUESTS)
+            _logger.debug("Url post request %s" % url)
+            self.resp = requests.post(url, json=dict(variables), timeout=self.timeout, verify=secure)
 
         resp_text = self.resp.text
         if len(resp_text) > 1000:
@@ -86,13 +90,15 @@ class BaseClient(object):
                               (self.provider, url, self.resp.status_code, resp_text))
         try:
             return json.loads(self.resp.text)
-        except json.decoder.JSONDecodeError:
+        except ValueError or json.decoder.JSONDecodeError:
             return self.resp.text
 
+    def _address_convert(self, address):
+        if not isinstance(address, Address):
+            return Address.import_address(address, network_overrides=self.network_overrides, network=self.network.name)
+
     def _addresslist_convert(self, addresslist):
-        addresslist_class = []
-        for addr in addresslist:
-            if not isinstance(addr, Address):
-                addresslist_class.append(Address.import_address(addr, network_overrides=self.network_overrides,
-                                                                network=self.network.name))
-        return addresslist_class
+        addresslistconv = []
+        for address in addresslist:
+            addresslistconv.append(self._address_convert(address))
+        return addresslistconv

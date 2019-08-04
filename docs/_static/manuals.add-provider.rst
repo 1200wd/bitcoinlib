@@ -1,7 +1,7 @@
 Add a new Service Provider
 ==========================
 
-The Service class connects to providers such as Blockchain.info or Blockexplorer.com to retreive transaction,
+The Service class connects to providers such as Blockchain.info or Blockchair.com to retreive transaction,
 network, block, address information, etc
 
 The Service class automatically selects a provider which has requested method available and selects another
@@ -76,6 +76,6 @@ Example:
 
     from bitcoinlib import services
 
-    srv = Service(providers=['blockexplorer'])
+    srv = Service(providers=['blockchair'])
     print(srv.estimatefee(5))
 

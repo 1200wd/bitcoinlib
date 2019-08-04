@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Blockchair client
-#    © 2018 October - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,7 +21,8 @@
 import math
 import logging
 from datetime import datetime
-from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.main import MAX_TRANSACTIONS
+from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.keys import deserialize_address
 from bitcoinlib.encoding import EncodingError, varstr, to_bytes
@@ -29,7 +30,7 @@ from bitcoinlib.encoding import EncodingError, varstr, to_bytes
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'blockchair'
-REQUEST_LIMIT = 25
+REQUEST_LIMIT = 100
 
 
 class BlockChairClient(BaseClient):
@@ -47,6 +48,8 @@ class BlockChairClient(BaseClient):
         if command:
             url_path += command
         if data:
+            if url_path[-1:] != '/':
+                url_path += '/'
             url_path += data
         if query_vars is not None:
             varstr = ','.join(['%s(%s)' % (qv, query_vars[qv]) for qv in query_vars])
@@ -60,54 +63,53 @@ class BlockChairClient(BaseClient):
             balance += int(res['data'][address]['address']['balance'])
         return balance
 
-    def getutxos(self, addresslist):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         utxos = []
-        for address in addresslist:
-            offset = 0
-            while True:
-                res = self.compose_request('outputs', {'recipient': address, 'is_spent': 'false'}, offset=offset)
-                current_block = res['context']['state']
-                for utxo in res['data']:
-                    if utxo['is_spent']:
-                        continue
-                    utxos.append({
-                        'address': address,
-                        'tx_hash': utxo['transaction_hash'],
-                        'confirmations': current_block - utxo['block_id'],
-                        'output_n': utxo['index'],
-                        'input_n': 0,
-                        'block_height': utxo['block_id'],
-                        'fee': None,
-                        'size': 0,
-                        'value': utxo['value'],
-                        'script': utxo['script_hex'],
-                        'date': datetime.strptime(utxo['time'], "%Y-%m-%d %H:%M:%S")
-                    })
-                if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
-                    break
-                offset += REQUEST_LIMIT
-        return utxos
+        offset = 0
+        while True:
+            res = self.compose_request('outputs', {'recipient': address, 'is_spent': 'false'}, offset=offset)
+            if len(res['data']) == REQUEST_LIMIT:
+                raise ClientError("Blockchair returned more then maximum of %d data rows" % REQUEST_LIMIT)
+            current_block = res['context']['state']
+            for utxo in res['data'][::-1]:
+                if utxo['is_spent']:
+                    continue
+                if utxo['transaction_hash'] == after_txid:
+                    utxos = []
+                    continue
+                utxos.append({
+                    'address': address,
+                    'tx_hash': utxo['transaction_hash'],
+                    'confirmations': current_block - utxo['block_id'],
+                    'output_n': utxo['index'],
+                    'input_n': 0,
+                    'block_height': utxo['block_id'],
+                    'fee': None,
+                    'size': 0,
+                    'value': utxo['value'],
+                    'script': utxo['script_hex'],
+                    'date': datetime.strptime(utxo['time'], "%Y-%m-%d %H:%M:%S")
+                })
+            if not len(res['data']) or len(res['data']) < REQUEST_LIMIT:
+                break
+            offset += REQUEST_LIMIT
+        return utxos[:max_txs]
 
-    def gettransactions(self, addresslist):
-        tx_ids = []
-        for address in addresslist:
-            # offset = 0
-            # transaction_count = None
-            # while transaction_count is100 None or offset < transaction_count:
-            res = self.compose_request('dashboards/address/', data=address)
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txids = []
+        offset = 0
+        while True:
+            res = self.compose_request('dashboards/address/', data=address, offset=offset)
             addr = res['data'][address]
-            transaction_count = addr['address']['transaction_count']
-            if transaction_count > REQUEST_LIMIT:
-                _logger.warning("Transactions truncated. Found more transactions for address %s then request limit."
-                                % addr)
-            tx_ids += addr['transactions']
-            # offset += REQUEST_LIMIT
-        tx_ids = list(set(tx_ids))
+            if not addr['transactions']:
+                break
+            txids = addr['transactions'][::-1] + txids
+            offset += 50
+        if after_txid:
+            txids = txids[txids.index(after_txid)+1:]
         txs = []
-        if len(tx_ids) > REQUEST_LIMIT:
-            _logger.warning("Transactions truncated. Found more transactions for this addresslist then request limit.")
-        for tx_id in tx_ids[:REQUEST_LIMIT]:
-            txs.append(self.gettransaction(tx_id))
+        for txid in txids[:max_txs]:
+            txs.append(self.gettransaction(txid))
         return txs
 
     def gettransaction(self, tx_id):
@@ -131,6 +133,9 @@ class BlockChairClient(BaseClient):
                         input_total=input_total, coinbase=tx['is_coinbase'],
                         output_total=tx['output_total'], witness_type=witness_type)
         index_n = 0
+        if not res['data'][tx_id]['inputs']:
+            # This is a coinbase transaction, add input
+            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=input_total)
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
                 witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
@@ -178,3 +183,11 @@ class BlockChairClient(BaseClient):
         """
         res = self.compose_request('stats')
         return res['context']['state']
+
+    def mempool(self, txid=''):
+        variables = {}
+        if txid:
+            variables = {'hash': txid}
+        res = self.compose_request('mempool', variables, data='transactions')
+        txids = [tx['hash'] for tx in res['data'] if 'hash' in tx]
+        return txids

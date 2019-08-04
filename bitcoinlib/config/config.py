@@ -48,6 +48,7 @@ BCL_CONFIG_FILE = ''
 
 # Services
 TIMEOUT_REQUESTS = 5
+MAX_TRANSACTIONS = 20
 
 # Transactions
 SCRIPT_TYPES_LOCKING = {
@@ -194,7 +195,17 @@ def read_config():
     global BCL_DATA_DIR, BCL_WORDLIST_DIR
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
 
-    BCL_CONFIG_FILE = os.path.join(BCL_INSTALL_DIR, 'config.ini')
+    BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
+    if not os.path.isabs(BCL_CONFIG_DIR):
+        BCL_CONFIG_DIR = os.path.join(os.path.expanduser("~"), BCL_CONFIG_DIR)
+    if not os.path.exists(BCL_CONFIG_DIR):
+        os.makedirs(BCL_CONFIG_DIR)
+    if not BCL_CONFIG_FILE:
+        config_file = os.environ.get('BCL_CONFIG_FILE')
+        if config_file:
+            BCL_CONFIG_FILE = os.path.join(BCL_CONFIG_DIR, config_file)
+    if not BCL_CONFIG_FILE:
+        BCL_CONFIG_FILE = os.path.join(BCL_CONFIG_DIR, 'config.ini')
     data = config.read(BCL_CONFIG_FILE)
     if not data:
         BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/config.ini')
@@ -217,12 +228,6 @@ def read_config():
     if not os.path.exists(BCL_LOG_DIR):
         os.makedirs(BCL_LOG_DIR)
 
-    BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
-    if not os.path.isabs(BCL_CONFIG_DIR):
-        BCL_CONFIG_DIR = os.path.join(os.path.expanduser("~"), BCL_CONFIG_DIR)
-    if not os.path.exists(BCL_CONFIG_DIR):
-        os.makedirs(BCL_CONFIG_DIR)
-
     BCL_DATA_DIR = config_get('locations', 'data_dir', fallback='data')
     if not os.path.isabs(BCL_DATA_DIR):
         BCL_DATA_DIR = os.path.join(BCL_INSTALL_DIR, BCL_DATA_DIR)
@@ -231,7 +236,7 @@ def read_config():
     if not os.path.isabs(BCL_WORDLIST_DIR):
         BCL_WORDLIST_DIR = os.path.join(BCL_INSTALL_DIR, BCL_WORDLIST_DIR)
 
-    TIMEOUT_REQUESTS = config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS)
+    TIMEOUT_REQUESTS = int(config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS))
     DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
     DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)

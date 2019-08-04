@@ -20,6 +20,7 @@
 
 import unittest
 from random import shuffle
+import datetime
 from sqlalchemy.orm import close_all_sessions
 from bitcoinlib.wallets import *
 from bitcoinlib.mnemonic import Mnemonic
@@ -705,7 +706,7 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         wallet.utxos_update(networks='testnet')
         self.assertEqual(wallet.balance(network='bitcoinlib_test'), 600000000)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
-        self.assertEqual(wallet.balance(network='testnet'), 1500000)
+        self.assertEqual(wallet.balance(network='testnet'), 0)
         ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
                           'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
         self.assertListEqual(wallet.addresslist(network='testnet'), ltct_addresses)
@@ -716,7 +717,7 @@ class TestWalletMultiNetworksMultiAccount(unittest.TestCase):
         self.assertTrue(t.verified)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 589999000)
         self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 6)
-        self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 8)
+        self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 7)
         del wallet
 
     def test_wallet_multi_networks_account_bip44_code_error(self):
@@ -1361,21 +1362,23 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         del wlt
 
     def test_wallet_balance_update_multi_network(self):
-        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("test_wallet_balance_update_multi_network", keys=passphrase, network='testnet',
+        k = "tpubDCutwJADa3iSbFtB2LgnaaqJgZ8FPXRRzcrMq7Tms41QNnTV291rpkps9vRwyss9zgDc7hS5V1aM1by8nFip5VjpGpz1oP54peKt" \
+            "hJzfabX"
+        wlt = HDWallet.create("test_wallet_balance_update_multi_network", network='bitcoinlib_test',
                               databasefile=DATABASEFILE_UNITTESTS)
-        wlt.get_key()
-        wlt.new_account(network='bitcoinlib_test')
-        wlt.get_key(network='bitcoinlib_test')
+        wlt.new_key()
+        wlt.new_account(network='testnet')
+        wlt.import_key(k)
         wlt.utxos_update()
-        self.assertEqual(wlt.balance(), 900)
-        self.assertEqual(wlt.balance(network='testnet'), 900)
+        self.assertEqual(wlt.balance(), 400000000)
+        self.assertEqual(wlt.balance(network='testnet'), 1800)
         self.assertEqual(wlt.balance(network='bitcoinlib_test'), 400000000)
         del wlt
 
     def test_wallet_balance_update_total(self):
-        passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("test_wallet_balance_update_total", keys=passphrase, network='testnet',
+        k = "tpubDCutwJADa3iSbFtB2LgnaaqJgZ8FPXRRzcrMq7Tms41QNnTV291rpkps9vRwyss9zgDc7hS5V1aM1by8nFip5VjpGpz1oP54peKt" \
+            "hJzfabX"
+        wlt = HDWallet.create("test_wallet_balance_update_total", keys=k, network='testnet',
                               databasefile=DATABASEFILE_UNITTESTS)
         wlt.get_key()
         self.assertEqual(wlt.balance_update_from_serviceprovider(), 900)
@@ -1553,6 +1556,15 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.assertTrue(t.verified)
         self.assertFalse(w.send_to('blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 250000000,
                                    input_key_id=keys[0].key_id))
+
+    def test_wallet_transactions_max_txs(self):
+        address = '15yN7NPEpu82sHhB6TzCW5z5aXoamiKeGy'
+        w = wallet_create_or_open('ftrtxtstwlt', address, databasefile=DATABASEFILE_UNITTESTS)
+        w.transactions_update(max_txs=2)
+        self.assertGreaterEqual(w.balance(), 5000010000)
+        self.assertGreaterEqual(len(w.transactions()), 2)
+        w.transactions_update(max_txs=2)
+        self.assertGreaterEqual(len(w.transactions()), 4)
 
 
 class TestWalletDash(unittest.TestCase):
@@ -1913,11 +1925,11 @@ class TestWalletReadonlyAddress(unittest.TestCase):
         w = wallet_create_or_open('addrwlt', k, databasefile=DATABASEFILE_UNITTESTS)
         addr = Address.import_address('13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce')
         w.import_key(addr)
+        self.assertEqual(len(w.accounts()), 1)
         w.utxos_update()
         self.assertListEqual(w.addresslist(),
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '13CiNuEMKASJBvGdupqaoRs2MqDNhAqmce'])
-        # FIXME: Value should be greater then 10000000000, but some service providers do not return all utxo's
-        self.assertGreater(w.balance(), 1000000)
+        self.assertGreaterEqual(w.balance(), 10004533579)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
 
     def test_wallet_address_import_public_key(self):

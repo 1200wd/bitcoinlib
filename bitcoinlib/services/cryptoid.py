@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    CryptoID Chainz client
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@
 import logging
 import struct
 from datetime import datetime
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
@@ -59,45 +60,47 @@ class CryptoID(BaseClient):
             balance += float(res)
         return int(balance * self.units)
 
-    def getutxos(self, addresslist):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         if not self.api_key:
             raise ClientError("Method getutxos() is not available for CryptoID without API key")
         utxos = []
-        addresslist = self._addresslist_convert(addresslist)
-        for a in addresslist:
-            variables = {'active': a.address}
-            res = self.compose_request('unspent', variables=variables)
-            if len(res['unspent_outputs']) > 29:
-                _logger.warning("CryptoID: Large number of outputs for address %s, "
-                                "UTXO list may be incomplete" % a.address)
-            for utxo in res['unspent_outputs']:
-                utxos.append({
-                    'address': a.address_orig,
-                    'tx_hash': utxo['tx_hash'],
-                    'confirmations': utxo['confirmations'],
-                    'output_n': utxo['tx_output_n'] if 'tx_output_n' in utxo else utxo['tx_ouput_n'],
-                    'input_n': 0,
-                    'block_height': None,
-                    'fee': None,
-                    'size': 0,
-                    'value': int(utxo['value']),
-                    'script': utxo['script'],
-                    'date': None
-                })
-        return utxos
+        address = self._address_convert(address)
+        variables = {'active': address.address}
+        res = self.compose_request('unspent', variables=variables)
+        if len(res['unspent_outputs']) > 50:
+            _logger.warning("CryptoID: Large number of outputs for address %s, "
+                            "UTXO list may be incomplete" % address.address)
+        for utxo in res['unspent_outputs'][::-1]:
+            if utxo['tx_hash'] == after_txid:
+                break
+            utxos.append({
+                'address': address.address_orig,
+                'tx_hash': utxo['tx_hash'],
+                'confirmations': utxo['confirmations'],
+                'output_n': utxo['tx_output_n'] if 'tx_output_n' in utxo else utxo['tx_ouput_n'],
+                'input_n': 0,
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(utxo['value']),
+                'script': utxo['script'],
+                'date': None
+            })
+        return utxos[::-1][:max_txs]
 
-    def gettransactions(self, addresslist):
-        addresslist = self._addresslist_convert(addresslist)
-        addresses = "|".join([a.address for a in addresslist])
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        address = self._address_convert(address)
         txs = []
-        tx_ids = []
-        variables = {'active': addresses, 'n': 100}
+        txids = []
+        variables = {'active': address.address, 'n': 100}
         res = self.compose_request('multiaddr', variables=variables)
         for tx in res['txs']:
-            if tx['hash'] not in tx_ids:
-                tx_ids.append(tx['hash'])
-        for tx_id in tx_ids:
-            t = self.gettransaction(tx_id)
+            if tx['hash'] not in txids:
+                txids.insert(0, tx['hash'])
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
+            t = self.gettransaction(txid)
             txs.append(t)
         return txs
 
@@ -110,7 +113,6 @@ class CryptoID(BaseClient):
         for n, i in enumerate(t.inputs):
             i.value = int(round(tx_api['inputs'][n]['amount'] * self.units, 0))
         for n, o in enumerate(t.outputs):
-            # TODO: Check if output is spent (still neccessary?)
             o.spent = None
         if tx['confirmations']:
             t.status = 'confirmed'
@@ -139,3 +141,10 @@ class CryptoID(BaseClient):
     def block_count(self):
         r = self.compose_request('getblockcount', path_type='api')
         return r
+
+    def mempool(self, txid):
+        variables = {'id': txid, 'hex': None}
+        tx = self.compose_request(path_type='explorer', variables=variables)
+        if 'confirmations' not in tx:
+            return [tx['txid']]
+        return []
