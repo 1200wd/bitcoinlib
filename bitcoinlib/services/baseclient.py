@@ -72,10 +72,10 @@ class BaseClient(object):
             if variables:
                 url_vars = '?' + urlencode(variables)
             url += url_vars
-            _logger.debug("Url get request %s" % url)
+            _logger.info("Url get request %s" % url)
             self.resp = requests.get(url, timeout=self.timeout, verify=secure)
         elif method == 'post':
-            _logger.debug("Url post request %s" % url)
+            _logger.info("Url post request %s" % url)
             self.resp = requests.post(url, json=dict(variables), timeout=self.timeout, verify=secure)
 
         resp_text = self.resp.text

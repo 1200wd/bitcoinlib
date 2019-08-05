@@ -48,11 +48,17 @@ class BitapsClient(BaseClient):
             url_path += data
         return self.request(url_path, variables=variables)
 
-    # def getbalance(self, addresslist):
-    #     pass
+    def getbalance(self, addresslist):
+        balance = 0
+        for address in addresslist:
+            res = self.compose_request('address', 'state', address)
+            balance += res['data']['balance']
+        return balance
 
-    # def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-    #     pass
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        variables = {'mode': 'verbose'}
+        res = self.compose_request('address', 'transactions', address, variables=variables)
+        return res
 
     # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
     #     pass
