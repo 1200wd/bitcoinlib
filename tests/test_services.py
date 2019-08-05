@@ -138,6 +138,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
         for provider in srv.results:
+            print("Testing provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_get_utxos_litecoin(self):
@@ -225,6 +226,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(min_providers=5, timeout=TIMEOUT_TEST)
         srv.gettransactions(address)
         for provider in srv.results:
+            print("Testing: %s" % provider)
             res = srv.results[provider]
             t = [r for r in res if r.hash == tx_hash][0]
 
