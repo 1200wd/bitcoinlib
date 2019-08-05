@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    Litecore.io Client
-#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
+#    litecoinblockexplorer.net Client
+#    © 2019 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -24,11 +24,11 @@ from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
-PROVIDERNAME = 'litecoreio'
+PROVIDERNAME = 'litecoinblockexplorer'
 REQUEST_LIMIT = 50
 
 
-class LitecoreIOClient(BaseClient):
+class LitecoinBlockexplorerClient(BaseClient):
 
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
@@ -75,8 +75,7 @@ class LitecoreIOClient(BaseClient):
         if 'isCoinBase' in tx and tx['isCoinBase']:
             value_in = tx['valueOut']
             isCoinbase = True
-        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=fees, size=tx['size'], hash=tx['txid'],
+        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, fee=fees, hash=tx['txid'],
                         date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
                         block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,

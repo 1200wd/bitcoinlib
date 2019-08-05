@@ -129,12 +129,18 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(srv.results[r], exp_dict[r])
 
     def test_service_get_utxos(self):
+        expected_dict = {
+            'tx_hash': '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8',
+            'output_n': 0,
+            'block_height': 478371,
+            'address': '1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx',
+            'date': datetime.datetime(2017, 7, 31, 6, 0, 52),
+            'value': 190000}
         srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
-        tx_hash = '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8'
         for provider in srv.results:
             print("Provider %s" % provider)
-            self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
+            self.assertDictEqualExt(srv.results[provider][0], expected_dict, ['date', 'block_height'])
 
     def test_service_get_utxos_after_txid(self):
         srv = Service(min_providers=10, timeout=TIMEOUT_TEST)

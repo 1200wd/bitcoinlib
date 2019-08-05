@@ -128,7 +128,11 @@ class BlockchainInfoClient(BaseClient):
         return self.compose_request('latestblock')['height']
 
     def mempool(self, txid=''):
-        tx = self.compose_request('rawtx', txid)
-        if 'block_height' not in tx:
-            return [tx['hash']]
+        if txid:
+            tx = self.compose_request('rawtx', txid)
+            if 'block_height' not in tx:
+                return [tx['hash']]
+        else:
+            txs = self.compose_request('unconfirmed-transactions', variables={'format': 'json'})
+            return [tx['hash'] for tx in txs['txs']]
         return []

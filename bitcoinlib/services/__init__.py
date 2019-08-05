@@ -34,3 +34,4 @@ import bitcoinlib.services.litecoreio
 import bitcoinlib.services.blockchair
 import bitcoinlib.services.bcoin
 import bitcoinlib.services.bitaps
+import bitcoinlib.services.litecoinblockexplorer

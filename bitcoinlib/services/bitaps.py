@@ -56,21 +56,61 @@ class BitapsClient(BaseClient):
         return balance
 
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        variables = {'mode': 'verbose'}
-        res = self.compose_request('address', 'transactions', address, variables=variables)
-        return res
+        utxos = []
+        page = 1
+        while True:
+            variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
+            res = self.compose_request('address', 'transactions', address, variables)
+            txs = res['data']['list']
+            for tx in txs:
+                for outp in tx['vOut']:
+                    utxo = tx['vOut'][outp]
+                    if 'address' not in utxo or utxo['address'] != address or utxo['spent']:
+                        continue
+                    utxos.append(
+                        {
+                            'address': utxo['address'],
+                            'tx_hash': tx['hash'],
+                            'confirmations': tx['confirmations'],
+                            'output_n': int(outp),
+                            'input_n': 0,
+                            'block_height': tx['blockHeight'],
+                            'fee': None,
+                            'size': 0,
+                            'value': utxo['value'],
+                            'script': utxo['scriptPubKey'],
+                            'date': datetime.fromtimestamp(tx['timestamp'])
+                         }
+                    )
+                if tx['hash'] == after_txid:
+                    utxos = []
+            page += 1
+            if page > res['data']['pages']:
+                break
+        return utxos[:max_txs]
 
-    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-    #     pass
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        page = 1
+        txs = []
+        while True:
+            variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
+            res = self.compose_request('address', 'transactions', address, variables)
+            for tx in res['data']['list']:
+                txs.append(self._parse_transaction(tx))
+                if tx['hash'] == after_txid:
+                    txs = []
+            page += 1
+            if page > res['data']['pages']:
+                break
+        return txs[:max_txs]
 
-    def gettransaction(self, txid):
-        res = self.compose_request('transaction', txid)
-        tx = res['data']
+    def _parse_transaction(self, tx):
         t = Transaction.import_raw(tx['rawTx'], network=self.network)
+        t.status = 'unconfirmed'
         if tx['confirmations']:
             t.status = 'confirmed'
-        t.hash = txid
-        t.date = datetime.fromtimestamp(tx['blockTime'])
+        t.hash = tx['hash']
+        t.date = datetime.fromtimestamp(tx['timestamp']) if 'timestamp' in tx else None
         t.confirmations = tx['confirmations']
         if 'blockHeight' in tx:
             t.block_height = tx['blockHeight']
@@ -79,14 +119,19 @@ class BitapsClient(BaseClient):
         t.rawtx = tx['rawTx']
         t.size = tx['size']
         t.network = self.network
-        for i in t.inputs:
-            i.value = tx['vIn'][str(i.index_n)]['amount']
+        if not t.coinbase:
+            for i in t.inputs:
+                i.value = tx['vIn'][str(i.index_n)]['amount']
         for o in t.outputs:
             if tx['vOut'][str(o.output_n)]['spent']:
                 o.spent = True
         t.input_total = tx['inputsAmount']
         t.output_total = tx['outputsAmount']
         return t
+
+    def gettransaction(self, txid):
+        res = self.compose_request('transaction', txid)
+        return self._parse_transaction(res['data'])
 
     def getrawtransaction(self, txid):
         tx = self.compose_request('transaction', txid)
@@ -95,5 +140,12 @@ class BitapsClient(BaseClient):
     def block_count(self):
         return self.compose_request('block', 'last')['data']['block']['height']
 
-    # def mempool(self, txid=''):
-    #     pass
+    def mempool(self, txid):
+        if txid:
+            t = self.gettransaction(txid)
+            if t:
+                return [t.hash]
+        else:
+            res = self.compose_request('transactions', type='mempool')
+            return [tx['hash'] for tx in res['data']['transactions']]
+        return []

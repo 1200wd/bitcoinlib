@@ -72,9 +72,15 @@ class BlockCypher(BaseClient):
                 if tx['tx_hash'] == after_txid:
                     break
                 transactions.append({
-                    'address': address.address_orig, 'tx_hash': tx['tx_hash'], 'confirmations': tx['confirmations'],
-                    'output_n': tx['tx_output_n'], 'index': 0, 'value': int(round(tx['value'] * self.units, 0)),
+                    'address': address.address_orig,
+                    'tx_hash': tx['tx_hash'],
+                    'confirmations': tx['confirmations'],
+                    'output_n': tx['tx_output_n'],
+                    'index': 0,
+                    'value': int(round(tx['value'] * self.units, 0)),
                     'script': '',
+                    'block_height': None,
+                    'date': datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
                 })
         return transactions[::-1][:max_txs]
 
@@ -160,7 +166,11 @@ class BlockCypher(BaseClient):
         return self.compose_request('', '')['height']
 
     def mempool(self, txid):
-        tx = self.compose_request('txs', txid)
-        if tx['confirmations'] == 0:
-            return [tx['hash']]
+        if txid:
+            tx = self.compose_request('txs', txid)
+            if tx['confirmations'] == 0:
+                return [tx['hash']]
+        else:
+            txs = self.compose_request('txs', txid)
+            return [tx['hash'] for tx in txs]
         return []

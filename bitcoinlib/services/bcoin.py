@@ -180,7 +180,7 @@ class BcoinClient(BaseClient):
                             'fee': tx.fee,
                             'size': tx.size,
                             'value': unspent.value,
-                            'script': unspent.lock_script,
+                            'script': to_hexstring(unspent.lock_script),
                             'date': tx.date,
                          }
                     )
