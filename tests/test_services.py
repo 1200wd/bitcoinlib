@@ -80,6 +80,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         except ServiceError:
             pass
         for provider in srv.errors:
+            print("Provider %s" % provider)
             prov_error = str(srv.errors[provider])
             if isinstance(srv.errors[provider], Exception) or 'response [429]' in prov_error \
                     or 'response [503]' in prov_error:
@@ -96,6 +97,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         if len(srv.results) < 2:
             self.fail("Only 1 or less service providers found, nothing to compare")
         for provider in srv.results:
+            print("Provider %s" % provider)
             balance = srv.results[provider]
             if prev is not None and balance != prev:
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
@@ -109,6 +111,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         if len(srv.results) < 2:
             self.fail("Only 1 or less service providers found, nothing to compare")
         for provider in srv.results:
+            print("Provider %s" % provider)
             balance = srv.results[provider]
             if prev is not None and balance != prev:
                 self.fail("Different address balance from service providers: %d != %d" % (balance, prev))
@@ -130,6 +133,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
         tx_hash = '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8'
         for provider in srv.results:
+            print("Provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_get_utxos_after_txid(self):
@@ -146,6 +150,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         for provider in srv.results:
+            print("Provider %s" % provider)
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_get_utxos_litecoin_after_txid(self):
@@ -168,6 +173,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         # Normalize with dust amount, to avoid errors on small differences
         dust = Network().dust_amount
         for provider in srv.results:
+            print("Provider %s" % provider)
             if srv.results[provider] < average_fee and average_fee - srv.results[provider] > dust:
                 srv.results[provider] += dust
             elif srv.results[provider] > average_fee and srv.results[provider] - average_fee > dust:
@@ -429,6 +435,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(min_providers=5, network='litecoin', timeout=TIMEOUT_TEST)
         srv.gettransactions(address)
         for provider in srv.results:
+            print("Provider %s" % provider)
             res = srv.results[provider]
             txs = [r for r in res if r.hash == tx_hash]
             t = txs[0]

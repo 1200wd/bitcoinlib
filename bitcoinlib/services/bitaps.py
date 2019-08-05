@@ -48,14 +48,14 @@ class BitapsClient(BaseClient):
             url_path += data
         return self.request(url_path, variables=variables)
 
-    def getbalance(self, addresslist):
-        pass
+    # def getbalance(self, addresslist):
+    #     pass
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        pass
+    # def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    #     pass
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        pass
+    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    #     pass
 
     def gettransaction(self, txid):
         res = self.compose_request('transaction', txid)
@@ -89,5 +89,5 @@ class BitapsClient(BaseClient):
     def block_count(self):
         return self.compose_request('block', 'last')['data']['block']['height']
 
-    def mempool(self, txid=''):
-        pass
+    # def mempool(self, txid=''):
+    #     pass
