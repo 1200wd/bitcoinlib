@@ -26,7 +26,7 @@ from tests.test_custom import CustomAssertions
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
-TIMEOUT_TEST = 1
+TIMEOUT_TEST = 2
 
 
 class TestService(unittest.TestCase, CustomAssertions):

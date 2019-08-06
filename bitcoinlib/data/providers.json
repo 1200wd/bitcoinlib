@@ -164,7 +164,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "chainso.testnet": {
+  "chainso.testnet": {
     "provider": "chainso",
     "network": "testnet",
     "client_class": "ChainSo",
@@ -175,7 +175,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "chainso.litecoin": {
+  "chainso.litecoin": {
     "provider": "chainso",
     "network": "litecoin",
     "client_class": "ChainSo",
@@ -186,7 +186,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "chainso.litecoin.legacy":
+  "chainso.litecoin.legacy":
     {
     "provider": "chainso",
     "network": "litecoin_legacy",
@@ -198,7 +198,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "chainso.dash": {
+  "chainso.dash": {
     "provider": "chainso",
     "network": "dash",
     "client_class": "ChainSo",
@@ -209,7 +209,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "chainso.dash.testnet": {
+  "chainso.dash.testnet": {
     "provider": "chainso",
     "network": "dash_testnet",
     "client_class": "ChainSo",
@@ -308,7 +308,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "bcoin": {
+  "bcoin": {
     "provider": "bcoin",
     "network": "bitcoin",
     "client_class": "BcoinClient",
@@ -319,7 +319,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "bcoin.testnet": {
+  "bcoin.testnet": {
     "provider": "bcoin",
     "network": "testnet",
     "client_class": "BcoinClient",
@@ -330,7 +330,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "bitaps": {
+  "bitaps": {
     "provider": "bitaps",
     "network": "bitcoin",
     "client_class": "BitapsClient",
@@ -341,7 +341,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "bitaps.testnet": {
+  "bitaps.testnet": {
     "provider": "bitaps",
     "network": "testnet",
     "client_class": "BitapsClient",
@@ -352,7 +352,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "bitaps.litecoin": {
+  "bitaps.litecoin": {
     "provider": "bitaps",
     "network": "litecoin",
     "client_class": "BitapsClient",
@@ -363,7 +363,18 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "bitaps.litecoin.testnet": {
+  "bitaps.litecoin.legacy": {
+    "provider": "bitaps",
+    "network": "litecoin_legacy",
+    "client_class": "BitapsClient",
+    "provider_coin_id": "",
+    "url": "https://api.bitaps.com/ltc/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "bitaps.litecoin.testnet": {
     "provider": "bitaps",
     "network": "litecoin_testnet",
     "client_class": "BitapsClient",
@@ -374,9 +385,20 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-    "litecoinblockexplorer.litecoin": {
+  "litecoinblockexplorer.litecoin": {
     "provider": "litecoinblockexplorer",
     "network": "litecoin",
+    "client_class": "LitecoinBlockexplorerClient",
+    "provider_coin_id": "",
+    "url": "https://litecoinblockexplorer.net/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "litecoinblockexplorer.litecoin.legacy": {
+    "provider": "litecoinblockexplorer",
+    "network": "litecoin_legacy",
     "client_class": "LitecoinBlockexplorerClient",
     "provider_coin_id": "",
     "url": "https://litecoinblockexplorer.net/api/",
