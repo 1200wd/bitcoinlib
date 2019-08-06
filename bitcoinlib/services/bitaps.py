@@ -70,7 +70,7 @@ class BitapsClient(BaseClient):
                     utxos.append(
                         {
                             'address': utxo['address'],
-                            'tx_hash': tx['hash'],
+                            'tx_hash': tx['txId'],
                             'confirmations': tx['confirmations'],
                             'output_n': int(outp),
                             'input_n': 0,
@@ -90,14 +90,14 @@ class BitapsClient(BaseClient):
         return utxos[:max_txs]
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        page = 1
+        page = 0
         txs = []
         while True:
             variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
             res = self.compose_request('address', 'transactions', address, variables)
             for tx in res['data']['list']:
                 txs.append(self._parse_transaction(tx))
-                if tx['hash'] == after_txid:
+                if tx['txId'] == after_txid:
                     txs = []
             page += 1
             if page > res['data']['pages']:
@@ -109,8 +109,11 @@ class BitapsClient(BaseClient):
         t.status = 'unconfirmed'
         if tx['confirmations']:
             t.status = 'confirmed'
-        t.hash = tx['hash']
-        t.date = datetime.fromtimestamp(tx['timestamp']) if 'timestamp' in tx else None
+        t.hash = tx['txId']
+        if 'timestamp' in tx:
+            t.date = datetime.fromtimestamp(tx['timestamp'])
+        elif 'blockTime' in tx:
+            t.date = datetime.fromtimestamp(tx['blockTime'])
         t.confirmations = tx['confirmations']
         if 'blockHeight' in tx:
             t.block_height = tx['blockHeight']
@@ -125,7 +128,10 @@ class BitapsClient(BaseClient):
         for o in t.outputs:
             if tx['vOut'][str(o.output_n)]['spent']:
                 o.spent = True
-        t.input_total = tx['inputsAmount']
+        if t.coinbase:
+            t.input_total = tx['outputsAmount'] - t.fee
+        else:
+            t.input_total = tx['inputsAmount']
         t.output_total = tx['outputsAmount']
         return t
 
@@ -143,7 +149,7 @@ class BitapsClient(BaseClient):
     def mempool(self, txid):
         if txid:
             t = self.gettransaction(txid)
-            if t:
+            if t and not t.confirmations:
                 return [t.hash]
         else:
             res = self.compose_request('transactions', type='mempool')

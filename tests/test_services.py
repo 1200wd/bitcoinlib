@@ -268,9 +268,12 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
 
     def test_service_gettransactions_after_txid(self):
-        res = Service(timeout=TIMEOUT_TEST).gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
-                                        after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
+        res = Service(timeout=TIMEOUT_TEST).\
+            gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
+                            after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
         self.assertEqual(res[0].hash, '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803')
+        self.assertEqual(res[1].hash, 'a4bc261faf9ca47722760c9f9f075ab974c7351d8da7b0b5e5a316b3aa7aefa2')
+        self.assertEqual(res[2].hash, '04be18177781f8060d63390a705cf89ffed2252a3506fab69be7079bc7ba9410')
 
     def test_service_gettransactions_after_txid_litecoin(self):
         res = Service('litecoin', timeout=TIMEOUT_TEST).gettransactions(
@@ -556,7 +559,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 ],
             'size': 191,
         }
-        srv = Service(network='bitcoin', min_providers=10, timeout=TIMEOUT_TEST)
+        srv = Service(network='bitcoin', min_providers=10, timeout=TIMEOUT_TEST, providers=['bitaps'])
 
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
@@ -619,8 +622,10 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
         srv.mempool(txid)
         for provider in srv.results:
+            print("Comparing btc provider %s" % provider)
             self.assertListEqual(srv.results[provider], [])
         srv = Service(min_providers=10, network='litecoin', timeout=TIMEOUT_TEST)
         srv.mempool(txid)
         for provider in srv.results:
+            print("Comparing ltc provider %s" % provider)
             self.assertListEqual(srv.results[provider], [])

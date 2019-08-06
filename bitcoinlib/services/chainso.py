@@ -133,10 +133,13 @@ class ChainSo(BaseClient):
         if res2['status'] != 'success':
             raise ClientError("Chainso get_tx_spent request unsuccessful, status: %s" % res2['status'])
         res = res1['data']['txs'] + res2['data']['txs']
-        tx_conf = [(t['txid'], t['confirmations']) for t in res]
-        tx_conf_sorted = sorted(tx_conf, key=lambda x: x[1], reverse=True)
-        for tx in tx_conf_sorted[:max_txs]:
-            t = self.gettransaction(tx[0])
+        tx_conf = []
+        for t in res:
+            tt = (t['confirmations'], t['txid'])
+            if tt not in tx_conf:
+                tx_conf.append(tt)
+        for tx in tx_conf[:max_txs]:
+            t = self.gettransaction(tx[1])
             txs.append(t)
         return txs
 
