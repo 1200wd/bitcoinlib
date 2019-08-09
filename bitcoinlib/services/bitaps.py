@@ -30,7 +30,6 @@ from bitcoinlib.encoding import EncodingError, varstr, to_bytes
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'bitaps'
-# REQUEST_LIMIT = 100
 
 
 class BitapsClient(BaseClient):

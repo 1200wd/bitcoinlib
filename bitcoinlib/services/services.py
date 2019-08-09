@@ -123,6 +123,9 @@ class Service(object):
             if self.resultcount >= self.max_providers:
                 break
             try:
+                if self.providers[sp]['url'] in ['bcoin', 'bitcoind', 'litecoind', 'dashd']:
+                    # TODO ADD provider type
+                    pass
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
                 pc_instance = providerclient(

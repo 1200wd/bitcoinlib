@@ -17,7 +17,7 @@
     "provider_coin_id": "",
     "url": "",
     "api_key": "",
-    "priority": 11,
+    "priority": 20,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -28,7 +28,7 @@
     "provider_coin_id": "",
     "url": "",
     "api_key": "",
-    "priority": 11,
+    "priority": 20,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -39,7 +39,7 @@
     "provider_coin_id": "",
     "url": "",
     "api_key": "",
-    "priority": 11,
+    "priority": 20,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -50,7 +50,7 @@
     "provider_coin_id": "",
     "url": "",
     "api_key": "",
-    "priority": 11,
+    "priority": 20,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -315,7 +315,7 @@
     "provider_coin_id": "",
     "url": "",
     "api_key": "",
-    "priority": 11,
+    "priority": 20,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -326,7 +326,7 @@
     "provider_coin_id": "",
     "url": "",
     "api_key": "",
-    "priority": 11,
+    "priority": 20,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -402,6 +402,17 @@
     "client_class": "LitecoinBlockexplorerClient",
     "provider_coin_id": "",
     "url": "https://litecoinblockexplorer.net/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "bitcoinchain": {
+    "provider": "bitcoinchain",
+    "network": "bitcoin",
+    "client_class": "BitcoinchainClient",
+    "provider_coin_id": "",
+    "url": "https://bitcoinchain.com/api/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
