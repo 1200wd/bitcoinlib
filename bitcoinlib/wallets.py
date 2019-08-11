@@ -1662,7 +1662,7 @@ class HDWallet(object):
 
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
-    def scan(self, scan_gap_limit=3, account_id=None, change=None, network=None, _keys_ignore=None,
+    def scan(self, scan_gap_limit=5, account_id=None, change=None, network=None, _keys_ignore=None,
              _recursion_depth=0):
         """
         Generate new keys for this wallet and scan for UTXO's.
@@ -1680,83 +1680,26 @@ class HDWallet(object):
         :return:
         """
 
-        if _keys_ignore is None:
-            _keys_ignore = []
-        if _recursion_depth > 10:
-            raise WalletError("UTXO scanning has reached a recursion depth of more then 10")
-        # if self.scheme != 'bip32' and self.scheme != 'multisig':
-        #     raise WalletError("The wallet scan() method is only available for BIP32 wallets")
-        if scan_gap_limit < 2:
-            raise WalletError("Scan gap limit must be 2 or higher")
+        if self.scheme != 'bip32' and self.scheme != 'multisig' and scan_gap_limit < 2:
+            raise WalletError("The wallet scan() method is only available for BIP32 wallets")
 
-        # Update number of confirmations
-        txs = self._session.query(DbTransaction). \
-            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransaction.status == 'confirmed').\
-            filter(DbTransaction.block_height > 0)
-        if account_id is not None:
-            txs.filter(DbKey.account_id == account_id)
-        srv = Service(network=self.network.name)
-        current_block_height = srv.block_count()
-        for tx in txs:
-            tx.confirmations = current_block_height - tx.block_height
-        if txs.count():
-            self._session.commit()
-
-        # Check unconfirmed
-        utxos = self._session.query(DbTransactionOutput).join(DbTransaction). \
-            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransaction.status == 'unconfirmed')
-        if account_id is not None:
-            utxos.filter(DbKey.account_id == account_id)
-        txids = list(set([utxo.transaction.hash for utxo in utxos]))
-        self.transactions_update_by_txids(txids)
-
-        # Check UTXO's
-        utxos = self._session.query(DbTransactionOutput).join(DbTransaction). \
-            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransactionOutput.spent.op("IS")(False))
-        if account_id is not None:
-            utxos.filter(DbKey.account_id == account_id)
-        txids = list(set([utxo.transaction.hash for utxo in utxos]))
-        self.transactions_update_by_txids(txids)
-
-        _recursion_depth += 1
-        if change != 1:
-            scanned_keys = self.get_key(account_id, network, number_of_keys=scan_gap_limit)
-            new_key_ids = [k.key_id for k in scanned_keys]
-            nr_new_txs = 0
-            new_key_ids = list(set(new_key_ids) - set(_keys_ignore))
-            n_highest_updated = 0
-            for new_key_id in new_key_ids:
-                n_new = self.transactions_update(change=0, key_id=new_key_id)
-                if n_new:
-                    n_highest_updated = new_key_id if n_new and n_highest_updated < new_key_id else n_highest_updated
-                nr_new_txs += n_new
-            for key_id in [key_id for key_id in new_key_ids if key_id < n_highest_updated]:
-                self._session.query(DbKey).filter_by(id=key_id).update({'used': True})
-            self._session.commit()
-
-            _keys_ignore += new_key_ids
-            if nr_new_txs:
-                self.scan(scan_gap_limit, account_id, change=0, network=network, _keys_ignore=_keys_ignore,
-                          _recursion_depth=_recursion_depth)
-        if change != 0:
-            scanned_keys_change = self.get_key(account_id, network, change=1, number_of_keys=scan_gap_limit)
-            new_key_ids = [k.key_id for k in scanned_keys_change]
-            nr_new_txs = 0
-            new_key_ids = list(set(new_key_ids) - set(_keys_ignore))
-            n_highest_updated = 0
-            for new_key_id in new_key_ids:
-                n_new = self.transactions_update(change=1, key_id=new_key_id)
-                if n_new:
-                    n_highest_updated = new_key_id if n_new and n_highest_updated < new_key_id else n_highest_updated
-                nr_new_txs += n_new
-            for key_id in [key_id for key_id in new_key_ids if key_id < n_highest_updated]:
-                self._session.query(DbKey).filter_by(id=key_id).update({'used': True})
-            self._session.commit()
-
-            _keys_ignore += new_key_ids
-            if nr_new_txs:
-                self.scan(scan_gap_limit, account_id, change=1, network=network, _keys_ignore=_keys_ignore,
-                          _recursion_depth=_recursion_depth)
+        # Scan each key address, stop when no new transactions are found after set scan gap limit
+        for change in [0, 1]:
+            gap = scan_gap_limit
+            while gap:
+                keys_to_scan = self.get_key(account_id, network, number_of_keys=gap, change=change)
+                if isinstance(keys_to_scan, HDWalletKey):
+                    keys_to_scan = [keys_to_scan]
+                n_highest_updated = 0
+                for key in keys_to_scan:
+                    while True:
+                        n_new = self.transactions_update(change=change, key_id=key.key_id)
+                        n_highest_updated = \
+                            key.key_id if (n_new and n_highest_updated < key.key_id) else n_highest_updated
+                        logger.info("Scanned key %d, %s Found %d new transactions" % (key.key_id, key.address, n_new))
+                        if not n_new:
+                            break
+                gap = 0 if not n_highest_updated else [k.key_id for k in keys_to_scan].index(n_highest_updated) + 1
 
     def get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
         """
