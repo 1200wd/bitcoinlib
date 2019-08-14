@@ -1059,11 +1059,10 @@ class HDWallet(object):
             keys.sort(key=lambda x: ('0' if isinstance(x, HDKey) else '1'))
         for key in keys:
             if isinstance(key, HDKey):
-                if isinstance(key, HDKey):
-                    if network and network != key.network.name:
-                        raise WalletError("Network from key (%s) is different then specified network (%s)" %
-                                          (key.network.name, network))
-                network = key.network.name
+                # if network and network != key.network.name:
+                #     raise WalletError("Network from key (%s) is different then specified network (%s)" %
+                #                       (key.network.name, network))
+                # network = key.network.name
                 if witness_type is None:
                     witness_type = key.witness_type
             elif key:

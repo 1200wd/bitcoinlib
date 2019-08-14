@@ -66,6 +66,12 @@ class BaseClient(object):
         url = self.base_url + url_path
         if not url or not self.base_url:
             raise ClientError("No (complete) url provided: %s" % url)
+        headers = {
+            'User-Agent': 'BitcoinLib %s' % BITCOINLIB_VERSION,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            "Referrer": "https://www.github.com/1200wd/bitcoinlib",
+        }
         if method == 'get':
             if variables is None:
                 variables = {}
@@ -73,10 +79,10 @@ class BaseClient(object):
                 url_vars = '?' + urlencode(variables)
             url += url_vars
             _logger.info("Url get request %s" % url)
-            self.resp = requests.get(url, timeout=self.timeout, verify=secure)
+            self.resp = requests.get(url, timeout=self.timeout, verify=secure, headers=headers)
         elif method == 'post':
             _logger.info("Url post request %s" % url)
-            self.resp = requests.post(url, json=dict(variables), timeout=self.timeout, verify=secure)
+            self.resp = requests.post(url, json=dict(variables), timeout=self.timeout, verify=secure, headers=headers)
 
         resp_text = self.resp.text
         if len(resp_text) > 1000:

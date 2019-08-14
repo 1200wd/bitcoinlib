@@ -47,7 +47,7 @@ BCL_CONFIG_FILE = ''
 
 
 # Services
-TIMEOUT_REQUESTS = 5
+TIMEOUT_REQUESTS = 10
 MAX_TRANSACTIONS = 20
 
 # Transactions
@@ -274,5 +274,6 @@ def initialize_lib():
 read_config()
 version_file = open(os.path.join(BCL_INSTALL_DIR, 'config/VERSION'))
 BITCOINLIB_VERSION = version_file.read().strip()
+version_file.close()
 
 initialize_lib()

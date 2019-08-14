@@ -412,7 +412,7 @@
     "network": "bitcoin",
     "client_class": "BitcoinchainClient",
     "provider_coin_id": "",
-    "url": "https://bitcoinchain.com/api/",
+    "url": "https://api-r.bitcoinchain.com/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
