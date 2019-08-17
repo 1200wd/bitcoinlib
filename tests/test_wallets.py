@@ -170,7 +170,7 @@ class TestWalletCreate(unittest.TestCase):
         self.assertRaisesRegexp(WalletError, "Number of keys required to sign is greater then number of keys provided",
                                 HDWallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
                                 sigs_required=3, databasefile=DATABASEFILE_UNITTESTS)
-        self.assertRaisesRegexp(WalletError, ".*\(bitcoin\) is different then network specified: dash",
+        self.assertRaisesRegexp(WalletError, "Network from key \(dash\) is different then specified network \(bitcoin\)",
                                 HDWallet.create, 'test_wallet_create_errors_multisig4',
                                 keys=[HDKey(), HDKey(network='dash')], databasefile=DATABASEFILE_UNITTESTS)
         passphrase = 'usual olympic ride small mix follow trend baby stereo sweet lucky lend'
@@ -1157,7 +1157,8 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertEqual(wlt.get_key().network.name, network)
 
     def test_wallet_multisig_info(self):
-        w = HDWallet.create('test_wallet_multisig_info', keys=[HDKey(), HDKey()],
+        w = HDWallet.create('test_wallet_multisig_info', keys=[HDKey(network='bitcoinlib_test'),
+                                                               HDKey(network='bitcoinlib_test')],
                             network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)
         w.utxos_update()
         w.info(detail=6)
@@ -1728,7 +1729,7 @@ class TestWalletSegwit(unittest.TestCase):
         self.assertTrue(t.pushed)
 
     def test_wallet_segwit_uncompressed_error(self):
-        k = HDKey(compressed=False)
+        k = HDKey(compressed=False, network='bitcoinlib_test')
         self.assertRaisesRegexp(BKeyError, 'Uncompressed keys are non-standard', wallet_create_or_open,
                                 'segwit_uncompressed_error', k, witness_type='segwit', network='bitcoinlib_test',
                                 databasefile=DATABASEFILE_UNITTESTS)
