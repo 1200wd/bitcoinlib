@@ -153,7 +153,7 @@ class BcoinClient(BaseClient):
     def sendrawtransaction(self, rawtx):
         res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
         txid = ''
-        if 'success' in res and res['success'] == 'true':
+        if 'success' in res and res['success']:
             t = Transaction.import_raw(rawtx)
             txid = t.hash
         return {

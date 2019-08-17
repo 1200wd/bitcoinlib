@@ -1332,8 +1332,21 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
         self.wallet.scan(scan_gap_limit=10)
         self.wallet.info()
         self.assertEqual(len(self.wallet.keys()), 29)
-        # self.assertEqual(len(self.wallet.keys(is_active=None)), 31)
         self.assertEqual(self.wallet.balance(), 60500000)
+
+    def test_wallet_scan_utxos(self):
+        pk = 'tpubDDi7dF92m7UrWNuAmzR9mzETcCjFT9v6XZq2oXjvhH4Bzr4L13np7d6bBB5tZk1Kg3y2vB79ohpgsLiubcRA8RfA6L69nmZvSG26XfmC5Ao'
+        w = wallet_create_or_open('kladkladklieder3', keys=pk, databasefile=DATABASEFILE_UNITTESTS)
+        w.scan(scan_gap_limit=1)
+        self.assertEqual(len(w.utxos()), 2)
+        self.assertEqual(w.balance(), 2000)
+        exp_tx_list = ['3c634d82d6a9e855f26266acefb7096afdad80cad007079028bc259dc2f642a4',
+                       '5658a4bf4b47c20c92d593999be469e8b8726ffcb5cb348681f020eadf342c3f',
+                       '7834f47064c7bfd5b68cef98a61f5c4c7a8a3c6985ef137c7b3447bb62fa2324',
+                       '7a4b8da2b74c71c01e1752457da715bc96807da02ec5e05d3eb4ed1dcb0c4735',
+                       'b71cedddf6381c8b6eba953d5b9454b9ca41e2abbdbd9498a6c90004f649abb4']
+        tx_list = sorted(list(set([t.hash for t in w.transactions()])))
+        self.assertListEqual(tx_list, exp_tx_list)
 
     def test_wallet_two_utxos_one_key(self):
         wlt = HDWallet.create('double-utxo-test', network='bitcoinlib_test', databasefile=DATABASEFILE_UNITTESTS)

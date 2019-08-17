@@ -1682,6 +1682,7 @@ class HDWallet(object):
         if self.scheme != 'bip32' and self.scheme != 'multisig' and scan_gap_limit < 2:
             raise WalletError("The wallet scan() method is only available for BIP32 wallets")
 
+        # Update already known addresses / transactions
         # Scan each key address, stop when no new transactions are found after set scan gap limit
         for change in [0, 1]:
             gap = scan_gap_limit
@@ -2708,6 +2709,8 @@ class HDWallet(object):
         :type depth: int
         :param change: Only update change or normal keys, default is both (None)
         :type change: int
+        :param max_txs: Stop update after max_txs transactions to avoid timeouts with service providers. Default is MAX_TRANSACTIONS defined in config.py
+        :type max_txs: int
 
         :return bool: True if all transactions are updated
         """
@@ -2725,7 +2728,7 @@ class HDWallet(object):
             if not srv.complete:
                 if txs and txs[-1].date < last_updated:
                     last_updated = txs[-1].date
-            if txs:
+            if txs and txs[-1].confirmations:
                 self._session.query(DbKey).filter(DbKey.address == address).\
                     update({DbKey.latest_txid: txs[-1].hash})
         if txs is False:
