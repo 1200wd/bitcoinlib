@@ -59,7 +59,11 @@ class BitapsClient(BaseClient):
         page = 1
         while True:
             variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
-            res = self.compose_request('address', 'transactions', address, variables)
+            try:
+                res = self.compose_request('address', 'transactions', address, variables)
+            except ClientError:
+                if "address not found" in self.resp.text:
+                    return []
             txs = res['data']['list']
             for tx in txs:
                 for outp in tx['vOut']:
@@ -93,7 +97,11 @@ class BitapsClient(BaseClient):
         txs = []
         while True:
             variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
-            res = self.compose_request('address', 'transactions', address, variables)
+            try:
+                res = self.compose_request('address', 'transactions', address, variables)
+            except ClientError:
+                if "address not found" in self.resp.text:
+                    return []
             for tx in res['data']['list']:
                 txs.append(self._parse_transaction(tx))
                 if tx['txId'] == after_txid:
