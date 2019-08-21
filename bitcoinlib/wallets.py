@@ -1661,7 +1661,20 @@ class HDWallet(object):
 
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
-    def scan(self, scan_gap_limit=5, account_id=None, change=None, network=None, _keys_ignore=None,
+    def scan_key(self, key):
+        if isinstance(key, int):
+            key = self.key(key)
+        n_highest_updated = 0
+        while True:
+            n_new = self.transactions_update(key_id=key.key_id)
+            n_highest_updated = \
+                key.key_id if (n_new and n_highest_updated < key.key_id) else n_highest_updated
+            logger.info("Scanned key %d, %s Found %d new transactions" % (key.key_id, key.address, n_new))
+            if not n_new:
+                break
+        return n_highest_updated
+
+    def scan(self, scan_gap_limit=5, account_id=None, change=None, rescan_used=False, network=None, _keys_ignore=None,
              _recursion_depth=0):
         """
         Generate new keys for this wallet and scan for UTXO's.
@@ -1671,6 +1684,9 @@ class HDWallet(object):
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
         :param change: Filter by change addresses. Set to True to include only change addresses, False to only include regular addresses. None (default) to disable filter and include both
+        :type change: bool
+        :param rescan_used: Rescan already used addressed. Default is False, so funds send to old addresses will be ignored by default.
+        :type rescan_used: bool
         :param network: Network name. Leave empty for default network
         :type network: str
         :param _keys_ignore: Id's of keys to ignore, for internal function use only
@@ -1682,23 +1698,38 @@ class HDWallet(object):
         if self.scheme != 'bip32' and self.scheme != 'multisig' and scan_gap_limit < 2:
             raise WalletError("The wallet scan() method is only available for BIP32 wallets")
 
-        # Update already known addresses / transactions
+        # Rescan used addresses
+        # TODO: add more args to keys_addresses + change/payment etc
+        if rescan_used:
+            for key in self.keys_addresses(used=True):
+                self.scan_key(key.id)
+
+        # Update already known transactions
+        srv = Service(network='testnet')
+        current_block_height = srv.block_count()
+        for t in self.transactions():
+            if not t.confirmations or t.block_height <= 0:
+                new_t = srv.gettransaction(t.hash)
+                t.block_height = new_t.block_height
+            t.confirmations = current_block_height - t.block_height
+            t.save()
+
         # Scan each key address, stop when no new transactions are found after set scan gap limit
-        for change in [0, 1]:
+        if change is None:
+            change_range = [0, 1]
+        else:
+            change_range = [change]
+        for chg in change_range:
             gap = scan_gap_limit
             while gap:
-                keys_to_scan = self.get_key(account_id, network, number_of_keys=gap, change=change)
+                keys_to_scan = self.get_key(account_id, network, number_of_keys=gap, change=chg)
                 if isinstance(keys_to_scan, HDWalletKey):
                     keys_to_scan = [keys_to_scan]
                 n_highest_updated = 0
                 for key in keys_to_scan:
-                    while True:
-                        n_new = self.transactions_update(change=change, key_id=key.key_id)
-                        n_highest_updated = \
-                            key.key_id if (n_new and n_highest_updated < key.key_id) else n_highest_updated
-                        logger.info("Scanned key %d, %s Found %d new transactions" % (key.key_id, key.address, n_new))
-                        if not n_new:
-                            break
+                    n_high_sub = self.scan_key(key)
+                    n_highest_updated = \
+                        key.key_id if (n_high_sub < key.key_id) else n_highest_updated
                 gap = 0 if not n_highest_updated else [k.key_id for k in keys_to_scan].index(n_highest_updated) + 1
 
     def get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
@@ -2073,7 +2104,7 @@ class HDWallet(object):
 
         return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, used=None, network=None, depth=None, as_dict=False):
+    def keys_addresses(self, account_id=None, used=None, is_active=None, network=None, depth=None, as_dict=False):
         """
         Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
 
@@ -2081,6 +2112,8 @@ class HDWallet(object):
         :type account_id: int
         :param used: Only return used or unused keys
         :type used: bool
+        :param is_active: Hide inactive keys. Only include active keys with either a balance or which are unused, default is True
+        :type is_active: bool
         :param network: Network name filter
         :type network: str
         :param depth: Filter by key depth. Default for BIP44 and multisig is 5
@@ -2093,7 +2126,7 @@ class HDWallet(object):
 
         if depth is None:
             depth = self.key_depth
-        return self.keys(account_id, depth=depth, used=used, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=depth, used=used, is_active=is_active, network=network, as_dict=as_dict)
 
     def keys_address_payment(self, account_id=None, used=None, network=None, as_dict=False):
         """
@@ -3162,6 +3195,12 @@ class HDWallet(object):
             else:
                 rt.size = len(t.raw())
             rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
+            rt.block_height = t.block_height
+            rt.confirmations = t.confirmations
+            rt.witness_type = t.witness_type
+            rt.date = t.date
+            rt.hash = t.hash
+            # TODO: Include all fields
         elif isinstance(t, dict):
             output_arr = []
             for o in t['outputs']:
