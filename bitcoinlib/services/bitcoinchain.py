@@ -47,39 +47,81 @@ class BitcoinchainClient(BaseClient):
             url_path += data
         return self.request(url_path, variables=variables)
 
-    # def getbalance(self, addresslist):
+    def getbalance(self, addresslist):
+        balance = 0.0
+        for address in addresslist:
+            res = self.compose_request('address', data=address)
+            balance += float(res[0]['balance'])
+        return int(balance * self.units)
 
-    # def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        res = self.compose_request('address', 'utxo', data=address)
+        utxos = []
+        res_utxos = sorted(res[0]['utxo'], key=lambda x: x['confirmations'], reverse=True)
+        for utxo in res_utxos:
+            utxos.append({
+                'address': address,
+                'tx_hash': utxo['transaction_hash'],
+                'confirmations': utxo['confirmations'],
+                'output_n': utxo['output_index'],
+                'input_n': -1,
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': round(utxo['amount'] * self.units),
+                'script': utxo['script_hex'],
+                'date': None,
+            })
+            if utxo['transaction_hash'] == after_txid:
+                utxos = []
+        return utxos[:max_txs]
 
-    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    # {
+    #     "amount": 0.00071328,
+    #     "confirmations": 48154,
+    #     "output_index": 0,
+    #     "script": "OP_DUP OP_HASH160 d05f72aad2b7c60d3eb3fa04c13d0d725087cb38 OP_EQUALVERIFY OP_CHECKSIG",
+    #     "script_hex": "76a914d05f72aad2b7c60d3eb3fa04c13d0d725087cb3888ac",
+    #     "script_reqSigs": 1,
+    #     "script_type": "pubkeyhash",
+    #     "spent": false,
+    #     "transaction_hash": "44b46fde492423e7ab55a1dd94510bb72eee809ca4be12be99be98dd85609b4c"
+    # },
+
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        res = self.compose_request('address', 'txs', data=address)
+        txs = []
+        for t in res[0]:
+            t = self._parse_transaction(t['tx'])
+            txs.append(t)
+            if t.hash == after_txid:
+                txs = []
+        return txs[:max_txs]
 
     def _parse_transaction(self, tx):
         witness_type = 'legacy'
-        # if len([ti['witness'] for ti in tx['inputs'] if ti['witness'] != '00']):
-        #     witness_type = 'segwit'
         coinbase = False
         if tx['inputs'][0]['output_ref']['tx'] == '00' * 32:
             coinbase = True
         status = 'unconfirmed'
-        if tx['confirmations']:
+        if tx['block_time']:
             status = 'confirmed'
-        # confirmations=tx['confirmations'], block_height=tx['height'],
         t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], hash=tx['self_hash'], date=datetime.fromtimestamp(tx['block_time']),
+                        fee=round(tx['fee'] * self.units), hash=tx['self_hash'], date=datetime.fromtimestamp(tx['block_time']),
                         block_hash=tx['blocks'][0],
                         status=status, coinbase=coinbase, witness_type=witness_type)
         for ti in tx['inputs']:
             witness_type = 'legacy'
             script = ti['in_script']['hex']
             address = ti['sender']
-            value = ti['value']
-            # , sequence=ti['sequence']
+            value = round(ti['value'] * self.units)
             t.add_input(prev_hash=ti['output_ref']['tx'], output_n=ti['output_ref']['number'],
                         unlocking_script=script, address=address, value=value,
                         witness_type=witness_type)
         output_n = 0
         for to in tx['outputs']:
-            t.add_output(value=to['value'], address=to['receiver'], lock_script=to['out_script']['hex'],
+            value = round(to['value'] * self.units)
+            t.add_output(value=value, address=to['receiver'], lock_script=to['out_script']['hex'],
                          output_n=output_n, spent=to['spent'])
             output_n += 1
         t.update_totals()
@@ -90,126 +132,6 @@ class BitcoinchainClient(BaseClient):
     def gettransaction(self, txid):
         res = self.compose_request('tx', data=txid)
         return self._parse_transaction(res[0])
-
-    # [
-    #     {
-    #         "block_time": 1454518654,
-    #         "blocks": [
-    #             "000000000000000008e2bd2b7b157d9d785de1f91362c26b0e14bb683a0d0f9a"
-    #         ],
-    #         "fee": 0.0001,
-    #         "inputs": [
-    #             {
-    #                 "in_script": {
-    #                     "asm": "3044022005bb558d74075072e1337cd65b8c389821ad76ebda32b8e038ad2de7c85a9a9e022003d7e4657b1843bc1a09ec8d0d724654217d9aa3d2f642d1a0b5ded5fcdabdaa01 04911ae54558e8c94244bbd7c310fd55520d6b1f0c9e7174ad8751aba06511e12bd9de7a3d788783665c6eaeb56ea3bd78e3a75adfd4d0ced8858f0063c987e29d",
-    #                     "hex": "473044022005bb558d74075072e1337cd65b8c389821ad76ebda32b8e038ad2de7c85a9a9e022003d7e4657b1843bc1a09ec8d0d724654217d9aa3d2f642d1a0b5ded5fcdabdaa014104911ae54558e8c94244bbd7c310fd55520d6b1f0c9e7174ad8751aba06511e12bd9de7a3d788783665c6eaeb56ea3bd78e3a75adfd4d0ced8858f0063c987e29d"
-    #                 },
-    #                 "output_ref": {
-    #                     "number": 1,
-    #                     "tx": "79d33fe99c51192acb6387a5e99cd577adaba1f4660656111abcb150baca22f0"
-    #                 },
-    #                 "sender": "1DXCePi1fg8m3z1avQtLaZrEpJVHYKaojZ",
-    #                 "value": 300
-    #             }
-    #         ],
-    #         "lock_time": 0,
-    #         "outputs": [
-    #             {
-    #                 "out_script": {
-    #                     "asm": "OP_DUP OP_HASH160 120e3598edbf89ae3f3c653bb080c5fc3adc5bb8 OP_EQUALVERIFY OP_CHECKSIG",
-    #                     "hex": "76a914120e3598edbf89ae3f3c653bb080c5fc3adc5bb888ac",
-    #                     "reqSigs": 1,
-    #                     "type": "pubkeyhash"
-    #                 },
-    #                 "receiver": "12eUBjjzm9dzmCGmGxH8W3y3SCjm5zR1oz",
-    #                 "spending_input": {
-    #                     "number": 0,
-    #                     "tx": "84df9279705a4c793445636432eb47e6a7797dc7e35b6016a3ea42de7a32c764"
-    #                 },
-    #                 "spent": true,
-    #                 "value": 49.83331666
-    #             },
-    #             {
-    #                 "out_script": {
-    #                     "asm": "OP_DUP OP_HASH160 b488b68c869b4f7e0e718720432d6f7a7473007b OP_EQUALVERIFY OP_CHECKSIG",
-    #                     "hex": "76a914b488b68c869b4f7e0e718720432d6f7a7473007b88ac",
-    #                     "reqSigs": 1,
-    #                     "type": "pubkeyhash"
-    #                 },
-    #                 "receiver": "1HTaQXDPaaqhvJLYTUxP6Ec5TQwYN6A6KA",
-    #                 "spent": false,
-    #                 "value": 49.83331666
-    #             },
-    #             {
-    #                 "out_script": {
-    #                     "asm": "OP_DUP OP_HASH160 2720b0b3cb536fd851b894fd953b368e73dd0795 OP_EQUALVERIFY OP_CHECKSIG",
-    #                     "hex": "76a9142720b0b3cb536fd851b894fd953b368e73dd079588ac",
-    #                     "reqSigs": 1,
-    #                     "type": "pubkeyhash"
-    #                 },
-    #                 "receiver": "14ZtWqgUU6AS2sFaJJWLcyvR9FrRuRg8oB",
-    #                 "spending_input": {
-    #                     "number": 0,
-    #                     "tx": "4783a469a0b4e98dcb34b58304b717536634506e8b48d51056d7528e3bb15b38"
-    #                 },
-    #                 "spent": true,
-    #                 "value": 1
-    #             },
-    #             {
-    #                 "out_script": {
-    #                     "asm": "OP_DUP OP_HASH160 8cbb060e0b0e040beb6aa62924b05c110cb75c77 OP_EQUALVERIFY OP_CHECKSIG",
-    #                     "hex": "76a9148cbb060e0b0e040beb6aa62924b05c110cb75c7788ac",
-    #                     "reqSigs": 1,
-    #                     "type": "pubkeyhash"
-    #                 },
-    #                 "receiver": "1Dq7eVGbm1t4jBasyCxUH6Lwsg8TL9QdCb",
-    #                 "spent": false,
-    #                 "value": 49.83331666
-    #             },
-    #             {
-    #                 "out_script": {
-    #                     "asm": "OP_DUP OP_HASH160 30fed2a84bb68f0d34cdcefc28041003b20ecb9f OP_EQUALVERIFY OP_CHECKSIG",
-    #                     "hex": "76a91430fed2a84bb68f0d34cdcefc28041003b20ecb9f88ac",
-    #                     "reqSigs": 1,
-    #                     "type": "pubkeyhash"
-    #                 },
-    #                 "receiver": "15U4hcVkCqFA3hn6NdVbJbewiid6T83eoe",
-    #                 "spent": false,
-    #                 "value": 49.83331666
-    #             },
-    #             {
-    #                 "out_script": {
-    #                     "asm": "OP_DUP OP_HASH160 9c3e7572824f4b1f0cab33818d62d6ed72fdc478 OP_EQUALVERIFY OP_CHECKSIG",
-    #                     "hex": "76a9149c3e7572824f4b1f0cab33818d62d6ed72fdc47888ac",
-    #                     "reqSigs": 1,
-    #                     "type": "pubkeyhash"
-    #                 },
-    #                 "receiver": "1FF9Edyk4onJ4SCJCYxsKyZ76aUu4Q7CCZ",
-    #                 "spent": false,
-    #                 "value": 49.83331666
-    #             },
-    #             {
-    #                 "out_script": {
-    #                     "asm": "OP_DUP OP_HASH160 1eb588fb6cb913cb205b6803d0e3e448061b365a OP_EQUALVERIFY OP_CHECKSIG",
-    #                     "hex": "76a9141eb588fb6cb913cb205b6803d0e3e448061b365a88ac",
-    #                     "reqSigs": 1,
-    #                     "type": "pubkeyhash"
-    #                 },
-    #                 "receiver": "13oNk2xrLXueqWciNx9p43QRAnakmaGHWv",
-    #                 "spent": false,
-    #                 "value": 49.8333167
-    #             }
-    #         ],
-    #         "rec_time": 1454518679,
-    #         "self_hash": "4890e5a53a8bbe9ac2a1a9723784fc40a0a8644ff0f9ebeb7f13780d0cb25f2d",
-    #         "total_input": 300,
-    #         "total_output": 299.9999,
-    #         "total_spend_output": 50.83331666,
-    #         "version": 1
-    #     }
-    # ]
-
-    # def getrawtransaction(self, txid):
 
     def block_count(self):
         res = self.compose_request('status')

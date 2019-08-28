@@ -1693,6 +1693,7 @@ class HDWallet(object):
         :return:
         """
 
+        network, account_id, _ = self._get_account_defaults(network, account_id)
         if self.scheme != 'bip32' and self.scheme != 'multisig' and scan_gap_limit < 2:
             raise WalletError("The wallet scan() method is only available for BIP32 wallets")
         if keys_ignore is None:
@@ -1705,9 +1706,9 @@ class HDWallet(object):
                 self.scan_key(key.id)
 
         # Update already known transactions
-        srv = Service(network='testnet')
+        srv = Service(network=network, providers=self.providers)
         current_block_height = srv.block_count()
-        for t in self.transactions():
+        for t in self.transactions(account_id=account_id, network=network):
             if not t.confirmations or t.block_height <= 0:
                 new_t = srv.gettransaction(t.hash)
                 t.block_height = new_t.block_height
