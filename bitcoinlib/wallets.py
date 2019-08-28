@@ -1664,18 +1664,16 @@ class HDWallet(object):
     def scan_key(self, key):
         if isinstance(key, int):
             key = self.key(key)
-        n_highest_updated = 0
+        txs_found = False
         while True:
             n_new = self.transactions_update(key_id=key.key_id)
-            n_highest_updated = \
-                key.key_id if (n_new and n_highest_updated < key.key_id) else n_highest_updated
             logger.info("Scanned key %d, %s Found %d new transactions" % (key.key_id, key.address, n_new))
             if not n_new:
                 break
-        return n_highest_updated
+            txs_found = True
+        return txs_found
 
-    def scan(self, scan_gap_limit=5, account_id=None, change=None, rescan_used=False, network=None, _keys_ignore=None,
-             _recursion_depth=0):
+    def scan(self, scan_gap_limit=5, account_id=None, change=None, rescan_used=False, network=None, keys_ignore=None):
         """
         Generate new keys for this wallet and scan for UTXO's.
 
@@ -1689,14 +1687,16 @@ class HDWallet(object):
         :type rescan_used: bool
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param _keys_ignore: Id's of keys to ignore, for internal function use only
-        :param _recursion_depth: Counter for recursion depth, for internal function use only
+        :param keys_ignore: Id's of keys to ignore
+        :type keys_ignore: list of int
 
         :return:
         """
 
         if self.scheme != 'bip32' and self.scheme != 'multisig' and scan_gap_limit < 2:
             raise WalletError("The wallet scan() method is only available for BIP32 wallets")
+        if keys_ignore is None:
+            keys_ignore = []
 
         # Rescan used addresses
         # TODO: add more args to keys_addresses + change/payment etc
@@ -1720,17 +1720,22 @@ class HDWallet(object):
         else:
             change_range = [change]
         for chg in change_range:
-            gap = scan_gap_limit
-            while gap:
-                keys_to_scan = self.get_key(account_id, network, number_of_keys=gap, change=chg)
+            while True:
+                keys_to_scan = self.get_key(account_id, network, number_of_keys=scan_gap_limit, change=chg)
                 if isinstance(keys_to_scan, HDWalletKey):
                     keys_to_scan = [keys_to_scan]
                 n_highest_updated = 0
                 for key in keys_to_scan:
-                    n_high_sub = self.scan_key(key)
-                    n_highest_updated = \
-                        key.key_id if (n_high_sub < key.key_id) else n_highest_updated
-                gap = 0 if not n_highest_updated else [k.key_id for k in keys_to_scan].index(n_highest_updated) + 1
+                    if key.key_id in keys_ignore:
+                        continue
+                    keys_ignore.append(key.key_id)
+                    n_high_new = 0
+                    if self.scan_key(key):
+                        n_high_new = key.address_index + 1
+                    if n_high_new > n_highest_updated:
+                        n_highest_updated = n_high_new
+                if not n_highest_updated:
+                    break
 
     def get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
         """

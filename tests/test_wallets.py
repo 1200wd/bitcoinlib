@@ -1330,9 +1330,9 @@ class TestWalletTransactions(unittest.TestCase, CustomAssertions):
                       'ZY6DFj6x61Wwbrg8Q'
         self.wallet = wallet_create_or_open('scan-test', keys=account_key, network='testnet',
                                             databasefile=DATABASEFILE_UNITTESTS)
-        self.wallet.scan(scan_gap_limit=10)
+        self.wallet.scan(scan_gap_limit=8)
         self.wallet.info()
-        self.assertEqual(len(self.wallet.keys()), 29)
+        self.assertEqual(len(self.wallet.keys()), 27)
         self.assertEqual(self.wallet.balance(), 60500000)
 
     def test_wallet_scan_utxos(self):
