@@ -71,6 +71,10 @@ class BlockCypher(BaseClient):
             for tx in a['txrefs']:
                 if tx['tx_hash'] == after_txid:
                     break
+                try:
+                    tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+                except ValueError:
+                    tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
                 transactions.append({
                     'address': address.address_orig,
                     'tx_hash': tx['tx_hash'],
@@ -80,7 +84,7 @@ class BlockCypher(BaseClient):
                     'value': int(round(tx['value'] * self.units, 0)),
                     'script': '',
                     'block_height': None,
-                    'date': datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+                    'date': tdate
                 })
         return transactions[::-1][:max_txs]
 
