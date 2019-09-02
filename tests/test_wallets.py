@@ -1176,7 +1176,7 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertRaisesRegexp(WalletError,
                                 "This wallet does not contain any private keys, please specify cosigner_id for "
                                 "this wallet", wallet_create_or_open,
-                                'test_wallets_multisig_with_single_key_cosigner',
+                                'test_wallets_multisig_missing_private_and_cosigner',
                                 keys=[hdkey0, hdkey1, hdkey2], databasefile=DATABASEFILE_UNITTESTS)
 
     def test_wallets_multisig_with_single_key_cosigner(self):
@@ -1190,7 +1190,22 @@ class TestWalletMultisig(unittest.TestCase):
         hdkey1 = HDKey(k1, key_type='single')
         hdkey2 = HDKey(k2, key_type='single')
 
-        w = wallet_create_or_open('test_wallets_multisig_with_single_key_cosigner', keys=[hdkey0, hdkey1, hdkey2])
+        w = wallet_create_or_open('test_wallets_multisig_with_single_key_cosigner0', keys=[hdkey0, hdkey1, hdkey2],
+                                  cosigner_id=0, databasefile=DATABASEFILE_UNITTESTS)
+        w.new_key(cosigner_id=2)
+        w.new_key(cosigner_id=2)
+        self.assertEqual(w.keys()[0].address, '39b2tosg9To6cQTrqnZLhuhW5auqCqXKsH')
+        self.assertEqual(w.keys()[1].address, '3K2eBv2hm3SjhVRaJJK8Dt7wMb8mRTWcMH')
+
+        w2 = wallet_create_or_open('test_wallets_multisig_with_single_key_cosigner2', keys=[hdkey0, hdkey1, hdkey2],
+                                   cosigner_id=2, databasefile=DATABASEFILE_UNITTESTS)
+        w2.new_key()
+        w2.new_key()
+        self.assertEqual(w2.keys()[0].address, '39b2tosg9To6cQTrqnZLhuhW5auqCqXKsH')
+        self.assertEqual(w2.keys()[1].address, '3K2eBv2hm3SjhVRaJJK8Dt7wMb8mRTWcMH')
+        self.assertEqual(w2.keys()[0].path, "M/2/0/0")
+        self.assertEqual(w2.keys()[1].path, "M/2/0/1")
+
 
 class TestWalletKeyImport(unittest.TestCase):
 
