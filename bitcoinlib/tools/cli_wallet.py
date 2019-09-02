@@ -90,6 +90,9 @@ def parse_args():
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
     group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default=None,
                                help='Witness type of wallet: lecacy (default), p2sh-segwit or segwit')
+    group_wallet2.add_argument('--cosigner-id', '-s', type=int, default=0,
+                               help='Set this if wallet contains only public keys, more then one private key or if '
+                                    'you would like to create keys for other cosigners.')
     group_transaction = parser.add_argument_group("Transactions")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
                                    help="Create transaction. Specify address followed by amount. Repeat for multiple "
@@ -158,7 +161,7 @@ def create_wallet(wallet_name, args, databasefile):
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
                 key_list.append(HDKey.from_seed(seed, network=args.network))
         return HDWallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
-                               databasefile=databasefile, witness_type=args.witness_type)
+                               cosigner_id=args.cosigner_id, witness_type=args.witness_type, databasefile=databasefile)
     elif args.create_from_key:
         return HDWallet.create(wallet_name, args.create_from_key, network=args.network,
                                databasefile=databasefile, witness_type=args.witness_type)

@@ -72,6 +72,7 @@ class BaseClient(object):
             'Content-Type': 'application/json',
             "Referrer": "https://www.github.com/1200wd/bitcoinlib",
         }
+        # ToDo: Check use 'headers = None' for some providers?
         if method == 'get':
             if variables is None:
                 variables = {}

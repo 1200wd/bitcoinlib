@@ -1015,7 +1015,7 @@ class HDWallet(object):
         :type multisig: bool
         :param sigs_required: Number of signatures required for validation if using a multisignature wallet. For example 2 for 2-of-3 multisignature. Default is all keys must signed
         :type sigs_required: int
-        :param cosigner_id: Set this if wallet contains only public keys or if you would like to create keys for other cosigners.
+        :param cosigner_id: Set this if wallet contains only public keys, more then one private key or if you would like to create keys for other cosigners. Note: provided keys of a multisig wallet are sorted if sort_keys = True (default) so if your provided key list is not sorted the cosigned_id may be different.
         :type cosigner_id: int
         :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must
         follow the following rules:
@@ -1129,6 +1129,12 @@ class HDWallet(object):
                 hdkey_list.sort(key=lambda x: x.public_byte)
             cos_prv_lst = [hdkey_list.index(cw) for cw in hdkey_list if cw.is_private]
             if cosigner_id is None:
+                if not cos_prv_lst:
+                    raise WalletError("This wallet does not contain any private keys, please specify cosigner_id for "
+                                      "this wallet")
+                elif len(cos_prv_lst) > 1:
+                    raise WalletError("This wallet contains more then 1 private key, please specify "
+                                      "cosigner_id for this wallet")
                 hdpm.cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
             wlt_cos_id = 0
             for cokey in hdkey_list:
@@ -1140,7 +1146,7 @@ class HDWallet(object):
                 if cokey.key_type == 'single':
                     scheme = 'single'
                     # Adjust key depth of main wallet if main key is a single private key
-                    if cokey.is_private:
+                    if hdkey_list.index(cokey) == hdpm.cosigner_id:
                         hdpm.key_depth = cokey.depth
 
                 w = cls._create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
@@ -1250,8 +1256,10 @@ class HDWallet(object):
             self.sort_keys = db_wlt.sort_keys
             if db_wlt.main_key_id:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
-            if self.main_key and self._default_account_id is None:
-                self._default_account_id = self.main_key.account_id
+            if self._default_account_id is None:
+                self._default_account_id = 0
+                if self.main_key:
+                    self._default_account_id = self.main_key.account_id
             _logger.info("Opening wallet '%s'" % self.name)
             self._key_objects = {
                 self.main_key_id: self.main_key
@@ -1630,8 +1638,10 @@ class HDWallet(object):
         if self.multisig:
             if not self.multisig_n_required:
                 raise WalletError("Multisig_n_required not set, cannot create new key")
-        if cosigner_id is None:
-            cosigner_id = self.cosigner_id
+            if cosigner_id is None:
+                if self.cosigner_id is None:
+                    raise WalletError("Missing Cosigner ID value, cannot create new key")
+                cosigner_id = self.cosigner_id
 
         # Determine new key ID
         prevkey = self._session.query(DbKey).\
@@ -1758,6 +1768,8 @@ class HDWallet(object):
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
+        if cosigner_id is None:
+            cosigner_id = self.cosigner_id
         last_used_qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
                       used=True, change=change, depth=self.key_depth).\
@@ -2269,6 +2281,8 @@ class HDWallet(object):
         """
 
         if self.multisig and self.cosigner:
+            if self.cosigner_id is None:
+                raise WalletError("Missing Cosigner ID value for this wallet, cannot fetch account ID")
             accounts = [wk.account_id for wk in self.cosigner[self.cosigner_id].keys_accounts(network=network)]
         else:
             accounts = [wk.account_id for wk in self.keys_accounts(network=network)]
@@ -3466,6 +3480,7 @@ class HDWallet(object):
         print(" Multisig                       %s" % self.multisig)
         if self.multisig:
             print(" Multisig Wallet IDs            %s" % str([w.wallet_id for w in self.cosigner]).strip('[]'))
+            print(" Cosigner ID                    %s" % self.cosigner_id)
         print(" Witness type                   %s" % self.witness_type)
         print(" Main network                   %s" % self.network.name)
         print(" Latest update                  %s" % self.last_updated)
@@ -3473,9 +3488,13 @@ class HDWallet(object):
         if self.multisig:
             print("\n= Multisig Public Master Keys =")
             for cs in self.cosigner:
-                print("%5s %-70s %-10s" % (cs.main_key.key_id, cs.wif(is_private=False),
-                                           "main" if cs.main_key.is_private else "cosigner"))
-            print("For main keys a private master key is available in this wallet to sign transactions.")
+                print("%5s %3s %-70s %-6s %-8s %s" %
+                      (cs.cosigner_id, cs.main_key.key_id, cs.wif(is_private=False), cs.scheme,
+                       "main" if cs.main_key.is_private else "cosigner",
+                       '*' if cs.cosigner_id == self.cosigner_id else ''))
+
+            print("For main keys a private master key is available in this wallet to sign transactions. "
+                  "* cosigner key for this wallet")
 
         if detail and self.main_key:
             print("\n= Wallet Master Key =")
