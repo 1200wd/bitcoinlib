@@ -1119,11 +1119,7 @@ class HDWallet(object):
         else:
             key = hdkey_list[0]
 
-        hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                           scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
-                           encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                           key_path=key_path, databasefile=databasefile)
-
+        main_key_path = key_path
         if multisig:
             if sort_keys:
                 hdkey_list.sort(key=lambda x: x.public_byte)
@@ -1135,7 +1131,16 @@ class HDWallet(object):
                 elif len(cos_prv_lst) > 1:
                     raise WalletError("This wallet contains more then 1 private key, please specify "
                                       "cosigner_id for this wallet")
-                hdpm.cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
+                cosigner_id = 0 if not cos_prv_lst else cos_prv_lst[0]
+            if hdkey_list[cosigner_id].key_type == 'single':
+                main_key_path = 'm'
+
+        hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
+                           scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
+                           encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
+                           key_path=main_key_path, databasefile=databasefile)
+
+        if multisig:
             wlt_cos_id = 0
             for cokey in hdkey_list:
                 if hdpm.network.name != cokey.network.name:
@@ -1143,19 +1148,21 @@ class HDWallet(object):
                                       (cokey.wif(is_private=False), cokey.network.name, network, hdpm.network.name))
                 scheme = 'bip32'
                 wn = name + '-cosigner-%d' % wlt_cos_id
+                c_key_path = key_path
                 if cokey.key_type == 'single':
                     scheme = 'single'
-                    # Adjust key depth of main wallet if main key is a single private key
-                    if hdkey_list.index(cokey) == hdpm.cosigner_id:
-                        hdpm.key_depth = cokey.depth
-
+                    c_key_path = ['m']
                 w = cls._create(name=wn, key=cokey, owner=owner, network=network, account_id=account_id,
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
                                 witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
-                                sigs_required=None, cosigner_id=wlt_cos_id, key_path=key_path,
+                                sigs_required=None, cosigner_id=wlt_cos_id, key_path=c_key_path,
                                 databasefile=databasefile)
                 hdpm.cosigner.append(w)
                 wlt_cos_id += 1
+            # hdpm._dbwallet = hdpm._session.query(DbWallet).filter(DbWallet.id == hdpm.wallet_id)
+            # hdpm._dbwallet.update({DbWallet.cosigner_id: hdpm.cosigner_id})
+            # hdpm._dbwallet.update({DbWallet.key_path: hdpm.key_path})
+            # hdpm._session.commit()
 
         return hdpm
 
@@ -1643,17 +1650,20 @@ class HDWallet(object):
                     raise WalletError("Missing Cosigner ID value, cannot create new key")
                 cosigner_id = self.cosigner_id
 
-        # Determine new key ID
-        prevkey = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network, account_id=account_id,
-                      change=change, cosigner_id=cosigner_id, depth=self.key_depth).\
-            order_by(DbKey.address_index.desc()).first()
         address_index = 0
-        if prevkey:
-            address_index = prevkey.address_index + 1
+        if self.multisig and cosigner_id is not None and (len(self.cosigner) > cosigner_id and self.cosigner[cosigner_id].key_path == 'm' or self.cosigner[cosigner_id].key_path == ['m']):
+            req_path = []
+        else:
+            prevkey = self._session.query(DbKey).\
+                filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=network, account_id=account_id,
+                          change=change, cosigner_id=cosigner_id, depth=self.key_depth).\
+                order_by(DbKey.address_index.desc()).first()
+            if prevkey:
+                address_index = prevkey.address_index + 1
+            req_path = [change, address_index]
 
-        return self.key_for_path([change, address_index], name=name, account_id=account_id, network=network,
-                                 cosigner_id=cosigner_id)
+        return self.key_for_path(req_path, name=name, account_id=account_id, network=network,
+                                 cosigner_id=cosigner_id, address_index=address_index)
 
     def new_key_change(self, name='', account_id=None, network=None):
         """
@@ -1937,7 +1947,10 @@ class HDWallet(object):
         if level_offset and self.main_key and level_offset > 0:
             level_offset_key = level_offset - self.main_key.depth
 
-        fullpath = path_expand(path, self.key_path, level_offset_key, account_id=account_id, cosigner_id=cosigner_id,
+        key_path = self.key_path
+        if self.multisig and cosigner_id is not None and len(self.cosigner) > cosigner_id:
+            key_path = self.cosigner[cosigner_id].key_path
+        fullpath = path_expand(path, key_path, level_offset_key, account_id=account_id, cosigner_id=cosigner_id,
                                purpose=self.purpose, address_index=address_index, change=change,
                                witness_type=self.witness_type, network=network)
 

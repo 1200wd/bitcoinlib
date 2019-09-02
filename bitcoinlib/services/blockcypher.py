@@ -58,6 +58,8 @@ class BlockCypher(BaseClient):
 
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         address = self._address_convert(address)
+        if address.witness_type != 'legacy':
+            raise ClientError("Provider does not support segwit addresses")
         res = self.compose_request('addrs', address.address, variables={'unspentOnly': 1, 'limit': 2000})
         transactions = []
         if not isinstance(res, list):
@@ -91,6 +93,8 @@ class BlockCypher(BaseClient):
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
         address = self._address_convert(address)
+        if address.witness_type != 'legacy':
+            raise ClientError("Provider does not support segwit addresses")
         res = self.compose_request('addrs', address.address, variables={'unspentOnly': 0, 'limit': 2000})
         if not isinstance(res, list):
             res = [res]

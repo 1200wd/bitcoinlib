@@ -1194,6 +1194,10 @@ class TestWalletMultisig(unittest.TestCase):
                                   cosigner_id=0, databasefile=DATABASEFILE_UNITTESTS)
         w.new_key(cosigner_id=2)
         w.new_key(cosigner_id=2)
+        # Cosigner 0 use a single key wallet, so calling new_key() repeatedly has no effect
+        w.new_key()
+        w.new_key()
+        self.assertEqual(len(w.addresslist()), 3)
         self.assertEqual(w.keys()[0].address, '39b2tosg9To6cQTrqnZLhuhW5auqCqXKsH')
         self.assertEqual(w.keys()[1].address, '3K2eBv2hm3SjhVRaJJK8Dt7wMb8mRTWcMH')
 
@@ -1205,6 +1209,15 @@ class TestWalletMultisig(unittest.TestCase):
         self.assertEqual(w2.keys()[1].address, '3K2eBv2hm3SjhVRaJJK8Dt7wMb8mRTWcMH')
         self.assertEqual(w2.keys()[0].path, "M/2/0/0")
         self.assertEqual(w2.keys()[1].path, "M/2/0/1")
+
+        # Close wallet and reopen to test for database issues for example
+        del w
+        w = wallet_create_or_open('test_wallets_multisig_with_single_key_cosigner0',
+                                  databasefile=DATABASEFILE_UNITTESTS)
+        w.new_key(cosigner_id=2)
+        self.assertEqual(w.keys()[3].address, '3Q9rnDniMa55jZFyzBDKihtXwZSM34zfEj')
+
+
 
 
 class TestWalletKeyImport(unittest.TestCase):
