@@ -30,6 +30,8 @@ from bitcoinlib.encoding import EncodingError, varstr, to_bytes
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'bitaps'
+# Please note: In the Bitaps API, the first couple of Bitcoin blocks are not correctly indexed,
+# so transactions from these blocks are missing.
 
 
 class BitapsClient(BaseClient):
