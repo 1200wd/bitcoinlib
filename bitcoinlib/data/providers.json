@@ -339,5 +339,16 @@
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
+  },
+  "insightdash": {
+    "provider": "insightdash",
+    "network": "dash",
+    "client_class": "InsightDashClient",
+    "provider_coin_id": "",
+    "url": "https://insight.dash.org/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
   }
 }

@@ -57,15 +57,14 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '1976a914c1b1668730f13dd1772977e8ce96e3f5f78d290388ac00000000'
         self.assertEqual(raw_tx, Service(network='litecoin', timeout=TIMEOUT_TEST).getrawtransaction(tx_id))
 
-    # Disable for now due to lack of working providers
-    # def test_transaction_get_raw_dash(self):
-    #     tx_id = '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf'
-    #     raw_tx = '0100000001edfbcd24cd10350844061d62d03be6f3ed9c28b26b0b8082539c5d29454f7cb3010000006b483045022100e' \
-    #              '87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc0f33d036c1c60a7d561de060' \
-    #              '67528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a277ad1b331f78add78c6723eed00097520e' \
-    #              'dc21ed2ffffffff0200f90295000000001976a914de4b569d39f05bfc43f56a1b22d7783a7d0661d488aca0fc7c040000' \
-    #              '00001976a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac00000000'
-    #     self.assertEqual(raw_tx, Service(network='dash').getrawtransaction(tx_id))
+    def test_transaction_get_raw_dash(self):
+        tx_id = '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf'
+        raw_tx = '0100000001edfbcd24cd10350844061d62d03be6f3ed9c28b26b0b8082539c5d29454f7cb3010000006b483045022100e' \
+                 '87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc0f33d036c1c60a7d561de060' \
+                 '67528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a277ad1b331f78add78c6723eed00097520e' \
+                 'dc21ed2ffffffff0200f90295000000001976a914de4b569d39f05bfc43f56a1b22d7783a7d0661d488aca0fc7c040000' \
+                 '00001976a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac00000000'
+        self.assertEqual(raw_tx, Service(network='dash').getrawtransaction(tx_id))
 
     def test_service_sendrawtransaction(self):
         raw_tx = \
@@ -389,10 +388,10 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_gettransaction_dash(self):
         expected_dict = {'block_hash': '000000000000002eddff510f4f6c61243e350102c58bdf8c986430b405ce7a22',
                          'network': 'dash', 'input_total': 2575500000, 'fee_per_kb': None, 'outputs': [
-                {'public_key_hash': 'de4b569d39f05bfc43f56a1b22d7783a7d0661d4', 'output_n': 0, 'spent': None,
+                {'public_key_hash': 'de4b569d39f05bfc43f56a1b22d7783a7d0661d4', 'output_n': 0, 'spent': True,
                  'public_key': '', 'address': 'XvxE6SRkZMbhBW34QfrgxPqcNmgTsRvyeJ', 'script_type': 'p2pkh',
                  'script': '76a914de4b569d39f05bfc43f56a1b22d7783a7d0661d488ac', 'value': 2500000000},
-                {'public_key_hash': '1495ac5ca428a17197c7cb5065614d8eabfcf8cb', 'output_n': 1, 'spent': None,
+                {'public_key_hash': '1495ac5ca428a17197c7cb5065614d8eabfcf8cb', 'output_n': 1, 'spent': True,
                  'public_key': '', 'address': 'XcZgeaA4cwUqBqtKUPfZHUme8a5G3gA8LC', 'script_type': 'p2pkh',
                  'script': '76a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac', 'value': 75300000}],
                          'output_total': 2575300000, 'block_height': 900147, 'locktime': 0, 'flag': None,
@@ -629,3 +628,11 @@ class TestService(unittest.TestCase, CustomAssertions):
         for provider in srv.results:
             print("Comparing ltc provider %s" % provider)
             self.assertListEqual(srv.results[provider], [])
+
+    def test_service_dash(self):
+        srv = Service(network='dash')
+        address = 'XoLTipv6ryWECYu94vbkmDjntAXqNgouTW'
+        tx_hash = 'f770f05d2b1c63b71b2650227252da06ef226661982c4ee9b136b64f77bbbd0c'
+        self.assertGreaterEqual(srv.getbalance(address), 50000000000)
+        self.assertEqual(srv.getutxos(address)[0]['tx_hash'], tx_hash)
+        self.assertEqual(srv.gettransactions(address)[0].hash, tx_hash)

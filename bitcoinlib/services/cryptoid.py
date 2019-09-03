@@ -111,7 +111,10 @@ class CryptoID(BaseClient):
         variables = {'t': tx_id}
         tx_api = self.compose_request('txinfo', path_type='api', variables=variables)
         for n, i in enumerate(t.inputs):
-            i.value = int(round(tx_api['inputs'][n]['amount'] * self.units, 0))
+            if i.script_type != 'coinbase':
+                i.value = int(round(tx_api['inputs'][n]['amount'] * self.units, 0))
+            else:
+                t.coinbase = True
         for n, o in enumerate(t.outputs):
             o.spent = None
         if tx['confirmations']:
@@ -128,8 +131,10 @@ class CryptoID(BaseClient):
         t.network = self.network
         t.locktime = tx['locktime']
         t.version = struct.pack('>L', tx['version'])
-        t.input_total = int(round(tx_api['total_input'] * self.units, 0))
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
+        t.input_total = t.output_total
+        if not t.coinbase:
+            t.input_total = int(round(tx_api['total_input'] * self.units, 0))
         t.fee = t.input_total - t.output_total
         return t
 
