@@ -2787,6 +2787,15 @@ class HDWallet(object):
         addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                        change=change, depth=depth)
         srv = Service(network=network, providers=self.providers)
+
+        # Update number of confirmations for already known blocks
+        block_count = srv.block_count()
+        for t in self.transactions():
+            if t.block_height:
+                t.confirmations = block_count - t.block_height
+                t.status = 'confirmed'
+                t.save()
+
         txs = []
         last_updated = datetime.datetime.now()
         for address in addresslist:
