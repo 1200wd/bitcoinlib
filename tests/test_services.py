@@ -260,6 +260,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
                 for inp in [i.as_dict() for i in t.inputs]
             ]
+
             if provider in ['blockchaininfo']:  # Some providers do not provide previous hashes
                 r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
                 r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
@@ -267,6 +268,12 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
 
     def test_service_gettransactions_after_txid(self):
+        res = Service(timeout=TIMEOUT_TEST).\
+            gettransactions('3As4asrpMryntmrVgexCD9i3f3qZP92Zct',
+                            after_txid='8b8a8f1de23f70b2bdaa74488d97dc64728c2d99d2d486945c71e258fdef6ca1')
+        self.assertEqual(res[0].hash, '6e5ffff24c095461e0d36d0ad4228522e8bda204648ddfb9ae4c69624ba994e2')
+
+    def test_service_gettransactions_after_txid_segwit(self):
         res = Service(timeout=TIMEOUT_TEST).\
             gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
                             after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
