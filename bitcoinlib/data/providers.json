@@ -219,7 +219,7 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-  "blockchair.bitcoin": {
+  "blockchair": {
     "provider": "blockchair",
     "network": "bitcoin",
     "client_class": "BlockChairClient",
@@ -324,17 +324,6 @@
     "client_class": "LitecoinBlockexplorerClient",
     "provider_coin_id": "",
     "url": "https://litecoinblockexplorer.net/api/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "bitcoinchain": {
-    "provider": "bitcoinchain",
-    "network": "bitcoin",
-    "client_class": "BitcoinchainClient",
-    "provider_coin_id": "",
-    "url": "https://api-r.bitcoinchain.com/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
