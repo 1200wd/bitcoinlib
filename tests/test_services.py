@@ -575,7 +575,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
     def test_service_gettransaction_nulldata(self):
-        nulldata_str = 'jK0\nfrom bitcoinlib.transactions import Output\nfrom bitcoinlib.wallets import'
+        nulldata_str = b'jK0\nfrom bitcoinlib.transactions import Output\nfrom bitcoinlib.wallets import'
         srv = Service(timeout=TIMEOUT_TEST)
         t = srv.gettransaction('c6960cd3a688db18550c06b08ed744382cfc9abce63cf6f97981e4b61bba81dc')
         self.assertEqual(t.outputs[0].lock_script, nulldata_str)
