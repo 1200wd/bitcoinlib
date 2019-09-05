@@ -22,10 +22,13 @@ import os
 import logging
 import json
 import random
+import time
+from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
 from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
+
 
 _logger = logging.getLogger(__name__)
 
@@ -110,6 +113,8 @@ class Service(object):
         self.resultcount = 0
         self.complete = None
         self.timeout = timeout
+        self._block_count = None
+        self._block_count_update = 0
 
     def _provider_execute(self, method, *arguments):
         self.results = {}
@@ -297,11 +302,18 @@ class Service(object):
 
     def block_count(self):
         """
-        Get latest block number: The block number of last block in longest chain on the blockchain
+        Get latest block number: The block number of last block in longest chain on the Blockchain.
+
+        Block count is cashed for BLOCK_COUNT_CACHE_TIME seconds to avoid to many calls to service providers.
 
         :return int:
         """
-        return self._provider_execute('block_count')
+
+        current_timestamp = time.time()
+        if self._block_count_update < current_timestamp - BLOCK_COUNT_CACHE_TIME:
+            self._block_count = self._provider_execute('block_count')
+            self._block_count_update = time.time()
+        return self._block_count
 
     def mempool(self, txid=''):
         """
