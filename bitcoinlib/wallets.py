@@ -1695,7 +1695,12 @@ class HDWallet(object):
 
     def scan(self, scan_gap_limit=5, account_id=None, change=None, rescan_used=False, network=None, keys_ignore=None):
         """
-        Generate new keys for this wallet and scan for UTXO's.
+        Generate new addresses/keys and scan for new transactions using the Service providers. Updates all UTXO's and balances.
+
+        Keep scanning for new transactions until no new transactions are found for 'scan_gap_limit' addresses. Only scan keys from default network and account unless another network or account is specified.
+
+        Use the faster utxos_update() method if you are only interested in unspent outputs.
+        Use the transaction_update() method if you would like to manage the key creation yourself or if you want to scan a single key.
 
         :param scan_gap_limit: Amount of new keys and change keys (addresses) created for this wallet
         :type scan_gap_limit: int
@@ -2485,9 +2490,9 @@ class HDWallet(object):
     def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None,
                      utxos=None, update_balance=True, max_utxos=MAX_TRANSACTIONS):
         """
-        Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
+        Update UTXO's (Unspent Outputs) for addresses/keys in this wallet using various Service providers.
         
-        Delete old UTXO's which are spent and append new UTXO's to database.
+        This method does not import transactions: use transactions_update() or generate addresses: use scan().
 
         For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries:
         [{
@@ -2760,8 +2765,9 @@ class HDWallet(object):
     def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None,
                             max_txs=MAX_TRANSACTIONS):
         """
-        Update wallets transaction from service providers. Get all transactions for known keys in this wallet.
-        The balances and unspent outputs (UTXO's) are updated as well.
+        Update wallets transaction from service providers. Get all transactions for known keys in this wallet. The balances and unspent outputs (UTXO's) are updated as well. Only scan keys from default network and account unless another network or account is specified.
+
+        Use the wallet_scan() method for automatic address generation/management, and use the faster utxos_update() method to only look for unspent outputs and balances.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2784,8 +2790,6 @@ class HDWallet(object):
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
         if depth is None:
             depth = self.key_depth
-        addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
-                                       change=change, depth=depth)
         srv = Service(network=network, providers=self.providers)
 
         # Update number of confirmations for already known blocks
@@ -2796,7 +2800,10 @@ class HDWallet(object):
                 t.status = 'confirmed'
                 t.save()
 
+        # Get transactions for wallet's addresses
         txs = []
+        addresslist = self.addresslist(
+            account_id=account_id, used=used, network=network, key_id=key_id, change=change, depth=depth)
         last_updated = datetime.datetime.now()
         for address in addresslist:
             txs += srv.gettransactions(address, max_txs=max_txs, after_txid=self.transaction_last(address))
@@ -2808,19 +2815,21 @@ class HDWallet(object):
                     update({DbKey.latest_txid: txs[-1].hash})
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
+
+        # Update Transaction outputs to get list of unspent outputs (UTXO's)
         utxo_set = set()
         for t in txs:
             wt = HDWalletTransaction.from_transaction(self, t)
             wt.save()
             utxos = [(to_hexstring(ti.prev_hash), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
-
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
                        DbTransactionOutput.spent.op("IS")(False)).all()
             for u in tos:
                 u.spent = True
+
         self.last_updated = last_updated
         self._session.commit()
         self._balance_update(account_id=account_id, network=network, key_id=key_id)
