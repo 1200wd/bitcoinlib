@@ -1518,7 +1518,8 @@ class Transaction(object):
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
         else:
-            self.size = len(r)
+            if not (self.size and b'' in [i.unlocking_script for i in self.inputs]):
+                self.size = len(r)
         return r
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):

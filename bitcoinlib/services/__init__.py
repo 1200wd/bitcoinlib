@@ -36,3 +36,4 @@ import bitcoinlib.services.bcoin
 import bitcoinlib.services.bitaps
 import bitcoinlib.services.litecoinblockexplorer
 import bitcoinlib.services.insightdash
+import bitcoinlib.services.smartbit

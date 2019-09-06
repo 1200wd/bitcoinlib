@@ -339,5 +339,16 @@
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
+  },
+  "smartbit": {
+    "provider": "smartbit",
+    "network": "bitcoin",
+    "client_class": "SmartbitClient",
+    "provider_coin_id": "",
+    "url": "https://api.smartbit.com.au/v1/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
   }
 }
