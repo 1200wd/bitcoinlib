@@ -81,27 +81,54 @@ class SmartbitClient(BaseClient):
     #             break
     #     return utxos[:max_txs]
 
-    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = []
+        next_link = ''
+        while True:
+            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
+            res = self.compose_request('address', data=address, variables=variables)
+            next_link = res['address']['transaction_paging']['next']
+            for tx in res['address']['transactions']:
+                t = self._parse_transaction(tx)
+                txs.append(t)
+                if t.hash == after_txid:
+                    txs = []
+            if not next_link:
+                break
+        return txs[:max_txs]
 
     def _parse_transaction(self, tx):
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
         witness_type = 'legacy'
+        if 'inputs' in tx and [ti['witness'] for ti in tx['inputs'] if ti['witness']]:
+            witness_type = 'segwit'
+        input_total = tx['input_amount_int']
+        if tx['coinbase']:
+            input_total = tx['output_amount_int']
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
                         size=tx['size'], hash=tx['hash'], date=datetime.fromtimestamp(tx['time']),
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
-                        input_total=tx['input_amount_int'], coinbase=tx['coinbase'],
+                        input_total=input_total, coinbase=tx['coinbase'],
                         output_total=tx['output_amount_int'], witness_type=witness_type)
         index_n = 0
-        for ti in tx['inputs']:
-            t.add_input(prev_hash=ti['txid'], output_n=ti['vout'],
-                        unlocking_script_unsigned=ti['script_sig']['hex'], index_n=index_n, value=ti['value_int'],
-                        address=ti['addresses'][0])
-            index_n += 1
+        if tx['coinbase']:
+            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=input_total)
+        else:
+            for ti in tx['inputs']:
+                unlocking_script = b"".join([varstr(to_bytes(x)) for x in ti['witness']])
+                # if tx['inputs']['witness']
+                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
+                            unlocking_script_unsigned=ti['script_sig']['hex'], index_n=index_n, value=ti['value_int'],
+                            address=ti['addresses'][0])
+                index_n += 1
         for to in tx['outputs']:
             spent = True if 'spend_txid' in to else False
-            t.add_output(value=to['value_int'], address=to['addresses'][0], lock_script=to['script_pub_key']['hex'],
+            address = ''
+            if to['addresses']:
+                address = to['addresses'][0]
+            t.add_output(value=to['value_int'], address=address, lock_script=to['script_pub_key']['hex'],
                          spent=spent, output_n=to['n'])
         return t
 

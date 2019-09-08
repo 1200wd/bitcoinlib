@@ -270,8 +270,8 @@ class TestService(unittest.TestCase, CustomAssertions):
     def test_service_gettransactions_after_txid(self):
         res = Service(timeout=TIMEOUT_TEST).\
             gettransactions('3As4asrpMryntmrVgexCD9i3f3qZP92Zct',
-                            after_txid='8b8a8f1de23f70b2bdaa74488d97dc64728c2d99d2d486945c71e258fdef6ca1')
-        self.assertEqual(res[0].hash, '6e5ffff24c095461e0d36d0ad4228522e8bda204648ddfb9ae4c69624ba994e2')
+                            after_txid='d14f4dfafa3578250ffd596b3f69836ef5e35d57ceced1cc0850d2246964dd3a')
+        self.assertEqual(res[0].hash, '8b8a8f1de23f70b2bdaa74488d97dc64728c2d99d2d486945c71e258fdef6ca1')
 
     def test_service_gettransactions_after_txid_segwit(self):
         res = Service(timeout=TIMEOUT_TEST).\
