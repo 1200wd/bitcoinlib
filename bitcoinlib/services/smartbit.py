@@ -102,7 +102,7 @@ class SmartbitClient(BaseClient):
         if tx['confirmations']:
             status = 'confirmed'
         witness_type = 'legacy'
-        if 'inputs' in tx and [ti['witness'] for ti in tx['inputs'] if ti['witness']]:
+        if 'inputs' in tx and [ti['witness'] for ti in tx['inputs'] if ti['witness'] and ti['witness'] != ['NULL']]:
             witness_type = 'segwit'
         input_total = tx['input_amount_int']
         if tx['coinbase']:
@@ -117,11 +117,12 @@ class SmartbitClient(BaseClient):
             t.add_input(prev_hash=b'\00' * 32, output_n=0, value=input_total)
         else:
             for ti in tx['inputs']:
-                unlocking_script = b"".join([varstr(to_bytes(x)) for x in ti['witness']])
+                unlocking_script = ti['script_sig']['hex']
+                if ti['witness'] and ti['witness'] != ['NULL']:
+                    unlocking_script = b"".join([varstr(to_bytes(x)) for x in ti['witness']])
                 # if tx['inputs']['witness']
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
-                            unlocking_script_unsigned=ti['script_sig']['hex'], index_n=index_n, value=ti['value_int'],
-                            address=ti['addresses'][0])
+                            index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'])
                 index_n += 1
         for to in tx['outputs']:
             spent = True if 'spend_txid' in to else False
