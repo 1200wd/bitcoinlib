@@ -39,7 +39,7 @@ class SmartbitClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, category, command='', data='', variables=None, type='blockchain'):
+    def compose_request(self, category, command='', data='', variables=None, type='blockchain', method='get'):
         url_path = type + '/' + category
         if data:
             if url_path[-1:] != '/':
@@ -47,7 +47,7 @@ class SmartbitClient(BaseClient):
             url_path += data
         if command:
             url_path += '/' + command
-        return self.request(url_path, variables=variables)
+        return self.request(url_path, variables=variables, method=method)
 
     def getbalance(self, addresslist):
         res = self.compose_request('address', 'wallet', ','.join(addresslist))
@@ -136,12 +136,23 @@ class SmartbitClient(BaseClient):
         res = self.compose_request('tx', data=txid)
         return self._parse_transaction(res['transaction'])
 
-    # def getrawtransaction(self, txid):
+    def getrawtransaction(self, txid):
+        res = self.compose_request('tx', data=txid, command='hex')
+        return res['hex'][0]['hex']
 
-    # def block_count(self):
+    def block_count(self):
+        return self.compose_request('totals')['totals']['block_count']
 
-    # def mempool(self, txid):
+    def mempool(self, txid):
+        if txid:
+            tx = self.compose_request('tx', data=txid)
+            if tx['transaction']['confirmations'] == 0:
+                return [tx['transaction']['hash']]
+        return []
 
-    # def estimatefee(self, blocks):
-
-    # def sendrawtransaction(self, rawtx):
+    def sendrawtransaction(self, rawtx):
+        res = self.compose_request('pushtx', variables={'hex': rawtx}, method='post')
+        return {
+            'txid': res['txid'],
+            'response_dict': res
+        }

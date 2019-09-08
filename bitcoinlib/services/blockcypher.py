@@ -178,7 +178,4 @@ class BlockCypher(BaseClient):
             tx = self.compose_request('txs', txid)
             if tx['confirmations'] == 0:
                 return [tx['hash']]
-        else:
-            txs = self.compose_request('txs', txid)
-            return [tx['hash'] for tx in txs]
         return []
