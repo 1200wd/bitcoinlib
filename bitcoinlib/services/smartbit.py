@@ -18,14 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import math
 import logging
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.keys import deserialize_address
-from bitcoinlib.encoding import EncodingError, varstr, to_bytes
+from bitcoinlib.encoding import varstr, to_bytes, to_hexstring
 
 _logger = logging.getLogger(__name__)
 
@@ -53,33 +51,40 @@ class SmartbitClient(BaseClient):
         res = self.compose_request('address', 'wallet', ','.join(addresslist))
         return res['wallet']['total']['received_int']
 
-    # def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-    #     utxos = []
-    #     next_link = ''
-    #     while True:
-    #         variables = {'limit': 10, 'next': next_link}
-    #         res = self.compose_request('address', 'unspent', address, variables=variables)
-    #         next_link = res['paging']['next']
-    #         for utxo in res['unspent']:
-    #             utxos.append(
-    #                 {
-    #                     'address': utxo['addresses'][0],
-    #                     'tx_hash': utxo['txid'],
-    #                     'confirmations': utxo['confirmations'],
-    #                     'output_n': utxo['n'],
-    #                     'input_n': 0,
-    #                     'block_height': None,
-    #                     'fee': None,
-    #                     'size': 0,
-    #                     'value': utxo['value_int'],
-    #                     'script': utxo['script_pub_key']['hex'],
-    #                     'date': None
-    #                 })
-    #             if utxo['txid'] == after_txid:
-    #                 utxos = []
-    #         if not next_link:
-    #             break
-    #     return utxos[:max_txs]
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        utxos = []
+        utxo_list = []
+        next_link = ''
+        while True:
+            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
+            res = self.compose_request('address', 'unspent', address, variables=variables)
+            next_link = res['paging']['next']
+            for utxo in res['unspent']:
+                utxo_list.append(utxo['txid'])
+                if utxo['txid'] == after_txid:
+                    utxo_list = []
+            if not next_link:
+                break
+        for txid in utxo_list[:max_txs]:
+            t = self.gettransaction(txid)
+            for utxo in t.outputs:
+                if utxo.address != address:
+                    continue
+                utxos.append(
+                    {
+                        'address': utxo.address,
+                        'tx_hash': t.hash,
+                        'confirmations': t.confirmations,
+                        'output_n': utxo.output_n,
+                        'input_n': 0,
+                        'block_height': t.block_height,
+                        'fee': t.fee,
+                        'size': t.size,
+                        'value': utxo.value,
+                        'script': to_hexstring(utxo.lock_script),
+                        'date': t.date
+                    })
+        return utxos
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []

@@ -63,9 +63,11 @@ class BitapsClient(BaseClient):
             variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
             try:
                 res = self.compose_request('address', 'transactions', address, variables)
-            except ClientError:
+            except ClientError as e:
                 if "address not found" in self.resp.text:
                     return []
+                else:
+                    raise ClientError(e.msg)
             txs = res['data']['list']
             for tx in txs:
                 for outp in tx['vOut']:
