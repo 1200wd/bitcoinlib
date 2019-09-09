@@ -131,7 +131,7 @@ class Service(object):
                 if self.providers[sp]['url'] in ['bcoin', 'bitcoind', 'litecoind', 'dashd']:
                     # TODO ADD provider type
                     pass
-                if not self.providers[sp]['url']:
+                if not self.providers[sp]['url'] and self.network.name != 'bitcoinlib_test':
                     continue
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
@@ -177,7 +177,7 @@ class Service(object):
 
     def getbalance(self, addresslist, addresses_per_request=5):
         """
-        Get balance for each address in addresslist provided
+        Get total balance for address or list of addresses
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
@@ -201,7 +201,8 @@ class Service(object):
 
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
-        Get list of unspent outputs (UTXO's) per address.
+        Get list of unspent outputs (UTXO's) for specified address.
+
         Sorted from old to new, so highest number of confirmations first.
 
         :param address: Address string
@@ -224,8 +225,9 @@ class Service(object):
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
-        Get all transactions for each address in addresslist.
-        Sorted from old to new, so highest number of confirmations first.
+        Get all transactions for specified address.
+
+        Sorted from old to new, so transactions with highest number of confirmations first.
 
         :param address: Address string
         :type address: str
@@ -250,7 +252,7 @@ class Service(object):
 
     def gettransaction(self, txid):
         """
-        Get a transaction by its transaction hash
+        Get a transaction by its transaction hash. Convert to Bitcoinlib transaction object.
 
         :param txid: Transaction identification hash
         :type txid: str, bytes

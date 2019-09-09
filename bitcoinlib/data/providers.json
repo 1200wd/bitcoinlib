@@ -4,7 +4,7 @@
     "network": "bitcoinlib_test",
     "client_class": "BitcoinLibTestClient",
     "provider_coin_id": "",
-    "url": "",
+    "url": "local",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,
