@@ -47,67 +47,6 @@ class SmartbitClient(BaseClient):
             url_path += '/' + command
         return self.request(url_path, variables=variables, method=method)
 
-    def getbalance(self, addresslist):
-        res = self.compose_request('address', 'wallet', ','.join(addresslist))
-        return res['wallet']['total']['received_int']
-
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        utxos = []
-        utxo_list = []
-        next_link = ''
-        while True:
-            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
-            res = self.compose_request('address', 'unspent', address, variables=variables)
-            next_link = res['paging']['next']
-            for utxo in res['unspent']:
-                utxo_list.append(utxo['txid'])
-                if utxo['txid'] == after_txid:
-                    utxo_list = []
-            if not next_link:
-                break
-        for txid in utxo_list[:max_txs]:
-            t = self.gettransaction(txid)
-            for utxo in t.outputs:
-                if utxo.address != address:
-                    continue
-                utxos.append(
-                    {
-                        'address': utxo.address,
-                        'tx_hash': t.hash,
-                        'confirmations': t.confirmations,
-                        'output_n': utxo.output_n,
-                        'input_n': 0,
-                        'block_height': t.block_height,
-                        'fee': t.fee,
-                        'size': t.size,
-                        'value': utxo.value,
-                        'script': to_hexstring(utxo.lock_script),
-                        'date': t.date
-                    })
-        return utxos
-
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = []
-        next_link = ''
-        hit_after_txid = False
-        while True:
-            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
-            res = self.compose_request('address', data=address, variables=variables)
-            next_link = '' if 'transaction_paging' not in res['address'] else \
-                res['address']['transaction_paging']['next']
-            if 'transactions' not in res['address']:
-                break
-            for tx in res['address']['transactions']:
-                t = self._parse_transaction(tx)
-                txs.append(t)
-                if t.hash == after_txid:
-                    txs = []
-                    hit_after_txid = True
-                if hit_after_txid and len(txs) > max_txs:
-                    break
-            if not next_link:
-                break
-        return txs
 
     def _parse_transaction(self, tx):
         status = 'unconfirmed'
@@ -148,15 +87,86 @@ class SmartbitClient(BaseClient):
                          spent=spent, output_n=to['n'])
         return t
 
+    def getbalance(self, addresslist):
+        res = self.compose_request('address', 'wallet', ','.join(addresslist))
+        return res['wallet']['total']['received_int']
+
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        utxos = []
+        utxo_list = []
+        next_link = ''
+        while True:
+            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
+            res = self.compose_request('address', 'unspent', address, variables=variables)
+            next_link = res['paging']['next']
+            for utxo in res['unspent']:
+                utxo_list.append(utxo['txid'])
+                if utxo['txid'] == after_txid:
+                    utxo_list = []
+            if not next_link:
+                break
+        for txid in utxo_list[:max_txs]:
+            t = self.gettransaction(txid)
+            for utxo in t.outputs:
+                if utxo.address != address:
+                    continue
+                utxos.append(
+                    {
+                        'address': utxo.address,
+                        'tx_hash': t.hash,
+                        'confirmations': t.confirmations,
+                        'output_n': utxo.output_n,
+                        'input_n': 0,
+                        'block_height': t.block_height,
+                        'fee': t.fee,
+                        'size': t.size,
+                        'value': utxo.value,
+                        'script': to_hexstring(utxo.lock_script),
+                        'date': t.date
+                    })
+        return utxos
+
     def gettransaction(self, txid):
         res = self.compose_request('tx', data=txid)
         return self._parse_transaction(res['transaction'])
+
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = []
+        next_link = ''
+        hit_after_txid = False
+        while True:
+            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
+            res = self.compose_request('address', data=address, variables=variables)
+            next_link = '' if 'transaction_paging' not in res['address'] else \
+                res['address']['transaction_paging']['next']
+            if 'transactions' not in res['address']:
+                break
+            for tx in res['address']['transactions']:
+                t = self._parse_transaction(tx)
+                txs.append(t)
+                if t.hash == after_txid:
+                    txs = []
+                    hit_after_txid = True
+                if hit_after_txid and len(txs) > max_txs:
+                    break
+            if not next_link:
+                break
+        return txs
 
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', data=txid, command='hex')
         return res['hex'][0]['hex']
 
-    def block_count(self):
+    def sendrawtransaction(self, rawtx):
+        res = self.compose_request('pushtx', variables={'hex': rawtx}, method='post')
+        return {
+            'txid': res['txid'],
+            'response_dict': res
+        }
+
+    # def estimatefee
+
+    def blockcount(self):
         return self.compose_request('totals')['totals']['block_count']
 
     def mempool(self, txid):
@@ -165,10 +175,3 @@ class SmartbitClient(BaseClient):
             if tx['transaction']['confirmations'] == 0:
                 return [tx['transaction']['hash']]
         return []
-
-    def sendrawtransaction(self, rawtx):
-        res = self.compose_request('pushtx', variables={'hex': rawtx}, method='post')
-        return {
-            'txid': res['txid'],
-            'response_dict': res
-        }

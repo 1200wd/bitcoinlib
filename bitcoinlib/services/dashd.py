@@ -125,10 +125,6 @@ class DashdClient(BaseClient):
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def getrawtransaction(self, txid):
-        res = self.proxy.getrawtransaction(txid)
-        return res
-
     def gettransaction(self, txid):
         tx = self.proxy.getrawtransaction(txid, 1)
         t = Transaction.import_raw(tx['hex'], network='dash')
@@ -146,6 +142,10 @@ class DashdClient(BaseClient):
         t.update_totals()
         return t
 
+    def getrawtransaction(self, txid):
+        res = self.proxy.getrawtransaction(txid)
+        return res
+
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
         return {
@@ -160,7 +160,7 @@ class DashdClient(BaseClient):
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
-    def block_count(self):
+    def blockcount(self):
         return self.proxy.getblockcount()
 
 if __name__ == '__main__':

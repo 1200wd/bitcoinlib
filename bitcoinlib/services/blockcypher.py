@@ -90,31 +90,6 @@ class BlockCypher(BaseClient):
                 })
         return transactions[::-1][:max_txs]
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = []
-        address = self._address_convert(address)
-        if address.witness_type != 'legacy':
-            raise ClientError("Provider does not support segwit addresses")
-        res = self.compose_request('addrs', address.address, variables={'unspentOnly': 0, 'limit': 2000})
-        if not isinstance(res, list):
-            res = [res]
-        for a in res:
-            if 'txrefs' not in a:
-                continue
-            txids = []
-            for t in a['txrefs'][::-1]:
-                if t['tx_hash'] not in txids:
-                    txids.append(t['tx_hash'])
-                if t['tx_hash'] == after_txid:
-                    txids = []
-            if len(txids) > 500:
-                _logger.warning("BlockCypher: Large number of transactions for address %s, "
-                                "Transaction list may be incomplete" % address.address_orig)
-            for txid in txids[:max_txs]:
-                t = self.gettransaction(txid)
-                txs.append(t)
-        return txs
-
     def gettransaction(self, tx_id):
         tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
         t = Transaction.import_raw(tx['hex'], network=self.network)
@@ -153,6 +128,31 @@ class BlockCypher(BaseClient):
         t.raw_hex()
         return t
 
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = []
+        address = self._address_convert(address)
+        if address.witness_type != 'legacy':
+            raise ClientError("Provider does not support segwit addresses")
+        res = self.compose_request('addrs', address.address, variables={'unspentOnly': 0, 'limit': 2000})
+        if not isinstance(res, list):
+            res = [res]
+        for a in res:
+            if 'txrefs' not in a:
+                continue
+            txids = []
+            for t in a['txrefs'][::-1]:
+                if t['tx_hash'] not in txids:
+                    txids.append(t['tx_hash'])
+                if t['tx_hash'] == after_txid:
+                    txids = []
+            if len(txids) > 500:
+                _logger.warning("BlockCypher: Large number of transactions for address %s, "
+                                "Transaction list may be incomplete" % address.address_orig)
+            for txid in txids[:max_txs]:
+                t = self.gettransaction(txid)
+                txs.append(t)
+        return txs
+
     def getrawtransaction(self, tx_id):
         return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})['hex']
 
@@ -170,7 +170,7 @@ class BlockCypher(BaseClient):
         else:
             return res['low_fee_per_kb']
 
-    def block_count(self):
+    def blockcount(self):
         return self.compose_request('', '')['height']
 
     def mempool(self, txid):

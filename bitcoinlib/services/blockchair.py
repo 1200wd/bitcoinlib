@@ -96,23 +96,6 @@ class BlockChairClient(BaseClient):
             offset += REQUEST_LIMIT
         return utxos[:max_txs]
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txids = []
-        offset = 0
-        while True:
-            res = self.compose_request('dashboards/address/', data=address, offset=offset)
-            addr = res['data'][address]
-            if not addr['transactions']:
-                break
-            txids = addr['transactions'][::-1] + txids
-            offset += 50
-        if after_txid:
-            txids = txids[txids.index(after_txid)+1:]
-        txs = []
-        for txid in txids[:max_txs]:
-            txs.append(self.gettransaction(txid))
-        return txs
-
     def gettransaction(self, tx_id):
         res = self.compose_request('dashboards/transaction/', data=tx_id)
 
@@ -158,6 +141,32 @@ class BlockChairClient(BaseClient):
                          spent=to['is_spent'], output_n=to['index'])
         return t
 
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txids = []
+        offset = 0
+        while True:
+            res = self.compose_request('dashboards/address/', data=address, offset=offset)
+            addr = res['data'][address]
+            if not addr['transactions']:
+                break
+            txids = addr['transactions'][::-1] + txids
+            offset += 50
+        if after_txid:
+            txids = txids[txids.index(after_txid)+1:]
+        txs = []
+        for txid in txids[:max_txs]:
+            txs.append(self.gettransaction(txid))
+        return txs
+
+    # def getrawtransaction
+
+    def sendrawtransaction(self, rawtx):
+        res = self.compose_request('push/transaction', variables={'data': rawtx}, method='post')
+        return {
+            'txid': res['data']['transaction_hash'],
+            'response_dict': res
+        }
+
     def estimatefee(self, blocks):
         # Non-scientific method to estimate transaction fees. It's probably good when it looks complicated...
         res = self.compose_request('stats')
@@ -176,7 +185,7 @@ class BlockChairClient(BaseClient):
             estimated_fee = self.network.dust_amount
         return estimated_fee
 
-    def block_count(self):
+    def blockcount(self):
         """
         Get latest block number: The block number of last block in longest chain on the blockchain
 
@@ -192,11 +201,3 @@ class BlockChairClient(BaseClient):
         res = self.compose_request('mempool', variables, data='transactions')
         txids = [tx['hash'] for tx in res['data'] if 'hash' in tx]
         return txids
-
-    def sendrawtransaction(self, rawtx):
-        # https: // api.blockchair.com / {: chain} / push / transaction
-        res = self.compose_request('push/transaction', variables={'data': rawtx}, method='post')
-        return {
-            'txid': res['data']['transaction_hash'],
-            'response_dict': res
-        }

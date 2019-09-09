@@ -223,6 +223,18 @@ class Service(object):
             self.complete = False
         return utxos
 
+    def gettransaction(self, txid):
+        """
+        Get a transaction by its transaction hash. Convert to Bitcoinlib transaction object.
+
+        :param txid: Transaction identification hash
+        :type txid: str, bytes
+
+        :return Transaction: A single transaction object
+        """
+        txid = to_hexstring(txid)
+        return self._provider_execute('gettransaction', txid)
+
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
         Get all transactions for specified address.
@@ -249,18 +261,6 @@ class Service(object):
         if len(txs) == max_txs:
             self.complete = False
         return txs
-
-    def gettransaction(self, txid):
-        """
-        Get a transaction by its transaction hash. Convert to Bitcoinlib transaction object.
-
-        :param txid: Transaction identification hash
-        :type txid: str, bytes
-
-        :return Transaction: A single transaction object
-        """
-        txid = to_hexstring(txid)
-        return self._provider_execute('gettransaction', txid)
 
     def getrawtransaction(self, txid):
         """
@@ -304,7 +304,7 @@ class Service(object):
                 raise ServiceError("Could not estimate fees, please define default fees in network settings")
         return fee
 
-    def block_count(self):
+    def blockcount(self):
         """
         Get latest block number: The block number of last block in longest chain on the Blockchain.
 

@@ -149,32 +149,7 @@ class BitcoindClient(BaseClient):
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def getrawtransaction(self, txid):
-        res = self.proxy.getrawtransaction(txid)
-        return res
-
-    def gettransaction(self, txid):
-        tx = self.proxy.getrawtransaction(txid, 1)
-        t = Transaction.import_raw(tx['hex'], network=self.network)
-        t.confirmations = tx['confirmations']
-        if t.confirmations:
-            t.status = 'confirmed'
-            t.verified = True
-        for i in t.inputs:
-            if i.prev_hash == b'\x00' * 32:
-                i.value = t.output_total
-                i.script_type = 'coinbase'
-                continue
-            txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
-        for o in t.outputs:
-            o.spent = None
-        t.block_hash = tx['blockhash']
-        t.version = struct.pack('>L', tx['version'])
-        t.date = datetime.fromtimestamp(tx['blocktime'])
-        t.hash = txid
-        t.update_totals()
-        return t
+    # def getbalance
 
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
@@ -201,6 +176,35 @@ class BitcoindClient(BaseClient):
 
         return txs
 
+    def gettransaction(self, txid):
+        tx = self.proxy.getrawtransaction(txid, 1)
+        t = Transaction.import_raw(tx['hex'], network=self.network)
+        t.confirmations = tx['confirmations']
+        if t.confirmations:
+            t.status = 'confirmed'
+            t.verified = True
+        for i in t.inputs:
+            if i.prev_hash == b'\x00' * 32:
+                i.value = t.output_total
+                i.script_type = 'coinbase'
+                continue
+            txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+        for o in t.outputs:
+            o.spent = None
+        t.block_hash = tx['blockhash']
+        t.version = struct.pack('>L', tx['version'])
+        t.date = datetime.fromtimestamp(tx['blocktime'])
+        t.hash = txid
+        t.update_totals()
+        return t
+
+    # def gettransactions
+
+    def getrawtransaction(self, txid):
+        res = self.proxy.getrawtransaction(txid)
+        return res
+
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
         return {
@@ -218,7 +222,7 @@ class BitcoindClient(BaseClient):
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
-    def block_count(self):
+    def blockcount(self):
         return self.proxy.getblockcount()
 
     def mempool(self, txid=''):

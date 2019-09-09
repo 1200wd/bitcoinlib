@@ -88,22 +88,6 @@ class CryptoID(BaseClient):
             })
         return utxos[::-1][:max_txs]
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        address = self._address_convert(address)
-        txs = []
-        txids = []
-        variables = {'active': address.address, 'n': 100}
-        res = self.compose_request('multiaddr', variables=variables)
-        for tx in res['txs']:
-            if tx['hash'] not in txids:
-                txids.insert(0, tx['hash'])
-        if after_txid:
-            txids = txids[txids.index(after_txid) + 1:]
-        for txid in txids[:max_txs]:
-            t = self.gettransaction(txid)
-            txs.append(t)
-        return txs
-
     def gettransaction(self, tx_id):
         variables = {'id': tx_id, 'hex': None}
         tx = self.compose_request(path_type='explorer', variables=variables)
@@ -138,12 +122,32 @@ class CryptoID(BaseClient):
         t.fee = t.input_total - t.output_total
         return t
 
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        address = self._address_convert(address)
+        txs = []
+        txids = []
+        variables = {'active': address.address, 'n': 100}
+        res = self.compose_request('multiaddr', variables=variables)
+        for tx in res['txs']:
+            if tx['hash'] not in txids:
+                txids.insert(0, tx['hash'])
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
+            t = self.gettransaction(txid)
+            txs.append(t)
+        return txs
+
     def getrawtransaction(self, tx_id):
         variables = {'id': tx_id, 'hex': None}
         tx = self.compose_request(path_type='explorer', variables=variables)
         return tx['hex']
 
-    def block_count(self):
+    # def sendrawtransaction
+
+    # def estimatefee
+
+    def blockcount(self):
         r = self.compose_request('getblockcount', path_type='api')
         return r
 

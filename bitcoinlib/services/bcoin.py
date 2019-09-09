@@ -51,12 +51,6 @@ class BcoinClient(BaseClient):
             variables = {}
         return self.request(url_path, variables, method, secure=False)
 
-    def estimatefee(self, blocks):
-        fee = self.compose_request('fee')['rate']
-        if not fee:
-            return False
-        return fee
-
     def _parse_transaction(self, tx):
         witness_type = 'legacy'
         if len([ti['witness'] for ti in tx['inputs'] if ti['witness'] != '00']):
@@ -98,16 +92,48 @@ class BcoinClient(BaseClient):
             t.input_total = t.output_total
         return t
 
-    def gettransaction(self, txid):
-        tx = self.compose_request('tx', txid)
-        return self._parse_transaction(tx)
-
     def isspent(self, tx_id, index):
         try:
             self.compose_request('coin', tx_id, str(index))
         except ClientError:
             return True
         return False
+
+    # def getbalance(self, addresslist):
+    #     balance = 0.0
+    #     for address in addresslist:
+    #         res = tx = self.compose_request('address', address)
+    #         balance += int(res['balance'])
+    #     return int(balance * self.units)
+
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = self.gettransactions(address, after_txid=after_txid, max_txs=max_txs)
+        utxos = []
+        for tx in txs:
+            for unspent in tx.outputs:
+                if unspent.address != address:
+                    continue
+                if not self.isspent(tx.hash, unspent.output_n):
+                    utxos.append(
+                        {
+                            'address': unspent.address,
+                            'tx_hash': tx.hash,
+                            'confirmations': tx.confirmations,
+                            'output_n': unspent.output_n,
+                            'input_n': 0,
+                            'block_height': tx.block_height,
+                            'fee': tx.fee,
+                            'size': tx.size,
+                            'value': unspent.value,
+                            'script': to_hexstring(unspent.lock_script),
+                            'date': tx.date,
+                         }
+                    )
+        return utxos
+
+    def gettransaction(self, txid):
+        tx = self.compose_request('tx', txid)
+        return self._parse_transaction(tx)
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
@@ -161,39 +187,13 @@ class BcoinClient(BaseClient):
             'response_dict': res
         }
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = self.gettransactions(address, after_txid=after_txid, max_txs=max_txs)
-        utxos = []
-        for tx in txs:
-            for unspent in tx.outputs:
-                if unspent.address != address:
-                    continue
-                if not self.isspent(tx.hash, unspent.output_n):
-                    utxos.append(
-                        {
-                            'address': unspent.address,
-                            'tx_hash': tx.hash,
-                            'confirmations': tx.confirmations,
-                            'output_n': unspent.output_n,
-                            'input_n': 0,
-                            'block_height': tx.block_height,
-                            'fee': tx.fee,
-                            'size': tx.size,
-                            'value': unspent.value,
-                            'script': to_hexstring(unspent.lock_script),
-                            'date': tx.date,
-                         }
-                    )
-        return utxos
+    def estimatefee(self, blocks):
+        fee = self.compose_request('fee')['rate']
+        if not fee:
+            return False
+        return fee
 
-    # def getbalance(self, addresslist):
-    #     balance = 0.0
-    #     for address in addresslist:
-    #         res = tx = self.compose_request('address', address)
-    #         balance += int(res['balance'])
-    #     return int(balance * self.units)
-
-    def block_count(self):
+    def blockcount(self):
         return self.compose_request('')['chain']['height']
 
     def mempool(self, txid=''):

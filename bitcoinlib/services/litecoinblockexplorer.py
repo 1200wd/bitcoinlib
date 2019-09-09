@@ -42,28 +42,6 @@ class LitecoinBlockexplorerClient(BaseClient):
         variables.update({'from': offset, 'to': offset+REQUEST_LIMIT})
         return self.request(url_path, variables, method=method)
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        address = self._address_convert(address)
-        res = self.compose_request('addrs', address.address, 'utxo')
-        txs = []
-        for tx in res:
-            if tx['txid'] == after_txid:
-                break
-            txs.append({
-                'address': address.address_orig,
-                'tx_hash': tx['txid'],
-                'confirmations': tx['confirmations'],
-                'output_n': tx['vout'],
-                'input_n': 0,
-                'block_height': tx['height'],
-                'fee': None,
-                'size': 0,
-                'value': tx['satoshis'],
-                'script': tx['scriptPubKey'],
-                'date': None
-            })
-        return txs[::-1][:max_txs]
-
     def _convert_to_transaction(self, tx):
         if tx['confirmations']:
             status = 'confirmed'
@@ -95,6 +73,40 @@ class LitecoinBlockexplorerClient(BaseClient):
                          spent=True if to['spentTxId'] else False, output_n=to['n'])
         return t
 
+    def getbalance(self, addresslist):
+        balance = 0
+        addresslist = self._addresslist_convert(addresslist)
+        for a in addresslist:
+            res = self.compose_request('addr', a.address, 'balance')
+            balance += res
+        return balance
+
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        address = self._address_convert(address)
+        res = self.compose_request('addrs', address.address, 'utxo')
+        txs = []
+        for tx in res:
+            if tx['txid'] == after_txid:
+                break
+            txs.append({
+                'address': address.address_orig,
+                'tx_hash': tx['txid'],
+                'confirmations': tx['confirmations'],
+                'output_n': tx['vout'],
+                'input_n': 0,
+                'block_height': tx['height'],
+                'fee': None,
+                'size': 0,
+                'value': tx['satoshis'],
+                'script': tx['scriptPubKey'],
+                'date': None
+            })
+        return txs[::-1][:max_txs]
+
+    def gettransaction(self, tx_id):
+        tx = self.compose_request('tx', tx_id)
+        return self._convert_to_transaction(tx)
+
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, 'txs')
@@ -108,18 +120,6 @@ class LitecoinBlockexplorerClient(BaseClient):
             txs.append(self._convert_to_transaction(tx))
         return txs
 
-    def gettransaction(self, tx_id):
-        tx = self.compose_request('tx', tx_id)
-        return self._convert_to_transaction(tx)
-
-    def getbalance(self, addresslist):
-        balance = 0
-        addresslist = self._addresslist_convert(addresslist)
-        for a in addresslist:
-            res = self.compose_request('addr', a.address, 'balance')
-            balance += res
-        return balance
-
     def getrawtransaction(self, tx_id):
         res = self.compose_request('rawtx', tx_id)
         return res['rawtx']
@@ -131,7 +131,9 @@ class LitecoinBlockexplorerClient(BaseClient):
             'response_dict': res
         }
 
-    def block_count(self):
+    # def estimatefee
+
+    def blockcount(self):
         res = self.compose_request('status', '', variables={'q': 'getinfo'})
         return res['info']['blocks']
 

@@ -83,16 +83,9 @@ class BitcoinLibTestClient(BaseClient):
             )
         return utxos
 
-    def estimatefee(self, blocks):
-        """
-        Dummy estimate fee method for the bitcoinlib testnet.
+    # def gettransaction
 
-        :param blocks: Number of blocks
-        :type blocks: int
-
-        :return int: Fee as 100000 // number of blocks
-        """
-        return 100000 // blocks
+    # def gettransactions
 
     def sendrawtransaction(self, rawtx):
         """
@@ -110,7 +103,18 @@ class BitcoinLibTestClient(BaseClient):
             'response_dict': {}
         }
 
-    def block_count(self):
+    def estimatefee(self, blocks):
+        """
+        Dummy estimate fee method for the bitcoinlib testnet.
+
+        :param blocks: Number of blocks
+        :type blocks: int
+
+        :return int: Fee as 100000 // number of blocks
+        """
+        return 100000 // blocks
+
+    def blockcount(self):
         return 1
 
     def mempool(self, txid=''):

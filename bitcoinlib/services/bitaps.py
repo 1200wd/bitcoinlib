@@ -49,6 +49,37 @@ class BitapsClient(BaseClient):
             url_path += data
         return self.request(url_path, variables=variables)
 
+    def _parse_transaction(self, tx):
+        t = Transaction.import_raw(tx['rawTx'], network=self.network)
+        t.status = 'unconfirmed'
+        if tx['confirmations']:
+            t.status = 'confirmed'
+        t.hash = tx['txId']
+        if 'timestamp' in tx and tx['timestamp']:
+            t.date = datetime.fromtimestamp(tx['timestamp'])
+        elif 'blockTime' in tx and tx['blockTime']:
+            t.date = datetime.fromtimestamp(tx['blockTime'])
+        t.confirmations = tx['confirmations']
+        if 'blockHeight' in tx:
+            t.block_height = tx['blockHeight']
+            t.block_hash = tx['blockHash']
+        t.fee = tx['fee']
+        t.rawtx = tx['rawTx']
+        t.size = tx['size']
+        t.network = self.network
+        if not t.coinbase:
+            for i in t.inputs:
+                i.value = tx['vIn'][str(i.index_n)]['amount']
+        for o in t.outputs:
+            if tx['vOut'][str(o.output_n)]['spent']:
+                o.spent = True
+        if t.coinbase:
+            t.input_total = tx['outputsAmount'] - t.fee
+        else:
+            t.input_total = tx['inputsAmount']
+        t.output_total = tx['outputsAmount']
+        return t
+
     def getbalance(self, addresslist):
         balance = 0
         for address in addresslist:
@@ -96,6 +127,10 @@ class BitapsClient(BaseClient):
                 break
         return utxos[:max_txs]
 
+    def gettransaction(self, txid):
+        res = self.compose_request('transaction', txid)
+        return self._parse_transaction(res['data'])
+
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         page = 0
         txs = []
@@ -115,46 +150,15 @@ class BitapsClient(BaseClient):
                 break
         return txs[:max_txs]
 
-    def _parse_transaction(self, tx):
-        t = Transaction.import_raw(tx['rawTx'], network=self.network)
-        t.status = 'unconfirmed'
-        if tx['confirmations']:
-            t.status = 'confirmed'
-        t.hash = tx['txId']
-        if 'timestamp' in tx and tx['timestamp']:
-            t.date = datetime.fromtimestamp(tx['timestamp'])
-        elif 'blockTime' in tx and tx['blockTime']:
-            t.date = datetime.fromtimestamp(tx['blockTime'])
-        t.confirmations = tx['confirmations']
-        if 'blockHeight' in tx:
-            t.block_height = tx['blockHeight']
-            t.block_hash = tx['blockHash']
-        t.fee = tx['fee']
-        t.rawtx = tx['rawTx']
-        t.size = tx['size']
-        t.network = self.network
-        if not t.coinbase:
-            for i in t.inputs:
-                i.value = tx['vIn'][str(i.index_n)]['amount']
-        for o in t.outputs:
-            if tx['vOut'][str(o.output_n)]['spent']:
-                o.spent = True
-        if t.coinbase:
-            t.input_total = tx['outputsAmount'] - t.fee
-        else:
-            t.input_total = tx['inputsAmount']
-        t.output_total = tx['outputsAmount']
-        return t
-
-    def gettransaction(self, txid):
-        res = self.compose_request('transaction', txid)
-        return self._parse_transaction(res['data'])
-
     def getrawtransaction(self, txid):
         tx = self.compose_request('transaction', txid)
         return tx['data']['rawTx']
 
-    def block_count(self):
+    # def sendrawtransaction
+
+    # def estimatefee
+
+    def blockcount(self):
         return self.compose_request('block', 'last')['data']['block']['height']
 
     def mempool(self, txid):

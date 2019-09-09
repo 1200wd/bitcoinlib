@@ -75,23 +75,6 @@ class BlockchainInfoClient(BaseClient):
             })
         return utxos[::-1][:max_txs]
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = []
-        txids = []
-        variables = {'limit': 100}
-        res = self.compose_request('rawaddr', address, variables=variables)
-        latest_block = self.block_count()
-        for tx in res['txs']:
-            if tx['hash'] not in txids:
-                txids.insert(0, tx['hash'])
-        if after_txid:
-            txids = txids[txids.index(after_txid) + 1:]
-        for txid in txids[:max_txs]:
-            t = self.gettransaction(txid)
-            t.confirmations = latest_block - t.block_height
-            txs.append(t)
-        return txs
-
     def gettransaction(self, tx_id):
         tx = self.compose_request('rawtx', tx_id)
         raw_tx = self.getrawtransaction(tx_id)
@@ -121,10 +104,31 @@ class BlockchainInfoClient(BaseClient):
         t.fee = t.input_total - t.output_total
         return t
 
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = []
+        txids = []
+        variables = {'limit': 100}
+        res = self.compose_request('rawaddr', address, variables=variables)
+        latest_block = self.block_count()
+        for tx in res['txs']:
+            if tx['hash'] not in txids:
+                txids.insert(0, tx['hash'])
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
+            t = self.gettransaction(txid)
+            t.confirmations = latest_block - t.block_height
+            txs.append(t)
+        return txs
+
     def getrawtransaction(self, tx_id):
         return self.compose_request('rawtx', tx_id, {'format': 'hex'})
 
-    def block_count(self):
+    # def sendrawtransaction()
+
+    # def estimatefee()
+
+    def blockcount(self):
         return self.compose_request('latestblock')['height']
 
     def mempool(self, txid=''):

@@ -82,27 +82,6 @@ class BitGoClient(BaseClient):
                 break
         return utxos[::-1][:max_txs]
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = []
-        txids = []
-        skip = 0
-        total = 1
-        while total > skip:
-            variables = {'limit': LIMIT_TX, 'skip': skip}
-            res = self.compose_request('address', address, 'tx', variables)
-            for tx in res['transactions']:
-                if tx['id'] not in txids:
-                    txids.insert(0, tx['id'])
-            total = res['total']
-            if total > 2000:
-                raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
-            skip = res['start'] + res['count']
-        if after_txid:
-            txids = txids[txids.index(after_txid) + 1:]
-        for txid in txids[:max_txs]:
-            txs.append(self.gettransaction(txid))
-        return txs
-
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)
         t = Transaction.import_raw(tx['hex'], network=self.network)
@@ -145,6 +124,27 @@ class BitGoClient(BaseClient):
             t.input_total = t.output_total + t.fee
         return t
 
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = []
+        txids = []
+        skip = 0
+        total = 1
+        while total > skip:
+            variables = {'limit': LIMIT_TX, 'skip': skip}
+            res = self.compose_request('address', address, 'tx', variables)
+            for tx in res['transactions']:
+                if tx['id'] not in txids:
+                    txids.insert(0, tx['id'])
+            total = res['total']
+            if total > 2000:
+                raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
+            skip = res['start'] + res['count']
+        if after_txid:
+            txids = txids[txids.index(after_txid) + 1:]
+        for txid in txids[:max_txs]:
+            txs.append(self.gettransaction(txid))
+        return txs
+
     def getrawtransaction(self, txid):
         tx = self.compose_request('tx', txid)
         t = Transaction.import_raw(tx['hex'], network=self.network)
@@ -153,9 +153,13 @@ class BitGoClient(BaseClient):
                 raise ClientError("Address missing in input. Provider might not support segwit transactions")
         return tx['hex']
 
+    # def sendrawtransaction
+
     def estimatefee(self, blocks):
         res = self.compose_request('tx', 'fee', variables={'numBlocks': blocks})
         return res['feePerKb']
 
-    # def block_count(self):
+    # def blockcount(self):
     #     return self.proxy.getblockcount()
+
+    # def mempool
