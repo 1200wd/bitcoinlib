@@ -84,6 +84,7 @@ class SmartbitClient(BaseClient):
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
         next_link = ''
+        hit_after_txid = False
         while True:
             variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
             res = self.compose_request('address', data=address, variables=variables)
@@ -93,9 +94,12 @@ class SmartbitClient(BaseClient):
                 txs.append(t)
                 if t.hash == after_txid:
                     txs = []
+                    hit_after_txid = True
+                if hit_after_txid and len(txs) > max_txs:
+                    break
             if not next_link:
                 break
-        return txs[:max_txs]
+        return txs
 
     def _parse_transaction(self, tx):
         status = 'unconfirmed'
@@ -108,7 +112,7 @@ class SmartbitClient(BaseClient):
         if tx['coinbase']:
             input_total = tx['output_amount_int']
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
-                        size=tx['size'], hash=tx['hash'], date=datetime.fromtimestamp(tx['time']),
+                        size=tx['size'], hash=tx['txid'], date=datetime.fromtimestamp(tx['time']),
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
                         input_total=input_total, coinbase=tx['coinbase'],
                         output_total=tx['output_amount_int'], witness_type=witness_type)
@@ -125,7 +129,7 @@ class SmartbitClient(BaseClient):
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'])
                 index_n += 1
         for to in tx['outputs']:
-            spent = True if 'spend_txid' in to else False
+            spent = True if 'spend_txid' in to and to['spend_txid'] else False
             address = ''
             if to['addresses']:
                 address = to['addresses'][0]
