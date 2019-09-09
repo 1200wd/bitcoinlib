@@ -93,7 +93,10 @@ class SmartbitClient(BaseClient):
         while True:
             variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
             res = self.compose_request('address', data=address, variables=variables)
-            next_link = res['address']['transaction_paging']['next']
+            next_link = '' if 'transaction_paging' not in res['address'] else \
+                res['address']['transaction_paging']['next']
+            if 'transactions' not in res['address']:
+                break
             for tx in res['address']['transactions']:
                 t = self._parse_transaction(tx)
                 txs.append(t)

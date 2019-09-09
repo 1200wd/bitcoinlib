@@ -131,6 +131,8 @@ class Service(object):
                 if self.providers[sp]['url'] in ['bcoin', 'bitcoind', 'litecoind', 'dashd']:
                     # TODO ADD provider type
                     pass
+                if not self.providers[sp]['url']:
+                    continue
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
                 pc_instance = providerclient(
