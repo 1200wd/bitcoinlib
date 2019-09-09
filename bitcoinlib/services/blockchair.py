@@ -40,21 +40,21 @@ class BlockChairClient(BaseClient):
 
     def compose_request(self, command, query_vars=None, variables=None, data=None, offset=0, method='get'):
         url_path = ''
-        if not variables:
-            variables = {}
-        if command != 'stats':
-            variables.update({'limit': REQUEST_LIMIT})
+        if not query_vars:
+            query_vars = {}
+        if command not in ['stats', 'mempool']:
+            query_vars.update({'limit': REQUEST_LIMIT})
         if offset:
-            variables.update({'offset': offset})
+            query_vars.update({'offset': offset})
         if command:
             url_path += command
         if data:
             if url_path[-1:] != '/':
                 url_path += '/'
             url_path += data
-        if query_vars and not variables:
+        if variables is None:
             varstr = ','.join(['%s(%s)' % (qv, query_vars[qv]) for qv in query_vars])
-            variables.update({'q': varstr})
+            variables = {'q': varstr}
         return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
@@ -197,9 +197,8 @@ class BlockChairClient(BaseClient):
         return res['context']['state']
 
     def mempool(self, txid=''):
-        variables = {}
         if txid:
-            variables = {'hash': txid}
-        res = self.compose_request('mempool', variables, data='transactions')
-        txids = [tx['hash'] for tx in res['data'] if 'hash' in tx]
-        return txids
+            res = self.compose_request('mempool', {'hash': txid}, data='transactions')
+        else:
+            res = self.compose_request('mempool', data='transactions')
+        return [tx['hash'] for tx in res['data'] if 'hash' in tx]
