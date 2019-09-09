@@ -143,7 +143,7 @@ class ChainSo(BaseClient):
             txs.append(t)
         return txs
 
-    def block_count(self):
+    def blockcount(self):
         return self.compose_request('get_info')['data']['blocks']
 
     def mempool(self, txid):

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    SERVICES - Main Service connector
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -113,8 +113,8 @@ class Service(object):
         self.resultcount = 0
         self.complete = None
         self.timeout = timeout
-        self._block_count = None
-        self._block_count_update = 0
+        self._blockcount = None
+        self._blockcount_update = 0
 
     def _provider_execute(self, method, *arguments):
         self.results = {}
@@ -314,10 +314,10 @@ class Service(object):
         """
 
         current_timestamp = time.time()
-        if self._block_count_update < current_timestamp - BLOCK_COUNT_CACHE_TIME:
-            self._block_count = self._provider_execute('block_count')
-            self._block_count_update = time.time()
-        return self._block_count
+        if self._blockcount_update < current_timestamp - BLOCK_COUNT_CACHE_TIME:
+            self._blockcount = self._provider_execute('blockcount')
+            self._blockcount_update = time.time()
+        return self._blockcount
 
     def mempool(self, txid=''):
         """

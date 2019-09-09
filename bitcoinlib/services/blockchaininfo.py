@@ -109,7 +109,7 @@ class BlockchainInfoClient(BaseClient):
         txids = []
         variables = {'limit': 100}
         res = self.compose_request('rawaddr', address, variables=variables)
-        latest_block = self.block_count()
+        latest_block = self.blockcount()
         for tx in res['txs']:
             if tx['hash'] not in txids:
                 txids.insert(0, tx['hash'])

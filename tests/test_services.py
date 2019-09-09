@@ -601,9 +601,9 @@ class TestService(unittest.TestCase, CustomAssertions):
         utxos = srv.getutxos(address)
         self.assertIn(txid, [utxo['tx_hash'] for utxo in utxos])
 
-    def test_service_block_count(self):
+    def test_service_blockcount(self):
         srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
-        srv.block_count()
+        srv.blockcount()
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
@@ -612,7 +612,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             n_blocks = srv.results[provider]
         # Test Litecoin network
         srv = Service(min_providers=10, network='litecoin', timeout=TIMEOUT_TEST)
-        srv.block_count()
+        srv.blockcount()
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
@@ -622,7 +622,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_max_providers(self):
         srv = Service(max_providers=1, timeout=TIMEOUT_TEST)
-        srv.block_count()
+        srv.blockcount()
         self.assertEqual(srv.resultcount, 1)
 
     def test_service_errors(self):

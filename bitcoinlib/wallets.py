@@ -1732,7 +1732,7 @@ class HDWallet(object):
 
         # Update already known transactions
         srv = Service(network=network, providers=self.providers)
-        current_block_height = srv.block_count()
+        current_block_height = srv.blockcount()
         for t in self.transactions(account_id=account_id, network=network):
             if not t.block_height or t.block_height <= 0 or not t.confirmations:
                 new_t = srv.gettransaction(t.hash)
@@ -2794,10 +2794,10 @@ class HDWallet(object):
         srv = Service(network=network, providers=self.providers)
 
         # Update number of confirmations for already known blocks
-        block_count = srv.block_count()
+        blockcount = srv.blockcount()
         for t in self.transactions():
             if t.block_height:
-                t.confirmations = block_count - t.block_height
+                t.confirmations = blockcount - t.block_height
                 t.status = 'confirmed'
                 t.save()
 

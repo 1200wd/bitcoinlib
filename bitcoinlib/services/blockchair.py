@@ -158,7 +158,9 @@ class BlockChairClient(BaseClient):
             txs.append(self.gettransaction(txid))
         return txs
 
-    # def getrawtransaction
+    def getrawtransaction(self, txid):
+        res = self.compose_request('raw/transaction', data=txid)
+        return res['data'][txid]['raw_transaction']
 
     def sendrawtransaction(self, rawtx):
         res = self.compose_request('push/transaction', variables={'data': rawtx}, method='post')
