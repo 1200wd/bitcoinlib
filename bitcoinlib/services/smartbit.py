@@ -117,10 +117,13 @@ class SmartbitClient(BaseClient):
         if 'inputs' in tx and [ti['witness'] for ti in tx['inputs'] if ti['witness'] and ti['witness'] != ['NULL']]:
             witness_type = 'segwit'
         input_total = tx['input_amount_int']
+        t_time = None
+        if tx['time']:
+            t_time = datetime.fromtimestamp(tx['time'])
         if tx['coinbase']:
             input_total = tx['output_amount_int']
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
-                        size=tx['size'], hash=tx['txid'], date=datetime.fromtimestamp(tx['time']),
+                        size=tx['size'], hash=tx['txid'], date=t_time,
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
                         input_total=input_total, coinbase=tx['coinbase'],
                         output_total=tx['output_amount_int'], witness_type=witness_type)

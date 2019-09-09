@@ -121,9 +121,9 @@ class BitapsClient(BaseClient):
         if tx['confirmations']:
             t.status = 'confirmed'
         t.hash = tx['txId']
-        if 'timestamp' in tx:
+        if 'timestamp' in tx and tx['timestamp']:
             t.date = datetime.fromtimestamp(tx['timestamp'])
-        elif 'blockTime' in tx:
+        elif 'blockTime' in tx and tx['blockTime']:
             t.date = datetime.fromtimestamp(tx['blockTime'])
         t.confirmations = tx['confirmations']
         if 'blockHeight' in tx:

@@ -38,9 +38,10 @@ class BlockChairClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, command, query_vars=None, data=None, offset=0):
+    def compose_request(self, command, query_vars=None, variables=None, data=None, offset=0, method='get'):
         url_path = ''
-        variables = {}
+        if not variables:
+            variables = {}
         if command != 'stats':
             variables.update({'limit': REQUEST_LIMIT})
         if offset:
@@ -51,10 +52,10 @@ class BlockChairClient(BaseClient):
             if url_path[-1:] != '/':
                 url_path += '/'
             url_path += data
-        if query_vars:
+        if query_vars and not variables:
             varstr = ','.join(['%s(%s)' % (qv, query_vars[qv]) for qv in query_vars])
             variables.update({'q': varstr})
-        return self.request(url_path, variables)
+        return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
         balance = 0
@@ -191,3 +192,11 @@ class BlockChairClient(BaseClient):
         res = self.compose_request('mempool', variables, data='transactions')
         txids = [tx['hash'] for tx in res['data'] if 'hash' in tx]
         return txids
+
+    def sendrawtransaction(self, rawtx):
+        # https: // api.blockchair.com / {: chain} / push / transaction
+        res = self.compose_request('push/transaction', variables={'data': rawtx}, method='post')
+        return {
+            'txid': res['data']['transaction_hash'],
+            'response_dict': res
+        }

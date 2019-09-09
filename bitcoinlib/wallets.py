@@ -1734,10 +1734,11 @@ class HDWallet(object):
         srv = Service(network=network, providers=self.providers)
         current_block_height = srv.block_count()
         for t in self.transactions(account_id=account_id, network=network):
-            if not t.confirmations or t.block_height <= 0:
+            if not t.block_height or t.block_height <= 0 or not t.confirmations:
                 new_t = srv.gettransaction(t.hash)
                 t.block_height = new_t.block_height
-            t.confirmations = current_block_height - t.block_height
+            if t.block_height:
+                t.confirmations = current_block_height - t.block_height
             t.save()
 
         # Scan each key address, stop when no new transactions are found after set scan gap limit
