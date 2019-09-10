@@ -2795,6 +2795,7 @@ class HDWallet(object):
 
         # Update number of confirmations for already known blocks
         blockcount = srv.blockcount()
+        # FIXME: this calls a lot of methods...
         for t in self.transactions():
             if t.block_height:
                 t.confirmations = blockcount - t.block_height
