@@ -2799,6 +2799,7 @@ class HDWallet(object):
 
         # Update number of confirmations for already known blocks
         blockcount = srv.blockcount()
+        # FIXME: this calls a lot of methods...
         for t in self.transactions():
             if t.block_height:
                 t.confirmations = blockcount - t.block_height
@@ -3438,7 +3439,10 @@ class HDWallet(object):
                 fee_per_kb = srv.estimatefee()
             tr_size = 125 + (len(input_arr) * 125)
             fee = int((tr_size / 1024.0) * fee_per_kb)
-        return self.send([(to_address, total_amount-fee)], input_arr, network=network,
+        if total_amount - fee <= self.network.dust_amount:
+            raise WalletError("Amount to send is smaller then dust amount: %s" % (total_amount - fee))
+
+        return self.send([(to_address, total_amount - fee)], input_arr, network=network,
                          fee=fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
 
     def wif(self, is_private=False, account_id=0):
