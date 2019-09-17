@@ -1758,6 +1758,8 @@ class HDWallet(object):
                     keys_ignore.append(key.key_id)
                     n_high_new = 0
                     if self.scan_key(key):
+                        if not key.address_index:
+                            key.address_index = 0
                         n_high_new = key.address_index + 1
                     if n_high_new > n_highest_updated:
                         n_highest_updated = n_high_new
@@ -1798,6 +1800,8 @@ class HDWallet(object):
                       used=False, change=change, depth=self.key_depth).filter(DbKey.id > last_used_key_id).\
             order_by(DbKey.id.desc()).all()
         key_list = []
+        if self.scheme == 'single' and len(dbkey):
+            number_of_keys = len(dbkey) if number_of_keys > len(dbkey) else number_of_keys
         for i in range(number_of_keys):
             if dbkey:
                 dk = dbkey.pop()
