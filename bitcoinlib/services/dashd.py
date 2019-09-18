@@ -17,6 +17,17 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+#
+# You can connect to a dash testnet deamon by adding the following provider to providers.json
+# "dashd.testnet": {
+#   "provider": "dashd",
+#   "network": "dash_testnet",
+#   "client_class": "DashdClient",
+#   "url": "http://user:password@server_url:19998",
+#   "api_key": "",
+#   "priority": 11,
+#   "denominator": 100000000
+# }
 
 from datetime import datetime
 from bitcoinlib.main import *
