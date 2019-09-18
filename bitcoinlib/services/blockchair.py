@@ -40,21 +40,21 @@ class BlockChairClient(BaseClient):
 
     def compose_request(self, command, query_vars=None, variables=None, data=None, offset=0, method='get'):
         url_path = ''
-        if not query_vars:
-            query_vars = {}
+        if not variables:
+            variables = {}
         if command not in ['stats', 'mempool']:
-            query_vars.update({'limit': REQUEST_LIMIT})
+            variables.update({'limit': REQUEST_LIMIT})
         if offset:
-            query_vars.update({'offset': offset})
+            variables.update({'offset': offset})
         if command:
             url_path += command
         if data:
             if url_path[-1:] != '/':
                 url_path += '/'
             url_path += data
-        if variables is None:
+        if query_vars:
             varstr = ','.join(['%s(%s)' % (qv, query_vars[qv]) for qv in query_vars])
-            variables = {'q': varstr}
+            variables.update({'q': varstr})
         return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
