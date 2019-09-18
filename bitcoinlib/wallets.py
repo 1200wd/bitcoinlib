@@ -1746,9 +1746,14 @@ class HDWallet(object):
             change_range = [0, 1]
         else:
             change_range = [change]
+        counter = 0
         for chg in change_range:
             while True:
-                keys_to_scan = self.get_key(account_id, network, number_of_keys=scan_gap_limit, change=chg)
+                if self.scheme == 'single':
+                    keys_to_scan = [self.key(k) for k in self.keys_addresses()[counter:counter+scan_gap_limit]]
+                    counter += scan_gap_limit
+                else:
+                    keys_to_scan = self.get_key(account_id, network, number_of_keys=scan_gap_limit, change=chg)
                 if isinstance(keys_to_scan, HDWalletKey):
                     keys_to_scan = [keys_to_scan]
                 n_highest_updated = 0
