@@ -825,8 +825,8 @@ class Input(object):
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
         elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
-            if not self.keys and not self.public_hash:
-                raise TransactionError("Please provide keys to append multisig transaction input")
+            # if not self.keys and not self.public_hash:
+            #     raise TransactionError("Please provide keys to append multisig transaction input")
             if not self.redeemscript and self.keys:
                 self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
                                                                     compressed=self.compressed)
@@ -1329,7 +1329,7 @@ class Transaction(object):
             elif ti.valid is False:
                 validstr = "invalid"
             print("  %s %s; sigs: %d (%d-of-%d) %s" %
-                  (ti.witness_type, ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys), validstr))
+                  (ti.witness_type, ti.script_type, len(ti.signatures), ti.sigs_required or 0, len(ti.keys), validstr))
             if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
                 replace_by_fee = True
             if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
