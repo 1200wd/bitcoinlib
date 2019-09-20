@@ -2030,7 +2030,7 @@ class HDWallet(object):
             return nk
 
     def keys(self, account_id=None, name=None, key_id=None, change=None, depth=None, used=None, is_private=None,
-             has_balance=None, is_active=True, network=None, include_private=False, as_dict=False):
+             has_balance=None, is_active=None, network=None, include_private=False, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
         
@@ -2052,7 +2052,7 @@ class HDWallet(object):
         :type is_private: bool
         :param has_balance: Only include keys with a balance or without a balance, default is both
         :type has_balance: bool
-        :param is_active: Hide inactive keys. Only include active keys with either a balance or which are unused, default is True
+        :param is_active: Hide inactive keys. Only include active keys with either a balance or which are unused, default is None (show all)
         :type is_active: bool
         :param network: Network name filter
         :type network: str
