@@ -2929,6 +2929,27 @@ class HDWallet(object):
         """
         return HDWalletTransaction.from_txid(self, txid)
 
+    def transaction_spent(self, txid, output_n):
+        """
+        Check if transaction with given transaction ID and output_n is spent and return txid of spent transaction.
+
+        Retreives information from database, does not update transaction and does not check if transaction is spent with service providers.
+
+        :param txid: Hexadecimal transaction hash
+        :type txid: str
+        :param output_n: Output n
+        :type output_n: int
+
+        :return str: Transaction ID
+        """
+        qr = self._session.query(DbTransactionInput, DbTransaction.confirmations,
+                                 DbTransaction.hash, DbTransaction.status). \
+            join(DbTransaction). \
+            filter(DbTransaction.wallet_id == self.wallet_id,
+                   DbTransactionInput.prev_hash == txid, DbTransactionInput.output_n == output_n).scalar()
+        if qr:
+            return qr.transaction.hash
+
     def _objects_by_key_id(self, key_id):
         key = self._session.query(DbKey).filter_by(id=key_id).scalar()
         if not key:
