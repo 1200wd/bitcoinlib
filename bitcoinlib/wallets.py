@@ -2851,8 +2851,10 @@ class HDWallet(object):
                 if txs and txs[-1].date < last_updated:
                     last_updated = txs[-1].date
             if txs and txs[-1].confirmations:
-                self._session.query(DbKey).filter(DbKey.address == address).\
-                    update({DbKey.latest_txid: txs[-1].hash})
+                dbkey = self._session.query(DbKey).filter(DbKey.address == address, DbKey.wallet_id == self.wallet_id)
+                if not dbkey.update({DbKey.latest_txid: txs[-1].hash}):
+                    raise WalletError("Failed to update latest transaction id for key with address %s" % address)
+                self._session.commit()
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
 
