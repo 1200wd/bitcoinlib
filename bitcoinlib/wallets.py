@@ -604,6 +604,7 @@ class HDWalletTransaction(Transaction):
         if hdwallet.witness_type in ['segwit', 'p2sh-segwit']:
             witness_type = 'segwit'
         Transaction.__init__(self, witness_type=witness_type, *args, **kwargs)
+        self.outgoing_tx = bool([i.address for i in self.inputs if i.address in hdwallet.addresslist()])
 
     def __repr__(self):
         return "<HDWalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -889,6 +890,34 @@ class HDWalletTransaction(Transaction):
         if self.error:
             print("Errors: %s" % self.error)
         print("\n")
+
+    def export(self, skip_change=True):
+        """
+        Export this transaction as list of tuples in the following format:
+            (in/out, transaction_hash, transaction_date, address, value)
+
+        A transaction with multiple inputs or outputs results in multiple tuples.
+
+        :param skip_change: Do not include outputs to own wallet (default)
+        :type skip_change: boolean
+
+        :return list:
+        """
+        mut_list = []
+        wlt_addresslist = self.hdwallet.addresslist()
+        if self.outgoing_tx:
+            for o in self.outputs:
+                if o.address in wlt_addresslist and skip_change:
+                    continue
+                mut_list.append(('out', self.hash, self.date, o.address, o.value))
+        else:
+            addresslist = [i.address for i in self.inputs]
+            for o in self.outputs:
+                if o.address not in wlt_addresslist:
+                    continue
+                mut_list.append(('in', self.hash, self.date, addresslist, o.value))
+        return mut_list
+
 
 
 class HDWallet(object):
@@ -2901,6 +2930,8 @@ class HDWallet(object):
             txid = tx[3]
             if as_dict:
                 u = tx[0].__dict__
+                u['block_height'] = tx[0].transaction.block_height
+                u['date'] = tx[0].transaction.date
                 if '_sa_instance_state' in u:
                     del u['_sa_instance_state']
                 u['address'] = tx[1]
@@ -2909,7 +2940,10 @@ class HDWallet(object):
                 u['network_name'] = tx[4]
                 u['status'] = tx[5]
                 if 'index_n' in u:
+                    u['is_output'] = True
                     u['value'] = -u['value']
+                else:
+                    u['is_output'] = False
             else:
                 if txid in tx_hashes:
                     continue
