@@ -763,11 +763,23 @@ class Input(object):
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
         for sig in signatures:
-            if isinstance(sig, Signature):
-                if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
-                    self.signatures.append(sig)
-            else:
-                self.signatures.append(Signature.from_str(sig))
+            # TODO: Test below changes!
+            # if isinstance(sig, Signature):
+            #     if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
+            #         self.signatures.append(sig)
+            # else:
+            #     try:
+            #         self.signatures.append(Signature.from_str(sig))
+            #     except Exception as e:
+            #         _logger.error("Could not parse signature %s in Input. Error: %s" % (to_hexstring(sig), e))
+            if not isinstance(sig, Signature):
+                try:
+                    sig = Signature.from_str(sig)
+                except Exception as e:
+                    _logger.error("Could not parse signature %s in Input. Error: %s" % (to_hexstring(sig), e))
+                    continue
+            if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
+                self.signatures.append(sig)
         self.update_scripts()
 
     # TODO: Remove / replace?

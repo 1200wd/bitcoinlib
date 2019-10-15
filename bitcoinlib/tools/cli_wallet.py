@@ -205,8 +205,8 @@ def print_transaction(wt):
         } for o in wt.outputs], 'inputs': [{
             'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
             'address': i.address, 'signatures': [{
-                'signature': to_hexstring(s['signature']), 'sig_der': to_hexstring(s['sig_der']),
-                'pub_key': to_hexstring(s['pub_key']),
+                'signature': s.hex(), 'sig_der': s.as_der_encoded(as_hex=True),
+                'pub_key': s.public_key.public_hex,
             } for s in i.signatures], 'value': i.value
         } for i in wt.inputs]
     }

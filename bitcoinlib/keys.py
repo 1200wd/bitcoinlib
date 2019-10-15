@@ -1987,7 +1987,7 @@ class Signature(object):
 
     def hex(self):
         """
-        Signature r and s value as single hexstring
+        Signature r and s value as single hexadecimal string
 
         :return hexstring:
         """
@@ -2004,15 +2004,21 @@ class Signature(object):
             self._signature = to_bytes('%064x%064x' % (self.r, self.s))
         return self._signature
 
-    def as_der_encoded(self):
+    def as_der_encoded(self, as_hex=False):
         """
-        DER encoded signature in bytes
-        
+        Get DER encoded signature
+
+        :param as_hex: Output as hexstring
+        :type as_hex: bool
+
         :return bytes: 
         """
         if not self._der_encoded:
             self._der_encoded = der_encode_sig(self.r, self.s)
-        return self._der_encoded
+        if as_hex:
+            return to_hexstring(self._der_encoded)
+        else:
+            return self._der_encoded
 
     def verify(self, tx_hash=None, public_key=None):
         """
