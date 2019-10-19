@@ -233,10 +233,10 @@ def main():
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey.from_seed(seed, network=args.network)
-        print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif())
+        print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif_private())
         print(
             "Public account key, to share with other cosigner multisig wallets: %s" %
-            hdkey.public_master(witness_type=args.witness_type, multisig=True))
+            hdkey.public_master(witness_type=args.witness_type, multisig=True).wif())
         print("Network: %s" % hdkey.network.name)
         clw_exit()
 
