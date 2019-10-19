@@ -52,44 +52,21 @@ class BcoinClient(BaseClient):
         return self.request(url_path, variables, method, secure=False)
 
     def _parse_transaction(self, tx):
-        witness_type = 'legacy'
-        if len([ti['witness'] for ti in tx['inputs'] if ti['witness'] != '00']):
-            witness_type = 'segwit'
-        coinbase = False
-        if tx['inputs'][0]['prevout']['hash'] == '00' * 32:
-            coinbase = True
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
-        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=int(len(tx['hex'])/2), hash=tx['hash'], date=datetime.fromtimestamp(tx['time']),
-                        confirmations=tx['confirmations'], block_height=tx['height'], block_hash=tx['block'],
-                        rawtx=tx['hex'], status=status, coinbase=coinbase, witness_type=witness_type)
-        for ti in tx['inputs']:
-            witness_type = 'legacy'
-            script = ti['script']
-            if ti['witness'] != '00':
-                witness_type = 'segwit'
-                script = ti['witness'][2:]
-            address = ''
-            value = 0
-            if 'coin' in ti:
-                address = ti['coin']['address']
-                value = ti['coin']['value']
-            t.add_input(prev_hash=ti['prevout']['hash'], output_n=ti['prevout']['index'],
-                        unlocking_script=script, address=address, value=value,
-                        witness_type=witness_type, sequence=ti['sequence'])
-        output_n = 0
-        for to in tx['outputs']:
-            address = ''
-            if to['address']:
-                address = to['address']
-            t.add_output(value=to['value'], address=address, lock_script=to['script'],
-                         output_n=output_n, spent=None)
-            output_n += 1
+        t = Transaction.import_raw(tx['hex'])
+        t.locktime = tx['locktime']
+        t.network = self.network
+        t.fee=tx['fee']
+        t.date=datetime.fromtimestamp(tx['time'])
+        t.confirmations=tx['confirmations']
+        t.block_height=tx['height']
+        t.block_hash=tx['block']
+        t.status=status
+        for i in t.inputs:
+            i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']
         t.update_totals()
-        if t.coinbase:
-            t.input_total = t.output_total
         return t
 
     def isspent(self, tx_id, index):
