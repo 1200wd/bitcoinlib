@@ -56,8 +56,8 @@ def parse_args():
                                    " Use when updating fails or other errors occur. Please backup your database and "
                                    "masterkeys first.")
     group_wallet.add_argument('--receive', '-r', nargs='?', type=int,
-                              help="Show unused address to receive funds. Generate new payment and"
-                                   "change addresses if no unused addresses are available.",
+                              help="Show unused address to receive funds. Specify cosigner-id to generate address for "
+                                   "specific cosigner, default is own wallet",
                               const=1, metavar='NUMBER_OF_ADDRESSES')
     group_wallet.add_argument('--generate-key', '-g', action='store_true', help="Generate a new masterkey, and show"
                               " passphrase, WIF and public account key. Can be used to create a multisig wallet")
@@ -233,10 +233,9 @@ def main():
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey.from_seed(seed, network=args.network)
-        print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif_private())
-        print(
-            "Public account key, to share with other cosigner multisig wallets: %s" %
-            hdkey.public_master(witness_type=args.witness_type, multisig=True).wif())
+        print("Private Master key, to create multisig wallet on this machine:\n%s" % hdkey.wif_private())
+        print("Public Master key, to share with other cosigner multisig wallets:\n%s" %
+              hdkey.public_master(witness_type=args.witness_type, multisig=True).wif())
         print("Network: %s" % hdkey.network.name)
         clw_exit()
 
@@ -346,18 +345,18 @@ def main():
         clw_exit()
 
     if args.receive:
-        keys = wlt.get_key(network=args.network, number_of_keys=args.receive)
-        if args.receive != 1:
-            keys += wlt.get_key_change(network=args.network, number_of_keys=args.receive)
-        keys = [keys] if not isinstance(keys, list) else keys
+        key = wlt.get_key(network=args.network, cosigner_id=args.receive)
+        # if args.receive != 1:
+        #     keys += wlt.get_key_change(network=args.network, cosigner_id=args.receive)
+        # keys = [keys] if not isinstance(keys, list) else keys
         print("Receive address(es):")
-        for key in keys:
-            addr = key.address
-            print(addr)
-            if QRCODES_AVAILABLE and args.receive == 1:
-                qrcode = pyqrcode.create(addr)
-                print(qrcode.terminal())
-        if not QRCODES_AVAILABLE and args.receive == 1:
+        # for key in keys:
+        addr = key.address
+        print(addr)
+        if QRCODES_AVAILABLE:
+            qrcode = pyqrcode.create(addr)
+            print(qrcode.terminal())
+        else:
             print("Install qr code module to show QR codes: pip install pyqrcode")
         clw_exit()
     if args.create_transaction == []:
