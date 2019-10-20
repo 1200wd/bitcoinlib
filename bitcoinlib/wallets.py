@@ -1823,14 +1823,14 @@ class HDWallet(object):
         if cosigner_id is None:
             cosigner_id = self.cosigner_id
         last_used_qr = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
+            filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network, cosigner_id=cosigner_id,
                       used=True, change=change, depth=self.key_depth).\
             order_by(DbKey.id.desc()).first()
         last_used_key_id = 0
         if last_used_qr:
             last_used_key_id = last_used_qr.id
         dbkey = self._session.query(DbKey).\
-            filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network,
+            filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network, cosigner_id=cosigner_id,
                       used=False, change=change, depth=self.key_depth).filter(DbKey.id > last_used_key_id).\
             order_by(DbKey.id.desc()).all()
         key_list = []
