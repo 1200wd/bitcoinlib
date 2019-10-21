@@ -57,8 +57,8 @@ def parse_args():
                                    "masterkeys first.")
     group_wallet.add_argument('--receive', '-r', nargs='?', type=int,
                               help="Show unused address to receive funds. Specify cosigner-id to generate address for "
-                                   "specific cosigner, default is own wallet",
-                              const=1, metavar='NUMBER_OF_ADDRESSES')
+                                   "specific cosigner. Default is -1 for own wallet",
+                              const=-1, metavar='COSIGNER_ID')
     group_wallet.add_argument('--generate-key', '-g', action='store_true', help="Generate a new masterkey, and show"
                               " passphrase, WIF and public account key. Can be used to create a multisig wallet")
     group_wallet.add_argument('--export-private', '-e', action='store_true',
@@ -345,16 +345,13 @@ def main():
         clw_exit()
 
     if args.receive:
-        key = wlt.get_key(network=args.network, cosigner_id=args.receive)
-        # if args.receive != 1:
-        #     keys += wlt.get_key_change(network=args.network, cosigner_id=args.receive)
-        # keys = [keys] if not isinstance(keys, list) else keys
-        print("Receive address(es):")
-        # for key in keys:
-        addr = key.address
-        print(addr)
+        cosigner_id = args.receive
+        if args.receive == -1:
+            cosigner_id = None
+        key = wlt.get_key(network=args.network, cosigner_id=cosigner_id)
+        print("Receive address: %s" % key.address)
         if QRCODES_AVAILABLE:
-            qrcode = pyqrcode.create(addr)
+            qrcode = pyqrcode.create(key.address)
             print(qrcode.terminal())
         else:
             print("Install qr code module to show QR codes: pip install pyqrcode")

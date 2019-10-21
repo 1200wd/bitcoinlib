@@ -1836,6 +1836,9 @@ class HDWallet(object):
         key_list = []
         if self.scheme == 'single' and len(dbkey):
             number_of_keys = len(dbkey) if number_of_keys > len(dbkey) else number_of_keys
+        if cosigner_id > len(self.cosigner):
+            raise WalletError("Cosigner ID (%d) can not be greater then number of cosigners for this wallet (%d)" %
+                              (cosigner_id, len(self.cosigner)))
         for i in range(number_of_keys):
             if dbkey:
                 dk = dbkey.pop()
