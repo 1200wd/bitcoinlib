@@ -27,13 +27,20 @@ matrix:
       language: sh
       python: "3.7"
       before_install:
-        - choco install python3
+        - choco install python --version=3.7.1
+        - choco install postgresql --params '/Password:postgres' --paramsglobal
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
+
+before_install:
+  - sudo apt-get install -y postgresql postgresql-contrib
+  - sudo service postgresql start
 
 install:
   - pip install coveralls
   - pip install scrypt
+  - pip install psycopg2
+  - pip install parameterized
   - python setup.py install
 
 script:

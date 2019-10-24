@@ -28,6 +28,9 @@ PY3 = sys.version_info[0] == 3
 TYPE_TEXT = str
 if not PY3:
     TYPE_TEXT = (str, unicode)
+TYPE_INT = int
+if not PY3:
+    TYPE_INT = (int, long)
 LOGLEVEL = 'WARNING'
 if PY3:
     import configparser
