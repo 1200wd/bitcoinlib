@@ -1697,10 +1697,10 @@ class TestWalletSegwit(unittest.TestCase):
         db_remove()
 
     def test_wallet_segwit_create_p2pkh(self):
-        phrase = 'depth child sheriff attack when purpose velvet stay problem lock myself praise'
+        phrase = "review arch uniform illness hello animal device reform bicycle obscure cruise boat"
         wlt = wallet_create_or_open('thetestwallet-bech32', keys=phrase, network='bitcoin', witness_type='segwit',
                                     databasefile=DATABASEFILE_UNITTESTS)
-        self.assertEqual(wlt.get_key().address, 'bc1q0xjnzddk8t4rnujmya8zgvxuct5s04my0fde3e')
+        self.assertEqual(wlt.get_key().address, 'bc1ql22f3gqqphsejtqkqjqg9an03sjz4l6gztcm34')
 
     def test_wallet_segwit_create_pswsh(self):
         phrase1 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'

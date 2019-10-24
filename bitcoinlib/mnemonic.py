@@ -60,10 +60,10 @@ class Mnemonic(object):
         if len(data) % 4 > 0:
             raise ValueError('Data length in bits should be divisible by 32, but it is not (%d bytes = %d bits).' %
                              (len(data), len(data) * 8))
-        tx_hash = hashlib.sha256(data).digest()
-        return change_base(tx_hash, 256, 2, 256)[:len(data) * 8 // 32]
+        key_hash = hashlib.sha256(data).digest()
+        return change_base(key_hash, 256, 2, 256)[:len(data) * 8 // 32]
 
-    def to_seed(self, words, password=''):
+    def to_seed(self, words, password='', validate=True):
         """
         Use Mnemonic words and password to create a PBKDF2 seed (Password-Based Key Derivation Function 2)
         
@@ -73,10 +73,15 @@ class Mnemonic(object):
         :type words: str
         :param password: A password to protect key, leave empty to disable
         :type password: str
+        :param validate: Validate checksum for given word phrase, default is True
+        :type validate: bool
         
         :return bytes: PBKDF2 seed
         """
         words = self.sanitize_mnemonic(words)
+        # Check if passphrase is valid
+        if validate:
+            self.to_entropy(words)
         mnemonic = to_bytes(words)
         password = to_bytes(password)
         return hashlib.pbkdf2_hmac(hash_name='sha512', password=mnemonic, salt=b'mnemonic' + password,
@@ -108,7 +113,7 @@ class Mnemonic(object):
         Uses cryptographically secure os.urandom() function to generate data. Then creates a Mnemonic sentence with
         the 'to_mnemonic' method.
 
-        :param strength: Key strength in number of bits, default is 128 bits. It advised to specify 128 bits or more, i.e.: 128, 256, 512 or 1024
+        :param strength: Key strength in number of bits as multiply of 32, default is 128 bits. It advised to specify 128 bits or more, i.e.: 128, 256, 512 or 1024
         :type strength: int
         :param add_checksum: Included a checksum? Default is True
         :type add_checksum: bool
@@ -169,7 +174,7 @@ class Mnemonic(object):
             # Check checksum
             checksum = binresult[-len(binresult) // 33:]
             if checksum != self.checksum(ent):
-                raise Warning("Invalid checksum %s for entropy %s" % (checksum, ent))
+                raise ValueError("Invalid checksum %s for entropy %s" % (checksum, ent))
 
         return ent
 

@@ -565,12 +565,12 @@ class TestService(unittest.TestCase, CustomAssertions):
                 ],
             'size': 191,
         }
-        srv = Service(network='bitcoin', min_providers=10, timeout=TIMEOUT_TEST, providers=['bitaps'])
-
+        srv = Service(network='bitcoin', min_providers=10, timeout=TIMEOUT_TEST)
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
+            srv.results[provider].info()
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
