@@ -104,7 +104,7 @@ class BlockCypher(BaseClient):
         t.block_hash = tx.get('block_hash')
         t.fee = tx['fees']
         t.rawtx = tx['hex']
-        t.size = tx['size']
+        t.size = int(len(tx['hex']) / 2)
         t.network = self.network
         t.input_total = 0
         if t.coinbase:

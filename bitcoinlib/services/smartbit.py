@@ -47,7 +47,6 @@ class SmartbitClient(BaseClient):
             url_path += '/' + command
         return self.request(url_path, variables=variables, method=method)
 
-
     def _parse_transaction(self, tx):
         status = 'unconfirmed'
         if tx['confirmations']:
@@ -72,12 +71,28 @@ class SmartbitClient(BaseClient):
         else:
             for ti in tx['inputs']:
                 unlocking_script = ti['script_sig']['hex']
+                witness_type = 'legacy'
                 if ti['witness'] and ti['witness'] != ['NULL']:
+                    witness_type = 'segwit'
                     unlocking_script = b"".join([varstr(to_bytes(x)) for x in ti['witness']])
                 # if tx['inputs']['witness']
+
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
-                            index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'])
+                            index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
+                            witness_type=witness_type)
                 index_n += 1
+
+                # if ti['spending_witness']:
+                #     witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
+                #     t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
+                #                 unlocking_script=witnesses, index_n=index_n, value=ti['value'],
+                #                 address=ti['recipient'], witness_type='segwit')
+                # else:
+                #     t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
+                #                 unlocking_script_unsigned=ti['script_hex'], index_n=index_n, value=ti['value'],
+                #                 address=ti['recipient'], unlocking_script=ti['spending_signature_hex'])
+
+
         for to in tx['outputs']:
             spent = True if 'spend_txid' in to and to['spend_txid'] else False
             address = ''
