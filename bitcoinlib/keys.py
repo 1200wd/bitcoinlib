@@ -1124,7 +1124,10 @@ class Key(object):
             print("SECRET EXPONENT")
             print(" Private Key (hex)              %s" % self.private_hex)
             print(" Private Key (long)             %s" % self.secret)
-            print(" Private Key (wif)              %s" % self.wif())
+            if isinstance(self, HDKey):
+                print(" Private Key (wif)              %s" % self.wif_key())
+            else:
+                print(" Private Key (wif)              %s" % self.wif())
         else:
             print("PUBLIC KEY ONLY, NO SECRET EXPONENT")
         print("PUBLIC KEY")
