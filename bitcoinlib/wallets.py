@@ -782,7 +782,7 @@ class HDWalletTransaction(Transaction):
                 utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
                     filter(DbTransaction.hash == tx_hash,
                            DbTransactionOutput.output_n == inp.output_n_int,
-                           DbTransactionOutput.spent.op("IS")(False)).all()
+                           DbTransactionOutput.spent.is_(False)).all()
                 for u in utxos:
                     u.spent = True
 
@@ -1708,7 +1708,7 @@ class HDWallet(object):
 
         # Check UTXO's
         utxos = self._session.query(DbTransactionOutput).join(DbTransaction). \
-            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransactionOutput.spent.op("IS")(False))
+            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransactionOutput.spent.is_(False))
         if account_id is not None:
             utxos.filter(DbKey.account_id == account_id)
         txids = list(set([utxo.transaction.hash for utxo in utxos]))
@@ -2070,7 +2070,7 @@ class HDWallet(object):
             else:
                 qr = qr.filter(DbKey.balance == 0)
         if is_active:  # Unused keys and keys with a balance
-            qr = qr.filter(or_(DbKey.balance != 0, DbKey.used == False))
+            qr = qr.filter(or_(DbKey.balance != 0, DbKey.used.is_(False)))
         keys = qr.order_by(DbKey.depth).all()
         if as_dict:
             keys = [x.__dict__ for x in keys]
@@ -2414,7 +2414,7 @@ class HDWallet(object):
         qr = self._session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbKey.network_name,
                                  DbKey.account_id).\
             join(DbTransaction).join(DbKey). \
-            filter(DbTransactionOutput.spent.op("IS")(False),
+            filter(DbTransactionOutput.spent.is_(False),
                    DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.confirmations >= min_confirms)
         if account_id is not None:
@@ -2642,7 +2642,7 @@ class HDWallet(object):
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash,
                                  DbKey.network_name).\
             join(DbTransaction).join(DbKey). \
-            filter(DbTransactionOutput.spent.op("IS")(False),
+            filter(DbTransactionOutput.spent.is_(False),
                    DbKey.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
                    DbKey.network_name == network,
@@ -2709,7 +2709,7 @@ class HDWallet(object):
         to = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
              join(DbTransactionOutput).join(DbKey). \
              filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
-                    DbTransactionOutput.spent.op("IS")(False)). \
+                    DbTransactionOutput.spent.is_(False)). \
              order_by(DbTransaction.confirmations).first()
         return '' if not to else to[0]
 
@@ -2744,7 +2744,7 @@ class HDWallet(object):
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction). \
                 filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
-                       DbTransactionOutput.spent.op("IS")(False)).all()
+                       DbTransactionOutput.spent.is_(False)).all()
             for u in tos:
                 u.spent = True
         self._session.commit()
@@ -2800,7 +2800,7 @@ class HDWallet(object):
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
-                       DbTransactionOutput.spent.op("IS")(False)).all()
+                       DbTransactionOutput.spent.is_(False)).all()
             for u in tos:
                 u.spent = True
         self.last_updated = last_updated
@@ -2939,7 +2939,7 @@ class HDWallet(object):
         utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
             filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
                    DbKey.network_name == network, DbKey.public != '',
-                   DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms)
+                   DbTransactionOutput.spent.is_(False), DbTransaction.confirmations >= min_confirms)
         if input_key_id:
             utxo_query = utxo_query.filter(DbKey.id == input_key_id)
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
@@ -2949,7 +2949,7 @@ class HDWallet(object):
         # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
 
         # Try to find one utxo with exact amount
-        one_utxo = utxo_query.filter(DbTransactionOutput.spent.op("IS")(False),
+        one_utxo = utxo_query.filter(DbTransactionOutput.spent.is_(False),
                                      DbTransactionOutput.value >= amount,
                                      DbTransactionOutput.value <= amount + variance).first()
         selected_utxos = []
@@ -2958,7 +2958,7 @@ class HDWallet(object):
         else:
             # Try to find one utxo with higher amount
             one_utxo = utxo_query. \
-                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
+                filter(DbTransactionOutput.spent.is_(False), DbTransactionOutput.value >= amount).\
                 order_by(DbTransactionOutput.value).first()
             if one_utxo:
                 selected_utxos = [one_utxo]
@@ -2970,7 +2970,7 @@ class HDWallet(object):
         # Otherwise compose of 2 or more lesser outputs
         if not selected_utxos:
             lessers = utxo_query. \
-                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
+                filter(DbTransactionOutput.spent.is_(False), DbTransactionOutput.value < amount).\
                 order_by(DbTransactionOutput.value.desc()).all()
             total_amount = 0
             selected_utxos = []

@@ -20,7 +20,7 @@
 
 import unittest
 from random import shuffle
-
+import mysql.connector
 import psycopg2
 from parameterized import parameterized_class
 from psycopg2 import sql
@@ -38,9 +38,10 @@ DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
 
 
-params = (('SCHEMA','DATABASE_URI', 'DATABASE_URI_2'), (
-        ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
-        ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),
+params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
+    ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
+    ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
+    ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),
 ))
 
 
@@ -48,16 +49,24 @@ class TestWalletMixin:
 
     @classmethod
     def create_db_if_needed(cls, db):
-        con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
-        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cur = con.cursor()
-        try:
-            cur.execute(sql.SQL("CREATE DATABASE {}").format(
-                sql.Identifier(db))
-            )
-        except Exception:
-            pass
-        finally:
+        if cls.SCHEMA == 'postgresql':
+            con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
+            con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            cur = con.cursor()
+            try:
+                cur.execute(sql.SQL("CREATE DATABASE {}").format(
+                    sql.Identifier(db))
+                )
+            except Exception:
+                pass
+            finally:
+                cur.close()
+                con.close()
+        elif cls.SCHEMA == 'mysql':
+            con = mysql.connector.connect(user='root', host='localhost')
+            cur = con.cursor()
+            cur.execute('CREATE DATABASE IF NOT EXISTS {}'.format(db))
+            con.commit()
             cur.close()
             con.close()
 
@@ -85,6 +94,17 @@ class TestWalletMixin:
                             END LOOP;
                         END $$;"""
                     ))
+                finally:
+                    cur.close()
+                    con.close()
+        elif cls.SCHEMA =='mysql':
+            for db in [DATABASE_NAME, DATABASE_NAME_2]:
+                cls.create_db_if_needed(db)
+                con = mysql.connector.connect(user='root', host='localhost', database=db, autocommit=True)
+                cur = con.cursor(buffered=True)
+                try:
+                    cur.execute("DROP DATABASE {};".format(db))
+                    cur.execute("CREATE DATABASE {};".format(db))
                 finally:
                     cur.close()
                     con.close()

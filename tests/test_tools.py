@@ -10,14 +10,14 @@ import sys
 import unittest
 from subprocess import Popen, PIPE
 
+import mysql.connector
 import psycopg2
 from parameterized import parameterized_class
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from bitcoinlib.encoding import normalize_string
 from bitcoinlib.db import BCL_DATABASE_DIR
-
+from bitcoinlib.encoding import normalize_string
 
 SQLITE_DATABASE_FILE = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.unittest.sqlite')
 DATABASE_NAME = 'bitcoinlib_unittest'
@@ -42,7 +42,18 @@ def init_postgresql(_):
     con.close()
 
 
+def init_mysql(_):
+    con = mysql.connector.connect(user='root', host='localhost')
+    cur = con.cursor()
+    cur.execute("DROP DATABASE IF EXISTS {}".format(DATABASE_NAME))
+    cur.execute("CREATE DATABASE {}".format(DATABASE_NAME))
+    con.commit()
+    cur.close()
+    con.close()
+
+
 @parameterized_class(('DATABASE_URI', 'init_fn'), (
+        ('mysql://root@localhost:3306/' + DATABASE_NAME, init_mysql),
         ('postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, init_postgresql),
         ('sqlite:///' + SQLITE_DATABASE_FILE, init_sqlite),
 ))
