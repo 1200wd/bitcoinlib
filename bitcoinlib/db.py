@@ -24,7 +24,7 @@ except ImportError:
     import enum34 as enum
 import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -42,15 +42,15 @@ class DbInit:
     Import data if database did not exist yet
 
     """
-    def __init__(self, databasefile=DEFAULT_DATABASE):
-        if not os.path.isabs(databasefile):
-            databasefile = os.path.join(BCL_DATABASE_DIR, databasefile)
-        self.engine = create_engine('sqlite:///%s' % databasefile)
+    def __init__(self, db_uri=None):
+        if db_uri is None:
+            sqlite_file = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
+            db_uri = 'sqlite:///%s' % sqlite_file
+        self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
         Session = sessionmaker(bind=self.engine)
 
-        if not os.path.exists(databasefile):
-            Base.metadata.create_all(self.engine)
-            self._import_config_data(Session)
+        Base.metadata.create_all(self.engine)
+        self._import_config_data(Session)
 
         self.session = Session()
 
@@ -76,14 +76,14 @@ class DbInit:
     @staticmethod
     def _import_config_data(ses):
         session = ses()
-        session.add(DbConfig(variable='version', value=BITCOINLIB_VERSION))
-        session.add(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
+        session.merge(DbConfig(variable='version', value=BITCOINLIB_VERSION))
+        session.merge(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
         url = ''
         try:
             url = str(session.bind.url)
         except:
             pass
-        session.add(DbConfig(variable='installation_url', value=url))
+        session.merge(DbConfig(variable='installation_url', value=url))
         session.commit()
         session.close()
 
@@ -106,15 +106,15 @@ class DbConfig(Base):
 class DbWallet(Base):
     """
     Database definitions for wallets in Sqlalchemy format
-    
+
     Contains one or more keys.
-     
+
     """
     __tablename__ = 'wallets'
     id = Column(Integer, Sequence('wallet_id_seq'), primary_key=True)
-    name = Column(String(50), unique=True)
+    name = Column(String(80), unique=True)
     owner = Column(String(50))
-    network_name = Column(String, ForeignKey('networks.name'))
+    network_name = Column(String(20), ForeignKey('networks.name'))
     network = relationship("DbNetwork")
     purpose = Column(Integer)
     scheme = Column(String(25))
@@ -137,7 +137,7 @@ class DbWallet(Base):
     __table_args__ = (
         CheckConstraint(scheme.in_(['single', 'bip32']), name='constraint_allowed_schemes'),
         CheckConstraint(encoding.in_(['base58', 'bech32']), name='constraint_default_address_encodings_allowed'),
-        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']), name='constraint_allowed_types'),
+        CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']), name='wallet_constraint_allowed_types'),
     )
 
     def __repr__(self):
@@ -160,20 +160,20 @@ class DbKeyMultisigChildren(Base):
 class DbKey(Base):
     """
     Database definitions for keys in Sqlalchemy format
-    
+
     Part of a wallet, and used by transactions
 
     """
     __tablename__ = 'keys'
     id = Column(Integer, Sequence('key_id_seq'), primary_key=True)
     parent_id = Column(Integer, Sequence('parent_id_seq'))
-    name = Column(String(50), index=True)
+    name = Column(String(80), index=True)
     account_id = Column(Integer, index=True)
     depth = Column(Integer)
     change = Column(Integer)
-    address_index = Column(Integer)
-    public = Column(String(255), index=True)
-    private = Column(String(255), index=True)
+    address_index = Column(BigInteger)
+    public = Column(String(512), index=True)
+    private = Column(String(512), index=True)
     wif = Column(String(255), index=True)
     compressed = Column(Boolean, default=True)
     key_type = Column(String(10), default='bip32')
@@ -187,16 +187,16 @@ class DbKey(Base):
     wallet = relationship("DbWallet", back_populates="keys")
     transaction_inputs = relationship("DbTransactionInput", cascade="all,delete", back_populates="key")
     transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key")
-    balance = Column(Integer, default=0)
+    balance = Column(Numeric(25, 0, asdecimal=False), default=0)
     used = Column(Boolean, default=False)
-    network_name = Column(String, ForeignKey('networks.name'))
+    network_name = Column(String(20), ForeignKey('networks.name'))
     network = relationship("DbNetwork")
     multisig_parents = relationship("DbKeyMultisigChildren", backref='child_key',
                                     primaryjoin=id == DbKeyMultisigChildren.child_id)
     multisig_children = relationship("DbKeyMultisigChildren", backref='parent_key',
                                      order_by="DbKeyMultisigChildren.key_order",
                                      primaryjoin=id == DbKeyMultisigChildren.parent_id)
-    latest_txid = Column(String(32))
+    latest_txid = Column(String(64))
 
     __table_args__ = (
         CheckConstraint(key_type.in_(['single', 'bip32', 'multisig']), name='constraint_key_types_allowed'),
@@ -235,9 +235,9 @@ class TransactionType(enum.Enum):
 class DbTransaction(Base):
     """
     Database definitions for transactions in Sqlalchemy format
-    
+
     Refers to 1 or more keys which can be part of a wallet
-    
+
     """
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
@@ -256,19 +256,19 @@ class DbTransaction(Base):
     fee = Column(Integer)
     inputs = relationship("DbTransactionInput", cascade="all,delete")
     outputs = relationship("DbTransactionOutput", cascade="all,delete")
-    status = Column(String, default='new')
-    input_total = Column(Integer, default=0)
-    output_total = Column(Integer, default=0)
-    network_name = Column(String, ForeignKey('networks.name'))
+    status = Column(String(20), default='new')
+    input_total = Column(Numeric(25, 0, asdecimal=False), default=0)
+    output_total = Column(Numeric(25, 0, asdecimal=False), default=0)
+    network_name = Column(String(20), ForeignKey('networks.name'))
     network = relationship("DbNetwork")
-    raw = Column(String)
+    raw = Column(String(1024))
     verified = Column(Boolean, default=False)
 
     __table_args__ = (
         UniqueConstraint('wallet_id', 'hash', name='constraint_wallet_transaction_hash_unique'),
         CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed']),
                         name='constraint_status_allowed'),
-        CheckConstraint(witness_type.in_(['legacy', 'segwit']), name='constraint_allowed_types'),
+        CheckConstraint(witness_type.in_(['legacy', 'segwit']), name='transaction_constraint_allowed_types'),
     )
 
     def __repr__(self):
@@ -290,18 +290,18 @@ class DbTransactionInput(Base):
     key = relationship("DbKey", back_populates="transaction_inputs")
     witness_type = Column(String(20), default='legacy')
     prev_hash = Column(String(64))
-    output_n = Column(Integer)
-    script = Column(String)
-    script_type = Column(String, default='sig_pubkey')
+    output_n = Column(BigInteger)
+    script = Column(String(1024))
+    script_type = Column(String(20), default='sig_pubkey')
     sequence = Column(Integer)
-    value = Column(Integer, default=0)
+    value = Column(Numeric(25, 0, asdecimal=False), default=0)
     double_spend = Column(Boolean, default=False)
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'coinbase', 'sig_pubkey', 'p2sh_multisig',
                                                        'signature', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
-                                      name='constraint_script_types_allowed'),
+                                      name='transactioninput_constraint_script_types_allowed'),
                       CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']),
-                                      name='constraint_allowed_types'),)
+                                      name='transactioninput_constraint_allowed_types'),)
 
 
 class DbTransactionOutput(Base):
@@ -316,17 +316,17 @@ class DbTransactionOutput(Base):
     __tablename__ = 'transaction_outputs'
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
     transaction = relationship("DbTransaction", back_populates='outputs')
-    output_n = Column(Integer, primary_key=True)
+    output_n = Column(BigInteger, primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_outputs")
-    script = Column(String)
-    script_type = Column(String, default='p2pkh')
-    value = Column(Integer, default=0)
+    script = Column(String(1024))
+    script_type = Column(String(20), default='p2pkh')
+    value = Column(Numeric(25, 0, asdecimal=False), default=0)
     spent = Column(Boolean(), default=False)
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'p2pk', 'nulldata',
                                                        'unknown', 'p2wpkh', 'p2wsh']),
-                                      name='constraint_script_types_allowed'),)
+                                      name='transactionoutput_constraint_script_types_allowed'),)
 
 
 if __name__ == '__main__':

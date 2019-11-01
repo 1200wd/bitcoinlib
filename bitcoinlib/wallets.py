@@ -17,22 +17,22 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import json
 import numbers
 import random
 import warnings
-from sqlalchemy import or_, func
 from itertools import groupby
 from operator import itemgetter
-import json
 
 from bitcoinlib.db import *
-from bitcoinlib.encoding import to_hexstring, to_bytes, EncodingError
-from bitcoinlib.keys import HDKey, check_network_and_key, Address, path_expand, BKeyError
+from bitcoinlib.encoding import EncodingError, to_bytes, to_hexstring
+from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
+from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.networks import Network
 from bitcoinlib.services.services import Service
-from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.transactions import Transaction, serialize_multisig_redeemscript, Output, Input, \
-    get_unlocking_script_type
+from bitcoinlib.transactions import (Input, Output, Transaction, get_unlocking_script_type,
+                                     serialize_multisig_redeemscript)
+from sqlalchemy import func, or_
 
 _logger = logging.getLogger(__name__)
 
@@ -50,20 +50,20 @@ class WalletError(Exception):
         return self.msg
 
 
-def wallets_list(databasefile=DEFAULT_DATABASE, include_cosigners=False):
+def wallets_list(db_uri=None, include_cosigners=False):
     """
     List Wallets from database
-    
-    :param databasefile: Location of Sqlite database. Leave empty to use default
-    :type databasefile: str
+
+    :param db_uri: URI of the database
+    :type db_uri: str
     :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
     :type include_cosigners: bool
-    
+
     :return dict: Dictionary of wallets defined in database
     """
 
-    session = DbInit(databasefile=databasefile).session
-    wallets = session.query(DbWallet).all()
+    session = DbInit(db_uri=db_uri).session
+    wallets = session.query(DbWallet).order_by(DbWallet.id).all()
     wlst = []
     for w in wallets:
         if w.parent_id and not include_cosigners:
@@ -82,21 +82,21 @@ def wallets_list(databasefile=DEFAULT_DATABASE, include_cosigners=False):
     return wlst
 
 
-def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
+def wallet_exists(wallet, db_uri=None):
     """
     Check if Wallets is defined in database
-    
+
     :param wallet: Wallet ID as integer or Wallet Name as string
     :type wallet: int, str
-    :param databasefile: Location of Sqlite database. Leave empty to use default
-    :type databasefile: str
-    
+    :param db_uri: URI of the database
+    :type db_uri: str
+
     :return bool: True if wallet exists otherwise False
     """
 
-    if wallet in [x['name'] for x in wallets_list(databasefile)]:
+    if wallet in [x['name'] for x in wallets_list(db_uri)]:
         return True
-    if isinstance(wallet, int) and wallet in [x['id'] for x in wallets_list(databasefile)]:
+    if isinstance(wallet, int) and wallet in [x['id'] for x in wallets_list(db_uri)]:
         return True
     return False
 
@@ -104,25 +104,25 @@ def wallet_exists(wallet, databasefile=DEFAULT_DATABASE):
 def wallet_create_or_open(
         name, keys='', owner='', network=None, account_id=0, purpose=None, scheme='bip32', sort_keys=True,
         password='', witness_type=None, encoding=None, multisig=None, sigs_required=None, cosigner_id=None,
-        key_path=None, databasefile=DEFAULT_DATABASE):
+        key_path=None, db_uri=None):
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
     See Wallets class create method for option documentation
     """
-    if wallet_exists(name, databasefile=databasefile):
-        return HDWallet(name, databasefile=databasefile)
+    if wallet_exists(name, db_uri=db_uri):
+        return HDWallet(name, db_uri=db_uri)
     else:
         return HDWallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
                                password, witness_type, encoding, multisig, sigs_required, cosigner_id,
-                               key_path, databasefile=databasefile)
+                               key_path, db_uri=db_uri)
 
 
 @deprecated  # In version 0.4.5
 def wallet_create_or_open_multisig(
         name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None, sort_keys=True,
         witness_type=DEFAULT_WITNESS_TYPE, encoding=None, cosigner_id=None, key_path=None,
-        databasefile=DEFAULT_DATABASE):  # pragma: no cover
+        db_uri=None):  # pragma: no cover
     """
     Deprecated since version 0.4.5, use wallet_create_or_open instead
 
@@ -132,30 +132,30 @@ def wallet_create_or_open_multisig(
     """
 
     warnings.warn("Deprecated since version 0.4.5, use wallet_create_or_open instead", DeprecationWarning)
-    if wallet_exists(name, databasefile=databasefile):
-        return HDWallet(name, databasefile=databasefile)
+    if wallet_exists(name, db_uri=db_uri):
+        return HDWallet(name, db_uri=db_uri)
     else:
         return HDWallet.create(name, keys, owner, network, account_id, purpose, 'bip32', sort_keys,
                                '', witness_type, encoding, True, sigs_required, cosigner_id,
-                               key_path, databasefile=databasefile)
+                               key_path, db_uri=db_uri)
 
 
-def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
+def wallet_delete(wallet, db_uri=None, force=False):
     """
     Delete wallet and associated keys and transactions from the database. If wallet has unspent outputs it raises a
     WalletError exception unless 'force=True' is specified
-    
+
     :param wallet: Wallet ID as integer or Wallet Name as string
     :type wallet: int, str
-    :param databasefile: Location of Sqlite database. Leave empty to use default
-    :type databasefile: str
+    :param db_uri: URI of the database
+    :type db_uri: str
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
     :type force: bool
-    
+
     :return int: Number of rows deleted, so 1 if succesfull
     """
 
-    session = DbInit(databasefile=databasefile).session
+    session = DbInit(db_uri=db_uri).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
     else:
@@ -164,6 +164,10 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
         session.close()
         raise WalletError("Wallet '%s' not found" % wallet)
     wallet_id = w.first().id
+
+    # Delete co-signer wallets if this is a multisig wallet
+    for cw in session.query(DbWallet).filter_by(parent_id=wallet_id).all():
+        wallet_delete(cw.id, db_uri=db_uri, force=force)
 
     # Delete keys from this wallet and update transactions (remove key_id)
     ks = session.query(DbKey).filter_by(wallet_id=wallet_id)
@@ -185,29 +189,25 @@ def wallet_delete(wallet, databasefile=DEFAULT_DATABASE, force=False):
     session.commit()
     session.close()
 
-    # Delete co-signer wallets if this is a multisig wallet
-    for cw in session.query(DbWallet).filter_by(parent_id=wallet_id).all():
-        wallet_delete(cw.id, databasefile=databasefile, force=force)
-
     _logger.info("Wallet '%s' deleted" % wallet)
 
     return res
 
 
-def wallet_empty(wallet, databasefile=DEFAULT_DATABASE):
+def wallet_empty(wallet, db_uri=None):
     """
     Remove all generated keys and transactions from wallet. Does not delete the wallet itself or the masterkey,
     so everything can be recreated.
 
     :param wallet: Wallet ID as integer or Wallet Name as string
     :type wallet: int, str
-    :param databasefile: Location of Sqlite database. Leave empty to use default
-    :type databasefile: str
+    :param db_uri: URI of the database
+    :type db_uri: str
 
     :return bool: True if successful
     """
 
-    session = DbInit(databasefile=databasefile).session
+    session = DbInit(db_uri=db_uri).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
     else:
@@ -217,7 +217,7 @@ def wallet_empty(wallet, databasefile=DEFAULT_DATABASE):
     wallet_id = w.first().id
 
     # Delete keys from this wallet and update transactions (remove key_id)
-    ks = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.parent_id.isnot(0))
+    ks = session.query(DbKey).filter(DbKey.wallet_id == wallet_id, DbKey.parent_id != 0)
     for k in ks:
         session.query(DbTransactionOutput).filter_by(key_id=k.id).update({DbTransactionOutput.key_id: None})
         session.query(DbTransactionInput).filter_by(key_id=k.id).update({DbTransactionInput.key_id: None})
@@ -236,23 +236,23 @@ def wallet_empty(wallet, databasefile=DEFAULT_DATABASE):
     return True
 
 
-def wallet_delete_if_exists(wallet, databasefile=DEFAULT_DATABASE, force=False):
+def wallet_delete_if_exists(wallet, db_uri=None, force=False):
     """
     Delete wallet and associated keys from the database. If wallet has unspent outputs it raises a WalletError exception
     unless 'force=True' is specified. If wallet wallet does not exist return False
 
     :param wallet: Wallet ID as integer or Wallet Name as string
     :type wallet: int, str
-    :param databasefile: Location of Sqlite database. Leave empty to use default
-    :type databasefile: str
+    :param db_uri: URI of the database
+    :type db_uri: str
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
     :type force: bool
 
-    :return int: Number of rows deleted, so 1 if succesfull
+    :return int: Number of rows deleted, so 1 if successful
     """
 
-    if wallet_exists(wallet, databasefile):
-        return wallet_delete(wallet, databasefile, force)
+    if wallet_exists(wallet, db_uri):
+        return wallet_delete(wallet, db_uri, force)
     return False
 
 
@@ -260,7 +260,7 @@ def normalize_path(path):
     """
     Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys
 
-    :param path: BIP0044 key path 
+    :param path: BIP0044 key path
     :type path: str
 
     :return str: Normalized BIP0044 key path with single quotes
@@ -285,13 +285,13 @@ def parse_bip44_path(path):  # pragma: no cover
     """
     Assumes a correct BIP0044 path and returns a dictionary with path items. See Bitcoin improvement proposals
     BIP0043 and BIP0044.
-    
+
     Specify path in this format: m / purpose' / cointype' / account' / change / address_index.
     Path length must be between 1 and 6 (Depth between 0 and 5)
-    
-    :param path: BIP0044 path as string, with backslash (/) seperator. 
+
+    :param path: BIP0044 path as string, with backslash (/) seperator.
     :type path: str
-    
+
     :return dict: Dictionary with path items: is_private, purpose, cointype, account, change and address_index
     """
 
@@ -313,7 +313,7 @@ class HDWalletKey(object):
     """
     Normally only used as attribute of HDWallet class. Contains HDKey class, and adds extra information such as
     key ID, name, path and balance.
-    
+
     All HDWalletKey are stored in a database
     """
 
@@ -323,7 +323,7 @@ class HDWalletKey(object):
                  cosigner_id=None):
         """
         Create HDWalletKey from a HDKey object or key
-        
+
         :param name: New key name
         :type name: str
         :param wallet_id: ID of wallet where to store key
@@ -424,6 +424,7 @@ class HDWalletKey(object):
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
                        key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id)
 
+        session.merge(DbNetwork(name=network))
         session.add(nk)
         session.commit()
         return HDWalletKey(nk.id, session, k)
@@ -431,7 +432,7 @@ class HDWalletKey(object):
     def __init__(self, key_id, session, hdkey_object=None):
         """
         Initialize HDWalletKey with specified ID, get information from database.
-        
+
         :param key_id: ID of key as mentioned in database
         :type key_id: int
         :param session: Required Sqlalchemy Session object
@@ -521,11 +522,11 @@ class HDWalletKey(object):
     def balance(self, fmt=''):
         """
         Get total value of unspent outputs
-        
+
         :param fmt: Specify 'string' to return a string in currency format
         :type fmt: str
-        
-        :return float, str: Key balance 
+
+        :return float, str: Key balance
         """
 
         if fmt == 'string':
@@ -781,7 +782,7 @@ class HDWalletTransaction(Transaction):
                 utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
                     filter(DbTransaction.hash == tx_hash,
                            DbTransactionOutput.output_n == inp.output_n_int,
-                           DbTransactionOutput.spent.op("IS")(False)).all()
+                           DbTransactionOutput.spent.is_(False)).all()
                 for u in utxos:
                     u.spent = True
 
@@ -893,25 +894,23 @@ class HDWalletTransaction(Transaction):
 
 class HDWallet(object):
     """
-    Class to create and manage keys Using the BIP0044 Hierarchical Deterministic wallet definitions, so you can 
+    Class to create and manage keys Using the BIP0044 Hierarchical Deterministic wallet definitions, so you can
     use one Masterkey to generate as much child keys as you want in a structured manner.
-    
+
     You can import keys in many format such as WIF or extended WIF, bytes, hexstring, seeds or private key integer.
     For the Bitcoin network, Litecoin or any other network you define in the settings.
-    
+
     Easily send and receive transactions. Compose transactions automatically or select unspent outputs.
-    
+
     Each wallet name must be unique and can contain only one cointype and purpose, but practically unlimited
-    accounts and addresses. 
+    accounts and addresses.
     """
 
     @classmethod
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
-                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, databasefile):
+                witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, db_uri):
 
-        if databasefile is None:
-            databasefile = DEFAULT_DATABASE
-        session = DbInit(databasefile=databasefile).session
+        session = DbInit(db_uri=db_uri).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
         else:
@@ -939,6 +938,7 @@ class HDWallet(object):
 
         if isinstance(key_path, list):
             key_path = '/'.join(key_path)
+        session.merge(DbNetwork(name=network))
         new_wallet = DbWallet(name=name, owner=owner, network_name=network, purpose=purpose, scheme=scheme,
                               sort_keys=sort_keys, witness_type=witness_type, parent_id=parent_id, encoding=encoding,
                               multisig=multisig, multisig_n_required=sigs_required, cosigner_id=cosigner_id,
@@ -948,7 +948,7 @@ class HDWallet(object):
         new_wallet_id = new_wallet.id
 
         if scheme == 'bip32' and multisig and parent_id is None:
-            w = cls(new_wallet_id, databasefile=databasefile)
+            w = cls(new_wallet_id, db_uri=db_uri)
         elif scheme == 'bip32':
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
                                       account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
@@ -956,7 +956,7 @@ class HDWallet(object):
             new_wallet.main_key_id = mk.key_id
             session.commit()
 
-            w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
+            w = cls(new_wallet_id, db_uri=db_uri, main_key_object=mk.key())
             w.key_for_path([0, 0], account_id=account_id, cosigner_id=cosigner_id)
         elif scheme == 'single':
             if not key:
@@ -966,7 +966,7 @@ class HDWallet(object):
                                       witness_type=witness_type, multisig=multisig)
             new_wallet.main_key_id = mk.key_id
             session.commit()
-            w = cls(new_wallet_id, databasefile=databasefile, main_key_object=mk.key())
+            w = cls(new_wallet_id, db_uri=db_uri, main_key_object=mk.key())
 
         session.close()
         return w
@@ -974,7 +974,7 @@ class HDWallet(object):
     @classmethod
     def create(cls, name, keys=None, owner='', network=None, account_id=0, purpose=0, scheme='bip32',
                sort_keys=True, password='', witness_type=None, encoding=None, multisig=None, sigs_required=None,
-               cosigner_id=None, key_path=None, databasefile=None):
+               cosigner_id=None, key_path=None, db_uri=None):
         """
         Create HDWallet and insert in database. Generate masterkey or import key when specified.
 
@@ -986,9 +986,9 @@ class HDWallet(object):
 
         To create a native segwit wallet use the option witness_type = 'segwit' and for old style addresses and p2sh
         embedded segwit script us 'ps2h-segwit' as witness_type.
-        
+
         Please mention account_id if you are using multiple accounts.
-        
+
         :param name: Unique name of this Wallet
         :type name: str
         :param keys: Masterkey to or list of keys to use for this wallet. Will be automatically created if not specified. One or more keys are obligatory for multisig wallets. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
@@ -1024,10 +1024,10 @@ class HDWallet(object):
         * All keys must be hardened, except for change, address_index or cosigner_id
         * Max length of path is 8 levels
         :type key_path: list, str
-        :param databasefile: Location of database file. Leave empty to use default
-        :type databasefile: str
-        
-        :return HDWallet: 
+        :param db_uri: URI of the database
+        :type db_uri: str
+
+        :return HDWallet:
         """
 
         if multisig is None:
@@ -1119,7 +1119,7 @@ class HDWallet(object):
         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-                           key_path=key_path, databasefile=databasefile)
+                           key_path=key_path, db_uri=db_uri)
 
         if multisig:
             if sort_keys:
@@ -1144,7 +1144,7 @@ class HDWallet(object):
                                 purpose=hdpm.purpose, scheme=scheme, parent_id=hdpm.wallet_id, sort_keys=sort_keys,
                                 witness_type=hdpm.witness_type, encoding=encoding, multisig=True,
                                 sigs_required=None, cosigner_id=wlt_cos_id, key_path=key_path,
-                                databasefile=databasefile)
+                                db_uri=db_uri)
                 hdpm.cosigner.append(w)
                 wlt_cos_id += 1
 
@@ -1153,7 +1153,7 @@ class HDWallet(object):
     @classmethod
     def create_multisig(cls, name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None,
                         sort_keys=True, witness_type=DEFAULT_WITNESS_TYPE, encoding=None, key_path=None,
-                        cosigner_id=None, databasefile=None):
+                        cosigner_id=None, db_uri=None):
         """
         Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
         public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
@@ -1187,8 +1187,8 @@ class HDWallet(object):
         :type key_path: list, str
         :param cosigner_id: Set this if wallet contains only public keys or if you would like to create keys for other cosigners.
         :type cosigner_id: int
-        :param databasefile: Location of database file. Leave empty to use default
-        :type databasefile: str
+        :param db_uri: URI of the database
+        :type db_uri: str
 
         :return HDWallet:
 
@@ -1197,19 +1197,19 @@ class HDWallet(object):
         return cls.create(name, keys=keys, owner=owner, network=network, account_id=account_id, purpose=purpose,
                           sort_keys=sort_keys, witness_type=witness_type, encoding=encoding, multisig=True,
                           sigs_required=sigs_required, cosigner_id=cosigner_id, key_path=key_path,
-                          databasefile=databasefile)
+                          db_uri=db_uri)
 
     def __enter__(self):
         return self
 
-    def __init__(self, wallet, databasefile=DEFAULT_DATABASE, session=None, main_key_object=None):
+    def __init__(self, wallet, db_uri=None, session=None, main_key_object=None):
         """
         Open a wallet with given ID or name
-        
+
         :param wallet: Wallet name or ID
         :type wallet: int, str
-        :param databasefile: Location of database file. Leave empty to use default
-        :type databasefile: str
+        :param db_uri: URI of the database
+        :type db_uri: str
         :param session: Sqlalchemy session
         :type session: sqlalchemy.orm.session.Session
         :param main_key_object: Pass main key object to save time
@@ -1219,10 +1219,10 @@ class HDWallet(object):
         if session:
             self._session = session
         else:
-            dbinit = DbInit(databasefile=databasefile)
+            dbinit = DbInit(db_uri=db_uri)
             self._session = dbinit.session
             self._engine = dbinit.engine
-        self.databasefile = databasefile
+        self.db_uri = db_uri
         if isinstance(wallet, int) or wallet.isdigit():
             db_wlt = self._session.query(DbWallet).filter_by(id=wallet).scalar()
         else:
@@ -1243,7 +1243,7 @@ class HDWallet(object):
             self.multisig_n_required = db_wlt.multisig_n_required
             co_sign_wallets = self._session.query(DbWallet).\
                 filter(DbWallet.parent_id == self.wallet_id).order_by(DbWallet.name).all()
-            self.cosigner = [HDWallet(w.id, databasefile=databasefile) for w in co_sign_wallets]
+            self.cosigner = [HDWallet(w.id, db_uri=db_uri) for w in co_sign_wallets]
             self.sort_keys = db_wlt.sort_keys
             if db_wlt.main_key_id:
                 self.main_key = HDWalletKey(self.main_key_id, session=self._session, hdkey_object=main_key_object)
@@ -1288,8 +1288,8 @@ class HDWallet(object):
     #         pass
 
     def __repr__(self):
-        return "<HDWallet(name=%s, databasefile=\"%s\")>" % \
-               (self.name, self.databasefile)
+        return "<HDWallet(name=%s, db_uri=\"%s\")>" % \
+               (self.name, self.db_uri)
 
     def __str__(self):
         return self.name
@@ -1297,15 +1297,15 @@ class HDWallet(object):
     def _get_account_defaults(self, network=None, account_id=None, key_id=None):
         """
         Check parameter values for network and account ID, return defaults if no network or account ID is specified.
-        If a network is specified but no account ID this method returns the first account ID it finds. 
-        
+        If a network is specified but no account ID this method returns the first account ID it finds.
+
         :param network: Network code, leave empty for default
         :type network: str
         :param account_id: Account ID, leave emtpy for default
         :type account_id: int
         :param key_id: Key ID to just update 1 key
         :type key_id: int
-        
+
         :return: network code, account ID and DbKey instance of account ID key
         """
 
@@ -1348,8 +1348,8 @@ class HDWallet(object):
     def owner(self):
         """
         Get wallet Owner
-        
-        :return str: 
+
+        :return str:
         """
 
         return self._owner
@@ -1358,11 +1358,11 @@ class HDWallet(object):
     def owner(self, value):
         """
         Set wallet Owner in database
-        
+
         :param value: Owner
         :type value: str
-        
-        :return str: 
+
+        :return str:
         """
 
         self._owner = value
@@ -1374,8 +1374,8 @@ class HDWallet(object):
     def name(self):
         """
         Get wallet name
-        
-        :return str: 
+
+        :return str:
         """
 
         return self._name
@@ -1384,14 +1384,14 @@ class HDWallet(object):
     def name(self, value):
         """
         Set wallet name, update in database
-        
+
         :param value: Name for this wallet
         :type value: str
-        
-        :return str: 
+
+        :return str:
         """
 
-        if wallet_exists(value, databasefile=self.databasefile):
+        if wallet_exists(value, db_uri=self.db_uri):
             raise WalletError("Wallet with name '%s' already exists" % value)
         self._name = value
         self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id).update({DbWallet.name: value})
@@ -1490,7 +1490,7 @@ class HDWallet(object):
     def import_key(self, key, account_id=0, name='', network=None, purpose=44, key_type=None):
         """
         Add new single key to wallet.
-        
+
         :param key: Key to import
         :type key: str, bytes, int, bytearray, HDKey, Address
         :param account_id: Account ID. Default is last used or created account ID.
@@ -1503,8 +1503,8 @@ class HDWallet(object):
         :type purpose: int
         :param key_type: Key type of imported key, can be single (unrelated to wallet, bip32, bip44 or master for new or extra master key import. Default is 'single'
         :type key_type: str
-        
-        :return HDWalletKey: 
+
+        :return HDWalletKey:
         """
 
         if self.scheme not in ['bip32', 'single']:
@@ -1603,7 +1603,7 @@ class HDWallet(object):
         """
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
-        
+
         :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce this. If not specified 'Key #' with an unique sequence number will be used
         :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
@@ -1615,7 +1615,7 @@ class HDWallet(object):
         :param network: Network name. Leave empty for default network
         :type network: str
 
-        :return HDWalletKey: 
+        :return HDWalletKey:
         """
 
         if self.scheme == 'single':
@@ -1645,15 +1645,15 @@ class HDWallet(object):
     def new_key_change(self, name='', account_id=None, network=None):
         """
         Create new key to receive change for a transaction. Calls new_key method with change=1.
-        
+
         :param name: Key name. Default name is 'Change #' with an address index
         :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-                
-        :return HDWalletKey: 
+
+        :return HDWalletKey:
         """
 
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
@@ -1708,7 +1708,7 @@ class HDWallet(object):
 
         # Check UTXO's
         utxos = self._session.query(DbTransactionOutput).join(DbTransaction). \
-            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransactionOutput.spent.op("IS")(False))
+            filter(DbTransaction.wallet_id == self.wallet_id).filter(DbTransactionOutput.spent.is_(False))
         if account_id is not None:
             utxos.filter(DbKey.account_id == account_id)
         txids = list(set([utxo.transaction.hash for utxo in utxos]))
@@ -1756,9 +1756,9 @@ class HDWallet(object):
 
     def get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
         """
-        Get a unused key or create a new one if there are no unused keys. 
+        Get a unused key or create a new one if there are no unused keys.
         Returns a key from this wallet which has no transactions linked to it.
-        
+
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -1770,7 +1770,7 @@ class HDWallet(object):
         :param change: Payment (0) or change key (1). Default is 0
         :type change: int
 
-        :return HDWalletKey: 
+        :return HDWalletKey:
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
@@ -1800,9 +1800,9 @@ class HDWallet(object):
 
     def get_key_change(self, account_id=None, network=None, number_of_keys=1):
         """
-        Get a unused change key or create a new one if there are no unused keys. 
+        Get a unused change key or create a new one if there are no unused keys.
         Wrapper for the get_key method
-        
+
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -1810,7 +1810,7 @@ class HDWallet(object):
         :param number_of_keys: Number of keys to return. Default is 1
         :type number_of_keys: int
 
-        :return HDWalletKey:  
+        :return HDWalletKey:
         """
 
         return self.get_key(account_id=account_id, network=network, change=1, number_of_keys=number_of_keys)
@@ -1818,17 +1818,17 @@ class HDWallet(object):
     def new_account(self, name='', account_id=None, network=None):
         """
         Create a new account with a childkey for payments and 1 for change.
-        
+
         An account key can only be created if wallet contains a masterkey.
-        
+
         :param name: Account Name. If not specified 'Account #" with the account_id will be used
         :type name: str
         :param account_id: Account ID. Default is last accounts ID + 1
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        
-        :return HDWalletKey: 
+
+        :return HDWalletKey:
         """
 
         if self.scheme != 'bip32':
@@ -2009,10 +2009,10 @@ class HDWallet(object):
              has_balance=None, is_active=True, network=None, include_private=False, as_dict=False):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
-        
+
         Returns a list of DbKey object or dictionary object if as_dict is True
-        
-        :param account_id: Search for account ID 
+
+        :param account_id: Search for account ID
         :type account_id: int
         :param name: Search for Name
         :type name: str
@@ -2036,7 +2036,7 @@ class HDWallet(object):
         :type include_private: bool
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
         :type as_dict: bool
-        
+
         :return list: List of Keys
         """
 
@@ -2070,7 +2070,7 @@ class HDWallet(object):
             else:
                 qr = qr.filter(DbKey.balance == 0)
         if is_active:  # Unused keys and keys with a balance
-            qr = qr.filter(or_(DbKey.balance != 0, DbKey.used == False))
+            qr = qr.filter(or_(DbKey.balance != 0, DbKey.used.is_(False)))
         keys = qr.order_by(DbKey.depth).all()
         if as_dict:
             keys = [x.__dict__ for x in keys]
@@ -2093,9 +2093,9 @@ class HDWallet(object):
         :type used: bool
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
-        
+
         :return list: DbKey or dictionaries
-        
+
         """
 
         if self.scheme != 'bip32':
@@ -2111,16 +2111,16 @@ class HDWallet(object):
     def keys_accounts(self, account_id=None, network=DEFAULT_NETWORK, as_dict=False):
         """
         Get Database records of account key(s) with for current wallet. Wrapper for the keys() method.
-        
+
         Returns nothing if no account keys are available for instance in multisig or single account wallets. In this case use accounts() method instead.
-        
+
         :param account_id: Search for Account ID
         :type account_id: int
         :param network: Network name filter
         :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
-        
+
         :return list: DbKey or dictionaries
         """
 
@@ -2140,7 +2140,7 @@ class HDWallet(object):
         :type depth: int
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
-        
+
         :return list: DbKey or dictionaries
         """
 
@@ -2160,7 +2160,7 @@ class HDWallet(object):
         :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
-        
+
         :return list: DbKey or dictionaries
         """
 
@@ -2178,7 +2178,7 @@ class HDWallet(object):
         :type network: str
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
-        
+
         :return list: DbKey or dictionaries
         """
 
@@ -2199,7 +2199,7 @@ class HDWallet(object):
         :type depth: int
         :param key_id: Key ID to get address of just 1 key
         :type key_id: int
-        
+
         :return list: List of address strings
         """
 
@@ -2219,7 +2219,7 @@ class HDWallet(object):
 
         :param term: Search term can be key ID, key address, key WIF or key name
         :type term: int, str
-        
+
         :return HDWalletKey: Single key as object
         """
 
@@ -2275,10 +2275,10 @@ class HDWallet(object):
     def accounts(self, network=DEFAULT_NETWORK):
         """
         Get list of accounts for this wallet
-        
+
         :param network: Network name filter. Default filter is DEFAULT_NETWORK
         :type network: str
-                
+
         :return list of integers: List of accounts IDs
         """
 
@@ -2326,7 +2326,7 @@ class HDWallet(object):
         """
         Wrapper for networks methods, returns a flat list with currently used
         networks for this wallet.
-        
+
         :return list of str:
         """
 
@@ -2390,15 +2390,15 @@ class HDWallet(object):
         if as_string:
             return Network(network).print_value(balance)
         else:
-            return balance
+            return float(balance)
 
     def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=0):
         """
         Update balance from UTXO's in database. To get most recent balance update UTXO's first.
-        
+
         Also updates balance of wallet and keys in this wallet for the specified account or all accounts if
         no account is specified.
-        
+
         :param account_id: Account ID filter
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -2414,7 +2414,7 @@ class HDWallet(object):
         qr = self._session.query(DbTransactionOutput, func.sum(DbTransactionOutput.value), DbKey.network_name,
                                  DbKey.account_id).\
             join(DbTransaction).join(DbKey). \
-            filter(DbTransactionOutput.spent.op("IS")(False),
+            filter(DbTransactionOutput.spent.is_(False),
                    DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.confirmations >= min_confirms)
         if account_id is not None:
@@ -2423,7 +2423,13 @@ class HDWallet(object):
             qr = qr.filter(DbKey.network_name == network)
         if key_id is not None:
             qr = qr.filter(DbKey.id == key_id)
-        utxos = qr.group_by(DbTransactionOutput.key_id).all()
+        utxos = qr.group_by(
+            DbTransactionOutput.key_id,
+            DbTransactionOutput.transaction_id,
+            DbTransactionOutput.output_n,
+            DbKey.network_name,
+            DbKey.account_id
+        ).all()
 
         key_values = [
             {
@@ -2473,7 +2479,7 @@ class HDWallet(object):
                      utxos=None, update_balance=True, max_utxos=MAX_TRANSACTIONS):
         """
         Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
-        
+
         Delete old UTXO's which are spent and append new UTXO's to database.
 
         For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries:
@@ -2505,7 +2511,7 @@ class HDWallet(object):
         :param max_utxos: Maximum number of UTXO's to update
         :type max_utxos: int
 
-        :return int: Number of new UTXO's added 
+        :return int: Number of new UTXO's added
         """
 
         single_key = None
@@ -2618,7 +2624,7 @@ class HDWallet(object):
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
         Get UTXO's (Unspent Outputs) from database. Use utxos_update method first for updated values
-        
+
         :param account_id: Account ID
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -2628,7 +2634,7 @@ class HDWallet(object):
         :param key_id: Key ID to just get 1 key
         :type key_id: int
 
-        :return list: List of transactions 
+        :return list: List of transactions
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
@@ -2636,7 +2642,7 @@ class HDWallet(object):
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.hash,
                                  DbKey.network_name).\
             join(DbTransaction).join(DbKey). \
-            filter(DbTransactionOutput.spent.op("IS")(False),
+            filter(DbTransactionOutput.spent.is_(False),
                    DbKey.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
                    DbKey.network_name == network,
@@ -2703,7 +2709,7 @@ class HDWallet(object):
         to = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
              join(DbTransactionOutput).join(DbKey). \
              filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
-                    DbTransactionOutput.spent.op("IS")(False)). \
+                    DbTransactionOutput.spent.is_(False)). \
              order_by(DbTransaction.confirmations).first()
         return '' if not to else to[0]
 
@@ -2738,7 +2744,7 @@ class HDWallet(object):
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction). \
                 filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
-                       DbTransactionOutput.spent.op("IS")(False)).all()
+                       DbTransactionOutput.spent.is_(False)).all()
             for u in tos:
                 u.spent = True
         self._session.commit()
@@ -2794,7 +2800,7 @@ class HDWallet(object):
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
-                       DbTransactionOutput.spent.op("IS")(False)).all()
+                       DbTransactionOutput.spent.is_(False)).all()
             for u in tos:
                 u.spent = True
         self.last_updated = last_updated
@@ -2933,7 +2939,7 @@ class HDWallet(object):
         utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
             filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
                    DbKey.network_name == network, DbKey.public != '',
-                   DbTransactionOutput.spent.op("IS")(False), DbTransaction.confirmations >= min_confirms)
+                   DbTransactionOutput.spent.is_(False), DbTransaction.confirmations >= min_confirms)
         if input_key_id:
             utxo_query = utxo_query.filter(DbKey.id == input_key_id)
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
@@ -2943,7 +2949,7 @@ class HDWallet(object):
         # TODO: Find 1 or 2 UTXO's with exact amount +/- self.network.dust_amount
 
         # Try to find one utxo with exact amount
-        one_utxo = utxo_query.filter(DbTransactionOutput.spent.op("IS")(False),
+        one_utxo = utxo_query.filter(DbTransactionOutput.spent.is_(False),
                                      DbTransactionOutput.value >= amount,
                                      DbTransactionOutput.value <= amount + variance).first()
         selected_utxos = []
@@ -2952,7 +2958,7 @@ class HDWallet(object):
         else:
             # Try to find one utxo with higher amount
             one_utxo = utxo_query. \
-                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value >= amount).\
+                filter(DbTransactionOutput.spent.is_(False), DbTransactionOutput.value >= amount).\
                 order_by(DbTransactionOutput.value).first()
             if one_utxo:
                 selected_utxos = [one_utxo]
@@ -2964,7 +2970,7 @@ class HDWallet(object):
         # Otherwise compose of 2 or more lesser outputs
         if not selected_utxos:
             lessers = utxo_query. \
-                filter(DbTransactionOutput.spent.op("IS")(False), DbTransactionOutput.value < amount).\
+                filter(DbTransactionOutput.spent.is_(False), DbTransactionOutput.value < amount).\
                 order_by(DbTransactionOutput.value.desc()).all()
             total_amount = 0
             selected_utxos = []
@@ -3114,7 +3120,7 @@ class HDWallet(object):
                     address = '' if len(inp) <= 6 else inp[6]
                 # Get key_ids, value from Db if not specified
                 if not (key_id and value and unlocking_script_type):
-                    if not isinstance(output_n, int):
+                    if not isinstance(output_n, TYPE_INT):
                         output_n = struct.unpack('>I', output_n)[0]
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbTransaction.wallet_id == self.wallet_id,
@@ -3255,12 +3261,12 @@ class HDWallet(object):
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
              min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False):
         """
-        Create new transaction with specified outputs and push it to the network. 
+        Create new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's.
         Output array is a list of 1 or more addresses and amounts.
-        
+
         :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]. Address can be an address string, Address object, HDKey object or HDWalletKey object
-        :type output_arr: list 
+        :type output_arr: list
         :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_id, value)]
         :type input_arr: list
         :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
@@ -3346,9 +3352,9 @@ class HDWallet(object):
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
               fee_per_kb=None, fee=None, locktime=0, offline=False):
         """
-        Sweep all unspent transaction outputs (UTXO's) and send them to one output address. 
+        Sweep all unspent transaction outputs (UTXO's) and send them to one output address.
         Wrapper for the send method.
-        
+
         :param to_address: Single output address
         :type to_address: str
         :param account_id: Wallet's account ID
@@ -3459,7 +3465,7 @@ class HDWallet(object):
     def info(self, detail=3):
         """
         Prints wallet information to standard output
-        
+
         :param detail: Level of detail to show. Specify a number between 0 and 5, with 0 low detail and 5 highest detail
         :type detail: int
         """
