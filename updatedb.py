@@ -27,7 +27,7 @@ except NameError:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='BitcoinLib Database update script')
-    parser.add_argument('--database', '-d', default=DEFAULT_DATABASE,
+    parser.add_argument('--database', '-d', default='sqlite:///' + DEFAULT_DATABASE,
                         help="Name of specific database file to use",)
     pa = parser.parse_args()
     return pa

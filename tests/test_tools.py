@@ -9,19 +9,58 @@ import os
 import sys
 import unittest
 from subprocess import Popen, PIPE
-from bitcoinlib.encoding import normalize_string
+
+import mysql.connector
+import psycopg2
+from parameterized import parameterized_class
+from psycopg2 import sql
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+
 from bitcoinlib.db import BCL_DATABASE_DIR
+from bitcoinlib.encoding import normalize_string
+
+SQLITE_DATABASE_FILE = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.unittest.sqlite')
+DATABASE_NAME = 'bitcoinlib_unittest'
 
 
-DATABASEFILE_UNITTESTS = 'bitcoinlib.unittest.sqlite'
+def init_sqlite(_):
+    if os.path.isfile(SQLITE_DATABASE_FILE):
+        os.remove(SQLITE_DATABASE_FILE)
 
 
+def init_postgresql(_):
+    con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
+    con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    cur = con.cursor()
+    cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(
+        sql.Identifier(DATABASE_NAME))
+    )
+    cur.execute(sql.SQL("CREATE DATABASE {}").format(
+        sql.Identifier(DATABASE_NAME))
+    )
+    cur.close()
+    con.close()
+
+
+def init_mysql(_):
+    con = mysql.connector.connect(user='root', host='localhost')
+    cur = con.cursor()
+    cur.execute("DROP DATABASE IF EXISTS {}".format(DATABASE_NAME))
+    cur.execute("CREATE DATABASE {}".format(DATABASE_NAME))
+    con.commit()
+    cur.close()
+    con.close()
+
+
+@parameterized_class(('DATABASE_URI', 'init_fn'), (
+        ('mysql://root@localhost:3306/' + DATABASE_NAME, init_mysql),
+        ('postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, init_postgresql),
+        ('sqlite:///' + SQLITE_DATABASE_FILE, init_sqlite),
+))
 class TestToolsCommandLineWallet(unittest.TestCase):
 
     def setUp(self):
-        full_db_filename = os.path.join(BCL_DATABASE_DIR, DATABASEFILE_UNITTESTS)
-        if os.path.isfile(full_db_filename):
-            os.remove(full_db_filename)
+        self.init_fn()
         self.python_executable = sys.executable
         self.clw_executable = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                             '../bitcoinlib/tools/cli_wallet.py'))
@@ -29,9 +68,9 @@ class TestToolsCommandLineWallet(unittest.TestCase):
     def test_tools_clw_create_wallet(self):
         cmd_wlt_create = '%s %s test --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
                          'actual chicken obscure spray" -r -d %s' % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         cmd_wlt_delete = "%s %s test --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output_wlt_create = "14guS7uQpEbgf1e8TDo1zTEURJW3NGPc9E"
         output_wlt_delete = "Wallet test has been removed"
 
@@ -50,9 +89,9 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             'MeQHdWDp'
         ]
         cmd_wlt_create = "%s %s testms -m 2 2 %s -r -n testnet -d %s" % \
-                         (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         cmd_wlt_delete = "%s %s testms --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output_wlt_create = "2NBrLTapyFqU4Wo29xG4QeEt8kn38KVWRR"
         output_wlt_delete = "Wallet testms has been removed"
 
@@ -69,10 +108,10 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             '5zNYeiX8'
         ]
         cmd_wlt_create = "%s %s testms1 -m 2 2 %s -r -n testnet -d %s" % \
-                         (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         cmd_wlt_delete = "%s %s testms1 --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
-        output_wlt_create = "if you understood and wrote down your key: Receive address:"
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
+        output_wlt_create = "if you understood and wrote down your key: Receive address(es):"
         output_wlt_delete = "Wallet testms1 has been removed"
 
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
@@ -84,7 +123,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
 
     def test_tools_clw_create_multisig_wallet_error(self):
         cmd_wlt_create = "%s %s testms2 -m 2 a -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output_wlt_create = "Number of signatures required (second argument) must be a numeric value"
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
         poutput = process.communicate(input=b'y')
@@ -93,13 +132,13 @@ class TestToolsCommandLineWallet(unittest.TestCase):
     def test_tools_clw_transaction_with_script(self):
         cmd_wlt_create = '%s %s test2 --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
                          'actual chicken obscure spray" -r -n bitcoinlib_test -d %s' % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         cmd_wlt_update = "%s %s test2 -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         cmd_wlt_transaction = "%s %s test2 -d %s -t 21HVXMEdxdgjNzgfERhPwX4okXZ8WijHkvu 50000000 -f 100000 -p" % \
-                              (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                              (self.python_executable, self.clw_executable, self.DATABASE_URI)
         cmd_wlt_delete = "%s %s test2 --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output_wlt_create = "21GPfxeCbBunsVev4uS6exPhqE8brPs1ZDF"
         output_wlt_transaction = 'Transaction pushed to network'
         output_wlt_delete = "Wallet test2 has been removed"
@@ -122,9 +161,9 @@ class TestToolsCommandLineWallet(unittest.TestCase):
     def test_tools_clw_create_litecoin_segwit_wallet(self):
         cmd_wlt_create = '%s %s ltcsw --passphrase "lounge chief tip frog camera build trouble write end ' \
                          'sword order share" -r -d %s -y segwit -n litecoin' % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         cmd_wlt_delete = "%s %s ltcsw --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output_wlt_create = "ltc1qgc7c2z56rr4lftg0fr8tgh2vknqc3yuydedu6m"
         output_wlt_delete = "Wallet ltcsw has been removed"
 
@@ -145,10 +184,10 @@ class TestToolsCommandLineWallet(unittest.TestCase):
             '7FW6wpKW'
         ]
         cmd_wlt_create = "%s %s testms-p2sh-segwit -m 3 2 %s -r -y p2sh-segwit -d %s" % \
-                         (self.python_executable, self.clw_executable, ' '.join(key_list), DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         print(cmd_wlt_create)
         cmd_wlt_delete = "%s %s testms-p2sh-segwit --wallet-remove -d %s" % \
-                         (self.python_executable, self.clw_executable, DATABASEFILE_UNITTESTS)
+                         (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output_wlt_create = "3MtNi5U2cjs3EcPizzjarSz87pU9DTANge"
         output_wlt_delete = "Wallet testms-p2sh-segwit has been removed"
 

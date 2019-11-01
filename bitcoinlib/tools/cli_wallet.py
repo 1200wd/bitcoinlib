@@ -75,7 +75,7 @@ def parse_args():
     group_wallet2.add_argument('--network', '-n',
                                help="Specify 'bitcoin', 'litecoin', 'testnet' or other supported network")
     group_wallet2.add_argument('--database', '-d',
-                               help="Name of specific database file to use",)
+                               help="URI of the database to use",)
     group_wallet2.add_argument('--create-from-key', '-c', metavar='KEY',
                                help="Create a new wallet from specified key")
     group_wallet2.add_argument('--create-multisig', '-m', nargs='*',
@@ -131,7 +131,7 @@ def get_passphrase(args):
     return passphrase
 
 
-def create_wallet(wallet_name, args, databasefile):
+def create_wallet(wallet_name, args, db_uri):
     if args.network is None:
         args.network = DEFAULT_NETWORK
     print("\nCREATE wallet '%s' (%s network)" % (wallet_name, args.network))
@@ -161,10 +161,10 @@ def create_wallet(wallet_name, args, databasefile):
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
                 key_list.append(HDKey.from_seed(seed, network=args.network))
         return HDWallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
-                               cosigner_id=args.cosigner_id, witness_type=args.witness_type, databasefile=databasefile)
+                               cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
     elif args.create_from_key:
         return HDWallet.create(wallet_name, args.create_from_key, network=args.network,
-                               databasefile=databasefile, witness_type=args.witness_type)
+                               db_uri=db_uri, witness_type=args.witness_type)
     else:
         passphrase = args.passphrase
         if passphrase is None:
@@ -181,7 +181,7 @@ def create_wallet(wallet_name, args, databasefile):
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey.from_seed(seed, network=args.network)
         return HDWallet.create(wallet_name, hdkey, network=args.network, witness_type=args.witness_type,
-                               databasefile=databasefile)
+                               db_uri=db_uri)
 
 
 def create_transaction(wlt, send_args, args):
@@ -224,9 +224,7 @@ def main():
     # --- Parse commandline arguments ---
     args = parse_args()
 
-    databasefile = DEFAULT_DATABASE
-    if args.database:
-        databasefile = os.path.join(BCL_DATABASE_DIR, args.database)
+    db_uri = args.database
 
     if args.generate_key:
         passphrase = get_passphrase(args)
@@ -242,7 +240,7 @@ def main():
     # List wallets, then exit
     if args.list_wallets:
         print("BitcoinLib wallets:")
-        for w in wallets_list(databasefile=databasefile):
+        for w in wallets_list(db_uri=db_uri):
             if 'parent_id' in w and w['parent_id']:
                 continue
             print("[%d] %s (%s) %s" % (w['id'], w['name'], w['network'], w['owner']))
@@ -250,12 +248,12 @@ def main():
 
     # Delete specified wallet, then exit
     if args.wallet_remove:
-        if not wallet_exists(args.wallet_name, databasefile=databasefile):
+        if not wallet_exists(args.wallet_name, db_uri=db_uri):
             clw_exit("Wallet '%s' not found" % args.wallet_name)
         inp = input("\nWallet '%s' with all keys and will be removed, without private key it cannot be restored."
                     "\nPlease retype exact name of wallet to proceed: " % args.wallet_name)
         if inp == args.wallet_name:
-            if wallet_delete(args.wallet_name, force=True, databasefile=databasefile):
+            if wallet_delete(args.wallet_name, force=True, db_uri=db_uri):
                 clw_exit("\nWallet %s has been removed" % args.wallet_name)
             else:
                 clw_exit("\nError when deleting wallet")
@@ -264,15 +262,15 @@ def main():
 
     wlt = None
     if args.wallet_name and not args.wallet_name.isdigit() and not wallet_exists(args.wallet_name,
-                                                                                 databasefile=databasefile):
+                                                                                 db_uri=db_uri):
         if not args.create_from_key and input(
                     "Wallet %s does not exist, create new wallet [yN]? " % args.wallet_name).lower() != 'y':
             clw_exit('Aborted')
-        wlt = create_wallet(args.wallet_name, args, databasefile)
+        wlt = create_wallet(args.wallet_name, args, db_uri)
         args.wallet_info = True
     else:
         try:
-            wlt = HDWallet(args.wallet_name, databasefile=databasefile)
+            wlt = HDWallet(args.wallet_name, db_uri=db_uri)
             if args.passphrase is not None:
                 print("WARNING: Using passphrase option for existing wallet ignored")
             if args.create_from_key is not None:

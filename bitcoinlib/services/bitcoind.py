@@ -158,8 +158,8 @@ class BitcoindClient(BaseClient):
         if not (res['ismine'] or res['iswatchonly']):
             raise ClientError("Address %s not found in bitcoind wallet, use 'importaddress' to add address to "
                               "wallet." % address)
-            
-        for t in self.proxy.listunspent(0, 99999999, address):
+
+        for t in self.proxy.listunspent(0, 99999999, [address]):
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
@@ -211,7 +211,7 @@ class BitcoindClient(BaseClient):
             'txid': res,
             'response_dict': res
         }
-    
+
     def estimatefee(self, blocks):
         pres = ''
         try:

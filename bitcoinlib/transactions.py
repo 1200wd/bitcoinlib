@@ -1447,11 +1447,11 @@ class Transaction(object):
                 hash_sequence = double_sha256(sequence_serialized)
         if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
             for o in self.outputs:
-                outputs_serialized += struct.pack('<Q', o.value)
+                outputs_serialized += struct.pack('<Q', int(o.value))
                 outputs_serialized += varstr(o.lock_script)
             hash_outputs = double_sha256(outputs_serialized)
         elif (hash_type & 0x1f) != SIGHASH_SINGLE and sign_id < len(self.outputs):
-            outputs_serialized += struct.pack('<Q', self.outputs[sign_id].value)
+            outputs_serialized += struct.pack('<Q', int(self.outputs[sign_id].value))
             outputs_serialized += varstr(self.outputs[sign_id].lock_script)
             hash_outputs = double_sha256(outputs_serialized)
 
@@ -1469,7 +1469,7 @@ class Transaction(object):
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
-            varstr(script_code) + struct.pack('<Q', self.inputs[sign_id].value) + \
+            varstr(script_code) + struct.pack('<Q', int(self.inputs[sign_id].value)) + \
             struct.pack('<L', self.inputs[sign_id].sequence) + \
             hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
         # print(to_hexstring(ser_tx))
@@ -1520,7 +1520,7 @@ class Transaction(object):
         for o in self.outputs:
             if o.value < 0:
                 raise TransactionError("Output value < 0 not allowed")
-            r += struct.pack('<Q', o.value)
+            r += struct.pack('<Q', int(o.value))
             r += varstr(o.lock_script)
 
         if sign_id is None and witness_type == 'segwit':

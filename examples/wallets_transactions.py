@@ -17,13 +17,13 @@ from bitcoinlib.wallets import HDWallet, BCL_DATABASE_DIR
 #
 
 # First recreate database to avoid already exist errors
-test_databasefile = 'bitcoinlib.test.sqlite'
-test_database = BCL_DATABASE_DIR + test_databasefile
-if os.path.isfile(test_database):
-    os.remove(test_database)
+test_databasefile = BCL_DATABASE_DIR + 'bitcoinlib.test.sqlite'
+test_database = 'sqlite:///' + test_databasefile
+if os.path.isfile(test_databasefile):
+    os.remove(test_databasefile)
 
 print("\n=== Create a wallet and a simple transaction ===")
-wlt = HDWallet.create('wlttest1', network='bitcoinlib_test', databasefile=test_database)
+wlt = HDWallet.create('wlttest1', network='bitcoinlib_test', db_uri=test_database)
 wlt.get_key()
 wlt.utxos_update()  # Create some test UTXOs
 wlt.info()
@@ -37,7 +37,7 @@ wlt.info()
 
 
 print("\n=== Create a wallet, generate 6 UTXOs and create a sweep transaction ===")
-wlt = HDWallet.create('wlttest2', network='bitcoinlib_test', databasefile=test_database)
+wlt = HDWallet.create('wlttest2', network='bitcoinlib_test', db_uri=test_database)
 wlt.get_key(number_of_keys=3)
 wlt.utxos_update()  # Create some test UTXOs
 wlt.info()
