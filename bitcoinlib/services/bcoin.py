@@ -64,8 +64,11 @@ class BcoinClient(BaseClient):
         t.block_height = tx['height']
         t.block_hash = tx['block']
         t.status = status
-        for i in t.inputs:
-            i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']
+        if t.coinbase:
+            t.input_total = t.output_total
+        else:
+            for i in t.inputs:
+                i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']
         for o in t.outputs:
             o.spent = None
         t.update_totals()
