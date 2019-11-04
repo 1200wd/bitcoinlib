@@ -66,6 +66,7 @@ class BcoinClient(BaseClient):
         t.status = status
         if t.coinbase:
             t.input_total = t.output_total
+            t.inputs[0].value = t.output_total
         else:
             for i in t.inputs:
                 i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']

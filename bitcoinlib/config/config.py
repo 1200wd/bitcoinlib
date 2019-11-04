@@ -179,6 +179,9 @@ WALLET_KEY_STRUCTURES = [
     },
 ]
 
+# UNITTESTS
+UNITTESTS_FULL_DATABASE_TEST = True
+
 
 def read_config():
     config = configparser.ConfigParser()
@@ -198,6 +201,7 @@ def read_config():
     global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
     global BCL_DATA_DIR, BCL_WORDLIST_DIR
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
+    global UNITTESTS_FULL_DATABASE_TEST
 
     BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
     if not os.path.isabs(BCL_CONFIG_DIR):
@@ -246,6 +250,9 @@ def read_config():
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
 
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
+
+    UNITTESTS_FULL_DATABASE_TEST = UNITTESTS_FULL_DATABASE_TEST if not os.environ.get('UNITTESTS_FULL_DATABASE_TEST') \
+        else os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
 
     if not data:
         return False

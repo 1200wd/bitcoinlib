@@ -36,12 +36,8 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(LOGLEVEL)
 
-# stream_handler = logging.StreamHandler()
-# stream_handler.setLevel(LOGLEVEL)
-# stream_handler.setFormatter(formatter)
-# logger.addHandler(stream_handler)
-
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
+logging.info('Version: %s' % BITCOINLIB_VERSION)
 logging.info('Logger name: %s' % logging.__name__)
 logging.info('Read config from: %s' % BCL_CONFIG_FILE)
 logging.info('Directory databases: %s' % BCL_DATABASE_DIR)

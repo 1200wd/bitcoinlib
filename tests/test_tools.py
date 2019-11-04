@@ -185,7 +185,6 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         ]
         cmd_wlt_create = "%s %s testms-p2sh-segwit -m 3 2 %s -r -y p2sh-segwit -d %s" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
-        print(cmd_wlt_create)
         cmd_wlt_delete = "%s %s testms-p2sh-segwit --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output_wlt_create = "3MtNi5U2cjs3EcPizzjarSz87pU9DTANge"
