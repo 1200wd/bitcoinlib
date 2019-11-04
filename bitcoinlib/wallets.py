@@ -726,7 +726,10 @@ class HDWalletTransaction(Transaction):
                 keys = [keys]
             for priv_key in keys:
                 if not isinstance(priv_key, HDKey):
-                    priv_key = HDKey(priv_key, network=self.network.name)
+                    if isinstance(priv_key, str) and len(str(priv_key).split(' ')) > 4:
+                        priv_key = HDKey.from_passphrase(priv_key)
+                    else:
+                        priv_key = HDKey(priv_key, network=self.network.name)
                 if not key_paths or priv_key.depth != 0 or priv_key.key_type == "single":
                     priv_key_list_arg.append((None, priv_key))
                 else:

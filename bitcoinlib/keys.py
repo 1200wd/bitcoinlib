@@ -184,6 +184,9 @@ def get_key_format(key, is_private=None):
     elif len(key) == 58 and key[:2] == '6P':
         key_format = 'wif_protected'
         is_private = True
+    elif len(str(key).split(' ')) > 1:
+        key_format = 'mnemonic'
+        is_private = True
     else:
         try:
             key_hex = change_base(key, 58, 16)
@@ -1305,6 +1308,8 @@ class HDKey(Key):
                     key = da['public_key_hash']
                     network = Network(da['network'])
                     is_private = False
+                elif kf['format'] == 'mnemonic':
+                    raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
                 else:
                     key = import_key
                     chain = b'\0' * 32
