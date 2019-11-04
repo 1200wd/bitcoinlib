@@ -251,8 +251,10 @@ def read_config():
 
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
 
-    UNITTESTS_FULL_DATABASE_TEST = UNITTESTS_FULL_DATABASE_TEST if not os.environ.get('UNITTESTS_FULL_DATABASE_TEST') \
-        else os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
+    full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
+    if full_db_test:
+        if full_db_test in [0, False, 'False', 'false', 'FALSE']:
+            UNITTESTS_FULL_DATABASE_TEST = False
 
     if not data:
         return False

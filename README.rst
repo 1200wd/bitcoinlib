@@ -264,7 +264,11 @@ These packages will be installed
 Install development environment
 -------------------------------
 
-First create a virtual environment for instance on linux with virtualenv:
+Required packages:
+
+``sudo apt install -y postgresql postgresql-contrib mysql-server libpq-dev libmysqlclient-dev``
+
+Create a virtual environment for instance on linux with virtualenv:
 
 .. code-block:: bash
 
@@ -277,7 +281,7 @@ Then clone the repository and install dependencies:
 
     $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
-    $ pip install -r docs/requirements.txt
+    $ pip install -r requirements-dev.txt
 
 
 Other requirements Linux

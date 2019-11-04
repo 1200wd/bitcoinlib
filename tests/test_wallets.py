@@ -182,7 +182,8 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         self.assertEqual(len(w2.keys()), 1)
         self.assertEqual(len(w3.keys()), 1)
         # Test exceptions
-        self.assertRaisesRegexp(WalletError, "Wallet 'unknown_wallet_2' not found", wallet_empty, 'unknown_wallet_2')
+        self.assertRaisesRegexp(WalletError, "Wallet 'unknown_wallet_2' not found", wallet_empty, 'unknown_wallet_2',
+                                db_uri=self.DATABASE_URI)
 
     def test_wallet_delete_not_empty(self):
         w = HDWallet.create('unempty_wallet_test', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
