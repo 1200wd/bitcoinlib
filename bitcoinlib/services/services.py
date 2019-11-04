@@ -219,7 +219,7 @@ class Service(object):
 
         self.complete = True
         utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
-        if len(utxos) >= max_txs:
+        if utxos and len(utxos) >= max_txs:
             self.complete = False
         return utxos
 
