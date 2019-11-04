@@ -209,7 +209,7 @@ class TestPublicKeyConversion(unittest.TestCase):
 
     def test_public_key_import_error(self):
         self.assertRaisesRegexp(BKeyError, "Unrecognised key format",
-                                Key, ['064781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5', 'public'])
+                                Key, '064781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
 
     def test_litecoin_private_key(self):
         KC_LTC = Key('0bc295d0b20b0e2ff6ab2c4982583d4f84936a17689aaca031a803dcf4a3b139', network='litecoin')
@@ -504,7 +504,7 @@ class TestBip38(unittest.TestCase):
             return
         for v in self.vectors["invalid"]["verify"]:
             print("Checking invalid key %s" % v['base58'])
-            self.assertRaisesRegexp(BKeyError, "Unrecognised key format", Key, [str(v['base58'])])
+            self.assertRaisesRegexp(BKeyError, "", Key, str(v['base58']))
 
 
 class TestKeysBulk(unittest.TestCase):

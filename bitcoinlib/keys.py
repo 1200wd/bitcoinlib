@@ -184,7 +184,7 @@ def get_key_format(key, is_private=None):
     elif len(key) == 58 and key[:2] == '6P':
         key_format = 'wif_protected'
         is_private = True
-    elif len(str(key).split(' ')) > 1:
+    elif isinstance(key, TYPE_TEXT) and len(key.split(' ')) > 1:
         key_format = 'mnemonic'
         is_private = True
     else:
@@ -910,7 +910,7 @@ class Key(object):
         elif flagbyte == b'\xe0':
             compressed = True
         else:
-            raise Warning("Unrecognised password protected key format. Flagbyte incorrect.")
+            raise BKeyError("Unrecognised password protected key format. Flagbyte incorrect.")
         if isinstance(passphrase, str) and sys.version_info > (3,):
             passphrase = passphrase.encode('utf-8')
         addresshash = d[0:4]
