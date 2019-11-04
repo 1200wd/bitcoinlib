@@ -28,7 +28,7 @@ from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckCons
                         ForeignKey, DateTime, Numeric, Text)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-
+from urllib.parse import urlparse
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -45,8 +45,10 @@ class DbInit:
     """
     def __init__(self, db_uri=None):
         if db_uri is None:
-            sqlite_file = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
-            db_uri = 'sqlite:///%s' % sqlite_file
+            db_uri = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
+        o = urlparse(db_uri)
+        if not o.scheme:
+            db_uri = 'sqlite:///%s' % db_uri
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
         Session = sessionmaker(bind=self.engine)
 
