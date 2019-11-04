@@ -2,9 +2,10 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
-#    Command line wallet manager. Manage BitcoinLib legacy/segwit single and multisignatures wallet from the commandline
+#    CLW - Command Line Wallet manager.
+#    Create and manage BitcoinLib legacy/segwit single and multisignatures wallets from the commandline
 #
-#    © 2019 February - 1200 Web Development <http://1200wd.com/>
+#    © 2019 November - 1200 Web Development <http://1200wd.com/>
 #
 
 import sys
@@ -19,6 +20,7 @@ from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_del
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.main import BITCOINLIB_VERSION
 
 try:
     import pyqrcode
@@ -35,7 +37,7 @@ DEFAULT_NETWORK = 'bitcoin'
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='BitcoinLib CLI')
+    parser = argparse.ArgumentParser(description='BitcoinLib command line wallet')
     parser.add_argument('wallet_name', nargs='?', default='',
                         help="Name of wallet to create or open. Used to store your all your wallet keys "
                              "and will be printed on each paper wallet")
@@ -220,7 +222,7 @@ def clw_exit(msg=None):
 
 
 def main():
-    print("Command Line Wallet for BitcoinLib\n")
+    print("Command Line Wallet - BitcoinLib %s\n" % BITCOINLIB_VERSION)
     # --- Parse commandline arguments ---
     args = parse_args()
 

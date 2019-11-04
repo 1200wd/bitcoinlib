@@ -78,7 +78,8 @@ setup(
       license='GNU3',
       packages=['bitcoinlib'],
       entry_points={
-          'console_scripts': ['cli-wallet=bitcoinlib.tools.cli_wallet:main']
+          'console_scripts': ['cli-wallet=bitcoinlib.tools.clw:main',
+                              'clw=bitcoinlib.tools.clw:main']
       },
       test_suite='tests',
       include_package_data=True,
