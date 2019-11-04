@@ -37,17 +37,15 @@ DATABASEFILE_UNITTESTS_2 = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.unittest2.
 DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
 
-
+db_uris = (('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
 if UNITTESTS_FULL_DATABASE_TEST:
-    params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
+    db_uris += (
         ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
         ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
-        ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),
-    ))
-else:
-    params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
-        ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),
-    ))
+    )
+params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
+    db_uris
+))
 
 
 class TestWalletMixin:

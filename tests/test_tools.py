@@ -16,6 +16,7 @@ from parameterized import parameterized_class
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+from bitcoinlib.main import UNITTESTS_FULL_DATABASE_TEST
 from bitcoinlib.db import BCL_DATABASE_DIR
 from bitcoinlib.encoding import normalize_string
 
@@ -51,12 +52,15 @@ def init_mysql(_):
     cur.close()
     con.close()
 
-
-@parameterized_class(('DATABASE_URI', 'init_fn'), (
+db_uris = (('sqlite:///' + SQLITE_DATABASE_FILE, init_sqlite),)
+if UNITTESTS_FULL_DATABASE_TEST:
+    db_uris += (
         ('mysql://root@localhost:3306/' + DATABASE_NAME, init_mysql),
         ('postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, init_postgresql),
-        ('sqlite:///' + SQLITE_DATABASE_FILE, init_sqlite),
-))
+    )
+
+
+@parameterized_class(('DATABASE_URI', 'init_fn'), db_uris)
 class TestToolsCommandLineWallet(unittest.TestCase):
 
     def setUp(self):
