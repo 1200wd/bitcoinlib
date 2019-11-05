@@ -1151,15 +1151,7 @@ class HDWallet(object):
         else:
             key = hdkey_list[0]
 
-# <<<<<<< HEAD
         main_key_path = key_path
-# =======
-#         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
-#                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
-#                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-#                            key_path=key_path, db_uri=db_uri)
-#
-# >>>>>>> master
         if multisig:
             if sort_keys:
                 hdkey_list.sort(key=lambda x: x.public_byte)
@@ -2547,17 +2539,11 @@ class HDWallet(object):
         return self._balances
 
     def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None,
-                     utxos=None, update_balance=True, max_utxos=MAX_TRANSACTIONS):
+                     utxos=None, update_balance=True, max_utxos=MAX_TRANSACTIONS, rescan_all=True):
         """
-<<<<<<< HEAD
         Update UTXO's (Unspent Outputs) for addresses/keys in this wallet using various Service providers.
         
-        This method does not import transactions: use transactions_update() or generate addresses: use scan().
-=======
-        Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
-
-        Delete old UTXO's which are spent and append new UTXO's to database.
->>>>>>> master
+        This method does not import transactions: use transactions_update() or to look for new addresses use scan().
 
         For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries:
         [{
@@ -2583,13 +2569,17 @@ class HDWallet(object):
         :type change: int
         :param utxos: List of unspent outputs in dictionary format specified in this method DOC header
         :type utxos: list
-        :param update_balance: Option to disable balance update after fetching UTXO's, used when utxos_update method is called several times in a row. Default is True
+        :param update_balance: Option to disable balance update after fetching UTXO's. Can be used when utxos_update method is called several times in a row. Default is True
         :type update_balance: bool
         :param max_utxos: Maximum number of UTXO's to update
         :type max_utxos: int
+        :param rescan_all: Remove old utxo's and rescan wallet. Default is True. Set to False if you work with large utxo's sets.
+        :type rescan_all: bool
 
         :return int: Number of new UTXO's added
         """
+
+        network, account_id, acckey = self._get_account_defaults(None, account_id, key_id)
 
         single_key = None
         if key_id:
@@ -2602,6 +2592,18 @@ class HDWallet(object):
             networks = [networks]
         elif len(networks) != 1 and utxos is not None:
             raise WalletError("Please specify maximum 1 network when passing utxo's")
+
+        # Remove current UTXO's
+        if rescan_all:
+            cur_utxos = self._session.query(DbTransactionOutput).\
+                join(DbTransaction).join(DbKey). \
+                filter(DbTransactionOutput.spent.is_(False),
+                       DbKey.account_id == account_id,
+                       DbTransaction.wallet_id == self.wallet_id).all()
+            for u in cur_utxos:
+                self._session.query(DbTransactionOutput).filter_by(
+                    transaction_id=u.transaction_id, output_n=u.output_n).update({DbTransactionOutput.spent: True})
+            self._session.commit()
 
         count_utxos = 0
         for network in networks:
