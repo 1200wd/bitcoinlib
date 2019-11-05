@@ -2630,7 +2630,10 @@ class HDWallet(object):
                     srv = Service(network=network, providers=self.providers)
                     utxos = []
                     for address in addresslist:
-                        last_txid = self.utxo_last(address)
+                        if rescan_all:
+                            last_txid = ''
+                        else:
+                            last_txid = self.utxo_last(address)
                         utxos += srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
                         if utxos is False:
                             raise WalletError("No response from any service provider, could not update UTXO's. "
@@ -2662,7 +2665,7 @@ class HDWallet(object):
                                DbTransactionOutput.output_n == utxo['output_n'])
                     spent_in_db = self._session.query(DbTransactionInput).join(DbTransaction).\
                         filter(DbTransaction.wallet_id == self.wallet_id,
-                               DbTransaction.hash == utxo['tx_hash'],
+                               DbTransactionInput.prev_hash == utxo['tx_hash'],
                                DbTransactionInput.output_n == utxo['output_n'])
                     if utxo_in_db.count():
                         utxo_record = utxo_in_db.scalar()
