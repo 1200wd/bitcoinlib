@@ -2504,9 +2504,16 @@ class HDWallet(object):
             for utxo in utxos
         ]
 
+        grouper = itemgetter("id", "network", "account_id")
+        key_balance_list = []
+        for key, grp in groupby(sorted(key_values, key=grouper), grouper):
+            nw_acc_dict = dict(zip(["id", "network", "account_id"], key))
+            nw_acc_dict["balance"] = sum(item["balance"] for item in grp)
+            key_balance_list.append(nw_acc_dict)
+
         grouper = itemgetter("network", "account_id")
         balance_list = []
-        for key, grp in groupby(sorted(key_values, key=grouper), grouper):
+        for key, grp in groupby(sorted(key_balance_list, key=grouper), grouper):
             nw_acc_dict = dict(zip(["network", "account_id"], key))
             nw_acc_dict["balance"] = sum(item["balance"] for item in grp)
             balance_list.append(nw_acc_dict)
@@ -2514,8 +2521,9 @@ class HDWallet(object):
         # Add keys with no UTXO's with 0 balance
         for key in self.keys(account_id=account_id, network=network, key_id=key_id):
             if key.id not in [utxo[0].key_id for utxo in utxos]:
-                key_values.append({
+                key_balance_list.append({
                     'id': key.id,
+                    'network': network,
                     'account_id': key.account_id,
                     'balance': 0
                 })
@@ -2533,9 +2541,9 @@ class HDWallet(object):
         self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.name])
 
         # Bulk update database
-        self._session.bulk_update_mappings(DbKey, key_values)
+        self._session.bulk_update_mappings(DbKey, key_balance_list)
         self._session.commit()
-        _logger.info("Got balance for %d key(s)" % len(key_values))
+        _logger.info("Got balance for %d key(s)" % len(key_balance_list))
         return self._balances
 
     def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None,

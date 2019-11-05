@@ -790,7 +790,8 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         wallet.get_key(network='testnet', change=1)
         wallet.utxos_update(networks='testnet')
         self.assertEqual(wallet.balance(network='bitcoinlib_test'), 600000000)
-        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
+        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=0), 600000000)
+        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 0)
         self.assertEqual(wallet.balance(network='testnet'), 0)
         ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
                           'mmWFgfG43tnP2SJ8u8UDN66Xm63okpUctk']
