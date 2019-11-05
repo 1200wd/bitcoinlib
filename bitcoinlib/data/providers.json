@@ -361,5 +361,27 @@
     "priority": 10,
     "denominator": 100000000,
     "network_overrides": null
+  },
+  "blockstream": {
+    "provider": "blockstream",
+    "network": "bitcoin",
+    "client_class": "BlockstreamClient",
+    "provider_coin_id": "",
+    "url": "https://blockstream.info/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "blockstream.testnet": {
+    "provider": "blockstream",
+    "network": "testnet",
+    "client_class": "BlockstreamClient",
+    "provider_coin_id": "",
+    "url": "https://blockstream.info/testnet/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
   }
 }
