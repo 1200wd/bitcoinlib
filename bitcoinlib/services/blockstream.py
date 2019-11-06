@@ -54,54 +54,84 @@ class BlockstreamClient(BaseClient):
             balance += (res['chain_stats']['funded_txo_sum'] - res['chain_stats']['spent_txo_sum'])
         return balance
 
-    # def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-
-    def gettransaction(self, txid):
-        tx = self.compose_request('tx', txid)
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        res = self.compose_request('address', address, 'utxo')
         block_height = self.blockcount()
+        utxos = []
+        # # key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True
+        res = sorted(res, key=lambda k: k['status']['block_height'])
+        print([a['status']['block_height'] for a in res])
+        for a in res:
+            utxos.append({
+                'address': address,
+                'tx_hash': a['txid'],
+                'confirmations': block_height - a['status']['block_height'],
+                'output_n': a['vout'],
+                'input_n': 0,
+                'block_height': a['status']['block_height'],
+                'fee': None,
+                'size': 0,
+                'value': a['value'],
+                'script': '',
+                'date': datetime.fromtimestamp(a['status']['block_time'])
+            })
+            if a['txid'] == after_txid:
+                utxos = []
+        return utxos[:max_txs]
+
+    def _parse_transaction(self, tx, block_height=None):
+        if not block_height:
+            block_height = self.blockcount()
         confirmations = block_height - tx['status']['block_height']
         status = 'unconfirmed'
         if tx['status']['confirmed']:
             status = 'confirmed'
-        witness_type = 'legacy'
-        # if tx['has_witness']:
-        #     witness_type = 'segwit'
-        # input_total = tx['input_total']
-        # if tx['is_coinbase']:
-        #     input_total = tx['output_total']
+        fee = None if 'fee' not in tx else tx['fee']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=tx['size'], hash=tx['txid'],
+                        fee=fee, size=tx['size'], hash=tx['txid'],
                         date=datetime.fromtimestamp(tx['status']['block_time']),
-                        confirmations=confirmations, block_height=block_height, status=status,
-                        coinbase=tx['vin'][0]['is_coinbase'], witness_type=witness_type)
+                        confirmations=confirmations, block_height=tx['status']['block_height'], status=status,
+                        coinbase=tx['vin'][0]['is_coinbase'])
         index_n = 0
         for ti in tx['vin']:
-            # if ti['spending_witness']:
-            #     witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
-            #     t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
-            #                 unlocking_script=witnesses, index_n=index_n, value=ti['value'],
-            #                 address=ti['recipient'], witness_type='segwit')
-            # else:
-            t.add_input(prev_hash=ti['txid'], output_n=ti['vout'],
-                        unlocking_script_unsigned=ti['prevout']['scriptpubkey'], index_n=index_n,
-                        value=ti['prevout']['value'], address=ti['prevout']['scriptpubkey_address'],
-                        unlocking_script=ti['scriptsig'])
+            if tx['vin'][0]['is_coinbase']:
+                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                            unlocking_script=ti['scriptsig'], value=sum([o['value'] for o in tx['vout']]))
+            else:
+                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'],
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], index_n=index_n,
+                            value=ti['prevout']['value'], address=ti['prevout']['scriptpubkey_address'],
+                            unlocking_script=ti['scriptsig'])
             index_n += 1
         index_n = 0
         for to in tx['vout']:
-            # try:
-            #     deserialize_address(to['recipient'], network=self.network.name)
-            #     addr = to['recipient']
-            # except EncodingError:
-            #     addr = ''
             address = ''
             if 'scriptpubkey_address' in to:
                 address = to['scriptpubkey_address']
             t.add_output(value=to['value'], address=address, lock_script=to['scriptpubkey'],
-                         output_n=index_n)
+                         output_n=index_n, spent=None)
             index_n += 1
+        if 'segwit' in [i.witness_type for i in t.inputs]:
+            t.witness_type = 'segwit'
+        t.update_totals()
         return t
-    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+
+    def gettransaction(self, txid):
+        tx = self.compose_request('tx', txid)
+        return self._parse_transaction(tx)
+
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        block_height = self.blockcount()
+        parameter = 'txs'
+        if after_txid:
+            parameter = 'txs/chain/%s' % after_txid
+        res = self.compose_request('address', address, parameter)
+        txs = []
+        for tx in res[:max_txs]:
+            t = self._parse_transaction(tx, block_height)
+            if t:
+                txs.append(t)
+        return txs
 
     def getrawtransaction(self, txid):
         return self.compose_request('tx', txid, 'hex')

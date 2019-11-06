@@ -1286,6 +1286,7 @@ class Transaction(object):
             'hash': self.hash,
             'date': self.date,
             'network': self.network.name,
+            'witness_type': self.witness_type,
             'coinbase': self.coinbase,
             'flag': self.flag,
             'confirmations': self.confirmations,
@@ -1301,6 +1302,7 @@ class Transaction(object):
             'locktime': self.locktime,
             'raw': self.raw_hex(),
             'size': self.size,
+            'vsize': self.vsize,
             'verified': self.verified,
             'status': self.status
         }

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Service Class
-#    © 2018-2019 July - 1200 Web Development <http://1200wd.com/>
+#    © 2018-2019 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -537,6 +537,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'coinbase': False,
             'date': datetime.datetime(2018, 10, 25, 16, 30, 46),
             'fee': 2662,
+            'witness_type': 'segwit',
             'hash': '299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4',
             'input_total': 506323064,
             'inputs':
