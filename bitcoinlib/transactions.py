@@ -1809,6 +1809,8 @@ class Transaction(object):
         :return int: Estimated transaction size
         """
 
+        # if self.input_total and self.output_total + self.fee == self.input_total:
+        #     add_change_output = False
         est_size = 10
         witness_size = 2
         if self.witness_type != 'legacy':

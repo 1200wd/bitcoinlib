@@ -3352,6 +3352,7 @@ class HDWallet(object):
                 rt.size = t.size
             else:
                 rt.size = len(t.raw())
+            rt.vsize = rt.size
             rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
             rt.block_height = t.block_height
             rt.confirmations = t.confirmations
@@ -3394,7 +3395,7 @@ class HDWallet(object):
         t_import = Transaction.import_raw(raw_tx, network=network)
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
         rt.verify()
-        rt.size = len(raw_tx)
+        rt.size = rt.vsize = len(raw_tx)
         rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
         return rt
 
@@ -3448,8 +3449,9 @@ class HDWallet(object):
             if fee_exact and abs((transaction.fee - fee_exact) / float(fee_exact)) > 0.10:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
-                transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee_exact,
-                                                      min_confirms, max_utxos, locktime)
+                transaction = self.transaction_create(output_arr, input_arr, account_id=account_id, network=network,
+                                                      fee=fee_exact, min_confirms=min_confirms, max_utxos=max_utxos,
+                                                      locktime=locktime)
                 transaction.sign(priv_keys)
 
         transaction.fee_per_kb = int((transaction.fee / transaction.size) * 1024)
