@@ -122,15 +122,25 @@ class BlockstreamClient(BaseClient):
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         block_height = self.blockcount()
-        parameter = 'txs'
-        if after_txid:
-            parameter = 'txs/chain/%s' % after_txid
-        res = self.compose_request('address', address, parameter)
+        prtxs = []
+        before_txid = ''
+        while True:
+            parameter = 'txs'
+            if before_txid:
+                parameter = 'txs/chain/%s' % before_txid
+            res = self.compose_request('address', address, parameter)
+            prtxs += res
+            if len(res) == 25:
+                before_txid = res[-1:]['txid']
+            else:
+                break
         txs = []
-        for tx in res[:max_txs]:
+        for tx in prtxs[::-1]:
             t = self._parse_transaction(tx, block_height)
             if t:
                 txs.append(t)
+            if t.hash == after_txid:
+                txs = []
         return txs
 
     def getrawtransaction(self, txid):
