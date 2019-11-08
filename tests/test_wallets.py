@@ -2094,7 +2094,7 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         w.utxos_update()
         self.assertListEqual(w.addresslist(),
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '12yuSkjKmHzXCFn39PK1XP3XyeoVw9LJdN'])
-        self.assertGreaterEqual(w.balance(), 5004532991)
+        self.assertGreaterEqual(w.balance(), 4532991)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
 
     def test_wallet_address_import_public_key(self):
