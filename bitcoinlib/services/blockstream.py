@@ -26,6 +26,8 @@ from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
 
 PROVIDERNAME = 'blockstream'
+# Please note: In the Blockstream API, the first couple of Bitcoin blocks are not correctly indexed,
+# so transactions from these blocks are missing.
 
 _logger = logging.getLogger(__name__)
 
