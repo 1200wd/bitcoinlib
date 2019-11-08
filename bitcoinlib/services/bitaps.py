@@ -39,7 +39,7 @@ class BitapsClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, category, command='', data='', variables=None, type='blockchain'):
+    def compose_request(self, category, command='', data='', variables=None, type='blockchain', method='get'):
         url_path = type + '/' + category
         if command:
             url_path += '/' + command
@@ -47,7 +47,7 @@ class BitapsClient(BaseClient):
             if url_path[-1:] != '/':
                 url_path += '/'
             url_path += data
-        return self.request(url_path, variables=variables)
+        return self.request(url_path, variables=variables, method=method)
 
     def _parse_transaction(self, tx):
         t = Transaction.import_raw(tx['rawTx'], network=self.network)

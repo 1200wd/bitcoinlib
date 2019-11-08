@@ -138,7 +138,7 @@ class DashdClient(BaseClient):
 
     def gettransaction(self, txid):
         tx = self.proxy.getrawtransaction(txid, 1)
-        t = Transaction.import_raw(tx['hex'], network='dash')
+        t = Transaction.import_raw(tx['hex'], network=self.network)
         t.confirmations = tx['confirmations']
         if t.confirmations:
             t.status = 'confirmed'

@@ -61,7 +61,7 @@ class BaseClient(object):
         except:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
-    def request(self, url_path, variables=None, method='get', secure=True):
+    def request(self, url_path, variables=None, method='get', secure=True, post_data=''):
         url_vars = ''
         url = self.base_url + url_path
         if not url or not self.base_url:
@@ -83,7 +83,8 @@ class BaseClient(object):
             self.resp = requests.get(url, timeout=self.timeout, verify=secure, headers=headers)
         elif method == 'post':
             _logger.info("Url post request %s" % url)
-            self.resp = requests.post(url, json=dict(variables), timeout=self.timeout, verify=secure, headers=headers)
+            self.resp = requests.post(url, json=dict(variables), data=post_data, timeout=self.timeout, verify=secure,
+                                      headers=headers)
 
         resp_text = self.resp.text
         if len(resp_text) > 1000:

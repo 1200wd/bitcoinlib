@@ -1151,15 +1151,7 @@ class HDWallet(object):
         else:
             key = hdkey_list[0]
 
-# <<<<<<< HEAD
         main_key_path = key_path
-# =======
-#         hdpm = cls._create(name, key, owner=owner, network=network, account_id=account_id, purpose=purpose,
-#                            scheme=scheme, parent_id=None, sort_keys=sort_keys, witness_type=witness_type,
-#                            encoding=encoding, multisig=multisig, sigs_required=sigs_required, cosigner_id=cosigner_id,
-#                            key_path=key_path, db_uri=db_uri)
-#
-# >>>>>>> master
         if multisig:
             if sort_keys:
                 hdkey_list.sort(key=lambda x: x.public_byte)
@@ -2512,9 +2504,16 @@ class HDWallet(object):
             for utxo in utxos
         ]
 
+        grouper = itemgetter("id", "network", "account_id")
+        key_balance_list = []
+        for key, grp in groupby(sorted(key_values, key=grouper), grouper):
+            nw_acc_dict = dict(zip(["id", "network", "account_id"], key))
+            nw_acc_dict["balance"] = sum(item["balance"] for item in grp)
+            key_balance_list.append(nw_acc_dict)
+
         grouper = itemgetter("network", "account_id")
         balance_list = []
-        for key, grp in groupby(sorted(key_values, key=grouper), grouper):
+        for key, grp in groupby(sorted(key_balance_list, key=grouper), grouper):
             nw_acc_dict = dict(zip(["network", "account_id"], key))
             nw_acc_dict["balance"] = sum(item["balance"] for item in grp)
             balance_list.append(nw_acc_dict)
@@ -2522,8 +2521,9 @@ class HDWallet(object):
         # Add keys with no UTXO's with 0 balance
         for key in self.keys(account_id=account_id, network=network, key_id=key_id):
             if key.id not in [utxo[0].key_id for utxo in utxos]:
-                key_values.append({
+                key_balance_list.append({
                     'id': key.id,
+                    'network': network,
                     'account_id': key.account_id,
                     'balance': 0
                 })
@@ -2541,23 +2541,17 @@ class HDWallet(object):
         self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.name])
 
         # Bulk update database
-        self._session.bulk_update_mappings(DbKey, key_values)
+        self._session.bulk_update_mappings(DbKey, key_balance_list)
         self._session.commit()
-        _logger.info("Got balance for %d key(s)" % len(key_values))
+        _logger.info("Got balance for %d key(s)" % len(key_balance_list))
         return self._balances
 
     def utxos_update(self, account_id=None, used=None, networks=None, key_id=None, depth=None, change=None,
-                     utxos=None, update_balance=True, max_utxos=MAX_TRANSACTIONS):
+                     utxos=None, update_balance=True, max_utxos=MAX_TRANSACTIONS, rescan_all=True):
         """
-<<<<<<< HEAD
         Update UTXO's (Unspent Outputs) for addresses/keys in this wallet using various Service providers.
         
-        This method does not import transactions: use transactions_update() or generate addresses: use scan().
-=======
-        Update UTXO's (Unspent Outputs) in database of given account using the default Service object.
-
-        Delete old UTXO's which are spent and append new UTXO's to database.
->>>>>>> master
+        This method does not import transactions: use transactions_update() or to look for new addresses use scan().
 
         For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries:
         [{
@@ -2583,13 +2577,17 @@ class HDWallet(object):
         :type change: int
         :param utxos: List of unspent outputs in dictionary format specified in this method DOC header
         :type utxos: list
-        :param update_balance: Option to disable balance update after fetching UTXO's, used when utxos_update method is called several times in a row. Default is True
+        :param update_balance: Option to disable balance update after fetching UTXO's. Can be used when utxos_update method is called several times in a row. Default is True
         :type update_balance: bool
         :param max_utxos: Maximum number of UTXO's to update
         :type max_utxos: int
+        :param rescan_all: Remove old utxo's and rescan wallet. Default is True. Set to False if you work with large utxo's sets.
+        :type rescan_all: bool
 
         :return int: Number of new UTXO's added
         """
+
+        network, account_id, acckey = self._get_account_defaults(None, account_id, key_id)
 
         single_key = None
         if key_id:
@@ -2602,6 +2600,18 @@ class HDWallet(object):
             networks = [networks]
         elif len(networks) != 1 and utxos is not None:
             raise WalletError("Please specify maximum 1 network when passing utxo's")
+
+        # Remove current UTXO's
+        if rescan_all:
+            cur_utxos = self._session.query(DbTransactionOutput).\
+                join(DbTransaction).join(DbKey). \
+                filter(DbTransactionOutput.spent.is_(False),
+                       DbKey.account_id == account_id,
+                       DbTransaction.wallet_id == self.wallet_id).all()
+            for u in cur_utxos:
+                self._session.query(DbTransactionOutput).filter_by(
+                    transaction_id=u.transaction_id, output_n=u.output_n).update({DbTransactionOutput.spent: True})
+            self._session.commit()
 
         count_utxos = 0
         for network in networks:
@@ -2620,7 +2630,10 @@ class HDWallet(object):
                     srv = Service(network=network, providers=self.providers)
                     utxos = []
                     for address in addresslist:
-                        last_txid = self.utxo_last(address)
+                        if rescan_all:
+                            last_txid = ''
+                        else:
+                            last_txid = self.utxo_last(address)
                         utxos += srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
                         if utxos is False:
                             raise WalletError("No response from any service provider, could not update UTXO's. "
@@ -2652,7 +2665,7 @@ class HDWallet(object):
                                DbTransactionOutput.output_n == utxo['output_n'])
                     spent_in_db = self._session.query(DbTransactionInput).join(DbTransaction).\
                         filter(DbTransaction.wallet_id == self.wallet_id,
-                               DbTransaction.hash == utxo['tx_hash'],
+                               DbTransactionInput.prev_hash == utxo['tx_hash'],
                                DbTransactionInput.output_n == utxo['output_n'])
                     if utxo_in_db.count():
                         utxo_record = utxo_in_db.scalar()
@@ -3339,6 +3352,7 @@ class HDWallet(object):
                 rt.size = t.size
             else:
                 rt.size = len(t.raw())
+            rt.vsize = rt.size
             rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
             rt.block_height = t.block_height
             rt.confirmations = t.confirmations
@@ -3381,7 +3395,7 @@ class HDWallet(object):
         t_import = Transaction.import_raw(raw_tx, network=network)
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
         rt.verify()
-        rt.size = len(raw_tx)
+        rt.size = rt.vsize = len(raw_tx)
         rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
         return rt
 
@@ -3435,8 +3449,9 @@ class HDWallet(object):
             if fee_exact and abs((transaction.fee - fee_exact) / float(fee_exact)) > 0.10:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
-                transaction = self.transaction_create(output_arr, input_arr, account_id, network, fee_exact,
-                                                      min_confirms, max_utxos, locktime)
+                transaction = self.transaction_create(output_arr, input_arr, account_id=account_id, network=network,
+                                                      fee=fee_exact, min_confirms=min_confirms, max_utxos=max_utxos,
+                                                      locktime=locktime)
                 transaction.sign(priv_keys)
 
         transaction.fee_per_kb = int((transaction.fee / transaction.size) * 1024)

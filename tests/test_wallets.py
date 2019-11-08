@@ -783,13 +783,13 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         acc2 = wallet.new_account('BCL test office', network='bitcoinlib_test')
         wallet.new_key(account_id=acc2.account_id, network='bitcoinlib_test')
         wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
-        wallet.utxos_update(networks='bitcoinlib_test')
+        wallet.utxos_update(networks='bitcoinlib_test', account_id=1)
         wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
         wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
         wallet.get_key(network='testnet', number_of_keys=2)
         wallet.get_key(network='testnet', change=1)
         wallet.utxos_update(networks='testnet')
-        self.assertEqual(wallet.balance(network='bitcoinlib_test'), 600000000)
+        self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=0), 0)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 600000000)
         self.assertEqual(wallet.balance(network='testnet'), 0)
         ltct_addresses = ['mhHhSx66jdXdUPu2A8pXsCBkX1UvHmSkUJ', 'mrdtENj75WUfrJcZuRdV821tVzKA4VtCBf',
@@ -801,7 +801,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         self.assertIsNone(t.error)
         self.assertTrue(t.verified)
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=1), 589999000)
-        self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 6)
+        self.assertEqual(len(wallet.transactions(account_id=0, network='bitcoinlib_test')), 0)
         self.assertEqual(len(wallet.transactions(account_id=1, network='bitcoinlib_test')), 7)
         del wallet
 
