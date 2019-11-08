@@ -171,7 +171,9 @@ class BcoinClient(BaseClient):
         }
 
     def estimatefee(self, blocks):
-        fee = self.compose_request('fee')['rate']
+        if blocks > 15:
+            blocks = 15
+        fee = self.compose_request('fee', variables={'blocks': blocks})['rate']
         if not fee:
             return False
         return fee

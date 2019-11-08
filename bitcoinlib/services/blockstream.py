@@ -159,9 +159,9 @@ class BlockstreamClient(BaseClient):
         est = self.compose_request('fee-estimates')
         closest = (sorted([int(i) - blocks for i in est.keys() if int(i) - blocks >= 0]))
         if closest:
-            return int(est[str(closest[0] + blocks)])
+            return int(est[str(closest[0] + blocks)] * 1024)
         else:
-            return int(est[str(sorted([int(i) for i in est.keys()])[-1:][0])])
+            return int(est[str(sorted([int(i) for i in est.keys()])[-1:][0])] * 1024)
 
     def blockcount(self):
         return self.compose_request('blocks', 'tip', 'height')

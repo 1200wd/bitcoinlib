@@ -193,7 +193,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
                           (provider, fee_difference_from_average * 100))
 
-    # NOT ENOUGHT SERVICE PROVIDERS OFFER FEE ESTIMATES FOR LITECOIN AT THE MOMENT
+    # NOT ENOUGH SERVICE PROVIDERS OFFER FEE ESTIMATES FOR LITECOIN AT THE MOMENT
     # def test_estimatefee_litecoin(self):
     #     srv = Service(min_providers=5, network='litecoin')
     #     srv.estimatefee()
