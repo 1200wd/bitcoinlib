@@ -164,4 +164,11 @@ class BlockstreamClient(BaseClient):
     def blockcount(self):
         return self.compose_request('blocks', 'tip', 'height')
 
-    # def mempool(self, txid):
+    def mempool(self, txid):
+        if txid:
+            t = self.gettransaction(txid)
+            if t and not t.confirmations:
+                return [t.hash]
+        else:
+            return self.compose_request('mempool', 'txids')
+        return []
