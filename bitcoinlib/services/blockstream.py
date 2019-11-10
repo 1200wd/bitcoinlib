@@ -62,7 +62,6 @@ class BlockstreamClient(BaseClient):
         utxos = []
         # # key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True
         res = sorted(res, key=lambda k: k['status']['block_height'])
-        print([a['status']['block_height'] for a in res])
         for a in res:
             utxos.append({
                 'address': address,

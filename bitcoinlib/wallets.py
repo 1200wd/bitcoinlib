@@ -2587,7 +2587,7 @@ class HDWallet(object):
         :return int: Number of new UTXO's added
         """
 
-        network, account_id, acckey = self._get_account_defaults(None, account_id, key_id)
+        network, account_id, acckey = self._get_account_defaults('', account_id, key_id)
 
         single_key = None
         if key_id:

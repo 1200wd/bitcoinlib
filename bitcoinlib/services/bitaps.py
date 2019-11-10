@@ -94,12 +94,14 @@ class BitapsClient(BaseClient):
             variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
             try:
                 res = self.compose_request('address', 'transactions', address, variables)
+                res2 = self.compose_request('address', 'unconfirmed/transactions', address, variables)
             except ClientError as e:
                 if "address not found" in self.resp.text:
                     return []
                 else:
                     raise ClientError(e.msg)
             txs = res['data']['list']
+            txs += res2['data']['list']
             for tx in txs:
                 for outp in tx['vOut']:
                     utxo = tx['vOut'][outp]
@@ -109,10 +111,10 @@ class BitapsClient(BaseClient):
                         {
                             'address': utxo['address'],
                             'tx_hash': tx['txId'],
-                            'confirmations': tx['confirmations'],
+                            'confirmations': 0 if 'confirmations' not in tx else tx['confirmations'],
                             'output_n': int(outp),
                             'input_n': 0,
-                            'block_height': tx['blockHeight'],
+                            'block_height': None if 'blockHeight' not in tx else tx['blockHeight'],
                             'fee': None,
                             'size': 0,
                             'value': utxo['value'],
