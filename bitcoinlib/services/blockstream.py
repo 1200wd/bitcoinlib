@@ -58,40 +58,49 @@ class BlockstreamClient(BaseClient):
 
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         res = self.compose_request('address', address, 'utxo')
-        block_height = self.blockcount()
+        blockcount = self.blockcount()
         utxos = []
         # # key=lambda k: (k[2], pow(10, 20)-k[0].transaction_id, k[3]), reverse=True
-        res = sorted(res, key=lambda k: k['status']['block_height'])
+        res = sorted(res, key=lambda k: 0 if 'block_height' not in k['status'] else k['status']['block_height'])
         for a in res:
+            confirmations = 0
+            block_height = None
+            if 'block_height' in a['status']:
+                block_height = a['status']['block_height']
+                confirmations = blockcount - block_height
             utxos.append({
                 'address': address,
                 'tx_hash': a['txid'],
-                'confirmations': block_height - a['status']['block_height'],
+                'confirmations': confirmations,
                 'output_n': a['vout'],
                 'input_n': 0,
-                'block_height': a['status']['block_height'],
+                'block_height': block_height,
                 'fee': None,
                 'size': 0,
                 'value': a['value'],
                 'script': '',
-                'date': datetime.fromtimestamp(a['status']['block_time'])
+                'date': None if 'block_time' not in a['status'] else datetime.fromtimestamp(a['status']['block_time'])
             })
             if a['txid'] == after_txid:
                 utxos = []
         return utxos[:max_txs]
 
-    def _parse_transaction(self, tx, block_height=None):
-        if not block_height:
-            block_height = self.blockcount()
-        confirmations = block_height - tx['status']['block_height']
+    def _parse_transaction(self, tx, blockcount=None):
+        if not blockcount:
+            blockcount = self.blockcount()
+        confirmations = 0
+        block_height = None
+        if 'block_height' in tx['status']:
+            block_height = tx['status']['block_height']
+            confirmations = blockcount - block_height
         status = 'unconfirmed'
         if tx['status']['confirmed']:
             status = 'confirmed'
         fee = None if 'fee' not in tx else tx['fee']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fee, size=tx['size'], hash=tx['txid'],
-                        date=datetime.fromtimestamp(tx['status']['block_time']),
-                        confirmations=confirmations, block_height=tx['status']['block_height'], status=status,
+                        date=None if 'block_time' not in tx['status'] else datetime.fromtimestamp(tx['status']['block_time']),
+                        confirmations=confirmations, block_height=block_height, status=status,
                         coinbase=tx['vin'][0]['is_coinbase'])
         index_n = 0
         for ti in tx['vin']:
@@ -142,7 +151,7 @@ class BlockstreamClient(BaseClient):
                 txs.append(t)
             if t.hash == after_txid:
                 txs = []
-        return txs
+        return txs[:max_txs]
 
     def getrawtransaction(self, txid):
         return self.compose_request('tx', txid, 'hex')

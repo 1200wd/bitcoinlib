@@ -1260,7 +1260,7 @@ class Transaction(object):
                     self.rawtx = self.raw_hex()
                 self.hash = to_hexstring(double_sha256(to_bytes(self.rawtx))[::-1])
             else:
-                self.hash = to_hexstring(double_sha256(to_bytes(self.raw(witness_type='legacy')))[::-1])
+                self.hash = to_hexstring(double_sha256(self.raw(witness_type='legacy'))[::-1])
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
