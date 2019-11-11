@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2016 - 2019 February - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2019 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -872,7 +872,8 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
         w.new_key()
         w.utxos_update()
         balance = w.balance()
-        self.assertFalse(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance))
+        self.assertRaisesRegexp(WalletError, "Not enough unspent transaction outputs found",
+                                w.send_to, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance)
 
     def test_wallet_bitcoinlib_testnet_sweep(self):
         w = HDWallet.create(
@@ -1725,8 +1726,9 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         t = w.send_to('blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 150000000, input_key_id=keys[1].key_id)
         self.assertEqual(t.inputs[0].address, keys[1].address)
         self.assertTrue(t.verified)
-        self.assertFalse(w.send_to('blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 250000000,
-                                   input_key_id=keys[0].key_id))
+        self.assertRaisesRegexp(WalletError, "Not enough unspent transaction outputs found", w.send_to,
+                                'blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 250000000,
+                                input_key_id=keys[0].key_id)
 
     def test_wallet_transactions_max_txs(self):
         address = '15yN7NPEpu82sHhB6TzCW5z5aXoamiKeGy'

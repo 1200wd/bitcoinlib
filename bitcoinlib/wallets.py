@@ -3202,8 +3202,7 @@ class HDWallet(object):
             selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount, input_key_id,
                                                 account_id, network, min_confirms, max_utxos, False)
             if not selected_utxos:
-                logger.warning("Not enough unspent transaction outputs found")
-                return False
+                raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
                 amount_total_input += utxo.value
                 inp_keys, key = self._objects_by_key_id(utxo.key_id)
@@ -3440,8 +3439,6 @@ class HDWallet(object):
 
         transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network, fee,
                                               min_confirms, max_utxos, locktime)
-        if not transaction:
-            return False
         transaction.sign(priv_keys)
         # Calculate exact estimated fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
