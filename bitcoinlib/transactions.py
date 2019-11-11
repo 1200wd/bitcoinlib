@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 - 2019 January - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -1253,14 +1253,8 @@ class Transaction(object):
         self.witness_type = witness_type
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
-
         if not self.hash:
-            if self.witness_type == 'legacy':
-                if not self.rawtx:
-                    self.rawtx = self.raw_hex()
-                self.hash = to_hexstring(double_sha256(to_bytes(self.rawtx))[::-1])
-            else:
-                self.hash = to_hexstring(double_sha256(self.raw(witness_type='legacy'))[::-1])
+            self.hash = to_hexstring(self.signature_hash()[::-1])
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -1382,7 +1376,7 @@ class Transaction(object):
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
+    def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
         """
         Double SHA256 Hash of Transaction signature
 
@@ -1398,7 +1392,7 @@ class Transaction(object):
 
         return double_sha256(self.signature(sign_id, hash_type, witness_type))
 
-    def signature(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
+    def signature(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
         """
         Serializes transaction and calculates signature for Legacy or Segwit transactions
 
@@ -1414,10 +1408,10 @@ class Transaction(object):
 
         if witness_type is None:
             witness_type = self.witness_type
-        if witness_type in ['segwit', 'p2sh-segwit']:
+        if witness_type == 'legacy' or sign_id is None:
+            return self.raw(sign_id, hash_type, 'legacy')
+        elif witness_type in ['segwit', 'p2sh-segwit']:
             return self.signature_segwit(sign_id, hash_type)
-        elif witness_type == 'legacy':
-            return self.raw(sign_id, hash_type)
         else:
             raise TransactionError("Witness_type %s not supported" % self.witness_type)
 
@@ -1485,7 +1479,7 @@ class Transaction(object):
         Return transaction with signed inputs if signatures are available
         
         :param sign_id: Create raw transaction which can be signed by transaction with this input ID
-        :type sign_id: int
+        :type sign_id: int, None
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
         :param witness_type: Serialize transaction with other witness type then default. Use to create legacy raw transaction for segwit transaction to create transaction signature ID's

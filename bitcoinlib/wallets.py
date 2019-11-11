@@ -3323,6 +3323,7 @@ class HDWallet(object):
             transaction.outputs[on].key_id = ck.key_id
             amount_total_output += transaction.change
 
+        transaction.hash = to_hexstring(transaction.signature_hash()[::-1])
         if not transaction.fee_per_kb:
             transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
         if transaction.fee_per_kb < self.network.fee_min:
