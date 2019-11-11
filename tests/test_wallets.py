@@ -27,6 +27,7 @@ from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from sqlalchemy.orm import close_all_sessions
 from bitcoinlib.wallets import *
+from bitcoinlib.encoding import USE_FASTECDSA
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey, BKeyError
 from tests.test_custom import CustomAssertions
@@ -1693,6 +1694,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
                                   db_uri=self.DATABASE_URI)
         wk = w.get_key()
+        if not USE_FASTECDSA:
+            self.skipTest("Need fastecdsa module with deterministic txid's to run this test")
         utxos = [{
             'address': wk.address,
             'script': '',
@@ -1704,7 +1707,6 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w.utxos_update(utxos=utxos)
         to = w.get_key_change()
         t = w.sweep(to.address, offline=True)
-        t.info()
         tx_id = t.save()
         wallet_empty('test_wallet_transaction_restore', db_uri=self.DATABASE_URI)
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
@@ -1713,7 +1715,6 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w.utxos_update(utxos=utxos)
         to = w.get_key_change()
         t = w.sweep(to.address, offline=True)
-        t.info()
         self.assertEqual(t.save(), tx_id)
 
     def test_wallet_transaction_send_keyid(self):
