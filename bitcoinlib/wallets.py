@@ -3456,7 +3456,7 @@ class HDWallet(object):
                 transaction.sign(priv_keys)
 
         transaction.fee_per_kb = int((transaction.fee / transaction.size) * 1024)
-        # transaction.hash = to_hexstring(transaction.signature_hash()[::-1])
+        transaction.hash = to_hexstring(transaction.signature_hash()[::-1])
         transaction.send(offline)
         return transaction
 

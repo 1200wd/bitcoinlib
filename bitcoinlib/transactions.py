@@ -1389,7 +1389,6 @@ class Transaction(object):
 
         :return bytes: Transaction signature hash
         """
-
         return double_sha256(self.signature(sign_id, hash_type, witness_type))
 
     def signature(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
