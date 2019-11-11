@@ -1692,8 +1692,16 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_transaction_restore_saved_tx(self):
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
                                   db_uri=self.DATABASE_URI)
-        w.get_key()
-        w.utxos_update()
+        wk = w.get_key()
+        utxos = [{
+            'address': wk.address,
+            'script': '',
+            'confirmations': 10,
+            'output_n': 1,
+            'tx_hash': '9f5d4004c7cc5a31a735bddea6ff517e52f1cd700df208d2c39ddc536670f1fe',
+            'value': 1956783097
+        }]
+        w.utxos_update(utxos=utxos)
         to = w.get_key_change()
         t = w.sweep(to.address, offline=True)
         t.info()
@@ -1702,7 +1710,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
                                   db_uri=self.DATABASE_URI)
         w.get_key()
-        w.utxos_update()
+        w.utxos_update(utxos=utxos)
         to = w.get_key_change()
         t = w.sweep(to.address, offline=True)
         t.info()
