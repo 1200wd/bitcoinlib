@@ -1696,6 +1696,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w.utxos_update()
         to = w.get_key_change()
         t = w.sweep(to.address, offline=True)
+        t.info()
         tx_id = t.save()
         wallet_empty('test_wallet_transaction_restore', db_uri=self.DATABASE_URI)
         w = wallet_create_or_open('test_wallet_transaction_restore', network='bitcoinlib_test',
@@ -1704,6 +1705,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w.utxos_update()
         to = w.get_key_change()
         t = w.sweep(to.address, offline=True)
+        t.info()
         self.assertEqual(t.save(), tx_id)
 
     def test_wallet_transaction_send_keyid(self):
