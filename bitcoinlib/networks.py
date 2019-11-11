@@ -22,7 +22,7 @@ import json
 import binascii
 import math
 from bitcoinlib.main import *
-from bitcoinlib.encoding import to_hexstring, normalize_var, change_base, to_bytes
+from bitcoinlib.encoding import to_hexstring, change_base, to_bytes
 
 
 _logger = logging.getLogger(__name__)

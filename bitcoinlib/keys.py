@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Public key cryptography and Hierarchical Deterministic Key Management
-#    © 2016 - 2019 January - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2019 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -18,15 +18,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import binascii
-import hashlib
 import sys
 import os
 import hmac
-import numbers
 import random
 import warnings
-from copy import deepcopy
 import collections
 import json
 import pyaes
@@ -43,7 +39,6 @@ if 'scrypt' not in sys.modules:
     import pyscrypt as scrypt
     USING_MODULE_SCRYPT = False
 
-from bitcoinlib.main import *
 from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import *
 from bitcoinlib.encoding import *
@@ -2161,6 +2156,6 @@ def mod_sqrt(a):
     :return int: 
     """
 
-    # k = (secp256k1_p - 3) // 4
+    # Square root formula: k = (secp256k1_p - 3) // 4
     k = 28948022309329048855892746252171976963317496166410141009864396001977208667915
     return pow(a, k + 1, secp256k1_p)
