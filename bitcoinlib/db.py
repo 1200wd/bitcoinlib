@@ -24,10 +24,14 @@ except ImportError:
     import enum34 as enum
 import datetime
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence, ForeignKey, DateTime, Numeric
+from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
+                        ForeignKey, DateTime, Numeric, Text)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -44,8 +48,10 @@ class DbInit:
     """
     def __init__(self, db_uri=None):
         if db_uri is None:
-            sqlite_file = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
-            db_uri = 'sqlite:///%s' % sqlite_file
+            db_uri = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
+        o = urlparse(db_uri)
+        if not o.scheme:
+            db_uri = 'sqlite:///%s' % db_uri
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
         Session = sessionmaker(bind=self.engine)
 
@@ -86,6 +92,7 @@ class DbInit:
         session.merge(DbConfig(variable='installation_url', value=url))
         session.commit()
         session.close()
+
 
 def add_column(engine, table_name, column):
     column_name = column.compile(dialect=engine.dialect)
@@ -261,7 +268,7 @@ class DbTransaction(Base):
     output_total = Column(Numeric(25, 0, asdecimal=False), default=0)
     network_name = Column(String(20), ForeignKey('networks.name'))
     network = relationship("DbNetwork")
-    raw = Column(String(1024))
+    raw = Column(Text())
     verified = Column(Boolean, default=False)
 
     __table_args__ = (
@@ -291,7 +298,7 @@ class DbTransactionInput(Base):
     witness_type = Column(String(20), default='legacy')
     prev_hash = Column(String(64))
     output_n = Column(BigInteger)
-    script = Column(String(1024))
+    script = Column(Text)
     script_type = Column(String(20), default='sig_pubkey')
     sequence = Column(Integer)
     value = Column(Numeric(25, 0, asdecimal=False), default=0)
@@ -319,7 +326,7 @@ class DbTransactionOutput(Base):
     output_n = Column(BigInteger, primary_key=True)
     key_id = Column(Integer, ForeignKey('keys.id'), index=True)
     key = relationship("DbKey", back_populates="transaction_outputs")
-    script = Column(String(1024))
+    script = Column(Text)
     script_type = Column(String(20), default='p2pkh')
     value = Column(Numeric(25, 0, asdecimal=False), default=0)
     spent = Column(Boolean(), default=False)

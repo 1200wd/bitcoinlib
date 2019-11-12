@@ -137,7 +137,7 @@ To create a new Bitcoin wallet
 
 .. code-block:: bash
 
-    $ cli-wallet NewWallet
+    $ clw NewWallet
     Command Line Wallet for BitcoinLib
 
     Wallet newwallet does not exist, create new wallet [yN]? y
@@ -148,8 +148,8 @@ To create a new Bitcoin wallet
 
     Please write down on paper and backup. With this key you can restore your wallet and all keys
 
-You can use 'cli-wallet' to create simple or multisig wallets for various networks, manage public and private keys
-and managing transactions.
+You can use the command line wallet 'clw' to create simple or multisig wallets for various networks,
+manage public and private keys and managing transactions.
 
 For the full command line wallet documentation please read
 

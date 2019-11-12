@@ -50,8 +50,9 @@ BCL_CONFIG_FILE = ''
 
 
 # Services
-TIMEOUT_REQUESTS = 5
+TIMEOUT_REQUESTS = 10
 MAX_TRANSACTIONS = 20
+BLOCK_COUNT_CACHE_TIME = 3
 
 # Transactions
 SCRIPT_TYPES_LOCKING = {
@@ -178,6 +179,9 @@ WALLET_KEY_STRUCTURES = [
     },
 ]
 
+# UNITTESTS
+UNITTESTS_FULL_DATABASE_TEST = True
+
 
 def read_config():
     config = configparser.ConfigParser()
@@ -197,6 +201,7 @@ def read_config():
     global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
     global BCL_DATA_DIR, BCL_WORDLIST_DIR
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
+    global UNITTESTS_FULL_DATABASE_TEST
 
     BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
     if not os.path.isabs(BCL_CONFIG_DIR):
@@ -246,6 +251,11 @@ def read_config():
 
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
 
+    full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
+    if full_db_test:
+        if full_db_test in [0, False, 'False', 'false', 'FALSE']:
+            UNITTESTS_FULL_DATABASE_TEST = False
+
     if not data:
         return False
     return True
@@ -277,5 +287,6 @@ def initialize_lib():
 read_config()
 version_file = open(os.path.join(BCL_INSTALL_DIR, 'config/VERSION'))
 BITCOINLIB_VERSION = version_file.read().strip()
+version_file.close()
 
 initialize_lib()

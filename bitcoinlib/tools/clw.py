@@ -2,23 +2,23 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #
-#    Command line wallet manager. Manage BitcoinLib legacy/segwit single and multisignatures wallet from the commandline
+#    CLW - Command Line Wallet manager.
+#    Create and manage BitcoinLib legacy/segwit single and multisignatures wallets from the commandline
 #
-#    © 2019 February - 1200 Web Development <http://1200wd.com/>
+#    © 2019 November - 1200 Web Development <http://1200wd.com/>
 #
 
 import sys
-import os
 import argparse
 import binascii
 import struct
 import ast
 from pprint import pprint
-from bitcoinlib.db import DEFAULT_DATABASE, BCL_DATABASE_DIR
 from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.main import BITCOINLIB_VERSION
 
 try:
     import pyqrcode
@@ -35,7 +35,7 @@ DEFAULT_NETWORK = 'bitcoin'
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='BitcoinLib CLI')
+    parser = argparse.ArgumentParser(description='BitcoinLib command line wallet')
     parser.add_argument('wallet_name', nargs='?', default='',
                         help="Name of wallet to create or open. Used to store your all your wallet keys "
                              "and will be printed on each paper wallet")
@@ -56,9 +56,9 @@ def parse_args():
                                    " Use when updating fails or other errors occur. Please backup your database and "
                                    "masterkeys first.")
     group_wallet.add_argument('--receive', '-r', nargs='?', type=int,
-                              help="Show unused address to receive funds. Generate new payment and"
-                                   "change addresses if no unused addresses are available.",
-                              const=1, metavar='NUMBER_OF_ADDRESSES')
+                              help="Show unused address to receive funds. Specify cosigner-id to generate address for "
+                                   "specific cosigner. Default is -1 for own wallet",
+                              const=-1, metavar='COSIGNER_ID')
     group_wallet.add_argument('--generate-key', '-g', action='store_true', help="Generate a new masterkey, and show"
                               " passphrase, WIF and public account key. Can be used to create a multisig wallet")
     group_wallet.add_argument('--export-private', '-e', action='store_true',
@@ -90,6 +90,9 @@ def parse_args():
                                     'EXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJMeQHdWDp')
     group_wallet2.add_argument('--witness-type', '-y', metavar='WITNESS_TYPE', default=None,
                                help='Witness type of wallet: lecacy (default), p2sh-segwit or segwit')
+    group_wallet2.add_argument('--cosigner-id', '-s', type=int, default=0,
+                               help='Set this if wallet contains only public keys, more then one private key or if '
+                                    'you would like to create keys for other cosigners.')
     group_transaction = parser.add_argument_group("Transactions")
     group_transaction.add_argument('--create-transaction', '-t', metavar=('ADDRESS_1', 'AMOUNT_1'),
                                    help="Create transaction. Specify address followed by amount. Repeat for multiple "
@@ -158,7 +161,7 @@ def create_wallet(wallet_name, args, db_uri):
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
                 key_list.append(HDKey.from_seed(seed, network=args.network))
         return HDWallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
-                               db_uri=db_uri, witness_type=args.witness_type)
+                               cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
     elif args.create_from_key:
         return HDWallet.create(wallet_name, args.create_from_key, network=args.network,
                                db_uri=db_uri, witness_type=args.witness_type)
@@ -202,8 +205,8 @@ def print_transaction(wt):
         } for o in wt.outputs], 'inputs': [{
             'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
             'address': i.address, 'signatures': [{
-                'signature': to_hexstring(s['signature']), 'sig_der': to_hexstring(s['sig_der']),
-                'pub_key': to_hexstring(s['pub_key']),
+                'signature': s.hex(), 'sig_der': s.as_der_encoded(as_hex=True),
+                'pub_key': s.public_key.public_hex,
             } for s in i.signatures], 'value': i.value
         } for i in wt.inputs]
     }
@@ -217,7 +220,7 @@ def clw_exit(msg=None):
 
 
 def main():
-    print("Command Line Wallet for BitcoinLib\n")
+    print("Command Line Wallet - BitcoinLib %s\n" % BITCOINLIB_VERSION)
     # --- Parse commandline arguments ---
     args = parse_args()
 
@@ -228,10 +231,9 @@ def main():
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey.from_seed(seed, network=args.network)
-        print("Private master key, to create multisig wallet on this machine: %s" % hdkey.wif())
-        print(
-            "Public account key, to share with other cosigner multisig wallets: %s" %
-            hdkey.public_master(witness_type=args.witness_type, multisig=True))
+        print("Private Master key, to create multisig wallet on this machine:\n%s" % hdkey.wif_private())
+        print("Public Master key, to share with other cosigner multisig wallets:\n%s" %
+              hdkey.public_master(witness_type=args.witness_type, multisig=True).wif())
         print("Network: %s" % hdkey.network.name)
         clw_exit()
 
@@ -341,18 +343,15 @@ def main():
         clw_exit()
 
     if args.receive:
-        keys = wlt.get_key(network=args.network, number_of_keys=args.receive)
-        if args.receive != 1:
-            keys += wlt.get_key_change(network=args.network, number_of_keys=args.receive)
-        keys = [keys] if not isinstance(keys, list) else keys
-        print("Receive address(es):")
-        for key in keys:
-            addr = key.address
-            print(addr)
-            if QRCODES_AVAILABLE and args.receive == 1:
-                qrcode = pyqrcode.create(addr)
-                print(qrcode.terminal())
-        if not QRCODES_AVAILABLE and args.receive == 1:
+        cosigner_id = args.receive
+        if args.receive == -1:
+            cosigner_id = None
+        key = wlt.get_key(network=args.network, cosigner_id=cosigner_id)
+        print("Receive address: %s" % key.address)
+        if QRCODES_AVAILABLE:
+            qrcode = pyqrcode.create(key.address)
+            print(qrcode.terminal())
+        else:
             print("Install qr code module to show QR codes: pip install pyqrcode")
         clw_exit()
     if args.create_transaction == []:

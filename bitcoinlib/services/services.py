@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    SERVICES - Main Service connector
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 August - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -22,10 +22,13 @@ import os
 import logging
 import json
 import random
+import time
+from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
 from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
+
 
 _logger = logging.getLogger(__name__)
 
@@ -110,6 +113,8 @@ class Service(object):
         self.resultcount = 0
         self.complete = None
         self.timeout = timeout
+        self._blockcount = None
+        self._blockcount_update = 0
 
     def _provider_execute(self, method, *arguments):
         self.results = {}
@@ -167,7 +172,7 @@ class Service(object):
 
     def getbalance(self, addresslist, addresses_per_request=5):
         """
-        Get balance for each address in addresslist provided
+        Get total balance for address or list of addresses
 
         :param addresslist: Address or list of addresses
         :type addresslist: list, str
@@ -191,12 +196,13 @@ class Service(object):
 
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
-        Get list of unspent outputs (UTXO's) per address.
+        Get list of unspent outputs (UTXO's) for specified address.
+
         Sorted from old to new, so highest number of confirmations first.
 
         :param address: Address string
         :type address: str
-        :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos. If used only provide a single address
+        :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
         :type after_txid: str
         :param max_txs: Maximum number of utxo's to return
         :type max_txs: int
@@ -208,14 +214,27 @@ class Service(object):
 
         self.complete = True
         utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
-        if len(utxos) >= max_txs:
+        if utxos and len(utxos) >= max_txs:
             self.complete = False
         return utxos
 
+    def gettransaction(self, txid):
+        """
+        Get a transaction by its transaction hash. Convert to Bitcoinlib transaction object.
+
+        :param txid: Transaction identification hash
+        :type txid: str, bytes
+
+        :return Transaction: A single transaction object
+        """
+        txid = to_hexstring(txid)
+        return self._provider_execute('gettransaction', txid)
+
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
-        Get all transactions for each address in addresslist.
-        Sorted from old to new, so highest number of confirmations first.
+        Get all transactions for specified address.
+
+        Sorted from old to new, so transactions with highest number of confirmations first.
 
         :param address: Address string
         :type address: str
@@ -237,18 +256,6 @@ class Service(object):
         if len(txs) == max_txs:
             self.complete = False
         return txs
-
-    def gettransaction(self, txid):
-        """
-        Get a transaction by its transaction hash
-
-        :param txid: Transaction identification hash
-        :type txid: str, bytes
-
-        :return Transaction: A single transaction object
-        """
-        txid = to_hexstring(txid)
-        return self._provider_execute('gettransaction', txid)
 
     def getrawtransaction(self, txid):
         """
@@ -292,13 +299,20 @@ class Service(object):
                 raise ServiceError("Could not estimate fees, please define default fees in network settings")
         return fee
 
-    def block_count(self):
+    def blockcount(self):
         """
-        Get latest block number: The block number of last block in longest chain on the blockchain
+        Get latest block number: The block number of last block in longest chain on the Blockchain.
+
+        Block count is cashed for BLOCK_COUNT_CACHE_TIME seconds to avoid to many calls to service providers.
 
         :return int:
         """
-        return self._provider_execute('block_count')
+
+        current_timestamp = time.time()
+        if self._blockcount_update < current_timestamp - BLOCK_COUNT_CACHE_TIME:
+            self._blockcount = self._provider_execute('blockcount')
+            self._blockcount_update = time.time()
+        return self._blockcount
 
     def mempool(self, txid=''):
         """

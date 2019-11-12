@@ -16,6 +16,7 @@ from parameterized import parameterized_class
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+from bitcoinlib.main import UNITTESTS_FULL_DATABASE_TEST
 from bitcoinlib.db import BCL_DATABASE_DIR
 from bitcoinlib.encoding import normalize_string
 
@@ -51,19 +52,22 @@ def init_mysql(_):
     cur.close()
     con.close()
 
-
-@parameterized_class(('DATABASE_URI', 'init_fn'), (
+db_uris = (('sqlite:///' + SQLITE_DATABASE_FILE, init_sqlite),)
+if UNITTESTS_FULL_DATABASE_TEST:
+    db_uris += (
         ('mysql://root@localhost:3306/' + DATABASE_NAME, init_mysql),
         ('postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, init_postgresql),
-        ('sqlite:///' + SQLITE_DATABASE_FILE, init_sqlite),
-))
+    )
+
+
+@parameterized_class(('DATABASE_URI', 'init_fn'), db_uris)
 class TestToolsCommandLineWallet(unittest.TestCase):
 
     def setUp(self):
         self.init_fn()
         self.python_executable = sys.executable
         self.clw_executable = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                            '../bitcoinlib/tools/cli_wallet.py'))
+                                                            '../bitcoinlib/tools/clw.py'))
 
     def test_tools_clw_create_wallet(self):
         cmd_wlt_create = '%s %s test --passphrase "emotion camp sponsor curious bacon squeeze bean world ' \
@@ -111,7 +115,7 @@ class TestToolsCommandLineWallet(unittest.TestCase):
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
         cmd_wlt_delete = "%s %s testms1 --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
-        output_wlt_create = "if you understood and wrote down your key: Receive address(es):"
+        output_wlt_create = "if you understood and wrote down your key: Receive address:"
         output_wlt_delete = "Wallet testms1 has been removed"
 
         process = Popen(cmd_wlt_create, stdin=PIPE, stdout=PIPE, shell=True)
@@ -185,7 +189,6 @@ class TestToolsCommandLineWallet(unittest.TestCase):
         ]
         cmd_wlt_create = "%s %s testms-p2sh-segwit -m 3 2 %s -r -y p2sh-segwit -d %s" % \
                          (self.python_executable, self.clw_executable, ' '.join(key_list), self.DATABASE_URI)
-        print(cmd_wlt_create)
         cmd_wlt_delete = "%s %s testms-p2sh-segwit --wallet-remove -d %s" % \
                          (self.python_executable, self.clw_executable, self.DATABASE_URI)
         output_wlt_create = "3MtNi5U2cjs3EcPizzjarSz87pU9DTANge"

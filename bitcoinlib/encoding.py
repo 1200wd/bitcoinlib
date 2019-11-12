@@ -37,7 +37,6 @@ except ImportError:
     pass
 if 'fastecdsa' not in sys.modules:
     _logger.warning("Could not include fastecdsa library, using slower ecdsa instead. ")
-                    # "Error: %s " % FASTECDSA_IMPORT_ERROR)
     USE_FASTECDSA = False
     import ecdsa
 
@@ -283,7 +282,7 @@ def varbyteint_to_int(byteint):
     :param byteint: 1-9 byte representation
     :type byteint: bytes, list, bytearray
 
-    :return int: normal integer
+    :return (int, int): tuple wit converted integer and size
     """
     if not isinstance(byteint, (bytes, list, bytearray)):
         raise EncodingError("Byteint be a list or defined as bytes")

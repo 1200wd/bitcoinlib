@@ -24,11 +24,11 @@ from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
-PROVIDERNAME = 'litecoreio'
+PROVIDERNAME = 'insightdash'
 REQUEST_LIMIT = 50
 
 
-class LitecoreIOClient(BaseClient):
+class InsightDashClient(BaseClient):
 
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
@@ -107,7 +107,6 @@ class LitecoreIOClient(BaseClient):
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)
         return self._convert_to_transaction(tx)
-
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         address = self._address_convert(address)
