@@ -101,7 +101,7 @@ class LitecoindClient(BaseClient):
             with open(cfn, 'r') as f:
                 config_string = '[rpc]\n' + f.read()
             config.read_string(config_string)
-        
+
         testnet = _read_from_config(config, 'rpc', 'testnet')
         if testnet:
             network = 'testnet'
@@ -157,7 +157,7 @@ class LitecoindClient(BaseClient):
             raise ClientError("Address %s not found in litecoind wallet, use 'importaddress' to add address to "
                               "wallet." % address)
 
-        for t in self.proxy.listunspent(0, 99999999, address):
+        for t in self.proxy.listunspent(0, 99999999, [address]):
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
@@ -191,7 +191,7 @@ class LitecoindClient(BaseClient):
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx['blockhash']
-        t.version = struct.pack('>L', tx['version'])        
+        t.version = struct.pack('>L', tx['version'])
         t.date = datetime.fromtimestamp(tx['blocktime'])
         t.update_totals()
         t.hash = txid
@@ -209,7 +209,7 @@ class LitecoindClient(BaseClient):
             'txid': res,
             'response_dict': res
         }
-    
+
     def estimatefee(self, blocks):
         pres = ''
         try:
