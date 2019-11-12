@@ -170,7 +170,7 @@ To create a new Bitcoin wallet
 
 .. code-block:: bash
 
-    $ cli-wallet NewWallet
+    $ clw NewWallet
     Command Line Wallet for BitcoinLib
 
     Wallet newwallet does not exist, create new wallet [yN]? y
@@ -182,7 +182,7 @@ To create a new Bitcoin wallet
     Please write down on paper and backup. With this key you can restore your wallet and all keys
 
 
-You can use 'cli-wallet' to create simple or multisig wallets for various networks, manage public and private keys
+You can use clw to create simple or multisig wallets for various networks, manage public and private keys
 and managing transactions.
 
 For the full command line wallet documentation please read
@@ -264,7 +264,11 @@ These packages will be installed
 Install development environment
 -------------------------------
 
-First create a virtual environment for instance on linux with virtualenv:
+Required packages:
+
+``sudo apt install -y postgresql postgresql-contrib mysql-server libpq-dev libmysqlclient-dev``
+
+Create a virtual environment for instance on linux with virtualenv:
 
 .. code-block:: bash
 
@@ -277,7 +281,7 @@ Then clone the repository and install dependencies:
 
     $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
-    $ pip install -r docs/requirements.txt
+    $ pip install -r requirements-dev.txt
 
 
 Other requirements Linux

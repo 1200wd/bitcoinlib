@@ -38,10 +38,11 @@ class BlockChairClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, command, query_vars=None, data=None, offset=0):
+    def compose_request(self, command, query_vars=None, variables=None, data=None, offset=0, method='get'):
         url_path = ''
-        variables = {}
-        if command != 'stats':
+        if not variables:
+            variables = {}
+        if command not in ['stats', 'mempool']:
             variables.update({'limit': REQUEST_LIMIT})
         if offset:
             variables.update({'offset': offset})
@@ -51,10 +52,10 @@ class BlockChairClient(BaseClient):
             if url_path[-1:] != '/':
                 url_path += '/'
             url_path += data
-        if query_vars is not None:
+        if query_vars:
             varstr = ','.join(['%s(%s)' % (qv, query_vars[qv]) for qv in query_vars])
             variables.update({'q': varstr})
-        return self.request(url_path, variables)
+        return self.request(url_path, variables, method=method)
 
     def getbalance(self, addresslist):
         balance = 0
@@ -94,23 +95,6 @@ class BlockChairClient(BaseClient):
                 break
             offset += REQUEST_LIMIT
         return utxos[:max_txs]
-
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txids = []
-        offset = 0
-        while True:
-            res = self.compose_request('dashboards/address/', data=address, offset=offset)
-            addr = res['data'][address]
-            if not addr['transactions']:
-                break
-            txids = addr['transactions'][::-1] + txids
-            offset += 50
-        if after_txid:
-            txids = txids[txids.index(after_txid)+1:]
-        txs = []
-        for txid in txids[:max_txs]:
-            txs.append(self.gettransaction(txid))
-        return txs
 
     def gettransaction(self, tx_id):
         res = self.compose_request('dashboards/transaction/', data=tx_id)
@@ -157,6 +141,34 @@ class BlockChairClient(BaseClient):
                          spent=to['is_spent'], output_n=to['index'])
         return t
 
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txids = []
+        offset = 0
+        while True:
+            res = self.compose_request('dashboards/address/', data=address, offset=offset)
+            addr = res['data'][address]
+            if not addr['transactions']:
+                break
+            txids = addr['transactions'][::-1] + txids
+            offset += 50
+        if after_txid:
+            txids = txids[txids.index(after_txid)+1:]
+        txs = []
+        for txid in txids[:max_txs]:
+            txs.append(self.gettransaction(txid))
+        return txs
+
+    def getrawtransaction(self, txid):
+        res = self.compose_request('raw/transaction', data=txid)
+        return res['data'][txid]['raw_transaction']
+
+    def sendrawtransaction(self, rawtx):
+        res = self.compose_request('push/transaction', variables={'data': rawtx}, method='post')
+        return {
+            'txid': res['data']['transaction_hash'],
+            'response_dict': res
+        }
+
     def estimatefee(self, blocks):
         # Non-scientific method to estimate transaction fees. It's probably good when it looks complicated...
         res = self.compose_request('stats')
@@ -175,7 +187,7 @@ class BlockChairClient(BaseClient):
             estimated_fee = self.network.dust_amount
         return estimated_fee
 
-    def block_count(self):
+    def blockcount(self):
         """
         Get latest block number: The block number of last block in longest chain on the blockchain
 
@@ -185,9 +197,8 @@ class BlockChairClient(BaseClient):
         return res['context']['state']
 
     def mempool(self, txid=''):
-        variables = {}
         if txid:
-            variables = {'hash': txid}
-        res = self.compose_request('mempool', variables, data='transactions')
-        txids = [tx['hash'] for tx in res['data'] if 'hash' in tx]
-        return txids
+            res = self.compose_request('mempool', {'hash': txid}, data='transactions')
+        else:
+            res = self.compose_request('mempool', data='transactions')
+        return [tx['hash'] for tx in res['data'] if 'hash' in tx]

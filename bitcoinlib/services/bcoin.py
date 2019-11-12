@@ -51,56 +51,29 @@ class BcoinClient(BaseClient):
             variables = {}
         return self.request(url_path, variables, method, secure=False)
 
-    def estimatefee(self, blocks):
-        fee = self.compose_request('fee')['rate']
-        if not fee:
-            return False
-        return fee
-
     def _parse_transaction(self, tx):
-        witness_type = 'legacy'
-        if len([ti['witness'] for ti in tx['inputs'] if ti['witness'] != '00']):
-            witness_type = 'segwit'
-        coinbase = False
-        if tx['inputs'][0]['prevout']['hash'] == '00' * 32:
-            coinbase = True
         status = 'unconfirmed'
         if tx['confirmations']:
             status = 'confirmed'
-        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=int(len(tx['hex'])/2), hash=tx['hash'], date=datetime.fromtimestamp(tx['time']),
-                        confirmations=tx['confirmations'], block_height=tx['height'], block_hash=tx['block'],
-                        rawtx=tx['hex'], status=status, coinbase=coinbase, witness_type=witness_type)
-        for ti in tx['inputs']:
-            witness_type = 'legacy'
-            script = ti['script']
-            if ti['witness'] != '00':
-                witness_type = 'segwit'
-                script = ti['witness'][2:]
-            address = ''
-            value = 0
-            if 'coin' in ti:
-                address = ti['coin']['address']
-                value = ti['coin']['value']
-            t.add_input(prev_hash=ti['prevout']['hash'], output_n=ti['prevout']['index'],
-                        unlocking_script=script, address=address, value=value,
-                        witness_type=witness_type, sequence=ti['sequence'])
-        output_n = 0
-        for to in tx['outputs']:
-            address = ''
-            if to['address']:
-                address = to['address']
-            t.add_output(value=to['value'], address=address, lock_script=to['script'],
-                         output_n=output_n, spent=None)
-            output_n += 1
-        t.update_totals()
+        t = Transaction.import_raw(tx['hex'])
+        t.locktime = tx['locktime']
+        t.network = self.network
+        t.fee = tx['fee']
+        t.date = datetime.fromtimestamp(tx['time'])
+        t.confirmations = tx['confirmations']
+        t.block_height = tx['height']
+        t.block_hash = tx['block']
+        t.status = status
         if t.coinbase:
             t.input_total = t.output_total
+            t.inputs[0].value = t.output_total
+        else:
+            for i in t.inputs:
+                i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']
+        for o in t.outputs:
+            o.spent = None
+        t.update_totals()
         return t
-
-    def gettransaction(self, txid):
-        tx = self.compose_request('tx', txid)
-        return self._parse_transaction(tx)
 
     def isspent(self, tx_id, index):
         try:
@@ -108,6 +81,42 @@ class BcoinClient(BaseClient):
         except ClientError:
             return True
         return False
+
+    # def getbalance(self, addresslist):
+    #     balance = 0.0
+    #     for address in addresslist:
+    #         res = tx = self.compose_request('address', address)
+    #         balance += int(res['balance'])
+    #     return int(balance * self.units)
+
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = self.gettransactions(address, after_txid=after_txid, max_txs=max_txs)
+        utxos = []
+        for tx in txs:
+            for unspent in tx.outputs:
+                if unspent.address != address:
+                    continue
+                if not self.isspent(tx.hash, unspent.output_n):
+                    utxos.append(
+                        {
+                            'address': unspent.address,
+                            'tx_hash': tx.hash,
+                            'confirmations': tx.confirmations,
+                            'output_n': unspent.output_n,
+                            'input_n': 0,
+                            'block_height': tx.block_height,
+                            'fee': tx.fee,
+                            'size': tx.size,
+                            'value': unspent.value,
+                            'script': to_hexstring(unspent.lock_script),
+                            'date': tx.date,
+                         }
+                    )
+        return utxos
+
+    def gettransaction(self, txid):
+        tx = self.compose_request('tx', txid)
+        return self._parse_transaction(tx)
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
@@ -153,7 +162,7 @@ class BcoinClient(BaseClient):
     def sendrawtransaction(self, rawtx):
         res = self.compose_request('broadcast', variables={'tx': rawtx}, method='post')
         txid = ''
-        if 'success' in res and res['success'] == 'true':
+        if 'success' in res and res['success']:
             t = Transaction.import_raw(rawtx)
             txid = t.hash
         return {
@@ -161,39 +170,15 @@ class BcoinClient(BaseClient):
             'response_dict': res
         }
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = self.gettransactions(address, after_txid=after_txid, max_txs=max_txs)
-        utxos = []
-        for tx in txs:
-            for unspent in tx.outputs:
-                if unspent.address != address:
-                    continue
-                if not self.isspent(tx.hash, unspent.output_n):
-                    utxos.append(
-                        {
-                            'address': unspent.address,
-                            'tx_hash': tx.hash,
-                            'confirmations': tx.confirmations,
-                            'output_n': unspent.output_n,
-                            'input_n': 0,
-                            'block_height': tx.block_height,
-                            'fee': tx.fee,
-                            'size': tx.size,
-                            'value': unspent.value,
-                            'script': unspent.lock_script,
-                            'date': tx.date,
-                         }
-                    )
-        return utxos
+    def estimatefee(self, blocks):
+        if blocks > 15:
+            blocks = 15
+        fee = self.compose_request('fee', variables={'blocks': blocks})['rate']
+        if not fee:
+            return False
+        return fee
 
-    # def getbalance(self, addresslist):
-    #     balance = 0.0
-    #     for address in addresslist:
-    #         res = tx = self.compose_request('address', address)
-    #         balance += int(res['balance'])
-    #     return int(balance * self.units)
-
-    def block_count(self):
+    def blockcount(self):
         return self.compose_request('')['chain']['height']
 
     def mempool(self, txid=''):

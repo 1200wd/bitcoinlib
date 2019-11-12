@@ -16,6 +16,7 @@ matrix:
       env:
         - USING_MODULE_SCRYPT=False
         - USE_FASTECDSA=False
+        - UNITTESTS_FULL_DATABASE_TEST=False
       before_script:
         - pip install ecdsa
         - pip install pyscrypt
@@ -23,9 +24,13 @@ matrix:
     - python: 3.7.1
       dist: xenial
       sudo: true
+      env:
+        - UNITTESTS_FULL_DATABASE_TEST=False
     - os: windows
       language: sh
       python: "3.7"
+      env:
+        - UNITTESTS_FULL_DATABASE_TEST=False
       before_install:
         - choco install python --version=3.7.1
         - choco install postgresql --params '/Password:postgres' --paramsglobal

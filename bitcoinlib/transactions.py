@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 - 2019 January - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2019 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -399,7 +399,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
         return data
 
     wrn_msg = "Could not parse script, unrecognized script"
-    _logger.warning(wrn_msg)
+    _logger.debug(wrn_msg)
     data = _get_empty_data()
     data['result'] = wrn_msg
     return data
@@ -763,11 +763,14 @@ class Input(object):
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
         for sig in signatures:
-            if isinstance(sig, Signature):
-                if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
-                    self.signatures.append(sig)
-            else:
-                self.signatures.append(Signature.from_str(sig))
+            if not isinstance(sig, Signature):
+                try:
+                    sig = Signature.from_str(sig)
+                except Exception as e:
+                    _logger.error("Could not parse signature %s in Input. Error: %s" % (to_hexstring(sig), e))
+                    continue
+            if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
+                self.signatures.append(sig)
         self.update_scripts()
 
     # TODO: Remove / replace?
@@ -825,8 +828,8 @@ class Input(object):
             elif unlock_script != b'':
                 self.unlocking_script = unlock_script
         elif self.script_type in ['p2sh_multisig', 'p2sh_p2wsh']:
-            if not self.keys and not self.public_hash:
-                raise TransactionError("Please provide keys to append multisig transaction input")
+            # if not self.keys and not self.public_hash:
+            #     raise TransactionError("Please provide keys to append multisig transaction input")
             if not self.redeemscript and self.keys:
                 self.redeemscript = serialize_multisig_redeemscript(self.keys, n_required=self.sigs_required,
                                                                     compressed=self.compressed)
@@ -1241,14 +1244,8 @@ class Transaction(object):
         self.witness_type = witness_type
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
-
         if not self.hash:
-            if self.witness_type == 'legacy':
-                if not self.rawtx:
-                    self.rawtx = self.raw_hex()
-                self.hash = to_hexstring(double_sha256(to_bytes(self.rawtx))[::-1])
-            else:
-                self.hash = to_hexstring(double_sha256(to_bytes(self.raw(witness_type='legacy')))[::-1])
+            self.hash = to_hexstring(self.signature_hash()[::-1])
 
     def __repr__(self):
         return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
@@ -1274,6 +1271,7 @@ class Transaction(object):
             'hash': self.hash,
             'date': self.date,
             'network': self.network.name,
+            'witness_type': self.witness_type,
             'coinbase': self.coinbase,
             'flag': self.flag,
             'confirmations': self.confirmations,
@@ -1289,6 +1287,7 @@ class Transaction(object):
             'locktime': self.locktime,
             'raw': self.raw_hex(),
             'size': self.size,
+            'vsize': self.vsize,
             'verified': self.verified,
             'status': self.status
         }
@@ -1329,7 +1328,7 @@ class Transaction(object):
             elif ti.valid is False:
                 validstr = "invalid"
             print("  %s %s; sigs: %d (%d-of-%d) %s" %
-                  (ti.witness_type, ti.script_type, len(ti.signatures), ti.sigs_required, len(ti.keys), validstr))
+                  (ti.witness_type, ti.script_type, len(ti.signatures), ti.sigs_required or 0, len(ti.keys), validstr))
             if ti.sequence <= SEQUENCE_REPLACE_BY_FEE:
                 replace_by_fee = True
             if ti.sequence <= SEQUENCE_LOCKTIME_DISABLE_FLAG:
@@ -1368,7 +1367,7 @@ class Transaction(object):
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def signature_hash(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
+    def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
         """
         Double SHA256 Hash of Transaction signature
 
@@ -1381,10 +1380,9 @@ class Transaction(object):
 
         :return bytes: Transaction signature hash
         """
-
         return double_sha256(self.signature(sign_id, hash_type, witness_type))
 
-    def signature(self, sign_id, hash_type=SIGHASH_ALL, witness_type=None):
+    def signature(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
         """
         Serializes transaction and calculates signature for Legacy or Segwit transactions
 
@@ -1400,10 +1398,10 @@ class Transaction(object):
 
         if witness_type is None:
             witness_type = self.witness_type
-        if witness_type in ['segwit', 'p2sh-segwit']:
+        if witness_type == 'legacy' or sign_id is None:
+            return self.raw(sign_id, hash_type, 'legacy')
+        elif witness_type in ['segwit', 'p2sh-segwit']:
             return self.signature_segwit(sign_id, hash_type)
-        elif witness_type == 'legacy':
-            return self.raw(sign_id, hash_type)
         else:
             raise TransactionError("Witness_type %s not supported" % self.witness_type)
 
@@ -1471,7 +1469,7 @@ class Transaction(object):
         Return transaction with signed inputs if signatures are available
         
         :param sign_id: Create raw transaction which can be signed by transaction with this input ID
-        :type sign_id: int
+        :type sign_id: int, None
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
         :param witness_type: Serialize transaction with other witness type then default. Use to create legacy raw transaction for segwit transaction to create transaction signature ID's
@@ -1518,7 +1516,8 @@ class Transaction(object):
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
         else:
-            self.size = len(r)
+            if not (self.size and b'' in [i.unlocking_script for i in self.inputs]):
+                self.size = len(r)
         return r
 
     def raw_hex(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
@@ -1794,6 +1793,8 @@ class Transaction(object):
         :return int: Estimated transaction size
         """
 
+        # if self.input_total and self.output_total + self.fee == self.input_total:
+        #     add_change_output = False
         est_size = 10
         witness_size = 2
         if self.witness_type != 'legacy':
@@ -1872,4 +1873,6 @@ class Transaction(object):
 
         self.input_total = sum([i.value for i in self.inputs if i.value])
         self.output_total = sum([o.value for o in self.outputs if o.value])
-        self.fee = self.input_total - self.output_total
+        self.fee = 0
+        if self.input_total:
+            self.fee = self.input_total - self.output_total

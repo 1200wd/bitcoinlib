@@ -27,9 +27,13 @@ import bitcoinlib.services.bitgo
 import bitcoinlib.services.coinfees
 import bitcoinlib.services.blockchaininfo
 import bitcoinlib.services.blockcypher
-import bitcoinlib.services.chainso
 import bitcoinlib.services.estimatefee
 import bitcoinlib.services.cryptoid
 import bitcoinlib.services.litecoreio
 import bitcoinlib.services.blockchair
 import bitcoinlib.services.bcoin
+import bitcoinlib.services.bitaps
+import bitcoinlib.services.litecoinblockexplorer
+import bitcoinlib.services.insightdash
+import bitcoinlib.services.smartbit
+import bitcoinlib.services.blockstream

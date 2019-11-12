@@ -36,7 +36,7 @@ class TestMnemonics(unittest.TestCase):
                 phrase = mnemo.to_mnemonic(v[0], check_on_curve=False)
             else:
                 phrase = v[1]
-            seed = change_base(mnemo.to_seed(phrase, v[4]), 256, 16)
+            seed = change_base(mnemo.to_seed(phrase, v[4], validate=False), 256, 16)
             # print("Test %s => %s" % (v[0], phrase))
             self.assertEqual(v[1], phrase)
             self.assertEqual(v[2], seed)
@@ -62,6 +62,10 @@ class TestMnemonics(unittest.TestCase):
     def test_mnemonic_to_entropy(self):
         phrase = 'usage grid neither voice worry armor sudden core excuse keen stand pudding'
         self.assertEqual(Mnemonic().to_entropy(phrase), b'\xef\x8c\xceP\xfa\xbf\xdc\x17\xf6!\x82O\x0f7RV')
+
+    def test_mnemonic_to_seed_invalid_checksum(self):
+        phrase = "runway truly foil future recall scatter garage over floor clutch shy boat"
+        self.assertRaisesRegexp(ValueError, "Invalid checksum 0110 for entropy", Mnemonic().to_seed, phrase)
 
 
 if __name__ == '__main__':

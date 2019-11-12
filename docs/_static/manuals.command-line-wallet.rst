@@ -26,7 +26,7 @@ To create a wallet just specify an unused wallet name:
 
 .. code-block:: none
 
-    $ cli-wallet mywallet
+    $ clw mywallet
     Command Line Wallet for BitcoinLib
 
     Wallet mywallet does not exist, create new wallet [yN]? y
@@ -49,7 +49,7 @@ codes on the commandline install the pyqrcode module.
 
 .. code-block:: none
 
-    $ cli-wallet mywallet -r
+    $ clw mywallet -r
     Command Line Wallet for BitcoinLib
 
     Receive address is 1JMKBiiDMdjTx6rfqGumALvcRMX6DQNeG1
@@ -69,7 +69,7 @@ network.
 
 .. code-block:: none
 
-    $ cli-wallet -d dbtest mywallet -t 1FpBBJ2E9w9nqxHUAtQME8X4wGeAKBsKwZ 10000
+    $ clw -d dbtest mywallet -t 1FpBBJ2E9w9nqxHUAtQME8X4wGeAKBsKwZ 10000
 
 
 Restore wallet with passphrase
@@ -81,8 +81,8 @@ addresses and update unspend outputs.
 
 .. code-block:: none
 
-    $ cli-wallet mywallet --passphrase "mutual run dynamic armed brown meadow height elbow citizen put industry work"
-    $ cli-wallet mywallet -s
+    $ clw mywallet --passphrase "mutual run dynamic armed brown meadow height elbow citizen put industry work"
+    $ clw mywallet -s
 
 
 Options Overview
@@ -92,20 +92,20 @@ Command Line Wallet for BitcoinLib
 
 .. code-block:: none
 
-    usage: cli_wallet.py [-h] [--wallet-remove] [--list-wallets] [--wallet-info]
-                         [--update-utxos] [--update-transactions]
-                         [--wallet-recreate] [--receive [NUMBER_OF_ADDRESSES]]
-                         [--generate-key] [--export-private]
-                         [--passphrase [PASSPHRASE [PASSPHRASE ...]]]
-                         [--passphrase-strength PASSPHRASE_STRENGTH]
-                         [--network NETWORK] [--database DATABASE]
-                         [--create-from-key KEY]
-                         [--create-multisig [NUMBER_OF_SIGNATURES_REQUIRED [KEYS ...]]]
-                         [--create-transaction [ADDRESS_1 [AMOUNT_1 ...]]]
-                         [--sweep ADDRESS] [--fee FEE] [--fee-per-kb FEE_PER_KB]
-                         [--push] [--import-tx TRANSACTION]
-                         [--import-tx-file FILENAME_TRANSACTION]
-                         [wallet_name]
+    usage: clw.py [-h] [--wallet-remove] [--list-wallets] [--wallet-info]
+                       [--update-utxos] [--update-transactions]
+                       [--wallet-recreate] [--receive [NUMBER_OF_ADDRESSES]]
+                       [--generate-key] [--export-private]
+                       [--passphrase [PASSPHRASE [PASSPHRASE ...]]]
+                       [--passphrase-strength PASSPHRASE_STRENGTH]
+                       [--network NETWORK] [--database DATABASE]
+                       [--create-from-key KEY]
+                       [--create-multisig [NUMBER_OF_SIGNATURES_REQUIRED [KEYS ...]]]
+                       [--create-transaction [ADDRESS_1 [AMOUNT_1 ...]]]
+                       [--sweep ADDRESS] [--fee FEE] [--fee-per-kb FEE_PER_KB]
+                       [--push] [--import-tx TRANSACTION]
+                       [--import-tx-file FILENAME_TRANSACTION]
+                       [wallet_name]
 
     BitcoinLib CLI
 

@@ -17,6 +17,17 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+#
+# You can connect to a dash testnet deamon by adding the following provider to providers.json
+# "dashd.testnet": {
+#   "provider": "dashd",
+#   "network": "dash_testnet",
+#   "client_class": "DashdClient",
+#   "url": "http://user:password@server_url:19998",
+#   "api_key": "",
+#   "priority": 11,
+#   "denominator": 100000000
+# }
 
 from datetime import datetime
 from bitcoinlib.main import *
@@ -125,13 +136,9 @@ class DashdClient(BaseClient):
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def getrawtransaction(self, txid):
-        res = self.proxy.getrawtransaction(txid)
-        return res
-
     def gettransaction(self, txid):
         tx = self.proxy.getrawtransaction(txid, 1)
-        t = Transaction.import_raw(tx['hex'], network='dash')
+        t = Transaction.import_raw(tx['hex'], network=self.network)
         t.confirmations = tx['confirmations']
         if t.confirmations:
             t.status = 'confirmed'
@@ -145,6 +152,10 @@ class DashdClient(BaseClient):
         t.date = datetime.fromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
+
+    def getrawtransaction(self, txid):
+        res = self.proxy.getrawtransaction(txid)
+        return res
 
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
@@ -160,7 +171,7 @@ class DashdClient(BaseClient):
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
-    def block_count(self):
+    def blockcount(self):
         return self.proxy.getblockcount()
 
 if __name__ == '__main__':
