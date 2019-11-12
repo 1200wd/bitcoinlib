@@ -1,3 +1,13 @@
+RELEASE 0.4.11 - Provider update
+================================
+* Add support for bcoin client
+* Add support for mysql and postgresql databases
+* Add blockstream, bitaps and smartbit provider
+* Improve scan and update transaction methods
+* Remove obsolete providers
+* Fix bitcoind and litecoind issues
+* Fix various provider issues
+
 RELEASE 0.4.9, 0.4.10 - Fix install
 ===================================
 * Fix pip install on some platforms
