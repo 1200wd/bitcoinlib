@@ -15,7 +15,7 @@ blockchain information. It does currently not parse the blockchain itself.
     :target: https://travis-ci.org/1200wd/bitcoinlib
     :alt: Travis
 .. image:: https://img.shields.io/pypi/v/bitcoinlib.svg
-    :target: https://pypi.python.org/pypi/bitcoinlib/
+    :target: https://pypi.org/pypi/bitcoinlib/
     :alt: PyPi
 .. image:: https://readthedocs.org/projects/bitcoinlib/badge/?version=latest
     :target: http://bitcoinlib.readthedocs.io/en/latest/?badge=latest

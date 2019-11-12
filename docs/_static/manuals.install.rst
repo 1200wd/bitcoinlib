@@ -11,7 +11,7 @@ Install with pip
 
     $ pip install bitcoinlib
 
-Package can be found at https://pypi.python.org/pypi/bitcoinlib/
+Package can be found at https://pypi.org/project/bitcoinlib/
 
 Install from source
 ~~~~~~~~~~~~~~~~~~~
