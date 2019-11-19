@@ -850,7 +850,8 @@ class HDWalletTransaction(Transaction):
                 new_tx_item = DbTransactionInput(
                     transaction_id=tx_id, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
                     prev_hash=to_hexstring(ti.prev_hash), index_n=ti.index_n, double_spend=ti.double_spend,
-                    script=to_hexstring(ti.unlocking_script), script_type=ti.script_type)
+                    script=to_hexstring(ti.unlocking_script), script_type=ti.script_type, witness_type=ti.witness_type,
+                    sequence=ti.sequence)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_input.key_id = key_id
@@ -921,7 +922,6 @@ class HDWalletTransaction(Transaction):
                     continue
                 mut_list.append(('in', self.hash, self.date, addresslist, o.value))
         return mut_list
-
 
 
 class HDWallet(object):
@@ -3199,8 +3199,8 @@ class HDWallet(object):
             sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount, input_key_id,
-                                                account_id, network, min_confirms, max_utxos, False)
+            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount,
+                                                input_key_id, account_id, network, min_confirms, max_utxos, False)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -3447,9 +3447,8 @@ class HDWallet(object):
             if fee_exact and abs((transaction.fee - fee_exact) / float(fee_exact)) > 0.10:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
-                transaction = self.transaction_create(output_arr, input_arr, account_id=account_id, network=network,
-                                                      fee=fee_exact, min_confirms=min_confirms, max_utxos=max_utxos,
-                                                      locktime=locktime)
+                transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network,
+                                                      fee_exact, min_confirms, max_utxos, locktime)
                 transaction.sign(priv_keys)
 
         transaction.fee_per_kb = int((transaction.fee / transaction.size) * 1024)
