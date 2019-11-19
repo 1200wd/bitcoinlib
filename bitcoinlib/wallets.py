@@ -2872,7 +2872,7 @@ class HDWallet(object):
 
         # Update number of confirmations for already known blocks
         blockcount = srv.blockcount()
-        # FIXME: this calls a lot of methods...
+        # FIXME: this calls a lot of methods..., update txs below:
         for t in self.transactions():
             if t.block_height:
                 t.confirmations = blockcount - t.block_height
@@ -2894,6 +2894,7 @@ class HDWallet(object):
                 if not dbkey.update({DbKey.latest_txid: txs[-1].hash}):
                     raise WalletError("Failed to update latest transaction id for key with address %s" % address)
                 self._session.commit()
+            # TODO: update transactions: confirmations, status, etc
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
 
