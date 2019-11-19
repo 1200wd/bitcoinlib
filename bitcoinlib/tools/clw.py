@@ -154,7 +154,7 @@ def create_wallet(wallet_name, args, db_uri):
         keys_missing = sigs_total - len(key_list)
         assert(keys_missing >= 0)
         if keys_missing:
-            print("Not all keys provided, creating %d additional keys" % keys_missing)
+            print("Not all keys provided, creating %d additional key(s)" % keys_missing)
             for _ in range(keys_missing):
                 passphrase = get_passphrase(args)
                 passphrase = ' '.join(passphrase)

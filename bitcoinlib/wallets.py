@@ -2887,7 +2887,7 @@ class HDWallet(object):
         for address in addresslist:
             txs += srv.gettransactions(address, max_txs=max_txs, after_txid=self.transaction_last(address))
             if not srv.complete:
-                if txs and txs[-1].date < last_updated:
+                if txs and txs[-1].date and txs[-1].date < last_updated:
                     last_updated = txs[-1].date
             if txs and txs[-1].confirmations:
                 dbkey = self._session.query(DbKey).filter(DbKey.address == address, DbKey.wallet_id == self.wallet_id)
