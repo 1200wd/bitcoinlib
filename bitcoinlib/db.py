@@ -300,7 +300,7 @@ class DbTransactionInput(Base):
     output_n = Column(BigInteger)
     script = Column(Text)
     script_type = Column(String(20), default='sig_pubkey')
-    sequence = Column(Integer)
+    sequence = Column(BigInteger)
     value = Column(Numeric(25, 0, asdecimal=False), default=0)
     double_spend = Column(Boolean, default=False)
 
