@@ -247,7 +247,31 @@ Implements the following Bitcoin Improvement Proposals
 Installing and updating
 =======================
 
+Pre-requirements Linux
+----------------------
+
+``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
+
+To install OpenSSL development package on Debian, Ubuntu or their derivatives
+
+``sudo apt install libssl-dev``
+
+To install OpenSSL development package on Fedora, CentOS or RHEL
+
+``sudo yum install gcc openssl-devel``
+
+
+Pre-requirements Windows
+------------------------
+
+This library required a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
+See https://wiki.python.org/moin/WindowsCompilers
+
+The fastecdsa library is not working at this moment on windows, so the slower ecdsa library is installed.
+
+
 Install with pip
+----------------
 
 ``pip install bitcoinlib``
 
@@ -282,29 +306,6 @@ Then clone the repository and install dependencies:
     $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
     $ pip install -r requirements-dev.txt
-
-
-Other requirements Linux
-------------------------
-
-``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
-
-To install OpenSSL development package on Debian, Ubuntu or their derivatives
-
-``sudo apt install libssl-dev``
-
-To install OpenSSL development package on Fedora, CentOS or RHEL
-
-``sudo yum install gcc openssl-devel``
-
-
-Other requirements Windows
---------------------------
-
-This library required a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
-See https://wiki.python.org/moin/WindowsCompilers
-
-The fastecdsa library is not working at this moment on windows, so the slower ecdsa library is installed.
 
 
 Troubleshooting
