@@ -1049,12 +1049,11 @@ class HDWallet(object):
         :type sigs_required: int
         :param cosigner_id: Set this if wallet contains only public keys, more then one private key or if you would like to create keys for other cosigners. Note: provided keys of a multisig wallet are sorted if sort_keys = True (default) so if your provided key list is not sorted the cosigned_id may be different.
         :type cosigner_id: int
-        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must
-        follow the following rules:
-        * Path start with masterkey (m) and end with change / address_index
-        * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
-        * All keys must be hardened, except for change, address_index or cosigner_id
-        * Max length of path is 8 levels
+        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must follow the following rules:
+            * Path start with masterkey (m) and end with change / address_index
+            * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
+            * All keys must be hardened, except for change, address_index or cosigner_id
+            * Max length of path is 8 levels
         :type key_path: list, str
         :param db_uri: URI of the database
         :type db_uri: str
@@ -1203,9 +1202,7 @@ class HDWallet(object):
                         sort_keys=True, witness_type=DEFAULT_WITNESS_TYPE, encoding=None, key_path=None,
                         cosigner_id=None, db_uri=None):
         """
-        Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
-        public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
-        single key depending on the key_type.
+        Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a single key depending on the key_type.
 
         :param name: Unique name of this Wallet
         :type name: str
@@ -1226,12 +1223,11 @@ class HDWallet(object):
         :type witness_type: str
         :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
         :type encoding: str
-        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must
-        follow the following rules:
-        * Path start with masterkey (m) and end with change / address_index
-        * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
-        * All keys must be hardened, except for change, address_index or cosigner_id
-        * Max length of path is 8 levels
+        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must follow the following rules:
+            * Path start with masterkey (m) and end with change / address_index
+            * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
+            * All keys must be hardened, except for change, address_index or cosigner_id
+            * Max length of path is 8 levels
         :type key_path: list, str
         :param cosigner_id: Set this if wallet contains only public keys or if you would like to create keys for other cosigners.
         :type cosigner_id: int
@@ -2551,17 +2547,7 @@ class HDWallet(object):
         """
         Update UTXO's (Unspent Outputs) for addresses/keys in this wallet using various Service providers.
         
-        This method does not import transactions: use transactions_update() or to look for new addresses use scan().
-
-        For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries:
-        [{
-            'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
-            'script': '',
-            'confirmations': 10,
-            'output_n': 1,
-            'tx_hash': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
-            'value': 8970937
-        }]
+        This method does not import transactions: use :func:`transactions_update` function or to look for new addresses use scan().
 
         :param account_id: Account ID
         :type account_id: int
@@ -2575,8 +2561,20 @@ class HDWallet(object):
         :type depth: int
         :param change: Only update change or normal keys, default is both (None)
         :type change: int
-        :param utxos: List of unspent outputs in dictionary format specified in this method DOC header
-        :type utxos: list
+        :param utxos: List of unspent outputs in dictionary format specified below. For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries
+        :type utxos: list of dict.
+
+        .. code-block:: json
+        
+            {
+              "address": "n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN",
+              "script": "",
+              "confirmations": 10,
+              "output_n": 1,
+              "tx_hash": "9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003",
+              "value": 8970937
+            }
+
         :param update_balance: Option to disable balance update after fetching UTXO's. Can be used when utxos_update method is called several times in a row. Default is True
         :type update_balance: bool
         :param max_utxos: Maximum number of UTXO's to update
@@ -2759,15 +2757,6 @@ class HDWallet(object):
         Use this method for testing, offline wallets or if you wish to override standard method of retreiving UTXO's
 
         This method does not check if UTXO exists or is still spendable.
-
-        [{
-            'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
-            'script': '',
-            'confirmations': 10,
-            'output_n': 1,
-            'tx_hash': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
-            'value': 8970937
-        }]
 
         :param address: Address of Unspent Output. Address should be available in wallet
         :type address: str

@@ -274,16 +274,16 @@ class Network(object):
         Get WIF prefix for this network and specifications in arguments
 
         >>> Network('bitcoin').wif_prefix()
-        b'x04\x88\xb2\x1e'  # xpub
+        b'\\x04\\x88\\xb2\\x1e'  # xpub
         >>> Network('bitcoin').wif_prefix(is_private=True, witness_type='segwit', multisig=True)
-        b'\x02\xaaz\x99'     # Zprv
+        b'\\x02\\xaaz\\x99'  # Zprv
 
         :param is_private: Private or public key, default is True
         :type is_private: bool
         :param witness_type: Legacy, segwit or p2sh-segwit
         :type witness_type: str
-        :param multisig: Multisignature or single signature wallet. Default is not multisig
-        :type multisig: True
+        :param multisig: Multisignature or single signature wallet. Default is False: no multisig
+        :type multisig: bool
 
         :return bytes:
         """

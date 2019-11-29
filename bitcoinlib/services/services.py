@@ -60,8 +60,7 @@ class Service(object):
 
         :param network: Specify network used
         :type network: str, Network
-        :param min_providers: Minimum number of providers to connect to. Default is 1. Use for instance to receive
-        fee information from a number of providers and calculate the average fee.
+        :param min_providers: Minimum number of providers to connect to. Default is 1. Use for instance to receive fee information from a number of providers and calculate the average fee.
         :type min_providers: int
         :param max_providers: Maximum number of providers to connect to. Default is 1.
         :type max_providers: int
@@ -69,8 +68,8 @@ class Service(object):
         :type providers: list, str
         :param timeout: Timeout for web requests. Leave empty to use default from config settings
         :type timeout: int
-
         """
+
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)

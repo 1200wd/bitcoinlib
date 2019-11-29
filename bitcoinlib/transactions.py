@@ -1127,7 +1127,7 @@ class Transaction(object):
         
         :param rawtx: Raw transaction string
         :type rawtx: bytes, str
-        :param network: Network, leave empty for default
+        :param network: Network, leave empty for   default
         :type network: str, Network
 
         :return Transaction:
@@ -1162,7 +1162,7 @@ class Transaction(object):
         :type fee: int
         :param fee_per_kb: Fee in smallest denominator per kilobyte. Specify when exact transaction size is not known.
         :type fee_per_kb: int
-        :param size; Transaction size in bytes
+        :param size: Transaction size in bytes
         :type size: int
         :param date: Confirmation date of transaction
         :type date: datetime.datetime
@@ -1188,6 +1188,7 @@ class Transaction(object):
         :type witness_type: str
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str
+
         """
 
         self.coinbase = coinbase

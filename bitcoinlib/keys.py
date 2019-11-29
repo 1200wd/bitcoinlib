@@ -1485,8 +1485,7 @@ class HDKey(Key):
         """
         Get Extended WIF private key. Wrapper for the wif() method
 
-        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified,
-        method uses default prefix from network settings
+        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
         :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
         :type witness_type: str

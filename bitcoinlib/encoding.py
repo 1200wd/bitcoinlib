@@ -715,7 +715,7 @@ def double_sha256(string, as_hex=False):
     :param string: String to be hashed
     :type string: bytes
     :param as_hex: Return value as hexadecimal string. Default is False
-    :type as_hex
+    :type as_hex: bool
 
     :return bytes, str:
     """
