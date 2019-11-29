@@ -1727,8 +1727,9 @@ class HDWallet(object):
 
         Keep scanning for new transactions until no new transactions are found for 'scan_gap_limit' addresses. Only scan keys from default network and account unless another network or account is specified.
 
-        Use the faster utxos_update() method if you are only interested in unspent outputs.
-        Use the transaction_update() method if you would like to manage the key creation yourself or if you want to scan a single key.
+
+        Use the faster :func:`utxos_update` method if you are only interested in unspent outputs.
+        Use the :func:`transactions_update` method if you would like to manage the key creation yourself or if you want to scan a single key.
 
         :param scan_gap_limit: Amount of new keys and change keys (addresses) created for this wallet
         :type scan_gap_limit: int
@@ -1853,7 +1854,7 @@ class HDWallet(object):
     def get_key_change(self, account_id=None, network=None, number_of_keys=1):
         """
         Get a unused change key or create a new one if there are no unused keys.
-        Wrapper for the get_key method
+        Wrapper for the :func:`get_key` method
 
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
@@ -1869,7 +1870,7 @@ class HDWallet(object):
 
     def new_account(self, name='', account_id=None, network=None):
         """
-        Create a new account with a childkey for payments and 1 for change.
+        Create a new account with a child key for payments and 1 for change.
 
         An account key can only be created if wallet contains a masterkey.
 
@@ -2142,7 +2143,7 @@ class HDWallet(object):
 
     def keys_networks(self, used=None, as_dict=False):
         """
-        Get keys of defined networks for this wallet. Wrapper for the keys() method
+        Get keys of defined networks for this wallet. Wrapper for the :func:`keys` method
 
         :param used: Only return used or unused keys
         :type used: bool
@@ -2165,9 +2166,9 @@ class HDWallet(object):
 
     def keys_accounts(self, account_id=None, network=DEFAULT_NETWORK, as_dict=False):
         """
-        Get Database records of account key(s) with for current wallet. Wrapper for the keys() method.
+        Get Database records of account key(s) with for current wallet. Wrapper for the :func:`keys` method.
 
-        Returns nothing if no account keys are available for instance in multisig or single account wallets. In this case use accounts() method instead.
+        Returns nothing if no account keys are available for instance in multisig or single account wallets. In this case use :func:`accounts` method instead.
 
         :param account_id: Search for Account ID
         :type account_id: int
@@ -2183,7 +2184,7 @@ class HDWallet(object):
 
     def keys_addresses(self, account_id=None, used=None, is_active=None, network=None, depth=None, as_dict=False):
         """
-        Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
+        Get address keys of specified account_id for current wallet. Wrapper for the :func:`keys` methods.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2207,7 +2208,7 @@ class HDWallet(object):
 
     def keys_address_payment(self, account_id=None, used=None, network=None, as_dict=False):
         """
-        Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the keys() methods.
+        Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the :func:`keys` methods.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2225,7 +2226,7 @@ class HDWallet(object):
 
     def keys_address_change(self, account_id=None, used=None, network=None, as_dict=False):
         """
-        Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the keys() methods.
+        Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the :func:`keys` methods.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2383,7 +2384,7 @@ class HDWallet(object):
 
     def network_list(self, field='name'):
         """
-        Wrapper for networks methods, returns a flat list with currently used
+        Wrapper for :func:`networks` method, returns a flat list with currently used
         networks for this wallet.
 
         :return list of str:
@@ -2393,10 +2394,10 @@ class HDWallet(object):
 
     def balance_update_from_serviceprovider(self, account_id=None, network=None):
         """
-        Update balance of currents account addresses using default Service objects getbalance method. Update total
+        Update balance of currents account addresses using default Service objects :func:`getbalance` method. Update total
         wallet balance in database.
 
-        Please Note: Does not update UTXO's or the balance per key! For this use the 'updatebalance' method
+        Please Note: Does not update UTXO's or the balance per key! For this use the :func:`updatebalance` method
         instead
 
         :param account_id: Account ID. Leave empty for default account
@@ -2453,7 +2454,7 @@ class HDWallet(object):
 
     def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=0):
         """
-        Update balance from UTXO's in database. To get most recent balance update UTXO's first.
+        Update balance from UTXO's in database. To get most recent balance use :func:`utxos_update` first.
 
         Also updates balance of wallet and keys in this wallet for the specified account or all accounts if
         no account is specified.
@@ -2547,7 +2548,7 @@ class HDWallet(object):
         """
         Update UTXO's (Unspent Outputs) for addresses/keys in this wallet using various Service providers.
         
-        This method does not import transactions: use :func:`transactions_update` function or to look for new addresses use scan().
+        This method does not import transactions: use :func:`transactions_update` function or to look for new addresses use :func:`scan`.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2711,7 +2712,7 @@ class HDWallet(object):
 
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
-        Get UTXO's (Unspent Outputs) from database. Use utxos_update method first for updated values
+        Get UTXO's (Unspent Outputs) from database. Use :func:`utxos_update` method first for updated values
 
         :param account_id: Account ID
         :type account_id: int
@@ -2752,7 +2753,7 @@ class HDWallet(object):
 
     def utxo_add(self, address, value, tx_hash, output_n, confirmations=0, script=''):
         """
-        Add a single UTXO to the wallet database. To update all utxo's use utxos_update method.
+        Add a single UTXO to the wallet database. To update all utxo's use :func:`utxos_update` method.
 
         Use this method for testing, offline wallets or if you wish to override standard method of retreiving UTXO's
 
@@ -2785,6 +2786,14 @@ class HDWallet(object):
         return self.utxos_update(utxos=[utxo])
 
     def utxo_last(self, address):
+        """
+        Get last transaction ID for latest utxo in database for given address
+
+        :param address: The address
+        :type address: str
+
+        :return str:
+        """
         to = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
              join(DbTransactionOutput).join(DbKey). \
              filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
@@ -2834,7 +2843,7 @@ class HDWallet(object):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet. The balances and unspent outputs (UTXO's) are updated as well. Only scan keys from default network and account unless another network or account is specified.
 
-        Use the wallet_scan() method for automatic address generation/management, and use the faster utxos_update() method to only look for unspent outputs and balances.
+        Use the :func:`scan` method for automatic address generation/management, and use the :func:`utxos_update` method to only look for unspent outputs and balances.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2914,6 +2923,8 @@ class HDWallet(object):
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None, as_dict=False):
         """
+        Get all known transactions for this wallet
+
         :param account_id: Filter by Account ID. Leave empty for default account_id
         :type account_id: int
         :param network: Filter by network name. Leave empty for default network
@@ -2998,7 +3009,7 @@ class HDWallet(object):
         """
         Check if transaction with given transaction ID and output_n is spent and return txid of spent transaction.
 
-        Retreives information from database, does not update transaction and does not check if transaction is spent with service providers.
+        Retrieves information from database, does not update transaction and does not check if transaction is spent with service providers.
 
         :param txid: Hexadecimal transaction hash
         :type txid: str
@@ -3327,8 +3338,8 @@ class HDWallet(object):
     def transaction_import(self, t):
         """
         Import a Transaction into this wallet. Link inputs to wallet keys if possible and return HDWalletTransaction
-        object. Only imports Transaction objects or dictionaries, use transaction_import_raw method to import a
-        raw transaction.
+        object. Only imports Transaction objects or dictionaries, use
+        :func:`transaction_import_raw` method to import a raw transaction.
 
         :param t: A Transaction object or dictionary
         :type t: Transaction, dict
@@ -3449,7 +3460,7 @@ class HDWallet(object):
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=0,
                 priv_keys=None, locktime=0, offline=False):
         """
-        Create transaction and send it with default Service objects sendrawtransaction method
+        Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method
 
         :param to_address: Single output address as string Address object, HDKey object or HDWalletKey object
         :type to_address: str, Address, HDKey, HDWalletKey
@@ -3483,7 +3494,7 @@ class HDWallet(object):
               fee_per_kb=None, fee=None, locktime=0, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address.
-        Wrapper for the send method.
+        Wrapper for the :func:`send` method.
 
         :param to_address: Single output address
         :type to_address: str
