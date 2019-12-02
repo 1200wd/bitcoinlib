@@ -13,16 +13,16 @@ from bitcoinlib.services.services import *
 
 # Tests for specific provider
 srv = Service(network='bitcoin', providers=['estimatefee'])
-print("Estimated bitcoin transaction fee:", srv.estimatefee(1000))
+print("Estimated bitcoin transaction fee:", srv.estimatefee(3))
 
 # Get Balance and UTXO's for given bitcoin testnet3 addresses
-addresslst = ['mfvFzusKPZzGBAhS69AWvziRPjamtRhYpZ', 'mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2']
+address = 'mqR6Dndmez8WMpb1hBJbGbrQ2mpAU73hQC'
 srv = Service(network='testnet', min_providers=5)
-print("Getbalance, first result only: %s" % srv.getbalance(addresslst))
+print("Balance of address %s: %s" % (address, srv.getbalance(address)))
 print("\nAll results as dict:")
 pprint(srv.results)
 print("\nUTXOs list:")
-pprint(srv.getutxos(addresslst))
+pprint(srv.getutxos(address))
 
 # GET Raw Transaction data for given Transaction ID
 t = 'd3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955'

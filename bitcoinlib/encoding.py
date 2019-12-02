@@ -101,8 +101,10 @@ def _codestring_to_array(codestring, base):
 
 def normalize_var(var, base=256):
     """
-    For Python 2 convert variabele to string
+    For Python 2 convert variable to string
+
     For Python 3 convert to bytes
+
     Convert decimals to integer type
 
     :param var: input variable in any format
@@ -140,19 +142,37 @@ def normalize_var(var, base=256):
 
 def change_base(chars, base_from, base_to, min_length=0, output_even=None, output_as_list=None):
     """
-    Convert input chars from one base to another.
+    Convert input chars from one numeric base to another. For instance from hexadecimal (base-16) to decimal (base-10)
 
-    From and to base can be any base. If base is not found a array of index numbers will be returned
+    From and to numeric base can be any base. If base is not found in definitions an array of index numbers will be returned
 
     Examples:
-    > change_base('FF', 16, 10) will return 256
-    > change_base(100, 16, 2048) will return [100]
+
+    >>> change_base('FF', 16, 10)
+    255
+    >>> change_base('101', 2, 10)
+    5
+
+    Convert base-58 public WIF of a key to hexadecimal format
+
+    >>> change_base('xpub661MyMwAqRbcFnkbk13gaJba22ibnEdJS7KAMY99C4jBBHMxWaCBSTrTinNTc9G5LTFtUqbLpWnzY5yPTNEF9u8sB1kBSygy4UsvuViAmiR', 58, 16)
+    '0488b21e0000000000000000007d3cc6702f48bf618f3f14cce5ee2cacf3f70933345ee4710af6fa4a330cc7d503c045227451b3454ca8b6022b0f0155271d013b58d57d322fd05b519753a46e876388698a'
+
+    Convert base-58 address to public key hash: '00' + length '21' + 20 byte key
+
+    >>> change_base('142Zp9WZn9Fh4MV8F3H5Dv4Rbg7Ja1sPWZ', 58, 16)
+    '0021342f229392d7c9ed82c932916cee6517fbc9a2487cd97a'
+
+    Convert to 2048-base, for example a Mnemonic word list. Will return a list of integers
+
+    >>> change_base(100, 16, 2048)
+    [100]
 
     :param chars: Input string
     :type chars: any
-    :param base_from: Base number or name from input
+    :param base_from: Base number or name from input. For example 2 for binary, 10 for decimal and 16 for hexadecimal
     :type base_from: int, str
-    :param base_to: Base number or name for output
+    :param base_to: Base number or name for output. For example 2 for binary, 10 for decimal and 16 for hexadecimal
     :type base_to: int, str
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_length: int
@@ -279,6 +299,9 @@ def varbyteint_to_int(byteint):
 
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
+    >>> varbyteint_to_int(to_bytes('fd1027'))
+    (10000, 3)
+
     :param byteint: 1-9 byte representation
     :type byteint: bytes, list, bytearray
 
@@ -307,6 +330,9 @@ def int_to_varbyteint(inp):
 
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
+    >>> to_hexstring(int_to_varbyteint(10000))
+    'fd1027'
+
     :param inp: Integer to convert
     :type inp: int
 
@@ -326,7 +352,7 @@ def int_to_varbyteint(inp):
 
 def convert_der_sig(signature, as_hex=True):
     """
-    Convert DER encoded signature to signature string
+    Extract content from DER encoded string: Convert DER encoded signature to signature string.
 
     :param signature: DER signature
     :type signature: bytes
@@ -355,7 +381,7 @@ def convert_der_sig(signature, as_hex=True):
 
 def der_encode_sig(r, s):
     """
-    Create DER encoded signature string with signature r and s value
+    Create DER encoded signature string with signature r and s value.
 
     :param r: r value of signature
     :type r: int
@@ -376,11 +402,13 @@ def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):
     """
     Convert base58 or bech32 address to public key hash
 
+    Wrapper for the :func:`addr_base58_to_pubkeyhash` and :func:`addr_bech32_to_pubkeyhash` method
+
     :param address: Crypto currency address in base-58 format
     :type address: str
     :param as_hex: Output as hexstring
     :type as_hex: bool
-    :param encoding: Address encoding used: base58 or bech32
+    :param encoding: Address encoding used: base58 or bech32. Default is base58. Try to derive from address if encoding=None is provided
     :type encoding: str
 
     :return bytes, str: public key hash
@@ -400,6 +428,9 @@ def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):
 def addr_base58_to_pubkeyhash(address, as_hex=False):
     """
     Convert Base58 encoded address to public key hash
+
+    >>> addr_base58_to_pubkeyhash('142Zp9WZn9Fh4MV8F3H5Dv4Rbg7Ja1sPWZ', as_hex=True)
+    '21342f229392d7c9ed82c932916cee6517fbc9a2'
 
     :param address: Crypto currency address in base-58 format
     :type address: str, bytes
@@ -426,6 +457,9 @@ def addr_base58_to_pubkeyhash(address, as_hex=False):
 def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=False):
     """
     Decode bech32 / segwit address to public key hash
+
+    >>> addr_bech32_to_pubkeyhash('bc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84', as_hex=True)
+    '21c1bc695a56f47991e95ff26856e50f78d3c118'
 
     Validate the Bech32 string, and determine HRP and data
 
@@ -476,6 +510,8 @@ def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
     """
     Convert public key hash to base58 encoded address
 
+    Wrapper for the :func:`pubkeyhash_to_addr_base58` and :func:`pubkeyhash_to_addr_bech32` method
+
     :param pubkeyhash: Public key hash
     :type pubkeyhash: bytes, str
     :param prefix: Prefix version byte of network, default is bitcoin '\x00'
@@ -502,6 +538,9 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
     """
     Convert public key hash to base58 encoded address
 
+    >>> pubkeyhash_to_addr_base58('21342f229392d7c9ed82c932916cee6517fbc9a2')
+    '142Zp9WZn9Fh4MV8F3H5Dv4Rbg7Ja1sPWZ'
+
     :param pubkeyhash: Public key hash
     :type pubkeyhash: bytes, str
     :param prefix: Prefix version byte of network, default is bitcoin '\x00'
@@ -518,6 +557,9 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
 def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
     """
     Encode public key hash as bech32 encoded (segwit) address
+
+    >>> pubkeyhash_to_addr_bech32('21c1bc695a56f47991e95ff26856e50f78d3c118')
+    'bc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84'
 
     Format of address is prefix/hrp + seperator + bech32 address + checksum
 
@@ -609,7 +651,10 @@ def convertbits(data, frombits, tobits, pad=True):
 
 def varstr(string):
     """
-    Convert string to variably sized string: Bytestring preceeded with length byte
+    Convert string to variably sized string: Bytestring preceded with length byte
+
+    >>> to_hexstring(varstr(to_bytes('5468697320737472696e67206861732061206c656e677468206f66203330')))
+    '1e5468697320737472696e67206861732061206c656e677468206f66203330'
 
     :param string: String input
     :type string: bytes, str
@@ -663,6 +708,9 @@ def to_bytes(string, unhexlify=True):
 def to_hexstring(string):
     """
     Convert Bytes or ByteArray to hexadecimal string
+
+    >>> to_hexstring('\x12\xaa\xdd')
+    '12aadd'
 
     :param string: Variable to convert to hex string
     :type string: bytes, bytearray, str
