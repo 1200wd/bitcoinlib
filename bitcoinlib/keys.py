@@ -18,14 +18,17 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
-import os
 import hmac
 import random
 import warnings
 import collections
 import json
 import pyaes
+
+from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
+from bitcoinlib.config.secp256k1 import *
+from bitcoinlib.encoding import *
+from bitcoinlib.mnemonic import Mnemonic
 
 SCRYPT_ERROR = None
 USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
@@ -38,11 +41,6 @@ except ImportError as SCRYPT_ERROR:
 if 'scrypt' not in sys.modules:
     import pyscrypt as scrypt
     USING_MODULE_SCRYPT = False
-
-from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
-from bitcoinlib.config.secp256k1 import *
-from bitcoinlib.encoding import *
-from bitcoinlib.mnemonic import Mnemonic
 
 rfc6979_warning_given = False
 if USE_FASTECDSA:
@@ -83,8 +81,11 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
     Check if given key corresponds with given network and return network if it does. If no network is specified
     this method tries to extract the network from the key. If no network can be extracted from the key the
     default network will be returned.
+
+    >>> check_network_and_key('L4dTuJf2ceEdWDvCPsLhYf8GiiuYqXtqfbcKdC21BPDvEM1ykJRC')
+    'bitcoin'
     
-    A BKeyError will be raised if key does not corresponds with network or if multiple network are found.
+    A BKeyError will be raised if key does not correspond with network or if multiple network are found.
     
     :param key: Key in any format recognized by get_key_format function
     :type key: str, int, bytes, bytearray
@@ -123,6 +124,15 @@ def get_key_format(key, is_private=None):
     Determines the type (private or public), format and network key.
     
     This method does not validate if a key is valid.
+
+    >>> get_key_format('L4dTuJf2ceEdWDvCPsLhYf8GiiuYqXtqfbcKdC21BPDvEM1ykJRC')
+    {'format': 'wif_compressed', 'networks': ['bitcoin'], 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
+
+    >>> get_key_format('becc7ac3b383cd609bd644aa5f102a811bac49b6a34bbd8afe706e32a9ac5c5e')
+    {'format': 'hex', 'networks': None, 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
+
+    >>> get_key_format('Zpub6vZyhw1ShkEwNxtqfjk7jiwoEbZYMJdbWLHvEwo6Ns2fFc9rdQn3SerYFQXYxtZYbA8a1d83shW3g4WbsnVsymy2L8m7wpeApiuPxug3ARu')
+    {'format': 'hdkey_public', 'networks': ['bitcoin'], 'is_private': False, 'script_types': ['p2wsh'], 'witness_types': ['segwit'], 'multisig': [True]}
 
     :param key: Any private or public key
     :type key: str, int, bytes, bytearray
@@ -243,9 +253,9 @@ def deserialize_address(address, encoding=None, network=None):
     """
     Deserialize address. Calculate public key hash and try to determine script type and network.
 
-    The 'network' dictionary item with contain the network with highest priority if multiple networks are found. Same applies for the script type.
+    The 'network' dictionary item with contains the network with highest priority if multiple networks are found. Same applies for the script type.
 
-    Specify the network argument if known to avoid unexpected results.
+    Specify the network argument if network is known to avoid unexpected results.
 
     If more networks and or script types are found you can find these in the 'networks' field.
 
@@ -330,7 +340,10 @@ def deserialize_address(address, encoding=None, network=None):
 
 def addr_convert(addr, prefix, encoding=None, to_encoding=None):
     """
-    Convert base-58 encoded address to address with another prefix
+    Convert address to another encoding and/or address with another prefix.
+
+    >>> addr_convert('1GMDUKLom6bJuY37RuFNc6PHv1rv2Hziuo', prefix='bc', to_encoding='bech32')
+    'bc1q4pwfmstmw8q80nxtxud2h42lev9xzcjqwqyq7t'
 
     :param addr: Base58 address
     :type addr: str
@@ -359,6 +372,9 @@ def path_expand(path, path_template=None, level_offset=None, account_id=0, cosig
                 address_index=0, change=0, witness_type=DEFAULT_WITNESS_TYPE, multisig=False, network=DEFAULT_NETWORK):
     """
     Create key path. Specify part of key path and path settings
+
+    >>> path_expand([10, 20], witness_type='segwit')
+    ['m', "84'", "0'", "0'", '10', '20']
 
     :param path: Part of path, for example [0, 2] for change=0 and address_index=2
     :type path: list, str
@@ -457,6 +473,7 @@ class Address(object):
     """
     Class to store, convert and analyse various address types as representation of public keys or scripts hashes
     """
+    # TODO: Missing multisig info !?
 
     @classmethod
     def import_address(cls, address, compressed=None, encoding=None, depth=None, change=None,
@@ -464,6 +481,10 @@ class Address(object):
         """
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
+
+        >>> addr = Address.import_address('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
+        >>> addr.as_dict()
+        {'network': 'bitcoin', 'data': '', 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', 'hashed_data': '225601de37da89d0cef77f2ddbacf16bd5df05bd3fe9cbd8d62a56204364e783', 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
 
         :param address: Address to import
         :type address: str
@@ -501,6 +522,8 @@ class Address(object):
                  address_index=None, network=DEFAULT_NETWORK, network_overrides=None):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
+
+        >>> Address('03715219f51a2681b7642d1e0e35f61e5288ff59b87d275be9eaf1a5f481dcdeb6', encoding='bech32')
 
         :param data: Public key, redeem script or other type of script.
         :type data: str, bytes
@@ -1811,11 +1834,11 @@ class Signature(object):
     Signature class for transactions. Used to create signatures to sign transaction and verification
     
     Sign a transaction hash with a private key and show DER encoded signature
-    >>> sk = HDKey()
+    >>> sk = HDKey('f2620684cef2b677dc2f043be8f0873b61e79b274c7e7feeb434477c082e0dc2')
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
     >>> to_hexstring(signature.as_der_encoded())
-    3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e75356fda036f06d293d02fc9b0f9d49e09d8149e9d
+    '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba'
     
     """
 
@@ -2083,11 +2106,11 @@ def sign(tx_hash, private, use_rfc6979=True, k=None):
     Sign transaction hash or message with secret private key. Creates a signature object.
     
     Sign a transaction hash with a private key and show DER encoded signature
-    >>> sk = HDKey()
+    >>> sk = HDKey('728afb86a98a0b60cc81faadaa2c12bc17d5da61b8deaf1c08fc07caf424d493')
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
     >>> to_hexstring(signature.as_der_encoded())
-    3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e75356fda036f06d293d02fc9b0f9d49e09d8149e9d
+    '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a1'
 
     :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
     :type tx_hash: bytes, str
