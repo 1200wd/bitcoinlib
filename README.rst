@@ -358,7 +358,6 @@ Future / Roadmap
 * Create Script class and support advanced scripts
 * Fully support timelocks
 * Support for Trezor wallet
-* Support and extensively test other databases
 * Improve speed and security
 * Integrate in ERP and shopping solutions such as Odoo, Magento, Shopware
 * Support for lightning network
