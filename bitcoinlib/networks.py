@@ -74,12 +74,12 @@ def _format_value(field, value):
 
 def network_values_for(field):
     """
-    Return all prefixes mentioned field, i.e.: prefix_wif, prefix_address_p2sh, etc
+    Return all prefixes for field, i.e.: prefix_wif, prefix_address_p2sh, etc
 
     >>> network_values_for('prefix_wif')
-    [b'\x99', b'\x80', b'\xef', b'\xb0', b'\xb0', b'\xef', b'\xcc', b'\xef']
+    [b'\\x99', b'\\x80', b'\\xef', b'\\xb0', b'\\xb0', b'\\xef', b'\\xcc', b'\\xef']
     >>> network_values_for('prefix_address_p2sh')
-    [b'\x95', b'\x05', b'\xc4', b'2', b'\x05', b':', b'\x10', b'\x13']
+    [b'\\x95', b'\\x05', b'\\xc4', b'2', b'\\x05', b':', b'\\x10', b'\\x13']
 
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
@@ -273,10 +273,10 @@ class Network(object):
         """
         Get WIF prefix for this network and specifications in arguments
 
-        >>> Network('bitcoin').wif_prefix()
-        b'\\x04\\x88\\xb2\\x1e'  # xpub
-        >>> Network('bitcoin').wif_prefix(is_private=True, witness_type='segwit', multisig=True)
-        b'\\x02\\xaaz\\x99'  # Zprv
+        >>> Network('bitcoin').wif_prefix()  # xpub
+        b'\\x04\\x88\\xb2\\x1e'
+        >>> Network('bitcoin').wif_prefix(is_private=True, witness_type='segwit', multisig=True)  # Zprv
+        b'\\x02\\xaaz\\x99'
 
         :param is_private: Private or public key, default is True
         :type is_private: bool

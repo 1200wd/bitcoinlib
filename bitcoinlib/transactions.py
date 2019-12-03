@@ -409,8 +409,10 @@ def script_to_string(script):
     """
     Convert script to human readable string format with OP-codes, signatures, keys, etc
     
-    Example: "OP_DUP OP_HASH160 af8e14a2cecd715c363b3a72b55b59a31e2acac9 OP_EQUALVERIFY OP_CHECKSIG"
-    
+    >>> script = '76a914c7402ab295a0eb8897ff5b8fbd5276c2d9d2340b88ac'
+    >>> script_to_string(script)
+    'OP_DUP OP_HASH160 hash-20 OP_EQUALVERIFY OP_CHECKSIG'
+
     :param script: A locking or unlocking script
     :type script: bytes, str
 
@@ -550,7 +552,10 @@ def script_add_locktime_csv(locktime_csv, script):
 
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
     """
-    Specify locking script type and get corresponding script type for unlocking script.
+    Specify locking script type and get corresponding script type for unlocking script
+
+    >>> get_unlocking_script_type('p2wsh')
+    'p2sh_multisig'
 
     :param locking_script_type: Locking script type. I.e.: p2pkh, p2sh, p2wpkh, p2wsh
     :type locking_script_type: str

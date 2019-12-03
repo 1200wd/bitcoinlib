@@ -54,9 +54,12 @@ def script_type_default(witness_type=None, multisig=False, locking_script=False)
     """
     Determine default script type for provided witness type and key type combination used in this library.
 
-    :param witness_type: Type of wallet: standard or segwit
+    >>> script_type_default('segwit', locking_script=True)
+    'p2wpkh'
+
+    :param witness_type: Witness type used: standard, p2sh-segwit or segwit
     :type witness_type: str
-    :param multisig: Multisig key or not, default is False
+    :param multisig: Multi-signature key or not, default is False
     :type multisig: bool
     :param locking_script: Limit search to locking_script. Specify False for locking scripts and True for unlocking scripts
     :type locking_script: bool
@@ -84,7 +87,9 @@ def script_type_default(witness_type=None, multisig=False, locking_script=False)
 
 def get_encoding_from_witness(witness_type=None):
     """
-    Derive address encoding (base58 or bech32) from transaction witness type
+    Derive address encoding (base58 or bech32) from transaction witness type.
+
+    Returns 'base58' for legacy and p2sh-segwit witness type and 'bech32' for segwit
 
     :param witness_type: Witness type: legacy, p2sh-segwit or segwit
     :type witness_type: str

@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
 import hashlib
 from bitcoinlib.encoding import change_base, normalize_string, to_bytes
 from bitcoinlib.config.secp256k1 import secp256k1_n
@@ -65,11 +64,15 @@ class Mnemonic(object):
 
     def to_seed(self, words, password='', validate=True):
         """
-        Use Mnemonic words and password to create a PBKDF2 seed (Password-Based Key Derivation Function 2)
+        Use Mnemonic words and optionally a password to create a PBKDF2 seed (Password-Based Key Derivation Function 2)
         
         First use 'sanitize_mnemonic' to determine language and validate and check words
 
-        :param words: Mnemonic passphrase as string with space seperated words
+        >>> from bitcoinlib.encoding import to_hexstring
+        >>> to_hexstring(Mnemonic().to_seed('chunk gun celery million wood kite tackle twenty story episode raccoon dutch'))
+        '6969ed4666db67fc74fae7869e2acf3c766b5ef95f5e31eb2fcebd93d76069c6de971225f700042b0b513f0ad6c8562277fc4b5ee1344b720f1686dc2dccc220'
+
+        :param words: Mnemonic passphrase as string with space separated words
         :type words: str
         :param password: A password to protect key, leave empty to disable
         :type password: str
@@ -128,7 +131,10 @@ class Mnemonic(object):
     def to_mnemonic(self, data, add_checksum=True, check_on_curve=True):
         """
         Convert key data entropy to Mnemonic sentence
-        
+
+        >>> Mnemonic().to_mnemonic('28acfc94465fd2f6774759d6897ec122')
+        'chunk gun celery million wood kite tackle twenty story episode raccoon dutch'
+
         :param data: Key data entropy
         :type data: bytes, hexstring
         :param add_checksum: Included a checksum? Default is True
@@ -152,6 +158,11 @@ class Mnemonic(object):
     def to_entropy(self, words, includes_checksum=True):
         """
         Convert Mnemonic words back to key data entropy
+
+        >>> from bitcoinlib.encoding import to_hexstring
+        >>> to_hexstring(Mnemonic().to_entropy('chunk gun celery million wood kite tackle twenty story episode raccoon dutch'))
+        '28acfc94465fd2f6774759d6897ec122'
+
 
         :param words: Mnemonic words as string of list of words
         :type words: str
@@ -182,8 +193,11 @@ class Mnemonic(object):
     def detect_language(words):
         """
         Detect language of given phrase
+
+        >>> Mnemonic().detect_language('chunk gun celery million wood kite tackle twenty story episode raccoon dutch')
+        'english'
         
-        :param words: List of space seperated words
+        :param words: List of space separated words
         :type words: str
         
         :return str: Language 
