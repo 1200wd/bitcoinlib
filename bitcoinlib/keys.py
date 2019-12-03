@@ -473,7 +473,6 @@ class Address(object):
     """
     Class to store, convert and analyse various address types as representation of public keys or scripts hashes
     """
-    # TODO: Missing multisig info !?
 
     @classmethod
     def import_address(cls, address, compressed=None, encoding=None, depth=None, change=None,
@@ -523,7 +522,9 @@ class Address(object):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
 
-        >>> Address('03715219f51a2681b7642d1e0e35f61e5288ff59b87d275be9eaf1a5f481dcdeb6', encoding='bech32')
+        >>> addr = Address('03715219f51a2681b7642d1e0e35f61e5288ff59b87d275be9eaf1a5f481dcdeb6', encoding='bech32', script_type='p2wsh')
+        >>> addr.address
+        'bc1qaehsuffn0stxmugx3z69z9hm6gnjd9qzeqlfv92cpf5adw63x4tsfl7vwl'
 
         :param data: Public key, redeem script or other type of script.
         :type data: str, bytes
@@ -658,12 +659,24 @@ class Key(object):
 
     def __init__(self, import_key=None, network=None, compressed=True, passphrase='', is_private=None):
         """
-        Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc.
+        Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc. If import_key is empty a new
+        private key will be generated.
+
         If a private key is imported a public key will be derived. If a public is imported the private key data will
         be empty.
 
-        Both compressed and uncompressed key version is available, the Key.compressed boolean attribute tells if the
+        Both compressed and uncompressed key version is available, the compressed boolean attribute tells if the
         original imported key was compressed or not.
+
+        >>> k = Key('cNUpWJbC1hVJtyxyV4bVAnb4uJ7FPhr82geo1vnoA29XWkeiiCQn')
+        >>> k.secret
+        12127227708610754620337553985245292396444216111803695028419544944213442390363
+
+        Can also be used to import BIP-38 password protected keys
+
+        >>> k2 = Key('6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg', passphrase='test')
+        >>> k2.secret
+        12127227708610754620337553985245292396444216111803695028419544944213442390363
 
         :param import_key: If specified import given private or public key. If not specified a new private key is generated.
         :type import_key: str, int, bytes, bytearray
@@ -961,8 +974,12 @@ class Key(object):
 
     def bip38_encrypt(self, passphrase):
         """
-        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
+        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
         Based on code from https://github.com/nomorecoin/python-bip38-testing
+
+        >>> k = Key('cNUpWJbC1hVJtyxyV4bVAnb4uJ7FPhr82geo1vnoA29XWkeiiCQn')
+        >>> k.bip38_encrypt('test')
+        '6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg'
 
         :param passphrase: Required passphrase for encryption
         :type passphrase: str
