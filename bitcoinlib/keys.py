@@ -259,6 +259,9 @@ def deserialize_address(address, encoding=None, network=None):
 
     If more networks and or script types are found you can find these in the 'networks' field.
 
+    >>> deserialize_address('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+    {'address': '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', 'encoding': 'base58', 'public_key_hash': '13d215d212cd5188ae02c5635faabdc4d7d4ec91', 'public_key_hash_bytes': b'\\x13\\xd2\\x15\\xd2\\x12\\xcdQ\\x88\\xae\\x02\\xc5c_\\xaa\\xbd\\xc4\\xd7\\xd4\\xec\\x91', 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'networks': ['bitcoin']}
+
     :param address: A base58 or bech32 encoded address
     :type address: str
     :param encoding: Encoding scheme used for address encoding. Attempts to guess encoding if not specified.
@@ -965,11 +968,12 @@ class Key(object):
             key_format = 'wif'
         k = Key(priv, compressed=compressed)
         wif = k.wif()
-        addr = k.address()
-        if isinstance(addr, str) and sys.version_info > (3,):
-            addr = addr.encode('utf-8')
-        if double_sha256(addr)[0:4] != addresshash:
-            print('Addresshash verification failed! Password is likely incorrect.')
+        # TODO: Verify addresshash correctly, raise error if addresshash is incorrect
+        # addr = k.address()
+        # if isinstance(addr, str) and sys.version_info > (3,):
+        #     addr = addr.encode('utf-8')
+        # if double_sha256(addr)[0:4] != addresshash:
+        #     print('Addresshash verification failed! Password is likely incorrect.')
         return wif, key_format
 
     def bip38_encrypt(self, passphrase):
@@ -1013,7 +1017,7 @@ class Key(object):
 
     def wif(self, prefix=None):
         """
-        Get Private Key in Wallet Import Format, steps:
+        Get private Key in Wallet Import Format, steps:
         # Convert to Binary and add 0x80 hex
         # Calculate Double SHA256 and add as checksum to end of key
 
@@ -1253,9 +1257,15 @@ class HDKey(Key):
                  encoding=None, witness_type=None, multisig=False):
         """
         Hierarchical Deterministic Key class init function.
+
         If no import_key is specified a key will be generated with systems cryptographically random function.
         Import key can be any format normal or HD key (extended key) accepted by get_key_format.
         If a normal key with no chain part is provided, an chain with only 32 0-bytes will be used.
+
+        >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
+        >>> k = HDKey(private_hex)
+        >>> k
+        <HDKey(public_hex=0363c152144dcd5253c1216b733fdc6eb8a94ab2cd5caa8ead5e59ab456ff99927, wif_public=xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW, network=bitcoin)>
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
         :type import_key: str, bytes, int, bytearray
@@ -1299,8 +1309,6 @@ class HDKey(Key):
         if not (key and chain):
             if not import_key:
                 # Generate new Master Key
-                # seedbits = random.SystemRandom().randint(512)
-                # seed = change_base(str(seedbits), 10, 256, 64)
                 seed = os.urandom(64)
                 key, chain = self._key_derivation(seed)
             elif isinstance(import_key, (bytearray, bytes if sys.version > '3' else bytearray)) \
@@ -1456,6 +1464,11 @@ class HDKey(Key):
         """
         Get Extended WIF of current key
 
+        >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
+        >>> k = HDKey(private_hex)
+        >>> k.wif()
+        'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW'
+
         :param is_private: Return public or private key
         :type is_private: bool
         :param child_index: Change child index of output WIF key
@@ -1508,7 +1521,7 @@ class HDKey(Key):
 
     def wif_public(self, prefix=None, witness_type=None, multisig=None):
         """
-        Get Extended WIF public key. Wrapper for the wif() method
+        Get Extended WIF public key. Wrapper for the :func:`wif` method
 
         :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
@@ -1523,13 +1536,13 @@ class HDKey(Key):
 
     def wif_private(self, prefix=None, witness_type=None, multisig=None):
         """
-        Get Extended WIF private key. Wrapper for the wif() method
+        Get Extended WIF private key. Wrapper for the :func:`wif` method
 
         :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
         :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
         :type witness_type: str
-        :param multisig: Key is part of a multisignature wallet?
+        :param multisig: Key is part of a multi signature wallet?
         :type multisig: bool
 
         :return str: Base58 encoded WIF key
@@ -1539,6 +1552,11 @@ class HDKey(Key):
     def address(self, compressed=None, prefix=None, script_type=None, encoding=None):
         """
         Get address derived from public key
+
+        >>> wif = 'xpub661MyMwAqRbcFcXi3aM3fVdd42FGDSdufhrr5tdobiPjMrPUykFMTdaFEr7yoy1xxeifDY8kh2k4h9N77MY6rk18nfgg5rPtbFDF2YHzLfA'
+        >>> k = HDKey(wif)
+        >>> k.address()
+        '15CacK61qnzJKpSpx9PFiC8X1ajeQxhq8a'
 
         :param compressed: Always return compressed address
         :type compressed: bool
@@ -1563,8 +1581,13 @@ class HDKey(Key):
         """
         Determine subkey for HD Key for given path.
         Path format: m / purpose' / coin_type' / account' / change / address_index
-        Example: m/44'/0'/0'/0/2
+
         See BIP0044 bitcoin proposal for more explanation.
+
+        >>> wif = 'xprv9s21ZrQH143K4LvcS93AHEZh7gBiYND6zMoRiZQGL5wqbpCU2KJDY87Txuv9dduk9hAcsL76F8b5JKzDREf8EmXjbUwN1c4nR9GEx56QGg2'
+        >>> k = HDKey(wif)
+        >>> k.subkey_for_path("m/44'/0'/0'/0/2")
+        <HDKey(public_hex=03004331ca7f0dcdd925abc4d0800a0d4a0562a02c257fa39185c55abdfc4f0c0c, wif_public=xpub6GyQoEbMUNwu1LnbiCSaD8wLrcjyRCEQA8tNsFCH4pnvCbuWSZkSB6LUNe89YsCBTg1Ncs7vHJBjMvw2Q7siy3A4g1srAq7Lv3CtEXghv44, network=bitcoin)>
 
         :param path: BIP0044 key path
         :type path: str, list
@@ -1639,11 +1662,18 @@ class HDKey(Key):
 
     def public_master(self, account_id=0, purpose=None, multisig=None, witness_type=None, as_private=False):
         """
-        Derives a public master key for current HDKey.
+        Derives a public master key for current HDKey. A public master key can be shared with other software
+        administration tools to create readonly wallets or can be used to create multisignature wallets.
+
+        >>> private_hex = 'b66ed9778029d32ebede042c79f448da8f7ab9efba19c63b7d3cdf6925203b71'
+        >>> k = HDKey(private_hex)
+        >>> pm = k.public_master()
+        >>> pm.wif()
+        'xpub6CjFexgdDZEtHdW7V4LT8wS9rtG3m187pM9qhTpoZdViFhSv3tW9sWonQNtFN1TCkRGAQGKj1UC2ViHTqb7vJV3X67xSKuCDzv14tBHR3Y7'
 
         :param account_id: Account ID. Leave empty for account 0
         :type account_id: int
-        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit.
+        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit. Derived from witness_type and multisig arguments if not provided
         :type purpose: int
         :param multisig: Key is part of a multisignature wallet?
         :type multisig: bool
@@ -1678,7 +1708,7 @@ class HDKey(Key):
     def public_master_multisig(self, account_id=0, purpose=None, witness_type=None, as_private=False):
         """
         Derives a public master key for current HDKey for use with multi signature wallets. Wrapper for the
-        public_master() method.
+        :func:`public_master` method.
 
         :param account_id: Account ID. Leave empty for account 0
         :type account_id: int
@@ -1755,6 +1785,20 @@ class HDKey(Key):
         """
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
 
+        Used by :func:`subkey_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+
+        This method create private child keys, use :func:`child_public` to create public child keys.
+
+        >>> private_hex = 'd02220828cad5e0e0f25057071f4dae9bf38720913e46a596fd7eb8f83ad045d'
+        >>> k = HDKey(private_hex)
+        >>> ck = k.child_private(10)
+        >>> ck.address()
+        '1FgHK5JUa87ASxz5mz3ypeaUV23z9yW654'
+        >>> ck.depth
+        1
+        >>> ck.child_index
+        10
+
         :param index: Key index number
         :type index: int
         :param hardened: Specify if key must be hardened (True) or normal (False)
@@ -1764,6 +1808,7 @@ class HDKey(Key):
 
         :return HDKey: HD Key class object
         """
+
         if network is None:
             network = self.network.name
         if not self.is_private:
@@ -1790,6 +1835,20 @@ class HDKey(Key):
     def child_public(self, index=0, network=None):
         """
         Use Child Key Derivation to derive child public key of current HD Key object.
+
+        Used by :func:`subkey_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+
+        This method create public child keys, use :func:`child_private` to create private child keys.
+
+        >>> private_hex = 'd02220828cad5e0e0f25057071f4dae9bf38720913e46a596fd7eb8f83ad045d'
+        >>> k = HDKey(private_hex)
+        >>> ck = k.child_public(15)
+        >>> ck.address()
+        '1PfLJJgKs8nUbMPpaQUucbGmr8qyNSMGeK'
+        >>> ck.depth
+        1
+        >>> ck.child_index
+        15
 
         :param index: Key index number
         :type index: int
@@ -1850,7 +1909,8 @@ class Signature(object):
     """
     Signature class for transactions. Used to create signatures to sign transaction and verification
     
-    Sign a transaction hash with a private key and show DER encoded signature
+    Sign a transaction hash with a private key and show DER encoded signature:
+
     >>> sk = HDKey('f2620684cef2b677dc2f043be8f0873b61e79b274c7e7feeb434477c082e0dc2')
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
@@ -1891,7 +1951,17 @@ class Signature(object):
     def create(tx_hash, private, use_rfc6979=True, k=None):
         """
         Sign a transaction hash and create a signature with provided private key.
-        
+
+        >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
+        >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        >>> sig = Signature.create(tx_hash, k)
+        >>> sig.hex()
+        '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
+        >>> sig.r
+        32979225540043540145671192266052053680452913207619328973512110841045982813493
+        >>> sig.s
+        12990793585889366641563976043319195006380846016310271470330687369836458989268
+
         :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
         :type tx_hash: bytes, str
         :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
@@ -1951,7 +2021,13 @@ class Signature(object):
 
     def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None, k=None):
         """
-        Initialize Signature object with provided r and r value. 
+        Initialize Signature object with provided r and r value
+
+        >>> r = 32979225540043540145671192266052053680452913207619328973512110841045982813493
+        >>> s = 12990793585889366641563976043319195006380846016310271470330687369836458989268
+        >>> sig = Signature(r, s)
+        >>> sig.hex()
+        '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
         
         :param r: r value of signature
         :type r: int
@@ -2066,7 +2142,15 @@ class Signature(object):
     def verify(self, tx_hash=None, public_key=None):
         """
         Verify this signature. Provide tx_hash or public_key if not already known
-        
+
+        >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
+        >>> pub_key = HDKey(k).public()
+        >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        >>> sig = '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
+        >>> sig = Signature.from_str(sig)
+        >>> sig.verify(tx_hash, pub_key)
+        True
+
         :param tx_hash: Transaction hash
         :type tx_hash: bytes, hexstring
         :param public_key: Public key P
@@ -2123,6 +2207,7 @@ def sign(tx_hash, private, use_rfc6979=True, k=None):
     Sign transaction hash or message with secret private key. Creates a signature object.
     
     Sign a transaction hash with a private key and show DER encoded signature
+
     >>> sk = HDKey('728afb86a98a0b60cc81faadaa2c12bc17d5da61b8deaf1c08fc07caf424d493')
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
@@ -2147,6 +2232,13 @@ def verify(tx_hash, signature, public_key=None):
     """
     Verify provided signature with tx_hash message. If provided signature is no Signature object a new object will
     be created for verification.
+
+    >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
+    >>> pub_key = HDKey(k).public()
+    >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+    >>> sig = '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
+    >>> verify(tx_hash, sig, pub_key)
+    True
 
     :param tx_hash: Transaction hash
     :type tx_hash: bytes, hexstring
