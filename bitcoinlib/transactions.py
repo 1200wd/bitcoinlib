@@ -1700,7 +1700,7 @@ class Transaction(object):
         :type script_type: str
         :param address: Specify address of input if known, default is to derive from key or scripts
         :type address: str, Address
-        :param sequence: Sequence part of input, you normally do not have to touch this
+        :param sequence: Sequence part of input, used for timelocked transactions
         :type sequence: int, bytes
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
         :type compressed: bool

@@ -2326,7 +2326,7 @@ class HDWallet(object):
         """
         Get list of addresses defined in current wallet. Wrapper for the :func:`keys` methods.
 
-        Use :func:`keys_addresses' method to receive full key objects
+        Use :func:`keys_addresses` method to receive full key objects
 
         >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
         >>> w.addresslist()[0]
@@ -3261,9 +3261,9 @@ class HDWallet(object):
         >>> t.outputs # doctest:+ELLIPSIS
         [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
-        :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]
+        :param output_arr: List of output as Output objects or tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]
         :type output_arr: list
-        :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
+        :param input_arr: List of inputs as Input objects or tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
         :type input_arr: list
         :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
         :type input_key_id: int
