@@ -23,10 +23,32 @@ import math
 import numbers
 from copy import deepcopy
 import hashlib
+import pyaes
 import binascii
 import unicodedata
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
+
+
+SCRYPT_ERROR = None
+USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
+try:
+    if USING_MODULE_SCRYPT != False:
+        import scrypt
+        USING_MODULE_SCRYPT = True
+except ImportError as SCRYPT_ERROR:
+    pass
+if 'scrypt' not in sys.modules:
+    import pyscrypt as scrypt
+    USING_MODULE_SCRYPT = False
+
+# rfc6979_warning_given = False
+
+if not USING_MODULE_SCRYPT:
+    if 'scrypt_error' not in locals():
+        SCRYPT_ERROR = 'unknown'
+    _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
+
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
@@ -783,3 +805,73 @@ def hash160(string):
     :return bytes: RIPEMD-160 hash of script
     """
     return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()
+
+
+def bip38_decrypt(encrypted_privkey, passphrase):
+    """
+    BIP0038 non-ec-multiply decryption. Returns WIF private key.
+    Based on code from https://github.com/nomorecoin/python-bip38-testing
+    This method is called by Key class init function when importing BIP0038 key.
+
+    :param encrypted_privkey: Encrypted private key using WIF protected key format
+    :type encrypted_privkey: str
+    :param passphrase: Required passphrase for decryption
+    :type passphrase: str
+
+    :return tupple (bytes, bytes): (Private Key bytes, 4 byte address hash for verification)
+    """
+    d = change_base(encrypted_privkey, 58, 256)[2:]
+    flagbyte = d[0:1]
+    d = d[1:]
+    if flagbyte == b'\xc0':
+        compressed = False
+    elif flagbyte == b'\xe0':
+        compressed = True
+    else:
+        raise EncodingError("Unrecognised password protected key format. Flagbyte incorrect.")
+    if isinstance(passphrase, str) and sys.version_info > (3,):
+        passphrase = passphrase.encode('utf-8')
+    addresshash = d[0:4]
+    d = d[4:-4]
+    key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
+    derivedhalf1 = key[0:32]
+    derivedhalf2 = key[32:64]
+    encryptedhalf1 = d[0:16]
+    encryptedhalf2 = d[16:32]
+    aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    decryptedhalf2 = aes.decrypt(encryptedhalf2)
+    decryptedhalf1 = aes.decrypt(encryptedhalf1)
+    priv = decryptedhalf1 + decryptedhalf2
+    priv = binascii.unhexlify('%064x' % (int(binascii.hexlify(priv), 16) ^ int(binascii.hexlify(derivedhalf1), 16)))
+    # if compressed:
+    #     # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
+    #     priv += b'\1'
+    return priv, addresshash, compressed
+
+
+def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
+    """
+    BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
+    Based on code from https://github.com/nomorecoin/python-bip38-testing
+
+    :param passphrase: Required passphrase for encryption
+    :type passphrase: str
+
+    :return str: BIP38 passphrase encrypted private key
+    """
+    if isinstance(address, str) and sys.version_info > (3,):
+        address = address.encode('utf-8')
+    if isinstance(passphrase, str) and sys.version_info > (3,):
+        passphrase = passphrase.encode('utf-8')
+    addresshash = double_sha256(address)[0:4]
+    key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
+    derivedhalf1 = key[0:32]
+    derivedhalf2 = key[32:64]
+    aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(private_hex[0:32], 16) ^
+                                                                int(binascii.hexlify(derivedhalf1[0:16]), 16))))
+    encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(private_hex[32:64], 16) ^
+                                                                int(binascii.hexlify(derivedhalf1[16:32]), 16))))
+    encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
+    encrypted_privkey += double_sha256(encrypted_privkey)[:4]
+    return change_base(encrypted_privkey, 256, 58)

@@ -23,24 +23,11 @@ import random
 import warnings
 import collections
 import json
-import pyaes
 
 from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import *
 from bitcoinlib.encoding import *
 from bitcoinlib.mnemonic import Mnemonic
-
-SCRYPT_ERROR = None
-USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
-try:
-    if USING_MODULE_SCRYPT != False:
-        import scrypt
-        USING_MODULE_SCRYPT = True
-except ImportError as SCRYPT_ERROR:
-    pass
-if 'scrypt' not in sys.modules:
-    import pyscrypt as scrypt
-    USING_MODULE_SCRYPT = False
 
 rfc6979_warning_given = False
 if USE_FASTECDSA:
@@ -56,11 +43,6 @@ else:
 
 
 _logger = logging.getLogger(__name__)
-
-if not USING_MODULE_SCRYPT:
-    if 'scrypt_error' not in locals():
-        SCRYPT_ERROR = 'unknown'
-    _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
 
 
 class BKeyError(Exception):
@@ -677,7 +659,7 @@ class Key(object):
 
         Can also be used to import BIP-38 password protected keys
 
-        >>> k2 = Key('6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg', passphrase='test')
+        >>> k2 = Key('6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg', passphrase='test', network='testnet')
         >>> k2.secret
         12127227708610754620337553985245292396444216111803695028419544944213442390363
 
@@ -737,9 +719,8 @@ class Key(object):
         self.network = Network(network)
 
         if self.key_format == "wif_protected":
-            # TODO: return key as byte (?)
-            # FIXME: Key format is changed so old 'wif_protected' is forgotten
-            import_key, self.key_format = self._bip38_decrypt(import_key, passphrase)
+            import_key, self.compressed = self._bip38_decrypt(import_key, passphrase, network)
+            self.key_format = 'bin_compressed' if self.compressed else 'bin'
 
         if not self.is_private:
             self.secret = None
@@ -791,7 +772,9 @@ class Key(object):
                 key_byte = import_key
                 key_hex = to_hexstring(key_byte)
             elif self.key_format == 'bin_compressed':
-                key_byte = import_key[:-1]
+                key_byte = import_key
+                if len(import_key) in [33, 65, 129] and import_key[-1:] == b'\1':
+                    key_byte = import_key[:-1]
                 key_hex = to_hexstring(key_byte)
                 self.compressed = True
             elif self.is_private and self.key_format in ['wif', 'wif_compressed']:
@@ -923,7 +906,7 @@ class Key(object):
         return json.dumps(self.as_dict(include_private=include_private), indent=4)
 
     @staticmethod
-    def _bip38_decrypt(encrypted_privkey, passphrase):
+    def _bip38_decrypt(encrypted_privkey, passphrase, network=DEFAULT_NETWORK):
         """
         BIP0038 non-ec-multiply decryption. Returns WIF private key.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -936,45 +919,17 @@ class Key(object):
 
         :return str: Private Key WIF
         """
-        # TODO: Also check first 2 bytes
-        d = change_base(encrypted_privkey, 58, 256)[2:]
-        flagbyte = d[0:1]
-        d = d[1:]
-        if flagbyte == b'\xc0':
-            compressed = False
-        elif flagbyte == b'\xe0':
-            compressed = True
-        else:
-            raise BKeyError("Unrecognised password protected key format. Flagbyte incorrect.")
-        if isinstance(passphrase, str) and sys.version_info > (3,):
-            passphrase = passphrase.encode('utf-8')
-        addresshash = d[0:4]
-        d = d[4:-4]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
-        derivedhalf1 = key[0:32]
-        derivedhalf2 = key[32:64]
-        encryptedhalf1 = d[0:16]
-        encryptedhalf2 = d[16:32]
-        aes = pyaes.AESModeOfOperationECB(derivedhalf2)
-        decryptedhalf2 = aes.decrypt(encryptedhalf2)
-        decryptedhalf1 = aes.decrypt(encryptedhalf1)
-        priv = decryptedhalf1 + decryptedhalf2
-        priv = binascii.unhexlify('%064x' % (int(binascii.hexlify(priv), 16) ^ int(binascii.hexlify(derivedhalf1), 16)))
-        if compressed:
-            # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
-            priv += b'\1'
-            key_format = 'wif_compressed'
-        else:
-            key_format = 'wif'
-        k = Key(priv, compressed=compressed)
-        wif = k.wif()
-        # TODO: Verify addresshash correctly, raise error if addresshash is incorrect
-        # addr = k.address()
-        # if isinstance(addr, str) and sys.version_info > (3,):
-        #     addr = addr.encode('utf-8')
-        # if double_sha256(addr)[0:4] != addresshash:
-        #     print('Addresshash verification failed! Password is likely incorrect.')
-        return wif, key_format
+        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, passphrase)
+
+        # Verify addresshash
+        k = Key(priv, compressed=compressed, network=network)
+        addr = k.address()
+        if isinstance(addr, str) and sys.version_info > (3,):
+            addr = addr.encode('utf-8')
+        if double_sha256(addr)[0:4] != addresshash:
+            raise BKeyError('Addresshash verification failed! Password or '
+                            'specified network %s might be incorrect' % network)
+        return priv, compressed
 
     def bip38_encrypt(self, passphrase):
         """
@@ -990,30 +945,8 @@ class Key(object):
 
         :return str: BIP38 passphrase encrypted private key
         """
-        if self.compressed:
-            flagbyte = b'\xe0'
-            addr = self.address()
-        else:
-            flagbyte = b'\xc0'
-            addr = self.address_uncompressed()
-
-        privkey = self.private_hex
-        if isinstance(addr, str) and sys.version_info > (3,):
-            addr = addr.encode('utf-8')
-        if isinstance(passphrase, str) and sys.version_info > (3,):
-            passphrase = passphrase.encode('utf-8')
-        addresshash = double_sha256(addr)[0:4]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
-        derivedhalf1 = key[0:32]
-        derivedhalf2 = key[32:64]
-        aes = pyaes.AESModeOfOperationECB(derivedhalf2)
-        encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[0:32], 16) ^
-                                                                    int(binascii.hexlify(derivedhalf1[0:16]), 16))))
-        encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[32:64], 16) ^
-                                                                    int(binascii.hexlify(derivedhalf1[16:32]), 16))))
-        encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
-        encrypted_privkey += double_sha256(encrypted_privkey)[:4]
-        return change_base(encrypted_privkey, 256, 58)
+        flagbyte = b'\xe0' if self.compressed else b'\xc0'
+        return bip38_encrypt(self.private_hex, self.address(), passphrase, flagbyte)
 
     def wif(self, prefix=None):
         """
@@ -1303,10 +1236,10 @@ class HDKey(Key):
             encoding = get_encoding_from_witness(witness_type)
         self.script_type = script_type_default(witness_type, multisig)
 
-        if (key and not chain) or (not key and chain):
-            raise BKeyError("Please specify both key and chain, use import_key attribute "
-                            "or use simple Key class instead")
-        if not (key and chain):
+        # if (key and not chain) or (not key and chain):
+        #     raise BKeyError("Please specify both key and chain, use import_key attribute "
+        #                     "or use simple Key class instead")
+        if not key:
             if not import_key:
                 # Generate new Master Key
                 seed = os.urandom(64)
@@ -1319,7 +1252,7 @@ class HDKey(Key):
                 if not import_key.compressed:
                     _logger.warning("Uncompressed private keys are not standard for BIP32 keys, use at your own risk!")
                     compressed = False
-                chain = b'\0' * 32
+                chain = chain if chain else b'\0' * 32
                 key = import_key.private_byte
                 key_type = 'private'
             else:
@@ -1354,9 +1287,13 @@ class HDKey(Key):
                     is_private = False
                 elif kf['format'] == 'mnemonic':
                     raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
+                elif kf['format'] == 'wif_protected':
+                    key, compressed = self._bip38_decrypt(import_key, passphrase, network.name, witness_type)
+                    chain = chain if chain else b'\0' * 32
+                    key_type = 'private'
                 else:
                     key = import_key
-                    chain = b'\0' * 32
+                    chain = chain if chain else b'\0' * 32
                     key_type = 'private'
 
         if witness_type is None:
@@ -1459,6 +1396,50 @@ class HDKey(Key):
         """
 
         return self.hash160[:4]
+
+    def bip38_encrypt(self, passphrase):
+        """
+        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
+        Based on code from https://github.com/nomorecoin/python-bip38-testing
+
+        >>> k = HDKey('zpub6jftahH18ngZyanZ5b6VMRApYRjKWqCMD1xiUsZpbNRQNWiYkX2183TJT7unarBTQMESPMX7EuxopG9RfXWme2cK1W7T5ebD2es5SpN9cQ3')
+        >>> k.bip38_encrypt('test')
+        '6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg'
+
+        :param passphrase: Required passphrase for encryption
+        :type passphrase: str
+
+        :return str: BIP38 passphrase encrypted private key
+        """
+        flagbyte = b'\xe0' if self.compressed else b'\xc0'
+        return bip38_encrypt(self.private_hex, self.address(), passphrase, flagbyte)
+
+    @staticmethod
+    def _bip38_decrypt(encrypted_privkey, passphrase, network=DEFAULT_NETWORK, witness_type=DEFAULT_WITNESS_TYPE):
+        """
+        BIP0038 non-ec-multiply decryption. Returns WIF private key.
+        Based on code from https://github.com/nomorecoin/python-bip38-testing
+        This method is called by Key class init function when importing BIP0038 key.
+
+        :param encrypted_privkey: Encrypted private key using WIF protected key format
+        :type encrypted_privkey: str
+        :param passphrase: Required passphrase for decryption
+        :type passphrase: str
+
+        :return str: Private Key WIF
+        """
+        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, passphrase)
+        # compressed = True if priv[-1:] == b'\1' else False
+
+        # Verify addresshash
+        k = HDKey(priv, compressed=compressed, network=network, witness_type=witness_type)
+        addr = k.address()
+        if isinstance(addr, str) and sys.version_info > (3,):
+            addr = addr.encode('utf-8')
+        if double_sha256(addr)[0:4] != addresshash:
+            raise BKeyError('Addresshash verification failed! Password or '
+                            'specified network %s might be incorrect' % network)
+        return priv, compressed
 
     def wif(self, is_private=None, child_index=None, prefix=None, witness_type=None, multisig=None):
         """

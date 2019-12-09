@@ -97,7 +97,7 @@ class DbInit:
 def add_column(engine, table_name, column):
     """
     Used to add new column to database with migration and update scripts
-    
+
     :param engine:
     :param table_name:
     :param column:

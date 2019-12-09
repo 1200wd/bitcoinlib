@@ -504,7 +504,15 @@ class TestBip38(unittest.TestCase):
             return
         for v in self.vectors["invalid"]["verify"]:
             print("Checking invalid key %s" % v['base58'])
-            self.assertRaisesRegexp(BKeyError, "", Key, str(v['base58']))
+            self.assertRaisesRegexp(Exception, "", Key, str(v['base58']))
+
+    def test_bip38_other_networks(self):
+        networks = ['testnet', 'litecoin', 'dash']
+        for network in networks:
+            k = Key(network=network)
+            enc_key = k.bip38_encrypt('password')
+            k2 = Key(enc_key, passphrase='password', network=network)
+            self.assertEqual(k.wif(), k2.wif())
 
 
 class TestKeysBulk(unittest.TestCase):
