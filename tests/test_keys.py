@@ -507,6 +507,8 @@ class TestBip38(unittest.TestCase):
             self.assertRaisesRegexp(Exception, "", Key, str(v['base58']))
 
     def test_bip38_other_networks(self):
+        if not USING_MODULE_SCRYPT:
+            return
         networks = ['testnet', 'litecoin', 'dash']
         for network in networks:
             k = Key(network=network)
