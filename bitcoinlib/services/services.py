@@ -275,7 +275,7 @@ class Service(object):
         """
         Push a raw transaction to the network
 
-        :param rawtx: Raw transaction as hexstring
+        :param rawtx: Raw transaction as hexstring or bytes
         :type rawtx: str, bytes
 
         :return dict: Send transaction result

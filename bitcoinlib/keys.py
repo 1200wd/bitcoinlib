@@ -1160,7 +1160,7 @@ class HDKey(Key):
                      encoding=encoding, witness_type=witness_type, multisig=multisig)
 
     @staticmethod
-    def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, compressed=True,
+    def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, key_type='bip32', compressed=True,
                         encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False):
         """
         Create key from Mnemonic passphrase
@@ -1171,6 +1171,8 @@ class HDKey(Key):
         :type password: str
         :param network: Network to use
         :type network: str, Network
+        :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
+        :type key_type: str
         :param compressed: Is key compressed or not, default is True
         :type compressed: bool
         :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58 or derive from witness type
@@ -1182,8 +1184,8 @@ class HDKey(Key):
 
         :return HDKey:
         """
-        return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network, compressed=compressed,
-                               encoding=encoding, witness_type=witness_type, multisig=multisig)
+        return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network, key_type=key_type,
+                               compressed=compressed, encoding=encoding, witness_type=witness_type, multisig=multisig)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True,
