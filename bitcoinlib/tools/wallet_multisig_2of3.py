@@ -24,7 +24,7 @@ KEY_STRENGTH = 128  # Remove this line to use the default 256 bit key strength
 SIGNATURES_REQUIRED = 2
 WITNESS_TYPE = 'segwit'  # Witness type can be legacy, p2sh-segwit or segwit
 
-from bitcoinlib.wallets import wallet_delete_if_exists
+# from bitcoinlib.wallets import wallet_delete_if_exists
 # wallet_delete_if_exists(WALLET_NAME, force=True)
 
 if not wallet_exists(WALLET_NAME):
@@ -90,11 +90,12 @@ if not wallet_exists(WALLET_NAME):
     print("]")
     print("wlt = HDWallet.create('%s', key_list, sigs_required=2, witness_type='%s', network='%s')" %
           (WALLET_NAME, WITNESS_TYPE, NETWORK))
-    print("wlt.new_key()")
+    print("wlt.get_key()")
     print("wlt.info()")
 else:
-    online_wallet = HDWallet(WALLET_NAME)
-    # online_wallet.utxos_update()
+    from bitcoinlib.config.config import BITCOINLIB_VERSION, BCL_DATABASE_DIR
+    online_wallet = HDWallet(WALLET_NAME, db_uri=BCL_DATABASE_DIR + '/bitcoinlib.tmp.sqlite')
+    online_wallet.utxos_update()
     online_wallet.info()
     utxos = online_wallet.utxos()
     if utxos:
@@ -102,11 +103,7 @@ else:
         print("Now a new transaction will be created to sweep this wallet and send bitcoins to a testnet faucet")
         send_to_address = 'n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi'
         t = online_wallet.sweep(send_to_address, min_confirms=0)
-        from bitcoinlib.encoding import to_hexstring
-        print(to_hexstring(t.inputs[0].redeemscript))
-        print(t.inputs[0].as_dict())
         print(t.raw_hex())
-        t.info()
         print("Now copy-and-paste the raw transaction hex to your Offline PC and sign it there with a second signature:")
         print("\nfrom bitcoinlib.wallets import HDWallet")
         print("")
