@@ -1583,3 +1583,28 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.outputs[1].value, 10182078)
         self.assertEqual(t.raw_hex(), rawtx)
         self.assertEqual(t.hash, '6bf265d81f235a995dfd433765dcee7da56786973234be2b8db4a156ac64b0e1')
+
+    def test_transaction_segwit_redeemscript_bug(self):
+        t = Transaction(
+            [
+                Input('eb58619551911bddfa2f7f077e2df6a55d74c881f3745d0bd491f28ee6e63163', 1,
+                      script_type='p2sh_multisig',
+                      keys=['0236ab0a160e381d2eb6f01119937d29e697b78ca8be115617db972e0d95cef6b7',
+                            '038b46795c92b8c9a6b40644a082be367e740f09b581a8b8c26b71d4b39f5cd963',
+                            '03f93f3a5633478ed3ab3ff9d2fe5ddeecb8e755fb267c9a3bc9d7242f58e4f258'],
+                      unlocking_script_unsigned='52210236ab0a160e381d2eb6f01119937d29e697b78ca8be115617db972e0d95ce'
+                                                'f6b721038b46795c92b8c9a6b40644a082be367e740f09b581a8b8c26b71d4b39f'
+                                                '5cd9632103f93f3a5633478ed3ab3ff9d2fe5ddeecb8e755fb267c9a3bc9d7242f'
+                                                '58e4f25853ae',
+                      signatures=[
+                          '8f9815521722a590bc3dcd888d8b9e417ac46e8cb87f76f427a3760732034aea61942674c0777fb9b65c1b39'
+                          '75d5698c8d48c0ed86c92c8516190b507dda70fb'],
+                      sigs_required=2, network='testnet', witness_type='segwit')
+            ],
+            [
+                Output(15000, 'n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi', script_type='p2pkh', network='testnet')
+            ],
+            network='testnet', witness_type='segwit')
+        rawtx = t.raw()
+        Transaction.import_raw(rawtx)
+        self.assertEqual(rawtx, t.raw())

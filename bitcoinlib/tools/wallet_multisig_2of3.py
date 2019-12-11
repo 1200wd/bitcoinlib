@@ -102,7 +102,11 @@ else:
         print("Now a new transaction will be created to sweep this wallet and send bitcoins to a testnet faucet")
         send_to_address = 'n2eMqTT929pb1RDNuqEnxdaLau1rxy3efi'
         t = online_wallet.sweep(send_to_address, min_confirms=0)
+        from bitcoinlib.encoding import to_hexstring
+        print(to_hexstring(t.inputs[0].redeemscript))
+        print(t.inputs[0].as_dict())
         print(t.raw_hex())
+        t.info()
         print("Now copy-and-paste the raw transaction hex to your Offline PC and sign it there with a second signature:")
         print("\nfrom bitcoinlib.wallets import HDWallet")
         print("")
@@ -111,11 +115,11 @@ else:
         pprint(utxos)
         print("")
         print("wlt.utxos_update(utxos=utxos)")
-        print("t = wlt.transaction_import('%s')" % t.raw_hex())
-        print("t_signed = wlt.transaction_sign(t)")
+        print("t = wlt.transaction_import_raw('%s')" % t.raw_hex())
+        print("t.sign()")
         print("")
         print("# Push the following raw transaction to the blockchain network on any online PC:")
-        print("print(t_signed.raw_hex())")
+        print("print(t.raw_hex())")
     else:
         print("\nPlease send funds to %s, so we can create a transaction" % online_wallet.get_key().address)
         print("\nRestart this program when funds are send...")

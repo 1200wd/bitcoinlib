@@ -514,18 +514,19 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=
             usu.append(s)
         else:
             usu += varstr(s)
+
     rs_size = b''
-    
+    size_byte = b''
     if not as_list:
         rs_size = int_to_varbyteint(len(redeemscript))
-    size_byte = b''
-    if len(redeemscript) >= 76:
-        if len(rs_size) == 1:
-            size_byte = b'\x4c'
-        elif len(rs_size) == 2:
-            size_byte = b'\x4d'
-        else:
-            size_byte = b'\x4e'
+        if len(redeemscript) >= 76:
+            if len(rs_size) == 1:
+                size_byte = b'\x4c'
+            elif len(rs_size) == 2:
+                size_byte = b'\x4d'
+            else:
+                size_byte = b'\x4e'
+
     redeemscript_str = size_byte + rs_size + redeemscript
     if as_list:
         usu.append(redeemscript_str)
