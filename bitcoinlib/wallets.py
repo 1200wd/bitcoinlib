@@ -2727,8 +2727,10 @@ class HDWallet(object):
                             last_txid = ''
                         else:
                             last_txid = self.utxo_last(address)
-                        utxos += srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
-                        if utxos is False:
+                        new_utxos = srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
+                        if new_utxos:
+                            utxos += new_utxos
+                        elif new_utxos is False:
                             raise WalletError("No response from any service provider, could not update UTXO's. "
                                               "Errors: %s" % srv.errors)
                     if srv.complete:
