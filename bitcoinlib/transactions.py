@@ -1589,7 +1589,7 @@ class Transaction(object):
         self.verified = True
         return True
 
-    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=True):
+    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=True):
         """
         Sign the transaction input with provided private key
         
@@ -1601,6 +1601,8 @@ class Transaction(object):
         :type multisig_key_n: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
+        :param _fail_on_unknown_key: Method fails if public key from signature is not found in public key list
+        :type _fail_on_unknown_key: bool
 
         :return None:
         """
@@ -1636,7 +1638,7 @@ class Transaction(object):
             for key in tid_keys:
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
-                    if fail_on_unknown_key:
+                    if _fail_on_unknown_key:
                         raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
                     else:
                         continue

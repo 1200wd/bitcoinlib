@@ -722,7 +722,7 @@ class HDWalletTransaction(Transaction):
                    output_total=db_tx.output_total, rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)  # flag=db_tx.flag
 
-    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL):
+    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=None):
         """
         Sign this transaction. Use existing keys from wallet or use keys argument for extra keys.
 
@@ -748,9 +748,8 @@ class HDWalletTransaction(Transaction):
                         priv_key = HDKey.from_passphrase(priv_key)
                     else:
                         priv_key = HDKey(priv_key, network=self.network.name)
-                if not key_paths or priv_key.depth != 0 or priv_key.key_type == "single":
-                    priv_key_list_arg.append((None, priv_key))
-                else:
+                priv_key_list_arg.append((None, priv_key))
+                if key_paths and priv_key.depth == 0 and priv_key.key_type != "single":
                     for key_path in key_paths:
                         priv_key_list_arg.append((key_path, priv_key.subkey_for_path(key_path)))
         for ti in self.inputs:
@@ -761,7 +760,7 @@ class HDWalletTransaction(Transaction):
             for k in ti.keys:
                 if k.is_private:
                     priv_key_list.append(k)
-            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type)
+            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type, False)
         self.verify()
         self.error = ""
 

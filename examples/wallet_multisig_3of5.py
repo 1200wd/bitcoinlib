@@ -107,4 +107,5 @@ else:
 if t:
     t.sign(cosigners[0]['key'])
     t.sign(cosigners[4]['key'])
+    t.send()
     t.info()
