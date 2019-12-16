@@ -69,10 +69,19 @@ class DbInit:
                 _logger.warning("BitcoinLib database (%s) is from different version then library code (%s). "
                                 "Let's try to update database." % (version_db, BITCOINLIB_VERSION))
 
-                if version_db == '0.4.10' and BITCOINLIB_VERSION == '0.4.11':
+                if version_db == '0.4.10' and BITCOINLIB_VERSION >= '0.4.11':
                     column = Column('latest_txid', String(32))
                     add_column(self.engine, 'keys', column)
                     _logger.info("Updated BitcoinLib database from version 0.4.10 to 0.4.11")
+                    self.session.query(DbConfig).filter(DbConfig.variable == 'version').update(
+                        {DbConfig.value: '0.4.11'})
+                    self.session.commit()
+                if version_db == '0.4.11' and BITCOINLIB_VERSION >= '0.4.12':
+                    column = Column('address', String(255),
+                                    doc="Address string of input, used if not key is associated. "
+                                        "An cryptocurrency address is a hash of the public key")
+                    add_column(self.engine, 'transaction_input', column)
+                    _logger.info("Updated BitcoinLib database from version 0.4.11 to 0.4.12")
                     self.session.query(DbConfig).filter(DbConfig.variable == 'version').update(
                         {DbConfig.value: BITCOINLIB_VERSION})
                     self.session.commit()
@@ -346,6 +355,9 @@ class DbTransactionInput(Base):
     index_n = Column(Integer, primary_key=True, doc="Index number of transaction input")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this input")
     key = relationship("DbKey", back_populates="transaction_inputs", doc="Related DbKey object")
+    address = Column(String(255),
+                     doc="Address string of input, used if not key is associated. "
+                         "An cryptocurrency address is a hash of the public key")
     witness_type = Column(String(20), default='legacy',
                           doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is legacy")
     prev_hash = Column(String(64),

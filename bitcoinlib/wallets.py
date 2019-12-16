@@ -691,7 +691,7 @@ class HDWalletTransaction(Transaction):
             inputs.append(Input(
                 prev_hash=inp.prev_hash, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
-                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network))
+                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address))
         # TODO / FIXME: Field in Input object, but not in database:
         # def __init__(signatures=None, public_hash=b'',
         #              unlocking_script_unsigned=None, compressed=None, sigs_required=None, sort=False,
@@ -868,7 +868,7 @@ class HDWalletTransaction(Transaction):
                     transaction_id=tx_id, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
                     prev_hash=to_hexstring(ti.prev_hash), index_n=ti.index_n, double_spend=ti.double_spend,
                     script=to_hexstring(ti.unlocking_script), script_type=ti.script_type, witness_type=ti.witness_type,
-                    sequence=ti.sequence)
+                    sequence=ti.sequence, address=ti.address)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_input.key_id = key_id
@@ -3034,7 +3034,7 @@ class HDWallet(object):
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None, as_dict=False):
         """
-        Get all known transactions for this wallet
+        Get all known transactions input and outputs for this wallet
 
         >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
         >>> w.transactions()
