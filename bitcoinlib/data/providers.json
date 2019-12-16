@@ -92,7 +92,7 @@
     "network": "testnet",
     "client_class": "BitGoClient",
     "provider_coin_id": "",
-    "url": "https://testnet.bitgo.com/api/v1/",
+    "url": "https://test.bitgo.com/api/v1/",
     "api_key": "",
     "priority": 10,
     "denominator": 1,

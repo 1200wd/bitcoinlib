@@ -100,7 +100,7 @@ class BlockCypher(BaseClient):
         else:
             t.status = 'unconfirmed'
         t.confirmations = tx['confirmations']
-        t.block_height = tx['block_height']
+        t.block_height = tx['block_height'] if tx['block_height'] > 0 else 0
         t.block_hash = tx.get('block_hash')
         t.fee = tx['fees']
         t.rawtx = tx['hex']
@@ -125,7 +125,7 @@ class BlockCypher(BaseClient):
         for n, o in enumerate(t.outputs):
             if 'spent_by' in tx['outputs'][n]:
                 o.spent = True
-        t.raw_hex()
+        # t.raw_hex()
         return t
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
