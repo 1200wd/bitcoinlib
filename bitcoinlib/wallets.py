@@ -916,7 +916,7 @@ class HDWalletTransaction(Transaction):
     def export(self, skip_change=True):
         """
         Export this transaction as list of tuples in the following format:
-            (in/out, transaction_hash, transaction_date, address, value)
+            (in/out, transaction_hash, transaction_date, addresses_in, addresses_out, value)
 
         A transaction with multiple inputs or outputs results in multiple tuples.
 
@@ -927,17 +927,17 @@ class HDWalletTransaction(Transaction):
         """
         mut_list = []
         wlt_addresslist = self.hdwallet.addresslist()
+        input_addresslist = [i.address for i in self.inputs]
         if self.outgoing_tx:
             for o in self.outputs:
                 if o.address in wlt_addresslist and skip_change:
                     continue
-                mut_list.append(('out', self.hash, self.date, o.address, o.value))
+                mut_list.append(('out', self.hash, self.date, input_addresslist, o.address, -o.value))
         else:
-            addresslist = [i.address for i in self.inputs]
             for o in self.outputs:
                 if o.address not in wlt_addresslist:
                     continue
-                mut_list.append(('in', self.hash, self.date, addresslist, o.value))
+                mut_list.append(('in', self.hash, self.date, input_addresslist, o.address, o.value))
         return mut_list
 
 
@@ -3034,20 +3034,23 @@ class HDWallet(object):
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None, as_dict=False):
         """
-        Get all known transactions input and outputs for this wallet
+        Get all known transactions input and outputs for this wallet.
+
+        The transaction only includes the inputs and outputs related to this wallet. To get full transactions
+        use the :func:`transactions_full` method.
 
         >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
         >>> w.transactions()
         [<HDWalletTransaction(input_count=0, output_count=1, status=unconfirmed, network=bitcoin)>]
 
         :param account_id: Filter by Account ID. Leave empty for default account_id
-        :type account_id: int
+        :type account_id: int, None
         :param network: Filter by network name. Leave empty for default network
-        :type network: str
+        :type network: str, None
         :param include_new: Also include new and incomplete transactions in list. Default is False
         :type include_new: bool
         :param key_id: Filter by key ID
-        :type key_id: int
+        :type key_id: int, None
         :param as_dict: Output as dictionary or HDWalletTransaction object
         :type as_dict: bool
 
@@ -3108,6 +3111,30 @@ class HDWallet(object):
                 u = self.transaction(txid)
             res.append(u)
         return res
+
+    def transactions_full(self, network=None, include_new=False):
+        """
+        Get all transactions of this wallet as HDWalletTransaction objects
+
+        Use the :func:`transactions` method to only get the inputs and outputs transaction parts related to this wallet
+
+        :param network: Filter by network name. Leave empty for default network
+        :type network: str
+        :param include_new: Also include new and incomplete transactions in list. Default is False
+        :type include_new: bool
+
+        :return list of HDWalletTransaction:
+        """
+        network, _, _ = self._get_account_defaults(network)
+        qr = self._session.query(DbTransaction.hash, DbTransaction.network_name, DbTransaction.status). \
+            filter(DbTransaction.wallet_id == self.wallet_id,
+                   DbTransaction.network_name == network)
+        if not include_new:
+            qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
+        txs = []
+        for tx in qr.all():
+            txs.append(self.transaction(tx[0]))
+        return txs
 
     def transaction(self, txid):
         """
