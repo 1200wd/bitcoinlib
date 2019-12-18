@@ -923,7 +923,7 @@ class HDWalletTransaction(Transaction):
         :param skip_change: Do not include outputs to own wallet (default)
         :type skip_change: boolean
 
-        :return list:
+        :return list of tuple:
         """
         mut_list = []
         wlt_addresslist = self.hdwallet.addresslist()
@@ -932,12 +932,12 @@ class HDWalletTransaction(Transaction):
             for o in self.outputs:
                 if o.address in wlt_addresslist and skip_change:
                     continue
-                mut_list.append(('out', self.hash, self.date, input_addresslist, o.address, -o.value))
+                mut_list.append((self.date, self.hash, 'out', input_addresslist, o.address, -o.value))
         else:
             for o in self.outputs:
                 if o.address not in wlt_addresslist:
                     continue
-                mut_list.append(('in', self.hash, self.date, input_addresslist, o.address, o.value))
+                mut_list.append((self.date, self.hash, 'in', input_addresslist, o.address, o.value))
         return mut_list
 
 
@@ -3071,6 +3071,7 @@ class HDWallet(object):
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
         txs = qr.all()
         # Transaction outputs
+        # TODO: Add account_id to DbTransaction and remove DbKey dependency
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
                                  DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
             join(DbTransaction).join(DbKey). \
@@ -3125,6 +3126,7 @@ class HDWallet(object):
 
         :return list of HDWalletTransaction:
         """
+        # TODO: Add account_id to DbTransaction
         network, _, _ = self._get_account_defaults(network)
         qr = self._session.query(DbTransaction.hash, DbTransaction.network_name, DbTransaction.status). \
             filter(DbTransaction.wallet_id == self.wallet_id,
@@ -3135,6 +3137,44 @@ class HDWallet(object):
         for tx in qr.all():
             txs.append(self.transaction(tx[0]))
         return txs
+
+    def transactions_export(self, account_id=None, network=None, include_new=False, key_id=None):
+        """
+        Export wallets transactions as list of tuples with the following fields:
+            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, value_cumulative)
+
+        :param account_id: Filter by Account ID. Leave empty for default account_id
+        :type account_id: int, None
+        :param network: Filter by network name. Leave empty for default network
+        :type network: str, None
+        :param include_new: Also include new and incomplete transactions in list. Default is False
+        :type include_new: bool
+        :param key_id: Filter by key ID
+        :type key_id: int, None
+
+        :return list of tuple:
+        """
+
+        txs_tuples = []
+        cumulative_value = 0
+        for t in self.transactions(account_id, network, include_new, key_id):
+            # Export this transaction as list of tuples in the following format:
+            #   (in/out, transaction_hash, transaction_date, addresses_in, addresses_out, value)
+            te = t.export()
+
+            # When transaction is outgoing deduct fee from cumulative value
+            if t.outgoing_tx:
+                cumulative_value -= t.fee
+
+            # Loop through all transaction inputs and outputs
+            for tei in te:
+                # Create string with  list of inputs addresses for incoming transactions, and outputs addresses
+                # for outgoing txs
+                addr_list_in = tei[3] if isinstance(tei[3], list) else [tei[3]]
+                addr_list_out = tei[4] if isinstance(tei[4], list) else [tei[4]]
+                cumulative_value += tei[5]
+                txs_tuples.append((tei[0], tei[1], tei[2], addr_list_in, addr_list_out, tei[5], cumulative_value))
+        return txs_tuples
 
     def transaction(self, txid):
         """
