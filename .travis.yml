@@ -32,7 +32,7 @@ matrix:
       env:
         - UNITTESTS_FULL_DATABASE_TEST=False
       before_install:
-        - choco install python --version=3.7
+        - choco install python --version=3.7.5
         - choco install postgresql --params '/Password:postgres' --paramsglobal
         - choco install mysql
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
