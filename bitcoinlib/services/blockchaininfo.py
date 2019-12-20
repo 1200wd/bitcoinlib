@@ -57,6 +57,7 @@ class BlockchainInfoClient(BaseClient):
         if len(res['unspent_outputs']) > 299:
             _logger.warning("BlockchainInfoClient: Large number of outputs for address %s, "
                             "UTXO list may be incomplete" % address)
+        res['unspent_outputs'].sort(key=lambda x: x['confirmations'])
         for utxo in res['unspent_outputs']:
             if utxo['tx_hash_big_endian'] == after_txid:
                 break
