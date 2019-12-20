@@ -1795,12 +1795,12 @@ class HDWallet(object):
             keys_ignore = []
 
         # Rescan used addresses
-        # TODO: add more args to keys_addresses + change/payment etc
         if rescan_used:
-            for key in self.keys_addresses(used=True):
+            for key in self.keys_addresses(account_id=account_id, change=change, network=network, used=True):
                 self.scan_key(key.id)
 
         # Update already known transactions
+        # FIXME: This is very very inefficient and not workable for really large txs sets :(
         srv = Service(network=network, providers=self.providers)
         current_block_height = srv.blockcount()
         for t in self.transactions(account_id=account_id, network=network):
@@ -2257,7 +2257,8 @@ class HDWallet(object):
 
         return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, used=None, is_active=None, network=None, depth=None, as_dict=False):
+    def keys_addresses(self, account_id=None, used=None, is_active=None, change=None, network=None, depth=None,
+                       as_dict=False):
         """
         Get address keys of specified account_id for current wallet. Wrapper for the :func:`keys` methods.
 
@@ -2271,6 +2272,8 @@ class HDWallet(object):
         :type used: bool
         :param is_active: Hide inactive keys. Only include active keys with either a balance or which are unused, default is True
         :type is_active: bool
+        :param change: Search for Change
+        :type change: int
         :param network: Network name filter
         :type network: str
         :param depth: Filter by key depth. Default for BIP44 and multisig is 5
@@ -2283,7 +2286,7 @@ class HDWallet(object):
 
         if depth is None:
             depth = self.key_depth
-        return self.keys(account_id, depth=depth, used=used, is_active=is_active, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=depth, used=used, change=change, is_active=is_active, network=network, as_dict=as_dict)
 
     def keys_address_payment(self, account_id=None, used=None, network=None, as_dict=False):
         """
@@ -2974,7 +2977,8 @@ class HDWallet(object):
         # Update number of confirmations for already known blocks
         blockcount = srv.blockcount()
         # FIXME: this calls a lot of methods..., update txs below:
-        for t in self.transactions():
+        # ToDo: just use a database query
+        for t in self.transactions(account_id=account_id, key_id=key_id, network=network):
             if t.block_height:
                 t.confirmations = blockcount - t.block_height
                 t.status = 'confirmed'

@@ -254,7 +254,13 @@ class Service(object):
         if after_txid is None:
             after_txid = ''
 
+        # ToDo: gettransaction should raise error instead of returning False
         txs = self._provider_execute('gettransactions', address, after_txid,  max_txs)
+        if txs == False:
+            # Retry
+            txs = self._provider_execute('gettransactions', address, after_txid, max_txs)
+            if txs == False:
+                raise ServiceError("Error when retreiving transactions from service provider")
         if len(txs) == max_txs:
             self.complete = False
         return txs
