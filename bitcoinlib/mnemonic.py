@@ -124,7 +124,7 @@ class Mnemonic(object):
         :return str: Mnemonic passphrase consisting of a space seperated list of words
         """
         if strength % 32 > 0:
-            raise ValueError("Strenght should be divisible by 32")
+            raise ValueError("Strength should be divisible by 32")
         data = os.urandom(strength // 8)
         return self.to_mnemonic(data, add_checksum=add_checksum)
 
@@ -152,7 +152,7 @@ class Mnemonic(object):
             binresult = change_base(data_int, 10, 2, len(data) * 8) + self.checksum(data)
             wi = change_base(binresult, 2, 2048)
         else:
-            wi = change_base(data_int, 10, 2048)
+            wi = change_base(data_int, 10, 2048, len(data) // 1.375 + len(data) % 1.375 > 0)
         return normalize_string(' '.join([self._wordlist[i] for i in wi]))
 
     def to_entropy(self, words, includes_checksum=True):
@@ -229,7 +229,7 @@ class Mnemonic(object):
         
         Raises an error if unrecognised word is found
         
-        :param words: List of space seperated words
+        :param words: List of space separated words
         :type words: str
         
         :return str: Sanitized list of words
