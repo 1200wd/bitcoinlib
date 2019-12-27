@@ -38,8 +38,7 @@ kwargs = {}
 
 install_requires = [
       'requests>=2.20.0',
-      'fastecdsa>=1.7.5;platform_system!="Windows";python_version>"3.0"',
-      'fastecdsa==1.7.5;platform_system!="Windows";python_version<"3"',
+      'fastecdsa>=1.7.5;platform_system!="Windows";python_version >= "3.0"',
       'ecdsa>=0.13;platform_system=="Windows"',
       'pyaes==1.6.1',
       'scrypt>=0.8.13',
@@ -48,6 +47,7 @@ install_requires = [
 ]
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
+    install_requires.append('fastecdsa==1.7.5;platform_system!="Windows"')
 kwargs['install_requires'] = install_requires
 
 setup(
