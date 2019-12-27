@@ -3,6 +3,7 @@ omit =
     *bitcoinlib/tools/*
     *dashd.py
     *bitcoind.py
+    *bcoind.py
     *litecoind.py
     *authproxy.py
     *cryptoid.py
