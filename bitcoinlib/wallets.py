@@ -769,7 +769,7 @@ class HDWalletTransaction(Transaction):
         Verify and push transaction to network. Update UTXO's in database after successful send
 
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
-        :type offline: bool
+        :type offline: boolmijn ouders relatief normaal waren. Je hebt ze tenslotte niet voor het uitzoeken
 
         :return None:
 

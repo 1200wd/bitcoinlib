@@ -43,7 +43,7 @@ class DbInit:
     """
     Initialize database and open session
 
-    Import data if database did not exist yet
+    Create new database if is doesn't exist yet
 
     """
     def __init__(self, db_uri=None):
@@ -69,22 +69,6 @@ class DbInit:
                 _logger.warning("BitcoinLib database (%s) is from different version then library code (%s). "
                                 "Let's try to update database." % (version_db, BITCOINLIB_VERSION))
 
-                if version_db == '0.4.10' and BITCOINLIB_VERSION >= '0.4.11':
-                    column = Column('latest_txid', String(32))
-                    add_column(self.engine, 'keys', column)
-                    _logger.info("Updated BitcoinLib database from version 0.4.10 to 0.4.11")
-                    self.session.query(DbConfig).filter(DbConfig.variable == 'version').update(
-                        {DbConfig.value: '0.4.11'})
-                    self.session.commit()
-                if version_db == '0.4.11' and BITCOINLIB_VERSION >= '0.4.12':
-                    column = Column('address', String(255),
-                                    doc="Address string of input, used if not key is associated. "
-                                        "An cryptocurrency address is a hash of the public key")
-                    add_column(self.engine, 'transaction_input', column)
-                    _logger.info("Updated BitcoinLib database from version 0.4.11 to 0.4.12")
-                    self.session.query(DbConfig).filter(DbConfig.variable == 'version').update(
-                        {DbConfig.value: BITCOINLIB_VERSION})
-                    self.session.commit()
         except Exception as e:
             _logger.warning("Error when verifying version or updating database: %s" % e)
 
@@ -407,6 +391,28 @@ class DbTransactionOutput(Base):
     __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'p2pk', 'nulldata',
                                                        'unknown', 'p2wpkh', 'p2wsh']),
                                       name='transactionoutput_constraint_script_types_allowed'),)
+
+
+def db_update_version_id(db, version):
+    _logger.info("Updated BitcoinLib database to version %s" % version)
+    db.session.query(DbConfig).filter(DbConfig.variable == 'version').update(
+        {DbConfig.value: version})
+    db.session.commit()
+    return version
+
+
+def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
+    if version_db == '0.4.10' and code_version >= '0.4.11':
+        column = Column('latest_txid', String(32))
+        add_column(db.engine, 'keys', column)
+        version_db = db_update_version_id(db, '0.4.11')
+    if version_db == '0.4.11' and code_version >= '0.4.12':
+        column = Column('address', String(255),
+                        doc="Address string of input, used if not key is associated. "
+                            "An cryptocurrency address is a hash of the public key")
+        add_column(db.engine, 'transaction_inputs', column)
+        version_db = db_update_version_id(db, '0.4.12')
+    return version_db
 
 
 if __name__ == '__main__':
