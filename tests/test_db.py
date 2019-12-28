@@ -20,7 +20,7 @@
 
 import unittest
 from .db_0_4_10 import DbInit as DbInitOld
-from db import *
+from bitcoinlib.db import *
 
 
 DATABASEFILE_UNITTESTS = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.unittest.sqlite')
