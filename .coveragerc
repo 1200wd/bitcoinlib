@@ -3,8 +3,18 @@ omit =
     *bitcoinlib/tools/*
     *dashd.py
     *bitcoind.py
-    *bcoind.py
+    *bcoin.py
     *litecoind.py
     *authproxy.py
     *cryptoid.py
     *chainso.py
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
