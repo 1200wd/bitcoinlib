@@ -19,7 +19,7 @@
 #
 
 import unittest
-from .db_0_4_10 import DbInit as DbInitOld
+from tests.db_0_4_10 import DbInit as DbInitOld
 from bitcoinlib.db import *
 
 

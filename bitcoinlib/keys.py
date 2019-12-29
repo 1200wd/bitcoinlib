@@ -258,8 +258,11 @@ def deserialize_address(address, encoding=None, network=None):
         raise BKeyError("Encoding '%s' not found in supported address encodings %s" %
                         (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     if encoding is None or encoding == 'base58':
-        address_bytes = change_base(address, 58, 256, 25)
-        if address_bytes:
+        try:
+            address_bytes = change_base(address, 58, 256, 25)
+        except EncodingError:
+            pass
+        else:
             check = address_bytes[-4:]
             key_hash = address_bytes[:-4]
             checksum = double_sha256(key_hash)[0:4]
@@ -1959,7 +1962,7 @@ class Signature(object):
         if isinstance(tx_hash, bytes):
             tx_hash = to_hexstring(tx_hash)
         if len(tx_hash) > 64:
-            tx_hash = to_hexstring(double_sha256(binascii.unhexlify(tx_hash)))
+            tx_hash = double_sha256(binascii.unhexlify(tx_hash), as_hex=True)
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
         pub_key = private.public()

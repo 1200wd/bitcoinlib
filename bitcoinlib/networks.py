@@ -176,8 +176,12 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     :return dict:
     """
 
+    key_hex = ''
     if len(wif) > 8:
-        key_hex = change_base(wif, 58, 16)
+        try:
+            key_hex = change_base(wif, 58, 16)
+        except:
+            pass
     else:
         key_hex = wif
     if not key_hex:

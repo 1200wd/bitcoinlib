@@ -42,13 +42,10 @@ if 'scrypt' not in sys.modules:
     import pyscrypt as scrypt
     USING_MODULE_SCRYPT = False
 
-# rfc6979_warning_given = False
-
 if not USING_MODULE_SCRYPT:
     if 'scrypt_error' not in locals():
         SCRYPT_ERROR = 'unknown'
     _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
-
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
@@ -100,8 +97,6 @@ def _array_to_codestring(array, base):
     codebase = code_strings[base]
     codestring = ""
     for i in array:
-        if i < 0 or i > len(codebase):
-            raise EncodingError("Index %i out of range for codebase" % i)
         if not PY3:
             codestring += codebase[i]
         else:
@@ -193,9 +188,9 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     :param chars: Input string
     :type chars: any
     :param base_from: Base number or name from input. For example 2 for binary, 10 for decimal and 16 for hexadecimal
-    :type base_from: int, str
+    :type base_from: int
     :param base_to: Base number or name for output. For example 2 for binary, 10 for decimal and 16 for hexadecimal
-    :type base_to: int, str
+    :type base_to: int
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_length: int
     :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
@@ -206,18 +201,14 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     :return str, list: Base converted input as string or list.
     """
     if base_from == 10 and not min_length:
-        raise EncodingError("For a decimal input a minimum output length is required!")
+        raise EncodingError("For a decimal input a minimum output length is required")
 
     code_str = _get_code_string(base_to)
 
-    if not isinstance(base_to, int):
-        base_to = len(code_str)
-    elif int(base_to) not in code_strings:
+    if base_to not in code_strings:
         output_as_list = True
 
     code_str_from = _get_code_string(base_from)
-    if not isinstance(base_from, int):
-        base_from = len(code_str)
     if not isinstance(code_str_from, (bytes, list)):
         raise EncodingError("Code strings must be a list or defined as bytes")
     output = []
@@ -253,7 +244,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
                 try:
                     pos = code_str_from.index(item.lower())
                 except ValueError:
-                    return False
+                    raise EncodingError("Unknown character %s found in input string" % item)
             input_dec += pos * factor
 
             # Add leading zero if there are leading zero's in input
@@ -298,15 +289,11 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     if not output_as_list and isinstance(output, list):
         if len(output) == 0:
             output = 0
-        elif isinstance(output[0], bytes):
-            output = b''.join(output)
-        elif isinstance(output[0], int):
+        else:
             co = ''
             for c in output:
                 co += chr(c)
             output = co
-        else:
-            output = ''.join(output)
     if base_to == 10:
         return int(0) or (output != '' and int(output))
     if PY3 and base_to == 256 and not output_as_list:
@@ -330,7 +317,7 @@ def varbyteint_to_int(byteint):
     :return (int, int): tuple wit converted integer and size
     """
     if not isinstance(byteint, (bytes, list, bytearray)):
-        raise EncodingError("Byteint be a list or defined as bytes")
+        raise EncodingError("Byteint must be a list or defined as bytes")
     if PY3 or isinstance(byteint, (list, bytearray)):
         ni = byteint[0]
     else:
@@ -420,7 +407,7 @@ def der_encode_sig(r, s):
         return ecdsa.der.encode_sequence(rb, sb)
 
 
-def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):
+def addr_to_pubkeyhash(address, as_hex=False, encoding=None):
     """
     Convert base58 or bech32 address to public key hash
 
@@ -496,7 +483,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
 
     :return str: Public Key Hash
     """
-
+    # TODO: Raise exception instead of returning False
     if (any(ord(x) < 33 or ord(x) > 126 for x in bech)) or (bech.lower() != bech and bech.upper() != bech):
         return False
     bech = bech.lower()
@@ -504,7 +491,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
         return False
     if prefix and prefix != bech[:pos]:
-        raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], prefix))
+        raise EncodingError("Invalid bech32 address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], prefix))
     else:
         hrp = bech[:pos]
     data = _codestring_to_array(bech[pos + 1:], 'bech32')
@@ -763,7 +750,7 @@ def normalize_string(string):
     Normalize a string to the default NFKD unicode format
     See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
-    :param string: string value
+    :param string: string valuehttps://www.reddit.com/r/thenetherlands/comments/egp9qu/nederlands_gezin_steunt_boerensector_met_500_euro/
     :type string: bytes, bytearray, str
 
     :return: string
@@ -802,7 +789,7 @@ def hash160(string):
     :param string: Script
     :type string: bytes
 
-    :return bytes: RIPEMD-160 hash of script
+    :return bytes: RIPEMD-160 hash ohttps://www.reddit.com/r/thenetherlands/comments/egp9qu/nederlands_gezin_steunt_boerensector_met_500_euro/f script
     """
     return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()
 
