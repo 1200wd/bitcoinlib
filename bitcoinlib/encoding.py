@@ -289,11 +289,22 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     if not output_as_list and isinstance(output, list):
         if len(output) == 0:
             output = 0
+        elif not PY3:
+            output = ''.join(output)
         else:
             co = ''
             for c in output:
                 co += chr(c)
             output = co
+        # elif isinstance(output[0], bytes):
+        #     output = b''.join(output)
+        # elif isinstance(output[0], int):
+        #     co = ''
+        #     for c in output:
+        #         co += chr(c)
+        #     output = co
+        # else:
+        #     output = ''.join(output)
     if base_to == 10:
         return int(0) or (output != '' and int(output))
     if PY3 and base_to == 256 and not output_as_list:
