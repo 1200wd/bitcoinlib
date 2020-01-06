@@ -131,9 +131,8 @@ def get_key_format(key, is_private=None):
     witness_types = ['legacy']
     multisig = [False]
 
-    if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
-        key = to_hexstring(key)
-
+    # if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
+    #     key = to_hexstring(key)
     if not (is_private is None or isinstance(is_private, bool)):
         raise BKeyError("Attribute 'is_private' must be False or True")
     elif isinstance(key, numbers.Number):
@@ -254,9 +253,6 @@ def deserialize_address(address, encoding=None, network=None):
     :return dict: with information about this address
     """
 
-    if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
-        raise BKeyError("Encoding '%s' not found in supported address encodings %s" %
-                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     if encoding is None or encoding == 'base58':
         try:
             address_bytes = change_base(address, 58, 256, 25)
@@ -298,18 +294,15 @@ def deserialize_address(address, encoding=None, network=None):
                 }
     if encoding == 'bech32' or encoding is None:
         try:
-            public_key_hash = addr_to_pubkeyhash(address, encoding='bech32')
+            public_key_hash = addr_bech32_to_pubkeyhash(address)
             if not public_key_hash:
                 raise EncodingError("Invalid bech32 address %s" % address)
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
             if len(public_key_hash) == 20:
                 script_type = 'p2wpkh'
-            elif len(public_key_hash) == 32:
-                script_type = 'p2wsh'
             else:
-                raise BKeyError("Unknown script type for address %s. Invalid length %d" %
-                                (address, len(public_key_hash)))
+                script_type = 'p2wsh'
             return {
                 'address': address,
                 'encoding': 'bech32',

@@ -158,6 +158,10 @@ class TestEncodingMethodsAddressConversion(unittest.TestCase):
         self.assertEqual(addr_to_pubkeyhash(addr), b'!\xc1\xbciZV\xf4y\x91\xe9_\xf2hV\xe5\x0fx\xd3\xc1\x18')
         self.assertEqual(addr_to_pubkeyhash(addr, as_hex=True), '21c1bc695a56f47991e95ff26856e50f78d3c118')
 
+    def test_pkh_to_bech32_address(self):
+        addr = pubkeyhash_to_addr('45d093a97d5710c80363c69618e826efad42edb1', encoding='bech32')
+        self.assertEqual(addr, 'bc1qghgf82ta2ugvsqmrc6tp36pxa7k59md3czjhjc')
+
 
 class TestEncodingMethodsStructures(unittest.TestCase):
 

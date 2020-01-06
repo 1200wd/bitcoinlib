@@ -97,6 +97,14 @@ class TestGetKeyFormat(unittest.TestCase):
         self.assertEqual('hdkey_private', get_key_format(key)['format'])
         self.assertIn('litecoin_testnet', get_key_format(key)['networks'])
 
+    def test_format_hdkey_mnemonic(self):
+        self.assertEqual(get_key_format('abandon car zoo')['format'], 'mnemonic')
+
+    def test_format_key_exceptions(self):
+        self.assertRaisesRegexp(BKeyError, "Key empty, please specify a valid key", get_key_format, '')
+        self.assertRaisesRegexp(BKeyError, "Attribute 'is_private' must be False or True", get_key_format,
+                                '666368e477a8ddd46808c527cc3c506719bb3f52a927b6c13532984b714b56ad', 3)
+
 
 class TestPrivateKeyConversions(unittest.TestCase):
 
@@ -144,6 +152,12 @@ class TestPrivateKeyImport(unittest.TestCase):
         pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
         self.k = Key(pk)
         self.assertEqual('KyBsPXxTuVD82av65KZkrGrWi5qLMah5SdNq6uftawDbgKa2wv6S', self.k.wif())
+
+    def test_private_key_import_hex(self):
+        pk = '4781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd' \
+             '991064c2e7f7d532b9c9ca825671a8809ab6876c78b'
+        k = Key(pk)
+        self.assertEqual('f93677c417d4750c7a5806f849739265cc46b8a9', to_hexstring(k.hash160))
 
     def test_private_key_import_key_bytearray(self):
         pk = bytearray(b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>'
@@ -316,6 +330,12 @@ class TestHDKeysImport(unittest.TestCase):
         ]
         for wif in wifs:
             self.assertEqual(HDKey(wif[0]).wif(is_private=wif[1]), wif[0])
+
+    def test_hdkey_import_from_private_byte(self):
+        keystr = b"fch\xe4w\xa8\xdd\xd4h\x08\xc5'\xcc<Pg\x19\xbb?R\xa9'\xb6\xc152\x98KqKV\xad\x91`G-a\xb1\xad\xd8eL" \
+                 b"\xcc\x8an\x94\xa3\x93\xb5\xa5\xe6\xc3\xf1\x98\x91h6wt\xf0z=\x1f\x17"
+        hdkey = HDKey(keystr)
+        self.assertEqual(hdkey.address(), '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd')
 
 
 class TestHDKeysChildKeyDerivation(unittest.TestCase):
@@ -577,6 +597,13 @@ class TestKeysAddress(unittest.TestCase):
         self.assertEqual(a.address, '2MxtnuEcoEpYJ9WWkzqcr87ChujVRk1DFsZ')
         a = Address(pk, encoding='bech32', network='testnet')
         self.assertEqual(a.address, 'tb1q8hehumvm039nxnwwtqdjr7qmm46sfxrdw7vc3g')
+
+    def test_keys_address_deserialize_exceptions(self):
+        self.assertRaisesRegexp(BKeyError, "Invalid address 17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bb, checksum incorrect",
+                                deserialize_address, '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bb', encoding='base58')
+        self.assertRaisesRegexp(EncodingError,
+                                "Address 17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd is not in specified encoding bs",
+                                deserialize_address, '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd', encoding='bs')
 
     def test_keys_address_deserialize_litecoin(self):
         address = '3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB'
