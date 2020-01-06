@@ -129,6 +129,8 @@ class TestPrivateKeyConversions(unittest.TestCase):
 
     def test_private_key_conversions_wif(self):
         self.assertEqual('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy', self.k.wif())
+        if not PY3:
+            return
         self.assertEqual('XHVtmt8BSSd5MRs5JTT4apiX9a3mUSwHxbGm6Ky6qiyyVvFRhmU7', self.k.wif(prefix='cc'))
         self.assertEqual('XHVtmt8BSSd5MRs5JTT4apiX9a3mUSwHxbGm6Ky6qiyyVvFRhmU7', self.k.wif(prefix=b'\xcc'))
 
