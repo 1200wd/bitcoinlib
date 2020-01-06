@@ -916,7 +916,7 @@ class HDWalletTransaction(Transaction):
     def export(self, skip_change=True):
         """
         Export this transaction as list of tuples in the following format:
-            (in/out, transaction_hash, transaction_date, addresses_in, addresses_out, value)
+            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value)
 
         A transaction with multiple inputs or outputs results in multiple tuples.
 
@@ -3162,8 +3162,6 @@ class HDWallet(object):
         txs_tuples = []
         cumulative_value = 0
         for t in self.transactions(account_id, network, include_new, key_id):
-            # Export this transaction as list of tuples in the following format:
-            #   (in/out, transaction_hash, transaction_date, addresses_in, addresses_out, value)
             te = t.export()
 
             # When transaction is outgoing deduct fee from cumulative value

@@ -1441,6 +1441,16 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         total_value = sum([utxo['value'] for utxo in self.wallet.utxos()])
         self.assertEqual(total_value, 60000000)
 
+    def test_wallet_transaction_export(self):
+        txs = self.wallet.transactions_export()
+        tx = [t for t in txs if t[1] == 'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f'][0]
+        # self.assertEqual(tx[1], 'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f')
+        self.assertEqual(tx[2], 'in')
+        self.assertEqual(tx[3], [])
+        self.assertEqual(tx[4], ['mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7'])
+        self.assertEqual(tx[5], 10000000)
+        self.assertEqual(tx[6], 10000000)
+
     def test_wallet_sweep_public_wallet(self):
         tx = self.wallet.sweep('mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7', fee_per_kb=50000)
         prev_tx_list_check = [
