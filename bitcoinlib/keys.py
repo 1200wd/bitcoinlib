@@ -295,8 +295,6 @@ def deserialize_address(address, encoding=None, network=None):
     if encoding == 'bech32' or encoding is None:
         try:
             public_key_hash = addr_bech32_to_pubkeyhash(address)
-            if not public_key_hash:
-                raise EncodingError("Invalid bech32 address %s" % address)
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
             if len(public_key_hash) == 20:
@@ -785,14 +783,14 @@ class Key(object):
                     raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
                 self._wif = import_key
                 self._wif_prefix = key[0:1]
-                if self.network.name not in found_networks:
-                    if len(found_networks) > 1:
-                        raise BKeyError("More then one network found with this versionbyte, please specify network. "
-                                        "Networks found: %s" % found_networks)
-                    else:
-                        _logger.warning("Current network %s is different then the one found in key: %s" %
-                                        (network, found_networks[0]))
-                        self.network = Network(found_networks[0])
+                # if self.network.name not in found_networks:
+                #     if len(found_networks) > 1:
+                #         raise BKeyError("More then one network found with this versionbyte, please specify network. "
+                #                         "Networks found: %s" % found_networks)
+                #     else:
+                #         _logger.warning("Current network %s is different then the one found in key: %s" %
+                #                         (network, found_networks[0]))
+                #         self.network = Network(found_networks[0])
                 if key[-1:] == b'\x01':
                     self.compressed = True
                     key = key[:-1]
@@ -989,14 +987,6 @@ class Key(object):
         key.secret = None
         return key
 
-    def public_uncompressed(self):
-        """
-        Get public key, uncompressed version
-
-        :return str: Uncompressed public key hexstring
-        """
-        return self.public_uncompressed_hex
-
     def public_point(self):
         """
         Get public key point on Elliptic curve
@@ -1140,7 +1130,7 @@ class HDKey(Key):
         :type encoding: str
         :param witness_type: Witness type used when creating scripts: legacy, p2sh-segwit or segwit.
         :type witness_type: str
-        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addreses
+        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addresses
         :type multisig: bool
 
         :return HDKey:
@@ -1280,11 +1270,6 @@ class HDKey(Key):
                     child_index = int(change_base(bkey[9:13], 256, 10))
                     chain = bkey[13:45]
                     # chk = bkey[78:82]
-                elif kf['format'] == 'address':
-                    da = deserialize_address(import_key)
-                    key = da['public_key_hash']
-                    network = Network(da['network'])
-                    is_private = False
                 elif kf['format'] == 'mnemonic':
                     raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
                 elif kf['format'] == 'wif_protected':
@@ -2032,9 +2017,9 @@ class Signature(object):
         self.s = int(s)
         self.x = None
         self.y = None
-        if 1 > self.r >= secp256k1_n:
+        if self.r < 1 or self.r >= secp256k1_n:
             raise BKeyError('Invalid Signature: r is not a positive integer smaller than the curve order')
-        elif 1 > self.s >= secp256k1_n:
+        elif self.s < 1 or self.s >= secp256k1_n:
             raise BKeyError('Invalid Signature: s is not a positive integer smaller than the curve order')
         self._tx_hash = None
         self.tx_hash = tx_hash
