@@ -332,6 +332,8 @@ class TestHDKeysImport(unittest.TestCase):
             self.assertEqual(HDKey(wif[0]).wif(is_private=wif[1]), wif[0])
 
     def test_hdkey_import_from_private_byte(self):
+        if not PY3:
+            return
         keystr = b"fch\xe4w\xa8\xdd\xd4h\x08\xc5'\xcc<Pg\x19\xbb?R\xa9'\xb6\xc152\x98KqKV\xad\x91`G-a\xb1\xad\xd8eL" \
                  b"\xcc\x8an\x94\xa3\x93\xb5\xa5\xe6\xc3\xf1\x98\x91h6wt\xf0z=\x1f\x17"
         hdkey = HDKey(keystr)

@@ -1242,7 +1242,9 @@ class HDKey(Key):
                 # Generate new Master Key
                 seed = os.urandom(64)
                 key, chain = self._key_derivation(seed)
-            elif isinstance(import_key, (bytearray, bytes if sys.version > '3' else bytearray, str)) \
+            # If key is 64 bytes long assume a HD Key with key and chain part
+            elif (PY3 and isinstance(import_key, (bytearray, bytes))) or \
+                    (not PY3 and isinstance(import_key, (bytearray, str)) and to_hexstring(import_key) != import_key) \
                     and len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
