@@ -323,8 +323,7 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             try:
                 pos = test.rfind('1')
                 hrp = test[:pos]
-                pkh = addr_bech32_to_pubkeyhash(test, hrp)
-                self.assertFalse(pkh)
+                self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, test, hrp)
             except EncodingError as e:
                 self.assertIn("not found in codebase", e.msg)
 
@@ -342,8 +341,8 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
     def test_invalid_address(self):
         """Test whether invalid addresses fail to decode."""
         for test in INVALID_ADDRESS:
-            self.assertFalse(addr_bech32_to_pubkeyhash("bc", test))
-            self.assertFalse(addr_bech32_to_pubkeyhash("tb", test))
+            self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, "bc", test)
+            self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, "tb", test)
 
 
 class TestEncodingConfig(unittest.TestCase):

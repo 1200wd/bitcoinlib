@@ -481,7 +481,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     >>> addr_bech32_to_pubkeyhash('bc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84', as_hex=True)
     '21c1bc695a56f47991e95ff26856e50f78d3c118'
 
-    Validate the Bech32 string, and determine HRP and data
+    Validate the bech32 string, and determine HRP and data. Only standard data size of 20 and 32 bytes are excepted
 
     :param bech: Bech32 address to convert
     :type bech: str
@@ -494,13 +494,12 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
 
     :return str: Public Key Hash
     """
-    # TODO: Raise exception instead of returning False
     if (any(ord(x) < 33 or ord(x) > 126 for x in bech)) or (bech.lower() != bech and bech.upper() != bech):
-        return False
+        raise EncodingError("Invalid bech32 character in bech string")
     bech = bech.lower()
     pos = bech.rfind('1')
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
-        return False
+        raise EncodingError("Invalid bech32 string length")
     if prefix and prefix != bech[:pos]:
         raise EncodingError("Invalid bech32 address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], prefix))
     else:
@@ -508,15 +507,15 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     data = _codestring_to_array(bech[pos + 1:], 'bech32')
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
-        return False
+        raise EncodingError("Bech polymod check failed")
     data = data[:-6]
     decoded = bytearray(convertbits(data[1:], 5, 8, pad=False))
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
-        return False
+        raise EncodingError("Invalid decoded data length, must be between 2 and 40")
     if data[0] > 16:
-        return False
+        raise EncodingError("Invalid decoded data length")
     if data[0] == 0 and len(decoded) not in [20, 32]:
-        return False
+        raise EncodingError("Invalid decoded data length, must be 20 or 32 bytes")
     prefix = b''
     if include_witver:
         datalen = len(decoded)
