@@ -1451,6 +1451,12 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(tx[5], 10000000)
         self.assertEqual(tx[6], 10000000)
 
+    def test_wallet_transactions_full(self):
+        txs = self.wallet.transactions_full()
+        self.assertGreaterEqual(len(txs), 3)
+        for tx in txs:
+            self.assertIsInstance(tx, HDWalletTransaction)
+
     def test_wallet_sweep_public_wallet(self):
         tx = self.wallet.sweep('mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7', fee_per_kb=50000)
         prev_tx_list_check = [
