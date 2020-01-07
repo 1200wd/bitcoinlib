@@ -84,7 +84,7 @@ class TestWalletMixin:
             for db in [DATABASEFILE_UNITTESTS, DATABASEFILE_UNITTESTS_2]:
                 if os.path.isfile(db):
                     os.remove(db)
-        elif cls.SCHEMA =='postgresql':
+        elif cls.SCHEMA == 'postgresql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
                 cls.create_db_if_needed(db)
                 con = psycopg2.connect(user='postgres', host='localhost', password='postgres', database=db)
@@ -104,7 +104,7 @@ class TestWalletMixin:
                 finally:
                     cur.close()
                     con.close()
-        elif cls.SCHEMA =='mysql':
+        elif cls.SCHEMA == 'mysql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
                 cls.create_db_if_needed(db)
                 con = mysql.connector.connect(user='root', host='localhost', database=db, autocommit=True)
@@ -1449,7 +1449,6 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(tx[3], [])
         self.assertEqual(tx[4], ['mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7'])
         self.assertEqual(tx[5], 10000000)
-        self.assertEqual(tx[6], 10000000)
 
     def test_wallet_transactions_full(self):
         txs = self.wallet.transactions_full()
