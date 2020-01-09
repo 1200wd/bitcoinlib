@@ -1754,6 +1754,19 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w.transactions_update(max_txs=2)
         self.assertGreaterEqual(len(w.transactions()), 4)
 
+    def test_wallet_transactions_sign_with_mnenomic(self):
+        phr = 'battle alter frequent adult tuna follow always jar obtain until ice arrange'
+        prv_key = HDKey.from_passphrase(phr, network='bitcoinlib_test')
+        w = wallet_create_or_open('wlt-sign-with-mnemonic', keys=prv_key.public(), network='bitcoinlib_test',
+                                  scheme='single', db_uri=self.DATABASE_URI)
+        w.new_key()
+        w.utxos_update()
+        t = w.send_to('214bP4ZpdejMppADEnxSkzziPgEG6XGcxiJ', 100000, offline=True)
+        self.assertFalse(t.verified)
+        t.sign(phr)
+        t.verify()
+        self.assertTrue(t.verified)
+
 
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):
