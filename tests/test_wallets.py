@@ -1444,7 +1444,6 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_transaction_export(self):
         txs = self.wallet.transactions_export()
         tx = [t for t in txs if t[1] == 'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f'][0]
-        # self.assertEqual(tx[1], 'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f')
         self.assertEqual(tx[2], 'in')
         self.assertEqual(tx[3], [])
         self.assertEqual(tx[4], ['mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7'])
