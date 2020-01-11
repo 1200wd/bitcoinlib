@@ -1795,10 +1795,10 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertTrue(t.verified)
 
     def test_wallet_select_inputs(self):
-        wlt = HDWallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = HDWallet.create('bclwltsltinputs', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         wlt.get_key()
         wlt.utxos_update()
-        self.assertIsNone(wlt.select_inputs(150000000, max_utxos=1))
+        self.assertEqual(wlt.select_inputs(150000000, max_utxos=1), [])
         self.assertEqual(len(wlt.select_inputs(150000000)), 2)
 
 
