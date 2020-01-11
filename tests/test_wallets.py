@@ -662,9 +662,11 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
     def test_wallet_key_exceptions(self):
         w = HDWallet.create('test_wallet_key_not_found', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', HDWalletKey, 1000000, w._session)
-        self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different network then specified: bitcoin",
-                                HDWalletKey.from_key, '', w.wallet_id, w._session,
-                                'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
+        if PY3:
+            self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
+                                               "network then specified: bitcoin",
+                                    HDWalletKey.from_key, '', w.wallet_id, w._session,
+                                    'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
 
 
 @parameterized_class(*params)
@@ -973,8 +975,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         t.send(offline=True)
         self.assertTrue(t.verify())
         self.assertIsNone(t.error)
-        t.send()
-        self.assertIn("Cannot send transaction", t.error)
+        self.assertEqual(t.export()[0][2], 'out')
 
     def test_wallet_multisig_bitcoin_transaction_send_no_subkey_for_path(self):
         self.db_remove()
@@ -1762,6 +1763,14 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertGreaterEqual(len(w.transactions()), 2)
         w.transactions_update(max_txs=2)
         self.assertGreaterEqual(len(w.transactions()), 4)
+
+    def test_wallet_transactions_update_by_txids(self):
+        address = '15yN7NPEpu82sHhB6TzCW5z5aXoamiKeGy'
+        w = wallet_create_or_open('ftrtxtstwlt2', address, db_uri=self.DATABASE_URI)
+        w.transactions_update_by_txids(['b246dad8980093fa55814b4739396fd6a7f5f28994f721f55d1a862d6c98e7ab'])
+        txs = w.transactions()
+        self.assertEqual(len(txs), 1)
+        self.assertEqual(txs[0].block_height, 368209)
 
     def test_wallet_transactions_sign_with_mnenomic(self):
         phr = 'battle alter frequent adult tuna follow always jar obtain until ice arrange'
