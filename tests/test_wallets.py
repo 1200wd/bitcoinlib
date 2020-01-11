@@ -1618,7 +1618,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         del wlt
 
     def test_wallet_transaction_fee_limits(self):
-        wlt = HDWallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = HDWallet.create('bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
         self.assertRaisesRegexp(WalletError, 'Fee per kB of 682 is lower then minimal network fee of 1000',
@@ -1627,7 +1627,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                 wlt.send_to, to_key.address, 50000000, fee=300000)
 
     def test_wallet_transaction_fee_zero_problem(self):
-        wlt = HDWallet.create(name='bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = HDWallet.create(name='bcltestwlt7', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         nk = wlt.get_key()
         wlt.utxos_update()
         t = wlt.send_to(nk.address, 100000000)
