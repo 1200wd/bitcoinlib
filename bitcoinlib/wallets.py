@@ -3337,9 +3337,9 @@ class HDWallet(object):
         [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param output_arr: List of output as Output objects or tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]
-        :type output_arr: list
+        :type output_arr: list of Output, tuple
         :param input_arr: List of inputs as Input objects or tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
-        :type input_arr: list
+        :type input_arr: list of Input, tuple
         :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
         :type input_key_id: int
         :param account_id: Account ID
@@ -3435,16 +3435,16 @@ class HDWallet(object):
                     sequence = inp.sequence
                     locktime_cltv = inp.locktime_cltv
                     locktime_csv = inp.locktime_csv
-                elif isinstance(inp, DbTransactionOutput):
-                    prev_hash = inp.transaction.hash
-                    output_n = inp.output_n
-                    key_id = inp.key_id
-                    value = inp.value
-                    signatures = None
-                    # FIXME: This is probably not an unlocking_script
-                    unlocking_script = inp.script
-                    unlocking_script_type = get_unlocking_script_type(inp.script_type)
-                    address = inp.key.address
+                # elif isinstance(inp, DbTransactionOutput):
+                #     prev_hash = inp.transaction.hash
+                #     output_n = inp.output_n
+                #     key_id = inp.key_id
+                #     value = inp.value
+                #     signatures = None
+                #     # FIXME: This is probably not an unlocking_script
+                #     unlocking_script = inp.script
+                #     unlocking_script_type = get_unlocking_script_type(inp.script_type)
+                #     address = inp.key.address
                 else:
                     prev_hash = inp[0]
                     output_n = inp[1]

@@ -1594,7 +1594,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wlt = HDWallet.create('bcltestwlt3', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        t = wlt.send_to(to_key.address, 50000000, offline=True)
+        t = wlt.send_to(to_key.address, 40000000, offline=True)
         t2 = wlt.transaction_import(t)
         self.assertDictEqualExt(t.as_dict(), t2.as_dict())
         del wlt
@@ -1605,6 +1605,15 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 50000000, offline=True)
         t2 = wlt.transaction_import_raw(t.raw())
+        self.assertDictEqualExt(t.as_dict(), t2.as_dict())
+        del wlt
+
+    def test_wallet_transaction_import_dict(self):
+        wlt = HDWallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        to_key = wlt.get_key()
+        wlt.utxos_update()
+        t = wlt.send_to(to_key.address, 60000000, offline=True)
+        t2 = wlt.transaction_import(t.as_dict())
         self.assertDictEqualExt(t.as_dict(), t2.as_dict())
         del wlt
 
@@ -1784,6 +1793,13 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         t.sign(phr)
         t.verify()
         self.assertTrue(t.verified)
+
+    def test_wallet_select_inputs(self):
+        wlt = HDWallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt.get_key()
+        wlt.utxos_update()
+        self.assertIsNone(wlt.select_inputs(150000000, max_utxos=1))
+        self.assertEqual(len(wlt.select_inputs(150000000)), 2)
 
 
 @parameterized_class(*params)
