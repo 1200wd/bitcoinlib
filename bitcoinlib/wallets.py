@@ -323,11 +323,13 @@ class HDWalletKey(object):
     """
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0, purpose=44, parent_id=0,
+    def from_key(name, wallet_id, session, key, account_id=0, network=None, change=0, purpose=44, parent_id=0,
                  path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False,
                  cosigner_id=None):
         """
-        Create HDWalletKey from a HDKey object or key
+        Create HDWalletKey from a HDKey object or key.
+
+        Normally you don't need to call this method directly. Key creation is handled by the HDWallet class.
 
         >>> w = wallet_create_or_open('hdwalletkey_test')
         >>> wif = 'xprv9s21ZrQH143K2mcs9jcK4EjALbu2z1N9qsMTUG1frmnXM3NNCSGR57yLhwTccfNCwdSQEDftgjCGm96P29wGGcbBsPqZH85iqpoHA7LrqVy'
@@ -2412,8 +2414,6 @@ class HDWallet(object):
         if "account'" not in self.key_path:
             raise WalletError("Accounts are not supported for this wallet. Account not found in key path %s" %
                               self.key_path)
-        if self.multisig:
-            raise WalletError("Accounts not supported for multisig wallets")
         qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.name,
                       account_id=account_id, depth=3).scalar()
@@ -3196,12 +3196,15 @@ class HDWallet(object):
         Retrieves information from database, does not update transaction and does not check if transaction is spent with service providers.
 
         :param txid: Hexadecimal transaction hash
-        :type txid: str
+        :type txid: str, bytes
         :param output_n: Output n
-        :type output_n: int
+        :type output_n: int, bytes
 
         :return str: Transaction ID
         """
+        txid = to_hexstring(txid)
+        if isinstance(output_n, bytes):
+            output_n = struct.unpack('>I', output_n)[0]
         qr = self._session.query(DbTransactionInput, DbTransaction.confirmations,
                                  DbTransaction.hash, DbTransaction.status). \
             join(DbTransaction). \
@@ -3321,7 +3324,9 @@ class HDWallet(object):
                            min_confirms=0, max_utxos=None, locktime=0):
         """
         Create new transaction with specified outputs.
-        Inputs can be specified but if not provided they will be selected from wallets utxo's with :func:`select_inputs` method
+
+        Inputs can be specified but if not provided they will be selected from wallets utxo's with :func:`select_inputs` method.
+
         Output array is a list of 1 or more addresses and amounts.
 
         >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
@@ -3362,6 +3367,7 @@ class HDWallet(object):
 
         # Create transaction and add outputs
         transaction = HDWalletTransaction(hdwallet=self, network=network, locktime=locktime)
+        transaction.outgoing_tx = True
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")

@@ -659,9 +659,12 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         wk1.name = 'new_name'
         self.assertEqual(wk1.name, 'new_name')
 
-    def test_wallet_key_not_found(self):
+    def test_wallet_key_exceptions(self):
         w = HDWallet.create('test_wallet_key_not_found', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', HDWalletKey, 1000000, w._session)
+        self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different network then specified: bitcoin",
+                                HDWalletKey.from_key, '', w.wallet_id, w._session,
+                                'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
 
 
 @parameterized_class(*params)
@@ -929,6 +932,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         wl1_key = wl1.new_key()
         wl2_key = wl2.new_key(cosigner_id=wl1.cosigner_id)
         self.assertEqual(wl1_key.address, wl2_key.address)
+        self.assertRaisesRegexp(WalletError, "Accounts are not supported for this wallet", wl1.account, 10)
 
     def test_wallet_multisig_bitcoinlib_testnet_transaction_send(self):
         self.db_remove()
@@ -969,6 +973,8 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         t.send(offline=True)
         self.assertTrue(t.verify())
         self.assertIsNone(t.error)
+        t.send()
+        self.assertIn("Cannot send transaction", t.error)
 
     def test_wallet_multisig_bitcoin_transaction_send_no_subkey_for_path(self):
         self.db_remove()
@@ -1463,6 +1469,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f']
         prev_tx_list = sorted([to_hexstring(x.prev_hash) for x in tx.inputs])
         self.assertListEqual(prev_tx_list, prev_tx_list_check)
+        self.wallet.transactions_export()
 
     def test_wallet_offline_create_transaction(self):
         hdkey_wif = 'tprv8ZgxMBicQKsPf5exCdeBgnYjJt2LxDcQbv6u9HHymY3qh6EoTy8SGwou5xyvExL3iWfBsZWp3YUyo9gRmxQxrBS2FwGk' \
@@ -1535,6 +1542,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
 
         t = wlt.send_to(to_key.address, 9000)
         self.assertEqual(wlt.balance(), 200000000 - t.fee)
+        self.assertEqual(t.hash, wlt.transaction_spent(t.inputs[0].prev_hash, t.inputs[0].output_n))
+        self.assertEqual(t.hash, wlt.transaction_spent(to_hexstring(t.inputs[0].prev_hash), t.inputs[0].output_n_int))
         del wlt
 
     def test_wallet_balance_update_multi_network(self):
@@ -2035,6 +2044,9 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         w.new_account(account_id=100)
         self.assertRaisesRegexp(WalletError, "Account with ID 100 already exists for this wallet",
                                 w.new_account, 'test', 100)
+        self.assertRaisesRegexp(WalletError, "Account with ID 1001 not found in this wallet",
+                                w.account, 1001)
+
         paths = ["m/48'/0'/0'/2'", "m/48'/0'/0'/2'/0/0", "m/48'/0'/0'/2'/1/0", "m/48'/0'/1'/2'", "m/48'/0'/1'/2'/0/0",
                  "m/48'/0'/1'/2'/1/0", "m/48'/0'/100'/2'", "m/48'/0'/100'/2'/0/0", "m/48'/0'/100'/2'/1/0"]
         self.assertListEqual(sorted(paths), sorted([k.path for k in w.keys()]))
@@ -2137,6 +2149,8 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '12yuSkjKmHzXCFn39PK1XP3XyeoVw9LJdN'])
         self.assertGreaterEqual(w.balance(), 4532991)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
+        self.assertEqual(w.utxo_last('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'),
+                         'c74d59ef2de2029bc5f45d74673f05e743ceab463c1685ae72e33bd0527b9d80')
 
     def test_wallet_address_import_public_key(self):
         wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \
