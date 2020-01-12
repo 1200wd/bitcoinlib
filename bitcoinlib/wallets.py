@@ -3554,7 +3554,9 @@ class HDWallet(object):
                 rt.size = t.size
             else:
                 rt.size = len(t.raw())
-            rt.vsize = rt.size
+            rt.vsize = t.vsize
+            if not t.vsize:
+                rt.vsize = rt.size
             rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
             rt.block_height = t.block_height
             rt.confirmations = t.confirmations
@@ -3575,6 +3577,7 @@ class HDWallet(object):
                 input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, script,
                                   address))
             rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
+            rt.vsize = t['vsize']
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
