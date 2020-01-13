@@ -48,6 +48,7 @@ BCL_DATA_DIR = ''
 BCL_WORDLIST_DIR = ''
 BCL_CONFIG_FILE = ''
 
+ALLOW_DATABASE_THREADS = None
 
 # Services
 TIMEOUT_REQUESTS = 10
@@ -199,7 +200,7 @@ def read_config():
             return fallback
 
     global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
-    global BCL_DATA_DIR, BCL_WORDLIST_DIR
+    global BCL_DATA_DIR, BCL_WORDLIST_DIR, ALLOW_DATABASE_THREADS
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
     global UNITTESTS_FULL_DATABASE_TEST
 
@@ -250,6 +251,8 @@ def read_config():
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
 
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
+    
+    ALLOW_DATABASE_THREADS = config_get("locations", "allow_database_threads", fallback=True)
 
     full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
     if full_db_test:
