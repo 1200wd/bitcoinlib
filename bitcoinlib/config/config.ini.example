@@ -28,6 +28,9 @@
 # Location of wordlists for Mnemonic passphrases. Relative to installation directory
 ;wordlist_dir=wordlist
 
+# Allow database threads in SQLite databases
+;allow_database_threads=True
+
 [common]
 # Time for request to service providers in seconds
 ;timeout_requests=5
