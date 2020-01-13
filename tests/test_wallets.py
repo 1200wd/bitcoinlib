@@ -1804,6 +1804,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(len(wlt.select_inputs(150000000)), 2)
 
 
+
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):
 

@@ -3316,8 +3316,8 @@ class HDWallet(object):
                 multisig = False if len(inp_keys) < 2 else True
                 script_type = get_unlocking_script_type(utxo.script_type, multisig=multisig)
                 inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
-                              sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                              compressed=key.compressed, value=utxo.value))
+                              sigs_required=self.multisig_n_required, sort=self.sort_keys, address=key.address,
+                              compressed=key.compressed, value=utxo.value, network=key.network_name))
             return inputs
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
