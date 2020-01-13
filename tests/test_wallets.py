@@ -1816,8 +1816,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                 wlt.transaction_create, [('217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ', 150000000)],
                                 inps, max_utxos=1)
         wallet_empty('test_wallet_transaction_create_exceptions', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, "UTXO e69b3f614edd58da61c8b87f97a185748f3a99b30b13a921c035d536424c6be9 "
-                                             "and key with address 217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ not found",
+        self.assertRaisesRegexp(WalletError, "UTXO",
                                 wlt.transaction_create, [('217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ', 150000000)],
                                 inps)
 

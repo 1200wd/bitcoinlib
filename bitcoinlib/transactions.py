@@ -1275,7 +1275,7 @@ class Transaction(object):
             outputs.append(o.as_dict())
         return {
             'hash': self.hash,
-            'date': self.date if not self.date else datetime.strftime(self.date, "%Y-%m-%dT%H:%M:%SZ"),
+            'date': self.date,
             'network': self.network.name,
             'witness_type': self.witness_type,
             'coinbase': self.coinbase,

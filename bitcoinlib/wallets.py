@@ -3985,4 +3985,4 @@ class HDWallet(object):
         :return str:
         """
         adict = self.as_dict(include_private=include_private)
-        return json.dumps(adict, indent=4)
+        return json.dumps(adict, indent=4, default=str)
