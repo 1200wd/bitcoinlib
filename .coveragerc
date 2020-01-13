@@ -8,6 +8,7 @@ omit =
     *authproxy.py
     *cryptoid.py
     *chainso.py
+    *insightdash.py
 [report]
 exclude_lines =
     pragma: no cover

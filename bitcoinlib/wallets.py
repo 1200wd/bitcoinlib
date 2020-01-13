@@ -3945,14 +3945,14 @@ class HDWallet(object):
 
             if self.multisig:
                 for t in self.transactions(include_new=True, account_id=0, network=netw.name):
-                    transactions.append(t)
+                    transactions.append(t.as_dict())
             else:
                 accounts = self.accounts(network=netw.name)
                 if not accounts:
                     accounts = [0]
                 for account_id in accounts:
                     for t in self.transactions(include_new=True, account_id=account_id, network=netw.name):
-                        transactions.append(t)
+                        transactions.append(t.as_dict())
 
         return {
             'wallet_id': self.wallet_id,

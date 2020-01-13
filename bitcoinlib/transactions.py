@@ -678,7 +678,6 @@ class Input(object):
             signatures = []
         if not isinstance(signatures, list):
             signatures = [signatures]
-        # Sort according to BIP45 standard
         self.sort = sort
         if isinstance(address, Address):
             self.address = address.address
@@ -1276,7 +1275,7 @@ class Transaction(object):
             outputs.append(o.as_dict())
         return {
             'hash': self.hash,
-            'date': self.date,
+            'date': self.date if not self.date else datetime.strftime(self.date, "%Y-%m-%dT%H:%M:%SZ"),
             'network': self.network.name,
             'witness_type': self.witness_type,
             'coinbase': self.coinbase,

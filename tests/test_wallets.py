@@ -134,8 +134,6 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_info(self):
         self.assertIsNone(self.wallet.info())
-        self.assertTrue(self.wallet.as_dict())
-        self.assertTrue(self.wallet.as_json())
         self.assertIn("<HDWallet(name=test_wallet_create, db_uri=", repr(self.wallet))
         print(self.wallet)
 
@@ -284,6 +282,10 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
             w2.name = 'test_wallet_rename_duplicate1'
         self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_rename_duplicate1' already exists", test_func)
 
+    def test_wallet_as_dict_json(self):
+        wallet = HDWallet.create("test_wallet_as_dict_json", db_uri=self.DATABASE_URI, network='bitcoinlib_test')
+        self.assertTrue(wallet.as_dict())
+        self.assertTrue(wallet.as_json())
 
 @parameterized_class(*params)
 class TestWalletImport(TestWalletMixin, unittest.TestCase):
