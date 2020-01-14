@@ -33,8 +33,8 @@ logger = logging.getLogger()
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
                               datefmt='%Y/%m/%d %H:%M:%S')
 handler.setFormatter(formatter)
+handler.setLevel(LOGLEVEL)
 logger.addHandler(handler)
-logger.setLevel(LOGLEVEL)
 
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
 logging.info('Version: %s' % BITCOINLIB_VERSION)
@@ -47,7 +47,7 @@ logging.info('Directory for BCL configuration: %s' % BCL_CONFIG_DIR)
 logging.info('Directory for BCL data files: %s' % BCL_DATA_DIR)
 logging.info('Directory wordlists: %s' % BCL_WORDLIST_DIR)
 
-logging.getLogger('sqlalchemy.engine').setLevel('WARNING')
+# logging.getLogger('sqlalchemy.engine').setLevel('WARNING')
 
 
 def script_type_default(witness_type=None, multisig=False, locking_script=False):

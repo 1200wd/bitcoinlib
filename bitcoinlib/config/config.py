@@ -31,7 +31,7 @@ if not PY3:
 TYPE_INT = int
 if not PY3:
     TYPE_INT = (int, long)
-LOGLEVEL = 'DEBUG'
+LOGLEVEL = 'WARNING'
 if PY3:
     import configparser
 else:
