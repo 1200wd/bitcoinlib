@@ -44,7 +44,7 @@ Some Examples
 Wallet
 ------
 
-The bitcoin library contains a wallet implementation using sqlalchemy and sqllite3 to import, create and manage
+The bitcoin library contains a wallet implementation using SQLAlchemy and SQLite3 to import, create and manage
 keys in a Hierarchical Deterministic way.
 
 Example: Create wallet and generate new address (key) to receive bitcoins
@@ -225,6 +225,14 @@ Example: Get estimated transaction fee in sathosis per Kb for confirmation withi
    >>> from bitcoinlib.services.services import Service
    >>> Service().estimatefee(5)
    138964
+
+
+Other Databases
+---------------
+
+Bitcoinlib uses the SQLite database by default but other databases are supported as well.
+See http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html for instructions on how to use
+MySQL or PostgreSQL.
 
 
 More examples
