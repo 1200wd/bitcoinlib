@@ -198,6 +198,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    _static/manuals.command-line-wallet
    _static/manuals.add-provider
    _static/manuals.setup-bitcoind-connection
+   _static/manuals.databases
 
 
 
@@ -205,6 +206,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    :caption: Reference
    :maxdepth: 1
 
+   _static/classes-overview
    source/modules
    source/bitcoinlib.config
    source/bitcoinlib.db
