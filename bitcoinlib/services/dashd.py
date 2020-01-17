@@ -163,7 +163,7 @@ class DashdClient(BaseClient):
             'txid': res,
             'response_dict': res
         }
-    
+
     def estimatefee(self, blocks):
         try:
             res = self.proxy.estimatesmartfee(blocks)['feerate']
@@ -173,6 +173,26 @@ class DashdClient(BaseClient):
 
     def blockcount(self):
         return self.proxy.getblockcount()
+
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        txs = []
+
+        for t in self.proxy.listunspent(0, 99999999, [address]):
+            txs.append({
+                'address': t['address'],
+                'tx_hash': t['txid'],
+                'confirmations': t['confirmations'],
+                'output_n': t['vout'],
+                'input_n': -1,
+                'block_height': None,
+                'fee': None,
+                'size': 0,
+                'value': int(t['amount'] * self.units),
+                'script': t['scriptPubKey'],
+                'date': None,
+            })
+
+        return txs
 
 if __name__ == '__main__':
     #
