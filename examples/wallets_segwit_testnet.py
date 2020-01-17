@@ -60,6 +60,7 @@ w4_key = w4.get_key()
 #
 
 w1.utxos_update()
+w1.info()
 if not w1.utxos():
     print("No UTXO'S found, please make a test-bitcoin deposit to %s. Minimum amount needed is %d sathosi" %
           (w1_key.address, (4 * (tx_fee + tx_amount))))

@@ -1387,9 +1387,9 @@ class HDKey(Key):
         BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
         Based on code from https://github.com/nomorecoin/python-bip38-testing
 
-        >>> k = HDKey('zpub6jftahH18ngZyanZ5b6VMRApYRjKWqCMD1xiUsZpbNRQNWiYkX2183TJT7unarBTQMESPMX7EuxopG9RfXWme2cK1W7T5ebD2es5SpN9cQ3')
-        >>> k.bip38_encrypt('test')
-        '6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg'
+        >>> k = HDKey('zprvAWgYBBk7JR8GjAHfvjhGLKFGUJNcnPtkNryWfstePYJc4SVFYbaFk3Fpqn9dSmtPLKrPWB7WzsgzZzFiB1Qnhzop6jqTdEvHVzutBM2bmNr')
+        >>> k.bip38_encrypt('my-secret-password')
+        '6PYUAKyDYo7Q6sSJ3ZYo4EFeWFTMkUES2mdvsMNBSoN5QyXPmeogxfumfW'
 
         :param passphrase: Required passphrase for encryption
         :type passphrase: str

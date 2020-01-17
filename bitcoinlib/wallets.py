@@ -1009,7 +1009,7 @@ class HDWallet(object):
 
             w = cls(new_wallet_id, db_uri=db_uri, main_key_object=mk.key())
             w.key_for_path([0, 0], account_id=account_id, cosigner_id=cosigner_id)
-        elif scheme == 'single':
+        else:  # scheme == 'single':
             if not key:
                 key = HDKey(network=network, depth=key_depth)
             mk = HDWalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
@@ -2900,11 +2900,12 @@ class HDWallet(object):
 
         :return str:
         """
-        to = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
-             join(DbTransactionOutput).join(DbKey). \
-             filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
-                    DbTransactionOutput.spent.is_(False)). \
-             order_by(DbTransaction.confirmations).first()
+        to = self._session.query(
+            DbTransaction.hash, DbTransaction.confirmations). \
+            join(DbTransactionOutput).join(DbKey). \
+            filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
+                   DbTransactionOutput.spent.is_(False)). \
+            order_by(DbTransaction.confirmations).first()
         return '' if not to else to[0]
 
     def transactions_update_by_txids(self, txids):
@@ -3032,8 +3033,8 @@ class HDWallet(object):
 
         :return str:
         """
-        txid = self._session.query(DbKey.latest_txid). \
-             filter(DbKey.address == address, DbKey.wallet_id == self.wallet_id).scalar()
+        txid = self._session.query(DbKey.latest_txid).\
+            filter(DbKey.address == address, DbKey.wallet_id == self.wallet_id).scalar()
         return txid if txid else ''
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None, as_dict=False):
