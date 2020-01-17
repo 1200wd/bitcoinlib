@@ -19,7 +19,7 @@ Please make sure you have server and txindex option set to 1.
 So your bitcoin.conf file for testnet should look something like this. For mainnet use port 8332,
 and remove the 'testnet=1' line.
 
-.. code-block:: none
+.. code-block:: text
 
     [rpc]
     rpcuser=bitcoinrpc
@@ -63,14 +63,16 @@ Example:
 
 .. code-block:: json
 
-  "bitcoind.testnet": {
-    "provider": "bitcoind",
-    "network": "testnet",
-    "client_class": "BitcoindClient",
-    "url": "http://user:password@server_url:18332",
-    "api_key": "",
-    "priority": 11,
-    "denominator": 100000000
+  {
+    "bitcoind.testnet": {
+      "provider": "bitcoind",
+      "network": "testnet",
+      "client_class": "BitcoindClient",
+      "url": "http://user:password@server_url:18332",
+      "api_key": "",
+      "priority": 11,
+      "denominator": 100000000
+    }
   }
 
 
