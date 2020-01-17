@@ -25,7 +25,7 @@ matrix:
       dist: xenial
       sudo: true
       env:
-        - UNITTESTS_FULL_DATABASE_TEST=False
+        - UNITTESTS_FULL_DATABASE_TEST=True
     - os: windows
       language: sh
       python: "3.7"

@@ -72,6 +72,7 @@ class DbInit:
             if BITCOINLIB_VERSION != version_db:
                 _logger.warning("BitcoinLib database (%s) is from different version then library code (%s). "
                                 "Let's try to update database." % (version_db, BITCOINLIB_VERSION))
+                db_update(self, version_db, BITCOINLIB_VERSION)
 
         except Exception as e:
             _logger.warning("Error when verifying version or updating database: %s" % e)
@@ -79,15 +80,17 @@ class DbInit:
     @staticmethod
     def _import_config_data(ses):
         session = ses()
-        session.merge(DbConfig(variable='version', value=BITCOINLIB_VERSION))
-        session.merge(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
-        url = ''
-        try:
-            url = str(session.bind.url)
-        except:
-            pass
-        session.merge(DbConfig(variable='installation_url', value=url))
-        session.commit()
+        installation_date = session.query(DbConfig.value).filter_by(variable='installation_date').scalar()
+        if not installation_date:
+            session.merge(DbConfig(variable='version', value=BITCOINLIB_VERSION))
+            session.merge(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
+            url = ''
+            try:
+                url = str(session.bind.url)
+            except:
+                pass
+            session.merge(DbConfig(variable='installation_url', value=url))
+            session.commit()
         session.close()
 
 

@@ -24,6 +24,9 @@ try:
 except NameError:
     pass
 
+print("Database should update automatically when using BitcoinLib. If automatic update fails you can run this script"
+      "after everything is backup-ed!")
+sys.exit()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='BitcoinLib Database update script')
