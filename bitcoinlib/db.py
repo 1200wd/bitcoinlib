@@ -52,6 +52,10 @@ class DbInit:
         o = urlparse(db_uri)
         if not o.scheme:
             db_uri = 'sqlite:///%s' % db_uri
+        if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
+            if "?" in db_uri: db_uri += "&"
+            else: db_uri += "?"
+            db_uri += "check_same_thread=False"
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
         Session = sessionmaker(bind=self.engine)
 
