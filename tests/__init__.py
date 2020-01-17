@@ -25,3 +25,4 @@ import tests.test_wallets
 import tests.test_transactions
 import tests.test_services
 import tests.test_tools
+import tests.test_db

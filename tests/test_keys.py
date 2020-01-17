@@ -64,6 +64,10 @@ class TestKeyClasses(unittest.TestCase):
         self.assertListEqual(path_expand([], witness_type='p2sh-segwit'), ['m', "49'", "0'", "0'", '0', '0'])
         self.assertListEqual(path_expand([99], witness_type='p2sh-segwit', multisig=True),
                              ['m', "48'", "0'", "0'", "1'", '0', '99'])
+        self.assertRaisesRegexp(BKeyError, "Invalid path provided. Path should be shorter than 6 items.",
+                                path_expand, [0, 1, 2, 3, 4, 5, 6])
+        self.assertRaisesRegexp(BKeyError, "Please provide path as list with at least 1 item",
+                                path_expand, 5)
 
 
 class TestGetKeyFormat(unittest.TestCase):
@@ -97,6 +101,14 @@ class TestGetKeyFormat(unittest.TestCase):
         self.assertEqual('hdkey_private', get_key_format(key)['format'])
         self.assertIn('litecoin_testnet', get_key_format(key)['networks'])
 
+    def test_format_hdkey_mnemonic(self):
+        self.assertEqual(get_key_format('abandon car zoo')['format'], 'mnemonic')
+
+    def test_format_key_exceptions(self):
+        self.assertRaisesRegexp(BKeyError, "Key empty, please specify a valid key", get_key_format, '')
+        self.assertRaisesRegexp(BKeyError, "Attribute 'is_private' must be False or True", get_key_format,
+                                '666368e477a8ddd46808c527cc3c506719bb3f52a927b6c13532984b714b56ad', 3)
+
 
 class TestPrivateKeyConversions(unittest.TestCase):
 
@@ -117,6 +129,10 @@ class TestPrivateKeyConversions(unittest.TestCase):
 
     def test_private_key_conversions_wif(self):
         self.assertEqual('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy', self.k.wif())
+        if not PY3:
+            return
+        self.assertEqual('XHVtmt8BSSd5MRs5JTT4apiX9a3mUSwHxbGm6Ky6qiyyVvFRhmU7', self.k.wif(prefix='cc'))
+        self.assertEqual('XHVtmt8BSSd5MRs5JTT4apiX9a3mUSwHxbGm6Ky6qiyyVvFRhmU7', self.k.wif(prefix=b'\xcc'))
 
     def test_private_key_public(self):
         self.assertEqual('034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5', self.k.public_hex)
@@ -144,6 +160,12 @@ class TestPrivateKeyImport(unittest.TestCase):
         pk = b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>A\xda\xa6\x01'
         self.k = Key(pk)
         self.assertEqual('KyBsPXxTuVD82av65KZkrGrWi5qLMah5SdNq6uftawDbgKa2wv6S', self.k.wif())
+
+    def test_private_key_import_hex(self):
+        pk = '4781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd' \
+             '991064c2e7f7d532b9c9ca825671a8809ab6876c78b'
+        k = Key(pk)
+        self.assertEqual('f93677c417d4750c7a5806f849739265cc46b8a9', to_hexstring(k.hash160))
 
     def test_private_key_import_key_bytearray(self):
         pk = bytearray(b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>'
@@ -317,6 +339,14 @@ class TestHDKeysImport(unittest.TestCase):
         for wif in wifs:
             self.assertEqual(HDKey(wif[0]).wif(is_private=wif[1]), wif[0])
 
+    def test_hdkey_import_from_private_byte(self):
+        if not PY3:
+            return
+        keystr = b"fch\xe4w\xa8\xdd\xd4h\x08\xc5'\xcc<Pg\x19\xbb?R\xa9'\xb6\xc152\x98KqKV\xad\x91`G-a\xb1\xad\xd8eL" \
+                 b"\xcc\x8an\x94\xa3\x93\xb5\xa5\xe6\xc3\xf1\x98\x91h6wt\xf0z=\x1f\x17"
+        hdkey = HDKey(keystr)
+        self.assertEqual(hdkey.address(), '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd')
+
 
 class TestHDKeysChildKeyDerivation(unittest.TestCase):
 
@@ -363,6 +393,11 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
                          '9rXpVGyy3bdW6EEgAtqt',
                          sk.wif_public())
 
+    def test_hdkey_path_M_0_1_public(self):
+        sk = self.k.subkey_for_path('M/0/1')
+        self.assertEqual('xpub6AvUGrnEpfvJBbfx7sQ89Q8hEMPM65UteqEX4yUbUiES2jHfjexmfJoxCGSwFMZiPBaKQT1RiKWrKfuDV4vpgVs'
+                         '4Xn8PpPTR2i79rwHd4Zr', sk.wif())
+
     def test_hdkey_path_invalid(self):
         with self.assertRaises(BKeyError):
             self.k2.subkey_for_path('m/0/').wif()
@@ -375,22 +410,22 @@ class TestHDKeysChildKeyDerivation(unittest.TestCase):
         pk = 'tprv8ZgxMBicQKsPdvHCP6VxtFgowj2k7nBJnuRiVWE4DReDFojkLjyqdT8mtR6XJK9dRBcaa3RwvqiKFjsEQVhKfQmHZCCYf4jRTWv' \
              'JuVuK67n'
         k = HDKey(pk)
-        self.assertEqual(k.account_key(3, 45).private_hex,
+        self.assertEqual(k.public_master(3, 45, as_private=True).private_hex,
                          '232b9d7b48fa4ca6e842f09f6811ff03cf33ba0582b4cca5752deec2e746c186')
 
     def test_hdkey_bip44_account_litecoin(self):
         pk = 'Ltpv71G8qDifUiNes8hK1m3ZjL3bW76X4AKF3J26FVDM5awe6mWdyyzZgTrbvkK5z4WQyKkyVnDvC56KfRaHHhcZjWcWvRFCzBYUsCc' \
              'FoNNHjck'
         k = HDKey(pk, network='litecoin')
-        self.assertEqual(k.account_key().address(), 'LZ4gg2m6uNY3vj9RUFkderRP18ChTwWyiq')
+        self.assertEqual(k.public_master().address(), 'LZ4gg2m6uNY3vj9RUFkderRP18ChTwWyiq')
 
-    def test_hdkey_bip44_account_set_network(self):
-        pk = 'xprv9s21ZrQH143K3eL4S7g5DWNecoKFw1tbWA5wQDbeQcNKQD4dvFjG4UZE9U3xXK3DcpYWpaYCtWN2jmuiPsNTxDA1YoCupKFFAAb' \
-             'DxnrSZLh'
-        k = HDKey(pk)
-        self.assertEqual(k.account_key(set_network='litecoin').wif_public(),
-                         'Ltub2YFrLu4dWbKxpypR9AytvMy8uiHE1STWpDHbv3Qa19jLwjqAqpTJpA2McrRGGfZUkSEgQiz9GC7J3UoNmxc32z'
-                         'czaR2hpDfCny9xmCGoG9V')
+    def test_hdkey_derive_from_public_error(self):
+        k = HDKey().public()
+        self.assertRaisesRegexp(BKeyError, "Need a private key to create child private key", k.child_private)
+        k0 = HDKey()
+        k1 = k0.child_private(10, hardened=True)
+        self.assertRaisesRegexp(BKeyError, "Cannot derive hardened key from public private key",
+                                k1.child_public, 2147483659)
 
 
 class TestHDKeysPublicChildKeyDerivation(unittest.TestCase):
@@ -475,6 +510,12 @@ class TestHDKeys(unittest.TestCase):
         k = HDKey()
         self.assertIsNone(k.info())
 
+    def test_hdkey_network_change(self):
+        pk = '688e4b153100f6d4526a00a3fffb47d971a32a54950ec00fab8c22fa8480edfe'
+        k = HDKey(pk)
+        k.network_change('litecoin')
+        self.assertEqual(k.address(), 'LPsPTgctprGZ6FEc7QFAugr6qg8XV3X4tg')
+
 
 class TestBip38(unittest.TestCase):
 
@@ -504,7 +545,23 @@ class TestBip38(unittest.TestCase):
             return
         for v in self.vectors["invalid"]["verify"]:
             print("Checking invalid key %s" % v['base58'])
-            self.assertRaisesRegexp(BKeyError, "", Key, str(v['base58']))
+            self.assertRaisesRegexp(Exception, "", Key, str(v['base58']))
+
+    def test_bip38_other_networks(self):
+        if not USING_MODULE_SCRYPT:
+            return
+        networks = ['testnet', 'litecoin', 'dash']
+        for network in networks:
+            k = Key(network=network)
+            enc_key = k.bip38_encrypt('password')
+            k2 = Key(enc_key, passphrase='password', network=network)
+            self.assertEqual(k.wif(), k2.wif())
+
+    def test_bip38_hdkey_method(self):
+        pkwif = '5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5'
+        bip38_wif = '6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq'
+        k = HDKey(pkwif)
+        self.assertEqual(k.bip38_encrypt('Satoshi'), bip38_wif)
 
 
 class TestKeysBulk(unittest.TestCase):
@@ -563,10 +620,26 @@ class TestKeysAddress(unittest.TestCase):
         pk = '7cc7ed043b4240945e744387f8943151de86843025682bf40fa94ef086eeb686'
         a = Address(pk, network='testnet')
         self.assertEqual(a.address, 'mmAXD1HJtV9pdffPvBJkuT4qQrbFMwb4pR')
+        self.assertEqual(a.with_prefix(b'\x88'), 'wpcbpijWdzjj5W9ZXfdj2asW9U2q7gYCmw')
         a = Address(pk, script_type='p2sh', network='testnet')
         self.assertEqual(a.address, '2MxtnuEcoEpYJ9WWkzqcr87ChujVRk1DFsZ')
         a = Address(pk, encoding='bech32', network='testnet')
         self.assertEqual(a.address, 'tb1q8hehumvm039nxnwwtqdjr7qmm46sfxrdw7vc3g')
+
+    def test_keys_address_deserialize_exceptions(self):
+        self.assertRaisesRegexp(BKeyError, "Invalid address 17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bb, checksum incorrect",
+                                deserialize_address, '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bb', encoding='base58')
+        self.assertRaisesRegexp(EncodingError,
+                                "Address 17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd is not in specified encoding bs",
+                                deserialize_address, '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bd', encoding='bs')
+        self.assertRaisesRegexp(EncodingError,
+                                "Invalid address 17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bb: "
+                                "Invalid bech32 character in bech string",
+                                deserialize_address, '17N9VQbP89ThunSq7Yo2VooXCFTW1Lp8bb', encoding='bech32')
+        self.assertRaisesRegexp(EncodingError,
+                                "Address bc1qk077yl8zf6yty25rgrys8h40j8adun267y3m44 is not in specified "
+                                "encoding base58",
+                                deserialize_address, 'bc1qk077yl8zf6yty25rgrys8h40j8adun267y3m44', encoding='base58')
 
     def test_keys_address_deserialize_litecoin(self):
         address = '3N59KFZBzpnq4EoXo2cDn2GKjX1dfkv1nB'
@@ -810,6 +883,15 @@ class TestKeysSignatures(unittest.TestCase):
         self.assertEqual(to_hexstring(sig.as_der_encoded()), expected_der)
         self.assertEqual(sig.bytes(), expected_sig_bytes)
         self.assertEqual(sig.hex(), expected_sig_hex)
+
+    def test_sig_rs_out_of_curve(self):
+        outofcurveint = 115792089237316195423570985008687907852837564279074904382605163141518161494339
+        self.assertRaisesRegexp(BKeyError, "r is not a positive integer smaller than the curve order",
+                                Signature, outofcurveint, 10)
+        self.assertRaisesRegexp(BKeyError, "r is not a positive integer smaller than the curve order",
+                                Signature, 0, 10)
+        self.assertRaisesRegexp(BKeyError, "s is not a positive integer smaller than the curve order",
+                                Signature, 11, outofcurveint)
 
 
 if __name__ == '__main__':

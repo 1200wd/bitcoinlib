@@ -44,7 +44,7 @@ Some Examples
 Wallet
 ------
 
-The bitcoin library contains a wallet implementation using sqlalchemy and sqllite3 to import, create and manage
+The bitcoin library contains a wallet implementation using SQLAlchemy and SQLite3 to import, create and manage
 keys in a Hierarchical Deterministic way.
 
 Example: Create wallet and generate new address (key) to receive bitcoins
@@ -227,6 +227,14 @@ Example: Get estimated transaction fee in sathosis per Kb for confirmation withi
    138964
 
 
+Other Databases
+---------------
+
+Bitcoinlib uses the SQLite database by default but other databases are supported as well.
+See http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html for instructions on how to use
+MySQL or PostgreSQL.
+
+
 More examples
 -------------
 For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
@@ -247,7 +255,31 @@ Implements the following Bitcoin Improvement Proposals
 Installing and updating
 =======================
 
+Pre-requirements Linux
+----------------------
+
+``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
+
+To install OpenSSL development package on Debian, Ubuntu or their derivatives
+
+``sudo apt install libssl-dev``
+
+To install OpenSSL development package on Fedora, CentOS or RHEL
+
+``sudo yum install gcc openssl-devel``
+
+
+Pre-requirements Windows
+------------------------
+
+This library required a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
+See https://wiki.python.org/moin/WindowsCompilers
+
+The fastecdsa library is not working at this moment on windows, so the slower ecdsa library is installed.
+
+
 Install with pip
+----------------
 
 ``pip install bitcoinlib``
 
@@ -282,29 +314,6 @@ Then clone the repository and install dependencies:
     $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
     $ pip install -r requirements-dev.txt
-
-
-Other requirements Linux
-------------------------
-
-``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
-
-To install OpenSSL development package on Debian, Ubuntu or their derivatives
-
-``sudo apt install libssl-dev``
-
-To install OpenSSL development package on Fedora, CentOS or RHEL
-
-``sudo yum install gcc openssl-devel``
-
-
-Other requirements Windows
---------------------------
-
-This library required a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
-See https://wiki.python.org/moin/WindowsCompilers
-
-The fastecdsa library is not working at this moment on windows, so the slower ecdsa library is installed.
 
 
 Troubleshooting
@@ -357,7 +366,6 @@ Future / Roadmap
 * Create Script class and support advanced scripts
 * Fully support timelocks
 * Support for Trezor wallet
-* Support and extensively test other databases
 * Improve speed and security
 * Integrate in ERP and shopping solutions such as Odoo, Magento, Shopware
 * Support for lightning network

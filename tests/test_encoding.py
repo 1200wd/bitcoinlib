@@ -111,6 +111,25 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
         s = '\xc8\xe9\t\x96\xc7\xc6\x08\x0e\xe0b\x84`\x0chN\xd9\x04\xd1L\\'
         self.assertEqual('c8e90996c7c6080ee06284600c684ed904d14c5c', change_base(s, 256, 16))
 
+    def test_change_base_decimal_input_lenght_exception(self):
+        self.assertRaisesRegexp(EncodingError, "For a decimal input a minimum output length is required",
+                                change_base, 100, 10, 2)
+
+    def test_encoding_exceptions(self):
+        self.assertRaisesRegexp(EncodingError, "Unknown input format {}",
+                                change_base, {}, 4, 2)
+        if PY3:
+            self.assertRaisesRegexp(EncodingError, "Byteint must be a list or defined as bytes",
+                                    varbyteint_to_int, 'fd1027')
+        self.assertRaisesRegexp(EncodingError, "Input must be a number type",
+                                int_to_varbyteint, '1000')
+        self.assertRaisesRegexp(TypeError, "String value expected", normalize_string, 100)
+        self.assertRaisesRegexp(EncodingError, "Encoding base32 not supported", pubkeyhash_to_addr, '123',
+                                encoding='base32')
+        addr = 'qc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84'
+        self.assertRaisesRegexp(EncodingError, "Invalid bech32 address. Prefix 'qc', prefix expected is 'bc'",
+                                addr_bech32_to_pubkeyhash, addr, prefix='bc')
+
 
 class TestEncodingMethodsAddressConversion(unittest.TestCase):
 
@@ -133,6 +152,15 @@ class TestEncodingMethodsAddressConversion(unittest.TestCase):
     def test_pkh_to_addr_conversion_2(self):
         self.assertEqual('11111111111111111111111111114oLvT2',
                          pubkeyhash_to_addr('00' * 20))
+
+    def test_address_to_pkh_bech32(self):
+        addr = 'bc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84'
+        self.assertEqual(addr_to_pubkeyhash(addr), b'!\xc1\xbciZV\xf4y\x91\xe9_\xf2hV\xe5\x0fx\xd3\xc1\x18')
+        self.assertEqual(addr_to_pubkeyhash(addr, as_hex=True), '21c1bc695a56f47991e95ff26856e50f78d3c118')
+
+    def test_pkh_to_bech32_address(self):
+        addr = pubkeyhash_to_addr('45d093a97d5710c80363c69618e826efad42edb1', encoding='bech32')
+        self.assertEqual(addr, 'bc1qghgf82ta2ugvsqmrc6tp36pxa7k59md3czjhjc')
 
 
 class TestEncodingMethodsStructures(unittest.TestCase):
@@ -204,6 +232,13 @@ class TestEncodingMethodsStructures(unittest.TestCase):
     def test_to_hexstring_bytearray(self):
         self.assertEqual('06073c4600ff202020c81b',
                          to_hexstring(bytearray([6, 7, 60, 70, 0, 255, 32, 32, 32, 200, 27])))
+
+    def test_der_encode_sig(self):
+        r = 80828100789555555332401870818771238079532314371107341426356071258591122886343
+        s = 15674820848044112551623338734376985640551839688984719714434052277382938010325
+        der_sig = '3045022100b2b31575f8536b284410d01217f688be3a9faf4ba0ba3a9093f983e40d630' \
+                  'ec7022022a7a25b01403cff0d00b3b853d230f8e96ff832b15d4ccc75203cb65896a2d5'
+        self.assertEqual(to_hexstring(der_encode_sig(r, s)), der_sig)
 
 
 VALID_CHECKSUM = [
@@ -288,8 +323,7 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             try:
                 pos = test.rfind('1')
                 hrp = test[:pos]
-                pkh = addr_bech32_to_pubkeyhash(test, hrp)
-                self.assertFalse(pkh)
+                self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, test, hrp)
             except EncodingError as e:
                 self.assertIn("not found in codebase", e.msg)
 
@@ -307,8 +341,8 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
     def test_invalid_address(self):
         """Test whether invalid addresses fail to decode."""
         for test in INVALID_ADDRESS:
-            self.assertFalse(addr_bech32_to_pubkeyhash("bc", test))
-            self.assertFalse(addr_bech32_to_pubkeyhash("tb", test))
+            self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, "bc", test)
+            self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, "tb", test)
 
 
 class TestEncodingConfig(unittest.TestCase):

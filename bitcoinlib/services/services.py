@@ -60,8 +60,7 @@ class Service(object):
 
         :param network: Specify network used
         :type network: str, Network
-        :param min_providers: Minimum number of providers to connect to. Default is 1. Use for instance to receive
-        fee information from a number of providers and calculate the average fee.
+        :param min_providers: Minimum number of providers to connect to. Default is 1. Use for instance to receive fee information from a number of providers and calculate the average fee.
         :type min_providers: int
         :param max_providers: Maximum number of providers to connect to. Default is 1.
         :type max_providers: int
@@ -69,8 +68,8 @@ class Service(object):
         :type providers: list, str
         :param timeout: Timeout for web requests. Leave empty to use default from config settings
         :type timeout: int
-
         """
+
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)
@@ -128,6 +127,9 @@ class Service(object):
             if self.resultcount >= self.max_providers:
                 break
             try:
+                if sp not in ['bitcoind', 'litecoind', 'dashd'] and not self.providers[sp]['url'] and \
+                        self.network.name != 'bitcoinlib_test':
+                    continue
                 client = getattr(services, self.providers[sp]['provider'])
                 providerclient = getattr(client, self.providers[sp]['client_class'])
                 pc_instance = providerclient(
@@ -252,7 +254,13 @@ class Service(object):
         if after_txid is None:
             after_txid = ''
 
+        # ToDo: gettransaction should raise error instead of returning False
         txs = self._provider_execute('gettransactions', address, after_txid,  max_txs)
+        if txs == False:
+            # Retry
+            txs = self._provider_execute('gettransactions', address, after_txid, max_txs)
+            if txs == False:
+                raise ServiceError("Error when retreiving transactions from service provider")
         if len(txs) == max_txs:
             self.complete = False
         return txs
@@ -273,7 +281,7 @@ class Service(object):
         """
         Push a raw transaction to the network
 
-        :param rawtx: Raw transaction as hexstring
+        :param rawtx: Raw transaction as hexstring or bytes
         :type rawtx: str, bytes
 
         :return dict: Send transaction result

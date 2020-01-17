@@ -42,7 +42,8 @@ db_uris = (('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATA
 if UNITTESTS_FULL_DATABASE_TEST:
     db_uris += (
         ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
-        ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME, 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
+        ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
+         'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
     )
 params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
     db_uris
@@ -83,7 +84,7 @@ class TestWalletMixin:
             for db in [DATABASEFILE_UNITTESTS, DATABASEFILE_UNITTESTS_2]:
                 if os.path.isfile(db):
                     os.remove(db)
-        elif cls.SCHEMA =='postgresql':
+        elif cls.SCHEMA == 'postgresql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
                 cls.create_db_if_needed(db)
                 con = psycopg2.connect(user='postgres', host='localhost', password='postgres', database=db)
@@ -103,7 +104,7 @@ class TestWalletMixin:
                 finally:
                     cur.close()
                     con.close()
-        elif cls.SCHEMA =='mysql':
+        elif cls.SCHEMA == 'mysql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
                 cls.create_db_if_needed(db)
                 con = mysql.connector.connect(user='root', host='localhost', database=db, autocommit=True)
@@ -133,8 +134,6 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_info(self):
         self.assertIsNone(self.wallet.info())
-        self.assertTrue(self.wallet.as_dict())
-        self.assertTrue(self.wallet.as_json())
         self.assertIn("<HDWallet(name=test_wallet_create, db_uri=", repr(self.wallet))
         print(self.wallet)
 
@@ -283,6 +282,10 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
             w2.name = 'test_wallet_rename_duplicate1'
         self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_rename_duplicate1' already exists", test_func)
 
+    def test_wallet_as_dict_json(self):
+        wallet = HDWallet.create("test_wallet_as_dict_json", db_uri=self.DATABASE_URI, network='bitcoinlib_test')
+        self.assertTrue(wallet.as_dict())
+        self.assertTrue(wallet.as_json())
 
 @parameterized_class(*params)
 class TestWalletImport(TestWalletMixin, unittest.TestCase):
@@ -658,9 +661,14 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         wk1.name = 'new_name'
         self.assertEqual(wk1.name, 'new_name')
 
-    def test_wallet_key_not_found(self):
+    def test_wallet_key_exceptions(self):
         w = HDWallet.create('test_wallet_key_not_found', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', HDWalletKey, 1000000, w._session)
+        if PY3:
+            self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
+                                               "network then specified: bitcoin",
+                                    HDWalletKey.from_key, '', w.wallet_id, w._session,
+                                    'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
 
 
 @parameterized_class(*params)
@@ -928,6 +936,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         wl1_key = wl1.new_key()
         wl2_key = wl2.new_key(cosigner_id=wl1.cosigner_id)
         self.assertEqual(wl1_key.address, wl2_key.address)
+        self.assertRaisesRegexp(WalletError, "Accounts are not supported for this wallet", wl1.account, 10)
 
     def test_wallet_multisig_bitcoinlib_testnet_transaction_send(self):
         self.db_remove()
@@ -968,6 +977,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         t.send(offline=True)
         self.assertTrue(t.verify())
         self.assertIsNone(t.error)
+        self.assertEqual(t.export()[0][2], 'out')
 
     def test_wallet_multisig_bitcoin_transaction_send_no_subkey_for_path(self):
         self.db_remove()
@@ -1440,6 +1450,20 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         total_value = sum([utxo['value'] for utxo in self.wallet.utxos()])
         self.assertEqual(total_value, 60000000)
 
+    def test_wallet_transaction_export(self):
+        txs = self.wallet.transactions_export()
+        tx = [t for t in txs if t[1] == 'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f'][0]
+        self.assertEqual(tx[2], 'in')
+        self.assertEqual(tx[3], [])
+        self.assertEqual(tx[4], ['mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7'])
+        self.assertEqual(tx[5], 10000000)
+
+    def test_wallet_transactions_full(self):
+        txs = self.wallet.transactions_full()
+        self.assertGreaterEqual(len(txs), 3)
+        for tx in txs:
+            self.assertIsInstance(tx, HDWalletTransaction)
+
     def test_wallet_sweep_public_wallet(self):
         tx = self.wallet.sweep('mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7', fee_per_kb=50000)
         prev_tx_list_check = [
@@ -1448,6 +1472,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f']
         prev_tx_list = sorted([to_hexstring(x.prev_hash) for x in tx.inputs])
         self.assertListEqual(prev_tx_list, prev_tx_list_check)
+        self.wallet.transactions_export()
 
     def test_wallet_offline_create_transaction(self):
         hdkey_wif = 'tprv8ZgxMBicQKsPf5exCdeBgnYjJt2LxDcQbv6u9HHymY3qh6EoTy8SGwou5xyvExL3iWfBsZWp3YUyo9gRmxQxrBS2FwGk' \
@@ -1520,6 +1545,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
 
         t = wlt.send_to(to_key.address, 9000)
         self.assertEqual(wlt.balance(), 200000000 - t.fee)
+        self.assertEqual(t.hash, wlt.transaction_spent(t.inputs[0].prev_hash, t.inputs[0].output_n))
+        self.assertEqual(t.hash, wlt.transaction_spent(to_hexstring(t.inputs[0].prev_hash), t.inputs[0].output_n_int))
         del wlt
 
     def test_wallet_balance_update_multi_network(self):
@@ -1569,7 +1596,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wlt = HDWallet.create('bcltestwlt3', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
-        t = wlt.send_to(to_key.address, 50000000, offline=True)
+        t = wlt.send_to(to_key.address, 40000000, offline=True)
         t2 = wlt.transaction_import(t)
         self.assertDictEqualExt(t.as_dict(), t2.as_dict())
         del wlt
@@ -1583,8 +1610,17 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertDictEqualExt(t.as_dict(), t2.as_dict())
         del wlt
 
-    def test_wallet_transaction_fee_limits(self):
+    def test_wallet_transaction_import_dict(self):
         wlt = HDWallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        to_key = wlt.get_key()
+        wlt.utxos_update()
+        t = wlt.send_to(to_key.address, 60000000, offline=True)
+        t2 = wlt.transaction_import(t.as_dict())
+        self.assertDictEqualExt(t.as_dict(), t2.as_dict())
+        del wlt
+
+    def test_wallet_transaction_fee_limits(self):
+        wlt = HDWallet.create('bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
         self.assertRaisesRegexp(WalletError, 'Fee per kB of 682 is lower then minimal network fee of 1000',
@@ -1593,7 +1629,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                 wlt.send_to, to_key.address, 50000000, fee=300000)
 
     def test_wallet_transaction_fee_zero_problem(self):
-        wlt = HDWallet.create(name='bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = HDWallet.create(name='bcltestwlt7', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         nk = wlt.get_key()
         wlt.utxos_update()
         t = wlt.send_to(nk.address, 100000000)
@@ -1738,6 +1774,51 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertGreaterEqual(len(w.transactions()), 2)
         w.transactions_update(max_txs=2)
         self.assertGreaterEqual(len(w.transactions()), 4)
+
+    def test_wallet_transactions_update_by_txids(self):
+        address = '15yN7NPEpu82sHhB6TzCW5z5aXoamiKeGy'
+        w = wallet_create_or_open('ftrtxtstwlt2', address, db_uri=self.DATABASE_URI)
+        w.transactions_update_by_txids(['b246dad8980093fa55814b4739396fd6a7f5f28994f721f55d1a862d6c98e7ab'])
+        txs = w.transactions()
+        self.assertEqual(len(txs), 1)
+        self.assertEqual(txs[0].block_height, 368209)
+
+    def test_wallet_transactions_sign_with_mnenomic(self):
+        phr = 'battle alter frequent adult tuna follow always jar obtain until ice arrange'
+        prv_key = HDKey.from_passphrase(phr, network='bitcoinlib_test')
+        w = wallet_create_or_open('wlt-sign-with-mnemonic', keys=prv_key.public(), network='bitcoinlib_test',
+                                  scheme='single', db_uri=self.DATABASE_URI)
+        w.new_key()
+        w.utxos_update()
+        t = w.send_to('214bP4ZpdejMppADEnxSkzziPgEG6XGcxiJ', 100000, offline=True)
+        self.assertFalse(t.verified)
+        t.sign(phr)
+        t.verify()
+        self.assertTrue(t.verified)
+
+    def test_wallet_select_inputs(self):
+        wlt = HDWallet.create('bclwltsltinputs', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt.get_key()
+        wlt.utxos_update()
+        self.assertEqual(wlt.select_inputs(150000000, max_utxos=1), [])
+        self.assertEqual(len(wlt.select_inputs(150000000)), 2)
+
+    def test_wallet_transaction_create_exceptions(self):
+        wif = 'YXscyqNJ5YK411nwB3kahnuWqF2KUJfJNRGG1n3zLPi3MSPCRcD2cmcVz1UKBjTMuMxAfXrbSAe5qJfu5nnSuRZKEtqJt' \
+              'FwNjcNknbseoKp1vR2h'
+        wlt = HDWallet.create('test_wallet_transaction_create_exceptions', keys=wif, db_uri=self.DATABASE_URI)
+        wlt.utxos_update()
+        self.assertRaisesRegexp(WalletError, "Output array must be a list of tuples with address and amount. "
+                                             "Use 'send_to' method to send to one address",
+                                wlt.transaction_create, '217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ')
+        inps = wlt.select_inputs(150000000)
+        self.assertRaisesRegexp(WalletError, "Input array contains 2 UTXO's but max_utxos=1 parameter specified",
+                                wlt.transaction_create, [('217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ', 150000000)],
+                                inps, max_utxos=1)
+        wallet_empty('test_wallet_transaction_create_exceptions', db_uri=self.DATABASE_URI)
+        self.assertRaisesRegexp(WalletError, "UTXO",
+                                wlt.transaction_create, [('217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ', 150000000)],
+                                inps)
 
 
 @parameterized_class(*params)
@@ -2007,6 +2088,9 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         w.new_account(account_id=100)
         self.assertRaisesRegexp(WalletError, "Account with ID 100 already exists for this wallet",
                                 w.new_account, 'test', 100)
+        self.assertRaisesRegexp(WalletError, "Account with ID 1001 not found in this wallet",
+                                w.account, 1001)
+
         paths = ["m/48'/0'/0'/2'", "m/48'/0'/0'/2'/0/0", "m/48'/0'/0'/2'/1/0", "m/48'/0'/1'/2'", "m/48'/0'/1'/2'/0/0",
                  "m/48'/0'/1'/2'/1/0", "m/48'/0'/100'/2'", "m/48'/0'/100'/2'/0/0", "m/48'/0'/100'/2'/1/0"]
         self.assertListEqual(sorted(paths), sorted([k.path for k in w.keys()]))
@@ -2109,6 +2193,8 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
                              ['13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM', '12yuSkjKmHzXCFn39PK1XP3XyeoVw9LJdN'])
         self.assertGreaterEqual(w.balance(), 4532991)
         self.assertRaisesRegexp(WalletError, "No unspent", w.send_to, '1ApcyGtcX4DUmfGqPBPY1bvKEh2irLqnhp', 50000)
+        self.assertEqual(w.utxo_last('13A1W4jLPP75pzvn2qJ5KyyqG3qPSpb9jM'),
+                         'c74d59ef2de2029bc5f45d74673f05e743ceab463c1685ae72e33bd0527b9d80')
 
     def test_wallet_address_import_public_key(self):
         wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \

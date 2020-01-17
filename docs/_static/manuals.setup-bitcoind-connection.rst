@@ -79,7 +79,7 @@ Connect using base_url argument
 
 Another options is to pass the 'base_url' argument to the BitcoindClient object directly.
 
-This provides more flexibility but also responsibility to store user and password information secure.
+This provides more flexibility but also the responsibility to store user and password information in a secure way.
 
 .. code-block:: python
 
@@ -91,3 +91,12 @@ This provides more flexibility but also responsibility to store user and passwor
     rt = bdc.getrawtransaction(txid)
     print("Raw: %s" % rt)
 
+
+Please note: Using a remote bitcoind server
+-------------------------------------------
+
+Using RPC over a public network is unsafe, so since bitcoind version 0.18 remote RPC for all network interfaces
+is disabled. The rpcallowip option cannot be used to listen on all network interfaces and rpcbind has to be used to
+define specific IP addresses to listen on. See https://bitcoin.org/en/release/v0.18.0#configuration-option-changes
+
+You could setup a openvpn or ssh tunnel to connect to a remote server to avoid this issues.

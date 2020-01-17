@@ -23,10 +23,29 @@ import math
 import numbers
 from copy import deepcopy
 import hashlib
+import pyaes
 import binascii
 import unicodedata
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
+
+
+SCRYPT_ERROR = None
+USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
+try:
+    if USING_MODULE_SCRYPT != False:
+        import scrypt
+        USING_MODULE_SCRYPT = True
+except ImportError as SCRYPT_ERROR:
+    pass
+if 'scrypt' not in sys.modules:
+    import pyscrypt as scrypt
+    USING_MODULE_SCRYPT = False
+
+if not USING_MODULE_SCRYPT:
+    if 'scrypt_error' not in locals():
+        SCRYPT_ERROR = 'unknown'
+    _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
@@ -78,8 +97,6 @@ def _array_to_codestring(array, base):
     codebase = code_strings[base]
     codestring = ""
     for i in array:
-        if i < 0 or i > len(codebase):
-            raise EncodingError("Index %i out of range for codebase" % i)
         if not PY3:
             codestring += codebase[i]
         else:
@@ -101,8 +118,10 @@ def _codestring_to_array(codestring, base):
 
 def normalize_var(var, base=256):
     """
-    For Python 2 convert variabele to string
+    For Python 2 convert variable to string
+
     For Python 3 convert to bytes
+
     Convert decimals to integer type
 
     :param var: input variable in any format
@@ -140,20 +159,38 @@ def normalize_var(var, base=256):
 
 def change_base(chars, base_from, base_to, min_length=0, output_even=None, output_as_list=None):
     """
-    Convert input chars from one base to another.
+    Convert input chars from one numeric base to another. For instance from hexadecimal (base-16) to decimal (base-10)
 
-    From and to base can be any base. If base is not found a array of index numbers will be returned
+    From and to numeric base can be any base. If base is not found in definitions an array of index numbers will be returned
 
     Examples:
-    > change_base('FF', 16, 10) will return 256
-    > change_base(100, 16, 2048) will return [100]
+
+    >>> change_base('FF', 16, 10)
+    255
+    >>> change_base('101', 2, 10)
+    5
+
+    Convert base-58 public WIF of a key to hexadecimal format
+
+    >>> change_base('xpub661MyMwAqRbcFnkbk13gaJba22ibnEdJS7KAMY99C4jBBHMxWaCBSTrTinNTc9G5LTFtUqbLpWnzY5yPTNEF9u8sB1kBSygy4UsvuViAmiR', 58, 16)
+    '0488b21e0000000000000000007d3cc6702f48bf618f3f14cce5ee2cacf3f70933345ee4710af6fa4a330cc7d503c045227451b3454ca8b6022b0f0155271d013b58d57d322fd05b519753a46e876388698a'
+
+    Convert base-58 address to public key hash: '00' + length '21' + 20 byte key
+
+    >>> change_base('142Zp9WZn9Fh4MV8F3H5Dv4Rbg7Ja1sPWZ', 58, 16)
+    '0021342f229392d7c9ed82c932916cee6517fbc9a2487cd97a'
+
+    Convert to 2048-base, for example a Mnemonic word list. Will return a list of integers
+
+    >>> change_base(100, 16, 2048)
+    [100]
 
     :param chars: Input string
     :type chars: any
-    :param base_from: Base number or name from input
-    :type base_from: int, str
-    :param base_to: Base number or name for output
-    :type base_to: int, str
+    :param base_from: Base number or name from input. For example 2 for binary, 10 for decimal and 16 for hexadecimal
+    :type base_from: int
+    :param base_to: Base number or name for output. For example 2 for binary, 10 for decimal and 16 for hexadecimal
+    :type base_to: int
     :param min_length: Minimal output length. Required for decimal, advised for all output to avoid leading zeros conversion problems.
     :type min_length: int
     :param output_even: Specify if output must contain a even number of characters. Sometimes handy for hex conversions.
@@ -164,18 +201,14 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     :return str, list: Base converted input as string or list.
     """
     if base_from == 10 and not min_length:
-        raise EncodingError("For a decimal input a minimum output length is required!")
+        raise EncodingError("For a decimal input a minimum output length is required")
 
     code_str = _get_code_string(base_to)
 
-    if not isinstance(base_to, int):
-        base_to = len(code_str)
-    elif int(base_to) not in code_strings:
+    if base_to not in code_strings:
         output_as_list = True
 
     code_str_from = _get_code_string(base_from)
-    if not isinstance(base_from, int):
-        base_from = len(code_str)
     if not isinstance(code_str_from, (bytes, list)):
         raise EncodingError("Code strings must be a list or defined as bytes")
     output = []
@@ -211,7 +244,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
                 try:
                     pos = code_str_from.index(item.lower())
                 except ValueError:
-                    return False
+                    raise EncodingError("Unknown character %s found in input string" % item)
             input_dec += pos * factor
 
             # Add leading zero if there are leading zero's in input
@@ -256,15 +289,22 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     if not output_as_list and isinstance(output, list):
         if len(output) == 0:
             output = 0
-        elif isinstance(output[0], bytes):
-            output = b''.join(output)
-        elif isinstance(output[0], int):
+        elif not PY3:
+            output = ''.join(output)
+        else:
             co = ''
             for c in output:
                 co += chr(c)
             output = co
-        else:
-            output = ''.join(output)
+        # elif isinstance(output[0], bytes):
+        #     output = b''.join(output)
+        # elif isinstance(output[0], int):
+        #     co = ''
+        #     for c in output:
+        #         co += chr(c)
+        #     output = co
+        # else:
+        #     output = ''.join(output)
     if base_to == 10:
         return int(0) or (output != '' and int(output))
     if PY3 and base_to == 256 and not output_as_list:
@@ -279,13 +319,16 @@ def varbyteint_to_int(byteint):
 
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
+    >>> varbyteint_to_int(to_bytes('fd1027'))
+    (10000, 3)
+
     :param byteint: 1-9 byte representation
     :type byteint: bytes, list, bytearray
 
     :return (int, int): tuple wit converted integer and size
     """
     if not isinstance(byteint, (bytes, list, bytearray)):
-        raise EncodingError("Byteint be a list or defined as bytes")
+        raise EncodingError("Byteint must be a list or defined as bytes")
     if PY3 or isinstance(byteint, (list, bytearray)):
         ni = byteint[0]
     else:
@@ -307,6 +350,9 @@ def int_to_varbyteint(inp):
 
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
+    >>> to_hexstring(int_to_varbyteint(10000))
+    'fd1027'
+
     :param inp: Integer to convert
     :type inp: int
 
@@ -326,7 +372,7 @@ def int_to_varbyteint(inp):
 
 def convert_der_sig(signature, as_hex=True):
     """
-    Convert DER encoded signature to signature string
+    Extract content from DER encoded string: Convert DER encoded signature to signature string.
 
     :param signature: DER signature
     :type signature: bytes
@@ -355,7 +401,7 @@ def convert_der_sig(signature, as_hex=True):
 
 def der_encode_sig(r, s):
     """
-    Create DER encoded signature string with signature r and s value
+    Create DER encoded signature string with signature r and s value.
 
     :param r: r value of signature
     :type r: int
@@ -372,15 +418,17 @@ def der_encode_sig(r, s):
         return ecdsa.der.encode_sequence(rb, sb)
 
 
-def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):
+def addr_to_pubkeyhash(address, as_hex=False, encoding=None):
     """
     Convert base58 or bech32 address to public key hash
+
+    Wrapper for the :func:`addr_base58_to_pubkeyhash` and :func:`addr_bech32_to_pubkeyhash` method
 
     :param address: Crypto currency address in base-58 format
     :type address: str
     :param as_hex: Output as hexstring
     :type as_hex: bool
-    :param encoding: Address encoding used: base58 or bech32
+    :param encoding: Address encoding used: base58 or bech32. Default is base58. Try to derive from address if encoding=None is provided
     :type encoding: str
 
     :return bytes, str: public key hash
@@ -400,6 +448,9 @@ def addr_to_pubkeyhash(address, as_hex=False, encoding='base58'):
 def addr_base58_to_pubkeyhash(address, as_hex=False):
     """
     Convert Base58 encoded address to public key hash
+
+    >>> addr_base58_to_pubkeyhash('142Zp9WZn9Fh4MV8F3H5Dv4Rbg7Ja1sPWZ', as_hex=True)
+    '21342f229392d7c9ed82c932916cee6517fbc9a2'
 
     :param address: Crypto currency address in base-58 format
     :type address: str, bytes
@@ -427,7 +478,10 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     """
     Decode bech32 / segwit address to public key hash
 
-    Validate the Bech32 string, and determine HRP and data
+    >>> addr_bech32_to_pubkeyhash('bc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84', as_hex=True)
+    '21c1bc695a56f47991e95ff26856e50f78d3c118'
+
+    Validate the bech32 string, and determine HRP and data. Only standard data size of 20 and 32 bytes are excepted
 
     :param bech: Bech32 address to convert
     :type bech: str
@@ -440,29 +494,28 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
 
     :return str: Public Key Hash
     """
-
     if (any(ord(x) < 33 or ord(x) > 126 for x in bech)) or (bech.lower() != bech and bech.upper() != bech):
-        return False
+        raise EncodingError("Invalid bech32 character in bech string")
     bech = bech.lower()
     pos = bech.rfind('1')
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
-        return False
+        raise EncodingError("Invalid bech32 string length")
     if prefix and prefix != bech[:pos]:
-        raise EncodingError("Invalid address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], prefix))
+        raise EncodingError("Invalid bech32 address. Prefix '%s', prefix expected is '%s'" % (bech[:pos], prefix))
     else:
         hrp = bech[:pos]
     data = _codestring_to_array(bech[pos + 1:], 'bech32')
     hrp_expanded = [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
     if not _bech32_polymod(hrp_expanded + data) == 1:
-        return False
+        raise EncodingError("Bech polymod check failed")
     data = data[:-6]
     decoded = bytearray(convertbits(data[1:], 5, 8, pad=False))
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
-        return False
+        raise EncodingError("Invalid decoded data length, must be between 2 and 40")
     if data[0] > 16:
-        return False
+        raise EncodingError("Invalid decoded data length")
     if data[0] == 0 and len(decoded) not in [20, 32]:
-        return False
+        raise EncodingError("Invalid decoded data length, must be 20 or 32 bytes")
     prefix = b''
     if include_witver:
         datalen = len(decoded)
@@ -475,6 +528,8 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
 def pubkeyhash_to_addr(pubkeyhash, prefix=None, encoding='base58'):
     """
     Convert public key hash to base58 encoded address
+
+    Wrapper for the :func:`pubkeyhash_to_addr_base58` and :func:`pubkeyhash_to_addr_bech32` method
 
     :param pubkeyhash: Public key hash
     :type pubkeyhash: bytes, str
@@ -502,6 +557,9 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
     """
     Convert public key hash to base58 encoded address
 
+    >>> pubkeyhash_to_addr_base58('21342f229392d7c9ed82c932916cee6517fbc9a2')
+    '142Zp9WZn9Fh4MV8F3H5Dv4Rbg7Ja1sPWZ'
+
     :param pubkeyhash: Public key hash
     :type pubkeyhash: bytes, str
     :param prefix: Prefix version byte of network, default is bitcoin '\x00'
@@ -518,6 +576,9 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
 def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
     """
     Encode public key hash as bech32 encoded (segwit) address
+
+    >>> pubkeyhash_to_addr_bech32('21c1bc695a56f47991e95ff26856e50f78d3c118')
+    'bc1qy8qmc6262m68ny0ftlexs4h9paud8sgce3sf84'
 
     Format of address is prefix/hrp + seperator + bech32 address + checksum
 
@@ -609,7 +670,10 @@ def convertbits(data, frombits, tobits, pad=True):
 
 def varstr(string):
     """
-    Convert string to variably sized string: Bytestring preceeded with length byte
+    Convert string to variably sized string: Bytestring preceded with length byte
+
+    >>> to_hexstring(varstr(to_bytes('5468697320737472696e67206861732061206c656e677468206f66203330')))
+    '1e5468697320737472696e67206861732061206c656e677468206f66203330'
 
     :param string: String input
     :type string: bytes, str
@@ -664,6 +728,9 @@ def to_hexstring(string):
     """
     Convert Bytes or ByteArray to hexadecimal string
 
+    >>> to_hexstring('\x12\xaa\xdd')
+    '12aadd'
+
     :param string: Variable to convert to hex string
     :type string: bytes, bytearray, str
 
@@ -693,7 +760,7 @@ def normalize_string(string):
     Normalize a string to the default NFKD unicode format
     See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
-    :param string: string value
+    :param string: string valuehttps://www.reddit.com/r/thenetherlands/comments/egp9qu/nederlands_gezin_steunt_boerensector_met_500_euro/
     :type string: bytes, bytearray, str
 
     :return: string
@@ -715,7 +782,7 @@ def double_sha256(string, as_hex=False):
     :param string: String to be hashed
     :type string: bytes
     :param as_hex: Return value as hexadecimal string. Default is False
-    :type as_hex
+    :type as_hex: bool
 
     :return bytes, str:
     """
@@ -732,6 +799,76 @@ def hash160(string):
     :param string: Script
     :type string: bytes
 
-    :return bytes: RIPEMD-160 hash of script
+    :return bytes: RIPEMD-160 hash ohttps://www.reddit.com/r/thenetherlands/comments/egp9qu/nederlands_gezin_steunt_boerensector_met_500_euro/f script
     """
     return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()
+
+
+def bip38_decrypt(encrypted_privkey, passphrase):
+    """
+    BIP0038 non-ec-multiply decryption. Returns WIF private key.
+    Based on code from https://github.com/nomorecoin/python-bip38-testing
+    This method is called by Key class init function when importing BIP0038 key.
+
+    :param encrypted_privkey: Encrypted private key using WIF protected key format
+    :type encrypted_privkey: str
+    :param passphrase: Required passphrase for decryption
+    :type passphrase: str
+
+    :return tupple (bytes, bytes): (Private Key bytes, 4 byte address hash for verification)
+    """
+    d = change_base(encrypted_privkey, 58, 256)[2:]
+    flagbyte = d[0:1]
+    d = d[1:]
+    if flagbyte == b'\xc0':
+        compressed = False
+    elif flagbyte == b'\xe0':
+        compressed = True
+    else:
+        raise EncodingError("Unrecognised password protected key format. Flagbyte incorrect.")
+    if isinstance(passphrase, str) and sys.version_info > (3,):
+        passphrase = passphrase.encode('utf-8')
+    addresshash = d[0:4]
+    d = d[4:-4]
+    key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
+    derivedhalf1 = key[0:32]
+    derivedhalf2 = key[32:64]
+    encryptedhalf1 = d[0:16]
+    encryptedhalf2 = d[16:32]
+    aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    decryptedhalf2 = aes.decrypt(encryptedhalf2)
+    decryptedhalf1 = aes.decrypt(encryptedhalf1)
+    priv = decryptedhalf1 + decryptedhalf2
+    priv = binascii.unhexlify('%064x' % (int(binascii.hexlify(priv), 16) ^ int(binascii.hexlify(derivedhalf1), 16)))
+    # if compressed:
+    #     # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
+    #     priv += b'\1'
+    return priv, addresshash, compressed
+
+
+def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
+    """
+    BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
+    Based on code from https://github.com/nomorecoin/python-bip38-testing
+
+    :param passphrase: Required passphrase for encryption
+    :type passphrase: str
+
+    :return str: BIP38 passphrase encrypted private key
+    """
+    if isinstance(address, str) and sys.version_info > (3,):
+        address = address.encode('utf-8')
+    if isinstance(passphrase, str) and sys.version_info > (3,):
+        passphrase = passphrase.encode('utf-8')
+    addresshash = double_sha256(address)[0:4]
+    key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
+    derivedhalf1 = key[0:32]
+    derivedhalf2 = key[32:64]
+    aes = pyaes.AESModeOfOperationECB(derivedhalf2)
+    encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(private_hex[0:32], 16) ^
+                                                                int(binascii.hexlify(derivedhalf1[0:16]), 16))))
+    encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(private_hex[32:64], 16) ^
+                                                                int(binascii.hexlify(derivedhalf1[16:32]), 16))))
+    encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
+    encrypted_privkey += double_sha256(encrypted_privkey)[:4]
+    return change_base(encrypted_privkey, 256, 58)

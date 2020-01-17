@@ -6,18 +6,23 @@
 Welcome to Bitcoinlib's documentation!
 ======================================
 
-Bitcoin and other Cryptocurrencies Library for Python. Includes a fully functional
-wallet, Mnemonic key generation and management and connection
-with various service providers to receive and send blockchain and transaction information.
+Bitcoin, Litecoin and Dash Crypto Currency Library for Python.
+
+Includes a fully functional wallet, with multi signature, multi currency and multiple accounts.
+You this library at a high level and create and manage wallets for the command line or at a low level
+and create your own custom made transactions, keys or wallets.
+
+The BitcoinLib connects to various service providers automatically to update wallets, transactions and
+blockchain information. It does currently not parse the blockchain itself.
 
 
 Wallet
 ------
 
-The bitcoinlibrary contains a wallet implementation using sqlalchemy and sqllite3 to import, create and manage
+This Bitcoin Library contains a wallet implementation using SQLAlchemy and SQLite3 to import, create and manage
 keys in a Hierarchical Deterministic Way.
 
-Example: Create wallet and generate new key to receive bitcoins
+Example: Create wallet and generate new address to receive bitcoins
 
 .. code-block:: python
 
@@ -33,7 +38,7 @@ Example: Create wallet and generate new key to receive bitcoins
 
 
 When your wallet received a payment and has unspent transaction outputs, you can send bitcoins easily.
-If succesfull a transaction ID is returned
+If successful a transaction ID is returned
 
 .. code-block:: python
 
@@ -172,6 +177,14 @@ Example: Get estimated transactionfee in sathosis per Kb for confirmation within
    138964
 
 
+Other Databases
+---------------
+
+Bitcoinlib uses the SQLite database by default but other databases are supported as well.
+See http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html for instructions on how to use
+MySQL or PostgreSQL.
+
+
 More examples
 -------------
 For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
@@ -185,6 +198,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    _static/manuals.command-line-wallet
    _static/manuals.add-provider
    _static/manuals.setup-bitcoind-connection
+   _static/manuals.databases
 
 
 
@@ -192,6 +206,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    :caption: Reference
    :maxdepth: 1
 
+   _static/classes-overview
    source/modules
    source/bitcoinlib.config
    source/bitcoinlib.db

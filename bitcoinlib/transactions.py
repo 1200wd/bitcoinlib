@@ -409,8 +409,10 @@ def script_to_string(script):
     """
     Convert script to human readable string format with OP-codes, signatures, keys, etc
     
-    Example: "OP_DUP OP_HASH160 af8e14a2cecd715c363b3a72b55b59a31e2acac9 OP_EQUALVERIFY OP_CHECKSIG"
-    
+    >>> script = '76a914c7402ab295a0eb8897ff5b8fbd5276c2d9d2340b88ac'
+    >>> script_to_string(script)
+    'OP_DUP OP_HASH160 hash-20 OP_EQUALVERIFY OP_CHECKSIG'
+
     :param script: A locking or unlocking script
     :type script: bytes, str
 
@@ -512,18 +514,19 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=
             usu.append(s)
         else:
             usu += varstr(s)
+
     rs_size = b''
-    
+    size_byte = b''
     if not as_list:
         rs_size = int_to_varbyteint(len(redeemscript))
-    size_byte = b''
-    if len(redeemscript) >= 76:
-        if len(rs_size) == 1:
-            size_byte = b'\x4c'
-        elif len(rs_size) == 2:
-            size_byte = b'\x4d'
-        else:
-            size_byte = b'\x4e'
+        if len(redeemscript) >= 76:
+            if len(rs_size) == 1:
+                size_byte = b'\x4c'
+            elif len(rs_size) == 2:
+                size_byte = b'\x4d'
+            else:
+                size_byte = b'\x4e'
+
     redeemscript_str = size_byte + rs_size + redeemscript
     if as_list:
         usu.append(redeemscript_str)
@@ -550,7 +553,10 @@ def script_add_locktime_csv(locktime_csv, script):
 
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
     """
-    Specify locking script type and get corresponding script type for unlocking script.
+    Specify locking script type and get corresponding script type for unlocking script
+
+    >>> get_unlocking_script_type('p2wsh')
+    'p2sh_multisig'
 
     :param locking_script_type: Locking script type. I.e.: p2pkh, p2sh, p2wpkh, p2wsh
     :type locking_script_type: str
@@ -672,7 +678,6 @@ class Input(object):
             signatures = []
         if not isinstance(signatures, list):
             signatures = [signatures]
-        # Sort according to BIP45 standard
         self.sort = sort
         if isinstance(address, Address):
             self.address = address.address
@@ -1127,7 +1132,7 @@ class Transaction(object):
         
         :param rawtx: Raw transaction string
         :type rawtx: bytes, str
-        :param network: Network, leave empty for default
+        :param network: Network, leave empty for   default
         :type network: str, Network
 
         :return Transaction:
@@ -1162,7 +1167,7 @@ class Transaction(object):
         :type fee: int
         :param fee_per_kb: Fee in smallest denominator per kilobyte. Specify when exact transaction size is not known.
         :type fee_per_kb: int
-        :param size; Transaction size in bytes
+        :param size: Transaction size in bytes
         :type size: int
         :param date: Confirmation date of transaction
         :type date: datetime.datetime
@@ -1188,6 +1193,7 @@ class Transaction(object):
         :type witness_type: str
         :param flag: Transaction flag to indicate version, for example for SegWit
         :type flag: bytes, str
+
         """
 
         self.coinbase = coinbase
@@ -1582,7 +1588,7 @@ class Transaction(object):
         self.verified = True
         return True
 
-    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL):
+    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=True):
         """
         Sign the transaction input with provided private key
         
@@ -1594,6 +1600,8 @@ class Transaction(object):
         :type multisig_key_n: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
+        :param _fail_on_unknown_key: Method fails if public key from signature is not found in public key list
+        :type _fail_on_unknown_key: bool
 
         :return None:
         """
@@ -1629,7 +1637,10 @@ class Transaction(object):
             for key in tid_keys:
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
-                    raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
+                    if _fail_on_unknown_key:
+                        raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
+                    else:
+                        continue
                 if key in [x.public_key for x in self.inputs[tid].signatures]:
                     _logger.info("Key %s already signed" % key.public_hex)
                     break
@@ -1694,7 +1705,7 @@ class Transaction(object):
         :type script_type: str
         :param address: Specify address of input if known, default is to derive from key or scripts
         :type address: str, Address
-        :param sequence: Sequence part of input, you normally do not have to touch this
+        :param sequence: Sequence part of input, used for timelocked transactions
         :type sequence: int, bytes
         :param compressed: Use compressed or uncompressed public keys. Default is compressed
         :type compressed: bool
@@ -1785,7 +1796,7 @@ class Transaction(object):
         Get estimated vsize in for current transaction based on transaction type and number of inputs and outputs.
 
         For old-style legacy transaction the vsize is the length of the transaction. In segwit transaction the
-        witness data has less weigth. The formula used is: math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
+        witness data has less weight. The formula used is: math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
 
         :param add_change_output: Assume an extra change output will be created but has not been created yet.
         :type add_change_output: bool

@@ -18,28 +18,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
-import os
 import hmac
 import random
 import warnings
 import collections
 import json
-import pyaes
 
-SCRYPT_ERROR = None
-USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
-try:
-    if USING_MODULE_SCRYPT != False:
-        import scrypt
-        USING_MODULE_SCRYPT = True
-except ImportError as SCRYPT_ERROR:
-    pass
-if 'scrypt' not in sys.modules:
-    import pyscrypt as scrypt
-    USING_MODULE_SCRYPT = False
-
-from bitcoinlib.networks import Network, DEFAULT_NETWORK, network_by_value, wif_prefix_search
+from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import *
 from bitcoinlib.encoding import *
 from bitcoinlib.mnemonic import Mnemonic
@@ -58,11 +43,6 @@ else:
 
 
 _logger = logging.getLogger(__name__)
-
-if not USING_MODULE_SCRYPT:
-    if 'scrypt_error' not in locals():
-        SCRYPT_ERROR = 'unknown'
-    _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
 
 
 class BKeyError(Exception):
@@ -83,8 +63,11 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
     Check if given key corresponds with given network and return network if it does. If no network is specified
     this method tries to extract the network from the key. If no network can be extracted from the key the
     default network will be returned.
+
+    >>> check_network_and_key('L4dTuJf2ceEdWDvCPsLhYf8GiiuYqXtqfbcKdC21BPDvEM1ykJRC')
+    'bitcoin'
     
-    A BKeyError will be raised if key does not corresponds with network or if multiple network are found.
+    A BKeyError will be raised if key does not correspond with network or if multiple network are found.
     
     :param key: Key in any format recognized by get_key_format function
     :type key: str, int, bytes, bytearray
@@ -124,6 +107,15 @@ def get_key_format(key, is_private=None):
     
     This method does not validate if a key is valid.
 
+    >>> get_key_format('L4dTuJf2ceEdWDvCPsLhYf8GiiuYqXtqfbcKdC21BPDvEM1ykJRC')
+    {'format': 'wif_compressed', 'networks': ['bitcoin'], 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
+
+    >>> get_key_format('becc7ac3b383cd609bd644aa5f102a811bac49b6a34bbd8afe706e32a9ac5c5e')
+    {'format': 'hex', 'networks': None, 'is_private': True, 'script_types': [], 'witness_types': ['legacy'], 'multisig': [False]}
+
+    >>> get_key_format('Zpub6vZyhw1ShkEwNxtqfjk7jiwoEbZYMJdbWLHvEwo6Ns2fFc9rdQn3SerYFQXYxtZYbA8a1d83shW3g4WbsnVsymy2L8m7wpeApiuPxug3ARu')
+    {'format': 'hdkey_public', 'networks': ['bitcoin'], 'is_private': False, 'script_types': ['p2wsh'], 'witness_types': ['segwit'], 'multisig': [True]}
+
     :param key: Any private or public key
     :type key: str, int, bytes, bytearray
     :param is_private: Is key private or not?
@@ -139,9 +131,8 @@ def get_key_format(key, is_private=None):
     witness_types = ['legacy']
     multisig = [False]
 
-    if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
-        key = to_hexstring(key)
-
+    # if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
+    #     key = to_hexstring(key)
     if not (is_private is None or isinstance(is_private, bool)):
         raise BKeyError("Attribute 'is_private' must be False or True")
     elif isinstance(key, numbers.Number):
@@ -243,11 +234,14 @@ def deserialize_address(address, encoding=None, network=None):
     """
     Deserialize address. Calculate public key hash and try to determine script type and network.
 
-    The 'network' dictionary item with contain the network with highest priority if multiple networks are found. Same applies for the script type.
+    The 'network' dictionary item with contains the network with highest priority if multiple networks are found. Same applies for the script type.
 
-    Specify the network argument if known to avoid unexpected results.
+    Specify the network argument if network is known to avoid unexpected results.
 
     If more networks and or script types are found you can find these in the 'networks' field.
+
+    >>> deserialize_address('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+    {'address': '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', 'encoding': 'base58', 'public_key_hash': '13d215d212cd5188ae02c5635faabdc4d7d4ec91', 'public_key_hash_bytes': b'\\x13\\xd2\\x15\\xd2\\x12\\xcdQ\\x88\\xae\\x02\\xc5c_\\xaa\\xbd\\xc4\\xd7\\xd4\\xec\\x91', 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'networks': ['bitcoin']}
 
     :param address: A base58 or bech32 encoded address
     :type address: str
@@ -259,12 +253,12 @@ def deserialize_address(address, encoding=None, network=None):
     :return dict: with information about this address
     """
 
-    if encoding is not None and encoding not in SUPPORTED_ADDRESS_ENCODINGS:
-        raise BKeyError("Encoding '%s' not found in supported address encodings %s" %
-                        (encoding, SUPPORTED_ADDRESS_ENCODINGS))
     if encoding is None or encoding == 'base58':
-        address_bytes = change_base(address, 58, 256, 25)
-        if address_bytes:
+        try:
+            address_bytes = change_base(address, 58, 256, 25)
+        except EncodingError:
+            pass
+        else:
             check = address_bytes[-4:]
             key_hash = address_bytes[:-4]
             checksum = double_sha256(key_hash)[0:4]
@@ -300,18 +294,13 @@ def deserialize_address(address, encoding=None, network=None):
                 }
     if encoding == 'bech32' or encoding is None:
         try:
-            public_key_hash = addr_to_pubkeyhash(address, encoding='bech32')
-            if not public_key_hash:
-                raise EncodingError("Invalid bech32 address %s" % address)
+            public_key_hash = addr_bech32_to_pubkeyhash(address)
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
             if len(public_key_hash) == 20:
                 script_type = 'p2wpkh'
-            elif len(public_key_hash) == 32:
-                script_type = 'p2wsh'
             else:
-                raise BKeyError("Unknown script type for address %s. Invalid length %d" %
-                                (address, len(public_key_hash)))
+                script_type = 'p2wsh'
             return {
                 'address': address,
                 'encoding': 'bech32',
@@ -330,7 +319,10 @@ def deserialize_address(address, encoding=None, network=None):
 
 def addr_convert(addr, prefix, encoding=None, to_encoding=None):
     """
-    Convert base-58 encoded address to address with another prefix
+    Convert address to another encoding and/or address with another prefix.
+
+    >>> addr_convert('1GMDUKLom6bJuY37RuFNc6PHv1rv2Hziuo', prefix='bc', to_encoding='bech32')
+    'bc1q4pwfmstmw8q80nxtxud2h42lev9xzcjqwqyq7t'
 
     :param addr: Base58 address
     :type addr: str
@@ -359,6 +351,9 @@ def path_expand(path, path_template=None, level_offset=None, account_id=0, cosig
                 address_index=0, change=0, witness_type=DEFAULT_WITNESS_TYPE, multisig=False, network=DEFAULT_NETWORK):
     """
     Create key path. Specify part of key path and path settings
+
+    >>> path_expand([10, 20], witness_type='segwit')
+    ['m', "84'", "0'", "0'", '10', '20']
 
     :param path: Part of path, for example [0, 2] for change=0 and address_index=2
     :type path: list, str
@@ -465,6 +460,10 @@ class Address(object):
         Import an address to the Address class. Specify network if available, otherwise it will be
         derived form the address.
 
+        >>> addr = Address.import_address('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
+        >>> addr.as_dict()
+        {'network': 'bitcoin', 'data': '', 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', 'hashed_data': '225601de37da89d0cef77f2ddbacf16bd5df05bd3fe9cbd8d62a56204364e783', 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
+
         :param address: Address to import
         :type address: str
         :param compressed: Is key compressed or not, default is None
@@ -501,6 +500,10 @@ class Address(object):
                  address_index=None, network=DEFAULT_NETWORK, network_overrides=None):
         """
         Initialize an Address object. Specify a public key, redeemscript or a hash.
+
+        >>> addr = Address('03715219f51a2681b7642d1e0e35f61e5288ff59b87d275be9eaf1a5f481dcdeb6', encoding='bech32', script_type='p2wsh')
+        >>> addr.address
+        'bc1qaehsuffn0stxmugx3z69z9hm6gnjd9qzeqlfv92cpf5adw63x4tsfl7vwl'
 
         :param data: Public key, redeem script or other type of script.
         :type data: str, bytes
@@ -635,12 +638,24 @@ class Key(object):
 
     def __init__(self, import_key=None, network=None, compressed=True, passphrase='', is_private=None):
         """
-        Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc.
+        Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc. If import_key is empty a new
+        private key will be generated.
+
         If a private key is imported a public key will be derived. If a public is imported the private key data will
         be empty.
 
-        Both compressed and uncompressed key version is available, the Key.compressed boolean attribute tells if the
+        Both compressed and uncompressed key version is available, the compressed boolean attribute tells if the
         original imported key was compressed or not.
+
+        >>> k = Key('cNUpWJbC1hVJtyxyV4bVAnb4uJ7FPhr82geo1vnoA29XWkeiiCQn')
+        >>> k.secret
+        12127227708610754620337553985245292396444216111803695028419544944213442390363
+
+        Can also be used to import BIP-38 password protected keys
+
+        >>> k2 = Key('6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg', passphrase='test', network='testnet')
+        >>> k2.secret
+        12127227708610754620337553985245292396444216111803695028419544944213442390363
 
         :param import_key: If specified import given private or public key. If not specified a new private key is generated.
         :type import_key: str, int, bytes, bytearray
@@ -698,9 +713,8 @@ class Key(object):
         self.network = Network(network)
 
         if self.key_format == "wif_protected":
-            # TODO: return key as byte (?)
-            # FIXME: Key format is changed so old 'wif_protected' is forgotten
-            import_key, self.key_format = self._bip38_decrypt(import_key, passphrase)
+            import_key, self.compressed = self._bip38_decrypt(import_key, passphrase, network)
+            self.key_format = 'bin_compressed' if self.compressed else 'bin'
 
         if not self.is_private:
             self.secret = None
@@ -752,7 +766,9 @@ class Key(object):
                 key_byte = import_key
                 key_hex = to_hexstring(key_byte)
             elif self.key_format == 'bin_compressed':
-                key_byte = import_key[:-1]
+                key_byte = import_key
+                if len(import_key) in [33, 65, 129] and import_key[-1:] == b'\1':
+                    key_byte = import_key[:-1]
                 key_hex = to_hexstring(key_byte)
                 self.compressed = True
             elif self.is_private and self.key_format in ['wif', 'wif_compressed']:
@@ -767,14 +783,14 @@ class Key(object):
                     raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
                 self._wif = import_key
                 self._wif_prefix = key[0:1]
-                if self.network.name not in found_networks:
-                    if len(found_networks) > 1:
-                        raise BKeyError("More then one network found with this versionbyte, please specify network. "
-                                        "Networks found: %s" % found_networks)
-                    else:
-                        _logger.warning("Current network %s is different then the one found in key: %s" %
-                                        (network, found_networks[0]))
-                        self.network = Network(found_networks[0])
+                # if self.network.name not in found_networks:
+                #     if len(found_networks) > 1:
+                #         raise BKeyError("More then one network found with this versionbyte, please specify network. "
+                #                         "Networks found: %s" % found_networks)
+                #     else:
+                #         _logger.warning("Current network %s is different then the one found in key: %s" %
+                #                         (network, found_networks[0]))
+                #         self.network = Network(found_networks[0])
                 if key[-1:] == b'\x01':
                     self.compressed = True
                     key = key[:-1]
@@ -884,7 +900,7 @@ class Key(object):
         return json.dumps(self.as_dict(include_private=include_private), indent=4)
 
     @staticmethod
-    def _bip38_decrypt(encrypted_privkey, passphrase):
+    def _bip38_decrypt(encrypted_privkey, passphrase, network=DEFAULT_NETWORK):
         """
         BIP0038 non-ec-multiply decryption. Returns WIF private key.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -897,83 +913,38 @@ class Key(object):
 
         :return str: Private Key WIF
         """
-        # TODO: Also check first 2 bytes
-        d = change_base(encrypted_privkey, 58, 256)[2:]
-        flagbyte = d[0:1]
-        d = d[1:]
-        if flagbyte == b'\xc0':
-            compressed = False
-        elif flagbyte == b'\xe0':
-            compressed = True
-        else:
-            raise BKeyError("Unrecognised password protected key format. Flagbyte incorrect.")
-        if isinstance(passphrase, str) and sys.version_info > (3,):
-            passphrase = passphrase.encode('utf-8')
-        addresshash = d[0:4]
-        d = d[4:-4]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
-        derivedhalf1 = key[0:32]
-        derivedhalf2 = key[32:64]
-        encryptedhalf1 = d[0:16]
-        encryptedhalf2 = d[16:32]
-        aes = pyaes.AESModeOfOperationECB(derivedhalf2)
-        decryptedhalf2 = aes.decrypt(encryptedhalf2)
-        decryptedhalf1 = aes.decrypt(encryptedhalf1)
-        priv = decryptedhalf1 + decryptedhalf2
-        priv = binascii.unhexlify('%064x' % (int(binascii.hexlify(priv), 16) ^ int(binascii.hexlify(derivedhalf1), 16)))
-        if compressed:
-            # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
-            priv += b'\1'
-            key_format = 'wif_compressed'
-        else:
-            key_format = 'wif'
-        k = Key(priv, compressed=compressed)
-        wif = k.wif()
+        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, passphrase)
+
+        # Verify addresshash
+        k = Key(priv, compressed=compressed, network=network)
         addr = k.address()
         if isinstance(addr, str) and sys.version_info > (3,):
             addr = addr.encode('utf-8')
         if double_sha256(addr)[0:4] != addresshash:
-            print('Addresshash verification failed! Password is likely incorrect.')
-        return wif, key_format
+            raise BKeyError('Addresshash verification failed! Password or '
+                            'specified network %s might be incorrect' % network)
+        return priv, compressed
 
     def bip38_encrypt(self, passphrase):
         """
-        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
+        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
         Based on code from https://github.com/nomorecoin/python-bip38-testing
+
+        >>> k = Key('cNUpWJbC1hVJtyxyV4bVAnb4uJ7FPhr82geo1vnoA29XWkeiiCQn')
+        >>> k.bip38_encrypt('test')
+        '6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg'
 
         :param passphrase: Required passphrase for encryption
         :type passphrase: str
 
         :return str: BIP38 passphrase encrypted private key
         """
-        if self.compressed:
-            flagbyte = b'\xe0'
-            addr = self.address()
-        else:
-            flagbyte = b'\xc0'
-            addr = self.address_uncompressed()
-
-        privkey = self.private_hex
-        if isinstance(addr, str) and sys.version_info > (3,):
-            addr = addr.encode('utf-8')
-        if isinstance(passphrase, str) and sys.version_info > (3,):
-            passphrase = passphrase.encode('utf-8')
-        addresshash = double_sha256(addr)[0:4]
-        key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
-        derivedhalf1 = key[0:32]
-        derivedhalf2 = key[32:64]
-        aes = pyaes.AESModeOfOperationECB(derivedhalf2)
-        encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[0:32], 16) ^
-                                                                    int(binascii.hexlify(derivedhalf1[0:16]), 16))))
-        encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(privkey[32:64], 16) ^
-                                                                    int(binascii.hexlify(derivedhalf1[16:32]), 16))))
-        encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
-        encrypted_privkey += double_sha256(encrypted_privkey)[:4]
-        return change_base(encrypted_privkey, 256, 58)
+        flagbyte = b'\xe0' if self.compressed else b'\xc0'
+        return bip38_encrypt(self.private_hex, self.address(), passphrase, flagbyte)
 
     def wif(self, prefix=None):
         """
-        Get Private Key in Wallet Import Format, steps:
+        Get private Key in Wallet Import Format, steps:
         # Convert to Binary and add 0x80 hex
         # Calculate Double SHA256 and add as checksum to end of key
 
@@ -1015,14 +986,6 @@ class Key(object):
         key.private_hex = None
         key.secret = None
         return key
-
-    def public_uncompressed(self):
-        """
-        Get public key, uncompressed version
-
-        :return str: Uncompressed public key hexstring
-        """
-        return self.public_uncompressed_hex
 
     def public_point(self):
         """
@@ -1167,7 +1130,7 @@ class HDKey(Key):
         :type encoding: str
         :param witness_type: Witness type used when creating scripts: legacy, p2sh-segwit or segwit.
         :type witness_type: str
-        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addreses
+        :param multisig: Specify if key is part of multisig wallet, used when creating key representations such as WIF and addresses
         :type multisig: bool
 
         :return HDKey:
@@ -1183,7 +1146,7 @@ class HDKey(Key):
                      encoding=encoding, witness_type=witness_type, multisig=multisig)
 
     @staticmethod
-    def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, compressed=True,
+    def from_passphrase(passphrase, password='', network=DEFAULT_NETWORK, key_type='bip32', compressed=True,
                         encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False):
         """
         Create key from Mnemonic passphrase
@@ -1194,6 +1157,8 @@ class HDKey(Key):
         :type password: str
         :param network: Network to use
         :type network: str, Network
+        :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
+        :type key_type: str
         :param compressed: Is key compressed or not, default is True
         :type compressed: bool
         :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58 or derive from witness type
@@ -1205,17 +1170,23 @@ class HDKey(Key):
 
         :return HDKey:
         """
-        return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network, compressed=compressed,
-                               encoding=encoding, witness_type=witness_type, multisig=multisig)
+        return HDKey.from_seed(Mnemonic().to_seed(passphrase, password), network=network, key_type=key_type,
+                               compressed=compressed, encoding=encoding, witness_type=witness_type, multisig=multisig)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
                  child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True,
                  encoding=None, witness_type=None, multisig=False):
         """
         Hierarchical Deterministic Key class init function.
+
         If no import_key is specified a key will be generated with systems cryptographically random function.
         Import key can be any format normal or HD key (extended key) accepted by get_key_format.
         If a normal key with no chain part is provided, an chain with only 32 0-bytes will be used.
+
+        >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
+        >>> k = HDKey(private_hex)
+        >>> k
+        <HDKey(public_hex=0363c152144dcd5253c1216b733fdc6eb8a94ab2cd5caa8ead5e59ab456ff99927, wif_public=xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW, network=bitcoin)>
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
         :type import_key: str, bytes, int, bytearray
@@ -1253,17 +1224,17 @@ class HDKey(Key):
             encoding = get_encoding_from_witness(witness_type)
         self.script_type = script_type_default(witness_type, multisig)
 
-        if (key and not chain) or (not key and chain):
-            raise BKeyError("Please specify both key and chain, use import_key attribute "
-                            "or use simple Key class instead")
-        if not (key and chain):
+        # if (key and not chain) or (not key and chain):
+        #     raise BKeyError("Please specify both key and chain, use import_key attribute "
+        #                     "or use simple Key class instead")
+        if not key:
             if not import_key:
                 # Generate new Master Key
-                # seedbits = random.SystemRandom().randint(512)
-                # seed = change_base(str(seedbits), 10, 256, 64)
                 seed = os.urandom(64)
                 key, chain = self._key_derivation(seed)
-            elif isinstance(import_key, (bytearray, bytes if sys.version > '3' else bytearray)) \
+            # If key is 64 bytes long assume a HD Key with key and chain part
+            elif (PY3 and isinstance(import_key, (bytearray, bytes))) or \
+                    (not PY3 and isinstance(import_key, (bytearray, str)) and to_hexstring(import_key) != import_key) \
                     and len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
@@ -1271,7 +1242,7 @@ class HDKey(Key):
                 if not import_key.compressed:
                     _logger.warning("Uncompressed private keys are not standard for BIP32 keys, use at your own risk!")
                     compressed = False
-                chain = b'\0' * 32
+                chain = chain if chain else b'\0' * 32
                 key = import_key.private_byte
                 key_type = 'private'
             else:
@@ -1299,16 +1270,15 @@ class HDKey(Key):
                     child_index = int(change_base(bkey[9:13], 256, 10))
                     chain = bkey[13:45]
                     # chk = bkey[78:82]
-                elif kf['format'] == 'address':
-                    da = deserialize_address(import_key)
-                    key = da['public_key_hash']
-                    network = Network(da['network'])
-                    is_private = False
                 elif kf['format'] == 'mnemonic':
                     raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
+                elif kf['format'] == 'wif_protected':
+                    key, compressed = self._bip38_decrypt(import_key, passphrase, network.name, witness_type)
+                    chain = chain if chain else b'\0' * 32
+                    key_type = 'private'
                 else:
                     key = import_key
-                    chain = b'\0' * 32
+                    chain = chain if chain else b'\0' * 32
                     key_type = 'private'
 
         if witness_type is None:
@@ -1412,9 +1382,58 @@ class HDKey(Key):
 
         return self.hash160[:4]
 
+    def bip38_encrypt(self, passphrase):
+        """
+        BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
+        Based on code from https://github.com/nomorecoin/python-bip38-testing
+
+        >>> k = HDKey('zpub6jftahH18ngZyanZ5b6VMRApYRjKWqCMD1xiUsZpbNRQNWiYkX2183TJT7unarBTQMESPMX7EuxopG9RfXWme2cK1W7T5ebD2es5SpN9cQ3')
+        >>> k.bip38_encrypt('test')
+        '6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg'
+
+        :param passphrase: Required passphrase for encryption
+        :type passphrase: str
+
+        :return str: BIP38 passphrase encrypted private key
+        """
+        flagbyte = b'\xe0' if self.compressed else b'\xc0'
+        return bip38_encrypt(self.private_hex, self.address(), passphrase, flagbyte)
+
+    @staticmethod
+    def _bip38_decrypt(encrypted_privkey, passphrase, network=DEFAULT_NETWORK, witness_type=DEFAULT_WITNESS_TYPE):
+        """
+        BIP0038 non-ec-multiply decryption. Returns WIF private key.
+        Based on code from https://github.com/nomorecoin/python-bip38-testing
+        This method is called by Key class init function when importing BIP0038 key.
+
+        :param encrypted_privkey: Encrypted private key using WIF protected key format
+        :type encrypted_privkey: str
+        :param passphrase: Required passphrase for decryption
+        :type passphrase: str
+
+        :return str: Private Key WIF
+        """
+        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, passphrase)
+        # compressed = True if priv[-1:] == b'\1' else False
+
+        # Verify addresshash
+        k = HDKey(priv, compressed=compressed, network=network, witness_type=witness_type)
+        addr = k.address()
+        if isinstance(addr, str) and sys.version_info > (3,):
+            addr = addr.encode('utf-8')
+        if double_sha256(addr)[0:4] != addresshash:
+            raise BKeyError('Addresshash verification failed! Password or '
+                            'specified network %s might be incorrect' % network)
+        return priv, compressed
+
     def wif(self, is_private=None, child_index=None, prefix=None, witness_type=None, multisig=None):
         """
         Get Extended WIF of current key
+
+        >>> private_hex = '221ff330268a9bb5549a02c801764cffbc79d5c26f4041b26293a425fd5b557c'
+        >>> k = HDKey(private_hex)
+        >>> k.wif()
+        'xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW'
 
         :param is_private: Return public or private key
         :type is_private: bool
@@ -1468,7 +1487,7 @@ class HDKey(Key):
 
     def wif_public(self, prefix=None, witness_type=None, multisig=None):
         """
-        Get Extended WIF public key. Wrapper for the wif() method
+        Get Extended WIF public key. Wrapper for the :func:`wif` method
 
         :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
@@ -1483,14 +1502,13 @@ class HDKey(Key):
 
     def wif_private(self, prefix=None, witness_type=None, multisig=None):
         """
-        Get Extended WIF private key. Wrapper for the wif() method
+        Get Extended WIF private key. Wrapper for the :func:`wif` method
 
-        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified,
-        method uses default prefix from network settings
+        :param prefix: Specify version prefix in hexstring or bytes. Normally doesn't need to be specified, method uses default prefix from network settings
         :type prefix: str, bytes
         :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
         :type witness_type: str
-        :param multisig: Key is part of a multisignature wallet?
+        :param multisig: Key is part of a multi signature wallet?
         :type multisig: bool
 
         :return str: Base58 encoded WIF key
@@ -1500,6 +1518,11 @@ class HDKey(Key):
     def address(self, compressed=None, prefix=None, script_type=None, encoding=None):
         """
         Get address derived from public key
+
+        >>> wif = 'xpub661MyMwAqRbcFcXi3aM3fVdd42FGDSdufhrr5tdobiPjMrPUykFMTdaFEr7yoy1xxeifDY8kh2k4h9N77MY6rk18nfgg5rPtbFDF2YHzLfA'
+        >>> k = HDKey(wif)
+        >>> k.address()
+        '15CacK61qnzJKpSpx9PFiC8X1ajeQxhq8a'
 
         :param compressed: Always return compressed address
         :type compressed: bool
@@ -1524,8 +1547,13 @@ class HDKey(Key):
         """
         Determine subkey for HD Key for given path.
         Path format: m / purpose' / coin_type' / account' / change / address_index
-        Example: m/44'/0'/0'/0/2
+
         See BIP0044 bitcoin proposal for more explanation.
+
+        >>> wif = 'xprv9s21ZrQH143K4LvcS93AHEZh7gBiYND6zMoRiZQGL5wqbpCU2KJDY87Txuv9dduk9hAcsL76F8b5JKzDREf8EmXjbUwN1c4nR9GEx56QGg2'
+        >>> k = HDKey(wif)
+        >>> k.subkey_for_path("m/44'/0'/0'/0/2")
+        <HDKey(public_hex=03004331ca7f0dcdd925abc4d0800a0d4a0562a02c257fa39185c55abdfc4f0c0c, wif_public=xpub6GyQoEbMUNwu1LnbiCSaD8wLrcjyRCEQA8tNsFCH4pnvCbuWSZkSB6LUNe89YsCBTg1Ncs7vHJBjMvw2Q7siy3A4g1srAq7Lv3CtEXghv44, network=bitcoin)>
 
         :param path: BIP0044 key path
         :type path: str, list
@@ -1600,11 +1628,18 @@ class HDKey(Key):
 
     def public_master(self, account_id=0, purpose=None, multisig=None, witness_type=None, as_private=False):
         """
-        Derives a public master key for current HDKey.
+        Derives a public master key for current HDKey. A public master key can be shared with other software
+        administration tools to create readonly wallets or can be used to create multisignature wallets.
+
+        >>> private_hex = 'b66ed9778029d32ebede042c79f448da8f7ab9efba19c63b7d3cdf6925203b71'
+        >>> k = HDKey(private_hex)
+        >>> pm = k.public_master()
+        >>> pm.wif()
+        'xpub6CjFexgdDZEtHdW7V4LT8wS9rtG3m187pM9qhTpoZdViFhSv3tW9sWonQNtFN1TCkRGAQGKj1UC2ViHTqb7vJV3X67xSKuCDzv14tBHR3Y7'
 
         :param account_id: Account ID. Leave empty for account 0
         :type account_id: int
-        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit.
+        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit. Derived from witness_type and multisig arguments if not provided
         :type purpose: int
         :param multisig: Key is part of a multisignature wallet?
         :type multisig: bool
@@ -1639,7 +1674,7 @@ class HDKey(Key):
     def public_master_multisig(self, account_id=0, purpose=None, witness_type=None, as_private=False):
         """
         Derives a public master key for current HDKey for use with multi signature wallets. Wrapper for the
-        public_master() method.
+        :func:`public_master` method.
 
         :param account_id: Account ID. Leave empty for account 0
         :type account_id: int
@@ -1716,6 +1751,20 @@ class HDKey(Key):
         """
         Use Child Key Derivation (CDK) to derive child private key of current HD Key object.
 
+        Used by :func:`subkey_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+
+        This method create private child keys, use :func:`child_public` to create public child keys.
+
+        >>> private_hex = 'd02220828cad5e0e0f25057071f4dae9bf38720913e46a596fd7eb8f83ad045d'
+        >>> k = HDKey(private_hex)
+        >>> ck = k.child_private(10)
+        >>> ck.address()
+        '1FgHK5JUa87ASxz5mz3ypeaUV23z9yW654'
+        >>> ck.depth
+        1
+        >>> ck.child_index
+        10
+
         :param index: Key index number
         :type index: int
         :param hardened: Specify if key must be hardened (True) or normal (False)
@@ -1725,6 +1774,7 @@ class HDKey(Key):
 
         :return HDKey: HD Key class object
         """
+
         if network is None:
             network = self.network.name
         if not self.is_private:
@@ -1751,6 +1801,20 @@ class HDKey(Key):
     def child_public(self, index=0, network=None):
         """
         Use Child Key Derivation to derive child public key of current HD Key object.
+
+        Used by :func:`subkey_for_path` to create key paths for instance to use in HD wallets. You can use this method to create your own key structures.
+
+        This method create public child keys, use :func:`child_private` to create private child keys.
+
+        >>> private_hex = 'd02220828cad5e0e0f25057071f4dae9bf38720913e46a596fd7eb8f83ad045d'
+        >>> k = HDKey(private_hex)
+        >>> ck = k.child_public(15)
+        >>> ck.address()
+        '1PfLJJgKs8nUbMPpaQUucbGmr8qyNSMGeK'
+        >>> ck.depth
+        1
+        >>> ck.child_index
+        15
 
         :param index: Key index number
         :type index: int
@@ -1811,12 +1875,13 @@ class Signature(object):
     """
     Signature class for transactions. Used to create signatures to sign transaction and verification
     
-    Sign a transaction hash with a private key and show DER encoded signature
-    >>> sk = HDKey()
+    Sign a transaction hash with a private key and show DER encoded signature:
+
+    >>> sk = HDKey('f2620684cef2b677dc2f043be8f0873b61e79b274c7e7feeb434477c082e0dc2')
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
     >>> to_hexstring(signature.as_der_encoded())
-    3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e75356fda036f06d293d02fc9b0f9d49e09d8149e9d
+    '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba'
     
     """
 
@@ -1852,7 +1917,17 @@ class Signature(object):
     def create(tx_hash, private, use_rfc6979=True, k=None):
         """
         Sign a transaction hash and create a signature with provided private key.
-        
+
+        >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
+        >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        >>> sig = Signature.create(tx_hash, k)
+        >>> sig.hex()
+        '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
+        >>> sig.r
+        32979225540043540145671192266052053680452913207619328973512110841045982813493
+        >>> sig.s
+        12990793585889366641563976043319195006380846016310271470330687369836458989268
+
         :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
         :type tx_hash: bytes, str
         :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
@@ -1867,7 +1942,7 @@ class Signature(object):
         if isinstance(tx_hash, bytes):
             tx_hash = to_hexstring(tx_hash)
         if len(tx_hash) > 64:
-            tx_hash = to_hexstring(double_sha256(binascii.unhexlify(tx_hash)))
+            tx_hash = double_sha256(binascii.unhexlify(tx_hash), as_hex=True)
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
         pub_key = private.public()
@@ -1912,7 +1987,13 @@ class Signature(object):
 
     def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None, k=None):
         """
-        Initialize Signature object with provided r and r value. 
+        Initialize Signature object with provided r and r value
+
+        >>> r = 32979225540043540145671192266052053680452913207619328973512110841045982813493
+        >>> s = 12990793585889366641563976043319195006380846016310271470330687369836458989268
+        >>> sig = Signature(r, s)
+        >>> sig.hex()
+        '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
         
         :param r: r value of signature
         :type r: int
@@ -1936,9 +2017,9 @@ class Signature(object):
         self.s = int(s)
         self.x = None
         self.y = None
-        if 1 > self.r >= secp256k1_n:
+        if self.r < 1 or self.r >= secp256k1_n:
             raise BKeyError('Invalid Signature: r is not a positive integer smaller than the curve order')
-        elif 1 > self.s >= secp256k1_n:
+        elif self.s < 1 or self.s >= secp256k1_n:
             raise BKeyError('Invalid Signature: s is not a positive integer smaller than the curve order')
         self._tx_hash = None
         self.tx_hash = tx_hash
@@ -2027,7 +2108,15 @@ class Signature(object):
     def verify(self, tx_hash=None, public_key=None):
         """
         Verify this signature. Provide tx_hash or public_key if not already known
-        
+
+        >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
+        >>> pub_key = HDKey(k).public()
+        >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        >>> sig = '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
+        >>> sig = Signature.from_str(sig)
+        >>> sig.verify(tx_hash, pub_key)
+        True
+
         :param tx_hash: Transaction hash
         :type tx_hash: bytes, hexstring
         :param public_key: Public key P
@@ -2084,11 +2173,12 @@ def sign(tx_hash, private, use_rfc6979=True, k=None):
     Sign transaction hash or message with secret private key. Creates a signature object.
     
     Sign a transaction hash with a private key and show DER encoded signature
-    >>> sk = HDKey()
+
+    >>> sk = HDKey('728afb86a98a0b60cc81faadaa2c12bc17d5da61b8deaf1c08fc07caf424d493')
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
     >>> to_hexstring(signature.as_der_encoded())
-    3044022040aa86a597ecd19aa60c1f18390543cc5c38049a18a8515aed095a4b15e1d8ea02202226efba29871477ab925e75356fda036f06d293d02fc9b0f9d49e09d8149e9d
+    '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a1'
 
     :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
     :type tx_hash: bytes, str
@@ -2108,6 +2198,13 @@ def verify(tx_hash, signature, public_key=None):
     """
     Verify provided signature with tx_hash message. If provided signature is no Signature object a new object will
     be created for verification.
+
+    >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
+    >>> pub_key = HDKey(k).public()
+    >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+    >>> sig = '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
+    >>> verify(tx_hash, sig, pub_key)
+    True
 
     :param tx_hash: Transaction hash
     :type tx_hash: bytes, hexstring

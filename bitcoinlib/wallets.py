@@ -108,6 +108,8 @@ def wallet_create_or_open(
     """
     Create a wallet with specified options if it doesn't exist, otherwise just open
 
+    Returns HDWallet object
+
     See Wallets class create method for option documentation
     """
     if wallet_exists(name, db_uri=db_uri):
@@ -260,6 +262,9 @@ def normalize_path(path):
     """
     Normalize BIP0044 key path for HD keys. Using single quotes for hardened keys
 
+    >>> normalize_path("m/44h/2p/1'/0/100")
+    "m/44'/2'/1'/0/100"
+
     :param path: BIP0044 key path
     :type path: str
 
@@ -311,18 +316,28 @@ def parse_bip44_path(path):  # pragma: no cover
 
 class HDWalletKey(object):
     """
-    Normally only used as attribute of HDWallet class. Contains HDKey class, and adds extra information such as
+    Used as attribute of HDWallet class. Contains HDKey class, and adds extra wallet related information such as
     key ID, name, path and balance.
 
-    All HDWalletKey are stored in a database
+    All HDWalletKeys are stored in a database
     """
 
     @staticmethod
-    def from_key(name, wallet_id, session, key='', account_id=0, network=None, change=0, purpose=44, parent_id=0,
+    def from_key(name, wallet_id, session, key, account_id=0, network=None, change=0, purpose=44, parent_id=0,
                  path='m', key_type=None, encoding=None, witness_type=DEFAULT_WITNESS_TYPE, multisig=False,
                  cosigner_id=None):
         """
-        Create HDWalletKey from a HDKey object or key
+        Create HDWalletKey from a HDKey object or key.
+
+        Normally you don't need to call this method directly. Key creation is handled by the HDWallet class.
+
+        >>> w = wallet_create_or_open('hdwalletkey_test')
+        >>> wif = 'xprv9s21ZrQH143K2mcs9jcK4EjALbu2z1N9qsMTUG1frmnXM3NNCSGR57yLhwTccfNCwdSQEDftgjCGm96P29wGGcbBsPqZH85iqpoHA7LrqVy'
+        >>> wk = HDWalletKey.from_key('import_key', w.wallet_id, w._session, wif)
+        >>> wk.address
+        '1MwVEhGq6gg1eeSrEdZom5bHyPqXtJSnPg'
+        >>> wk # doctest:+ELLIPSIS
+        <HDWalletKey(key_id=..., name=import_key, wif=xprv9s21ZrQH143K2mcs9jcK4EjALbu2z1N9qsMTUG1frmnXM3NNCSGR57yLhwTccfNCwdSQEDftgjCGm96P29wGGcbBsPqZH85iqpoHA7LrqVy, path=m)>
 
         :param name: New key name
         :type name: str
@@ -482,7 +497,7 @@ class HDWalletKey(object):
     @property
     def name(self):
         """
-        Return name of wallet
+        Return name of wallet key
 
         :return str:
         """
@@ -535,6 +550,11 @@ class HDWalletKey(object):
             return self._balance
 
     def public(self):
+        """
+        Return current key as public HDWalletKey object with all private information removed
+
+        :return HDWalletKey:
+        """
         pub_key = self
         pub_key.is_private = False
         pub_key.key_private = None
@@ -578,7 +598,7 @@ class HDWalletKey(object):
 
 class HDWalletTransaction(Transaction):
     """
-    Normally only used as attribute of HDWallet class. Child of Transaction object with extra reference to
+    Used as attribute of HDWallet class. Child of Transaction object with extra reference to
     wallet and database object.
 
     All HDWalletTransaction items are stored in a database
@@ -673,7 +693,7 @@ class HDWalletTransaction(Transaction):
             inputs.append(Input(
                 prev_hash=inp.prev_hash, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
-                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network))
+                double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address))
         # TODO / FIXME: Field in Input object, but not in database:
         # def __init__(signatures=None, public_hash=b'',
         #              unlocking_script_unsigned=None, compressed=None, sigs_required=None, sort=False,
@@ -704,7 +724,7 @@ class HDWalletTransaction(Transaction):
                    output_total=db_tx.output_total, rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)  # flag=db_tx.flag
 
-    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL):
+    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=None):
         """
         Sign this transaction. Use existing keys from wallet or use keys argument for extra keys.
 
@@ -727,12 +747,11 @@ class HDWalletTransaction(Transaction):
             for priv_key in keys:
                 if not isinstance(priv_key, HDKey):
                     if isinstance(priv_key, str) and len(str(priv_key).split(' ')) > 4:
-                        priv_key = HDKey.from_passphrase(priv_key)
+                         priv_key = HDKey.from_passphrase(priv_key)
                     else:
                         priv_key = HDKey(priv_key, network=self.network.name)
-                if not key_paths or priv_key.depth != 0 or priv_key.key_type == "single":
-                    priv_key_list_arg.append((None, priv_key))
-                else:
+                priv_key_list_arg.append((None, priv_key))
+                if key_paths and priv_key.depth == 0 and priv_key.key_type != "single":
                     for key_path in key_paths:
                         priv_key_list_arg.append((key_path, priv_key.subkey_for_path(key_path)))
         for ti in self.inputs:
@@ -743,7 +762,7 @@ class HDWalletTransaction(Transaction):
             for k in ti.keys:
                 if k.is_private:
                     priv_key_list.append(k)
-            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type)
+            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type, False)
         self.verify()
         self.error = ""
 
@@ -752,7 +771,7 @@ class HDWalletTransaction(Transaction):
         Verify and push transaction to network. Update UTXO's in database after successful send
 
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
-        :type offline: bool
+        :type offline: boolmijn ouders relatief normaal waren. Je hebt ze tenslotte niet voor het uitzoeken
 
         :return None:
 
@@ -850,7 +869,8 @@ class HDWalletTransaction(Transaction):
                 new_tx_item = DbTransactionInput(
                     transaction_id=tx_id, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
                     prev_hash=to_hexstring(ti.prev_hash), index_n=ti.index_n, double_spend=ti.double_spend,
-                    script=to_hexstring(ti.unlocking_script), script_type=ti.script_type)
+                    script=to_hexstring(ti.unlocking_script), script_type=ti.script_type, witness_type=ti.witness_type,
+                    sequence=ti.sequence, address=ti.address)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_input.key_id = key_id
@@ -898,30 +918,29 @@ class HDWalletTransaction(Transaction):
     def export(self, skip_change=True):
         """
         Export this transaction as list of tuples in the following format:
-            (in/out, transaction_hash, transaction_date, address, value)
+            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value)
 
         A transaction with multiple inputs or outputs results in multiple tuples.
 
         :param skip_change: Do not include outputs to own wallet (default)
         :type skip_change: boolean
 
-        :return list:
+        :return list of tuple:
         """
         mut_list = []
         wlt_addresslist = self.hdwallet.addresslist()
+        input_addresslist = [i.address for i in self.inputs]
         if self.outgoing_tx:
             for o in self.outputs:
                 if o.address in wlt_addresslist and skip_change:
                     continue
-                mut_list.append(('out', self.hash, self.date, o.address, o.value))
+                mut_list.append((self.date, self.hash, 'out', input_addresslist, o.address, -o.value))
         else:
-            addresslist = [i.address for i in self.inputs]
             for o in self.outputs:
                 if o.address not in wlt_addresslist:
                     continue
-                mut_list.append(('in', self.hash, self.date, addresslist, o.value))
+                mut_list.append((self.date, self.hash, 'in', input_addresslist, o.address, o.value))
         return mut_list
-
 
 
 class HDWallet(object):
@@ -1013,11 +1032,32 @@ class HDWallet(object):
         When only a name is specified an legacy HDWallet with a single masterkey is created with standard p2wpkh
         scripts.
 
+        >>> if wallet_delete_if_exists('create_legacy_wallet_test'): pass
+        >>> w = HDWallet.create('create_legacy_wallet_test')
+        >>> w
+        <HDWallet(name=create_legacy_wallet_test, db_uri="None")>
+
         To create a multi signature wallet specify multiple keys (private or public) and provide the sigs_required
         argument if it different then len(keys)
 
+        >>> if wallet_delete_if_exists('create_legacy_multisig_wallet_test'): pass
+        >>> w = HDWallet.create('create_legacy_multisig_wallet_test', keys=[HDKey(), HDKey().public()])
+
         To create a native segwit wallet use the option witness_type = 'segwit' and for old style addresses and p2sh
         embedded segwit script us 'ps2h-segwit' as witness_type.
+
+        >>> if wallet_delete_if_exists('create_segwit_wallet_test'): pass
+        >>> w = HDWallet.create('create_segwit_wallet_test', witness_type='segwit')
+
+        Use a masterkey WIF when creating a wallet:
+
+        >>> wif = 'xprv9s21ZrQH143K3cxbMVswDTYgAc9CeXABQjCD9zmXCpXw4MxN93LanEARbBmV3utHZS9Db4FX1C1RbC5KSNAjQ5WNJ1dDBJ34PjfiSgRvS8x'
+        >>> if wallet_delete_if_exists('bitcoinlib_legacy_wallet_test', force=True): pass
+        >>> w = HDWallet.create('bitcoinlib_legacy_wallet_test', wif)
+        >>> w
+        <HDWallet(name=bitcoinlib_legacy_wallet_test, db_uri="None")>
+        >>> # Add some test utxo data:
+        >>> if w.utxo_add('16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', 100000000, '748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', 0): pass
 
         Please mention account_id if you are using multiple accounts.
 
@@ -1049,12 +1089,11 @@ class HDWallet(object):
         :type sigs_required: int
         :param cosigner_id: Set this if wallet contains only public keys, more then one private key or if you would like to create keys for other cosigners. Note: provided keys of a multisig wallet are sorted if sort_keys = True (default) so if your provided key list is not sorted the cosigned_id may be different.
         :type cosigner_id: int
-        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must
-        follow the following rules:
-        * Path start with masterkey (m) and end with change / address_index
-        * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
-        * All keys must be hardened, except for change, address_index or cosigner_id
-        * Max length of path is 8 levels
+        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must follow the following rules:
+            * Path start with masterkey (m) and end with change / address_index
+            * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
+            * All keys must be hardened, except for change, address_index or cosigner_id
+            * Max length of path is 8 levels
         :type key_path: list, str
         :param db_uri: URI of the database
         :type db_uri: str
@@ -1203,9 +1242,7 @@ class HDWallet(object):
                         sort_keys=True, witness_type=DEFAULT_WITNESS_TYPE, encoding=None, key_path=None,
                         cosigner_id=None, db_uri=None):
         """
-        Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more
-        public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a
-        single key depending on the key_type.
+        Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a single key depending on the key_type.
 
         :param name: Unique name of this Wallet
         :type name: str
@@ -1226,12 +1263,11 @@ class HDWallet(object):
         :type witness_type: str
         :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
         :type encoding: str
-        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must
-        follow the following rules:
-        * Path start with masterkey (m) and end with change / address_index
-        * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
-        * All keys must be hardened, except for change, address_index or cosigner_id
-        * Max length of path is 8 levels
+        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must follow the following rules:
+            * Path start with masterkey (m) and end with change / address_index
+            * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
+            * All keys must be hardened, except for change, address_index or cosigner_id
+            * Max length of path is 8 levels
         :type key_path: list, str
         :param cosigner_id: Set this if wallet contains only public keys or if you would like to create keys for other cosigners.
         :type cosigner_id: int
@@ -1654,6 +1690,10 @@ class HDWallet(object):
         Create a new HD Key derived from this wallet's masterkey. An account will be created for this wallet
         with index 0 if there is no account defined yet.
 
+        >>> w = HDWallet('create_legacy_wallet_test')
+        >>> w.new_key('my key') # doctest:+ELLIPSIS
+        <HDWalletKey(key_id=..., name=my key, wif=..., path=m/44'/0'/0'/0/...)>
+
         :param name: Key name. Does not have to be unique but if you use it at reference you might chooce to enforce this. If not specified 'Key #' with an unique sequence number will be used
         :type name: str
         :param account_id: Account ID. Default is last used or created account ID.
@@ -1699,7 +1739,7 @@ class HDWallet(object):
 
     def new_key_change(self, name='', account_id=None, network=None):
         """
-        Create new key to receive change for a transaction. Calls new_key method with change=1.
+        Create new key to receive change for a transaction. Calls :func:`new_key` method with change=1.
 
         :param name: Key name. Default name is 'Change #' with an address index
         :type name: str
@@ -1731,8 +1771,8 @@ class HDWallet(object):
 
         Keep scanning for new transactions until no new transactions are found for 'scan_gap_limit' addresses. Only scan keys from default network and account unless another network or account is specified.
 
-        Use the faster utxos_update() method if you are only interested in unspent outputs.
-        Use the transaction_update() method if you would like to manage the key creation yourself or if you want to scan a single key.
+        Use the faster :func:`utxos_update` method if you are only interested in unspent outputs.
+        Use the :func:`transactions_update` method if you would like to manage the key creation yourself or if you want to scan a single key.
 
         :param scan_gap_limit: Amount of new keys and change keys (addresses) created for this wallet
         :type scan_gap_limit: int
@@ -1757,12 +1797,12 @@ class HDWallet(object):
             keys_ignore = []
 
         # Rescan used addresses
-        # TODO: add more args to keys_addresses + change/payment etc
         if rescan_used:
-            for key in self.keys_addresses(used=True):
+            for key in self.keys_addresses(account_id=account_id, change=change, network=network, used=True):
                 self.scan_key(key.id)
 
         # Update already known transactions
+        # FIXME: This is very very inefficient and not workable for really large txs sets :(
         srv = Service(network=network, providers=self.providers)
         current_block_height = srv.blockcount()
         for t in self.transactions(account_id=account_id, network=network):
@@ -1805,8 +1845,12 @@ class HDWallet(object):
 
     def get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
         """
-        Get a unused key or create a new one if there are no unused keys.
+        Get a unused key or create a new one with :func:`new_key` if there are no unused keys.
         Returns a key from this wallet which has no transactions linked to it.
+
+        >>> w = HDWallet('create_legacy_wallet_test')
+        >>> w.get_key() # doctest:+ELLIPSIS
+        <HDWalletKey(key_id=..., name=..., wif=..., path=m/44'/0'/0'/0/...)>
 
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
@@ -1857,7 +1901,7 @@ class HDWallet(object):
     def get_key_change(self, account_id=None, network=None, number_of_keys=1):
         """
         Get a unused change key or create a new one if there are no unused keys.
-        Wrapper for the get_key method
+        Wrapper for the :func:`get_key` method
 
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
@@ -1873,7 +1917,7 @@ class HDWallet(object):
 
     def new_account(self, name='', account_id=None, network=None):
         """
-        Create a new account with a childkey for payments and 1 for change.
+        Create a new account with a child key for payments and 1 for change.
 
         An account key can only be created if wallet contains a masterkey.
 
@@ -1926,7 +1970,15 @@ class HDWallet(object):
     def path_expand(self, path, level_offset=None, account_id=None, cosigner_id=0, address_index=None, change=0,
                     network=DEFAULT_NETWORK):
         """
-        Create key path. Specify part of key path and path settings
+        Create key path. Specify part of key path to expand to key path used in this wallet.
+
+        >>> w = HDWallet('create_legacy_wallet_test')
+        >>> w.path_expand([0,1200])
+        ['m', "44'", "0'", "0'", '0', '1200']
+
+        >>> w = HDWallet('create_legacy_multisig_wallet_test')
+        >>> w.path_expand([0,2], cosigner_id=1)
+        ['m', "45'", '1', '0', '2']
 
         :param path: Part of path, for example [0, 2] for change=0 and address_index=2
         :type path: list, str
@@ -1955,19 +2007,23 @@ class HDWallet(object):
         """
         Return key for specified path. Derive all wallet keys in path if they not already exists
 
-        >>> w = HDWallet.create('key_for_path_example')
-        >>> w.key_for_path([0, 0])
-        <HDWalletKey(key_id=750, name=address index 0, wif=xprv...4Vk2, path=m/44'/0'/0'/0/0)>
+        >>> w = wallet_create_or_open('key_for_path_example')
+        >>> key = w.key_for_path([0, 0])
+        >>> key.path
+        "m/44'/0'/0'/0/0"
 
-        >>> w.key_for_path([], level_offset=-2)
-        <HDWalletKey(key_id=748, name=account 0, wif=xprv...aMo, path=m/44'/0'/0')>
+        >>> w.key_for_path([], level_offset=-2).path
+        "m/44'/0'/0'"
 
-        >>> w.key_for_path([], w.depth_public_master + 1)
-        <HDWalletKey(key_id=748, name=account 0, wif=xprv...aMo, path=m/44'/0'/0')>
+        >>> w.key_for_path([], w.depth_public_master + 1).path
+        "m/44'/0'/0'"
 
         Arguments provided in 'path' take precedence over other arguments. The address_index argument is ignored:
-        >>> w.key_for_path([0, 10], address_index=1000)
-        <HDWalletKey(key_id=751, name=address index 0, wif=xprv...k2Mo, path=m/44'/0'/0'/0/10)>
+        >>> key = w.key_for_path([0, 10], address_index=1000)
+        >>> key.path
+        "m/44'/0'/0'/0/10"
+        >>> key.address_index
+        10
 
         :param path: Part of key path, i.e. [0, 0] for [change=0, address_index=0]
         :type path: list, str
@@ -2069,6 +2125,11 @@ class HDWallet(object):
         """
         Search for keys in database. Include 0 or more of account_id, name, key_id, change and depth.
 
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> all_wallet_keys = w.keys()
+        >>> w.keys(depth=0) # doctest:+ELLIPSIS
+        [<DbKey(id=..., name='bitcoinlib_legacy_wallet_test', wif='xprv9s21ZrQH143K3cxbMVswDTYgAc9CeXABQjCD9zmXCpXw4MxN93LanEARbBmV3utHZS9Db4FX1C1RbC5KSNAjQ5WNJ1dDBJ34PjfiSgRvS8x'>]
+
         Returns a list of DbKey object or dictionary object if as_dict is True
 
         :param account_id: Search for account ID
@@ -2146,7 +2207,15 @@ class HDWallet(object):
 
     def keys_networks(self, used=None, as_dict=False):
         """
-        Get keys of defined networks for this wallet. Wrapper for the keys() method
+        Get keys of defined networks for this wallet. Wrapper for the :func:`keys` method
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> network_key = w.keys_networks()
+        >>> # Address index of hardened key 0' is 2147483648
+        >>> network_key[0].address_index
+        2147483648
+        >>> network_key[0].path
+        "m/44'/0'"
 
         :param used: Only return used or unused keys
         :type used: bool
@@ -2169,9 +2238,14 @@ class HDWallet(object):
 
     def keys_accounts(self, account_id=None, network=DEFAULT_NETWORK, as_dict=False):
         """
-        Get Database records of account key(s) with for current wallet. Wrapper for the keys() method.
+        Get Database records of account key(s) with for current wallet. Wrapper for the :func:`keys` method.
 
-        Returns nothing if no account keys are available for instance in multisig or single account wallets. In this case use accounts() method instead.
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> account_key = w.keys_accounts()
+        >>> account_key[0].path
+        "m/44'/0'/0'"
+
+        Returns nothing if no account keys are available for instance in multisig or single account wallets. In this case use :func:`accounts` method instead.
 
         :param account_id: Search for Account ID
         :type account_id: int
@@ -2185,9 +2259,14 @@ class HDWallet(object):
 
         return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
 
-    def keys_addresses(self, account_id=None, used=None, is_active=None, network=None, depth=None, as_dict=False):
+    def keys_addresses(self, account_id=None, used=None, is_active=None, change=None, network=None, depth=None,
+                       as_dict=False):
         """
-        Get address-keys of specified account_id for current wallet. Wrapper for the keys() methods.
+        Get address keys of specified account_id for current wallet. Wrapper for the :func:`keys` methods.
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.keys_addresses()[0].address
+        '16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg'
 
         :param account_id: Account ID
         :type account_id: int
@@ -2195,6 +2274,8 @@ class HDWallet(object):
         :type used: bool
         :param is_active: Hide inactive keys. Only include active keys with either a balance or which are unused, default is True
         :type is_active: bool
+        :param change: Search for Change
+        :type change: int
         :param network: Network name filter
         :type network: str
         :param depth: Filter by key depth. Default for BIP44 and multisig is 5
@@ -2207,11 +2288,11 @@ class HDWallet(object):
 
         if depth is None:
             depth = self.key_depth
-        return self.keys(account_id, depth=depth, used=used, is_active=is_active, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=depth, used=used, change=change, is_active=is_active, network=network, as_dict=as_dict)
 
     def keys_address_payment(self, account_id=None, used=None, network=None, as_dict=False):
         """
-        Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the keys() methods.
+        Get payment addresses (change=0) of specified account_id for current wallet. Wrapper for the :func:`keys` methods.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2229,7 +2310,7 @@ class HDWallet(object):
 
     def keys_address_change(self, account_id=None, used=None, network=None, as_dict=False):
         """
-        Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the keys() methods.
+        Get payment addresses (change=1) of specified account_id for current wallet. Wrapper for the :func:`keys` methods.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2247,7 +2328,13 @@ class HDWallet(object):
 
     def addresslist(self, account_id=None, used=None, network=None, change=None, depth=None, key_id=None):
         """
-        Get list of addresses defined in current wallet
+        Get list of addresses defined in current wallet. Wrapper for the :func:`keys` methods.
+
+        Use :func:`keys_addresses` method to receive full key objects
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.addresslist()[0]
+        '16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg'
 
         :param account_id: Account ID
         :type account_id: int
@@ -2277,6 +2364,10 @@ class HDWallet(object):
     def key(self, term):
         """
         Return single key with given ID or name as HDWalletKey object
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.key('change 0').address
+        '1HabJXe8mTwXiMzUWW5KdpYbFWu3hvtsbF'
 
         :param term: Search term can be key ID, key address, key WIF or key name
         :type term: int, str
@@ -2323,8 +2414,6 @@ class HDWallet(object):
         if "account'" not in self.key_path:
             raise WalletError("Accounts are not supported for this wallet. Account not found in key path %s" %
                               self.key_path)
-        if self.multisig:
-            raise WalletError("Accounts not supported for multisig wallets")
         qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, purpose=self.purpose, network_name=self.network.name,
                       account_id=account_id, depth=3).scalar()
@@ -2387,8 +2476,12 @@ class HDWallet(object):
 
     def network_list(self, field='name'):
         """
-        Wrapper for networks methods, returns a flat list with currently used
+        Wrapper for :func:`networks` method, returns a flat list with currently used
         networks for this wallet.
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.network_list()
+        ['bitcoin']
 
         :return list of str:
         """
@@ -2397,10 +2490,10 @@ class HDWallet(object):
 
     def balance_update_from_serviceprovider(self, account_id=None, network=None):
         """
-        Update balance of currents account addresses using default Service objects getbalance method. Update total
+        Update balance of currents account addresses using default Service objects :func:`getbalance` method. Update total
         wallet balance in database.
 
-        Please Note: Does not update UTXO's or the balance per key! For this use the 'updatebalance' method
+        Please Note: Does not update UTXO's or the balance per key! For this use the :func:`updatebalance` method
         instead
 
         :param account_id: Account ID. Leave empty for default account
@@ -2457,7 +2550,7 @@ class HDWallet(object):
 
     def _balance_update(self, account_id=None, network=None, key_id=None, min_confirms=0):
         """
-        Update balance from UTXO's in database. To get most recent balance update UTXO's first.
+        Update balance from UTXO's in database. To get most recent balance use :func:`utxos_update` first.
 
         Also updates balance of wallet and keys in this wallet for the specified account or all accounts if
         no account is specified.
@@ -2550,18 +2643,8 @@ class HDWallet(object):
                      utxos=None, update_balance=True, max_utxos=MAX_TRANSACTIONS, rescan_all=True):
         """
         Update UTXO's (Unspent Outputs) for addresses/keys in this wallet using various Service providers.
-        
-        This method does not import transactions: use transactions_update() or to look for new addresses use scan().
 
-        For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries:
-        [{
-            'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
-            'script': '',
-            'confirmations': 10,
-            'output_n': 1,
-            'tx_hash': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
-            'value': 8970937
-        }]
+        This method does not import transactions: use :func:`transactions_update` function or to look for new addresses use :func:`scan`.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2575,8 +2658,20 @@ class HDWallet(object):
         :type depth: int
         :param change: Only update change or normal keys, default is both (None)
         :type change: int
-        :param utxos: List of unspent outputs in dictionary format specified in this method DOC header
-        :type utxos: list
+        :param utxos: List of unspent outputs in dictionary format specified below. For usage on an offline PC, you can import utxos with the utxos parameter as a list of dictionaries
+        :type utxos: list of dict.
+
+        .. code-block:: json
+        
+            {
+              "address": "n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN",
+              "script": "",
+              "confirmations": 10,
+              "output_n": 1,
+              "tx_hash": "9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003",
+              "value": 8970937
+            }
+
         :param update_balance: Option to disable balance update after fetching UTXO's. Can be used when utxos_update method is called several times in a row. Default is True
         :type update_balance: bool
         :param max_utxos: Maximum number of UTXO's to update
@@ -2634,8 +2729,10 @@ class HDWallet(object):
                             last_txid = ''
                         else:
                             last_txid = self.utxo_last(address)
-                        utxos += srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
-                        if utxos is False:
+                        new_utxos = srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
+                        if new_utxos:
+                            utxos += new_utxos
+                        elif new_utxos is False:
                             raise WalletError("No response from any service provider, could not update UTXO's. "
                                               "Errors: %s" % srv.errors)
                     if srv.complete:
@@ -2713,7 +2810,11 @@ class HDWallet(object):
 
     def utxos(self, account_id=None, network=None, min_confirms=0, key_id=None):
         """
-        Get UTXO's (Unspent Outputs) from database. Use utxos_update method first for updated values
+        Get UTXO's (Unspent Outputs) from database. Use :func:`utxos_update` method first for updated values
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.utxos()  # doctest:+ELLIPSIS
+        [{'value': 100000000, 'script': '', 'output_n': 0, 'transaction_id': ..., 'spent': False, 'script_type': 'p2pkh', 'key_id': ..., 'address': '16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', 'confirmations': 0, 'tx_hash': '748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', 'network_name': 'bitcoin'}]
 
         :param account_id: Account ID
         :type account_id: int
@@ -2754,20 +2855,11 @@ class HDWallet(object):
 
     def utxo_add(self, address, value, tx_hash, output_n, confirmations=0, script=''):
         """
-        Add a single UTXO to the wallet database. To update all utxo's use utxos_update method.
+        Add a single UTXO to the wallet database. To update all utxo's use :func:`utxos_update` method.
 
         Use this method for testing, offline wallets or if you wish to override standard method of retreiving UTXO's
 
         This method does not check if UTXO exists or is still spendable.
-
-        [{
-            'address': 'n2S9Czehjvdmpwd2YqekxuUC1Tz5ZdK3YN',
-            'script': '',
-            'confirmations': 10,
-            'output_n': 1,
-            'tx_hash': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
-            'value': 8970937
-        }]
 
         :param address: Address of Unspent Output. Address should be available in wallet
         :type address: str
@@ -2796,6 +2888,18 @@ class HDWallet(object):
         return self.utxos_update(utxos=[utxo])
 
     def utxo_last(self, address):
+        """
+        Get transaction ID for latest utxo in database for given address
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.utxo_last('16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg')
+        '748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4'
+
+        :param address: The address
+        :type address: str
+
+        :return str:
+        """
         to = self._session.query(DbTransaction.hash, DbTransaction.confirmations). \
              join(DbTransactionOutput).join(DbKey). \
              filter(DbKey.address == address, DbTransaction.wallet_id == self.wallet_id,
@@ -2845,7 +2949,7 @@ class HDWallet(object):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet. The balances and unspent outputs (UTXO's) are updated as well. Only scan keys from default network and account unless another network or account is specified.
 
-        Use the wallet_scan() method for automatic address generation/management, and use the faster utxos_update() method to only look for unspent outputs and balances.
+        Use the :func:`scan` method for automatic address generation/management, and use the :func:`utxos_update` method to only look for unspent outputs and balances.
 
         :param account_id: Account ID
         :type account_id: int
@@ -2872,8 +2976,9 @@ class HDWallet(object):
 
         # Update number of confirmations for already known blocks
         blockcount = srv.blockcount()
-        # FIXME: this calls a lot of methods...
-        for t in self.transactions():
+        # FIXME: this calls a lot of methods..., update txs below:
+        # ToDo: just use a database query
+        for t in self.transactions(account_id=account_id, key_id=key_id, network=network):
             if t.block_height:
                 t.confirmations = blockcount - t.block_height
                 t.status = 'confirmed'
@@ -2887,13 +2992,14 @@ class HDWallet(object):
         for address in addresslist:
             txs += srv.gettransactions(address, max_txs=max_txs, after_txid=self.transaction_last(address))
             if not srv.complete:
-                if txs and txs[-1].date < last_updated:
+                if txs and txs[-1].date and txs[-1].date < last_updated:
                     last_updated = txs[-1].date
             if txs and txs[-1].confirmations:
                 dbkey = self._session.query(DbKey).filter(DbKey.address == address, DbKey.wallet_id == self.wallet_id)
                 if not dbkey.update({DbKey.latest_txid: txs[-1].hash}):
                     raise WalletError("Failed to update latest transaction id for key with address %s" % address)
                 self._session.commit()
+            # TODO: update transactions: confirmations, status, etc
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
 
@@ -2918,20 +3024,37 @@ class HDWallet(object):
         return len(txs)
 
     def transaction_last(self, address):
+        """
+        Get transaction ID for latest transaction in database for given address
+
+        :param address: The address
+        :type address: str
+
+        :return str:
+        """
         txid = self._session.query(DbKey.latest_txid). \
              filter(DbKey.address == address, DbKey.wallet_id == self.wallet_id).scalar()
         return txid if txid else ''
 
     def transactions(self, account_id=None, network=None, include_new=False, key_id=None, as_dict=False):
         """
+        Get all known transactions input and outputs for this wallet.
+
+        The transaction only includes the inputs and outputs related to this wallet. To get full transactions
+        use the :func:`transactions_full` method.
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.transactions()
+        [<HDWalletTransaction(input_count=0, output_count=1, status=unconfirmed, network=bitcoin)>]
+
         :param account_id: Filter by Account ID. Leave empty for default account_id
-        :type account_id: int
+        :type account_id: int, None
         :param network: Filter by network name. Leave empty for default network
-        :type network: str
+        :type network: str, None
         :param include_new: Also include new and incomplete transactions in list. Default is False
         :type include_new: bool
         :param key_id: Filter by key ID
-        :type key_id: int
+        :type key_id: int, None
         :param as_dict: Output as dictionary or HDWalletTransaction object
         :type as_dict: bool
 
@@ -2952,6 +3075,7 @@ class HDWallet(object):
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
         txs = qr.all()
         # Transaction outputs
+        # TODO: Add account_id to DbTransaction and remove DbKey dependency
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
                                  DbTransaction.hash, DbKey.network_name, DbTransaction.status). \
             join(DbTransaction).join(DbKey). \
@@ -2993,6 +3117,67 @@ class HDWallet(object):
             res.append(u)
         return res
 
+    def transactions_full(self, network=None, include_new=False):
+        """
+        Get all transactions of this wallet as HDWalletTransaction objects
+
+        Use the :func:`transactions` method to only get the inputs and outputs transaction parts related to this wallet
+
+        :param network: Filter by network name. Leave empty for default network
+        :type network: str
+        :param include_new: Also include new and incomplete transactions in list. Default is False
+        :type include_new: bool
+
+        :return list of HDWalletTransaction:
+        """
+        # TODO: Add account_id to DbTransaction
+        network, _, _ = self._get_account_defaults(network)
+        qr = self._session.query(DbTransaction.hash, DbTransaction.network_name, DbTransaction.status). \
+            filter(DbTransaction.wallet_id == self.wallet_id,
+                   DbTransaction.network_name == network)
+        if not include_new:
+            qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
+        txs = []
+        for tx in qr.all():
+            txs.append(self.transaction(tx[0]))
+        return txs
+
+    def transactions_export(self, account_id=None, network=None, include_new=False, key_id=None):
+        """
+        Export wallets transactions as list of tuples with the following fields:
+            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, value_cumulative)
+
+        :param account_id: Filter by Account ID. Leave empty for default account_id
+        :type account_id: int, None
+        :param network: Filter by network name. Leave empty for default network
+        :type network: str, None
+        :param include_new: Also include new and incomplete transactions in list. Default is False
+        :type include_new: bool
+        :param key_id: Filter by key ID
+        :type key_id: int, None
+
+        :return list of tuple:
+        """
+
+        txs_tuples = []
+        cumulative_value = 0
+        for t in self.transactions(account_id, network, include_new, key_id):
+            te = t.export()
+
+            # When transaction is outgoing deduct fee from cumulative value
+            if t.outgoing_tx:
+                cumulative_value -= t.fee
+
+            # Loop through all transaction inputs and outputs
+            for tei in te:
+                # Create string with  list of inputs addresses for incoming transactions, and outputs addresses
+                # for outgoing txs
+                addr_list_in = tei[3] if isinstance(tei[3], list) else [tei[3]]
+                addr_list_out = tei[4] if isinstance(tei[4], list) else [tei[4]]
+                cumulative_value += tei[5]
+                txs_tuples.append((tei[0], tei[1], tei[2], addr_list_in, addr_list_out, tei[5], cumulative_value))
+        return txs_tuples
+
     def transaction(self, txid):
         """
         Get HDWalletTransaction object for given transaction ID (transaction hash)
@@ -3008,15 +3193,18 @@ class HDWallet(object):
         """
         Check if transaction with given transaction ID and output_n is spent and return txid of spent transaction.
 
-        Retreives information from database, does not update transaction and does not check if transaction is spent with service providers.
+        Retrieves information from database, does not update transaction and does not check if transaction is spent with service providers.
 
         :param txid: Hexadecimal transaction hash
-        :type txid: str
+        :type txid: str, bytes
         :param output_n: Output n
-        :type output_n: int
+        :type output_n: int, bytes
 
         :return str: Transaction ID
         """
+        txid = to_hexstring(txid)
+        if isinstance(output_n, bytes):
+            output_n = struct.unpack('>I', output_n)[0]
         qr = self._session.query(DbTransactionInput, DbTransaction.confirmations,
                                  DbTransaction.hash, DbTransaction.status). \
             join(DbTransaction). \
@@ -3044,6 +3232,10 @@ class HDWallet(object):
         """
         Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
         the specified amount.
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.select_inputs(50000000)
+        [<Input(prev_hash='748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', output_n=0, address='16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', index_n=0, type='sig_pubkey')>]
 
         :param amount: Total value of inputs in smallest denominator (sathosi) to select
         :type amount: int
@@ -3124,21 +3316,30 @@ class HDWallet(object):
                 multisig = False if len(inp_keys) < 2 else True
                 script_type = get_unlocking_script_type(utxo.script_type, multisig=multisig)
                 inputs.append(Input(utxo.transaction.hash, utxo.output_n, keys=inp_keys, script_type=script_type,
-                              sigs_required=self.multisig_n_required, sort=self.sort_keys,
-                              compressed=key.compressed, value=utxo.value))
+                              sigs_required=self.multisig_n_required, sort=self.sort_keys, address=key.address,
+                              compressed=key.compressed, value=utxo.value, network=key.network_name))
             return inputs
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
                            min_confirms=0, max_utxos=None, locktime=0):
         """
         Create new transaction with specified outputs.
-        Inputs can be specified but if not provided they will be selected from wallets utxo's.
+
+        Inputs can be specified but if not provided they will be selected from wallets utxo's with :func:`select_inputs` method.
+
         Output array is a list of 1 or more addresses and amounts.
 
-        :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]
-        :type output_arr: list
-        :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
-        :type input_arr: list
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> t = w.transaction_create([('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 200000)])
+        >>> t
+        <HDWalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
+        >>> t.outputs # doctest:+ELLIPSIS
+        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
+
+        :param output_arr: List of output as Output objects or tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]
+        :type output_arr: list of Output, tuple
+        :param input_arr: List of inputs as Input objects or tuples with reference to a UTXO, a wallet key and value. The format is [(tx_hash, output_n, key_ids, value, signatures, unlocking_script, address)]
+        :type input_arr: list of Input, tuple
         :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
         :type input_key_id: int
         :param account_id: Account ID
@@ -3166,6 +3367,7 @@ class HDWallet(object):
 
         # Create transaction and add outputs
         transaction = HDWalletTransaction(hdwallet=self, network=network, locktime=locktime)
+        transaction.outgoing_tx = True
         if not isinstance(output_arr, list):
             raise WalletError("Output array must be a list of tuples with address and amount. "
                               "Use 'send_to' method to send to one address")
@@ -3199,8 +3401,8 @@ class HDWallet(object):
             sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount, input_key_id,
-                                                account_id, network, min_confirms, max_utxos, False)
+            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount,
+                                                input_key_id, account_id, network, min_confirms, max_utxos, False)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
             for utxo in selected_utxos:
@@ -3233,16 +3435,16 @@ class HDWallet(object):
                     sequence = inp.sequence
                     locktime_cltv = inp.locktime_cltv
                     locktime_csv = inp.locktime_csv
-                elif isinstance(inp, DbTransactionOutput):
-                    prev_hash = inp.transaction.hash
-                    output_n = inp.output_n
-                    key_id = inp.key_id
-                    value = inp.value
-                    signatures = None
-                    # FIXME: This is probably not an unlocking_script
-                    unlocking_script = inp.script
-                    unlocking_script_type = get_unlocking_script_type(inp.script_type)
-                    address = inp.key.address
+                # elif isinstance(inp, DbTransactionOutput):
+                #     prev_hash = inp.transaction.hash
+                #     output_n = inp.output_n
+                #     key_id = inp.key_id
+                #     value = inp.value
+                #     signatures = None
+                #     # FIXME: This is probably not an unlocking_script
+                #     unlocking_script = inp.script
+                #     unlocking_script_type = get_unlocking_script_type(inp.script_type)
+                #     address = inp.key.address
                 else:
                     prev_hash = inp[0]
                     output_n = inp[1]
@@ -3337,8 +3539,8 @@ class HDWallet(object):
     def transaction_import(self, t):
         """
         Import a Transaction into this wallet. Link inputs to wallet keys if possible and return HDWalletTransaction
-        object. Only imports Transaction objects or dictionaries, use transaction_import_raw method to import a
-        raw transaction.
+        object. Only imports Transaction objects or dictionaries, use
+        :func:`transaction_import_raw` method to import a raw transaction.
 
         :param t: A Transaction object or dictionary
         :type t: Transaction, dict
@@ -3352,8 +3554,10 @@ class HDWallet(object):
                 rt.size = t.size
             else:
                 rt.size = len(t.raw())
-            rt.vsize = rt.size
-            rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
+            rt.vsize = t.vsize
+            if not t.vsize:
+                rt.vsize = rt.size
+            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
             rt.block_height = t.block_height
             rt.confirmations = t.confirmations
             rt.witness_type = t.witness_type
@@ -3373,6 +3577,7 @@ class HDWallet(object):
                 input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, script,
                                   address))
             rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
+            rt.vsize = t['vsize']
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
@@ -3396,15 +3601,24 @@ class HDWallet(object):
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
         rt.verify()
         rt.size = rt.vsize = len(raw_tx)
-        rt.fee_per_kb = int((rt.fee / rt.size) * 1024)
+        rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
              min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False):
         """
-        Create new transaction with specified outputs and push it to the network.
-        Inputs can be specified but if not provided they will be selected from wallets utxo's.
+        Create a new transaction with specified outputs and push it to the network.
+        Inputs can be specified but if not provided they will be selected from wallets utxo's
         Output array is a list of 1 or more addresses and amounts.
+
+        Uses the :func:`transaction_create` method to create a new transaction, and uses a random service client to send the transaction.
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> t = w.send([('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 200000)], offline=True)
+        >>> t
+        <HDWalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
+        >>> t.outputs # doctest:+ELLIPSIS
+        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]. Address can be an address string, Address object, HDKey object or HDWalletKey object
         :type output_arr: list
@@ -3440,19 +3654,18 @@ class HDWallet(object):
         transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network, fee,
                                               min_confirms, max_utxos, locktime)
         transaction.sign(priv_keys)
-        # Calculate exact estimated fees and update change output if necessary
+        # Calculate exact fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
             fee_exact = transaction.calculate_fee()
             # Recreate transaction if fee estimation more then 10% off
-            if fee_exact and abs((transaction.fee - fee_exact) / float(fee_exact)) > 0.10:
+            if fee_exact and abs((float(transaction.fee) - float(fee_exact)) / float(fee_exact)) > 0.10:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
-                transaction = self.transaction_create(output_arr, input_arr, account_id=account_id, network=network,
-                                                      fee=fee_exact, min_confirms=min_confirms, max_utxos=max_utxos,
-                                                      locktime=locktime)
+                transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network,
+                                                      fee_exact, min_confirms, max_utxos, locktime)
                 transaction.sign(priv_keys)
 
-        transaction.fee_per_kb = int((transaction.fee / transaction.size) * 1024)
+        transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.size) * 1024)
         transaction.hash = to_hexstring(transaction.signature_hash()[::-1])
         transaction.send(offline)
         return transaction
@@ -3460,7 +3673,16 @@ class HDWallet(object):
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=0,
                 priv_keys=None, locktime=0, offline=False):
         """
-        Create transaction and send it with default Service objects sendrawtransaction method
+        Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
+
+        Wrapper for wallet :func:`send` method.
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> t = w.send_to('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 200000, offline=True)
+        >>> t
+        <HDWalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
+        >>> t.outputs # doctest:+ELLIPSIS
+        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param to_address: Single output address as string Address object, HDKey object or HDWalletKey object
         :type to_address: str, Address, HDKey, HDWalletKey
@@ -3494,7 +3716,16 @@ class HDWallet(object):
               fee_per_kb=None, fee=None, locktime=0, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one output address.
-        Wrapper for the send method.
+
+        Wrapper for the :func:`send` method.
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> t = w.sweep('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', offline=True)
+        >>> t
+        <HDWalletTransaction(input_count=1, output_count=1, status=new, network=bitcoin)>
+        >>> t.outputs # doctest:+ELLIPSIS
+        [<Output(value=..., address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>]
+
 
         :param to_address: Single output address
         :type to_address: str
@@ -3579,7 +3810,11 @@ class HDWallet(object):
 
         For a multisig wallet all public master keys are return as list.
 
-        Returns private key information if available.
+        Returns private key information if available and as_private is True is specified
+
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w.public_master().wif
+        'xpub6D2qEr8Z8WYKKns2xZYyyvvRviPh1NKt1kfHwwfiTxJwj7peReEJt3iXoWWsr8tXWTsejDjMfAezM53KVFVkSZzA5i2pNy3otprtYUvh4u1'
 
         :param account_id: Account ID of key to export
         :type account_id: int
@@ -3710,14 +3945,14 @@ class HDWallet(object):
 
             if self.multisig:
                 for t in self.transactions(include_new=True, account_id=0, network=netw.name):
-                    transactions.append(t)
+                    transactions.append(t.as_dict())
             else:
                 accounts = self.accounts(network=netw.name)
                 if not accounts:
                     accounts = [0]
                 for account_id in accounts:
                     for t in self.transactions(include_new=True, account_id=account_id, network=netw.name):
-                        transactions.append(t)
+                        transactions.append(t.as_dict())
 
         return {
             'wallet_id': self.wallet_id,
@@ -3750,4 +3985,4 @@ class HDWallet(object):
         :return str:
         """
         adict = self.as_dict(include_private=include_private)
-        return json.dumps(adict, indent=4)
+        return json.dumps(adict, indent=4, default=str)

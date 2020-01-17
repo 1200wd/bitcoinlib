@@ -21,6 +21,7 @@
 import logging
 import hashlib
 from bitcoinlib.services.baseclient import BaseClient
+from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.encoding import addr_to_pubkeyhash, to_hexstring, to_bytes, addr_bech32_to_pubkeyhash
 
 _logger = logging.getLogger(__name__)
@@ -50,6 +51,13 @@ class BitcoinLibTestClient(BaseClient):
         """
         return self.units * len(addresslist)
 
+    def _get_tx_hash(self, address, n):
+        try:
+            pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
+        except:
+            pkh = str(n).encode() + addr_bech32_to_pubkeyhash(address)[1:]
+        return hashlib.sha256(pkh).hexdigest()
+
     def getutxos(self, address, after_txid='', max_txs=10, utxos_per_address=2):
         """
         Dummy method to retreive UTXO's. This method creates a new UTXO for each address provided out of the
@@ -66,14 +74,11 @@ class BitcoinLibTestClient(BaseClient):
         """
         utxos = []
         for n in range(utxos_per_address):
-            try:
-                pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
-            except:
-                pkh = str(n).encode() + addr_bech32_to_pubkeyhash(address)[1:]
+            tx_hash = self._get_tx_hash(address, n)
             utxos.append(
                 {
                     'address': address,
-                    'tx_hash': hashlib.sha256(pkh).hexdigest(),
+                    'tx_hash': tx_hash,
                     'confirmations': 10,
                     'output_n': 0,
                     'index': 0,
@@ -83,9 +88,9 @@ class BitcoinLibTestClient(BaseClient):
             )
         return utxos
 
-    # def gettransaction
+    # def gettransaction(self, tx_id):
 
-    # def gettransactions
+    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
 
     def sendrawtransaction(self, rawtx):
         """
