@@ -1,3 +1,13 @@
+RELEASE 0.4.12 - Documentation and install update
+=================================================
+* Enable database backup
+* Fix documentation build
+* Review all documentation
+* Add Jupyter manual
+* Add various unittests
+* Fix issues with service providers
+* Fix many minor bugs
+
 RELEASE 0.4.11 - Provider update
 ================================
 * Add support for bcoin client
