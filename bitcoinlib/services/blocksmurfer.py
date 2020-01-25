@@ -58,7 +58,7 @@ class BlocksmurferClient(BaseClient):
         block_count = self.blockcount()
         utxos = []
         for u in res['data']:
-            block_height = u['block_height']
+            block_height = None if not u['block_height'] else u['block_height']
             confirmations = u['confirmations']
             if block_height and not confirmations:
                 confirmations = block_count - block_height
@@ -75,8 +75,7 @@ class BlocksmurferClient(BaseClient):
                 'size': u['size'],
                 'value': u['value'],
                 'script': u['script'],
-                # 'date': datetime.strptime(u['date'], "%Y-%m-%dT%H:%M:%SZ")  # Mon, 31 Jul 2017 06:00:52 -0000
-                'date': datetime.strptime(u['date'], "%a, %d %b %Y %H:%M:%S %z")  # Mon, 31 Jul 2017 06:00:52 -0000
+                'date': datetime.strptime(u['date'][:19], "%Y-%m-%dT%H:%M:%S")
             })
         return utxos[:max_txs]
 
@@ -84,8 +83,9 @@ class BlocksmurferClient(BaseClient):
         t = Transaction.import_raw(tx['raw_hex'], network=self.network)
         # TODO: Investigate why t.hash is different sometimes...
         assert(t.hash == tx['txid'])
-        t.block_height = tx['block_height']
+        t.block_height = None if not tx['block_height'] else tx['block_height']
         t.confirmations = tx['confirmations']
+        t.date = datetime.strptime(tx['date'][:19], "%Y-%m-%dT%H:%M:%S")
         if t.block_height and not t.confirmations and tx['status'] == 'confirmed':
             block_count = self.blockcount()
             t.confirmations = block_count - t.block_height
