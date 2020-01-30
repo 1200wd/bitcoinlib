@@ -47,8 +47,8 @@ class Service(object):
     Class to connect to various cryptocurrency service providers. Use to receive network and blockchain information,
     get specific transaction information, current network fees or push a raw transaction.
 
-    The Service class connects to 1 or more service providers at random to retrieve or send information. When a
-    certain service provider fail it automatically tries another one.
+    The Service class connects to 1 or more service providers at random to retrieve or send information. If a service
+    providers fails to correctly respond the Service class will try another available provider.
 
     """
 

@@ -1236,7 +1236,6 @@ class Transaction(object):
         self.fee_per_kb = fee_per_kb
         self.size = size
         self.vsize = size
-        self.change = 0
         self.hash = hash
         self.date = date
         self.confirmations = confirmations
