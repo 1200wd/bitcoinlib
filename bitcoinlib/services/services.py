@@ -28,6 +28,7 @@ from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSAC
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.services.caching import CacheClient
 
 
 _logger = logging.getLogger(__name__)
@@ -99,7 +100,7 @@ class Service(object):
 
         self.providers = {}
         for p in self.providers_defined:
-            if self.providers_defined[p]['network'] == network and \
+            if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
                     (not providers or self.providers_defined[p]['provider'] in providers):
                 self.providers.update({p: self.providers_defined[p]})
 
@@ -127,7 +128,7 @@ class Service(object):
             if self.resultcount >= self.max_providers:
                 break
             try:
-                if sp not in ['bitcoind', 'litecoind', 'dashd'] and not self.providers[sp]['url'] and \
+                if sp not in ['bitcoind', 'litecoind', 'dashd', 'caching'] and not self.providers[sp]['url'] and \
                         self.network.name != 'bitcoinlib_test':
                     continue
                 client = getattr(services, self.providers[sp]['provider'])
@@ -230,7 +231,13 @@ class Service(object):
         :return Transaction: A single transaction object
         """
         txid = to_hexstring(txid)
-        return self._provider_execute('gettransaction', txid)
+        tx = self._provider_execute('gettransaction', txid)
+
+        # Store result in cache
+        if len(self.results) and list(self.results.keys())[0] != 'caching':
+            CacheClient(self.network).store_transaction(tx)
+
+        return tx
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """

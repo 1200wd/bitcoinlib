@@ -14,6 +14,7 @@
 
 # Default database file for wallets, keys and transactions. Relative paths will be based in 'database_dir'
 default_databasefile=bitcoinlib-unittest.sqlite
+default_databasefile_cache==bitcoinlib-cache-unittest.sqlite
 
 # Log files location. Relative paths will be based in user home directory
 ;log_dir=.bitcoinlib/log
