@@ -400,6 +400,59 @@ class DbTransactionOutput(Base):
                                       name='transactionoutput_constraint_script_types_allowed'),)
 
 
+class dbCacheAddressTransactions(Base):
+    """
+    Table to link between cache transactions and addresses
+    """
+    __tablename__ = 'cache_address_transactions'
+    address = Column(String(255), ForeignKey('cache_address.address'), primary_key=True)
+    txid = Column(String(255), ForeignKey('cache_transactions.txid'), primary_key=True)
+
+
+class dbCacheTransaction(Base):
+    """
+    Transaction Cache Table
+
+    Database which stores transactions received from service providers as cache
+
+    """
+    __tablename__ = 'cache_transactions'
+    txid = Column(String(64), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
+    date = Column(DateTime, default=datetime.datetime.utcnow,
+                  doc="Date when transaction was confirmed and included in a block. "
+                      "Or when it was created when transaction is not send or confirmed")
+    confirmations = Column(Integer, default=0,
+                           doc="Number of confirmation when this transaction is included in a block. "
+                               "Default is 0: unconfirmed")
+    block_height = Column(Integer, index=True, doc="Number of block this transaction is included in")
+    block_hash = Column(String(64), index=True, doc="Transaction is included in block with this hash")
+    network_name = Column(String(20), ForeignKey('networks.name'), doc="Blockchain network name of this transaction")
+    raw = Column(Text(),
+                 doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
+
+
+class dbCacheAddress(Base):
+    """
+    Address Cache Table
+
+    Stores transactions and unspent outputs (UTXO's) per address
+
+    """
+    __tablename__ = 'cache_address'
+    address = Column(String(255), primary_key=True, doc="Address string base32 or base58 encoded")
+
+    network_name = Column(String(20), ForeignKey('networks.name'), doc="Blockchain network name of this transaction")
+    balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
+    lastblock = Column(Integer, doc="Number of last updated block")
+    transactions = relationship("dbCacheAddressTransactions", backref='txid',
+                                primaryjoin=address == dbCacheAddressTransactions.address,
+                                doc="List of transactions for this address")
+    # utxos = TODO
+    # multisig_parents = relationship("DbKeyMultisigChildren", backref='child_key',
+    #                                 primaryjoin=id == DbKeyMultisigChildren.child_id,
+    #                                 doc="List of parent keys")
+
+
 def db_update_version_id(db, version):
     _logger.info("Updated BitcoinLib database to version %s" % version)
     db.session.query(DbConfig).filter(DbConfig.variable == 'version').update(
@@ -419,6 +472,8 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
                             "An cryptocurrency address is a hash of the public key")
         add_column(db.engine, 'transaction_inputs', column)
         version_db = db_update_version_id(db, '0.4.12')
+    # From version 0.4.12 to next version
+    # Add caching tables
     return version_db
 
 
