@@ -61,6 +61,22 @@ To install OpenSSL development package on Fedora, CentOS or RHEL
 ``sudo yum install gcc openssl-devel``
 
 
+Development environment
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Install database packages for MySQL and PostgreSQL
+
+``sudo apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev postgresql-server-dev-11``
+
+From library root directory install the Python requirements
+
+``pip install -r requirements-dev.txt``
+
+Then run the unittests to see if everything works
+
+``python setup.py test``
+
+
 
 Other requirements Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
