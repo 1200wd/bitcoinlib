@@ -35,8 +35,10 @@ class CacheClient(BaseClient):
 
     def __init__(self, network, base_url='', denominator='', *args):
         self.session = DbInit().session
-        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
+        super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
+        # def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
+        #              network_overrides=None, timeout=TIMEOUT_REQUESTS, blockcount=None):
     # def getbalance(self, addresslist):
     #     balance = 0
     #     for address in addresslist:
@@ -69,9 +71,10 @@ class CacheClient(BaseClient):
         _logger.info("Retrieved transaction %s from cache" % txid)
         return t
 
-    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-    #     pass
-    #
+    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        print(self.blockcount)
+        return False
+
     def getrawtransaction(self, txid):
         tx = self.session.query(dbCacheTransaction).filter_by(txid=txid).first()
         if not tx:
@@ -81,11 +84,22 @@ class CacheClient(BaseClient):
     # def estimatefee(self, blocks):
     #     pass
     #
-    # def blockcount(self):
-    #     pass
-    #
+    def blockcount(self):
+        dbvar = self.session.query(dbCacheVars).filter_by(varname='blockcount', network_name=self.network.name).\
+                                                filter(dbCacheVars.expires > datetime.datetime.now()).scalar()
+        if dbvar:
+            return int(dbvar.value)
+        return False
+
+
     # def mempool(self, txid):
     #     pass
+
+    def store_blockcount(self, blockcount):
+        dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=blockcount, type='int',
+                            expires=datetime.datetime.now() + datetime.timedelta(seconds=60))
+        self.session.merge(dbvar)
+        self.session.commit()
 
     def store_transaction(self, t):
         # Only store complete and confirmed transaction in cache
@@ -124,12 +138,3 @@ class CacheClient(BaseClient):
             _logger.info("Added transaction %s to cache" % t.hash)
         except Exception as e:
             _logger.warning("Could not add transaction to cache: %s" % e)
-
-    # address = Column(String(255), ForeignKey('cache_address.address'), primary_key=True)
-    # address_db = relationship('dbCacheAddress', doc="Related address object")
-    # txid = Column(String(255), ForeignKey('cache_transactions.txid'), primary_key=True)
-    # transaction = relationship("dbCacheTransaction", back_populates='nodes', doc="Related transaction object")
-    # output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
-    # value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
-    # is_input = Column(Boolean, doc="True if input, False if output")
-    # spent = Column(Boolean, default=True, doc="Is output spent?")

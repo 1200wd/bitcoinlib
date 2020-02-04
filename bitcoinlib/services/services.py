@@ -113,8 +113,9 @@ class Service(object):
         self.resultcount = 0
         self.complete = None
         self.timeout = timeout
-        self._blockcount = None
         self._blockcount_update = 0
+        self._blockcount = None
+        self._blockcount = self.blockcount()
 
     def _provider_execute(self, method, *arguments):
         self.results = {}
@@ -136,7 +137,9 @@ class Service(object):
                 pc_instance = providerclient(
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
-                    self.providers[sp]['network_overrides'], self.timeout)
+                    self.providers[sp]['network_overrides'], self.timeout, self._blockcount)
+                # def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
+                #     network_overrides=None, timeout=TIMEOUT_REQUESTS, blockcount=None):
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
@@ -327,6 +330,9 @@ class Service(object):
         if self._blockcount_update < current_timestamp - BLOCK_COUNT_CACHE_TIME:
             self._blockcount = self._provider_execute('blockcount')
             self._blockcount_update = time.time()
+            # Store result in cache
+            if len(self.results) and list(self.results.keys())[0] != 'caching':
+                CacheClient(self.network).store_blockcount(self._blockcount)
         return self._blockcount
 
     def mempool(self, txid=''):

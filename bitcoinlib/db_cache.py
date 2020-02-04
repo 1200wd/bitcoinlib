@@ -120,5 +120,17 @@ class dbCacheAddress(Base):
     transactions = relationship('dbCacheTransaction', secondary='cache_transactions_node')
 
 
+class dbCacheVars(Base):
+    """
+    Table to store various blockchain related variables
+    """
+    __tablename__ = 'cache_variables'
+    varname = Column(String(50), primary_key=True, doc="Variable unique name")
+    network_name = Column(String(20), primary_key=True, doc="Blockchain network name of this transaction")
+    value = Column(String(255), doc="Value of variable")
+    type = Column(String(20), doc="Type of variable: int, string or float")
+    expires = Column(DateTime, doc="Datetime value when variable expires")
+
+
 if __name__ == '__main__':
     DbInit()
