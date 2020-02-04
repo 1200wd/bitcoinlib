@@ -37,66 +37,99 @@ class CacheClient(BaseClient):
         self.session = DbInit().session
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def getbalance(self, addresslist):
-        balance = 0
-        for address in addresslist:
-            pass
-        return balance
-
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        pass
+    # def getbalance(self, addresslist):
+    #     balance = 0
+    #     for address in addresslist:
+    #         pass
+    #     return balance
+    #
+    # def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    #     pass
 
     def gettransaction(self, txid):
         tx = self.session.query(dbCacheTransaction).filter_by(txid=txid).first()
         if not tx:
-            raise ClientError("Transaction not found in cache")
+            return False
         t = Transaction.import_raw(tx.raw, tx.network_name)
+        for n in tx.nodes:
+            if n.is_input:
+                t.inputs[n.output_n].value = n.value
+            else:
+                t.outputs[n.output_n].spent = n.spent
+        t.hash = txid
         t.date = tx.date
         t.confirmations = tx.confirmations
         t.block_hash = tx.block_hash
         t.block_height = tx.block_height
         t.status = 'confirmed'
+        t.fee = tx.fee
+        t.update_totals()
+        if t.coinbase:
+            t.input_total = t.output_total
+        _logger.info("Retrieved transaction %s from cache" % txid)
         return t
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        pass
-
+    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    #     pass
+    #
     def getrawtransaction(self, txid):
-        pass
+        tx = self.session.query(dbCacheTransaction).filter_by(txid=txid).first()
+        if not tx:
+            return False
+        return tx.raw
 
-    def estimatefee(self, blocks):
-        pass
-
-    def blockcount(self):
-        pass
-
-    def mempool(self, txid):
-        pass
+    # def estimatefee(self, blocks):
+    #     pass
+    #
+    # def blockcount(self):
+    #     pass
+    #
+    # def mempool(self, txid):
+    #     pass
 
     def store_transaction(self, t):
         # Only store complete and confirmed transaction in cache
         if not t.hash or not t.date or not t.block_height or not t.network or not t.confirmations:
+            _logger.info("Caching for provider %s: Incomplete transaction missing hash, date, block_height, "
+                         "network or confirmations info" % self.provider)
             return False
         raw_hex = t.raw_hex()
         if not raw_hex:
+            _logger.info("Caching for provider %s: Raw hex missing in transaction" % self.provider)
+            return False
+        if self.session.query(dbCacheTransaction).filter_by(txid=t.hash).count():
             return False
         new_tx = dbCacheTransaction(txid=t.hash, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
-                                    raw=raw_hex)
-        self.session.add(new_tx)
-        self.session.commit()
+                                    fee=t.fee, raw=raw_hex)
+        for i in t.inputs:
+            if i.value is None or i.address is None or i.output_n is None:
+                _logger.info("Caching for provider %s: Input value, address or output_n missing" % self.provider)
+                return False
+            new_node = dbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.output_n_int, value=i.value,
+                                              is_input=True)
+            self.session.add(new_node)
+        for o in t.outputs:
+            if o.value is None or o.address is None or o.output_n is None or o.spent is None:
+                _logger.info("Caching for provider %s: Output value, address, spent info or output_n missing" %
+                             self.provider)
+                return False
+            new_node = dbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
+                                              is_input=False, spent=o.spent)
+            self.session.add(new_node)
 
-#date = Column(DateTime, default=datetime.datetime.utcnow,
-    #               doc="Date when transaction was confirmed and included in a block. "
-    #                   "Or when it was created when transaction is not send or confirmed")
-    # confirmations = Column(Integer, default=0,
-    #                        doc="Number of confirmation when this transaction is included in a block. "
-    #                            "Default is 0: unconfirmed")
-    # block_height = Column(Integer, index=True, doc="Number of block this transaction is included in")
-    # block_hash = Column(String(64), index=True, doc="Transaction is included in block with this hash")
-    # network_name = Column(String(20), doc="Blockchain network name of this transaction")
-    # raw = Column(Text(),
-    #              doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
-    # addresses = relationship('dbCacheAddress', secondary='cache_transactions_node')
-    # nodes = relationship("dbCacheTransactionNode", cascade="all,delete",
-    #                      doc="List of all inputs and outputs as dbCacheTransactionNode objects")
+        self.session.add(new_tx)
+        try:
+            self.session.commit()
+            _logger.info("Added transaction %s to cache" % t.hash)
+        except Exception as e:
+            _logger.warning("Could not add transaction to cache: %s" % e)
+
+    # address = Column(String(255), ForeignKey('cache_address.address'), primary_key=True)
+    # address_db = relationship('dbCacheAddress', doc="Related address object")
+    # txid = Column(String(255), ForeignKey('cache_transactions.txid'), primary_key=True)
+    # transaction = relationship("dbCacheTransaction", back_populates='nodes', doc="Related transaction object")
+    # output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
+    # value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
+    # is_input = Column(Boolean, doc="True if input, False if output")
+    # spent = Column(Boolean, default=True, doc="Is output spent?")

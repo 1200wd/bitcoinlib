@@ -72,9 +72,9 @@ class dbCacheTransactionNode(Base):
     address_db = relationship('dbCacheAddress', doc="Related address object")
     txid = Column(String(255), ForeignKey('cache_transactions.txid'), primary_key=True)
     transaction = relationship("dbCacheTransaction", back_populates='nodes', doc="Related transaction object")
-    output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
+    output_n = Column(BigInteger, primary_key=True, doc="Output_n of previous transaction output that is spent in this input")
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
-    is_input = Column(Boolean, doc="True if input, False if output")
+    is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
     spent = Column(Boolean, default=True, doc="Is output spent?")
 
 
@@ -96,6 +96,7 @@ class dbCacheTransaction(Base):
     block_height = Column(Integer, index=True, doc="Number of block this transaction is included in")
     block_hash = Column(String(64), index=True, doc="Transaction is included in block with this hash")
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
+    fee = Column(Integer, doc="Transaction fee")
     raw = Column(Text(),
                  doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
     addresses = relationship('dbCacheAddress', secondary='cache_transactions_node')

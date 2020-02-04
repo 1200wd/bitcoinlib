@@ -34,6 +34,7 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d
                               datefmt='%Y/%m/%d %H:%M:%S')
 handler.setFormatter(formatter)
 handler.setLevel(LOGLEVEL)
+logger.setLevel(LOGLEVEL)
 logger.addHandler(handler)
 
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')

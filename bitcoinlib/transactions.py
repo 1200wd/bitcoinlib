@@ -1883,6 +1883,6 @@ class Transaction(object):
 
         self.input_total = sum([i.value for i in self.inputs if i.value])
         self.output_total = sum([o.value for o in self.outputs if o.value])
-        self.fee = 0
+        # self.fee = 0
         if self.input_total:
             self.fee = self.input_total - self.output_total
