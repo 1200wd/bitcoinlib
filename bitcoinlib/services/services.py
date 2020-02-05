@@ -138,8 +138,6 @@ class Service(object):
                     self.network, self.providers[sp]['url'], self.providers[sp]['denominator'],
                     self.providers[sp]['api_key'], self.providers[sp]['provider_coin_id'],
                     self.providers[sp]['network_overrides'], self.timeout, self._blockcount)
-                # def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
-                #     network_overrides=None, timeout=TIMEOUT_REQUESTS, blockcount=None):
                 if not hasattr(pc_instance, method):
                     continue
                 providermethod = getattr(pc_instance, method)
@@ -271,8 +269,21 @@ class Service(object):
             txs = self._provider_execute('gettransactions', address, after_txid, max_txs)
             if txs == False:
                 raise ServiceError("Error when retreiving transactions from service provider")
+
+        last_block = None
         if len(txs) == max_txs:
             self.complete = False
+            last_block = txs[:-1][0].block_height
+
+        # Store transactions and address in cache
+        if len(self.results) and list(self.results.keys())[0] != 'caching':
+            for tx in txs:
+                res = CacheClient(self.network).store_transaction(tx)
+                if res == False:
+                    raise ServiceError("Could not add txs to cache")
+                    # TODO: Remove all prev txs and nodes
+            CacheClient(self.network).store_address(address, last_block)
+
         return txs
 
     def getrawtransaction(self, txid):
