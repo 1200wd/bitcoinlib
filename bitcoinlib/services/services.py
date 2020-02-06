@@ -270,10 +270,10 @@ class Service(object):
             if txs == False:
                 raise ServiceError("Error when retreiving transactions from service provider")
 
-        last_block = None
+        last_block = self._blockcount
         if len(txs) == max_txs:
             self.complete = False
-            last_block = txs[:-1][0].block_height
+            last_block = txs[-1:][0].block_height
 
         # Store transactions and address in cache
         if len(self.results) and list(self.results.keys())[0] != 'caching':

@@ -75,7 +75,7 @@ class dbCacheTransactionNode(Base):
     output_n = Column(BigInteger, primary_key=True, doc="Output_n of previous transaction output that is spent in this input")
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
-    spent = Column(Boolean, default=True, doc="Is output spent?")
+    spent = Column(Boolean, default=None, doc="Is output spent?")
 
 
 class dbCacheTransaction(Base):

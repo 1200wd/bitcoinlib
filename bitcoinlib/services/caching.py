@@ -79,21 +79,21 @@ class CacheClient(BaseClient):
         db_addr = self.session.query(dbCacheAddress).filter_by(address=address).scalar()
         txs = []
         if db_addr:
-            # TODO: order txs
+            # TODO: check latest update,
             after_tx = self.session.query(dbCacheTransaction).filter_by(txid=after_txid).scalar()
             if after_tx:
                 db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode).\
                     filter(dbCacheTransactionNode.address == address,
-                           dbCacheTransaction.block_height > after_tx.block_height).all()
+                           dbCacheTransaction.block_height > after_tx.block_height).\
+                    order_by(dbCacheTransaction.block_height).all()
             else:
-                db_txs = db_addr.transactions
+                db_txs = sorted(db_addr.transactions, key=lambda t: t.block_height)
             for db_tx in db_txs:
                 txs.append(self._parse_db_transaction(db_tx))
                 if len(txs) >= max_txs:
                     break
             return txs
         return False
-
 
     def getrawtransaction(self, txid):
         tx = self.session.query(dbCacheTransaction).filter_by(txid=txid).first()
