@@ -56,6 +56,9 @@ class DbInit:
             if "?" in db_uri: db_uri += "&"
             else: db_uri += "?"
             db_uri += "check_same_thread=False"
+
+        if os.name == 'nt':
+            db_uri.replace('/', '\\')
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
         Session = sessionmaker(bind=self.engine)
 
