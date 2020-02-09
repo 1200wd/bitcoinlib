@@ -56,7 +56,7 @@ class Service(object):
     """
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
-                 timeout=TIMEOUT_REQUESTS):
+                 timeout=TIMEOUT_REQUESTS, cache_uri=None):
         """
         Open a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -71,6 +71,9 @@ class Service(object):
         :type providers: list, str
         :param timeout: Timeout for web requests. Leave empty to use default from config settings
         :type timeout: int
+        :param cache_uri: Database to use for caching
+        :type cache_uri: str
+
         """
 
         self.network = network
@@ -117,14 +120,18 @@ class Service(object):
         self.timeout = timeout
         self._blockcount_update = 0
         self._blockcount = None
-        self.cache = Cache(self.network)
+        self.cache = Cache(self.network, db_uri=cache_uri)
         self._blockcount = self.blockcount()
+        self.results_cache_n = 0
 
-    def _provider_execute(self, method, *arguments):
+    def _reset_results(self):
         self.results = {}
         self.errors = {}
+        self.complete = None
         self.resultcount = 0
 
+    def _provider_execute(self, method, *arguments):
+        self._reset_results()
         provider_lst = [p[0] for p in sorted([(x, self.providers[x]['priority']) for x in self.providers],
                         key=lambda x: (x[1], random.random()), reverse=True)]
 
@@ -235,10 +242,12 @@ class Service(object):
         :return Transaction: A single transaction object
         """
         txid = to_hexstring(txid)
-        tx = self.cache.gettransaction(txid)
+        tx = None
+        if self.min_providers <= 1:
+            tx = self.cache.gettransaction(txid)
         if not tx:
             tx = self._provider_execute('gettransaction', txid)
-            if len(self.results):
+            if len(self.results) and self.min_providers <=1:
                 self.cache.store_transaction(tx)
         return tx
 
@@ -257,43 +266,58 @@ class Service(object):
 
         :return list: List of Transaction objects
         """
+        self._reset_results()
+        self.results_cache_n = 0
         if not address:
             return []
         if not isinstance(address, TYPE_TEXT):
             raise ServiceError("Address parameter must be of type text")
         if after_txid is None:
             after_txid = ''
+        db_addr = self.cache.getaddress(address)
+        txs_cache = []
 
-        txs_cache = self.cache.gettransactions(address, after_txid, max_txs)
-        if txs_cache:
-            if len(txs_cache) == max_txs:
-                return txs_cache
+        # Retrieve transactions from cache
+        if self.min_providers <= 1:  # Disable cache if comparing providers
+            txs_cache = self.cache.gettransactions(address, after_txid, max_txs)
+            if txs_cache:
+                self.results_cache_n = len(txs_cache)
+                if len(txs_cache) == max_txs:
+                    return txs_cache
+                max_txs = max_txs - len(txs_cache)
+                after_txid = txs_cache[-1:][0].hash
 
-
-        if not txs_cache:
-            # ToDo: gettransaction should raise error instead of returning False
+        # Get (extra) transactions from service providers
+        txs = []
+        if not(txs_cache and db_addr and db_addr.last_block >= self._blockcount):
             txs = self._provider_execute('gettransactions', address, after_txid,  max_txs)
             if txs == False:
                 # Retry
-                txs = self._provider_execute('gettransactions', address, after_txid, max_txs)
-                if txs == False:
-                    raise ServiceError("Error when retreiving transactions from service provider")
+                # txs = self._provider_execute('gettransactions', address, after_txid, max_txs)
+                # if txs == False:
+                raise ServiceError("Error when retrieving transactions from service provider")
 
+        # Store transactions and address in cache
+        # - disable cache if comparing providers or if after_txid is not and no cache is available yet
+        if self.min_providers <= 1 and not(after_txid and not txs_cache):
             last_block = self._blockcount
+            self.complete = True
             if len(txs) == max_txs:
                 self.complete = False
                 last_block = txs[-1:][0].block_height
-
-            # Store transactions and address in cache
-            if len(self.results) and list(self.results.keys())[0] != 'caching':
+            if len(self.results):
                 for tx in txs:
                     res = self.cache.store_transaction(tx)
+                    # Failure to store transaction: stop caching transaction and store last tx block height - 1
                     if res == False:
-                        raise ServiceError("Could not add txs to cache")
-                        # TODO: Remove all prev txs and nodes
+                        last_block = tx.block_height - 1
+                        break
                 self.cache.store_address(address, last_block)
 
-        return txs_cache + txs
+        for tx in txs_cache:
+            if tx.hash not in [r.hash for r in txs]:
+                txs.insert(0, tx)
+        return txs
 
     def getrawtransaction(self, txid):
         """
@@ -377,8 +401,8 @@ class Service(object):
 
 class Cache(object):
 
-    def __init__(self, network):
-        self.session = DbInit().session
+    def __init__(self, network, db_uri=''):
+        self.session = DbInit(db_uri=db_uri).session
         self.network = network
 
     def _parse_db_transaction(self, db_tx):
@@ -408,18 +432,28 @@ class Cache(object):
         db_tx.txid = txid
         return self._parse_db_transaction(db_tx)
 
+    def getaddress(self, address):
+        return self.session.query(dbCacheAddress).filter_by(address=address).scalar()
+
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        db_addr = self.session.query(dbCacheAddress).filter_by(address=address).scalar()
+        db_addr = self.getaddress(address)
         txs = []
         if db_addr:
-            after_tx = None
             if after_txid:
                 after_tx = self.session.query(dbCacheTransaction).filter_by(txid=after_txid).scalar()
-            if after_tx:
-                db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode).\
-                    filter(dbCacheTransactionNode.address == address,
-                           dbCacheTransaction.block_height > after_tx.block_height).\
-                    order_by(dbCacheTransaction.block_height).all()
+                if after_tx:
+                    db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode).\
+                        filter(dbCacheTransactionNode.address == address,
+                               dbCacheTransaction.block_height >= after_tx.block_height).\
+                        order_by(dbCacheTransaction.block_height).all()
+                    db_txs2 = []
+                    for d in db_txs:
+                        db_txs2.append(d)
+                        if d.txid == after_txid:
+                            db_txs2 = []
+                    db_txs = db_txs2
+                else:
+                    return []
             else:
                 db_txs = sorted(db_addr.transactions, key=lambda t: t.block_height)
             for db_tx in db_txs:
@@ -427,7 +461,7 @@ class Cache(object):
                 if len(txs) >= max_txs:
                     break
             return txs
-        return False
+        return []
 
     def getrawtransaction(self, txid):
         tx = self.session.query(dbCacheTransaction).filter_by(txid=txid).first()
@@ -492,7 +526,7 @@ class Cache(object):
         except Exception as e:
             _logger.warning("Caching failure tx: %s" % e)
 
-    def store_address(self, address, last_block):
+    def store_address(self, address, last_block, after_txid=''):
         new_address = dbCacheAddress(address=address, network_name=self.network.name, last_block=last_block)
         self.session.merge(new_address)
         try:

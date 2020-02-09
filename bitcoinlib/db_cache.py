@@ -116,7 +116,6 @@ class dbCacheAddress(Base):
 
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
     balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
-    first_block = Column(Integer, default=0, doc="Number of first updated block")
     last_block = Column(Integer, doc="Number of last updated block")
     transactions = relationship('dbCacheTransaction', secondary='cache_transactions_node')
 

@@ -26,6 +26,7 @@ from tests.test_custom import CustomAssertions
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
+DATABASEFILE_CACHE_UNITTESTS = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib_cache.unittest.sqlite')
 TIMEOUT_TEST = 2
 
 
@@ -606,7 +607,6 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_blockcount(self):
         srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
-        srv.blockcount()
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
@@ -616,7 +616,6 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         # Test Litecoin network
         srv = Service(min_providers=10, network='litecoin', timeout=TIMEOUT_TEST)
-        srv.blockcount()
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
@@ -626,7 +625,6 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         # Test Dash network
         srv = Service(min_providers=10, network='dash', timeout=TIMEOUT_TEST)
-        srv.blockcount()
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
@@ -635,7 +633,8 @@ class TestService(unittest.TestCase, CustomAssertions):
             n_blocks = srv.results[provider]
 
     def test_service_max_providers(self):
-        srv = Service(max_providers=1, timeout=TIMEOUT_TEST)
+        srv = Service(max_providers=1, timeout=TIMEOUT_TEST, cache_uri='')
+        srv._blockcount = None
         srv.blockcount()
         self.assertEqual(srv.resultcount, 1)
 
@@ -673,3 +672,53 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     self.assertGreaterEqual(srv.getbalance(address), 50000000000)
     #     self.assertEqual(srv.getutxos(address)[0]['tx_hash'], tx_hash)
     #     self.assertEqual(srv.gettransactions(address)[0].hash, tx_hash)
+
+
+class TestServiceCache(unittest.TestCase):
+
+    # TODO: Add msyql and postgres support
+    @classmethod
+    def setUpClass(cls):
+        if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS):
+            os.remove(DATABASEFILE_CACHE_UNITTESTS)
+
+    def test_service_cache_transactions(self):
+        srv = Service(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        address = '1JQ7ybfFBoWhPJpjoihezpeAjd2xv9nXaN'
+        # Get 2 transactions, nothing in cache
+        res = srv.gettransactions(address, max_txs=2)
+        self.assertGreaterEqual(len(res), 2)
+        self.assertEqual(srv.results_cache_n, 0)
+        self.assertEqual(res[0].hash, '2ac5145f6e7c47c2ec57ede85ad842b3d9f826feaebf2b00f861359fed3ba4a7')
+
+        # Get 10 transactions, 2 in cache rest from service providers
+        res = srv.gettransactions(address, max_txs=10)
+        self.assertEqual(len(res), 10)
+        self.assertGreaterEqual(srv.results_cache_n, 2)
+
+        # Get 10 transactions, all from cache
+        res = srv.gettransactions(address, max_txs=10)
+        self.assertEqual(len(res), 10)
+        self.assertEqual(srv.results_cache_n, 10)
+        self.assertEqual(list(srv.results.values()), [])
+
+    def test_service_cache_transactions_after_txid(self):
+        # Do not store anything in cache if after_txid is used
+        srv = Service()
+        address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
+        res = srv.gettransactions(address,
+                                  after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
+        self.assertGreaterEqual(len(res), 1)
+        self.assertGreaterEqual(srv.results_cache_n, 0)
+        res = srv.gettransactions(address,
+                                  after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
+        self.assertGreaterEqual(len(res), 1)
+        self.assertGreaterEqual(srv.results_cache_n, 0)
+        res = srv.gettransactions(address)
+        self.assertGreaterEqual(len(res), 1)
+        self.assertGreaterEqual(srv.results_cache_n, 0)
+        res = srv.gettransactions(address,
+                                  after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
+        self.assertGreaterEqual(len(res), 1)
+        self.assertGreaterEqual(srv.results_cache_n, 1)
+
