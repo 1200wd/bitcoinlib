@@ -21,7 +21,7 @@
 import os
 import sys
 import locale
-
+import pathlib
 
 # General defaults
 PY3 = sys.version_info[0] == 3
@@ -230,10 +230,10 @@ def read_config():
     if not os.path.exists(BCL_DATABASE_DIR):
         os.makedirs(BCL_DATABASE_DIR)
     default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
-    DEFAULT_DATABASE = os.path.join(BCL_DATABASE_DIR, default_databasefile)
+    DEFAULT_DATABASE = pathlib.Path(BCL_DATABASE_DIR + '/' + default_databasefile)
     default_databasefile_cache = config_get('locations', 'default_databasefile_cache',
                                              fallback='bitcoinlibcache.sqlite')
-    DEFAULT_DATABASE_CACHE = os.path.join(BCL_DATABASE_DIR, default_databasefile_cache)
+    DEFAULT_DATABASE_CACHE = pathlib.Path(BCL_DATABASE_DIR + '/' + default_databasefile_cache)
 
     BCL_LOG_DIR = config_get('locations', 'log_dir', fallback='.bitcoinlib/log')
     if not os.path.isabs(BCL_LOG_DIR):
