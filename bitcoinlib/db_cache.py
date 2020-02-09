@@ -48,7 +48,7 @@ class DbInit:
     """
     def __init__(self, db_uri=None):
         if db_uri is None:
-            db_uri = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
+            db_uri = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE_CACHE)
         o = urlparse(db_uri)
         if not o.scheme:
             db_uri = 'sqlite:///%s' % db_uri
@@ -56,8 +56,8 @@ class DbInit:
             if "?" in db_uri: db_uri += "&"
             else: db_uri += "?"
             db_uri += "check_same_thread=False"
-        if os.name == 'nt':
-            db_uri.replace('/', '\\')
+        # if os.name == 'nt':
+        #     db_uri.replace('/', '\\')
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
         Session = sessionmaker(bind=self.engine)
 

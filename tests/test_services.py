@@ -26,7 +26,7 @@ from tests.test_custom import CustomAssertions
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
-DATABASEFILE_CACHE_UNITTESTS = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib_cache.unittest.sqlite')
+DATABASEFILE_CACHE_UNITTESTS = os.path.join(BCL_DATABASE_DIR, 'bitcoinlibcache.unittest.sqlite')
 TIMEOUT_TEST = 2
 
 
@@ -704,7 +704,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = Service()
+        srv = Service(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
