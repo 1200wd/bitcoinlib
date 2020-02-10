@@ -7,6 +7,7 @@ env:
 python:
     - 2.7
     - 3.5
+    - 3.8
 matrix:
   include:
     # Test ecdsa and pyscrypt for systems where fastecdsa and/or scrypt are not available
