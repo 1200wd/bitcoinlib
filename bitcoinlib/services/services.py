@@ -363,12 +363,17 @@ class Service(object):
 
         :return int: Fee in smallest network denominator (satoshi)
         """
+        if self.min_providers <= 1:  # Disable cache if comparing providers
+            fee = self.cache.estimatefee(blocks)
+            if fee:
+                return fee
         fee = self._provider_execute('estimatefee', blocks)
         if not fee:  # pragma: no cover
             if self.network.fee_default:
                 fee = self.network.fee_default
             else:
                 raise ServiceError("Could not estimate fees, please define default fees in network settings")
+        self.cache.store_estimated_fee(blocks, fee)
         return fee
 
     def blockcount(self):
@@ -480,19 +485,25 @@ class Cache(object):
             return False
         return tx.raw
 
-    # def estimatefee(self, blocks):
-    #     pass
-    #
+    def estimatefee(self, blocks):
+        if blocks <= 1:
+            varname = 'fee_high'
+        elif blocks <= 5:
+            varname = 'fee_medium'
+        else:
+            varname = 'fee_low'
+        dbvar = self.session.query(dbCacheVars).filter_by(varname=varname, network_name=self.network.name).\
+                                                filter(dbCacheVars.expires > datetime.datetime.now()).scalar()
+        if dbvar:
+            return int(dbvar.value)
+        return False
+
     def blockcount(self):
         dbvar = self.session.query(dbCacheVars).filter_by(varname='blockcount', network_name=self.network.name).\
                                                 filter(dbCacheVars.expires > datetime.datetime.now()).scalar()
         if dbvar:
             return int(dbvar.value)
         return False
-
-
-    # def mempool(self, txid):
-    #     pass
 
     def store_blockcount(self, blockcount):
         dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=blockcount, type='int',
@@ -573,3 +584,15 @@ class Cache(object):
             if db_utxo == after_txid:
                 utxos = []
         return utxos
+
+    def store_estimated_fee(self, blocks, fee):
+        if blocks <= 1:
+            varname = 'fee_high'
+        elif blocks <= 5:
+            varname = 'fee_medium'
+        else:
+            varname = 'fee_low'
+        dbvar = dbCacheVars(varname=varname, network_name=self.network.name, value=fee, type='int',
+                            expires=datetime.datetime.now() + datetime.timedelta(seconds=600))
+        self.session.merge(dbvar)
+        self.session.commit()
