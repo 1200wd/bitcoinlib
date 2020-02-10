@@ -722,3 +722,8 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
+        # Test utxos
+        utxos = srv.getutxos(address)
+        self.assertGreaterEqual(len(utxos), 1)
+        self.assertGreaterEqual(srv.results_cache_n, 1)
+

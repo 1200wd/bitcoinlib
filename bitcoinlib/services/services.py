@@ -28,7 +28,6 @@ from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSAC
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
-# from bitcoinlib.services.caching import Cache
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction
 
@@ -225,12 +224,23 @@ class Service(object):
         """
         if not isinstance(address, TYPE_TEXT):
             raise ServiceError("Address parameter must be of type text")
-
+        self.results_cache_n = 0
         self.complete = True
+
+        utxos_cache = self.cache.getutxos(address, after_txid)
+        if utxos_cache:
+            self.results_cache_n = len(utxos_cache)
+            db_addr = self.cache.getaddress(address)
+            if db_addr and db_addr.last_block >= self._blockcount:
+                return utxos_cache
+            else:
+                after_txid = utxos_cache[-1:][0]['tx_hash']
+
         utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
         if utxos and len(utxos) >= max_txs:
             self.complete = False
-        return utxos
+
+        return utxos_cache + utxos
 
     def gettransaction(self, txid):
         """
@@ -410,6 +420,7 @@ class Cache(object):
         for n in db_tx.nodes:
             if n.is_input:
                 t.inputs[n.output_n].value = n.value
+                t.inputs[n.output_n].address = n.address
             else:
                 t.outputs[n.output_n].spent = n.spent
         t.hash = db_tx.txid
@@ -526,10 +537,39 @@ class Cache(object):
         except Exception as e:
             _logger.warning("Caching failure tx: %s" % e)
 
-    def store_address(self, address, last_block, after_txid=''):
-        new_address = dbCacheAddress(address=address, network_name=self.network.name, last_block=last_block)
+    def store_address(self, address, last_block, balance=0):
+        new_address = dbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
+                                     balance=balance)
         self.session.merge(new_address)
         try:
             self.session.commit()
         except Exception as e:
             _logger.warning("Caching failure addr: %s" % e)
+
+    def getutxos(self, address, after_txid=''):
+        db_utxos = self.session.query(dbCacheTransactionNode.spent, dbCacheTransactionNode.output_n,
+                                      dbCacheTransactionNode.value, dbCacheTransaction.confirmations,
+                                      dbCacheTransaction.block_height, dbCacheTransaction.fee,
+                                      dbCacheTransaction.date, dbCacheTransaction.txid).join(dbCacheTransaction).\
+            filter(dbCacheTransactionNode.address == address, dbCacheTransactionNode.is_input == False).all()
+        utxos = []
+        for db_utxo in db_utxos:
+            if db_utxo.spent == False:
+                utxos.append({
+                    'address': address,
+                    'tx_hash': db_utxo.txid,
+                    'confirmations': db_utxo.confirmations,
+                    'output_n': db_utxo.output_n,
+                    'input_n': 0,
+                    'block_height': db_utxo.block_height,
+                    'fee': db_utxo.fee,
+                    'size': 0,
+                    'value': db_utxo.value,
+                    'script': '',
+                    'date': db_utxo.date
+                })
+            elif db_utxo.spent is None:
+                return []
+            if db_utxo == after_txid:
+                utxos = []
+        return utxos
