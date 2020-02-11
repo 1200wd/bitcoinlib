@@ -702,6 +702,30 @@ class TestServiceCache(unittest.TestCase):
         self.assertEqual(srv.results_cache_n, 10)
         self.assertEqual(list(srv.results.values()), [])
 
+    def test_service_cache_gettransaction(self):
+        srv = Service(network='litecoin_testnet', cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        txid = 'b6533d361daac291f64fff32a5c157a4785b423ce36e2eac27117879f93973da'
+
+        t = srv.gettransaction(txid)
+        self.assertEqual(srv.results_cache_n, 0)
+        self.assertEqual(t.fee, 6680)
+
+        t = srv.gettransaction(txid)
+        self.assertEqual(srv.results_cache_n, 1)
+        self.assertEqual(t.fee, 6680)
+
+        rawtx = srv.getrawtransaction(txid)
+        self.assertEqual(srv.results_cache_n, 1)
+        self.assertEqual(rawtx, '0100000001ce18990b7a14afaf00eef179852daf07a7eb0eaaf90ae92393220fcd6fd899a101000000'
+                                'db00483045022100bdcd0f4713b35872154c94e65fe65946abf60ef9b6b307479981dbec546b22ce02'
+                                '20156d537a93b174392e23360c4336785362de1028c9400ef298252c9006cdb01501483045022100b5'
+                                'f876fdd2a6200bed1f15b9eba213e24fb3b9707b07ba8f24ef06bf8e774018022002165eeb777463a6'
+                                'e1bceb0d2c29c2ad3aa46b639b744520020e1a028c66bc3c0147522102a6126cabab675799a7f8022d'
+                                'c756b40fd5226c8ebe3c279e4f5aebc034b6d48d21039b904498e7702692b72b265dfb0221994bb850'
+                                '5ee50837aba768083b3a25aba952aeffffffff0240787d010000000017a914d9f17035fdd2180e4e67'
+                                'de2c17d63c218948780a875022d64ead01000017a91494d0071ed66b6584650440fdc6dfc2916a119b'
+                                '068700000000')
+
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
         srv = Service(cache_uri=DATABASEFILE_CACHE_UNITTESTS)

@@ -253,8 +253,12 @@ class Service(object):
         """
         txid = to_hexstring(txid)
         tx = None
+        self.results_cache_n = 0
+
         if self.min_providers <= 1:
             tx = self.cache.gettransaction(txid)
+            if tx:
+                self.results_cache_n = 1
         if not tx:
             tx = self._provider_execute('gettransaction', txid)
             if len(self.results) and self.min_providers <=1:
@@ -302,9 +306,6 @@ class Service(object):
         if not(txs_cache and db_addr and db_addr.last_block >= self._blockcount):
             txs = self._provider_execute('gettransactions', address, after_txid,  max_txs)
             if txs == False:
-                # Retry
-                # txs = self._provider_execute('gettransactions', address, after_txid, max_txs)
-                # if txs == False:
                 raise ServiceError("Error when retrieving transactions from service provider")
 
         # Store transactions and address in cache
@@ -339,6 +340,10 @@ class Service(object):
         :return str: Raw transaction as hexstring
         """
         txid = to_hexstring(txid)
+        rawtx = self.cache.getrawtransaction(txid)
+        if rawtx:
+            self.results_cache_n = 1
+            return rawtx
         return self._provider_execute('getrawtransaction', txid)
 
     def sendrawtransaction(self, rawtx):
@@ -513,12 +518,12 @@ class Cache(object):
 
     def store_transaction(self, t):
         # Only store complete and confirmed transaction in cache
-        if not t.hash or not t.date or not t.block_height or not t.network or not t.confirmations:
+        if not t.hash or not t.date or not t.block_height or not t.network or not t.confirmations:    # pragma: no cover
             _logger.info("Caching failure tx: Incomplete transaction missing hash, date, block_height, "
                          "network or confirmations info")
             return False
         raw_hex = t.raw_hex()
-        if not raw_hex:
+        if not raw_hex:    # pragma: no cover
             _logger.info("Caching failure tx: Raw hex missing in transaction")
             return False
         if self.session.query(dbCacheTransaction).filter_by(txid=t.hash).count():
@@ -527,14 +532,14 @@ class Cache(object):
                                     block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
                                     fee=t.fee, raw=raw_hex)
         for i in t.inputs:
-            if i.value is None or i.address is None or i.output_n is None:
+            if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
                 return False
             new_node = dbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.index_n, value=i.value,
                                               is_input=True)
             self.session.add(new_node)
         for o in t.outputs:
-            if o.value is None or o.address is None or o.output_n is None:
+            if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
                 return False
             new_node = dbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
@@ -545,7 +550,7 @@ class Cache(object):
         try:
             self.session.commit()
             _logger.info("Added transaction %s to cache" % t.hash)
-        except Exception as e:
+        except Exception as e:    # pragma: no cover
             _logger.warning("Caching failure tx: %s" % e)
 
     def store_address(self, address, last_block, balance=0):
@@ -554,7 +559,7 @@ class Cache(object):
         self.session.merge(new_address)
         try:
             self.session.commit()
-        except Exception as e:
+        except Exception as e:    # pragma: no cover
             _logger.warning("Caching failure addr: %s" % e)
 
     def getutxos(self, address, after_txid=''):
