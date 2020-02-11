@@ -340,6 +340,7 @@ class Service(object):
         :return str: Raw transaction as hexstring
         """
         txid = to_hexstring(txid)
+        self.results_cache_n = 0
         rawtx = self.cache.getrawtransaction(txid)
         if rawtx:
             self.results_cache_n = 1
@@ -368,9 +369,11 @@ class Service(object):
 
         :return int: Fee in smallest network denominator (satoshi)
         """
+        self.results_cache_n = 0
         if self.min_providers <= 1:  # Disable cache if comparing providers
             fee = self.cache.estimatefee(blocks)
             if fee:
+                self.results_cache_n = 1
                 return fee
         fee = self._provider_execute('estimatefee', blocks)
         if not fee:  # pragma: no cover
