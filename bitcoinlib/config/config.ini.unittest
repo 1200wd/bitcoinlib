@@ -29,6 +29,9 @@ default_databasefile_cache==bitcoinlib-cache-unittest.sqlite
 # Location of wordlists for Mnemonic passphrases. Relative to installation directory
 ;wordlist_dir=wordlist
 
+# Allow database threads in SQLite databases
+;allow_database_threads=True
+
 [common]
 # Time for request to service providers in seconds
 timeout_requests=1
@@ -42,6 +45,9 @@ timeout_requests=1
 
 # Default witness_type for new wallets and keys
 ;default_witness_type=legacy
+
+# Use caching for service providers
+;service_caching_enabled=True
 
 [logs]
 # Loglevel for this library, options: CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET
