@@ -71,7 +71,7 @@ class dbCacheTransactionNode(Base):
     __tablename__ = 'cache_transactions_node'
     address = Column(String(255), ForeignKey('cache_address.address'), primary_key=True)
     address_db = relationship('dbCacheAddress', doc="Related address object")
-    txid = Column(String(255), ForeignKey('cache_transactions.txid'), primary_key=True)
+    txid = Column(String(64), ForeignKey('cache_transactions.txid'), primary_key=True)
     transaction = relationship("dbCacheTransaction", back_populates='nodes', doc="Related transaction object")
     output_n = Column(BigInteger, primary_key=True, doc="Output_n of previous transaction output that is spent in this input")
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")

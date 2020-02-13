@@ -183,18 +183,27 @@ WALLET_KEY_STRUCTURES = [
 # UNITTESTS
 UNITTESTS_FULL_DATABASE_TEST = False
 
+# CACHING
+SERVICE_CACHING_ENABLED = True
+
 
 def read_config():
     config = configparser.ConfigParser()
 
-    def config_get(section, var, fallback):
+    def config_get(section, var, fallback, is_boolean=False):
         if os.environ.get("BCL_DEFAULT_CONFIG"):
             return fallback
         try:
             if PY3:
-                val = config.get(section, var, fallback=fallback)
+                if is_boolean:
+                    val = config.getboolean(section, var, fallback=fallback)
+                else:
+                    val = config.get(section, var, fallback=fallback)
             else:
-                val = config.get(section, var)
+                if is_boolean:
+                    val = config.getboolean(section, var)
+                else:
+                    val = config.get(section, var)
             return val
         except Exception:
             return fallback
@@ -202,7 +211,7 @@ def read_config():
     global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
     global BCL_DATA_DIR, BCL_WORDLIST_DIR, ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
-    global UNITTESTS_FULL_DATABASE_TEST
+    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED
 
     BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
     if not os.path.isabs(BCL_CONFIG_DIR):
@@ -255,7 +264,8 @@ def read_config():
 
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
     
-    ALLOW_DATABASE_THREADS = config_get("locations", "allow_database_threads", fallback=True)
+    ALLOW_DATABASE_THREADS = config_get("locations", "allow_database_threads", fallback=True, is_boolean=True)
+    SERVICE_CACHING_ENABLED = config_get('common', 'service_caching_enabled', fallback=True, is_boolean=True)
 
     full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
     if full_db_test:
