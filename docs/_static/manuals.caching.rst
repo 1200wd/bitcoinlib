@@ -30,8 +30,8 @@ http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.databases.html for mo
 Disable caching
 ---------------
 
-Caching is enabled by default. To disable caching set the environment variable ENABLE_SERVICE_CACHING to False or
-set this variable in the config.ini file placed in your .bitcoinlib/config directory.
+Caching is enabled by default. To disable caching set the environment variable SERVICE_CACHING_ENABLED to False or
+set this variable (service_caching_enabled) in the config.ini file placed in your .bitcoinlib/config directory.
 
 
 Troubleshooting

@@ -226,7 +226,7 @@ def read_config():
         BCL_CONFIG_FILE = os.path.join(BCL_CONFIG_DIR, 'config.ini')
     data = config.read(BCL_CONFIG_FILE)
     if not data:
-        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/config.ini')
+        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib', 'config', 'config.ini')
         data = config.read(BCL_CONFIG_FILE)
     if not data:
         BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config.ini')
