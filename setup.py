@@ -47,6 +47,7 @@ install_requires = [
 ]
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
+    install_requires.append('pathlib2')
     install_requires.remove('fastecdsa>=1.7.5;platform_system!="Windows"')
     install_requires.append('fastecdsa==1.7.5;platform_system!="Windows"')
 kwargs['install_requires'] = install_requires

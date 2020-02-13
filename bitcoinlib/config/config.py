@@ -33,8 +33,10 @@ if not PY3:
 LOGLEVEL = 'WARNING'
 if PY3:
     import configparser
+    from pathlib import Path
 else:
     import ConfigParser as configparser
+    from pathlib2 import Path
 
 
 # File locations
@@ -229,7 +231,7 @@ def read_config():
         BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib', 'config', 'config.ini')
         data = config.read(BCL_CONFIG_FILE)
     if not data:
-        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config.ini')
+        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib', 'config.ini')
         data = config.read(BCL_CONFIG_FILE)
 
     BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
@@ -238,10 +240,10 @@ def read_config():
     if not os.path.exists(BCL_DATABASE_DIR):
         os.makedirs(BCL_DATABASE_DIR)
     default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
-    DEFAULT_DATABASE = os.path.join(BCL_DATABASE_DIR, default_databasefile)
+    DEFAULT_DATABASE = str(Path(BCL_DATABASE_DIR, default_databasefile))
     default_databasefile_cache = config_get('locations', 'default_databasefile_cache',
                                              fallback='bitcoinlib_cache.sqlite')
-    DEFAULT_DATABASE_CACHE = os.path.join(BCL_DATABASE_DIR, default_databasefile_cache)
+    DEFAULT_DATABASE_CACHE = str(Path(BCL_DATABASE_DIR, default_databasefile_cache))
 
     BCL_LOG_DIR = config_get('locations', 'log_dir', fallback='.bitcoinlib/log')
     if not os.path.isabs(BCL_LOG_DIR):
