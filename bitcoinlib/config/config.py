@@ -236,7 +236,7 @@ def read_config():
 
     BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
     if not os.path.isabs(BCL_DATABASE_DIR):
-        BCL_DATABASE_DIR = Path(Path.home(), BCL_DATABASE_DIR)
+        BCL_DATABASE_DIR = str(Path(Path.home(), BCL_DATABASE_DIR))
     if not os.path.exists(BCL_DATABASE_DIR):
         os.makedirs(BCL_DATABASE_DIR)
     default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
