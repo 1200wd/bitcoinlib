@@ -10,11 +10,14 @@ import sys
 import unittest
 from subprocess import Popen, PIPE
 
-import mysql.connector
-import psycopg2
-from parameterized import parameterized_class
-from psycopg2 import sql
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+try:
+    import mysql.connector
+    import psycopg2
+    from parameterized import parameterized_class
+    from psycopg2 import sql
+    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+except ImportError:
+    pass  # Only necessary when mysql or postgres is used
 
 from bitcoinlib.main import UNITTESTS_FULL_DATABASE_TEST
 from bitcoinlib.db import BCL_DATABASE_DIR
