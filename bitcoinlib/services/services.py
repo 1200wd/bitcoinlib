@@ -265,7 +265,7 @@ class Service(object):
         if not tx:
             tx = self._provider_execute('gettransaction', txid)
             if len(self.results) and self.min_providers <= 1:
-                self.cache.store_transaction(tx)
+                self.cache.store_transaction(tx, 0)
         return tx
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
@@ -320,18 +320,17 @@ class Service(object):
                 self.complete = False
                 last_block = txs[-1:][0].block_height
             if len(self.results):
+                order_n = 0
                 for tx in txs:
-                    res = self.cache.store_transaction(tx)
+                    res = self.cache.store_transaction(tx, order_n)
+                    order_n += 1
                     # Failure to store transaction: stop caching transaction and store last tx block height - 1
                     if res == False:
                         last_block = tx.block_height - 1
                         break
                 self.cache.store_address(address, last_block)
 
-        for tx in txs_cache:
-            if tx.hash not in [r.hash for r in txs]:
-                txs.insert(0, tx)
-        return txs
+        return txs_cache + txs
 
     def getrawtransaction(self, txid):
         """
@@ -480,7 +479,7 @@ class Cache(object):
                     db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode).\
                         filter(dbCacheTransactionNode.address == address,
                                dbCacheTransaction.block_height >= after_tx.block_height).\
-                        order_by(dbCacheTransaction.block_height).all()
+                        order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n).all()
                     db_txs2 = []
                     for d in db_txs:
                         db_txs2.append(d)
@@ -490,7 +489,7 @@ class Cache(object):
                 else:
                     return []
             else:
-                db_txs = sorted(db_addr.transactions, key=lambda t: t.block_height)
+                db_txs = sorted(db_addr.transactions, key=lambda t: (t.block_height, t.order_n))
             for db_tx in db_txs:
                 txs.append(self._parse_db_transaction(db_tx))
                 if len(txs) >= max_txs:
@@ -568,7 +567,7 @@ class Cache(object):
         self.session.merge(dbvar)
         self.session.commit()
 
-    def store_transaction(self, t):
+    def store_transaction(self, t, order_n):
         if not SERVICE_CACHING_ENABLED:
             return
         # Only store complete and confirmed transaction in cache
@@ -584,7 +583,7 @@ class Cache(object):
             return
         new_tx = dbCacheTransaction(txid=t.hash, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
-                                    fee=t.fee, raw=raw_hex)
+                                    fee=t.fee, raw=raw_hex, order_n=order_n)
         for i in t.inputs:
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")

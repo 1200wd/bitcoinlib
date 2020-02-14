@@ -101,6 +101,7 @@ class dbCacheTransaction(Base):
     addresses = relationship('dbCacheAddress', secondary='cache_transactions_node')
     nodes = relationship("dbCacheTransactionNode", cascade="all,delete",
                          doc="List of all inputs and outputs as dbCacheTransactionNode objects")
+    order_n = Column(Integer, doc='Order of transaction in block')
 
 
 class dbCacheAddress(Base):

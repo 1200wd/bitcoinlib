@@ -1757,10 +1757,16 @@ class HDWallet(object):
         if isinstance(key, int):
             key = self.key(key)
         txs_found = False
+        should_be_finished_count = 0
         while True:
             n_new = self.transactions_update(key_id=key.key_id)
+            if n_new and n_new < MAX_TRANSACTIONS:
+                if should_be_finished_count:
+                    _logger.info("Possible recursive loop detected in scan_key(%d): retry %d/5" %
+                                 (key.key_id, should_be_finished_count))
+                should_be_finished_count += 1
             logger.info("Scanned key %d, %s Found %d new transactions" % (key.key_id, key.address, n_new))
-            if not n_new:
+            if not n_new or should_be_finished_count > 5:
                 break
             txs_found = True
         return txs_found
