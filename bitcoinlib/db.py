@@ -50,7 +50,8 @@ class DbInit:
         if db_uri is None:
             db_uri = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
         o = urlparse(db_uri)
-        if not o.scheme:
+        if not o.scheme or \
+                len(o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
             db_uri = 'sqlite:///%s' % db_uri
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
             if "?" in db_uri: db_uri += "&"
