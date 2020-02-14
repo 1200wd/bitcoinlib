@@ -228,7 +228,9 @@ class Service(object):
         self.results_cache_n = 0
         self.complete = True
 
-        utxos_cache = self.cache.getutxos(address, after_txid)
+        utxos_cache = []
+        if self.min_providers <= 1:
+            utxos_cache = self.cache.getutxos(address, after_txid)
         if utxos_cache:
             self.results_cache_n = len(utxos_cache)
             db_addr = self.cache.getaddress(address)
