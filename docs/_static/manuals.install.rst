@@ -16,7 +16,11 @@ Package can be found at https://pypi.org/project/bitcoinlib/
 Install from source
 ~~~~~~~~~~~~~~~~~~~
 
-First create a virtual environment for instance on Linux with virtualenv:
+Required packages:
+
+``sudo apt install -y postgresql postgresql-contrib mysql-server libpq-dev libmysqlclient-dev``
+
+Create a virtual environment for instance on linux with virtualenv:
 
 .. code-block:: bash
 
@@ -29,7 +33,8 @@ Then clone the repository and install dependencies:
 
     $ git clone https://github.com/1200wd/bitcoinlib.git
     $ cd bitcoinlib
-    $ pip install -r docs/requirements.txt
+    $ pip install -r requirements-dev.txt
+
 
 
 Package dependencies
@@ -42,7 +47,8 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 * scrypt (or much slower pyscript)
 * sqlalchemy
 * requests
-* enum34 (for older python installations)
+* enum34 (for older Python installations)
+* pathlib2 (for Python 2)
 * six
 
 
@@ -65,11 +71,16 @@ To install OpenSSL development package on Fedora, CentOS or RHEL
 Other requirements Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This library required a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
-See https://wiki.python.org/moin/WindowsCompilers
+This library requires a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
+Install Microsoft Visual Studio and include the "Microsoft Visual C++ Build Tools" which can be downloaded from
+https://visualstudio.microsoft.com/downloads. Also see https://wiki.python.org/moin/WindowsCompilers
 
-The fastecdsa library is not working at this moment on windows, so the slower ecdsa library is installed.
+The fastecdsa library is not enabled at this moment in the windows install, the slower ecdsa library is installed.
+Installation of fastecdsa on Windows is possible but not easy, read https://github.com/AntonKueltz/fastecdsa/issues/11
+for step you could take to install this library.
 
+If you have problems with installing this library on Windows you could try to use the pyscrypt library instead of
+scrypt. The pyscrypt library is pure Python so it doesn't need any C compilers installed. But this will run slower.
 
 
 Update Bitcoinlib
