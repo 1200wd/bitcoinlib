@@ -1502,12 +1502,11 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_scan(self):
         account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfq' \
                       'ZY6DFj6x61Wwbrg8Q'
-        self.wallet = wallet_create_or_open('scan-test', keys=account_key, network='testnet',
-                                            db_uri=self.DATABASE_URI)
-        self.wallet.scan(scan_gap_limit=8)
-        self.wallet.info()
-        self.assertEqual(len(self.wallet.keys()), 27)
-        self.assertEqual(self.wallet.balance(), 60500000)
+        wallet = wallet_create_or_open('scan-test', keys=account_key, network='testnet', db_uri=self.DATABASE_URI)
+        wallet.scan(scan_gap_limit=8)
+        wallet.info()
+        self.assertEqual(len(wallet.keys()), 27)
+        self.assertEqual(wallet.balance(), 60500000)
 
     def test_wallet_scan_utxos(self):
         pk = 'tpubDDi7dF92m7UrWNuAmzR9mzETcCjFT9v6XZq2oXjvhH4Bzr4L13np7d6bBB5tZk1Kg3y2vB79ohpgsLiubcRA8RfA6L69nmZvSG26XfmC5Ao'

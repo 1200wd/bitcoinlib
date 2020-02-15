@@ -511,7 +511,8 @@ class Cache(object):
         db_utxos = self.session.query(dbCacheTransactionNode.spent, dbCacheTransactionNode.output_n,
                                       dbCacheTransactionNode.value, dbCacheTransaction.confirmations,
                                       dbCacheTransaction.block_height, dbCacheTransaction.fee,
-                                      dbCacheTransaction.date, dbCacheTransaction.txid).join(dbCacheTransaction).\
+                                      dbCacheTransaction.date, dbCacheTransaction.txid).join(dbCacheTransaction). \
+            order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n). \
             filter(dbCacheTransactionNode.address == address, dbCacheTransactionNode.is_input == False).all()
         utxos = []
         for db_utxo in db_utxos:
