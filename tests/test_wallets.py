@@ -1508,6 +1508,12 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(len(wallet.keys()), 27)
         self.assertEqual(wallet.balance(), 60500000)
 
+        # Check tx order in same block
+        address = 'tb1qlh9x3jwhfqspp7u9w6l7zqxpmuvplzaczaele3'
+        w = wallet_create_or_open('fix-multiple-tx-1-block', keys=address, db_uri=self.DATABASE_URI)
+        w.scan()
+        self.assertEqual(w.transactions()[0].hash, 'bae05e65c13a1b1635abf581a6250a458cbd672c914e2563b5bb175274f9c5a7')
+
     def test_wallet_scan_utxos(self):
         pk = 'tpubDDi7dF92m7UrWNuAmzR9mzETcCjFT9v6XZq2oXjvhH4Bzr4L13np7d6bBB5tZk1Kg3y2vB79ohpgsLiubcRA8RfA6L69nmZvSG26XfmC5Ao'
         w = wallet_create_or_open('kladkladklieder3', keys=pk, db_uri=self.DATABASE_URI)
