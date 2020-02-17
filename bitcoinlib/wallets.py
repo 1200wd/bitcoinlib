@@ -2983,13 +2983,12 @@ class HDWallet(object):
 
         # Update number of confirmations for already known blocks
         blockcount = srv.blockcount()
-        # FIXME: this calls a lot of methods..., update txs below:
-        # ToDo: just use a database query
-        for t in self.transactions(account_id=account_id, key_id=key_id, network=network):
-            if t.block_height:
-                t.confirmations = blockcount - t.block_height
-                t.status = 'confirmed'
-                t.save()
+        qr = self._session.query(DbTransaction).\
+            filter(DbTransaction.wallet_id == self.wallet_id,
+                   DbTransaction.network_name == network, DbTransaction.block_height > 0)
+        qr.update({DbTransaction.status: 'confirmed',
+                    DbTransaction.confirmations: blockcount - DbTransaction.block_height})
+        self._session.commit()
 
         # Get transactions for wallet's addresses
         txs = []
