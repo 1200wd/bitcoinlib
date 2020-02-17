@@ -202,11 +202,12 @@ Example: Generate a list of words passphrase and derive a private key seed
 .. code-block:: pycon
 
    >>> from bitcoinlib.mnemonic import Mnemonic
+   >>> from bitcoinlib.encoding import to_hexstring
    >>> words = Mnemonic().generate()
    >>> words
-   protect dumb smart toddler journey spawn same dry season ecology scissors more
-   >>> Mnemonic().to_seed(words)
-   xprv6CY4yxy6enC53V7hEut2FFW74tv6L3dB53jSoSXpab2X8UMowLJc521UUFuar98eacS9MK5rwWjrEmp6SUone5swQWcqf4vhfhZuerj5E1Y
+   unique aisle iron extend earn cigar trust source next depart yard bind
+   >>> to_hexstring(Mnemonic().to_seed(words))
+   '9c6f41a347bf4f326f9c989fb522bec1b82c36463580d1769daadba7d59f69a305505fdd5d2131c9c60255c79279d4e8896155e0b126abea036da56a766f81a1'
 
 
 Service providers
