@@ -456,7 +456,7 @@ class Cache(object):
     def gettransaction(self, txid):
         if not SERVICE_CACHING_ENABLED:
             return False
-        db_tx = self.session.query(dbCacheTransaction).filter_by(txid=txid).first()
+        db_tx = self.session.query(dbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
         if not db_tx:
             return False
         db_tx.txid = txid
@@ -465,7 +465,7 @@ class Cache(object):
     def getaddress(self, address):
         if not SERVICE_CACHING_ENABLED:
             return []
-        return self.session.query(dbCacheAddress).filter_by(address=address).scalar()
+        return self.session.query(dbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         if not SERVICE_CACHING_ENABLED:
@@ -474,7 +474,8 @@ class Cache(object):
         txs = []
         if db_addr:
             if after_txid:
-                after_tx = self.session.query(dbCacheTransaction).filter_by(txid=after_txid).scalar()
+                after_tx = self.session.query(dbCacheTransaction).\
+                    filter_by(txid=after_txid, network_name=self.network.name).scalar()
                 if after_tx:
                     db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode).\
                         filter(dbCacheTransactionNode.address == address,
@@ -500,7 +501,7 @@ class Cache(object):
     def getrawtransaction(self, txid):
         if not SERVICE_CACHING_ENABLED:
             return False
-        tx = self.session.query(dbCacheTransaction).filter_by(txid=txid).first()
+        tx = self.session.query(dbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
         if not tx:
             return False
         return tx.raw
@@ -513,7 +514,8 @@ class Cache(object):
                                       dbCacheTransaction.block_height, dbCacheTransaction.fee,
                                       dbCacheTransaction.date, dbCacheTransaction.txid).join(dbCacheTransaction). \
             order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n). \
-            filter(dbCacheTransactionNode.address == address, dbCacheTransactionNode.is_input == False).all()
+            filter(dbCacheTransactionNode.address == address, dbCacheTransactionNode.is_input == False,
+                   dbCacheTransaction.network_name == self.network.name).all()
         utxos = []
         for db_utxo in db_utxos:
             if db_utxo.spent == False:
