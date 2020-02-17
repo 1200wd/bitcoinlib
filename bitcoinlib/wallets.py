@@ -2981,13 +2981,15 @@ class HDWallet(object):
             depth = self.key_depth
         srv = Service(network=network, providers=self.providers)
 
-        # Update number of confirmations for already known blocks
+        # Update number of confirmations and status for already known transactions
         blockcount = srv.blockcount()
-        qr = self._session.query(DbTransaction).\
+        db_txs = self._session.query(DbTransaction).\
             filter(DbTransaction.wallet_id == self.wallet_id,
-                   DbTransaction.network_name == network, DbTransaction.block_height > 0)
-        qr.update({DbTransaction.status: 'confirmed',
-                    DbTransaction.confirmations: blockcount - DbTransaction.block_height})
+                   DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
+        for db_tx in db_txs:
+            self._session.query(DbTransaction).filter_by(hash=db_tx.hash).\
+                update({DbTransaction.status: 'confirmed',
+                        DbTransaction.confirmations: blockcount - DbTransaction.block_height})
         self._session.commit()
 
         # Get transactions for wallet's addresses

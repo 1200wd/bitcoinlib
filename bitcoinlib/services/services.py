@@ -293,6 +293,7 @@ class Service(object):
             after_txid = ''
         db_addr = self.cache.getaddress(address)
         txs_cache = []
+        qry_after_txid = after_txid
 
         # Retrieve transactions from cache
         if self.min_providers <= 1:  # Disable cache if comparing providers
@@ -302,18 +303,19 @@ class Service(object):
                 if len(txs_cache) == max_txs:
                     return txs_cache
                 max_txs = max_txs - len(txs_cache)
-                after_txid = txs_cache[-1:][0].hash
+                qry_after_txid = txs_cache[-1:][0].hash
 
         # Get (extra) transactions from service providers
         txs = []
         if not(db_addr and db_addr.last_block >= self._blockcount):
-            txs = self._provider_execute('gettransactions', address, after_txid,  max_txs)
+            txs = self._provider_execute('gettransactions', address, qry_after_txid,  max_txs)
             if txs == False:
                 raise ServiceError("Error when retrieving transactions from service provider")
 
         # Store transactions and address in cache
-        # - disable cache if comparing providers or if after_txid is not and no cache is available yet
-        if self.min_providers <= 1 and not(after_txid and not txs_cache):
+        # - disable cache if comparing providers or if after_txid is used and no cache is available
+        if self.min_providers <= 1 and not(after_txid and not db_addr):
+        # if self.min_providers <= 1:
             last_block = self._blockcount
             self.complete = True
             if len(txs) == max_txs:
@@ -326,7 +328,8 @@ class Service(object):
                     order_n += 1
                     # Failure to store transaction: stop caching transaction and store last tx block height - 1
                     if res == False:
-                        last_block = tx.block_height - 1
+                        if tx.block_height:
+                            last_block = tx.block_height - 1
                         break
                 self.cache.store_address(address, last_block)
 
@@ -396,14 +399,19 @@ class Service(object):
         """
 
         blockcount = self.cache.blockcount()
+        last_cache_blockcount = self.cache.blockcount(never_expires=True)
         if blockcount:
             self._blockcount = blockcount
             return blockcount
 
         current_timestamp = time.time()
         if self._blockcount_update < current_timestamp - BLOCK_COUNT_CACHE_TIME:
-            self._blockcount = self._provider_execute('blockcount')
-            self._blockcount_update = time.time()
+            new_count = self._provider_execute('blockcount')
+            if not self._blockcount or (new_count and new_count > self._blockcount):
+                self._blockcount = new_count
+                self._blockcount_update = time.time()
+            if last_cache_blockcount > self._blockcount:
+                return last_cache_blockcount
             # Store result in cache
             if len(self.results) and list(self.results.keys())[0] != 'caching':
                 self.cache.store_blockcount(self._blockcount)
@@ -553,11 +561,13 @@ class Cache(object):
             return int(dbvar.value)
         return False
 
-    def blockcount(self):
+    def blockcount(self, never_expires=False):
         if not SERVICE_CACHING_ENABLED:
             return False
-        dbvar = self.session.query(dbCacheVars).filter_by(varname='blockcount', network_name=self.network.name).\
-                                                filter(dbCacheVars.expires > datetime.datetime.now()).scalar()
+        qr = self.session.query(dbCacheVars).filter_by(varname='blockcount', network_name=self.network.name)
+        if not never_expires:
+            qr = qr.filter(dbCacheVars.expires > datetime.datetime.now())
+        dbvar = qr.scalar()
         if dbvar:
             return int(dbvar.value)
         return False
