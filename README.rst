@@ -273,10 +273,10 @@ To install OpenSSL development package on Fedora, CentOS or RHEL
 Pre-requirements Windows
 ------------------------
 
-This library required a Microsoft Visual C++ Compiler. For python version 3.5+ you will need Visual C++ 14.0.
-See https://wiki.python.org/moin/WindowsCompilers
+This library requires a Microsoft Visual C++ Compiler. See
+http://bitcoinlib.readthedocs.io/en/latest/_static/manuals.install.html
 
-The fastecdsa library is not working at this moment on windows, so the slower ecdsa library is installed.
+The fastecdsa library is not enabled at this moment on windows, the slower ecdsa library is installed.
 
 
 Install with pip
@@ -290,7 +290,8 @@ These packages will be installed
 * scrypt
 * sqlalchemy
 * requests
-* enum34 (for older python installations)
+* enum34 (for older Python installations)
+* pathlib2 (for Python 2)
 * six
 
 

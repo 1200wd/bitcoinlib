@@ -10,3 +10,4 @@ psycopg2
 mysql-connector
 mysqlclient
 parameterized
+sphinx_rtd_theme

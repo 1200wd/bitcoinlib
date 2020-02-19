@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for Key and Transaction management
-#    © 2016 - 2019 July - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2020 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -1757,10 +1757,16 @@ class HDWallet(object):
         if isinstance(key, int):
             key = self.key(key)
         txs_found = False
+        should_be_finished_count = 0
         while True:
             n_new = self.transactions_update(key_id=key.key_id)
+            if n_new and n_new < MAX_TRANSACTIONS:
+                if should_be_finished_count:
+                    _logger.info("Possible recursive loop detected in scan_key(%d): retry %d/5" %
+                                 (key.key_id, should_be_finished_count))
+                should_be_finished_count += 1
             logger.info("Scanned key %d, %s Found %d new transactions" % (key.key_id, key.address, n_new))
-            if not n_new:
+            if not n_new or should_be_finished_count > 5:
                 break
             txs_found = True
         return txs_found
@@ -1774,7 +1780,7 @@ class HDWallet(object):
         Use the faster :func:`utxos_update` method if you are only interested in unspent outputs.
         Use the :func:`transactions_update` method if you would like to manage the key creation yourself or if you want to scan a single key.
 
-        :param scan_gap_limit: Amount of new keys and change keys (addresses) created for this wallet
+        :param scan_gap_limit: Amount of new keys and change keys (addresses) created for this wallet. Default is 5, so scanning stops if after 5 addresses no transaction are found.
         :type scan_gap_limit: int
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
@@ -1802,16 +1808,16 @@ class HDWallet(object):
                 self.scan_key(key.id)
 
         # Update already known transactions
-        # FIXME: This is very very inefficient and not workable for really large txs sets :(
         srv = Service(network=network, providers=self.providers)
-        current_block_height = srv.blockcount()
-        for t in self.transactions(account_id=account_id, network=network):
-            if not t.block_height or t.block_height <= 0 or not t.confirmations:
-                new_t = srv.gettransaction(t.hash)
-                t.block_height = new_t.block_height
-            if t.block_height:
-                t.confirmations = current_block_height - t.block_height
-            t.save()
+        blockcount = srv.blockcount()
+        db_txs = self._session.query(DbTransaction). \
+            filter(DbTransaction.wallet_id == self.wallet_id,
+                   DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
+        for db_tx in db_txs:
+            self._session.query(DbTransaction).filter_by(id=db_tx.id). \
+                update({DbTransaction.status: 'confirmed',
+                        DbTransaction.confirmations: blockcount - DbTransaction.block_height})
+        self._session.commit()
 
         # Scan each key address, stop when no new transactions are found after set scan gap limit
         if change is None:
@@ -2813,7 +2819,7 @@ class HDWallet(object):
         Get UTXO's (Unspent Outputs) from database. Use :func:`utxos_update` method first for updated values
 
         >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
-        >>> w.utxos()  # doctest:+ELLIPSIS
+        >>> w.utxos()  # doctest:+SKIP
         [{'value': 100000000, 'script': '', 'output_n': 0, 'transaction_id': ..., 'spent': False, 'script_type': 'p2pkh', 'key_id': ..., 'address': '16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', 'confirmations': 0, 'tx_hash': '748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', 'network_name': 'bitcoin'}]
 
         :param account_id: Account ID
@@ -2975,15 +2981,16 @@ class HDWallet(object):
             depth = self.key_depth
         srv = Service(network=network, providers=self.providers)
 
-        # Update number of confirmations for already known blocks
+        # Update number of confirmations and status for already known transactions
         blockcount = srv.blockcount()
-        # FIXME: this calls a lot of methods..., update txs below:
-        # ToDo: just use a database query
-        for t in self.transactions(account_id=account_id, key_id=key_id, network=network):
-            if t.block_height:
-                t.confirmations = blockcount - t.block_height
-                t.status = 'confirmed'
-                t.save()
+        db_txs = self._session.query(DbTransaction).\
+            filter(DbTransaction.wallet_id == self.wallet_id,
+                   DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
+        for db_tx in db_txs:
+            self._session.query(DbTransaction).filter_by(id=db_tx.id).\
+                update({DbTransaction.status: 'confirmed',
+                        DbTransaction.confirmations: blockcount - DbTransaction.block_height})
+        self._session.commit()
 
         # Get transactions for wallet's addresses
         txs = []
@@ -3000,7 +3007,6 @@ class HDWallet(object):
                 if not dbkey.update({DbKey.latest_txid: txs[-1].hash}):
                     raise WalletError("Failed to update latest transaction id for key with address %s" % address)
                 self._session.commit()
-            # TODO: update transactions: confirmations, status, etc
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
 
@@ -3014,7 +3020,7 @@ class HDWallet(object):
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
-                       DbTransactionOutput.spent.is_(False)).all()
+                       DbTransactionOutput.spent.is_(False), DbTransaction.wallet_id == self.wallet_id).all()
             for u in tos:
                 u.spent = True
 
@@ -3101,7 +3107,7 @@ class HDWallet(object):
                 if '_sa_instance_state' in u:
                     del u['_sa_instance_state']
                 u['address'] = tx[1]
-                u['confirmations'] = int(tx[2])
+                u['confirmations'] = None if tx[2] is None else int(tx[2])
                 u['tx_hash'] = txid
                 u['network_name'] = tx[4]
                 u['status'] = tx[5]

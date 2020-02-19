@@ -24,9 +24,8 @@ try:
 except NameError:
     pass
 
-print("Database should update automatically when using BitcoinLib. If automatic update fails you can run this script"
-      "after everything is backup-ed!")
-sys.exit()
+print("Database should update automatically when using BitcoinLib. If automatic update fails you can run this script. "
+      "!!! After everything is backuped !!!")
 
 def parse_args():
     parser = argparse.ArgumentParser(description='BitcoinLib Database update script')
@@ -43,7 +42,7 @@ if not os.path.isfile(database_file):
 database_backup_file = os.path.join(BCL_DATABASE_DIR, "%s.backup-%s" %
                                     (database_file, datetime.now().strftime("%Y%m%d-%I:%M")))
 
-print("Wallet and Key data will be copied to new database. Transaction data will NOT be copied")
+print("\nWallet and Key data will be copied to new database. Transaction data will NOT be copied")
 print("Updating database file: %s" % database_file)
 print("Old database will be backed up to %s" % database_backup_file)
 

@@ -20,11 +20,14 @@
 
 import unittest
 from random import shuffle
-import mysql.connector
-import psycopg2
-from parameterized import parameterized_class
-from psycopg2 import sql
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+try:
+    import mysql.connector
+    import psycopg2
+    from parameterized import parameterized_class
+    from psycopg2 import sql
+    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+except ImportError:
+    pass  # Only necessary when mysql or postgres is used
 from sqlalchemy.orm import close_all_sessions
 from bitcoinlib.wallets import *
 from bitcoinlib.encoding import USE_FASTECDSA
@@ -1499,12 +1502,17 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_scan(self):
         account_key = 'tpubDCmJWqxWch7LYDhSuE1jEJMbAkbkDm3DotWKZ69oZfNMzuw7U5DwEaTVZHGPzt5j9BJDoxqVkPHt2EpUF66FrZhpfq' \
                       'ZY6DFj6x61Wwbrg8Q'
-        self.wallet = wallet_create_or_open('scan-test', keys=account_key, network='testnet',
-                                            db_uri=self.DATABASE_URI)
-        self.wallet.scan(scan_gap_limit=8)
-        self.wallet.info()
-        self.assertEqual(len(self.wallet.keys()), 27)
-        self.assertEqual(self.wallet.balance(), 60500000)
+        wallet = wallet_create_or_open('scan-test', keys=account_key, network='testnet', db_uri=self.DATABASE_URI)
+        wallet.scan(scan_gap_limit=8)
+        wallet.info()
+        self.assertEqual(len(wallet.keys()), 27)
+        self.assertEqual(wallet.balance(), 60500000)
+
+        # Check tx order in same block
+        address = 'tb1qlh9x3jwhfqspp7u9w6l7zqxpmuvplzaczaele3'
+        w = wallet_create_or_open('fix-multiple-tx-1-block', keys=address, db_uri=self.DATABASE_URI)
+        w.scan()
+        self.assertEqual(w.transactions()[0].hash, 'bae05e65c13a1b1635abf581a6250a458cbd672c914e2563b5bb175274f9c5a7')
 
     def test_wallet_scan_utxos(self):
         pk = 'tpubDDi7dF92m7UrWNuAmzR9mzETcCjFT9v6XZq2oXjvhH4Bzr4L13np7d6bBB5tZk1Kg3y2vB79ohpgsLiubcRA8RfA6L69nmZvSG26XfmC5Ao'

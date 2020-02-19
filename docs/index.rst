@@ -199,7 +199,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    _static/manuals.add-provider
    _static/manuals.setup-bitcoind-connection
    _static/manuals.databases
-
+   _static/manuals.caching
 
 
 .. toctree::

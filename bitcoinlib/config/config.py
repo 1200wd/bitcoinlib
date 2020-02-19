@@ -22,7 +22,6 @@ import os
 import sys
 import locale
 
-
 # General defaults
 PY3 = sys.version_info[0] == 3
 TYPE_TEXT = str
@@ -34,14 +33,17 @@ if not PY3:
 LOGLEVEL = 'WARNING'
 if PY3:
     import configparser
+    from pathlib import Path
 else:
     import ConfigParser as configparser
+    from pathlib2 import Path
 
 
 # File locations
 BCL_INSTALL_DIR = os.path.dirname(os.path.dirname(__file__))
 BCL_DATABASE_DIR = ''
 DEFAULT_DATABASE = None
+DEFAULT_DATABASE_CACHE = None
 BCL_LOG_DIR = ''
 BCL_CONFIG_DIR = ''
 BCL_DATA_DIR = ''
@@ -183,26 +185,35 @@ WALLET_KEY_STRUCTURES = [
 # UNITTESTS
 UNITTESTS_FULL_DATABASE_TEST = False
 
+# CACHING
+SERVICE_CACHING_ENABLED = True
+
 
 def read_config():
     config = configparser.ConfigParser()
 
-    def config_get(section, var, fallback):
+    def config_get(section, var, fallback, is_boolean=False):
         if os.environ.get("BCL_DEFAULT_CONFIG"):
             return fallback
         try:
             if PY3:
-                val = config.get(section, var, fallback=fallback)
+                if is_boolean:
+                    val = config.getboolean(section, var, fallback=fallback)
+                else:
+                    val = config.get(section, var, fallback=fallback)
             else:
-                val = config.get(section, var)
+                if is_boolean:
+                    val = config.getboolean(section, var)
+                else:
+                    val = config.get(section, var)
             return val
         except Exception:
             return fallback
 
     global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
-    global BCL_DATA_DIR, BCL_WORDLIST_DIR, ALLOW_DATABASE_THREADS
+    global BCL_DATA_DIR, BCL_WORDLIST_DIR, ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
-    global UNITTESTS_FULL_DATABASE_TEST
+    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED
 
     BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
     if not os.path.isabs(BCL_CONFIG_DIR):
@@ -217,19 +228,22 @@ def read_config():
         BCL_CONFIG_FILE = os.path.join(BCL_CONFIG_DIR, 'config.ini')
     data = config.read(BCL_CONFIG_FILE)
     if not data:
-        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/config.ini')
+        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib', 'config', 'config.ini')
         data = config.read(BCL_CONFIG_FILE)
     if not data:
-        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config.ini')
+        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib', 'config.ini')
         data = config.read(BCL_CONFIG_FILE)
 
     BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
     if not os.path.isabs(BCL_DATABASE_DIR):
-        BCL_DATABASE_DIR = os.path.join(os.path.expanduser("~"), BCL_DATABASE_DIR)
+        BCL_DATABASE_DIR = str(Path(Path.home(), BCL_DATABASE_DIR))
     if not os.path.exists(BCL_DATABASE_DIR):
         os.makedirs(BCL_DATABASE_DIR)
     default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
-    DEFAULT_DATABASE = os.path.join(BCL_DATABASE_DIR, default_databasefile)
+    DEFAULT_DATABASE = str(Path(BCL_DATABASE_DIR, default_databasefile))
+    default_databasefile_cache = config_get('locations', 'default_databasefile_cache',
+                                            fallback='bitcoinlib_cache.sqlite')
+    DEFAULT_DATABASE_CACHE = str(Path(BCL_DATABASE_DIR, default_databasefile_cache))
 
     BCL_LOG_DIR = config_get('locations', 'log_dir', fallback='.bitcoinlib/log')
     if not os.path.isabs(BCL_LOG_DIR):
@@ -252,7 +266,8 @@ def read_config():
 
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
     
-    ALLOW_DATABASE_THREADS = config_get("locations", "allow_database_threads", fallback=True)
+    ALLOW_DATABASE_THREADS = config_get("locations", "allow_database_threads", fallback=True, is_boolean=True)
+    SERVICE_CACHING_ENABLED = config_get('common', 'service_caching_enabled', fallback=True, is_boolean=True)
 
     full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
     if full_db_test:

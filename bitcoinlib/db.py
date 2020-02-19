@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    DataBase - SqlAlchemy database definitions
-#    © 2016 - 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2020 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -50,7 +50,8 @@ class DbInit:
         if db_uri is None:
             db_uri = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
         o = urlparse(db_uri)
-        if not o.scheme:
+        if not o.scheme or \
+                len(o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
             db_uri = 'sqlite:///%s' % db_uri
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
             if "?" in db_uri: db_uri += "&"
@@ -368,7 +369,8 @@ class DbTransactionInput(Base):
                                                        'signature', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
                                       name='transactioninput_constraint_script_types_allowed'),
                       CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']),
-                                      name='transactioninput_constraint_allowed_types'),)
+                                      name='transactioninput_constraint_allowed_types'),
+                      UniqueConstraint('transaction_id', 'index_n', name='constraint_transaction_input_unique'))
 
 
 class DbTransactionOutput(Base):
@@ -397,7 +399,8 @@ class DbTransactionOutput(Base):
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'p2pk', 'nulldata',
                                                        'unknown', 'p2wpkh', 'p2wsh']),
-                                      name='transactionoutput_constraint_script_types_allowed'),)
+                                      name='transactionoutput_constraint_script_types_allowed'),
+                      UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'))
 
 
 def db_update_version_id(db, version):

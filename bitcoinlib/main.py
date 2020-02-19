@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MAIN - Load configs, initialize logging and database
-#    © 2017 - 2019 January - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -34,6 +34,7 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d
                               datefmt='%Y/%m/%d %H:%M:%S')
 handler.setFormatter(formatter)
 handler.setLevel(LOGLEVEL)
+logger.setLevel(LOGLEVEL)
 logger.addHandler(handler)
 
 logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')

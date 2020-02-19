@@ -43,7 +43,7 @@ class ClientError(Exception):
 class BaseClient(object):
 
     def __init__(self, network, provider, base_url, denominator, api_key='', provider_coin_id='',
-                 network_overrides=None, timeout=TIMEOUT_REQUESTS):
+                 network_overrides=None, timeout=TIMEOUT_REQUESTS, latest_block=None):
         try:
             self.network = network
             if not isinstance(network, Network):
@@ -56,6 +56,7 @@ class BaseClient(object):
             self.provider_coin_id = provider_coin_id
             self.network_overrides = {}
             self.timeout = timeout
+            self.latest_block = latest_block
             if network_overrides is not None:
                 self.network_overrides = network_overrides
         except:

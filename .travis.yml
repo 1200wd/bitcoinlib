@@ -7,10 +7,11 @@ env:
 python:
     - 2.7
     - 3.5
+    - 3.6
 matrix:
   include:
     # Test ecdsa and pyscrypt for systems where fastecdsa and/or scrypt are not available
-    - python: 3.6
+    - python: 3.7
       dist: bionic
       sudo: true
       env:
@@ -20,8 +21,8 @@ matrix:
       before_script:
         - pip install ecdsa
         - pip install pyscrypt
-    # Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
-    - python: 3.7
+    # Enable 3.8 without globally enabling sudo and dist: xenial for other build jobs
+    - python: 3.8
       dist: xenial
       sudo: true
       env:
