@@ -3108,7 +3108,7 @@ class HDWallet(object):
                 if '_sa_instance_state' in u:
                     del u['_sa_instance_state']
                 u['address'] = tx[1]
-                u['confirmations'] = int(tx[2])
+                u['confirmations'] = None if tx[2] is None else int(tx[2])
                 u['tx_hash'] = txid
                 u['network_name'] = tx[4]
                 u['status'] = tx[5]
