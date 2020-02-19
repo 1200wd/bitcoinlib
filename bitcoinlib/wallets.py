@@ -1808,16 +1808,16 @@ class HDWallet(object):
                 self.scan_key(key.id)
 
         # Update already known transactions
-        # FIXME: This is very very inefficient and not workable for really large txs sets :(
         srv = Service(network=network, providers=self.providers)
-        current_block_height = srv.blockcount()
-        for t in self.transactions(account_id=account_id, network=network):
-            if not t.block_height or t.block_height <= 0 or not t.confirmations:
-                new_t = srv.gettransaction(t.hash)
-                t.block_height = new_t.block_height
-            if t.block_height:
-                t.confirmations = current_block_height - t.block_height
-            t.save()
+        blockcount = srv.blockcount()
+        db_txs = self._session.query(DbTransaction). \
+            filter(DbTransaction.wallet_id == self.wallet_id,
+                   DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
+        for db_tx in db_txs:
+            self._session.query(DbTransaction).filter_by(id=db_tx.id). \
+                update({DbTransaction.status: 'confirmed',
+                        DbTransaction.confirmations: blockcount - DbTransaction.block_height})
+        self._session.commit()
 
         # Scan each key address, stop when no new transactions are found after set scan gap limit
         if change is None:
