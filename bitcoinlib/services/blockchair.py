@@ -105,7 +105,7 @@ class BlockChairClient(BaseClient):
         if confirmations:
             status = 'confirmed'
         witness_type = 'legacy'
-        if tx['has_witness']:
+        if tx.get('has_witness'):
             witness_type = 'segwit'
         input_total = tx['input_total']
         if tx['is_coinbase']:
@@ -121,15 +121,15 @@ class BlockChairClient(BaseClient):
             # This is a coinbase transaction, add input
             t.add_input(prev_hash=b'\00' * 32, output_n=0, value=input_total)
         for ti in res['data'][tx_id]['inputs']:
-            if ti['spending_witness']:
-                witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
+            if ti.get('spending_witness'):
+                witnesses = b"".join([varstr(to_bytes(x)) for x in ti.get('spending_witness').split(",")])
                 t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=witnesses, index_n=index_n, value=ti['value'],
                             address=ti['recipient'], witness_type='segwit')
             else:
                 t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script_unsigned=ti['script_hex'], index_n=index_n, value=ti['value'],
-                            address=ti['recipient'], unlocking_script=ti['spending_signature_hex'])
+                            address=ti['recipient'], unlocking_script=ti.get('spending_signature_hex'))
             index_n += 1
         for to in res['data'][tx_id]['outputs']:
             try:

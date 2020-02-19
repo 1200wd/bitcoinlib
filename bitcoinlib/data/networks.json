@@ -30,7 +30,8 @@
     "fee_default": 10000,
     "fee_min": 1000,
     "fee_max": 1000000,
-    "priority": 2
+    "priority": 2,
+    "fork_id": 0
   },
   "bitcoin":
   {
@@ -63,7 +64,8 @@
     "fee_default": null,
     "fee_min": 250,
     "fee_max": 1000000,
-    "priority": 12
+    "priority": 12,
+    "fork_id": 0
   },
   "testnet":
   {
@@ -96,7 +98,8 @@
     "fee_default": 10000,
     "fee_min": 250,
     "fee_max": 2000000,
-    "priority": 8
+    "priority": 8,
+    "fork_id": 0
   },
   "litecoin":
   {
@@ -129,7 +132,8 @@
     "fee_default": 50000,
     "fee_min": 1000,
     "fee_max": 1000000,
-    "priority": 10
+    "priority": 10,
+    "fork_id": 0
   },
   "litecoin_legacy":
   {
@@ -162,7 +166,8 @@
     "fee_default": 50000,
     "fee_min": 1000,
     "fee_max": 1000000,
-    "priority": 8
+    "priority": 8,
+    "fork_id": 0
   },
   "litecoin_testnet":
   {
@@ -195,7 +200,8 @@
     "fee_default": 50000,
     "fee_min": 1000,
     "fee_max": 1000000,
-    "priority": 6
+    "priority": 6,
+    "fork_id": 0
   },
   "dash":
   {
@@ -220,7 +226,8 @@
     "fee_default": 2000,
     "fee_min": 1000,
     "fee_max": 50000,
-    "priority": 10
+    "priority": 10,
+    "fork_id": 0
   },
   "dash_testnet":
   {
@@ -245,6 +252,111 @@
     "fee_default": 10000,
     "fee_min": 1000,
     "fee_max": 50000,
-    "priority": 6
+    "priority": 6,
+    "fork_id": 0
+  },
+  "bitcoin_cash":
+  {
+    "description": "Bitcoin Cash",
+    "currency_name": "bitcoin cash",
+    "currency_name_plural": "bitcoin cash",
+    "currency_symbol": "BCH",
+    "currency_code": "BCH",
+    "prefix_address": "00",
+    "prefix_address_p2sh": "05",
+    "prefix_bech32": "",
+    "prefix_wif": "80",
+    "prefixes_wif": [
+      ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],
+      ["0488B21E", "xpub", "public",  true,  "legacy",      "p2sh"],
+      ["0488ADE4", "xprv", "private", false, "legacy",      "p2pkh"],
+      ["0488ADE4", "xprv", "private", true,  "legacy",      "p2sh"]
+    ],
+    "bip44_cointype": 145,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 50000,
+    "priority": 6,
+    "fork_id": 64
+  },
+  "bitcoin_cash_testnet":
+  {
+    "description": "Bitcoin Cash Testnet",
+    "currency_name": "bitcoin cash test",
+    "currency_name_plural": "bitcoin cash test",
+    "currency_symbol": "TBTH",
+    "currency_code": "TBTH",
+    "prefix_address": "6F",
+    "prefix_address_p2sh": "C4",
+    "prefix_bech32": "6F",
+    "prefix_wif": "EF",
+    "prefixes_wif": [
+      ["043587CF", "tpub", "public",  false, "legacy",      "p2pkh"],
+      ["043587CF", "tpub", "public",  true,  "legacy",      "p2sh"],
+      ["04358394", "tprv", "private", false, "legacy",      "p2pkh"],
+      ["04358394", "tprv", "private", true,  "legacy",      "p2sh"]
+    ],
+    "bip44_cointype": 1,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 50000,
+    "priority": 6,
+    "fork_id": 64
+  },
+  "bitcoin_sv":
+  {
+    "description": "Bitcoin SV",
+    "currency_name": "bitcoin sv",
+    "currency_name_plural": "bitcoin sv",
+    "currency_symbol": "BSV",
+    "currency_code": "BSV",
+    "prefix_address": "00",
+    "prefix_address_p2sh": "05",
+    "prefix_bech32": "",
+    "prefix_wif": "80",
+    "prefixes_wif": [
+      ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],
+      ["0488B21E", "xpub", "public",  true,  "legacy",      "p2sh"],
+      ["0488ADE4", "xprv", "private", false, "legacy",      "p2pkh"],
+      ["0488ADE4", "xprv", "private", true,  "legacy",      "p2sh"]
+    ],
+    "bip44_cointype": 145,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 50000,
+    "priority": 6,
+    "fork_id": 64
+  },
+  "bitcoin_sv_testnet":
+  {
+    "description": "Bitcoin SV Testnet",
+    "currency_name": "bitcoin SV test",
+    "currency_name_plural": "bitcoin sv test",
+    "currency_symbol": "TBSV",
+    "currency_code": "TBSV",
+    "prefix_address": "6F",
+    "prefix_address_p2sh": "C4",
+    "prefix_bech32": "6F",
+    "prefix_wif": "EF",
+    "prefixes_wif": [
+      ["043587CF", "tpub", "public",  false, "legacy",      "p2pkh"],
+      ["043587CF", "tpub", "public",  true,  "legacy",      "p2sh"],
+      ["04358394", "tprv", "private", false, "legacy",      "p2pkh"],
+      ["04358394", "tprv", "private", true,  "legacy",      "p2sh"]
+    ],
+    "bip44_cointype": 1,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 10000,
+    "fee_min": 1000,
+    "fee_max": 50000,
+    "priority": 6,
+    "fork_id": 64
   }
 }

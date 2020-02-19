@@ -241,6 +241,28 @@
     "denominator": 100000000,
     "network_overrides": null
   },
+  "blockchair.bitcoin_cash": {
+    "provider": "blockchair",
+    "network": "bitcoin_cash",
+    "client_class": "BlockChairClient",
+    "provider_coin_id": "",
+    "url": "https://api.blockchair.com/bitcoin-cash/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "blockchair.bitcoin_sv": {
+    "provider": "blockchair",
+    "network": "bitcoin_sv",
+    "client_class": "BlockChairClient",
+    "provider_coin_id": "",
+    "url": "https://api.blockchair.com/bitcoin-sv/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
   "bcoin": {
     "provider": "bcoin",
     "network": "bitcoin",
