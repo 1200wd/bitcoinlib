@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for Key and Transaction management
-#    © 2016 - 2019 July - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2020 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -2338,9 +2338,9 @@ class HDWallet(object):
 
         Use :func:`keys_addresses` method to receive full key objects
 
-        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
+        >>> w = HDWallet('create_legacy_wallet_test')
         >>> w.addresslist()[0]
-        '16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg'
+        '17CfzniHyCibx8YDmLkFL6XBmixKKMWyoF'
 
         :param account_id: Account ID
         :type account_id: int
@@ -3007,7 +3007,6 @@ class HDWallet(object):
                 if not dbkey.update({DbKey.latest_txid: txs[-1].hash}):
                     raise WalletError("Failed to update latest transaction id for key with address %s" % address)
                 self._session.commit()
-            # TODO: update transactions: confirmations, status, etc
         if txs is False:
             raise WalletError("No response from any service provider, could not update transactions")
 

@@ -752,7 +752,7 @@ class Cache(object):
         :type blocks: int
         :param fee: Estimated fee in Sathosis
         :type fee: int
-        
+
         :return:
         """
         if not SERVICE_CACHING_ENABLED:

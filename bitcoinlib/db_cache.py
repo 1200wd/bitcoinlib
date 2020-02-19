@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Cache DataBase - SqlAlchemy database definitions for caching
-#    © 2016 - 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2020 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
