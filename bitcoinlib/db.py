@@ -369,7 +369,8 @@ class DbTransactionInput(Base):
                                                        'signature', 'unknown', 'p2sh_p2wpkh', 'p2sh_p2wsh']),
                                       name='transactioninput_constraint_script_types_allowed'),
                       CheckConstraint(witness_type.in_(['legacy', 'segwit', 'p2sh-segwit']),
-                                      name='transactioninput_constraint_allowed_types'),)
+                                      name='transactioninput_constraint_allowed_types'),
+                      UniqueConstraint('transaction_id', 'index_n', name='constraint_transaction_input_unique'))
 
 
 class DbTransactionOutput(Base):
@@ -398,7 +399,8 @@ class DbTransactionOutput(Base):
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'p2pk', 'nulldata',
                                                        'unknown', 'p2wpkh', 'p2wsh']),
-                                      name='transactionoutput_constraint_script_types_allowed'),)
+                                      name='transactionoutput_constraint_script_types_allowed'),
+                      UniqueConstraint('transaction_id', 'output_n', name='constraint_transaction_output_unique'))
 
 
 def db_update_version_id(db, version):

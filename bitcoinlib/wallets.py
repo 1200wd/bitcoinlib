@@ -2987,7 +2987,7 @@ class HDWallet(object):
             filter(DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
         for db_tx in db_txs:
-            self._session.query(DbTransaction).filter_by(hash=db_tx.hash).\
+            self._session.query(DbTransaction).filter_by(id=db_tx.id).\
                 update({DbTransaction.status: 'confirmed',
                         DbTransaction.confirmations: blockcount - DbTransaction.block_height})
         self._session.commit()
@@ -3021,7 +3021,7 @@ class HDWallet(object):
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
                 filter(DbTransaction.hash == utxo[0], DbTransactionOutput.output_n == utxo[1],
-                       DbTransactionOutput.spent.is_(False)).all()
+                       DbTransactionOutput.spent.is_(False), DbTransaction.wallet_id == self.wallet_id).all()
             for u in tos:
                 u.spent = True
 
