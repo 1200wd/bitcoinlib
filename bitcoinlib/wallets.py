@@ -2338,9 +2338,9 @@ class HDWallet(object):
 
         Use :func:`keys_addresses` method to receive full key objects
 
-        >>> w = HDWallet('create_legacy_wallet_test')
+        >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
         >>> w.addresslist()[0]
-        '17CfzniHyCibx8YDmLkFL6XBmixKKMWyoF'
+        '16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg'
 
         :param account_id: Account ID
         :type account_id: int
@@ -2819,7 +2819,7 @@ class HDWallet(object):
         Get UTXO's (Unspent Outputs) from database. Use :func:`utxos_update` method first for updated values
 
         >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
-        >>> w.utxos()  # doctest:+ELLIPSIS
+        >>> w.utxos()  # doctest:+SKIP
         [{'value': 100000000, 'script': '', 'output_n': 0, 'transaction_id': ..., 'spent': False, 'script_type': 'p2pkh', 'key_id': ..., 'address': '16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', 'confirmations': 0, 'tx_hash': '748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', 'network_name': 'bitcoin'}]
 
         :param account_id: Account ID
