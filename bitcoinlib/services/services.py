@@ -433,8 +433,26 @@ class Service(object):
 
 
 class Cache(object):
+    """
+    Store transaction, utxo and address information in database to increase speed and avoid duplicate calls to
+    service providers.
+
+    Once confirmed a transaction is immutable so we have to fetch it from a service provider only once. When checking
+    for new transactions or utxo's for a certain address we only have to check the new blocks.
+
+    This class is used by the Service class and normally you won't need to access it directly.
+
+    """
 
     def __init__(self, network, db_uri=''):
+        """
+        Open Cache class
+
+        :param network: Specify network used
+        :type network: str, Network
+        :param db_uri: Database to use for caching
+        :type db_uri: str
+        """
         self.session = None
         if SERVICE_CACHING_ENABLED:
             self.session = DbInit(db_uri=db_uri).session
@@ -462,6 +480,14 @@ class Cache(object):
         return t
 
     def gettransaction(self, txid):
+        """
+        Get transaction from cache. Returns False if not available
+
+        :param txid: Transaction identification hash
+        :type txid: str
+
+        :return Transaction: A single transaction object
+        """
         if not SERVICE_CACHING_ENABLED:
             return False
         db_tx = self.session.query(dbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
@@ -471,11 +497,31 @@ class Cache(object):
         return self._parse_db_transaction(db_tx)
 
     def getaddress(self, address):
+        """
+        Get address information from cache, with links to transactions and utxo's and latest update information.
+
+        :param address: Address string
+        :type address: str
+
+        :return dbCacheAddress: An address cache database object
+        """
         if not SERVICE_CACHING_ENABLED:
             return []
         return self.session.query(dbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        """
+        Get transactions from cache. Returns empty list if no transactions are found or caching is disabled.
+
+        :param address: Address string
+        :type address: str
+        :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
+        :type after_txid: str
+        :param max_txs: Maximum number of transactions to return
+        :type max_txs: int
+
+        :return list: List of Transaction objects
+        """
         if not SERVICE_CACHING_ENABLED:
             return []
         db_addr = self.getaddress(address)
@@ -507,6 +553,14 @@ class Cache(object):
         return []
 
     def getrawtransaction(self, txid):
+        """
+        Get a raw transaction string from the database cache if available
+
+        :param txid: Transaction identification hash
+        :type txid: str, bytes
+
+        :return str: Raw transaction as hexstring
+        """
         if not SERVICE_CACHING_ENABLED:
             return False
         tx = self.session.query(dbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
@@ -515,6 +569,18 @@ class Cache(object):
         return tx.raw
 
     def getutxos(self, address, after_txid=''):
+        """
+        Get list of unspent outputs (UTXO's) for specified address from database cache.
+
+        Sorted from old to new, so highest number of confirmations first.
+
+        :param address: Address string
+        :type address: str
+        :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
+        :type after_txid: str
+
+        :return dict: UTXO's per address
+        """
         if not SERVICE_CACHING_ENABLED:
             return []
         db_utxos = self.session.query(dbCacheTransactionNode.spent, dbCacheTransactionNode.output_n,
@@ -547,6 +613,16 @@ class Cache(object):
         return utxos
 
     def estimatefee(self, blocks):
+        """
+        Get fee estimation from cache for confirmation within specified amount of blocks.
+
+        Stored in cache in three groups: low, medium and high fees.
+
+        :param blocks: Expection confirmation time in blocks.
+        :type blocks: int
+
+        :return int: Fee in smallest network denominator (satoshi)
+        """
         if not SERVICE_CACHING_ENABLED:
             return False
         if blocks <= 1:
@@ -562,6 +638,14 @@ class Cache(object):
         return False
 
     def blockcount(self, never_expires=False):
+        """
+        Get number of blocks on the current network from cache if recent data is available.
+
+        :param never_expires: Always return latest blockcount found. Can be used to avoid return to old blocks if service providers are not up-to-date.
+        :type never_expires: bool
+
+        :return int:
+        """
         if not SERVICE_CACHING_ENABLED:
             return False
         qr = self.session.query(dbCacheVars).filter_by(varname='blockcount', network_name=self.network.name)
@@ -573,6 +657,14 @@ class Cache(object):
         return False
 
     def store_blockcount(self, blockcount):
+        """
+        Store network blockcount in cache for 60 seconds
+
+        :param blockcount: Number of latest block
+        :type blockcount: int
+
+        :return:
+        """
         if not SERVICE_CACHING_ENABLED:
             return
         dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=blockcount, type='int',
@@ -581,6 +673,16 @@ class Cache(object):
         self.session.commit()
 
     def store_transaction(self, t, order_n):
+        """
+        Store transaction in cache. Use order number to determine order in a block
+
+        :param t: Transaction
+        :type t: Transaction
+        :param order_n: Order in block
+        :type order_n: int
+
+        :return:
+        """
         if not SERVICE_CACHING_ENABLED:
             return
         # Only store complete and confirmed transaction in cache
@@ -620,6 +722,18 @@ class Cache(object):
             _logger.warning("Caching failure tx: %s" % e)
 
     def store_address(self, address, last_block, balance=0):
+        """
+        Store address information in cache
+
+        :param address: Address string
+        :type address: str
+        :param last_block: Number or last block retrieved from service provider. For instance if address contains a large number of transactions and they will be retrieved in more then one request.
+        :type last_block: int
+        :param balance: Total balance of address in sathosis, or smallest network detominator
+        :type balance: int
+
+        :return:
+        """
         if not SERVICE_CACHING_ENABLED:
             return
         new_address = dbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
@@ -631,6 +745,16 @@ class Cache(object):
             _logger.warning("Caching failure addr: %s" % e)
 
     def store_estimated_fee(self, blocks, fee):
+        """
+        Store estimated fee retrieved from service providers in cache.
+
+        :param blocks: Confirmation within x blocks
+        :type blocks: int
+        :param fee: Estimated fee in Sathosis
+        :type fee: int
+        
+        :return:
+        """
         if not SERVICE_CACHING_ENABLED:
             return
         if blocks <= 1:

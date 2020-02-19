@@ -1780,7 +1780,7 @@ class HDWallet(object):
         Use the faster :func:`utxos_update` method if you are only interested in unspent outputs.
         Use the :func:`transactions_update` method if you would like to manage the key creation yourself or if you want to scan a single key.
 
-        :param scan_gap_limit: Amount of new keys and change keys (addresses) created for this wallet
+        :param scan_gap_limit: Amount of new keys and change keys (addresses) created for this wallet. Default is 5, so scanning stops if after 5 addresses no transaction are found.
         :type scan_gap_limit: int
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
