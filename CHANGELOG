@@ -1,3 +1,11 @@
+RELEASE 0.4.13 - Add caching
+============================
+* Cache transactions and address info retrieved from Service providers
+* Increase efficiency when updating transactions
+* Fix path issues in Windows
+* Disable Python 3.4 support, add 3.8 tests
+* Fix several transaction update issues
+
 RELEASE 0.4.12 - Documentation and install update
 =================================================
 * Enable database backup
