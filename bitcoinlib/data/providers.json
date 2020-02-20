@@ -411,7 +411,7 @@
     "network": "bitcoin",
     "client_class": "BlocksmurferClient",
     "provider_coin_id": "",
-    "url": "http://coineva.com:5000/api/v1/btc/",
+    "url": "http://blocksmurfer.io/api/v1/btc/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,

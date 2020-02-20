@@ -82,7 +82,8 @@ class BlocksmurferClient(BaseClient):
     def _parse_transaction(self, tx):
         t = Transaction.import_raw(tx['raw_hex'], network=self.network)
         # TODO: Investigate why t.hash is different sometimes...
-        assert(t.hash == tx['txid'])
+        if t.hash != tx['txid']:
+            raise ClientError("Different hash from blocksmurfer when parsing transaction")
         t.block_height = None if not tx['block_height'] else tx['block_height']
         t.confirmations = tx['confirmations']
         t.date = datetime.strptime(tx['date'][:19], "%Y-%m-%dT%H:%M:%S")
@@ -113,6 +114,7 @@ class BlocksmurferClient(BaseClient):
             prtxs += txs
             if not txs or len(txs) < max_txs:
                 break
+            after_txid = txs[-1:][0]['txid']
         txs = []
         for tx in prtxs[::-1]:
             t = self._parse_transaction(tx)
