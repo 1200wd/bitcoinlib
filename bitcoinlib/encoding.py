@@ -64,7 +64,6 @@ class EncodingError(Exception):
     """ Log and raise encoding errors """
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.error(msg)
 
     def __str__(self):
         return self.msg
