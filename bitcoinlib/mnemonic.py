@@ -42,7 +42,7 @@ class Mnemonic(object):
         
         """
         self._wordlist = []
-        with open(os.path.join(BCL_WORDLIST_DIR, '%s.txt' % language)) as f:
+        with open(os.path.join(BCL_INSTALL_DIR, 'wordlist', '%s.txt' % language)) as f:
             self._wordlist = [w.strip() for w in f.readlines()]
 
     @staticmethod
@@ -207,9 +207,9 @@ class Mnemonic(object):
             words = words.split(' ')
 
         wlcount = {}
-        for fn in os.listdir(BCL_WORDLIST_DIR):
+        for fn in os.listdir(os.path.join(BCL_INSTALL_DIR, 'wordlist')):
             if fn.endswith(".txt"):
-                with open(os.path.join(BCL_WORDLIST_DIR, fn)) as f:
+                with open(os.path.join(BCL_INSTALL_DIR, 'wordlist', fn)) as f:
                     wordlist = [w.strip() for w in f.readlines()]
                     language = fn.split('.')[0]
                     wlcount[language] = 0
@@ -238,7 +238,7 @@ class Mnemonic(object):
         language = self.detect_language(words)
         if isinstance(words, TYPE_TEXT):
             words = words.split(' ')
-        with open(os.path.join(BCL_WORDLIST_DIR, '%s.txt' % language)) as f:
+        with open(os.path.join(BCL_INSTALL_DIR, 'wordlist', '%s.txt' % language)) as f:
             wordlist = [w.strip() for w in f.readlines()]
             for word in words:
                 if sys.version < '3':

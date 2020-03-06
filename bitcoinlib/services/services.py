@@ -24,7 +24,7 @@ import json
 import random
 import time
 from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
-from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
+from bitcoinlib.main import BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
@@ -81,8 +81,6 @@ class Service(object):
         if min_providers > max_providers:
             max_providers = min_providers
         fn = os.path.join(BCL_CONFIG_DIR, "providers.json")
-        if not os.path.isfile(fn):
-            fn = os.path.join(BCL_DATA_DIR, "providers.json")
         f = open(fn, "r")
 
         try:

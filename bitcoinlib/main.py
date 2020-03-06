@@ -48,8 +48,6 @@ if ENABLE_BITCOINLIB_LOGGING:
     logger.info('Default database: %s' % DEFAULT_DATABASE)
     logger.info('Directory logs: %s' % BCL_LOG_DIR)
     logger.info('Directory for BCL configuration: %s' % BCL_CONFIG_DIR)
-    logger.info('Directory for BCL data files: %s' % BCL_DATA_DIR)
-    logger.info('Directory wordlists: %s' % BCL_WORDLIST_DIR)
 
 
 

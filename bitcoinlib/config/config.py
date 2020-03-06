@@ -46,9 +46,8 @@ DEFAULT_DATABASE = None
 DEFAULT_DATABASE_CACHE = None
 BCL_LOG_DIR = ''
 BCL_CONFIG_DIR = ''
-BCL_DATA_DIR = ''
-BCL_WORDLIST_DIR = ''
 BCL_CONFIG_FILE = ''
+BCL_DATA_DIR = os.path.expanduser('~/.bitcoinlib')
 
 # Main
 ENABLE_BITCOINLIB_LOGGING = True
@@ -213,7 +212,7 @@ def read_config():
             return fallback
 
     global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
-    global BCL_DATA_DIR, BCL_WORDLIST_DIR, ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
+    global ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
     global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED, ENABLE_BITCOINLIB_LOGGING
 
@@ -254,14 +253,6 @@ def read_config():
     if not os.path.exists(BCL_LOG_DIR):
         os.makedirs(BCL_LOG_DIR)
 
-    BCL_DATA_DIR = config_get('locations', 'data_dir', fallback='data')
-    if not os.path.isabs(BCL_DATA_DIR):
-        BCL_DATA_DIR = os.path.join(BCL_INSTALL_DIR, BCL_DATA_DIR)
-
-    BCL_WORDLIST_DIR = config_get('locations', 'wordlist_dir', fallback='wordlist')
-    if not os.path.isabs(BCL_WORDLIST_DIR):
-        BCL_WORDLIST_DIR = os.path.join(BCL_INSTALL_DIR, BCL_WORDLIST_DIR)
-
     TIMEOUT_REQUESTS = int(config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS))
     DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
     DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
@@ -284,7 +275,7 @@ def read_config():
 
 # Copy data and settings to default settings directory if install.log is not found
 def initialize_lib():
-    global BCL_LOG_DIR, BCL_DATA_DIR, BCL_CONFIG_DIR
+    global BCL_LOG_DIR, BCL_INSTALL_DIR, BCL_CONFIG_DIR
     instlogfile = os.path.join(BCL_LOG_DIR, 'install.log')
     if os.path.isfile(instlogfile):
         return
@@ -297,9 +288,9 @@ def initialize_lib():
 
     # Copy data and settings file
     from shutil import copyfile
-    src_files = os.listdir(BCL_DATA_DIR)
+    src_files = os.listdir(os.path.join(BCL_INSTALL_DIR, "data"))
     for file_name in src_files:
-        full_file_name = os.path.join(BCL_DATA_DIR, file_name)
+        full_file_name = os.path.join(os.path.join(BCL_INSTALL_DIR, "data"), file_name)
         if os.path.isfile(full_file_name):
             copyfile(full_file_name, os.path.join(BCL_CONFIG_DIR, file_name))
 
