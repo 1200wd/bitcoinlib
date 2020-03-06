@@ -30,7 +30,7 @@ from bitcoinlib.config.config import *
 logger = logging.getLogger()
 logger.setLevel(LOGLEVEL)
 
-if LOGGING_CREATE_HANDLER:
+if ENABLE_BITCOINLIB_LOGGING:
     logfile = os.path.join(BCL_LOG_DIR, 'bitcoinlib.log')
     handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',

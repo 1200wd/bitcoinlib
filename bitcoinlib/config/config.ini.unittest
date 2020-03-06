@@ -50,5 +50,9 @@ timeout_requests=1
 ;service_caching_enabled=True
 
 [logs]
+# Enable own logging for this library. If true logs will be stored in the log/bitcoinlib.log file.
+# Set to False if this library is part of another library or software and you want to handle logs yourself.
+;enable_bitcoinlib_logging=True
+
 # Loglevel for this library, options: CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET
 ;loglevel=WARNING

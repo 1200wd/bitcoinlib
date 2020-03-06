@@ -51,7 +51,7 @@ BCL_WORDLIST_DIR = ''
 BCL_CONFIG_FILE = ''
 
 # Main
-LOGGING_CREATE_HANDLER = True
+ENABLE_BITCOINLIB_LOGGING = True
 ALLOW_DATABASE_THREADS = None
 
 # Services
@@ -215,7 +215,7 @@ def read_config():
     global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
     global BCL_DATA_DIR, BCL_WORDLIST_DIR, ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
-    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED
+    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED, ENABLE_BITCOINLIB_LOGGING
 
     BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
     if not os.path.isabs(BCL_CONFIG_DIR):
@@ -247,6 +247,7 @@ def read_config():
                                             fallback='bitcoinlib_cache.sqlite')
     DEFAULT_DATABASE_CACHE = str(Path(BCL_DATABASE_DIR, default_databasefile_cache))
 
+    ENABLE_BITCOINLIB_LOGGING = config_get("logs", "enable_bitcoinlib_logging", fallback=True, is_boolean=True)
     BCL_LOG_DIR = config_get('locations', 'log_dir', fallback='.bitcoinlib/log')
     if not os.path.isabs(BCL_LOG_DIR):
         BCL_LOG_DIR = os.path.join(os.path.expanduser("~"), BCL_LOG_DIR)
