@@ -31,8 +31,8 @@ logger = logging.getLogger()
 logger.setLevel(LOGLEVEL)
 
 if ENABLE_BITCOINLIB_LOGGING:
-    logfile = os.path.join(BCL_LOG_DIR, 'bitcoinlib.log')
-    handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
+    # logfile = os.path.join(BCL_LOG_DIR, 'bitcoinlib.log')
+    handler = RotatingFileHandler(str(BCL_LOG_FILE), maxBytes=100 * 1024 * 1024, backupCount=2)
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
                                   datefmt='%Y/%m/%d %H:%M:%S')
     handler.setFormatter(formatter)
@@ -46,8 +46,8 @@ if ENABLE_BITCOINLIB_LOGGING:
     logger.info('Read config from: %s' % BCL_CONFIG_FILE)
     logger.info('Directory databases: %s' % BCL_DATABASE_DIR)
     logger.info('Default database: %s' % DEFAULT_DATABASE)
-    logger.info('Directory logs: %s' % BCL_LOG_DIR)
-    logger.info('Directory for BCL configuration: %s' % BCL_CONFIG_DIR)
+    logger.info('Logging to: %s' % BCL_LOG_FILE)
+    logger.info('Directory for data files: %s' % BCL_DATA_DIR)
 
 
 

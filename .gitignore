@@ -69,4 +69,3 @@ target/
 .pypirc
 bitcoinlib.iml
 venv/
-*.ini

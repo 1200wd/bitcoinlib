@@ -47,7 +47,7 @@ def _read_network_definitions():
     :return dict: Network definitions
     """
 
-    fn = os.path.join(BCL_CONFIG_DIR, "networks.json")
+    fn = os.path.join(BCL_DATA_DIR, 'networks.json')
     f = open(fn)
 
     try:
