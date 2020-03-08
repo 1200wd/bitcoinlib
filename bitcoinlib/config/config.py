@@ -241,7 +241,7 @@ def read_config():
 
     # Log settings
     ENABLE_BITCOINLIB_LOGGING = config_get("logs", "enable_bitcoinlib_logging", fallback=True, is_boolean=True)
-    BCL_LOG_FILE = Path(config_get('locations', 'log_file', fallback='~/.bitcoinlib/log/bitcoinlib.log')).expanduser()
+    BCL_LOG_FILE = Path(config_get('locations', 'log_file', fallback='~/.bitcoinlib/bitcoinlib.log')).expanduser()
     BCL_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
 
