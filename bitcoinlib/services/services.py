@@ -120,7 +120,10 @@ class Service(object):
         self.cache = None
         self.cache = Cache(self.network, db_uri=cache_uri)
         self.results_cache_n = 0
-        self._blockcount = self.blockcount()
+        if self.min_providers > 1:
+            self._blockcount = Service(network=network).blockcount()
+        else:
+            self._blockcount = self.blockcount()
 
     def _reset_results(self):
         self.results = {}

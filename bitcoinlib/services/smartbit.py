@@ -148,7 +148,6 @@ class SmartbitClient(BaseClient):
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
         next_link = ''
-        hit_after_txid = False
         while True:
             variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
             res = self.compose_request('address', data=address, variables=variables)
@@ -161,8 +160,8 @@ class SmartbitClient(BaseClient):
                 txs.append(t)
                 if t.hash == after_txid:
                     txs = []
-                    hit_after_txid = True
-                if hit_after_txid and len(txs) > max_txs:
+                if len(txs) > max_txs:
+                    next_link = ''
                     break
             if not next_link:
                 break

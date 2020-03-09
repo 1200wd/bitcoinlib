@@ -147,6 +147,8 @@ class BitapsClient(BaseClient):
                 txs.append(self._parse_transaction(tx))
                 if tx['txId'] == after_txid:
                     txs = []
+            if len(txs) > max_txs:
+                break
             page += 1
             if page > res['data']['pages']:
                 break

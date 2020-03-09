@@ -136,9 +136,11 @@ class BitGoClient(BaseClient):
                 if tx['id'] not in txids:
                     txids.insert(0, tx['id'])
             total = res['total']
-            if total > 2000:
-                raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
+            # if total > 2000:
+            #     raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
             skip = res['start'] + res['count']
+            if len(txids) > max_txs:
+                break
         if after_txid:
             txids = txids[txids.index(after_txid) + 1:]
         for txid in txids[:max_txs]:
