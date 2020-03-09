@@ -216,11 +216,13 @@ def read_config():
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
     global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED
 
-    # Read settings from Configuration file provided in OS environment~/.bitcoinlib/config directory
+    # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
     config_file_name = os.environ.get('BCL_CONFIG_FILE')
     if not config_file_name:
-        config_file_name = '.bitcoinlib/config.ini'
-    BCL_CONFIG_FILE = Path(Path.home(), config_file_name)
+        config_file_name = 'config.ini'
+    BCL_CONFIG_FILE = Path(config_file_name)
+    if not BCL_CONFIG_FILE.is_absolute():
+        BCL_CONFIG_FILE = Path(Path.home(), '.bitcoinlib', BCL_CONFIG_FILE)
     if not BCL_CONFIG_FILE.exists():
         raise FileExistsError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
     data = config.read(str(BCL_CONFIG_FILE))
