@@ -36,8 +36,8 @@ from bitcoinlib.keys import HDKey, BKeyError
 from tests.test_custom import CustomAssertions
 
 
-DATABASEFILE_UNITTESTS = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.unittest.sqlite')
-DATABASEFILE_UNITTESTS_2 = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.unittest2.sqlite')
+DATABASEFILE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.sqlite')
+DATABASEFILE_UNITTESTS_2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest2.sqlite')
 DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
 
