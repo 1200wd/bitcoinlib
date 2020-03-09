@@ -195,8 +195,6 @@ def read_config():
     config = configparser.ConfigParser()
 
     def config_get(section, var, fallback, is_boolean=False):
-        if os.environ.get("BCL_DEFAULT_CONFIG"):
-            return fallback
         try:
             if PY3:
                 if is_boolean:
@@ -224,7 +222,7 @@ def read_config():
         if not BCL_CONFIG_FILE.exists():
             raise FileExistsError('Provided Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
     if not BCL_CONFIG_FILE:
-        BCL_CONFIG_FILE = Path('~/.bitcoinlib/config/config.ini')
+        BCL_CONFIG_FILE = Path('~/.bitcoinlib/config.ini').expanduser()
     data = config.read(str(BCL_CONFIG_FILE))
     BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback='~/.bitcoinlib')).expanduser()
 
