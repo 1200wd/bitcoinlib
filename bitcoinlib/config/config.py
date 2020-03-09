@@ -219,12 +219,13 @@ def read_config():
     # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
     config_file_name = os.environ.get('BCL_CONFIG_FILE')
     if not config_file_name:
-        config_file_name = 'config.ini'
-    BCL_CONFIG_FILE = Path(config_file_name)
-    if not BCL_CONFIG_FILE.is_absolute():
-        BCL_CONFIG_FILE = Path(Path.home(), '.bitcoinlib', BCL_CONFIG_FILE)
-    if not BCL_CONFIG_FILE.exists():
-        raise FileExistsError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
+        BCL_CONFIG_FILE = Path('~/.bitcoinlib/config.ini').expanduser()
+    else:
+        BCL_CONFIG_FILE = Path(config_file_name)
+        if not BCL_CONFIG_FILE.is_absolute():
+            BCL_CONFIG_FILE = Path(Path.home(), '.bitcoinlib', BCL_CONFIG_FILE)
+        if not BCL_CONFIG_FILE.exists():
+            raise FileExistsError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
     data = config.read(str(BCL_CONFIG_FILE))
     BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback='~/.bitcoinlib')).expanduser()
 
