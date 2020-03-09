@@ -48,7 +48,7 @@ class DbInit:
     """
     def __init__(self, db_uri=None):
         if db_uri is None:
-            db_uri = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE_CACHE)
+            db_uri = DEFAULT_DATABASE_CACHE
         o = urlparse(db_uri)
         if not o.scheme or len(o.scheme) < 2:
             db_uri = 'sqlite:///%s' % db_uri
@@ -61,6 +61,7 @@ class DbInit:
 
         Base.metadata.create_all(self.engine)
         self.session = Session()
+
 
 class dbCacheTransactionNode(Base):
     """

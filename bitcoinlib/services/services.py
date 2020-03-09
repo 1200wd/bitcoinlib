@@ -80,8 +80,8 @@ class Service(object):
             self.network = Network(network)
         if min_providers > max_providers:
             max_providers = min_providers
-        fn = os.path.join(str(BCL_DATA_DIR), 'providers.json')
-        f = open(fn, "r")
+        fn = Path(BCL_DATA_DIR, 'providers.json')
+        f = fn.open("r")
 
         try:
             self.providers_defined = json.loads(f.read())

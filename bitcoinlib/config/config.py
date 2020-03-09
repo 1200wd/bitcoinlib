@@ -43,7 +43,7 @@ else:
 
 # File locations
 BCL_CONFIG_FILE = ''
-BCL_INSTALL_DIR = os.path.dirname(os.path.dirname(__file__))
+BCL_INSTALL_DIR = Path(__file__).parents[1]
 BCL_DATA_DIR = ''
 BCL_DATABASE_DIR = ''
 DEFAULT_DATABASE = None

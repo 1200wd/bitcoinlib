@@ -48,7 +48,7 @@ class DbInit:
     """
     def __init__(self, db_uri=None):
         if db_uri is None:
-            db_uri = os.path.join(BCL_DATABASE_DIR, DEFAULT_DATABASE)
+            db_uri = DEFAULT_DATABASE
         o = urlparse(db_uri)
         if not o.scheme or \
                 len(o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
