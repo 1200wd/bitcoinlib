@@ -35,7 +35,7 @@ _logger = logging.getLogger(__name__)
 class ConfigError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.warning(msg)
+        _logger.info(msg)
 
     def __str__(self):
         return self.msg
@@ -216,7 +216,7 @@ class LitecoindClient(BaseClient):
             pres = self.proxy.estimatesmartfee(blocks)
             res = pres['feerate']
         except KeyError as e:
-            _logger.warning("litecoind error: %s, %s" % (e, pres))
+            _logger.info("litecoind error: %s, %s" % (e, pres))
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 

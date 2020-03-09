@@ -78,7 +78,7 @@ class BitGoClient(BaseClient):
             total = res['total']
             skip = res['start'] + res['count']
             if skip > 2000:
-                _logger.warning("BitGoClient: UTXO's list has been truncated, list is incomplete")
+                _logger.info("BitGoClient: UTXO's list has been truncated, list is incomplete")
                 break
         return utxos[::-1][:max_txs]
 
@@ -113,7 +113,7 @@ class BitGoClient(BaseClient):
                 continue
             value = [x[1] for x in input_values if x[0] == i.address]
             if len(value) != 1:
-                _logger.warning("BitGoClient: Address %s input value should be found exactly 1 times in value list" %
+                _logger.info("BitGoClient: Address %s input value should be found exactly 1 times in value list" %
                                 i.address)
                 i.value = None
             else:

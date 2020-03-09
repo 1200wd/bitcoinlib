@@ -128,7 +128,7 @@ class BcoinClient(BaseClient):
                     res = self.compose_request('tx', 'address', address, variables)
                 except ReadTimeout as e:
                     sleep(3)
-                    _logger.warning("Bcoin client error: %s" % e)
+                    _logger.info("Bcoin client error: %s" % e)
                     retries += 1
                 else:
                     break
