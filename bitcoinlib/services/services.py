@@ -172,7 +172,7 @@ class Service(object):
                     # -- Use this to debug specific Services errors --
                     # from pprint import pprint
                     # pprint(self.errors)
-                _logger.warning("%s.%s(%s) Error %s" % (sp, method, arguments, e))
+                _logger.info("%s.%s(%s) Error %s" % (sp, method, arguments, e))
 
             if self.resultcount >= self.max_providers:
                 break
