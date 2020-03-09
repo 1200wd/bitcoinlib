@@ -225,7 +225,9 @@ def read_config():
         if not BCL_CONFIG_FILE.is_absolute():
             BCL_CONFIG_FILE = Path(Path.home(), '.bitcoinlib', BCL_CONFIG_FILE)
         if not BCL_CONFIG_FILE.exists():
-            raise FileExistsError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
+            BCL_CONFIG_FILE = Path(BCL_INSTALL_DIR, 'data', config_file_name)
+        if not BCL_CONFIG_FILE.exists():
+            raise IOError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
     data = config.read(str(BCL_CONFIG_FILE))
     BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback='~/.bitcoinlib')).expanduser()
 
@@ -290,6 +292,8 @@ def initialize_lib():
     # Copy data and settings file
     from shutil import copyfile
     for file in Path(BCL_INSTALL_DIR, 'data').iterdir():
+        if file.suffix not in ['.ini', '.json']:
+            continue
         copyfile(str(file), str(Path(BCL_DATA_DIR, file.name)))
 
 # Initialize library
