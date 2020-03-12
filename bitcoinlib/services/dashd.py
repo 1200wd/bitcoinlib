@@ -89,6 +89,7 @@ class DashdClient(BaseClient):
         with open(cfn, 'r') as f:
             config_string = '[rpc]\n' + f.read()
         config.read_string(config_string)
+
         try:
             if int(config.get('rpc', 'testnet')):
                 network = 'testnet'

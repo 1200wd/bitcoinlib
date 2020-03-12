@@ -19,7 +19,6 @@
 #
 
 from datetime import datetime
-import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
@@ -80,26 +79,26 @@ class BitcoindClient(BaseClient):
             network = network.name
         if network == 'testnet':
             config_fn = 'bitcoin-testnet.conf'
+
+        cfn = None
         if not configfile:
-            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Linux
-                cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Try Windows path
-                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Bitcoin/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Try Mac path
-                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Bitcoin/%s' % config_fn)
-            if not os.path.isfile(cfn):
-                raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
-                                  "default. Or place a config file in .bitcoinlib/config/bitcoin.conf to reference to "
-                                  "an external server.")
+            config_locations = ['~/.bitcoinlib', '~/.bitcoin', '~/Application Data/Bitcoin',
+                                '~/Library/Application Support/Bitcoin']
+            for location in config_locations:
+                cfn = Path(location, config_fn).expanduser()
+                if cfn.exists():
+                    break
         else:
-            cfn = os.path.join(BCL_DATA_DIR, 'config', configfile)
-            if not os.path.isfile(cfn):
-                raise ConfigError("Config file %s not found" % cfn)
+            cfn = Path(BCL_DATA_DIR, 'config', configfile)
+        if not cfn or not cfn.is_file():
+            raise ConfigError("Config file %s not found. Please install bitcoin client and specify a path to config "
+                              "file if path is not default. Or place a config file in .bitcoinlib/bitcoin.conf to "
+                              "reference to an external server." % cfn)
+
         try:
             config.read(cfn)
         except Exception:
-            with open(cfn, 'r') as f:
+            with cfn.open() as f:
                 config_string = '[rpc]\n' + f.read()
             config.read_string(config_string)
 
