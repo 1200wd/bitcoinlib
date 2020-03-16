@@ -545,7 +545,10 @@ class Cache(object):
                 else:
                     return []
             else:
-                db_txs = sorted(db_addr.transactions, key=lambda t: (t.block_height, t.order_n))
+                # db_txs = sorted(db_addr.transactions, key=lambda t: (t.block_height, t.order_n))
+                db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode). \
+                    filter(dbCacheTransactionNode.address == address). \
+                    order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n).all()
             for db_tx in db_txs:
                 txs.append(self._parse_db_transaction(db_tx))
                 if len(txs) >= max_txs:
@@ -662,13 +665,13 @@ class Cache(object):
         Store network blockcount in cache for 60 seconds
 
         :param blockcount: Number of latest block
-        :type blockcount: int
+        :type blockcount: int, str
 
         :return:
         """
         if not SERVICE_CACHING_ENABLED:
             return
-        dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=blockcount, type='int',
+        dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=str(blockcount), type='int',
                             expires=datetime.datetime.now() + datetime.timedelta(seconds=60))
         self.session.merge(dbvar)
         self.session.commit()
@@ -700,6 +703,7 @@ class Cache(object):
         new_tx = dbCacheTransaction(txid=t.hash, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
                                     fee=t.fee, raw=raw_hex, order_n=order_n)
+        self.session.add(new_tx)
         for i in t.inputs:
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
@@ -707,6 +711,7 @@ class Cache(object):
             new_node = dbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.index_n, value=i.value,
                                               is_input=True)
             self.session.add(new_node)
+            self.session.commit()
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
@@ -714,8 +719,8 @@ class Cache(object):
             new_node = dbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
                                               is_input=False, spent=o.spent)
             self.session.add(new_node)
+            self.session.commit()
 
-        self.session.add(new_tx)
         try:
             self.session.commit()
             _logger.info("Added transaction %s to cache" % t.hash)
