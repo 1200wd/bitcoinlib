@@ -68,14 +68,12 @@ class dbCacheTransactionNode(Base):
     Link table for cache transactions and addresses
     """
     __tablename__ = 'cache_transactions_node'
-    address = Column(String(255))
-    # address = Column(String(255), ForeignKey('cache_address.address'), primary_key=True)
-    # address_db = relationship('dbCacheAddress', doc="Related address object")
     txid = Column(String(64), ForeignKey('cache_transactions.txid'), primary_key=True)
     transaction = relationship("dbCacheTransaction", back_populates='nodes', doc="Related transaction object")
     output_n = Column(BigInteger, primary_key=True, doc="Output_n of previous transaction output that is spent in this input")
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
+    address = Column(String(255), doc="Address string base32 or base58 encoded")
     spent = Column(Boolean, default=None, doc="Is output spent?")
 
 
@@ -100,7 +98,6 @@ class dbCacheTransaction(Base):
     fee = Column(Integer, doc="Transaction fee")
     raw = Column(Text(),
                  doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
-    # addresses = relationship('dbCacheAddress', secondary='cache_transactions_node')
     nodes = relationship("dbCacheTransactionNode", cascade="all,delete",
                          doc="List of all inputs and outputs as dbCacheTransactionNode objects")
     order_n = Column(Integer, doc='Order of transaction in block')
@@ -118,7 +115,6 @@ class dbCacheAddress(Base):
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
     balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
     last_block = Column(Integer, doc="Number of last updated block")
-    # transactions = relationship('dbCacheTransaction', secondary='cache_transactions_node')
 
 
 class dbCacheVars(Base):

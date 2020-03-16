@@ -545,7 +545,6 @@ class Cache(object):
                 else:
                     return []
             else:
-                # db_txs = sorted(db_addr.transactions, key=lambda t: (t.block_height, t.order_n))
                 db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode). \
                     filter(dbCacheTransactionNode.address == address). \
                     order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n).all()

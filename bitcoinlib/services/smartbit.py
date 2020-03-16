@@ -160,12 +160,9 @@ class SmartbitClient(BaseClient):
                 txs.append(t)
                 if t.hash == after_txid:
                     txs = []
-                if len(txs) > max_txs:
-                    next_link = ''
-                    break
             if not next_link:
                 break
-        return txs
+        return txs[:max_txs]
 
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', data=txid, command='hex')
