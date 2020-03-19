@@ -10,15 +10,16 @@
 #
 
 [locations]
-# Default directory for database files. Relative paths will be based in user or bitcoinlib installation directory. Only used for sqlite files.
-;database_dir=~/.bitcoinlib/database
-
-# Default database file for wallets, keys and transactions. Relative paths will be based in 'database_dir'
-default_databasefile=bitcoinlib_unittests.sqlite
-default_databasefile_cache==bitcoinlib_unittests_cache.sqlite
-
 # Location of BitcoinLib data, configuration and log files. Relative paths will be based in installation directory
 ;data_dir=~/.bitcoinlib
+
+# Default directory for database files. Relative paths will be based in user or bitcoinlib installation directory. Only used for sqlite files.
+;database_dir=database
+
+# Default database file for wallets, keys and transactions. Relative paths will be based in 'database_dir'
+;default_databasefile=bitcoinlib.sqlite
+;default_databasefile_cache==bitcoinlib_cache.sqlite
+
 
 [common]
 # Allow database threads in SQLite databases
@@ -44,8 +45,8 @@ timeout_requests=2
 # Set to False if this library is part of another library or software and you want to handle logs yourself.
 ;enable_bitcoinlib_logging=True
 
-# Log file name. Relative paths will be based in data_dir/log directory
-;log_file=~/.bitcoinlib/bitcoinlib.log
+# Log file name. Relative paths will be based in data_dir directory
+;log_file=~bitcoinlib.log
 
 # Loglevel for this library, options: CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET
 ;loglevel=WARNING

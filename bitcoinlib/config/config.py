@@ -232,7 +232,7 @@ def read_config():
     BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback='~/.bitcoinlib')).expanduser()
 
     # Database settings
-    BCL_DATABASE_DIR = Path(config_get('locations', 'database_dir', '~/.bitcoinlib/database')).expanduser()
+    BCL_DATABASE_DIR = Path(BCL_DATA_DIR, config_get('locations', 'database_dir', 'database'))
     BCL_DATABASE_DIR.mkdir(parents=True, exist_ok=True)
     default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
     DEFAULT_DATABASE = str(Path(BCL_DATABASE_DIR, default_databasefile))
@@ -244,7 +244,7 @@ def read_config():
 
     # Log settings
     ENABLE_BITCOINLIB_LOGGING = config_get("logs", "enable_bitcoinlib_logging", fallback=True, is_boolean=True)
-    BCL_LOG_FILE = Path(config_get('locations', 'log_file', fallback='~/.bitcoinlib/bitcoinlib.log')).expanduser()
+    BCL_LOG_FILE = Path(BCL_DATA_DIR, config_get('locations', 'log_file', fallback='bitcoinlib.log'))
     BCL_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
 
