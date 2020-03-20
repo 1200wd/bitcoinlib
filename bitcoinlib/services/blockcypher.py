@@ -141,7 +141,7 @@ class BlockCypher(BaseClient):
                 if t['tx_hash'] == after_txid:
                     txids = []
             if len(txids) > 500:
-                _logger.warning("BlockCypher: Large number of transactions for address %s, "
+                _logger.info("BlockCypher: Large number of transactions for address %s, "
                                 "Transaction list may be incomplete" % address.address_orig)
             for txid in txids[:max_txs]:
                 t = self.gettransaction(txid)

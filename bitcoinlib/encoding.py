@@ -26,6 +26,7 @@ import hashlib
 import pyaes
 import binascii
 import unicodedata
+import struct
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
 
@@ -64,7 +65,6 @@ class EncodingError(Exception):
     """ Log and raise encoding errors """
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.error(msg)
 
     def __str__(self):
         return self.msg
@@ -760,7 +760,7 @@ def normalize_string(string):
     Normalize a string to the default NFKD unicode format
     See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
-    :param string: string valuehttps://www.reddit.com/r/thenetherlands/comments/egp9qu/nederlands_gezin_steunt_boerensector_met_500_euro/
+    :param string: string value
     :type string: bytes, bytearray, str
 
     :return: string
@@ -799,7 +799,7 @@ def hash160(string):
     :param string: Script
     :type string: bytes
 
-    :return bytes: RIPEMD-160 hash ohttps://www.reddit.com/r/thenetherlands/comments/egp9qu/nederlands_gezin_steunt_boerensector_met_500_euro/f script
+    :return bytes: RIPEMD-160 hash of script
     """
     return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()
 
@@ -851,8 +851,14 @@ def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
     BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
     Based on code from https://github.com/nomorecoin/python-bip38-testing
 
+    :param private_hex: Private key in hex format
+    :type private_hex: str
+    :param address: Address string
+    :type address: str
     :param passphrase: Required passphrase for encryption
     :type passphrase: str
+    :param flagbyte: Flagbyte prefix for WIF
+    :type flagbyte: bytearray
 
     :return str: BIP38 passphrase encrypted private key
     """

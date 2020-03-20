@@ -4,7 +4,7 @@ include CHANGELOG
 include updatedb.py
 include requirements.txt
 recursive-include bitcoinlib/config *
-recursive-include bitcoinlib/data *.json
+recursive-include bitcoinlib/data *
 recursive-include bitcoinlib/services *.py
 recursive-include bitcoinlib/wordlist *.txt
 recursive-include bitcoinlib/tools *.py

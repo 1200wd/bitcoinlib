@@ -26,7 +26,7 @@ from tests.test_custom import CustomAssertions
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
 # Use value above >0, and 1 for 100%
 
-DATABASEFILE_CACHE_UNITTESTS = os.path.join(BCL_DATABASE_DIR, 'bitcoinlibcache.unittest.sqlite')
+DATABASEFILE_CACHE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache.unittest.sqlite')
 TIMEOUT_TEST = 2
 
 

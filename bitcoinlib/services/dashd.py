@@ -45,7 +45,7 @@ _logger = logging.getLogger(__name__)
 class ConfigError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.warning(msg)
+        _logger.info(msg)
 
     def __str__(self):
         return self.msg
@@ -83,12 +83,13 @@ class DashdClient(BaseClient):
                                   "default. Or place a config file in .bitcoinlib/config/dash.conf to reference to "
                                   "an external server.")
         else:
-            cfn = os.path.join(BCL_CONFIG_DIR, configfile)
+            cfn = os.path.join(BCL_DATA_DIR, 'config', configfile)
             if not os.path.isfile(cfn):
                 raise ConfigError("Config file %s not found" % cfn)
         with open(cfn, 'r') as f:
             config_string = '[rpc]\n' + f.read()
         config.read_string(config_string)
+
         try:
             if int(config.get('rpc', 'testnet')):
                 network = 'testnet'

@@ -35,7 +35,7 @@ _logger = logging.getLogger(__name__)
 class ConfigError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.warning(msg)
+        _logger.info(msg)
 
     def __str__(self):
         return self.msg
@@ -79,26 +79,33 @@ class LitecoindClient(BaseClient):
             network = network.name
         if network == 'testnet':
             config_fn = 'litecoin-testnet.conf'
+
+        cfn = None
         if not configfile:
-            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Linux
-                cfn = os.path.join(os.path.expanduser("~"), '.litecoin/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Try Windows path
-                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Litecoin/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Try Mac path
-                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Litecoin/%s' % config_fn)
-            if not os.path.isfile(cfn):
-                raise ConfigError("Please install litecoin client and specify a path to config file if path is not "
-                                  "default. Or place a config file in .bitcoinlib/config/litecoin.conf to reference to "
-                                  "an external server.")
+            config_locations = ['~/.bitcoinlib', '~/.litecoin', '~/Application Data/Litecoin',
+                                '~/Library/Application Support/Litecoin']
+            for location in config_locations:
+                cfn = Path(location, config_fn).expanduser()
+                if cfn.exists():
+                    break
         else:
-            cfn = os.path.join(BCL_CONFIG_DIR, configfile)
-            if not os.path.isfile(cfn):
-                raise ConfigError("Config file %s not found" % cfn)
+            cfn = Path(BCL_DATA_DIR, 'config', configfile)
+        if not cfn or not cfn.is_file():
+            raise ConfigError(
+                "Config file %s not found. Please install litecoin client and specify a path to config "
+                "file if path is not default. Or place a config file in .bitcoinlib/litecoin.conf to "
+                "reference to an external server." % cfn)
+        else:
+            cfn = Path(BCL_DATA_DIR, 'config', configfile)
+        if not cfn or not cfn.is_file():
+            raise ConfigError("Config file %s not found. Please install bitcoin client and specify a path to config "
+                              "file if path is not default. Or place a config file in .bitcoinlib/bitcoin.conf to "
+                              "reference to an external server." % cfn)
+
         try:
             config.read(cfn)
         except Exception:
-            with open(cfn, 'r') as f:
+            with cfn.open() as f:
                 config_string = '[rpc]\n' + f.read()
             config.read_string(config_string)
 
@@ -216,7 +223,7 @@ class LitecoindClient(BaseClient):
             pres = self.proxy.estimatesmartfee(blocks)
             res = pres['feerate']
         except KeyError as e:
-            _logger.warning("litecoind error: %s, %s" % (e, pres))
+            _logger.info("litecoind error: %s, %s" % (e, pres))
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 

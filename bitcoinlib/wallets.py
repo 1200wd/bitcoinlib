@@ -23,6 +23,7 @@ import random
 import warnings
 from itertools import groupby
 from operator import itemgetter
+import struct
 
 from bitcoinlib.db import *
 from bitcoinlib.encoding import EncodingError, to_bytes, to_hexstring
@@ -747,7 +748,7 @@ class HDWalletTransaction(Transaction):
             for priv_key in keys:
                 if not isinstance(priv_key, HDKey):
                     if isinstance(priv_key, str) and len(str(priv_key).split(' ')) > 4:
-                         priv_key = HDKey.from_passphrase(priv_key)
+                        priv_key = HDKey.from_passphrase(priv_key)
                     else:
                         priv_key = HDKey(priv_key, network=self.network.name)
                 priv_key_list_arg.append((None, priv_key))
@@ -785,7 +786,8 @@ class HDWalletTransaction(Transaction):
         if offline:
             return None
 
-        srv = Service(network=self.network.name, providers=self.hdwallet.providers)
+        srv = Service(network=self.network.name, providers=self.hdwallet.providers,
+                      cache_uri=self.hdwallet.db_cache_uri)
         res = srv.sendrawtransaction(self.raw_hex())
         if not res:
             self.error = "Cannot send transaction. %s" % srv.errors
@@ -1307,6 +1309,7 @@ class HDWallet(object):
             self._session = dbinit.session
             self._engine = dbinit.engine
         self.db_uri = db_uri
+        self.db_cache_uri = db_uri
         if isinstance(wallet, int) or wallet.isdigit():
             db_wlt = self._session.query(DbWallet).filter_by(id=wallet).scalar()
         else:
@@ -1808,7 +1811,7 @@ class HDWallet(object):
                 self.scan_key(key.id)
 
         # Update already known transactions
-        srv = Service(network=network, providers=self.providers)
+        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
         blockcount = srv.blockcount()
         db_txs = self._session.query(DbTransaction). \
             filter(DbTransaction.wallet_id == self.wallet_id,
@@ -2511,7 +2514,7 @@ class HDWallet(object):
         """
 
         network, account_id, acckey = self._get_account_defaults(network, account_id)
-        balance = Service(network=network, providers=self.providers).\
+        balance = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri).\
             getbalance(self.addresslist(account_id=account_id, network=network))
         if balance:
             new_balance = {
@@ -2729,7 +2732,7 @@ class HDWallet(object):
                     addresslist = self.addresslist(account_id=account_id, used=used, network=network, key_id=key_id,
                                                    change=change, depth=depth)
                     random.shuffle(addresslist)
-                    srv = Service(network=network, providers=self.providers)
+                    srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
                     utxos = []
                     for address in addresslist:
                         if rescan_all:
@@ -2929,7 +2932,7 @@ class HDWallet(object):
         txids = list(set(txids))
 
         txs = []
-        srv = Service(network=self.network.name, providers=self.providers)
+        srv = Service(network=self.network.name, providers=self.providers, cache_uri=self.db_cache_uri)
         for txid in txids:
             tx = srv.gettransaction(txid)
             if tx:
@@ -2980,7 +2983,7 @@ class HDWallet(object):
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
         if depth is None:
             depth = self.key_depth
-        srv = Service(network=network, providers=self.providers)
+        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
 
         # Update number of confirmations and status for already known transactions
         blockcount = srv.blockcount()
@@ -3390,7 +3393,7 @@ class HDWallet(object):
                     addr = addr.key()
                 transaction.add_output(o[1], addr)
 
-        srv = Service(network=network, providers=self.providers)
+        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
         transaction.fee_per_kb = None
         if fee is None:
             if not input_arr:
@@ -3773,7 +3776,7 @@ class HDWallet(object):
                 continue
             input_arr.append((utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value']))
             total_amount += utxo['value']
-        srv = Service(network=network, providers=self.providers)
+        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
 
         if not fee:
             if fee_per_kb is None:

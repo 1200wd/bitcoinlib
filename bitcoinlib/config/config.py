@@ -21,6 +21,8 @@
 import os
 import sys
 import locale
+import platform
+import datetime
 
 # General defaults
 PY3 = sys.version_info[0] == 3
@@ -40,16 +42,16 @@ else:
 
 
 # File locations
-BCL_INSTALL_DIR = os.path.dirname(os.path.dirname(__file__))
+BCL_CONFIG_FILE = ''
+BCL_INSTALL_DIR = Path(__file__).parents[1]
+BCL_DATA_DIR = ''
 BCL_DATABASE_DIR = ''
 DEFAULT_DATABASE = None
 DEFAULT_DATABASE_CACHE = None
-BCL_LOG_DIR = ''
-BCL_CONFIG_DIR = ''
-BCL_DATA_DIR = ''
-BCL_WORDLIST_DIR = ''
-BCL_CONFIG_FILE = ''
+BCL_LOG_FILE = ''
 
+# Main
+ENABLE_BITCOINLIB_LOGGING = True
 ALLOW_DATABASE_THREADS = None
 
 # Services
@@ -193,8 +195,6 @@ def read_config():
     config = configparser.ConfigParser()
 
     def config_get(section, var, fallback, is_boolean=False):
-        if os.environ.get("BCL_DEFAULT_CONFIG"):
-            return fallback
         try:
             if PY3:
                 if is_boolean:
@@ -210,64 +210,51 @@ def read_config():
         except Exception:
             return fallback
 
-    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_LOG_DIR, BCL_CONFIG_DIR, BCL_CONFIG_FILE
-    global BCL_DATA_DIR, BCL_WORDLIST_DIR, ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
-    global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, LOGLEVEL, DEFAULT_WITNESS_TYPE
+    global BCL_INSTALL_DIR, BCL_DATABASE_DIR, DEFAULT_DATABASE, BCL_DATA_DIR, BCL_CONFIG_FILE
+    global ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
+    global BCL_LOG_FILE, LOGLEVEL, ENABLE_BITCOINLIB_LOGGING
+    global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
     global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED
 
-    BCL_CONFIG_DIR = config_get('locations', 'config_dir', fallback='.bitcoinlib/config')
-    if not os.path.isabs(BCL_CONFIG_DIR):
-        BCL_CONFIG_DIR = os.path.join(os.path.expanduser("~"), BCL_CONFIG_DIR)
-    if not os.path.exists(BCL_CONFIG_DIR):
-        os.makedirs(BCL_CONFIG_DIR)
-    if not BCL_CONFIG_FILE:
-        config_file = os.environ.get('BCL_CONFIG_FILE')
-        if config_file:
-            BCL_CONFIG_FILE = os.path.join(BCL_CONFIG_DIR, config_file)
-    if not BCL_CONFIG_FILE:
-        BCL_CONFIG_FILE = os.path.join(BCL_CONFIG_DIR, 'config.ini')
-    data = config.read(BCL_CONFIG_FILE)
-    if not data:
-        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib', 'config', 'config.ini')
-        data = config.read(BCL_CONFIG_FILE)
-    if not data:
-        BCL_CONFIG_FILE = os.path.join(os.path.expanduser("~"), '.bitcoinlib', 'config.ini')
-        data = config.read(BCL_CONFIG_FILE)
+    # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
+    config_file_name = os.environ.get('BCL_CONFIG_FILE')
+    if not config_file_name:
+        BCL_CONFIG_FILE = Path('~/.bitcoinlib/config.ini').expanduser()
+    else:
+        BCL_CONFIG_FILE = Path(config_file_name)
+        if not BCL_CONFIG_FILE.is_absolute():
+            BCL_CONFIG_FILE = Path(Path.home(), '.bitcoinlib', BCL_CONFIG_FILE)
+        if not BCL_CONFIG_FILE.exists():
+            BCL_CONFIG_FILE = Path(BCL_INSTALL_DIR, 'data', config_file_name)
+        if not BCL_CONFIG_FILE.exists():
+            raise IOError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
+    data = config.read(str(BCL_CONFIG_FILE))
+    BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback='~/.bitcoinlib')).expanduser()
 
-    BCL_DATABASE_DIR = config_get('locations', 'database_dir', '.bitcoinlib/database')
-    if not os.path.isabs(BCL_DATABASE_DIR):
-        BCL_DATABASE_DIR = str(Path(Path.home(), BCL_DATABASE_DIR))
-    if not os.path.exists(BCL_DATABASE_DIR):
-        os.makedirs(BCL_DATABASE_DIR)
+    # Database settings
+    BCL_DATABASE_DIR = Path(BCL_DATA_DIR, config_get('locations', 'database_dir', 'database'))
+    BCL_DATABASE_DIR.mkdir(parents=True, exist_ok=True)
     default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
     DEFAULT_DATABASE = str(Path(BCL_DATABASE_DIR, default_databasefile))
-    default_databasefile_cache = config_get('locations', 'default_databasefile_cache',
-                                            fallback='bitcoinlib_cache.sqlite')
+    default_databasefile_cache = \
+        config_get('locations', 'default_databasefile_cache', fallback='bitcoinlib_cache.sqlite')
     DEFAULT_DATABASE_CACHE = str(Path(BCL_DATABASE_DIR, default_databasefile_cache))
+    ALLOW_DATABASE_THREADS = config_get("common", "allow_database_threads", fallback=True, is_boolean=True)
+    SERVICE_CACHING_ENABLED = config_get('common', 'service_caching_enabled', fallback=True, is_boolean=True)
 
-    BCL_LOG_DIR = config_get('locations', 'log_dir', fallback='.bitcoinlib/log')
-    if not os.path.isabs(BCL_LOG_DIR):
-        BCL_LOG_DIR = os.path.join(os.path.expanduser("~"), BCL_LOG_DIR)
-    if not os.path.exists(BCL_LOG_DIR):
-        os.makedirs(BCL_LOG_DIR)
+    # Log settings
+    ENABLE_BITCOINLIB_LOGGING = config_get("logs", "enable_bitcoinlib_logging", fallback=True, is_boolean=True)
+    BCL_LOG_FILE = Path(BCL_DATA_DIR, config_get('locations', 'log_file', fallback='bitcoinlib.log'))
+    BCL_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
 
-    BCL_DATA_DIR = config_get('locations', 'data_dir', fallback='data')
-    if not os.path.isabs(BCL_DATA_DIR):
-        BCL_DATA_DIR = os.path.join(BCL_INSTALL_DIR, BCL_DATA_DIR)
-
-    BCL_WORDLIST_DIR = config_get('locations', 'wordlist_dir', fallback='wordlist')
-    if not os.path.isabs(BCL_WORDLIST_DIR):
-        BCL_WORDLIST_DIR = os.path.join(BCL_INSTALL_DIR, BCL_WORDLIST_DIR)
-
+    # Other settings
     TIMEOUT_REQUESTS = int(config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS))
     DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
     DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
 
-    LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
-    
-    ALLOW_DATABASE_THREADS = config_get("locations", "allow_database_threads", fallback=True, is_boolean=True)
-    SERVICE_CACHING_ENABLED = config_get('common', 'service_caching_enabled', fallback=True, is_boolean=True)
+    # Convert paths to strings
 
     full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
     if full_db_test:
@@ -281,30 +268,35 @@ def read_config():
 
 # Copy data and settings to default settings directory if install.log is not found
 def initialize_lib():
-    global BCL_LOG_DIR, BCL_DATA_DIR, BCL_CONFIG_DIR
-    instlogfile = os.path.join(BCL_LOG_DIR, 'install.log')
-    if os.path.isfile(instlogfile):
+    global BCL_INSTALL_DIR, BCL_DATA_DIR, BITCOINLIB_VERSION
+    instlogfile = Path(BCL_DATA_DIR, 'install.log')
+    if instlogfile.exists():
         return
 
-    with open(instlogfile, 'w') as f:
+    with instlogfile.open('w') as f:
         install_message = "BitcoinLib installed, check further logs in bitcoinlib.log\n\n" \
-                          "If you remove this file all settings will be copied again from the library. " \
-                          "This might be usefull after an update\n"
+                          "If you remove this file all settings will be reset again to the default settings. " \
+                          "This might be usefull after an update or when problems occur.\n\n" \
+                          "Installation parameters. Include this parameters when reporting bugs and issues:\n" \
+                          "Bitcoinlib version: %s\n" \
+                          "Installation date : %s\n" \
+                          "Python            : %s\n" \
+                          "Compiler          : %s\n" \
+                          "Build             : %s\n" \
+                          "OS Version        : %s\n" \
+                          "Platform          : %s\n" % \
+                          (BITCOINLIB_VERSION, datetime.datetime.now().isoformat(), platform.python_version(),
+                           platform.python_compiler(), platform.python_build(), platform.version(), platform.platform())
         f.write(install_message)
 
     # Copy data and settings file
     from shutil import copyfile
-    src_files = os.listdir(BCL_DATA_DIR)
-    for file_name in src_files:
-        full_file_name = os.path.join(BCL_DATA_DIR, file_name)
-        if os.path.isfile(full_file_name):
-            copyfile(full_file_name, os.path.join(BCL_CONFIG_DIR, file_name))
-
+    for file in Path(BCL_INSTALL_DIR, 'data').iterdir():
+        if file.suffix not in ['.ini', '.json']:
+            continue
+        copyfile(str(file), str(Path(BCL_DATA_DIR, file.name)))
 
 # Initialize library
 read_config()
-version_file = open(os.path.join(BCL_INSTALL_DIR, 'config/VERSION'))
-BITCOINLIB_VERSION = version_file.read().strip()
-version_file.close()
-
+BITCOINLIB_VERSION = Path(BCL_INSTALL_DIR, 'config/VERSION').open().read().strip()
 initialize_lib()

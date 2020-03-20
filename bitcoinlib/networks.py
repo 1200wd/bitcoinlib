@@ -47,10 +47,8 @@ def _read_network_definitions():
     :return dict: Network definitions
     """
 
-    fn = os.path.join(BCL_CONFIG_DIR, "networks.json")
-    if not os.path.isfile(fn):
-        fn = os.path.join(BCL_DATA_DIR, "networks.json")
-    f = open(fn)
+    fn = Path(BCL_DATA_DIR, 'networks.json')
+    f = fn.open()
 
     try:
         network_definitions = json.loads(f.read())

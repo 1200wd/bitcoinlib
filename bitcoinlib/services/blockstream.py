@@ -151,6 +151,8 @@ class BlockstreamClient(BaseClient):
                 txs.append(t)
             if t.hash == after_txid:
                 txs = []
+            if len(txs) > max_txs:
+                break
         return txs[:max_txs]
 
     def getrawtransaction(self, txid):

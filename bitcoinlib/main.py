@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
 import functools
 import logging
 from logging.handlers import RotatingFileHandler
@@ -26,29 +25,27 @@ from bitcoinlib.config.opcodes import *
 from bitcoinlib.config.config import *
 
 
-# Initialize logging to bitcoinlib.log
-logfile = os.path.join(BCL_LOG_DIR, 'bitcoinlib.log')
-handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=2)
+# Initialize logging
 logger = logging.getLogger()
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
-                              datefmt='%Y/%m/%d %H:%M:%S')
-handler.setFormatter(formatter)
-handler.setLevel(LOGLEVEL)
 logger.setLevel(LOGLEVEL)
-logger.addHandler(handler)
 
-logging.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
-logging.info('Version: %s' % BITCOINLIB_VERSION)
-logging.info('Logger name: %s' % logging.__name__)
-logging.info('Read config from: %s' % BCL_CONFIG_FILE)
-logging.info('Directory databases: %s' % BCL_DATABASE_DIR)
-logging.info('Default database: %s' % DEFAULT_DATABASE)
-logging.info('Directory logs: %s' % BCL_LOG_DIR)
-logging.info('Directory for BCL configuration: %s' % BCL_CONFIG_DIR)
-logging.info('Directory for BCL data files: %s' % BCL_DATA_DIR)
-logging.info('Directory wordlists: %s' % BCL_WORDLIST_DIR)
+if ENABLE_BITCOINLIB_LOGGING:
+    handler = RotatingFileHandler(str(BCL_LOG_FILE), maxBytes=100 * 1024 * 1024, backupCount=2)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s',
+                                  datefmt='%Y/%m/%d %H:%M:%S')
+    handler.setFormatter(formatter)
+    handler.setLevel(LOGLEVEL)
+    logger.addHandler(handler)
 
-# logging.getLogger('sqlalchemy.engine').setLevel('WARNING')
+    _logger = logging.getLogger(__name__)
+    logger.info('WELCOME TO BITCOINLIB - CRYPTOCURRENCY LIBRARY')
+    logger.info('Version: %s' % BITCOINLIB_VERSION)
+    logger.info('Logger name: %s' % logging.__name__)
+    logger.info('Read config from: %s' % BCL_CONFIG_FILE)
+    logger.info('Directory databases: %s' % BCL_DATABASE_DIR)
+    logger.info('Default database: %s' % DEFAULT_DATABASE)
+    logger.info('Logging to: %s' % BCL_LOG_FILE)
+    logger.info('Directory for data files: %s' % BCL_DATA_DIR)
 
 
 def script_type_default(witness_type=None, multisig=False, locking_script=False):

@@ -23,7 +23,7 @@ from bitcoinlib.main import UNITTESTS_FULL_DATABASE_TEST
 from bitcoinlib.db import BCL_DATABASE_DIR
 from bitcoinlib.encoding import normalize_string
 
-SQLITE_DATABASE_FILE = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.unittest.sqlite')
+SQLITE_DATABASE_FILE = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.sqlite')
 DATABASE_NAME = 'bitcoinlib_unittest'
 
 

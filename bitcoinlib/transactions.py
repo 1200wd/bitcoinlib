@@ -20,8 +20,10 @@
 
 from datetime import datetime
 import json
+import struct
 
 from bitcoinlib.encoding import *
+from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
 from bitcoinlib.networks import Network
 
@@ -399,7 +401,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
         return data
 
     wrn_msg = "Could not parse script, unrecognized script"
-    _logger.debug(wrn_msg)
+    # _logger.debug(wrn_msg)
     data = _get_empty_data()
     data['result'] = wrn_msg
     return data
@@ -1247,6 +1249,7 @@ class Transaction(object):
         self.status = status
         self.verified = verified
         self.witness_type = witness_type
+        self.change = 0
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
         if not self.hash:

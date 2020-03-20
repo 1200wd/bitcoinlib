@@ -151,6 +151,8 @@ class BlockChairClient(BaseClient):
                 break
             txids = addr['transactions'][::-1] + txids
             offset += 50
+            if len(txids) > max_txs:
+                break
         if after_txid:
             txids = txids[txids.index(after_txid)+1:]
         txs = []

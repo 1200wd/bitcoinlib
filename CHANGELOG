@@ -1,3 +1,10 @@
+RELEASE 0.4.14 - Refactor logging
+=================================
+* Simplify logging and configuration
+* Use pathlib module instead of os.path
+* Allow to use mysql or postgresql for cache database
+* Fix some issues from service providers
+
 RELEASE 0.4.13 - Add caching
 ============================
 * Cache transactions and address info retrieved from Service providers

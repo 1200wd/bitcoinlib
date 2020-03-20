@@ -34,7 +34,7 @@ _logger = logging.getLogger(__name__)
 class ClientError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.warning(msg)
+        _logger.info(msg)
 
     def __str__(self):
         return self.msg

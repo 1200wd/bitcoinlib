@@ -24,7 +24,7 @@ import json
 import random
 import time
 from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
-from bitcoinlib.main import BCL_DATA_DIR, BCL_CONFIG_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
+from bitcoinlib.main import BCL_DATA_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import DEFAULT_NETWORK, Network
 from bitcoinlib.encoding import to_hexstring
@@ -80,10 +80,8 @@ class Service(object):
             self.network = Network(network)
         if min_providers > max_providers:
             max_providers = min_providers
-        fn = os.path.join(BCL_CONFIG_DIR, "providers.json")
-        if not os.path.isfile(fn):
-            fn = os.path.join(BCL_DATA_DIR, "providers.json")
-        f = open(fn, "r")
+        fn = Path(BCL_DATA_DIR, 'providers.json')
+        f = fn.open("r")
 
         try:
             self.providers_defined = json.loads(f.read())
@@ -122,7 +120,10 @@ class Service(object):
         self.cache = None
         self.cache = Cache(self.network, db_uri=cache_uri)
         self.results_cache_n = 0
-        self._blockcount = self.blockcount()
+        if self.min_providers > 1:
+            self._blockcount = Service(network=network).blockcount()
+        else:
+            self._blockcount = self.blockcount()
 
     def _reset_results(self):
         self.results = {}
@@ -174,7 +175,7 @@ class Service(object):
                     # -- Use this to debug specific Services errors --
                     # from pprint import pprint
                     # pprint(self.errors)
-                _logger.warning("%s.%s(%s) Error %s" % (sp, method, arguments, e))
+                _logger.info("%s.%s(%s) Error %s" % (sp, method, arguments, e))
 
             if self.resultcount >= self.max_providers:
                 break
@@ -544,7 +545,9 @@ class Cache(object):
                 else:
                     return []
             else:
-                db_txs = sorted(db_addr.transactions, key=lambda t: (t.block_height, t.order_n))
+                db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode). \
+                    filter(dbCacheTransactionNode.address == address). \
+                    order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n).all()
             for db_tx in db_txs:
                 txs.append(self._parse_db_transaction(db_tx))
                 if len(txs) >= max_txs:
@@ -661,13 +664,13 @@ class Cache(object):
         Store network blockcount in cache for 60 seconds
 
         :param blockcount: Number of latest block
-        :type blockcount: int
+        :type blockcount: int, str
 
         :return:
         """
         if not SERVICE_CACHING_ENABLED:
             return
-        dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=blockcount, type='int',
+        dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=str(blockcount), type='int',
                             expires=datetime.datetime.now() + datetime.timedelta(seconds=60))
         self.session.merge(dbvar)
         self.session.commit()
@@ -699,6 +702,7 @@ class Cache(object):
         new_tx = dbCacheTransaction(txid=t.hash, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
                                     fee=t.fee, raw=raw_hex, order_n=order_n)
+        self.session.add(new_tx)
         for i in t.inputs:
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
@@ -706,6 +710,7 @@ class Cache(object):
             new_node = dbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.index_n, value=i.value,
                                               is_input=True)
             self.session.add(new_node)
+            self.session.commit()
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
@@ -713,8 +718,8 @@ class Cache(object):
             new_node = dbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
                                               is_input=False, spent=o.spent)
             self.session.add(new_node)
+            self.session.commit()
 
-        self.session.add(new_tx)
         try:
             self.session.commit()
             _logger.info("Added transaction %s to cache" % t.hash)
