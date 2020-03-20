@@ -20,8 +20,10 @@
 
 from datetime import datetime
 import json
+import struct
 
 from bitcoinlib.encoding import *
+from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
 from bitcoinlib.networks import Network
 
@@ -1247,6 +1249,7 @@ class Transaction(object):
         self.status = status
         self.verified = verified
         self.witness_type = witness_type
+        self.change = 0
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
         if not self.hash:

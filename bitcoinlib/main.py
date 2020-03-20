@@ -18,11 +18,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
 import functools
 import logging
 from logging.handlers import RotatingFileHandler
-from bitcoinlib.config.opcodes import *
 from bitcoinlib.config.config import *
 
 
