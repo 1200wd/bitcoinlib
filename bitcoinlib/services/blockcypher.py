@@ -63,12 +63,11 @@ class BlockCypher(BaseClient):
         if not isinstance(res, list):
             res = [res]
         for a in res:
-            if 'txrefs' not in a:
-                continue
-            if len(a['txrefs']) > 500:
-                _logger.info("BlockCypher: Large number of transactions for address %s, "
+            txrefs = a.setdefault('txrefs', []) + a.get('unconfirmed_txrefs', [])
+            if len(txrefs) > 500:
+                _logger.warning("BlockCypher: Large number of transactions for address %s, "
                                 "Transaction list may be incomplete" % address)
-            for tx in a['txrefs']:
+            for tx in txrefs:
                 if tx['tx_hash'] == after_txid:
                     break
                 try:
