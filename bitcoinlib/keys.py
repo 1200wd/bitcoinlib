@@ -23,6 +23,7 @@ import random
 import warnings
 import collections
 import json
+import struct
 
 from bitcoinlib.networks import Network, network_by_value, wif_prefix_search
 from bitcoinlib.config.secp256k1 import *

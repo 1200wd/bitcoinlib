@@ -26,6 +26,7 @@ import hashlib
 import pyaes
 import binascii
 import unicodedata
+import struct
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
 
