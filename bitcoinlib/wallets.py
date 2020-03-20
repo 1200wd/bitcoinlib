@@ -2682,7 +2682,7 @@ class HDWallet(object):
         :type update_balance: bool
         :param max_utxos: Maximum number of UTXO's to update
         :type max_utxos: int
-        :param rescan_all: Remove old utxo's and rescan wallet. Default is True. Set to False if you work with large utxo's sets.
+        :param rescan_all: Remove old utxo's and rescan wallet. Default is True. Set to False if you work with large utxo's sets. Value will be ignored if key_id is specified in your call
         :type rescan_all: bool
 
         :return int: Number of new UTXO's added
@@ -2695,6 +2695,7 @@ class HDWallet(object):
             single_key = self._session.query(DbKey).filter_by(id=key_id).scalar()
             networks = [single_key.network_name]
             account_id = single_key.account_id
+            rescan_all = False
         if networks is None:
             networks = self.network_list()
         elif not isinstance(networks, list):
