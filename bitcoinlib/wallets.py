@@ -918,7 +918,7 @@ class HDWalletTransaction(Transaction):
     def export(self, skip_change=True):
         """
         Export this transaction as list of tuples in the following format:
-            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value)
+            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, fee)
 
         A transaction with multiple inputs or outputs results in multiple tuples.
 
@@ -931,15 +931,17 @@ class HDWalletTransaction(Transaction):
         wlt_addresslist = self.hdwallet.addresslist()
         input_addresslist = [i.address for i in self.inputs]
         if self.outgoing_tx:
+            fee_per_output = self.fee / len(self.outputs)
             for o in self.outputs:
                 if o.address in wlt_addresslist and skip_change:
                     continue
-                mut_list.append((self.date, self.hash, 'out', input_addresslist, o.address, -o.value))
+                mut_list.append((self.date, self.hash, 'out', input_addresslist, o.address, -o.value, fee_per_output))
         else:
+
             for o in self.outputs:
                 if o.address not in wlt_addresslist:
                     continue
-                mut_list.append((self.date, self.hash, 'in', input_addresslist, o.address, o.value))
+                mut_list.append((self.date, self.hash, 'in', input_addresslist, o.address, o.value, 0))
         return mut_list
 
 
@@ -3152,7 +3154,7 @@ class HDWallet(object):
     def transactions_export(self, account_id=None, network=None, include_new=False, key_id=None):
         """
         Export wallets transactions as list of tuples with the following fields:
-            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, value_cumulative)
+            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, value_cumulative, fee)
 
         :param account_id: Filter by Account ID. Leave empty for default account_id
         :type account_id: int, None
@@ -3182,7 +3184,8 @@ class HDWallet(object):
                 addr_list_in = tei[3] if isinstance(tei[3], list) else [tei[3]]
                 addr_list_out = tei[4] if isinstance(tei[4], list) else [tei[4]]
                 cumulative_value += tei[5]
-                txs_tuples.append((tei[0], tei[1], tei[2], addr_list_in, addr_list_out, tei[5], cumulative_value))
+                txs_tuples.append((tei[0], tei[1], tei[2], addr_list_in, addr_list_out, tei[5], cumulative_value,
+                                   tei[6]))
         return txs_tuples
 
     def transaction(self, txid):
