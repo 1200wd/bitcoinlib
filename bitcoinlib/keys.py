@@ -271,9 +271,11 @@ def deserialize_address(address, encoding=None, network=None):
                 networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
                 public_key_hash = key_hash[1:]
                 script_type = ''
+                witness_type = ''
                 networks = []
                 if networks_p2pkh and not networks_p2sh:
                     script_type = 'p2pkh'
+                    witness_type = 'legacy'
                     networks = networks_p2pkh
                 elif networks_p2sh:
                     script_type = 'p2sh'
@@ -291,6 +293,7 @@ def deserialize_address(address, encoding=None, network=None):
                     'prefix': address_prefix,
                     'network': network,
                     'script_type': script_type,
+                    'witness_type': witness_type,
                     'networks': networks,
                 }
     if encoding == 'bech32' or encoding is None:
@@ -298,6 +301,7 @@ def deserialize_address(address, encoding=None, network=None):
             public_key_hash = addr_bech32_to_pubkeyhash(address)
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
+            witness_type = 'segwit'
             if len(public_key_hash) == 20:
                 script_type = 'p2wpkh'
             else:
@@ -310,6 +314,7 @@ def deserialize_address(address, encoding=None, network=None):
                 'prefix': prefix,
                 'network': '' if not networks else networks[0],
                 'script_type': script_type,
+                'witness_type': witness_type,
                 'networks': networks,
             }
         except EncodingError as err:
@@ -1244,6 +1249,8 @@ class HDKey(Key):
                     _logger.warning("Uncompressed private keys are not standard for BIP32 keys, use at your own risk!")
                     compressed = False
                 chain = chain if chain else b'\0' * 32
+                if not import_key.private_byte:
+                    raise BKeyError('Cannot import public Key in HDKey')
                 key = import_key.private_byte
                 key_type = 'private'
             else:
