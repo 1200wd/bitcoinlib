@@ -1287,7 +1287,8 @@ class HDKey(Key):
                 else:
                     key = import_key
                     chain = chain if chain else b'\0' * 32
-                    key_type = 'private'
+                    is_private = kf['is_private']
+                    key_type = 'private' if is_private else 'public'
 
         if witness_type is None:
             witness_type = DEFAULT_WITNESS_TYPE
