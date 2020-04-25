@@ -23,6 +23,7 @@ import logging
 import json
 import random
 import time
+from datetime import timedelta
 from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
 from bitcoinlib.main import BCL_DATA_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
@@ -635,7 +636,7 @@ class Cache(object):
         else:
             varname = 'fee_low'
         dbvar = self.session.query(dbCacheVars).filter_by(varname=varname, network_name=self.network.name).\
-                                                filter(dbCacheVars.expires > datetime.datetime.now()).scalar()
+                                                filter(dbCacheVars.expires > datetime.now()).scalar()
         if dbvar:
             return int(dbvar.value)
         return False
@@ -653,7 +654,7 @@ class Cache(object):
             return False
         qr = self.session.query(dbCacheVars).filter_by(varname='blockcount', network_name=self.network.name)
         if not never_expires:
-            qr = qr.filter(dbCacheVars.expires > datetime.datetime.now())
+            qr = qr.filter(dbCacheVars.expires > datetime.now())
         dbvar = qr.scalar()
         if dbvar:
             return int(dbvar.value)
@@ -671,7 +672,7 @@ class Cache(object):
         if not SERVICE_CACHING_ENABLED:
             return
         dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=str(blockcount), type='int',
-                            expires=datetime.datetime.now() + datetime.timedelta(seconds=60))
+                            expires=datetime.now() + timedelta(seconds=60))
         self.session.merge(dbvar)
         self.session.commit()
 
@@ -769,6 +770,6 @@ class Cache(object):
         else:
             varname = 'fee_low'
         dbvar = dbCacheVars(varname=varname, network_name=self.network.name, value=fee, type='int',
-                            expires=datetime.datetime.now() + datetime.timedelta(seconds=600))
+                            expires=datetime.now() + timedelta(seconds=600))
         self.session.merge(dbvar)
         self.session.commit()

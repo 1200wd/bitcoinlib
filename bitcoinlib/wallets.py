@@ -2747,7 +2747,7 @@ class HDWallet(object):
                             raise WalletError("No response from any service provider, could not update UTXO's. "
                                               "Errors: %s" % srv.errors)
                     if srv.complete:
-                        self.last_updated = datetime.datetime.now()
+                        self.last_updated = datetime.now()
                     elif utxos and 'date' in utxos[-1:][0]:
                         self.last_updated = utxos[-1:][0]['date']
 
@@ -3001,7 +3001,7 @@ class HDWallet(object):
         txs = []
         addresslist = self.addresslist(
             account_id=account_id, used=used, network=network, key_id=key_id, change=change, depth=depth)
-        last_updated = datetime.datetime.now()
+        last_updated = datetime.now()
         for address in addresslist:
             txs += srv.gettransactions(address, max_txs=max_txs, after_txid=self.transaction_last(address))
             if not srv.complete:

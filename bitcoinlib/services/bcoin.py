@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from datetime import datetime
 from time import sleep
 from requests import ReadTimeout
 from bitcoinlib.main import *

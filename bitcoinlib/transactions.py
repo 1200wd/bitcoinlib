@@ -1172,7 +1172,7 @@ class Transaction(object):
         :param size: Transaction size in bytes
         :type size: int
         :param date: Confirmation date of transaction
-        :type date: datetime.datetime
+        :type date: datetime
         :param confirmations: Number of confirmations
         :type confirmations: int
         :param block_height: Block number which includes transaction

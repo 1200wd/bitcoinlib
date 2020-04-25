@@ -22,7 +22,7 @@ import os
 import sys
 import locale
 import platform
-import datetime
+from datetime import datetime
 
 # General defaults
 PY3 = sys.version_info[0] == 3
@@ -285,7 +285,7 @@ def initialize_lib():
                           "Build             : %s\n" \
                           "OS Version        : %s\n" \
                           "Platform          : %s\n" % \
-                          (BITCOINLIB_VERSION, datetime.datetime.now().isoformat(), platform.python_version(),
+                          (BITCOINLIB_VERSION, datetime.now().isoformat(), platform.python_version(),
                            platform.python_compiler(), platform.python_build(), platform.version(), platform.platform())
         f.write(install_message)
 

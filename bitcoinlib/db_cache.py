@@ -22,7 +22,6 @@ try:
     import enum
 except ImportError:
     import enum34 as enum
-import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, Numeric, Text)
@@ -86,7 +85,7 @@ class dbCacheTransaction(Base):
     """
     __tablename__ = 'cache_transactions'
     txid = Column(String(64), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
-    date = Column(DateTime, default=datetime.datetime.utcnow,
+    date = Column(DateTime, default=datetime.utcnow,
                   doc="Date when transaction was confirmed and included in a block. "
                       "Or when it was created when transaction is not send or confirmed")
     confirmations = Column(Integer, default=0,

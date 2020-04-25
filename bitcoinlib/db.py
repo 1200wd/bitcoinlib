@@ -22,7 +22,6 @@ try:
     import enum
 except ImportError:
     import enum34 as enum
-import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, Numeric, Text)
@@ -84,7 +83,7 @@ class DbInit:
         installation_date = session.query(DbConfig.value).filter_by(variable='installation_date').scalar()
         if not installation_date:
             session.merge(DbConfig(variable='version', value=BITCOINLIB_VERSION))
-            session.merge(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
+            session.merge(DbConfig(variable='installation_date', value=str(datetime.now())))
             url = ''
             try:
                 url = str(session.bind.url)
@@ -293,7 +292,7 @@ class DbTransaction(Base):
                       doc="Transaction level locktime. Locks the transaction until a specified block "
                           "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
                           " Default value is 0 for transactions without locktime")
-    date = Column(DateTime, default=datetime.datetime.utcnow,
+    date = Column(DateTime, default=datetime.utcnow,
                   doc="Date when transaction was confirmed and included in a block. "
                       "Or when it was created when transaction is not send or confirmed")
     coinbase = Column(Boolean, default=False, doc="Is True when this is a coinbase transaction, default is False")
