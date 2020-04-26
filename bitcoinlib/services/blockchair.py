@@ -24,7 +24,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.keys import deserialize_address
+from bitcoinlib.keys import deserialize_address, Address
 from bitcoinlib.encoding import EncodingError, varstr, to_bytes
 
 _logger = logging.getLogger(__name__)
@@ -123,13 +123,18 @@ class BlockChairClient(BaseClient):
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
                 witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
+                address = Address.import_address(ti['recipient'])
+                if address.script_type == 'p2sh':
+                    witness_type = 'p2sh-segwit'
+                else:
+                    witness_type = 'segwit'
                 t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=witnesses, index_n=index_n, value=ti['value'],
-                            address=ti['recipient'], witness_type='segwit')
+                            address=address, witness_type=witness_type)
             else:
                 t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
-                            unlocking_script_unsigned=ti['script_hex'], index_n=index_n, value=ti['value'],
-                            address=ti['recipient'], unlocking_script=ti['spending_signature_hex'])
+                            unlocking_script=ti['spending_signature_hex'], index_n=index_n, value=ti['value'],
+                            address=ti['recipient'], unlocking_script_unsigned=ti['script_hex'])
             index_n += 1
         for to in res['data'][tx_id]['outputs']:
             try:
