@@ -19,7 +19,7 @@
 #
 
 import unittest
-import datetime
+from datetime import datetime
 from bitcoinlib.services.services import *
 from tests.test_custom import CustomAssertions
 
@@ -134,7 +134,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'output_n': 0,
             'block_height': 478371,
             'address': '1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx',
-            'date': datetime.datetime(2017, 7, 31, 6, 0, 52),
+            'date': datetime(2017, 7, 31, 6, 0, 52),
             'value': 190000}
         srv = Service(min_providers=10, timeout=TIMEOUT_TEST)
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
@@ -383,7 +383,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'output_total': 1845340,
             'size': 964,
             'hash': '2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700',
-            'date': datetime.datetime(2017, 8, 4)
+            'date': datetime(2017, 8, 4)
         }
 
         srv = Service(network='bitcoin', min_providers=10, timeout=10)
@@ -423,7 +423,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  'script': '483045022100e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc'
                            '0f33d036c1c60a7d561de06067528fffca52292d803b75e53f7dfbf63d0121028bd465d7eb03bbee946c3a'
                            '277ad1b331f78add78c6723eed00097520edc21ed2',
-                 'value': 2575500000}], 'date': datetime.datetime(2018, 7, 8, 21, 35, 58)}
+                 'value': 2575500000}], 'date': datetime(2018, 7, 8, 21, 35, 58)}
 
         srv = Service(network='dash', min_providers=10, timeout=TIMEOUT_TEST)
 
@@ -488,7 +488,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'block_hash': '0000000000000000002d966c99d68245b20468dc9c2a7a776a836add03362199',
             'block_height': 500834,
             'coinbase': True,
-            'date': datetime.datetime(2017, 12, 24, 14, 16, 30),
+            'date': datetime(2017, 12, 24, 14, 16, 30),
             'flag': b'\1',
             'hash': '68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13',
             'input_total': 1717718311,
@@ -539,7 +539,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'block_hash': '00000000000000000006e7007407805af2bfb386439e570f5310bb97cdcf0352',
             'block_height': 547270,
             'coinbase': False,
-            'date': datetime.datetime(2018, 10, 25, 16, 30, 46),
+            'date': datetime(2018, 10, 25, 16, 30, 46),
             'fee': 2662,
             'witness_type': 'segwit',
             'hash': '299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4',

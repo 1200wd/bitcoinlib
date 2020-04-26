@@ -6,7 +6,7 @@
 #
 
 
-import datetime
+from datetime import datetime
 
 
 class CustomAssertions:
@@ -46,7 +46,7 @@ class CustomAssertions:
                                              (k, expected_dict[k], result_dict[k]))
                     self.assertDictEqualExt(result_dict[k][i], expected_dict[k][i], none_allowed)
             elif result_dict[k] != expected_dict[k]:
-                if isinstance(result_dict[k], datetime.datetime):
+                if isinstance(result_dict[k], datetime):
                     if result_dict[k].date() == expected_dict[k].date():
                         continue
                 if result_dict[k] is not None or k not in none_allowed:
