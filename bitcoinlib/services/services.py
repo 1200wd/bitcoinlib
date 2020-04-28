@@ -508,7 +508,7 @@ class Cache(object):
         :return dbCacheAddress: An address cache database object
         """
         if not SERVICE_CACHING_ENABLED:
-            return []
+            return
         return self.session.query(dbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
@@ -535,7 +535,8 @@ class Cache(object):
                 if after_tx:
                     db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode).\
                         filter(dbCacheTransactionNode.address == address,
-                               dbCacheTransaction.block_height >= after_tx.block_height).\
+                               dbCacheTransaction.block_height >= after_tx.block_height,
+                               dbCacheTransaction.block_height <= db_addr.last_block).\
                         order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n).all()
                     db_txs2 = []
                     for d in db_txs:
