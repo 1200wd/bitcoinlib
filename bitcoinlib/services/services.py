@@ -427,8 +427,8 @@ class Service(object):
 
         :param txid: Check if transaction with this hash exists in memory pool
         :type txid: str
-        
-        :return list: 
+
+        :return list:
         """
         return self._provider_execute('mempool', txid)
 
@@ -458,6 +458,13 @@ class Cache(object):
         if SERVICE_CACHING_ENABLED:
             self.session = DbInit(db_uri=db_uri).session
         self.network = network
+
+    def commit(self):
+        try:
+            self.session.commit()
+        except:
+            self.session.rollback()
+            raise
 
     def _parse_db_transaction(self, db_tx):
         t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
@@ -673,7 +680,7 @@ class Cache(object):
         dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=str(blockcount), type='int',
                             expires=datetime.datetime.now() + datetime.timedelta(seconds=60))
         self.session.merge(dbvar)
-        self.session.commit()
+        self.commit()
 
     def store_transaction(self, t, order_n):
         """
@@ -710,7 +717,7 @@ class Cache(object):
             new_node = dbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.index_n, value=i.value,
                                               is_input=True)
             self.session.add(new_node)
-            self.session.commit()
+            self.commit()
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
@@ -718,10 +725,10 @@ class Cache(object):
             new_node = dbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
                                               is_input=False, spent=o.spent)
             self.session.add(new_node)
-            self.session.commit()
+            self.commit()
 
         try:
-            self.session.commit()
+            self.commit()
             _logger.info("Added transaction %s to cache" % t.hash)
         except Exception as e:    # pragma: no cover
             _logger.warning("Caching failure tx: %s" % e)
@@ -745,7 +752,7 @@ class Cache(object):
                                      balance=balance)
         self.session.merge(new_address)
         try:
-            self.session.commit()
+            self.commit()
         except Exception as e:    # pragma: no cover
             _logger.warning("Caching failure addr: %s" % e)
 
@@ -771,4 +778,4 @@ class Cache(object):
         dbvar = dbCacheVars(varname=varname, network_name=self.network.name, value=fee, type='int',
                             expires=datetime.datetime.now() + datetime.timedelta(seconds=600))
         self.session.merge(dbvar)
-        self.session.commit()
+        self.commit()
