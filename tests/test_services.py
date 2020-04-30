@@ -751,3 +751,12 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(utxos), 1)
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
+    def test_service_cache_with_latest_tx_query(self):
+        srv = Service(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        address = 'bc1qxfrgfhs49d7dtcfzlhp7f7cwsp8zpp60hywp0f'
+        after_txid = '13401ad121c8ae91e18b4bb0db5d8f350a2b0b5ddd5ca26165137bf07fefad90'
+        srv.gettransaction('4156e78f347e47d2ccdd4a19614d958c6e4502d09a68f63ed0c72691f63a5028')
+        txs = srv.gettransactions(address, max_txs=5)
+        self.assertGreaterEqual(len(txs), 5)
+        txs = srv.gettransactions(address, after_txid=after_txid, max_txs=5)
+        self.assertGreaterEqual(len(txs), 5)
