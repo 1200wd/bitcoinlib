@@ -117,8 +117,10 @@ class BcoinClient(BaseClient):
         return self._parse_transaction(tx)
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+        assert(max_txs > 0)
         txs = []
         while True:
+            res = []
             variables = {'limit': max_txs, 'after': after_txid}
             retries = 0
             while retries < 3:
@@ -137,10 +139,10 @@ class BcoinClient(BaseClient):
                 txs.append(self._parse_transaction(tx))
             if not txs or len(txs) >= max_txs:
                 break
-            # if len(res) == LIMIT_TX:
-            #     after_txid = res[LIMIT_TX-1]['hash']
-            # else:
-            #     break
+            if len(res) == max_txs:
+                after_txid = res[max_txs-1]['hash']
+            else:
+                break
 
         # Check which outputs are spent/unspent for this address
         if not after_txid:
