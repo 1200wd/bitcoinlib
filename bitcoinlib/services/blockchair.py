@@ -100,7 +100,7 @@ class BlockChairClient(BaseClient):
         res = self.compose_request('dashboards/transaction/', data=tx_id)
 
         tx = res['data'][tx_id]['transaction']
-        confirmations = res['context']['state'] - tx['block_id']
+        confirmations = 0 if tx['block_id'] <= 0 else res['context']['state'] - tx['block_id']
         status = 'unconfirmed'
         if confirmations:
             status = 'confirmed'
@@ -112,8 +112,8 @@ class BlockChairClient(BaseClient):
             input_total = tx['output_total']
         t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], hash=tx['hash'],
-                        date=datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S"),
-                        confirmations=confirmations, block_height=tx['block_id'], status=status,
+                        date=None if not confirmations else datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S"),
+                        confirmations=confirmations, block_height=tx['block_id'] if tx['block_id'] > 0 else None, status=status,
                         input_total=input_total, coinbase=tx['is_coinbase'],
                         output_total=tx['output_total'], witness_type=witness_type)
         index_n = 0

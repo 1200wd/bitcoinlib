@@ -826,7 +826,8 @@ class Input(object):
                                    script_type=self.script_type, witness_type=self.witness_type).address
             self.witnesses = []
             if self.signatures and self.keys:
-                self.witnesses = [self.signatures[0].as_der_encoded() + struct.pack('B', hash_type), self.keys[0].public_byte]
+                self.witnesses = [self.signatures[0].as_der_encoded() +
+                                  struct.pack('B', hash_type) if hash_type else b'', self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))

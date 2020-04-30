@@ -85,10 +85,12 @@ class BitGoClient(BaseClient):
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)
         t = Transaction.import_raw(tx['hex'], network=self.network)
+        t.status = 'unconfirmed'
+        t.date = None
         if tx['confirmations']:
             t.status = 'confirmed'
+            t.date = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
         t.hash = tx_id
-        t.date = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
         t.confirmations = tx['confirmations']
         if 'height' in tx:
             t.block_height = tx['height']

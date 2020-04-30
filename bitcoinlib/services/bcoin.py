@@ -54,13 +54,12 @@ class BcoinClient(BaseClient):
         if tx['confirmations']:
             status = 'confirmed'
         t = Transaction.import_raw(tx['hex'])
-        print(tx['hex'])
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']
-        t.date = datetime.fromtimestamp(tx['time'])
+        t.date = datetime.fromtimestamp(tx['time']) if tx['time'] else None
         t.confirmations = tx['confirmations']
-        t.block_height = tx['height']
+        t.block_height = tx['height'] if tx['height'] > 0 else None
         t.block_hash = tx['block']
         t.status = status
         if t.coinbase:

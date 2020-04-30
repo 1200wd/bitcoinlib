@@ -88,12 +88,18 @@ class BlockchainInfoClient(BaseClient):
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
         if 'block_height' in tx and tx['block_height']:
+            latest_block = self.blockcount()
             t.status = 'confirmed'
+            t.date = datetime.fromtimestamp(tx['time'])
+            t.block_height = tx['block_height']
+            t.confirmations = 1
+            if latest_block > t.block_height:
+                t.confirmations = latest_block - t.block_height
         else:
             t.status = 'unconfirmed'
+            t.confirmations = 0
+            t.date = None
         t.hash = tx_id
-        t.date = datetime.fromtimestamp(tx['time'])
-        t.block_height = 0 if 'block_height' not in tx else tx['block_height']
         t.rawtx = raw_tx
         t.size = tx['size']
         t.network_name = self.network

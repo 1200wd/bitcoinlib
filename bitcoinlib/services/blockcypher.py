@@ -97,7 +97,7 @@ class BlockCypher(BaseClient):
         else:
             t.status = 'unconfirmed'
         t.confirmations = tx['confirmations']
-        t.block_height = tx['block_height'] if tx['block_height'] > 0 else 0
+        t.block_height = tx['block_height'] if tx['block_height'] > 0 else None
         t.block_hash = tx.get('block_hash')
         t.fee = tx['fees']
         t.rawtx = tx['hex']
