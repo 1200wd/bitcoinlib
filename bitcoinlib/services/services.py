@@ -419,6 +419,9 @@ class Service(object):
                 self.cache.store_blockcount(self._blockcount)
         return self._blockcount
 
+    def getblock(self, blockid):
+        return self._provider_execute('getblock', blockid)
+
     def mempool(self, txid=''):
         """
         Get list of all transaction IDs in the current mempool

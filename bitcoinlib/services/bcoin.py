@@ -42,7 +42,7 @@ class BcoinClient(BaseClient):
     def compose_request(self, func, data='', parameter='', variables=None, method='get'):
         url_path = func
         if data:
-            url_path += '/' + data
+            url_path += '/' + str(data)
         if parameter:
             url_path += '/' + parameter
         if variables is None:
@@ -54,6 +54,7 @@ class BcoinClient(BaseClient):
         if tx['confirmations']:
             status = 'confirmed'
         t = Transaction.import_raw(tx['hex'])
+        print(tx['hex'])
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']
@@ -188,3 +189,7 @@ class BcoinClient(BaseClient):
         elif txid in txids:
             return [txid]
         return []
+
+    def getblock(self, blockid):
+        block = self.compose_request('block', blockid)
+        return block
