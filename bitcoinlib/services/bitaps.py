@@ -150,7 +150,7 @@ class BitapsClient(BaseClient):
             if len(txs) > max_txs:
                 break
             page += 1
-            if page > res['data']['pages']:
+            if page >= res['data']['pages']:
                 break
         return txs[:max_txs]
 

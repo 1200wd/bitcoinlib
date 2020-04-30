@@ -719,7 +719,6 @@ class Cache(object):
             new_node = dbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.index_n, value=i.value,
                                               is_input=True)
             self.session.add(new_node)
-            self.commit()
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
@@ -727,7 +726,6 @@ class Cache(object):
             new_node = dbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
                                               is_input=False, spent=o.spent)
             self.session.add(new_node)
-            self.commit()
 
         try:
             self.commit()
