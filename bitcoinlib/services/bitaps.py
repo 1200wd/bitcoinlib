@@ -174,3 +174,7 @@ class BitapsClient(BaseClient):
             res = self.compose_request('transactions', type='mempool')
             return [tx['hash'] for tx in res['data']['transactions']]
         return []
+
+    def getblock(self, blockid):
+        block = self.compose_request('block', str(blockid), variables={'transactions': True, 'limit': 50})
+        return block

@@ -189,6 +189,30 @@ class BcoinClient(BaseClient):
             return [txid]
         return []
 
-    def getblock(self, blockid):
+    def getblock(self, blockid, parse_transactions=True):
         block = self.compose_request('block', blockid)
+        block['total_txs'] = len(block['txs'])
+        txs = block['txs']
+        # block['txs'] = [tx['hash'] for tx in txs]
+        parsed_txs = []
+        for tx in txs:
+            tx['confirmations'] = block['depth']
+            tx['time'] = block['time']
+            tx['height'] = block['height']
+            tx['block'] = block['hash']
+            try:
+                t = self._parse_transaction(tx)
+            except Exception as e:
+                _logger.error("Could not parse tx %s with error %s" % (t.hash, e))
+            parsed_txs.append(t)
+
+        block['txs'] = parsed_txs
         return block
+        # t = Transaction.import_raw(tx['hex'])
+        # t.locktime = tx['locktime']
+        # t.network = self.network
+        # t.fee = tx['fee']
+        # t.date = datetime.fromtimestamp(tx['time']) if tx['time'] else None
+        # t.confirmations = tx['confirmations']
+        # t.block_height = tx['height'] if tx['height'] > 0 else None
+        # t.block_hash = tx['block']
