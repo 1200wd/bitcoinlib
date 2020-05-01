@@ -38,12 +38,13 @@ class BlockChairClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, command, query_vars=None, variables=None, data=None, offset=0, method='get'):
+    def compose_request(self, command, query_vars=None, variables=None, data=None, offset=0, limit=REQUEST_LIMIT,
+                        method='get'):
         url_path = ''
         if not variables:
             variables = {}
         if command not in ['stats', 'mempool']:
-            variables.update({'limit': REQUEST_LIMIT})
+            variables.update({'limit': limit})
         if offset:
             variables.update({'offset': offset})
         if command:
@@ -209,3 +210,37 @@ class BlockChairClient(BaseClient):
         else:
             res = self.compose_request('mempool', data='transactions')
         return [tx['hash'] for tx in res['data'] if 'hash' in tx]
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if limit > 100:
+            limit = 100
+        res = self.compose_request('dashboards/block/', data=str(blockid), offset=(page-1)*limit, limit=limit)
+        bd = res['data'][str(blockid)]['block']
+        txids = res['data'][str(blockid)]['transactions']
+        if parse_transactions:
+            txs = []
+            for txid in txids:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = txids
+
+        block = {
+            'bits': bd['bits'],
+            'depth': None,
+            'hash': bd['hash'],
+            'height': bd['id'],
+            'merkle_root': bd['merkle_root'],
+            'nonce': bd['nonce'],
+            'prev_block': None,
+            'time': datetime.strptime(bd['time'], "%Y-%m-%d %H:%M:%S"),
+            'total_txs': bd['transaction_count'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
+            'limit': limit
+        }
+        return block

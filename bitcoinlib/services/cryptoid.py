@@ -157,3 +157,5 @@ class CryptoID(BaseClient):
         if 'confirmations' not in tx:
             return [tx['txid']]
         return []
+
+    # def block

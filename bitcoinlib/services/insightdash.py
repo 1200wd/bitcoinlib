@@ -18,14 +18,16 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 from datetime import datetime
-import struct
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'insightdash'
 REQUEST_LIMIT = 50
+
+_logger = logging.getLogger(__name__)
 
 
 class InsightDashClient(BaseClient):
@@ -143,3 +145,33 @@ class InsightDashClient(BaseClient):
         if res['confirmations'] == 0:
             return res['txid']
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        bd = self.compose_request('block', str(blockid))
+        if parse_transactions:
+            txs = []
+            for txid in bd['tx'][(page-1)*limit:page*limit]:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = bd['tx']
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousblockhash'],
+            'time': datetime.fromtimestamp(bd['time']),
+            'total_txs': len(bd['tx']),
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'limit': limit
+        }
+        return block

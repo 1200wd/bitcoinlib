@@ -1257,8 +1257,8 @@ class Transaction(object):
             self.hash = to_hexstring(self.signature_hash()[::-1])
 
     def __repr__(self):
-        return "<Transaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
-               (len(self.inputs), len(self.outputs), self.status, self.network.name)
+        return "<Transaction(id=%s, inputs=%d, outputs=%d, status=%s, network=%s)>" % \
+               (self.hash, len(self.inputs), len(self.outputs), self.status, self.network.name)
 
     def __str__(self):
         return self.hash

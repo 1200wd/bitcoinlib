@@ -186,3 +186,38 @@ class SmartbitClient(BaseClient):
             if tx['transaction']['confirmations'] == 0:
                 return [tx['transaction']['hash']]
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if limit > 100:
+            limit = 100
+        if page > 1:
+            return False
+        variables = {'limit': limit}
+        bd = self.compose_request('block', str(blockid), variables=variables)['block']
+        if parse_transactions:
+            txs = []
+            for tx in bd['transactions']:
+                try:
+                    txs.append(self._parse_transaction(tx))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+        else:
+            txs = [tx['txid'] for tx in bd['transactions']]
+
+        block = {
+            'bits': int(bd['bits'], 16),
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previous_block_hash'],
+            'time': datetime.fromtimestamp(bd['time']),
+            'total_txs': bd['transaction_count'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
+            'limit': limit
+        }
+        return block

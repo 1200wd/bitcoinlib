@@ -167,3 +167,33 @@ class BitGoClient(BaseClient):
         return self.compose_request('block', 'latest')['height']
 
     # def mempool
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        bd = self.compose_request('block', str(blockid))
+        if parse_transactions:
+            txs = []
+            for txid in bd['transactions'][(page-1)*limit:page*limit]:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = bd['transactions']
+
+        block = {
+            'bits': None,
+            'depth': None,
+            'hash': bd['id'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleRoot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previous'],
+            'time': datetime.strptime(bd['date'], "%Y-%m-%dT%H:%M:%S.%fZ"),
+            'total_txs': len(bd['transactions']),
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(len(bd['transactions']) // limit) + (len(bd['transactions']) % limit > 0),
+            'limit': limit
+        }
+        return block

@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 from datetime import datetime
 import struct
 from bitcoinlib.main import MAX_TRANSACTIONS
@@ -26,6 +27,8 @@ from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'litecoinblockexplorer'
 REQUEST_LIMIT = 50
+
+_logger = logging.getLogger(__name__)
 
 
 class LitecoinBlockexplorerClient(BaseClient):
@@ -64,8 +67,9 @@ class LitecoinBlockexplorerClient(BaseClient):
                             script_type='coinbase', sequence=ti['sequence'])
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
-                            index_n=ti['n'], value=value, sequence=ti['sequence'],
+                us = '' if 'hex' not in ti['scriptSig'] else ti['scriptSig']['hex']
+                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=us,
+                            index_n=ti['n'], value=value, sequence=ti['sequence'], address=ti['addr'],
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
@@ -142,3 +146,33 @@ class LitecoinBlockexplorerClient(BaseClient):
         if res['confirmations'] == 0:
             return res['txid']
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        bd = self.compose_request('block', str(blockid))
+        if parse_transactions:
+            txs = []
+            for tx in bd['tx'][(page-1)*limit:page*limit]:
+                try:
+                    txs.append(self.gettransaction(tx['id']))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (tx['id'], e))
+        else:
+            txs = [tx['id'] for tx in bd['tx']]
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousblockhash'],
+            'time': datetime.fromtimestamp(bd['time']),
+            'total_txs': len(bd['tx']),
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'limit': limit
+        }
+        return block

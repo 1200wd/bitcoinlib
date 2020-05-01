@@ -174,3 +174,35 @@ class BlockCypher(BaseClient):
             if tx['confirmations'] == 0:
                 return [tx['hash']]
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if limit > 100:
+            limit = 100
+        bd = self.compose_request('blocks', str(blockid), variables={'limit': limit, 'txstart': (page-1)*limit})
+        if parse_transactions:
+            txs = []
+            for txid in bd['txids']:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = bd['txids']
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['depth'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['mrkl_root'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['prev_block'],
+            'time': datetime.strptime(bd['time'], "%Y-%m-%dT%H:%M:%SZ"),
+            'total_txs': bd['n_tx'],
+            'txs': txs,
+            'version': bd['ver'],
+            'page': page,
+            'pages': int(bd['n_tx'] // limit) + (bd['n_tx'] % limit > 0),
+            'limit': limit
+        }
+        return block

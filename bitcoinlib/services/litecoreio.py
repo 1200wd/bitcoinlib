@@ -20,12 +20,15 @@
 
 from datetime import datetime
 import struct
+import logging
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'litecoreio'
 REQUEST_LIMIT = 50
+
+_logger = logging.getLogger(__name__)
 
 
 class LitecoreIOClient(BaseClient):
@@ -144,3 +147,35 @@ class LitecoreIOClient(BaseClient):
         if res['confirmations'] == 0:
             return res['txid']
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if isinstance(blockid, int):
+            blockid = self.compose_request('block-index', str(blockid))['blockHash']
+        bd = self.compose_request('block', blockid)
+        if parse_transactions:
+            txs = []
+            for txid in bd['tx'][(page-1)*limit:page*limit]:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = bd['tx']
+
+        block = {
+            'bits': int(bd['bits'], 16),
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousblockhash'],
+            'time': datetime.fromtimestamp(bd['time']),
+            'total_txs': len(bd['tx']),
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'limit': limit
+        }
+        return block

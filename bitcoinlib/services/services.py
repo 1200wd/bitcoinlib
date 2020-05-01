@@ -419,8 +419,15 @@ class Service(object):
                 self.cache.store_blockcount(self._blockcount)
         return self._blockcount
 
-    def getblock(self, blockid):
-        return self._provider_execute('getblock', blockid)
+    def getblock(self, blockid, parse_transactions=False, page=1, limit=None):
+        if not limit:
+            limit = 10 if parse_transactions else 99999
+        block = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
+        if parse_transactions and 'txs' in block and self.min_providers <= 1:
+            for tx in block['txs']:
+                self.cache.store_transaction(tx, 0)
+        self.complete = True if len(block['txs']) == block['total_txs'] else False
+        return block
 
     def mempool(self, txid=''):
         """

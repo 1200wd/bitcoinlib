@@ -175,6 +175,38 @@ class BitapsClient(BaseClient):
             return [tx['hash'] for tx in res['data']['transactions']]
         return []
 
-    def getblock(self, blockid):
-        block = self.compose_request('block', str(blockid), variables={'transactions': True, 'limit': 50})
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if limit > 100:
+            limit = 100
+        res = self.compose_request('block', str(blockid),
+                                   variables={'transactions': True, 'limit': limit, 'page': page})
+        bd = res['data']['block']
+        td = res['data']['transactions']
+        txids = [tx['txId'] for tx in td['list']]
+        if parse_transactions:
+            txs = []
+            for txid in txids:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = txids
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleRoot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousBlockHash'],
+            'time': datetime.fromtimestamp(bd['blockTime']),
+            'total_txs': bd['transactionsCount'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': td['page'],
+            'pages': td['pages'],
+            'limit': td['limit']
+        }
         return block
