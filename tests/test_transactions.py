@@ -960,7 +960,8 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual(t.output_total, 4534776015)
         self.assertEqual(t.size, 523)
         self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
-        self.assertEqual(repr(t), '<Transaction(input_count=3, output_count=2, status=new, network=bitcoin)>')
+        self.assertEqual(repr(t), '<Transaction(id=6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74, '
+                                  'inputs=3, outputs=2, status=new, network=bitcoin)>')
         self.assertEqual(str(t), '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
 
     def test_transaction_sendto_wrong_address(self):
