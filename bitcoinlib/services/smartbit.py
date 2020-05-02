@@ -182,7 +182,7 @@ class SmartbitClient(BaseClient):
     def getblock(self, blockid, parse_transactions, page, limit):
         if limit > 100:
             limit = 100
-        if page > 1:
+        if page > 1:  # Paging does not work with Smartbit
             return False
         variables = {'limit': limit}
         bd = self.compose_request('block', str(blockid), variables=variables)['block']
