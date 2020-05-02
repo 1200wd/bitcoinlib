@@ -56,7 +56,7 @@ class Service(object):
     """
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
-                 timeout=TIMEOUT_REQUESTS, cache_uri=None):
+                 timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False):
         """
         Open a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -73,6 +73,8 @@ class Service(object):
         :type timeout: int
         :param cache_uri: Database to use for caching
         :type cache_uri: str
+        :param ignore_priority: Ignores provider priority if set to True. Could be used for unit testing, so no providers are missed when testing. Default is False
+        :type ignore_priority: bool
 
         """
 
@@ -121,6 +123,7 @@ class Service(object):
         self.cache = None
         self.cache = Cache(self.network, db_uri=cache_uri)
         self.results_cache_n = 0
+        self.ignore_priority = ignore_priority
         if self.min_providers > 1:
             self._blockcount = Service(network=network).blockcount()
         else:
@@ -136,6 +139,8 @@ class Service(object):
         self._reset_results()
         provider_lst = [p[0] for p in sorted([(x, self.providers[x]['priority']) for x in self.providers],
                         key=lambda x: (x[1], random.random()), reverse=True)]
+        if self.ignore_priority:
+            random.shuffle(provider_lst)
 
         for sp in provider_lst:
             if self.resultcount >= self.max_providers:
