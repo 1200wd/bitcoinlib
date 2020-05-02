@@ -3606,6 +3606,7 @@ class HDWallet(object):
             rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
             rt.vsize = t['vsize']
             rt.size = t['size']
+            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
