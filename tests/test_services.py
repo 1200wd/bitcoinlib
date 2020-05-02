@@ -673,6 +673,31 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     self.assertEqual(srv.getutxos(address)[0]['tx_hash'], tx_hash)
     #     self.assertEqual(srv.gettransactions(address)[0].hash, tx_hash)
 
+    def test_service_getblock_height(self):
+        srv = Service(timeout=TIMEOUT_TEST)
+        b = srv.getblock(599999, parse_transactions=True, limit=3)
+        print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        self.assertEqual(b['height'], 599999)
+        self.assertEqual(b['hash'], '00000000000000000003ecd827f336c6971f6f77a0b9fba362398dd867975645')
+        self.assertEqual(b['merkle_root'], 'ca13ce7f21619f73fb5a062696ec06a4427c6ad9e523e7bc1cf5287c137ddcea')
+        self.assertEqual(b['nonce'], 687352075)
+        if list(srv.results.keys())[0] != 'blockchair':
+            self.assertEqual(b['prev_block'], '00000000000000000006c6a3fdbfe651c87e207ca0109749899a6116baa33bf0')
+        self.assertEqual(b['time'].replace(second=0), datetime(2019, 10, 19, 0, 2, 0))
+        self.assertEqual(b['total_txs'], 3394)
+        self.assertEqual(b['version'], 536928256)
+
+        t1 = b['txs'][1]
+        self.assertEqual(t1.hash, '23d7e1fb5c6749c00cb9f0f0c993e0b92c477f095658a8fdaa07ed706209b288')
+        self.assertEqual(t1.size, 246)
+        self.assertEqual(t1.fee, 84000)
+        self.assertEqual(t1.locktime, 0)
+        self.assertEqual(t1.inputs[0].address, '3Fe8L5dUaRn4uLHQLsfUGSJAT6S23Wtk47')
+        self.assertEqual(t1.inputs[0].prev_hash.hex(),
+                 'a3cc61610b3a662fd3d3d6b4bf15c6a295cb8246f90e8fe132852f8265a4713b')
+        self.assertEqual(t1.outputs[1].address, '3ADMeKFFJB4cNJ3mYNGTsaFv85ad5ZcjHu')
+        self.assertEqual(t1.outputs[1].value, 8638768306)
+
 
 class TestServiceCache(unittest.TestCase):
 

@@ -24,6 +24,7 @@ from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import varstr, to_bytes, to_hexstring
+from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
 
@@ -73,25 +74,16 @@ class SmartbitClient(BaseClient):
                 unlocking_script = ti['script_sig']['hex']
                 witness_type = 'legacy'
                 if ti['witness'] and ti['witness'] != ['NULL']:
-                    witness_type = 'segwit'
+                    address = Address.import_address(ti['addresses'][0])
+                    if address.script_type == 'p2sh':
+                        witness_type = 'p2sh-segwit'
+                    else:
+                        witness_type = 'segwit'
                     unlocking_script = b"".join([varstr(to_bytes(x)) for x in ti['witness']])
-                # if tx['inputs']['witness']
-
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
                             witness_type=witness_type)
                 index_n += 1
-
-                # if ti['spending_witness']:
-                #     witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
-                #     t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
-                #                 unlocking_script=witnesses, index_n=index_n, value=ti['value'],
-                #                 address=ti['recipient'], witness_type='segwit')
-                # else:
-                #     t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
-                #                 unlocking_script_unsigned=ti['script_hex'], index_n=index_n, value=ti['value'],
-                #                 address=ti['recipient'], unlocking_script=ti['spending_signature_hex'])
-
 
         for to in tx['outputs']:
             spent = True if 'spend_txid' in to and to['spend_txid'] else False
@@ -212,7 +204,7 @@ class SmartbitClient(BaseClient):
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previous_block_hash'],
-            'time': datetime.fromtimestamp(bd['time']),
+            'time': datetime.utcfromtimestamp(bd['time']),
             'total_txs': bd['transaction_count'],
             'txs': txs,
             'version': bd['version'],

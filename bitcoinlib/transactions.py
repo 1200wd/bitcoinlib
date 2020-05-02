@@ -1525,7 +1525,7 @@ class Transaction(object):
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
         else:
-            if not (self.size and b'' in [i.unlocking_script for i in self.inputs]):
+            if not self.size and not b'' in [i.unlocking_script for i in self.inputs]:
                 self.size = len(r)
         return r
 

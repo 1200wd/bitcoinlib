@@ -201,7 +201,7 @@ class BitapsClient(BaseClient):
             'merkle_root': bd['merkleRoot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousBlockHash'],
-            'time': datetime.fromtimestamp(bd['blockTime']),
+            'time': datetime.utcfromtimestamp(bd['blockTime']),
             'total_txs': bd['transactionsCount'],
             'txs': txs,
             'version': bd['version'],

@@ -57,7 +57,7 @@ class BcoinClient(BaseClient):
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']
-        t.date = datetime.fromtimestamp(tx['time']) if tx['time'] else None
+        t.date = datetime.utcfromtimestamp(tx['time']) if tx['time'] else None
         t.confirmations = tx['confirmations']
         t.block_height = tx['height'] if tx['height'] > 0 else None
         t.block_hash = tx['block']
@@ -195,7 +195,7 @@ class BcoinClient(BaseClient):
         txs = block['txs']
         parsed_txs = []
         if parse_transactions:
-            txs = txs[page*limit-limit:page*limit]
+            txs = txs[(page-1)*limit:page*limit]
         for tx in txs:
             tx['confirmations'] = block['depth']
             tx['time'] = block['time']
@@ -209,6 +209,7 @@ class BcoinClient(BaseClient):
             else:
                 parsed_txs.append(tx['hash'])
 
+        block['time'] = datetime.utcfromtimestamp(block['time'])
         block['txs'] = parsed_txs
         block['page'] = page
         block['pages'] = int(block['total_txs'] // limit) + (block['total_txs'] % limit > 0)

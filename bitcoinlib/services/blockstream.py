@@ -111,10 +111,10 @@ class BlockstreamClient(BaseClient):
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=sum([o['value'] for o in tx['vout']]))
             else:
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'],
-                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], index_n=index_n,
-                            value=ti['prevout']['value'], address=ti['prevout']['scriptpubkey_address'],
-                            unlocking_script=ti['scriptsig'])
+                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                            unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
+                            address=ti['prevout']['scriptpubkey_address'],
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'])
             index_n += 1
         index_n = 0
         for to in tx['vout']:
@@ -127,6 +127,7 @@ class BlockstreamClient(BaseClient):
         if 'segwit' in [i.witness_type for i in t.inputs]:
             t.witness_type = 'segwit'
         t.update_totals()
+        t.size = tx['size']
         return t
 
     def gettransaction(self, txid, blockcount=None):
@@ -217,7 +218,7 @@ class BlockstreamClient(BaseClient):
             'merkle_root': bd['merkle_root'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousblockhash'],
-            'time': datetime.fromtimestamp(bd['timestamp']),
+            'time': datetime.utcfromtimestamp(bd['timestamp']),
             'total_txs': bd['tx_count'],
             'txs': txs,
             'version': bd['version'],
