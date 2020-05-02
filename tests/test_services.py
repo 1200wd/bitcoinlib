@@ -595,8 +595,8 @@ class TestService(unittest.TestCase, CustomAssertions):
         txid = 'bac36bcf8f0f27752d6fa6909e49d710d95b575fa41cf7802b01291c71b30c21'
         address = 'LVqLipGhyQ1nWtPPc8Xp3zn6JxcU1Hi8eG'
         srv = Service(network='litecoin_legacy', timeout=TIMEOUT_TEST)
-
         tx = srv.gettransaction(txid)
+        print(list(srv.results.keys())[0])
         self.assertEqual(tx.inputs[0].address, '3HbvJBjPxJ1wGYHiUJBkfmZziZohzhQhmy')
 
         balance = srv.getbalance(address)
@@ -693,7 +693,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(t1.fee, 84000)
         self.assertEqual(t1.locktime, 0)
         self.assertEqual(t1.inputs[0].address, '3Fe8L5dUaRn4uLHQLsfUGSJAT6S23Wtk47')
-        self.assertEqual(t1.inputs[0].prev_hash.hex(),
+        self.assertEqual(to_hexstring(t1.inputs[0].prev_hash),
                  'a3cc61610b3a662fd3d3d6b4bf15c6a295cb8246f90e8fe132852f8265a4713b')
         self.assertEqual(t1.outputs[1].address, '3ADMeKFFJB4cNJ3mYNGTsaFv85ad5ZcjHu')
         self.assertEqual(t1.outputs[1].value, 8638768306)
@@ -714,6 +714,30 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(b['version'], 1)
         self.assertIn(b['txs'][0], ['ae72f54b96db5422173a39641d3d87a50ff9757d2b4ee052fb46186aad56e3af', 
                                     '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577'])
+
+    def test_service_getblock_litecoin(self):
+        srv = Service(timeout=TIMEOUT_TEST, ignore_priority=True, network='litecoin')
+        b = srv.getblock(1000000, parse_transactions=True, limit=2)
+        print("Test getblock using provider %s" % list(srv.results.keys())[0])
+        self.assertEqual(b['height'], 1000000)
+        self.assertEqual(b['hash'], '8ceae698f0a2d338e39b213eb9c253a91a270ca6451a4d9bba7bf2c9e637dfda')
+        self.assertEqual(b['merkle_root'], '8473ff4c3ae380d9d1bf0f1f0b5c389676d3a3877923c0a23e9b21388624c5ab')
+        self.assertEqual(b['nonce'], 282613863)
+        if list(srv.results.keys())[0] != 'blockchair.litecoin':
+            self.assertEqual(b['prev_block'], 'a08b044b936d9e6bdf496a562eb1325fc131fce3cc13a270417d96551054bc30')
+        self.assertEqual(b['time'].replace(second=0), datetime(2016, 5, 29, 15, 47, 0))
+        self.assertEqual(b['total_txs'], 18)
+        self.assertEqual(b['version'], 4)
+
+        t1 = b['txs'][1]
+        self.assertEqual(t1.hash, '6e7bfce6aee69312629b1f60afe6dcef02f367207642f2dc380a554c21181eb2')
+        self.assertEqual(t1.size, 225)
+        self.assertEqual(t1.fee, 200000)
+        self.assertEqual(t1.locktime, 0)
+        self.assertEqual(t1.inputs[0].address, 'LQW7Swb2rqW1HSNoqcxeQqqyzN9ZrLHux8')
+        self.assertEqual(to_hexstring(t1.inputs[0].prev_hash), 'd4668ec9fe59feee65e6800b186a89b8c8fe16fda9661393037e4ccb5c439abe')
+        self.assertEqual(t1.outputs[1].address, 'LMY9Uc2rLjPwf3trcUvsT7QNs7NeyGcbY3')
+        self.assertEqual(t1.outputs[1].value, 10000000000)
 
 
 class TestServiceCache(unittest.TestCase):

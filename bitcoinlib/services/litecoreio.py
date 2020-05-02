@@ -170,7 +170,7 @@ class LitecoreIOClient(BaseClient):
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousblockhash'],
-            'time': datetime.fromtimestamp(bd['time']),
+            'time': datetime.utcfromtimestamp(bd['time']),
             'total_txs': len(bd['tx']),
             'txs': txs,
             'version': bd['version'],
