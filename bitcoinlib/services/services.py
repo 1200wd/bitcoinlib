@@ -24,6 +24,7 @@ import json
 import random
 import time
 from datetime import timedelta
+from sqlalchemy import func
 from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
 from bitcoinlib.main import BCL_DATA_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
@@ -249,12 +250,15 @@ class Service(object):
         utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
         if utxos and len(utxos) >= max_txs:
             self.complete = False
+        elif not after_txid:
+            balance = sum(u['value'] for u in utxos)
+            self.cache.store_address(address, balance=balance, n_utxos=len(utxos))
 
         return utxos_cache + utxos
 
     def gettransaction(self, txid):
         """
-        Get a transaction by its transaction hash. Convert to Bitcoinlib transaction object.
+        Get a transaction by its transaction hashtxos. Convert to Bitcoinlib transaction object.
 
         :param txid: Transaction identification hash
         :type txid: str, bytes
@@ -338,7 +342,7 @@ class Service(object):
                         if tx.block_height:
                             last_block = tx.block_height - 1
                         break
-                self.cache.store_address(address, last_block)
+                self.cache.store_address(address, last_block, txs_complete=self.complete)
 
         return txs_cache + txs
 
@@ -514,7 +518,7 @@ class Cache(object):
         """
         if not SERVICE_CACHING_ENABLED:
             return False
-        db_tx = self.session.query(dbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
+        db_tx = self.session.query(DbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
         if not db_tx:
             return False
         db_tx.txid = txid
@@ -527,11 +531,11 @@ class Cache(object):
         :param address: Address string
         :type address: str
 
-        :return dbCacheAddress: An address cache database object
+        :return DbCacheAddress: An address cache database object
         """
         if not SERVICE_CACHING_ENABLED:
             return
-        return self.session.query(dbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
+        return self.session.query(DbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         """
@@ -552,14 +556,14 @@ class Cache(object):
         txs = []
         if db_addr:
             if after_txid:
-                after_tx = self.session.query(dbCacheTransaction).\
+                after_tx = self.session.query(DbCacheTransaction).\
                     filter_by(txid=after_txid, network_name=self.network.name).scalar()
                 if after_tx:
-                    db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode).\
-                        filter(dbCacheTransactionNode.address == address,
-                               dbCacheTransaction.block_height >= after_tx.block_height,
-                               dbCacheTransaction.block_height <= db_addr.last_block).\
-                        order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n).all()
+                    db_txs = self.session.query(DbCacheTransaction).join(DbCacheTransactionNode).\
+                        filter(DbCacheTransactionNode.address == address,
+                               DbCacheTransaction.block_height >= after_tx.block_height,
+                               DbCacheTransaction.block_height <= db_addr.last_block).\
+                        order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all()
                     db_txs2 = []
                     for d in db_txs:
                         db_txs2.append(d)
@@ -569,9 +573,9 @@ class Cache(object):
                 else:
                     return []
             else:
-                db_txs = self.session.query(dbCacheTransaction).join(dbCacheTransactionNode). \
-                    filter(dbCacheTransactionNode.address == address). \
-                    order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n).all()
+                db_txs = self.session.query(DbCacheTransaction).join(DbCacheTransactionNode). \
+                    filter(DbCacheTransactionNode.address == address). \
+                    order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all()
             for db_tx in db_txs:
                 txs.append(self._parse_db_transaction(db_tx))
                 if len(txs) >= max_txs:
@@ -590,7 +594,7 @@ class Cache(object):
         """
         if not SERVICE_CACHING_ENABLED:
             return False
-        tx = self.session.query(dbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
+        tx = self.session.query(DbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
         if not tx:
             return False
         return tx.raw
@@ -610,13 +614,13 @@ class Cache(object):
         """
         if not SERVICE_CACHING_ENABLED:
             return []
-        db_utxos = self.session.query(dbCacheTransactionNode.spent, dbCacheTransactionNode.output_n,
-                                      dbCacheTransactionNode.value, dbCacheTransaction.confirmations,
-                                      dbCacheTransaction.block_height, dbCacheTransaction.fee,
-                                      dbCacheTransaction.date, dbCacheTransaction.txid).join(dbCacheTransaction). \
-            order_by(dbCacheTransaction.block_height, dbCacheTransaction.order_n). \
-            filter(dbCacheTransactionNode.address == address, dbCacheTransactionNode.is_input == False,
-                   dbCacheTransaction.network_name == self.network.name).all()
+        db_utxos = self.session.query(DbCacheTransactionNode.spent, DbCacheTransactionNode.output_n,
+                                      DbCacheTransactionNode.value, DbCacheTransaction.confirmations,
+                                      DbCacheTransaction.block_height, DbCacheTransaction.fee,
+                                      DbCacheTransaction.date, DbCacheTransaction.txid).join(DbCacheTransaction). \
+            order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n). \
+            filter(DbCacheTransactionNode.address == address, DbCacheTransactionNode.is_input == False,
+                   DbCacheTransaction.network_name == self.network.name).all()
         utxos = []
         for db_utxo in db_utxos:
             if db_utxo.spent == False:
@@ -658,8 +662,8 @@ class Cache(object):
             varname = 'fee_medium'
         else:
             varname = 'fee_low'
-        dbvar = self.session.query(dbCacheVars).filter_by(varname=varname, network_name=self.network.name).\
-                                                filter(dbCacheVars.expires > datetime.now()).scalar()
+        dbvar = self.session.query(DbCacheVars).filter_by(varname=varname, network_name=self.network.name).\
+                                                filter(DbCacheVars.expires > datetime.now()).scalar()
         if dbvar:
             return int(dbvar.value)
         return False
@@ -675,9 +679,9 @@ class Cache(object):
         """
         if not SERVICE_CACHING_ENABLED:
             return False
-        qr = self.session.query(dbCacheVars).filter_by(varname='blockcount', network_name=self.network.name)
+        qr = self.session.query(DbCacheVars).filter_by(varname='blockcount', network_name=self.network.name)
         if not never_expires:
-            qr = qr.filter(dbCacheVars.expires > datetime.now())
+            qr = qr.filter(DbCacheVars.expires > datetime.now())
         dbvar = qr.scalar()
         if dbvar:
             return int(dbvar.value)
@@ -694,7 +698,7 @@ class Cache(object):
         """
         if not SERVICE_CACHING_ENABLED:
             return
-        dbvar = dbCacheVars(varname='blockcount', network_name=self.network.name, value=str(blockcount), type='int',
+        dbvar = DbCacheVars(varname='blockcount', network_name=self.network.name, value=str(blockcount), type='int',
                             expires=datetime.now() + timedelta(seconds=60))
         self.session.merge(dbvar)
         self.commit()
@@ -721,9 +725,9 @@ class Cache(object):
         if not raw_hex:    # pragma: no cover
             _logger.info("Caching failure tx: Raw hex missing in transaction")
             return False
-        if self.session.query(dbCacheTransaction).filter_by(txid=t.hash).count():
+        if self.session.query(DbCacheTransaction).filter_by(txid=t.hash).count():
             return
-        new_tx = dbCacheTransaction(txid=t.hash, date=t.date, confirmations=t.confirmations,
+        new_tx = DbCacheTransaction(txid=t.hash, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
                                     fee=t.fee, raw=raw_hex, order_n=order_n)
         self.session.add(new_tx)
@@ -731,14 +735,14 @@ class Cache(object):
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
                 return False
-            new_node = dbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.index_n, value=i.value,
+            new_node = DbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.index_n, value=i.value,
                                               is_input=True)
             self.session.add(new_node)
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
                 return False
-            new_node = dbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
+            new_node = DbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
                                               is_input=False, spent=o.spent)
             self.session.add(new_node)
 
@@ -748,7 +752,7 @@ class Cache(object):
         except Exception as e:    # pragma: no cover
             _logger.warning("Caching failure tx: %s" % e)
 
-    def store_address(self, address, last_block, balance=0):
+    def store_address(self, address, last_block=None, balance=0, n_utxos=None, txs_complete=False):
         """
         Store address information in cache
 
@@ -758,13 +762,27 @@ class Cache(object):
         :type last_block: int
         :param balance: Total balance of address in sathosis, or smallest network detominator
         :type balance: int
+        :param n_utxos: Total number of UTXO's for this address
+        :type n_utxos: int
+        :param txs_complete: True if all transactions for this address are added to cache
+        :type txs_complete: bool
 
         :return:
         """
         if not SERVICE_CACHING_ENABLED:
             return
-        new_address = dbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
-                                     balance=balance)
+        n_txs = None
+        if txs_complete:
+            n_txs = self.session.query(DbCacheTransaction).join(DbCacheTransactionNode). \
+                    filter(DbCacheTransactionNode.address == address). \
+                    order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).count()
+            if not balance:
+                plusmin = self.session.query(DbCacheTransactionNode.is_input, func.sum(DbCacheTransactionNode.value)). \
+                    filter(DbCacheTransactionNode.address == address).group_by(DbCacheTransactionNode.is_input).all()
+                balance = [(-p[1] if p[0] else p[1]) for p in plusmin][0]
+        # label('total_balance', func.sum(User.balance))).group_by(User.group).all()
+        new_address = DbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
+                                     balance=balance, n_utxos=n_utxos, n_txs=n_txs)
         self.session.merge(new_address)
         try:
             self.commit()
@@ -790,7 +808,7 @@ class Cache(object):
             varname = 'fee_medium'
         else:
             varname = 'fee_low'
-        dbvar = dbCacheVars(varname=varname, network_name=self.network.name, value=fee, type='int',
+        dbvar = DbCacheVars(varname=varname, network_name=self.network.name, value=fee, type='int',
                             expires=datetime.now() + timedelta(seconds=600))
         self.session.merge(dbvar)
         self.commit()
