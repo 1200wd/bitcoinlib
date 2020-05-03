@@ -193,7 +193,7 @@ class BitcoindClient(BaseClient):
             o.spent = None
         t.block_hash = tx['blockhash']
         t.version = struct.pack('>L', tx['version'])
-        t.date = datetime.fromtimestamp(tx['blocktime'])
+        t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.hash = txid
         t.update_totals()
         return t

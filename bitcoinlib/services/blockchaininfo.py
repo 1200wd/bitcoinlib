@@ -91,7 +91,7 @@ class BlockchainInfoClient(BaseClient):
             if not latest_block:
                 latest_block = self.blockcount()
             t.status = 'confirmed'
-            t.date = datetime.fromtimestamp(tx['time'])
+            t.date = datetime.utcfromtimestamp(tx['time'])
             t.block_height = tx['block_height']
             t.confirmations = 1
             if latest_block > t.block_height:
@@ -171,7 +171,7 @@ class BlockchainInfoClient(BaseClient):
             'merkle_root': bd['mrkl_root'],
             'nonce': bd['nonce'],
             'prev_block': bd['prev_block'],
-            'time': datetime.fromtimestamp(bd['time']),
+            'time': datetime.utcfromtimestamp(bd['time']),
             'total_txs': len(bd['tx']),
             'txs': txs,
             'version': bd['ver'],

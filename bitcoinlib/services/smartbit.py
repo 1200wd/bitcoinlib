@@ -58,7 +58,7 @@ class SmartbitClient(BaseClient):
         input_total = tx['input_amount_int']
         t_time = None
         if tx['time']:
-            t_time = datetime.fromtimestamp(tx['time'])
+            t_time = datetime.utcfromtimestamp(tx['time'])
         if tx['coinbase']:
             input_total = tx['output_amount_int']
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],

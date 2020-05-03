@@ -56,9 +56,9 @@ class BitapsClient(BaseClient):
             t.status = 'confirmed'
         t.hash = tx['txId']
         if 'timestamp' in tx and tx['timestamp']:
-            t.date = datetime.fromtimestamp(tx['timestamp'])
+            t.date = datetime.utcfromtimestamp(tx['timestamp'])
         elif 'blockTime' in tx and tx['blockTime']:
-            t.date = datetime.fromtimestamp(tx['blockTime'])
+            t.date = datetime.utcfromtimestamp(tx['blockTime'])
         t.confirmations = tx['confirmations']
         if 'blockHeight' in tx:
             t.block_height = tx['blockHeight']
@@ -119,7 +119,7 @@ class BitapsClient(BaseClient):
                             'size': 0,
                             'value': utxo['value'],
                             'script': utxo['scriptPubKey'],
-                            'date': datetime.fromtimestamp(tx['timestamp'])
+                            'date': datetime.utcfromtimestamp(tx['timestamp'])
                          }
                     )
                 if tx['hash'] == after_txid:

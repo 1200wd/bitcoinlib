@@ -82,7 +82,7 @@ class BlockstreamClient(BaseClient):
                 'size': 0,
                 'value': a['value'],
                 'script': '',
-                'date': None if 'block_time' not in a['status'] else datetime.fromtimestamp(a['status']['block_time'])
+                'date': None if 'block_time' not in a['status'] else datetime.utcfromtimestamp(a['status']['block_time'])
             })
             if a['txid'] == after_txid:
                 utxos = []
@@ -102,7 +102,7 @@ class BlockstreamClient(BaseClient):
         fee = None if 'fee' not in tx else tx['fee']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fee, size=tx['size'], hash=tx['txid'],
-                        date=None if 'block_time' not in tx['status'] else datetime.fromtimestamp(tx['status']['block_time']),
+                        date=None if 'block_time' not in tx['status'] else datetime.utcfromtimestamp(tx['status']['block_time']),
                         confirmations=confirmations, block_height=block_height, status=status,
                         coinbase=tx['vin'][0]['is_coinbase'])
         index_n = 0

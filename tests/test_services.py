@@ -391,7 +391,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'output_total': 1845340,
             'size': 964,
             'hash': '2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700',
-            'date': datetime(2017, 8, 4)
+            'date': datetime(2017, 8, 4, 5, 17, 27)
         }
 
         srv = ServiceTest(network='bitcoin', min_providers=10, timeout=10)

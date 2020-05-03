@@ -150,7 +150,7 @@ class DashdClient(BaseClient):
             i.value = value
         t.block_hash = tx['blockhash']
         t.version = tx['version']
-        t.date = datetime.fromtimestamp(tx['blocktime'])
+        t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
 

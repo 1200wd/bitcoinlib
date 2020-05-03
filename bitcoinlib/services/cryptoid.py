@@ -106,7 +106,7 @@ class CryptoID(BaseClient):
         else:
             t.status = 'unconfirmed'
         t.hash = tx_id
-        t.date = datetime.fromtimestamp(tx['time'])
+        t.date = datetime.utcfromtimestamp(tx['time'])
         t.block_height = tx_api['block']
         t.block_hash = tx['blockhash']
         t.confirmations = tx['confirmations']

@@ -199,7 +199,7 @@ class LitecoindClient(BaseClient):
             o.spent = None
         t.block_hash = tx['blockhash']
         t.version = struct.pack('>L', tx['version'])
-        t.date = datetime.fromtimestamp(tx['blocktime'])
+        t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         t.hash = txid
         return t
