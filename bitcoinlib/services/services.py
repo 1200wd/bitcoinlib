@@ -452,6 +452,26 @@ class Service(object):
         """
         return self._provider_execute('mempool', txid)
 
+    def getcacheaddressinfo(self, address):
+        """
+        Get address information from cache. I.e. balance, number of transactions, number of utox's, etc
+
+        Cache will only be filled after all transactions for a specific address are retrieved (with gettransactions ie)
+
+        :param address: address string
+        :type address: str
+
+        :return dict:
+        """
+        addr_dict = {'address': address}
+        addr_rec = self.cache.getaddress(address)
+        if addr_rec:
+            addr_dict['balance'] = addr_rec.balance
+            addr_dict['last_block'] = addr_rec.last_block
+            addr_dict['n_txs'] = addr_rec.n_txs
+            addr_dict['n_utxos'] = addr_rec.n_utxos
+        return addr_dict
+
 
 class Cache(object):
     """
@@ -779,7 +799,7 @@ class Cache(object):
             if not balance:
                 plusmin = self.session.query(DbCacheTransactionNode.is_input, func.sum(DbCacheTransactionNode.value)). \
                     filter(DbCacheTransactionNode.address == address).group_by(DbCacheTransactionNode.is_input).all()
-                balance = [(-p[1] if p[0] else p[1]) for p in plusmin][0]
+                balance = sum([(-p[1] if p[0] else p[1]) for p in plusmin])
         # label('total_balance', func.sum(User.balance))).group_by(User.group).all()
         new_address = DbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
                                      balance=balance, n_utxos=n_utxos, n_txs=n_txs)
