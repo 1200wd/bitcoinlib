@@ -213,6 +213,8 @@ class Service(object):
             balance = self._provider_execute('getbalance', addresslist[:addresses_per_request])
             if balance:
                 tot_balance += balance
+            if len(addresslist) == 1:
+                self.cache.store_address(addresslist[0], balance=balance)
             addresslist = addresslist[addresses_per_request:]
         return tot_balance
 
