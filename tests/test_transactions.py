@@ -199,7 +199,7 @@ class TestTransactions(unittest.TestCase):
                 '8e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70f01874496feff2103c96d495bfdd5' \
                 'ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000'
         self.assertRaisesRegexp(TransactionError,
-                                'Could not parse witnesses in transaction. Multisig redeemscript expected',
+                                "Error when deserializing raw transaction, bytes left for locktime must be 4 not 3",
                                 Transaction.import_raw, rawtx)
 
     def test_transactions_verify_signature(self):

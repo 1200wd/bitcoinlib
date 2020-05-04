@@ -143,15 +143,19 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                     elif len(witness) == item_size + size:  # Redeemscript
                         rsds = script_deserialize(witness, script_types=['multisig'])
                         if not rsds['script_type'] == 'multisig':
-                            raise TransactionError("Could not parse witnesses in transaction. Multisig redeemscript "
-                                                   "expected")
-                        # FIXME: Do not mixup naming signatures and keys
-                        keys = rsds['signatures']
-                        sigs_required = rsds['number_of_sigs_m']
-                        witness_script_type = 'p2sh'
-                        script_type = 'p2sh_multisig'
+                            _logger.warning("Could not parse witnesses in transaction. Multisig redeemscript expected")
+                            witness_script_type = 'unknown'
+                            script_type = 'unknown'
+                        else:
+                            # FIXME: Do not mixup naming signatures and keys
+                            keys = rsds['signatures']
+                            sigs_required = rsds['number_of_sigs_m']
+                            witness_script_type = 'p2sh'
+                            script_type = 'p2sh_multisig'
                     else:
-                        raise TransactionError("Could not parse witnesses in transaction")
+                        witness_script_type = 'unknown'
+                        script_type = 'unknown'
+                        _logger.warning("Could not parse witnesses in transaction")
 
                 inp_witness_type = inputs[n].witness_type
                 usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
@@ -888,7 +892,7 @@ class Input(object):
                 self.unlocking_script_unsigned = self.script_code
             if self.signatures:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + struct.pack('B', hash_type))
-        elif self.script_type != 'coinbase':
+        elif self.script_type not in ['coinbase', 'unknown']:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data:
             self.address = Address(addr_data, encoding=self.encoding, network=self.network,
@@ -1458,7 +1462,7 @@ class Transaction(object):
         if not script_code:
             script_code = self.inputs[sign_id].script_code
 
-        if not script_code or script_code == b'\0':
+        if (not script_code or script_code == b'\0') and self.inputs[sign_id].script_type != 'unknown':
             raise TransactionError("Script code missing")
 
         ser_tx = \

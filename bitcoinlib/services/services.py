@@ -244,7 +244,7 @@ class Service(object):
         if utxos_cache:
             self.results_cache_n = len(utxos_cache)
             db_addr = self.cache.getaddress(address)
-            if db_addr and db_addr.last_block >= self._blockcount:
+            if db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount:
                 return utxos_cache
             else:
                 after_txid = utxos_cache[-1:][0]['tx_hash']

@@ -23,13 +23,14 @@ latest_block = srv.getblock(latest_block)
 transactions = latest_block['txs']
 print("Found %d transactions" % len(transactions))
 
-MAX_TRANSACTIONS = 100
+MAX_TRANSACTIONS = 1000
 count = 0
 count_segwit = 0
-for tx in transactions[:MAX_TRANSACTIONS]:
+for txid in transactions[:MAX_TRANSACTIONS]:
     print("\n=== Deserialize transaction #%d (segwit %d) ===" % (count, count_segwit))
     count += 1
-    t = srv.gettransaction(tx['hash'])
+    t = srv.gettransaction(txid)
+    assert(txid == t.hash)
 
     t.verify()
     t.info()
