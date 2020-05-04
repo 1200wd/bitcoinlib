@@ -318,7 +318,7 @@ class Service(object):
 
         # Get (extra) transactions from service providers
         txs = []
-        if not(db_addr and db_addr.last_block >= self._blockcount):
+        if not(db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount):
             txs = self._provider_execute('gettransactions', address, qry_after_txid,  max_txs)
             if txs == False:
                 raise ServiceError("Error when retrieving transactions from service provider")
@@ -799,7 +799,7 @@ class Cache(object):
             if not balance:
                 plusmin = self.session.query(DbCacheTransactionNode.is_input, func.sum(DbCacheTransactionNode.value)). \
                     filter(DbCacheTransactionNode.address == address).group_by(DbCacheTransactionNode.is_input).all()
-                balance = sum([(-p[1] if p[0] else p[1]) for p in plusmin])
+                balance = 0 if not plusmin else sum([(-p[1] if p[0] else p[1]) for p in plusmin])
         # label('total_balance', func.sum(User.balance))).group_by(User.group).all()
         new_address = DbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
                                      balance=balance, n_utxos=n_utxos, n_txs=n_txs)
