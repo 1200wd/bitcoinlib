@@ -743,10 +743,12 @@ class Cache(object):
             _logger.info("Caching failure tx: Incomplete transaction missing hash, date, block_height, "
                          "network or confirmations info")
             return False
-        raw_hex = t.raw_hex()
-        if not raw_hex:    # pragma: no cover
-            _logger.info("Caching failure tx: Raw hex missing in transaction")
-            return False
+        raw_hex = None
+        if CACHE_STORE_RAW_TRANSACTIONS:
+            raw_hex = t.raw_hex()
+            if not raw_hex:    # pragma: no cover
+                _logger.info("Caching failure tx: Raw hex missing in transaction")
+                return False
         if self.session.query(DbCacheTransaction).filter_by(txid=t.hash).count():
             return
         new_tx = DbCacheTransaction(txid=t.hash, date=t.date, confirmations=t.confirmations,

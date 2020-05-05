@@ -189,6 +189,7 @@ UNITTESTS_FULL_DATABASE_TEST = False
 
 # CACHING
 SERVICE_CACHING_ENABLED = True
+CACHE_STORE_RAW_TRANSACTIONS = False
 
 
 def read_config():
@@ -214,7 +215,7 @@ def read_config():
     global ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global BCL_LOG_FILE, LOGLEVEL, ENABLE_BITCOINLIB_LOGGING
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
-    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED
+    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED, CACHE_STORE_RAW_TRANSACTIONS
 
     # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
     config_file_name = os.environ.get('BCL_CONFIG_FILE')
@@ -253,6 +254,8 @@ def read_config():
     DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
     DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
+
+    CACHE_STORE_RAW_TRANSACTIONS = config_get('common', 'cache_store_raw_transactions', fallback=False, is_boolean=True)
 
     # Convert paths to strings
 
