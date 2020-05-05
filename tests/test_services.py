@@ -586,6 +586,13 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
+    def test_service_gettransaction_large_p2sh(self):
+        srv = ServiceTest(timeout=TIMEOUT_TEST)
+        txid = 'c5b0bce9acfcd32961493a7f1ae1dcfc4371f56ebdcbd23d6125875a845eb33d'
+        t = srv.gettransaction(txid)
+        self.assertEqual(t.hash, txid)
+        self.assertTrue(t.verify())
+
     def test_service_gettransaction_nulldata(self):
         nulldata_str = b'jK0\nfrom bitcoinlib.transactions import Output\nfrom bitcoinlib.wallets import'
         srv = ServiceTest(timeout=TIMEOUT_TEST)
