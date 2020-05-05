@@ -332,6 +332,10 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     cur += 1
                 elif ch == 'SIGHASH_ALL':
                     pass
+                    # TODO: Fix signature parsing: SIGHASHALL not part of signature...
+                    # if cur_char != SIGHASH_ALL:
+                    #     found = False
+                    #     break
                 elif ch == 'locktime_cltv':
                     if len(script) < 4:
                         found = False
@@ -773,6 +777,7 @@ class Input(object):
             self.compressed = True
         if self.sort:
             self.keys.sort(key=lambda k: k.public_byte)
+        self.hash_type = SIGHASH_ALL
         for sig in signatures:
             if not isinstance(sig, Signature):
                 try:
@@ -782,7 +787,9 @@ class Input(object):
                     continue
             if sig.as_der_encoded() not in [x.as_der_encoded() for x in self.signatures]:
                 self.signatures.append(sig)
-        self.update_scripts()
+                if sig.hash_type:
+                    self.hash_type = sig.hash_type
+        self.update_scripts(hash_type=self.hash_type)
 
     # TODO: Remove / replace?
     # def sequence_timelock_blocks(self, blocks):

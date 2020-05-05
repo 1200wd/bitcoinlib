@@ -1910,17 +1910,18 @@ class Signature(object):
 
         der_signature = ''
         signature = to_bytes(signature)
+        hash_type = SIGHASH_ALL
         if len(signature) > 64 and signature.startswith(b'\x30'):
-            der_signature = signature
-            if der_signature.endswith(b'\x01'):
-                der_signature = der_signature[:-1]
+            der_signature = signature[:-1]
+            hash_type = change_base(signature[-1:], 256, 10)
             signature = convert_der_sig(signature[:-1], as_hex=False)
         signature = to_hexstring(signature)
         if len(signature) != 128:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
         r = int(signature[:64], 16)
         s = int(signature[64:], 16)
-        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key)
+        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
+                         hash_type=hash_type)
 
     @staticmethod
     def create(tx_hash, private, use_rfc6979=True, k=None):
@@ -1994,7 +1995,8 @@ class Signature(object):
                 s = secp256k1_n - s
             return Signature(r, s, tx_hash, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
 
-    def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None, k=None):
+    def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
+                 hash_type=SIGHASH_ALL):
         """
         Initialize Signature object with provided r and r value
 
@@ -2035,9 +2037,12 @@ class Signature(object):
         self.secret = None if not secret else int(secret)
         self._der_encoded = to_bytes(der_signature)
         self._signature = to_bytes(signature)
+        if signature and len(signature) != 128:
+            raise BKeyError('Invalid Signature: length must be 64 bytes')
         self._public_key = None
         self.public_key = public_key
         self.k = k
+        self.hash_type = hash_type
 
     def __repr__(self):
         der_sig = '' if not self._der_encoded else to_hexstring(self._der_encoded)

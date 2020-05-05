@@ -23,18 +23,20 @@ latest_block = srv.getblock(latest_block)
 transactions = latest_block['txs']
 print("Found %d transactions" % len(transactions))
 
-MAX_TRANSACTIONS = 1000
+MAX_TRANSACTIONS = 10000
 count = 0
 count_segwit = 0
 for txid in transactions[:MAX_TRANSACTIONS]:
-    print("\n=== Deserialize transaction #%d (segwit %d) ===" % (count, count_segwit))
+    print("\n=== Deserialize transaction %s (#%d, segwit %d) ===" % (txid, count, count_segwit))
     count += 1
     t = srv.gettransaction(txid)
-    assert(txid == t.hash)
+    if txid != t.hash:
+        raise Exception("Different txid: %s != %s" % (txid, t.hash))
 
     t.verify()
-    t.info()
+    # t.info()
     if t.witness_type != 'legacy':
         count_segwit += 1
     if not t.verified:
-        input("Transaction could not be verified, press any key to continue")
+        print(50 * "!")
+        print("Transaction could not be verified!!")
