@@ -529,6 +529,8 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=
     size_byte = b''
     if not as_list:
         rs_size = int_to_varbyteint(len(redeemscript))
+        if len(rs_size) > 1:
+            rs_size = rs_size[1:]
         if len(redeemscript) >= 76:
             if len(rs_size) == 1:
                 size_byte = b'\x4c'
