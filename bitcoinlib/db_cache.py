@@ -69,11 +69,15 @@ class DbCacheTransactionNode(Base):
     __tablename__ = 'cache_transactions_node'
     txid = Column(String(64), ForeignKey('cache_transactions.txid'), primary_key=True)
     transaction = relationship("DbCacheTransaction", back_populates='nodes', doc="Related transaction object")
-    output_n = Column(BigInteger, primary_key=True, doc="Output_n of previous transaction output that is spent in this input")
+    output_n = Column(BigInteger, primary_key=True,
+                      doc="Output_n of previous transaction output that is spent in this input")
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
     address = Column(String(255), doc="Address string base32 or base58 encoded")
     spent = Column(Boolean, default=None, doc="Is output spent?")
+    spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
+    spending_index_n = Column(Integer, primary_key=True,
+                              doc="Index number of transaction input which spends this output")
 
 
 class DbCacheTransaction(Base):
