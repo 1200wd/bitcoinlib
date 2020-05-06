@@ -26,7 +26,7 @@ srv = Service(providers=['bcoin'])
 # blocks = range(1, 100000)
 
 # Check some more recent blocks
-blocks = range(625000, 629060)
+blocks = range(625010, 629060)
 
 
 for block in blocks:

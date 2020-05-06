@@ -415,7 +415,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     return data
 
 
-def script_to_string(script):
+def script_to_string(script, name_data=False):
     """
     Convert script to human readable string format with OP-codes, signatures, keys, etc
     
@@ -433,7 +433,13 @@ def script_to_string(script):
     data = script_deserialize(script)
     if not data or data['script_type'] == 'empty':
         return ""
-    sigs = ' '.join([to_hexstring(i) for i in data['signatures']])
+    if name_data:
+        name = 'signature'
+        if data['signatures'] and len(data['signatures'][0]) in [33, 65]:
+            name = 'key'
+        sigs = ' '.join(['%s-%d' % (name, i) for i in range(1, len(data['signatures'])+1)])
+    else:
+        sigs = ' '.join([to_hexstring(i) for i in data['signatures']])
 
     try:
         scriptstr = SCRIPT_TYPES_LOCKING[data['script_type']]
@@ -441,7 +447,7 @@ def script_to_string(script):
         scriptstr = SCRIPT_TYPES_UNLOCKING[data['script_type']]
     scriptstr = [sigs if x in ['signature', 'multisig', 'return_data'] else x for x in scriptstr]
     if 'redeemscript' in data and data['redeemscript']:
-        redeemscript_str = script_to_string(data['redeemscript'])
+        redeemscript_str = script_to_string(data['redeemscript'], name_data=name_data)
         scriptstr = [redeemscript_str if x == 'redeemscript' else x for x in scriptstr]
     scriptstr = [opcodenames[80 + int(data['number_of_sigs_m'])] if x == 'op_m' else x for x in scriptstr]
     scriptstr = [opcodenames[80 + int(data['number_of_sigs_n'])] if x == 'op_n' else x for x in scriptstr]
@@ -1241,8 +1247,10 @@ class Transaction(object):
 
         if isinstance(version, int):
             self.version = struct.pack('>L', version)
+            self.version_int = version
         else:
             self.version = version
+            self.version_int = struct.unpack('>L', version)[0]
         self.locktime = locktime
         self.network = network
         if not isinstance(network, Network):
@@ -1305,7 +1313,7 @@ class Transaction(object):
             'outputs': outputs,
             'input_total': self.input_total,
             'output_total': self.output_total,
-            'version': struct.unpack('>L', self.version)[0],
+            'version': self.version_int,
             'locktime': self.locktime,
             'raw': self.raw_hex(),
             'size': self.size,
@@ -1336,7 +1344,7 @@ class Transaction(object):
                 print("Locktime: Until block %d" % self.locktime)
             else:
                 print("Locktime: Until %s UTC" % datetime.utcfromtimestamp(self.locktime))
-        print("Version: %d" % struct.unpack('>L', self.version)[0])
+        print("Version: %d" % self.version_int)
         print("Witness type: %s" % self.witness_type)
         print("Status: %s" % self.status)
         print("Verified: %s" % self.verified)
