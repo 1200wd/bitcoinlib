@@ -76,8 +76,7 @@ class DbCacheTransactionNode(Base):
     address = Column(String(255), doc="Address string base32 or base58 encoded")
     spent = Column(Boolean, default=None, doc="Is output spent?")
     spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
-    spending_index_n = Column(Integer, primary_key=True,
-                              doc="Index number of transaction input which spends this output")
+    spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
 
 
 class DbCacheTransaction(Base):
