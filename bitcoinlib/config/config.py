@@ -255,7 +255,7 @@ def read_config():
     DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
 
-    CACHE_STORE_RAW_TRANSACTIONS = config_get('common', 'cache_store_raw_transactions', fallback=False, is_boolean=True)
+    CACHE_STORE_RAW_TRANSACTIONS = config_get('common', 'cache_store_raw_transactions', fallback=True, is_boolean=True)
 
     # Convert paths to strings
 

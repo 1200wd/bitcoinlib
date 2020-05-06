@@ -337,8 +337,9 @@ class Service(object):
             if len(self.results):
                 order_n = 0
                 for tx in txs:
-                    res = self.cache.store_transaction(tx, order_n)
-                    order_n += 1
+                    if tx.confirmations != 0:
+                        res = self.cache.store_transaction(tx, order_n)
+                        order_n += 1
                     # Failure to store transaction: stop caching transaction and store last tx block height - 1
                     if res == False:
                         if tx.block_height:
@@ -509,6 +510,8 @@ class Cache(object):
             raise
 
     def _parse_db_transaction(self, db_tx):
+        if not db_tx.raw:
+            return False
         t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
         for n in db_tx.nodes:
             if n.is_input:
@@ -599,9 +602,11 @@ class Cache(object):
                     filter(DbCacheTransactionNode.address == address). \
                     order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all()
             for db_tx in db_txs:
-                txs.append(self._parse_db_transaction(db_tx))
-                if len(txs) >= max_txs:
-                    break
+                t = self._parse_db_transaction(db_tx)
+                if t:
+                    txs.append(t)
+                    if len(txs) >= max_txs:
+                        break
             return txs
         return []
 
@@ -739,9 +744,11 @@ class Cache(object):
         if not SERVICE_CACHING_ENABLED:
             return
         # Only store complete and confirmed transaction in cache
-        if not t.hash or not t.date or not t.block_height or not t.network or not t.confirmations:    # pragma: no cover
+        if not t.hash:    # pragma: no cover
             _logger.info("Caching failure tx: Incomplete transaction missing hash, date, block_height, "
                          "network or confirmations info")
+            return False
+        elif not t.date or not t.block_height or not t.network or not t.confirmations:
             return False
         raw_hex = None
         if CACHE_STORE_RAW_TRANSACTIONS:

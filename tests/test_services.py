@@ -757,7 +757,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
 class TestServiceCache(unittest.TestCase):
 
-    # TODO: Add msyql and postgres support
+    # TODO: Add mysql and postgres support
     @classmethod
     def setUpClass(cls):
         if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS):
