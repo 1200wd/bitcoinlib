@@ -88,7 +88,7 @@ class SmartbitClient(BaseClient):
         for to in tx['outputs']:
             spent = False
             spending_txid = None
-            if 'spend_txid' in to:
+            if 'spend_txid' in to and to['spend_txid']:
                 spent = True
                 spending_txid = to['spend_txid']
             address = ''
