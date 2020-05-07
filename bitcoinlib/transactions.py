@@ -974,7 +974,8 @@ class Output(object):
     """
 
     def __init__(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                 output_n=0, script_type=None, encoding=None, network=DEFAULT_NETWORK):
+                 output_n=0, script_type=None, encoding=None, spending_txid='', spending_index_n=None,
+                 network=DEFAULT_NETWORK):
         """
         Create a new transaction output
         
@@ -1003,6 +1004,10 @@ class Output(object):
         :type script_type: str
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from address or default base58 encoding
         :type encoding: str
+        :param spending_txid: Transaction hash of input spending this transaction output
+        :type spending_txid: str
+        :param spending_index_n: Index number of input spending this transaction output
+        :type spending_index_n: int
         :param network: Network, leave empty for default
         :type network: str, Network
         """
@@ -1103,6 +1108,8 @@ class Output(object):
             else:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
+        self.spending_txid = spending_txid
+        self.spending_index_n = spending_index_n
         # if self.script_type != 'nulldata' and value < self.network.dust_amount:
         #     raise TransactionError("Output to %s must be more then dust amount %d" %
         #                            (self.address, self.network.dust_amount))
@@ -1123,6 +1130,8 @@ class Output(object):
             'address': self.address,
             'output_n': self.output_n,
             'spent': self.spent,
+            'spending_txid': self.spending_txid,
+            'spending_index_n': self.spending_index_n,
         }
 
     def __repr__(self):
@@ -1774,7 +1783,7 @@ class Transaction(object):
         return index_n
 
     def add_output(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,
-                   output_n=None, encoding=None):
+                   output_n=None, encoding=None, spending_txid=None, spending_index_n=None):
         """
         Add an output to this transaction
         
@@ -1796,6 +1805,10 @@ class Transaction(object):
         :type output_n: int
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for to derive from script or script type
         :type encoding: str
+        :param spending_txid: Transaction hash of input spending this transaction output
+        :type spending_txid: str
+        :param spending_index_n: Index number of input spending this transaction output
+        :type spending_index_n: int
 
         :return int: Transaction output number (output_n)
         """
@@ -1812,7 +1825,8 @@ class Transaction(object):
         #     raise TransactionError("Output must be more then dust amount %d" % self.network.dust_amount)
         self.outputs.append(Output(value=int(value), address=address, public_hash=public_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
-                                   encoding=encoding, network=self.network.name))
+                                   encoding=encoding, spending_txid=spending_txid, spending_index_n=spending_index_n,
+                                   network=self.network.name))
         return output_n
 
     def estimate_size(self, add_change_output=False):

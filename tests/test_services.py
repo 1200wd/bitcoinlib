@@ -518,14 +518,16 @@ class TestService(unittest.TestCase, CustomAssertions):
                  'public_key_hash': '536ffa992491508dca0354e52f32a3a7a679a53a',
                  'script': '76a914536ffa992491508dca0354e52f32a3a7a679a53a88ac',
                  'script_type': 'p2pkh',
-                 'value': 1717718311
+                 'value': 1717718311,
+                 'spent': True,
+                 'spending_txid': '3dce59e01ac169d384b603e9884c871a34c2c02000e4afb3f83ba7c2cc7a25dd',
+                 'spending_index_n': 0,
                  },
                 {'address': '',
                  'output_n': 1,
                  'public_key_hash': '',
                  'script': '6a24aa21a9ed8e77dfd1d42865e64f1d5ef40f74eeb2ad21c8c40c71f6e615a7c1fcb7701629',
                  'script_type': 'nulldata',
-                 'spent': False,
                  'value': 0
                  },
             ],
@@ -539,8 +541,12 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
+            for o in srv.results[provider].outputs:
+                if o.spending_txid == '':
+                    o.spending_txid = None
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
-                                    ['block_hash', 'block_height', 'spent', 'value', 'flag'])
+                                    ['block_hash', 'block_height', 'spent', 'spending_txid', 'spending_index_n',
+                                     'value', 'flag'])
 
     def test_service_gettransaction_segwit_p2wpkh(self):
         expected_dict = {

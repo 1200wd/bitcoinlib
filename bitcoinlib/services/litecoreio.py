@@ -74,7 +74,9 @@ class LitecoreIOClient(BaseClient):
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
-                         spent=True if to['spentTxId'] else False, output_n=to['n'])
+                         spent=True if to['spentTxId'] else False, output_n=to['n'],
+                         spending_txid=None if not to['spentTxId'] else to['spentTxId'],
+                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
         return t
 
     def getbalance(self, addresslist):

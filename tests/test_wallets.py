@@ -1615,7 +1615,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 50000000, offline=True)
         t2 = wlt.transaction_import_raw(t.raw())
-        self.assertDictEqualExt(t.as_dict(), t2.as_dict())
+        self.assertDictEqualExt(t.as_dict(), t2.as_dict(), ['spending_txid', 'spending_index_n'])
         del wlt
 
     def test_wallet_transaction_import_dict(self):

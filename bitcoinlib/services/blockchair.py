@@ -144,7 +144,8 @@ class BlockChairClient(BaseClient):
             except EncodingError:
                 addr = ''
             t.add_output(value=to['value'], address=addr, lock_script=to['script_hex'],
-                         spent=to['is_spent'], output_n=to['index'])
+                         spent=to['is_spent'], output_n=to['index'], spending_txid=to['spending_transaction_hash'],
+                         spending_index_n=to['spending_index'])
         return t
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):

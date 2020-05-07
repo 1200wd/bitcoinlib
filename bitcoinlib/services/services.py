@@ -519,6 +519,8 @@ class Cache(object):
                 t.inputs[n.output_n].address = n.address
             else:
                 t.outputs[n.output_n].spent = n.spent
+                t.outputs[n.output_n].spending_txid = n.spending_txid
+                t.outputs[n.output_n].spending_index_n = n.spending_index_n
         t.hash = db_tx.txid
         t.date = db_tx.date
         t.confirmations = db_tx.confirmations
@@ -774,7 +776,8 @@ class Cache(object):
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
                 return False
             new_node = DbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
-                                              is_input=False, spent=o.spent)
+                                              is_input=False, spent=o.spent, spending_txid=o.spending_txid,
+                                              spending_index_n=o.spending_index_n)
             self.session.add(new_node)
 
         try:
@@ -804,14 +807,12 @@ class Cache(object):
             return
         n_txs = None
         if txs_complete:
-            n_txs = self.session.query(DbCacheTransaction).join(DbCacheTransactionNode). \
-                    filter(DbCacheTransactionNode.address == address). \
-                    order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).count()
+            n_txs = len(self.session.query(DbCacheTransaction).filter(DbCacheTransactionNode.address == address). \
+                        order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all())
             if not balance:
                 plusmin = self.session.query(DbCacheTransactionNode.is_input, func.sum(DbCacheTransactionNode.value)). \
                     filter(DbCacheTransactionNode.address == address).group_by(DbCacheTransactionNode.is_input).all()
                 balance = 0 if not plusmin else sum([(-p[1] if p[0] else p[1]) for p in plusmin])
-        # label('total_balance', func.sum(User.balance))).group_by(User.group).all()
         new_address = DbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
                                      balance=balance, n_utxos=n_utxos, n_txs=n_txs)
         self.session.merge(new_address)

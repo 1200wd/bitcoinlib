@@ -73,6 +73,8 @@ class BitapsClient(BaseClient):
         for o in t.outputs:
             if tx['vOut'][str(o.output_n)]['spent']:
                 o.spent = True
+                o.spending_txid = tx['vOut'][str(o.output_n)]['spent'][0]['txId']
+                o.spending_index_n = tx['vOut'][str(o.output_n)]['spent'][0]['vIn']
         if t.coinbase:
             t.input_total = tx['outputsAmount'] - t.fee
         else:

@@ -145,15 +145,26 @@ class BcoinClient(BaseClient):
                 break
 
         # Check which outputs are spent/unspent for this address
+        spend_list = {}
         if not after_txid:
-            address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
-                              [t.inputs for t in txs] for inp in ti if inp.address == address]
-            for tx in txs:
-                for to in tx.outputs:
+            for t in txs:
+                for inp in t.inputs:
+                    if inp.address == address:
+                        spend_list.update({(to_hexstring(inp.prev_hash), inp.output_n_int): t})
+            address_inputs = list(spend_list.keys())
+            for t in txs:
+                for to in t.outputs:
                     if to.address != address:
                         continue
-                    spent = True if (tx.hash, to.output_n) in address_inputs else False
-                    txs[txs.index(tx)].outputs[to.output_n].spent = spent
+                    spent = True if (t.hash, to.output_n) in address_inputs else False
+                    txs[txs.index(t)].outputs[to.output_n].spent = spent
+                    if spent:
+                        spending_tx = spend_list[(t.hash, to.output_n)]
+                        spending_index_n = \
+                            [inp for inp in txs[txs.index(spending_tx)].inputs
+                             if to_hexstring(inp.prev_hash) == t.hash and inp.output_n_int == to.output_n][0].index_n
+                        txs[txs.index(t)].outputs[to.output_n].spending_txid = spending_tx.hash
+                        txs[txs.index(t)].outputs[to.output_n].spending_index_n = spending_index_n
         return txs
 
     def getrawtransaction(self, txid):

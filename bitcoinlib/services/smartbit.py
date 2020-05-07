@@ -86,12 +86,16 @@ class SmartbitClient(BaseClient):
                 index_n += 1
 
         for to in tx['outputs']:
-            spent = True if 'spend_txid' in to and to['spend_txid'] else False
+            spent = False
+            spending_txid = None
+            if 'spend_txid' in to:
+                spent = True
+                spending_txid = to['spend_txid']
             address = ''
             if to['addresses']:
                 address = to['addresses'][0]
             t.add_output(value=to['value_int'], address=address, lock_script=to['script_pub_key']['hex'],
-                         spent=spent, output_n=to['n'])
+                         spent=spent, output_n=to['n'], spending_txid=spending_txid)
         return t
 
     def getbalance(self, addresslist):

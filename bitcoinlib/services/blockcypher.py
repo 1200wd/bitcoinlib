@@ -122,7 +122,7 @@ class BlockCypher(BaseClient):
         for n, o in enumerate(t.outputs):
             if 'spent_by' in tx['outputs'][n]:
                 o.spent = True
-        # t.raw_hex()
+                o.spending_txid = tx['outputs'][n]['spent_by']
         return t
 
     def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
