@@ -90,6 +90,8 @@ class BcoinClient(BaseClient):
     def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = self.gettransactions(address, after_txid=after_txid, max_txs=max_txs)
         utxos = []
+        if len(txs) == max_txs:
+            raise ClientError("If not all transactions known, we cannot determine utxo's")
         for tx in txs:
             for unspent in tx.outputs:
                 if unspent.address != address:
@@ -158,6 +160,7 @@ class BcoinClient(BaseClient):
                         continue
                     spent = True if (t.hash, to.output_n) in address_inputs else False
                     txs[txs.index(t)].outputs[to.output_n].spent = spent
+                    print(t.hash, to.output_n, spent)
                     if spent:
                         spending_tx = spend_list[(t.hash, to.output_n)]
                         spending_index_n = \

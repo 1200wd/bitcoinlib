@@ -241,20 +241,28 @@ class Service(object):
         utxos_cache = []
         if self.min_providers <= 1:
             utxos_cache = self.cache.getutxos(address, after_txid)
+        db_addr = self.cache.getaddress(address)
         if utxos_cache:
             self.results_cache_n = len(utxos_cache)
-            db_addr = self.cache.getaddress(address)
+
             if db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount:
                 return utxos_cache
             else:
-                after_txid = utxos_cache[-1:][0]['tx_hash']
+                utxos_cache = []
+                # after_txid = utxos_cache[-1:][0]['tx_hash']
+        # if db_addr and db_addr.last_txid:
+        #     after_txid = db_addr.last_txid
 
         utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
-        if utxos and len(utxos) >= max_txs:
+        if utxos is False:
             self.complete = False
-        elif not after_txid:
-            balance = sum(u['value'] for u in utxos)
-            self.cache.store_address(address, balance=balance, n_utxos=len(utxos))
+            return utxos_cache
+        else:
+            if utxos and len(utxos) >= max_txs:
+                self.complete = False
+            elif not after_txid:
+                balance = sum(u['value'] for u in utxos)
+                self.cache.store_address(address, balance=balance, n_utxos=len(utxos))
 
         return utxos_cache + utxos
 
@@ -330,22 +338,25 @@ class Service(object):
         if self.min_providers <= 1 and not(after_txid and not db_addr):
         # if self.min_providers <= 1:
             last_block = self._blockcount
+            last_txid = qry_after_txid
             self.complete = True
             if len(txs) == max_txs:
                 self.complete = False
                 last_block = txs[-1:][0].block_height
+            if len(txs):
+                last_txid = txs[-1:][0].hash
             if len(self.results):
                 order_n = 0
                 for tx in txs:
                     if tx.confirmations != 0:
                         res = self.cache.store_transaction(tx, order_n)
                         order_n += 1
-                    # Failure to store transaction: stop caching transaction and store last tx block height - 1
-                    if res == False:
-                        if tx.block_height:
-                            last_block = tx.block_height - 1
-                        break
-                self.cache.store_address(address, last_block, txs_complete=self.complete)
+                        # Failure to store transaction: stop caching transaction and store last tx block height - 1
+                        if res is False:
+                            if tx.block_height:
+                                last_block = tx.block_height - 1
+                            break
+                self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=self.complete)
 
         return txs_cache + txs
 
@@ -585,7 +596,7 @@ class Cache(object):
             if after_txid:
                 after_tx = self.session.query(DbCacheTransaction).\
                     filter_by(txid=after_txid, network_name=self.network.name).scalar()
-                if after_tx:
+                if after_tx and db_addr.last_block and after_tx.block_height:
                     db_txs = self.session.query(DbCacheTransaction).join(DbCacheTransactionNode).\
                         filter(DbCacheTransactionNode.address == address,
                                DbCacheTransaction.block_height >= after_tx.block_height,
@@ -786,7 +797,7 @@ class Cache(object):
         except Exception as e:    # pragma: no cover
             _logger.warning("Caching failure tx: %s" % e)
 
-    def store_address(self, address, last_block=None, balance=0, n_utxos=None, txs_complete=False):
+    def store_address(self, address, last_block=None, balance=0, n_utxos=None, txs_complete=False, last_txid=None):
         """
         Store address information in cache
 
@@ -807,14 +818,23 @@ class Cache(object):
             return
         n_txs = None
         if txs_complete:
-            n_txs = len(self.session.query(DbCacheTransaction).filter(DbCacheTransactionNode.address == address). \
-                        order_by(DbCacheTransaction.block_height, DbCacheTransaction.order_n).all())
+            n_txs = len(self.session.query(DbCacheTransaction).join(DbCacheTransactionNode).
+                        filter(DbCacheTransactionNode.address == address).all())
+            if n_utxos is None:
+                n_utxos = self.session.query(DbCacheTransactionNode).\
+                    filter(DbCacheTransactionNode.address == address, DbCacheTransactionNode.spent.is_(False),
+                           DbCacheTransactionNode.is_input.is_(False)).count()
+                if self.session.query(DbCacheTransactionNode).\
+                        filter(DbCacheTransactionNode.address == address, DbCacheTransactionNode.spent.is_(None),
+                               DbCacheTransactionNode.is_input.is_(False)).count():
+                    n_utxos = None
             if not balance:
                 plusmin = self.session.query(DbCacheTransactionNode.is_input, func.sum(DbCacheTransactionNode.value)). \
-                    filter(DbCacheTransactionNode.address == address).group_by(DbCacheTransactionNode.is_input).all()
+                    filter(DbCacheTransactionNode.address == address).\
+                           group_by(DbCacheTransactionNode.is_input).all()
                 balance = 0 if not plusmin else sum([(-p[1] if p[0] else p[1]) for p in plusmin])
         new_address = DbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
-                                     balance=balance, n_utxos=n_utxos, n_txs=n_txs)
+                                     balance=balance, n_utxos=n_utxos, n_txs=n_txs, last_txid=last_txid)
         self.session.merge(new_address)
         try:
             self.commit()

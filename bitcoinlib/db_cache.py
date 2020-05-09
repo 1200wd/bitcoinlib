@@ -117,6 +117,7 @@ class DbCacheAddress(Base):
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
     balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
     last_block = Column(Integer, doc="Number of last updated block")
+    last_txid = Column(String(64), doc="Transaction ID of latest transaction in cache")
     n_utxos = Column(Integer, doc="Total number of UTXO's for this address")
     n_txs = Column(Integer, doc="Total number of transactions for this address")
 
