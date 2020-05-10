@@ -446,6 +446,8 @@ class Service(object):
         if not limit:
             limit = 10 if parse_transactions else 99999
         block = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
+        if not block:
+            return False
         if parse_transactions and 'txs' in block and self.min_providers <= 1:
             for tx in block['txs']:
                 self.cache.store_transaction(tx, 0)
