@@ -53,7 +53,7 @@ class BlocksmurferClient(BaseClient):
             balance += res['data']['balance']
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         res = self.compose_request('utxos', address, {'after_txid': after_txid})
         block_count = self.blockcount()
         utxos = []
@@ -77,7 +77,7 @@ class BlocksmurferClient(BaseClient):
                 'script': u['script'],
                 'date': datetime.strptime(u['date'][:19], "%Y-%m-%dT%H:%M:%S")
             })
-        return utxos[:max_txs]
+        return utxos[:limit]
 
     def _parse_transaction(self, tx):
         t = Transaction.import_raw(tx['raw_hex'], network=self.network)
@@ -105,13 +105,13 @@ class BlocksmurferClient(BaseClient):
         tx = self.compose_request('tx', txid)
         return self._parse_transaction(tx['data'])
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         prtxs = []
         while True:
             res = self.compose_request('tx/address', address, {'after_txid': after_txid})
             txs = res['data']
             prtxs += txs
-            if not txs or len(txs) < max_txs:
+            if not txs or len(txs) < limit:
                 break
             after_txid = txs[-1:][0]['txid']
         txs = []
@@ -119,7 +119,7 @@ class BlocksmurferClient(BaseClient):
             t = self._parse_transaction(tx)
             if t:
                 txs.append(t)
-        return txs[:max_txs]
+        return txs[:limit]
 
     def getrawtransaction(self, txid):
         tx = self.compose_request('tx/hex', txid)

@@ -750,15 +750,16 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(b['total_txs'], 18)
         self.assertEqual(b['version'], 4)
 
-        t1 = b['txs'][1]
-        self.assertEqual(t1.hash, '6e7bfce6aee69312629b1f60afe6dcef02f367207642f2dc380a554c21181eb2')
-        self.assertEqual(t1.size, 225)
-        self.assertEqual(t1.fee, 200000)
-        self.assertEqual(t1.locktime, 0)
-        self.assertEqual(t1.inputs[0].address, 'LQW7Swb2rqW1HSNoqcxeQqqyzN9ZrLHux8')
-        self.assertEqual(to_hexstring(t1.inputs[0].prev_hash), 'd4668ec9fe59feee65e6800b186a89b8c8fe16fda9661393037e4ccb5c439abe')
-        self.assertEqual(t1.outputs[1].address, 'LMY9Uc2rLjPwf3trcUvsT7QNs7NeyGcbY3')
-        self.assertEqual(t1.outputs[1].value, 10000000000)
+        if b['txs']:
+            t1 = b['txs'][1]
+            self.assertEqual(t1.hash, '6e7bfce6aee69312629b1f60afe6dcef02f367207642f2dc380a554c21181eb2')
+            self.assertEqual(t1.size, 225)
+            self.assertEqual(t1.fee, 200000)
+            self.assertEqual(t1.locktime, 0)
+            self.assertEqual(t1.inputs[0].address, 'LQW7Swb2rqW1HSNoqcxeQqqyzN9ZrLHux8')
+            self.assertEqual(to_hexstring(t1.inputs[0].prev_hash), 'd4668ec9fe59feee65e6800b186a89b8c8fe16fda9661393037e4ccb5c439abe')
+            self.assertEqual(t1.outputs[1].address, 'LMY9Uc2rLjPwf3trcUvsT7QNs7NeyGcbY3')
+            self.assertEqual(t1.outputs[1].value, 10000000000)
 
 
 class TestServiceCache(unittest.TestCase):
@@ -773,18 +774,18 @@ class TestServiceCache(unittest.TestCase):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
         address = '1JQ7ybfFBoWhPJpjoihezpeAjd2xv9nXaN'
         # Get 2 transactions, nothing in cache
-        res = srv.gettransactions(address, max_txs=2)
+        res = srv.gettransactions(address, limit=2)
         self.assertGreaterEqual(len(res), 2)
         self.assertEqual(srv.results_cache_n, 0)
         self.assertEqual(res[0].hash, '2ac5145f6e7c47c2ec57ede85ad842b3d9f826feaebf2b00f861359fed3ba4a7')
 
         # Get 10 transactions, 2 in cache rest from service providers
-        res = srv.gettransactions(address, max_txs=10)
+        res = srv.gettransactions(address, limit=10)
         self.assertEqual(len(res), 10)
         self.assertGreaterEqual(srv.results_cache_n, 2)
 
         # Get 10 transactions, all from cache
-        res = srv.gettransactions(address, max_txs=10)
+        res = srv.gettransactions(address, limit=10)
         self.assertEqual(len(res), 10)
         self.assertEqual(srv.results_cache_n, 10)
         self.assertEqual(list(srv.results.values()), [])
@@ -843,7 +844,7 @@ class TestServiceCache(unittest.TestCase):
         address = 'bc1qxfrgfhs49d7dtcfzlhp7f7cwsp8zpp60hywp0f'
         after_txid = '13401ad121c8ae91e18b4bb0db5d8f350a2b0b5ddd5ca26165137bf07fefad90'
         srv.gettransaction('4156e78f347e47d2ccdd4a19614d958c6e4502d09a68f63ed0c72691f63a5028')
-        txs = srv.gettransactions(address, max_txs=5)
+        txs = srv.gettransactions(address, limit=5)
         self.assertGreaterEqual(len(txs), 5)
-        txs = srv.gettransactions(address, after_txid=after_txid, max_txs=5)
+        txs = srv.gettransactions(address, after_txid=after_txid, limit=5)
         self.assertGreaterEqual(len(txs), 5)

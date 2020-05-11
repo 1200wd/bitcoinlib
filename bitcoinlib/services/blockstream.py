@@ -59,7 +59,7 @@ class BlockstreamClient(BaseClient):
             balance += (res['chain_stats']['funded_txo_sum'] - res['chain_stats']['spent_txo_sum'])
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         res = self.compose_request('address', address, 'utxo')
         blockcount = self.blockcount()
         utxos = []
@@ -86,7 +86,7 @@ class BlockstreamClient(BaseClient):
             })
             if a['txid'] == after_txid:
                 utxos = []
-        return utxos[:max_txs]
+        return utxos[:limit]
 
     def _parse_transaction(self, tx, blockcount=None):
         if not blockcount:
@@ -134,7 +134,7 @@ class BlockstreamClient(BaseClient):
         tx = self.compose_request('tx', txid)
         return self._parse_transaction(tx, blockcount)
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         blockcount = self.blockcount()
         prtxs = []
         before_txid = ''
@@ -155,9 +155,9 @@ class BlockstreamClient(BaseClient):
                 txs.append(t)
             if t.hash == after_txid:
                 txs = []
-            if len(txs) > max_txs:
+            if len(txs) > limit:
                 break
-        return txs[:max_txs]
+        return txs[:limit]
 
     def getrawtransaction(self, txid):
         return self.compose_request('tx', txid, 'hex')

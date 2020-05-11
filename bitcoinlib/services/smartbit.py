@@ -102,7 +102,7 @@ class SmartbitClient(BaseClient):
         res = self.compose_request('address', 'wallet', ','.join(addresslist))
         return res['wallet']['total']['received_int']
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         utxo_list = []
         next_link = ''
@@ -116,7 +116,7 @@ class SmartbitClient(BaseClient):
                     utxo_list = []
             if not next_link:
                 break
-        for txid in utxo_list[:max_txs]:
+        for txid in utxo_list[:limit]:
             t = self.gettransaction(txid)
             for utxo in t.outputs:
                 if utxo.address != address:
@@ -141,7 +141,7 @@ class SmartbitClient(BaseClient):
         res = self.compose_request('tx', data=txid)
         return self._parse_transaction(res['transaction'])
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
         next_link = ''
         while True:
@@ -158,7 +158,7 @@ class SmartbitClient(BaseClient):
                     txs = []
             if not next_link:
                 break
-        return txs[:max_txs]
+        return txs[:limit]
 
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', data=txid, command='hex')

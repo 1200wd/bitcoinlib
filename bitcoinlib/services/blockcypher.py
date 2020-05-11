@@ -56,7 +56,7 @@ class BlockCypher(BaseClient):
             balance += float(rec['final_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, variables={'unspentOnly': 1, 'limit': 2000})
         transactions = []
@@ -85,7 +85,7 @@ class BlockCypher(BaseClient):
                     'block_height': None,
                     'date': tdate
                 })
-        return transactions[::-1][:max_txs]
+        return transactions[::-1][:limit]
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
@@ -125,7 +125,7 @@ class BlockCypher(BaseClient):
                 o.spending_txid = tx['outputs'][n]['spent_by']
         return t
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, variables={'unspentOnly': 0, 'limit': 2000})
@@ -143,7 +143,7 @@ class BlockCypher(BaseClient):
             if len(txids) > 500:
                 _logger.info("BlockCypher: Large number of transactions for address %s, "
                                 "Transaction list may be incomplete" % address.address_orig)
-            for txid in txids[:max_txs]:
+            for txid in txids[:limit]:
                 t = self.gettransaction(txid)
                 txs.append(t)
         return txs

@@ -175,7 +175,7 @@ class DashdClient(BaseClient):
     def blockcount(self):
         return self.proxy.getblockcount()
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
 
         for t in self.proxy.listunspent(0, 99999999, [address]):

@@ -156,7 +156,7 @@ class LitecoindClient(BaseClient):
 
     # def getbalance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
 
         res = self.proxy.getaddressinfo(address)

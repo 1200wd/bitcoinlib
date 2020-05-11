@@ -218,7 +218,7 @@ class Service(object):
             addresslist = addresslist[addresses_per_request:]
         return tot_balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         """
         Get list of unspent outputs (UTXO's) for specified address.
 
@@ -228,8 +228,8 @@ class Service(object):
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
         :type after_txid: str
-        :param max_txs: Maximum number of utxo's to return
-        :type max_txs: int
+        :param limit: Maximum number of utxo's to return
+        :type limit: int
 
         :return dict: UTXO's per address
         """
@@ -253,12 +253,12 @@ class Service(object):
         # if db_addr and db_addr.last_txid:
         #     after_txid = db_addr.last_txid
 
-        utxos = self._provider_execute('getutxos', address, after_txid, max_txs)
+        utxos = self._provider_execute('getutxos', address, after_txid, limit)
         if utxos is False:
             self.complete = False
             return utxos_cache
         else:
-            if utxos and len(utxos) >= max_txs:
+            if utxos and len(utxos) >= limit:
                 self.complete = False
             elif not after_txid:
                 balance = sum(u['value'] for u in utxos)
@@ -289,7 +289,7 @@ class Service(object):
                 self.cache.store_transaction(tx, 0)
         return tx
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         """
         Get all transactions for specified address.
 
@@ -299,8 +299,8 @@ class Service(object):
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
         :type after_txid: str
-        :param max_txs: Maximum number of transactions to return
-        :type max_txs: int
+        :param limit: Maximum number of transactions to return
+        :type limit: int
 
         :return list: List of Transaction objects
         """
@@ -318,18 +318,18 @@ class Service(object):
 
         # Retrieve transactions from cache
         if self.min_providers <= 1:  # Disable cache if comparing providers
-            txs_cache = self.cache.gettransactions(address, after_txid, max_txs)
+            txs_cache = self.cache.gettransactions(address, after_txid, limit)
             if txs_cache:
                 self.results_cache_n = len(txs_cache)
-                if len(txs_cache) == max_txs:
+                if len(txs_cache) == limit:
                     return txs_cache
-                max_txs = max_txs - len(txs_cache)
+                limit = limit - len(txs_cache)
                 qry_after_txid = txs_cache[-1:][0].hash
 
         # Get (extra) transactions from service providers
         txs = []
         if not(db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount):
-            txs = self._provider_execute('gettransactions', address, qry_after_txid,  max_txs)
+            txs = self._provider_execute('gettransactions', address, qry_after_txid,  limit)
             if txs == False:
                 raise ServiceError("Error when retrieving transactions from service provider")
 
@@ -340,7 +340,7 @@ class Service(object):
             last_block = self._blockcount
             last_txid = qry_after_txid
             self.complete = True
-            if len(txs) == max_txs:
+            if len(txs) == limit:
                 self.complete = False
                 last_block = txs[-1:][0].block_height
             if len(txs):
@@ -577,7 +577,7 @@ class Cache(object):
             return
         return self.session.query(DbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         """
         Get transactions from cache. Returns empty list if no transactions are found or caching is disabled.
 
@@ -585,8 +585,8 @@ class Cache(object):
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
         :type after_txid: str
-        :param max_txs: Maximum number of transactions to return
-        :type max_txs: int
+        :param limit: Maximum number of transactions to return
+        :type limit: int
 
         :return list: List of Transaction objects
         """
@@ -620,7 +620,7 @@ class Cache(object):
                 t = self._parse_db_transaction(db_tx)
                 if t:
                     txs.append(t)
-                    if len(txs) >= max_txs:
+                    if len(txs) >= limit:
                         break
             return txs
         return []

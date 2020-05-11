@@ -87,10 +87,10 @@ class BcoinClient(BaseClient):
     #         balance += int(res['balance'])
     #     return int(balance * self.units)
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = self.gettransactions(address, after_txid=after_txid, max_txs=max_txs)
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        txs = self.gettransactions(address, after_txid=after_txid, limit=limit)
         utxos = []
-        if len(txs) == max_txs:
+        if len(txs) == limit:
             raise ClientError("If not all transactions known, we cannot determine utxo's")
         for tx in txs:
             for unspent in tx.outputs:
@@ -118,12 +118,12 @@ class BcoinClient(BaseClient):
         tx = self.compose_request('tx', txid)
         return self._parse_transaction(tx)
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        assert(max_txs > 0)
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        assert(limit > 0)
         txs = []
         while True:
             res = []
-            variables = {'limit': max_txs, 'after': after_txid}
+            variables = {'limit': limit, 'after': after_txid}
             retries = 0
             while retries < 3:
                 try:
@@ -139,10 +139,10 @@ class BcoinClient(BaseClient):
                         raise ClientError("Max retries exceeded with bcoin Client")
             for tx in res:
                 txs.append(self._parse_transaction(tx))
-            if not txs or len(txs) >= max_txs:
+            if not txs or len(txs) >= limit:
                 break
-            if len(res) == max_txs:
-                after_txid = res[max_txs-1]['hash']
+            if len(res) == limit:
+                after_txid = res[limit-1]['hash']
             else:
                 break
 

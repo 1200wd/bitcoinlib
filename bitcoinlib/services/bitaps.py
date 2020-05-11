@@ -89,7 +89,7 @@ class BitapsClient(BaseClient):
             balance += res['data']['balance']
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         page = 1
         while True:
@@ -129,13 +129,13 @@ class BitapsClient(BaseClient):
             page += 1
             if page > res['data']['pages']:
                 break
-        return utxos[:max_txs]
+        return utxos[:limit]
 
     def gettransaction(self, txid):
         res = self.compose_request('transaction', txid)
         return self._parse_transaction(res['data'])
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         page = 0
         txs = []
         while True:
@@ -149,12 +149,12 @@ class BitapsClient(BaseClient):
                 txs.append(self._parse_transaction(tx))
                 if tx['txId'] == after_txid:
                     txs = []
-            if len(txs) > max_txs:
+            if len(txs) > limit:
                 break
             page += 1
             if page >= res['data']['pages']:
                 break
-        return txs[:max_txs]
+        return txs[:limit]
 
     def getrawtransaction(self, txid):
         tx = self.compose_request('transaction', txid)

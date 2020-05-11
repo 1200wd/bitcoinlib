@@ -50,7 +50,7 @@ class BlockchainInfoClient(BaseClient):
             balance += res[address]['final_balance']
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         variables = {'active': address, 'limit': 1000}
         res = self.compose_request('unspent', variables=variables)
@@ -74,7 +74,7 @@ class BlockchainInfoClient(BaseClient):
                 'script': utxo['script'],
                 'date': None
             })
-        return utxos[::-1][:max_txs]
+        return utxos[::-1][:limit]
 
     def gettransaction(self, tx_id, latest_block=None):
         tx = self.compose_request('rawtx', tx_id)
@@ -112,7 +112,7 @@ class BlockchainInfoClient(BaseClient):
         t.fee = t.input_total - t.output_total
         return t
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
         txids = []
         variables = {'limit': 100}
@@ -123,7 +123,7 @@ class BlockchainInfoClient(BaseClient):
                 txids.insert(0, tx['hash'])
         if after_txid:
             txids = txids[txids.index(after_txid) + 1:]
-        for txid in txids[:max_txs]:
+        for txid in txids[:limit]:
             t = self.gettransaction(txid, latest_block=latest_block)
             t.confirmations = latest_block - t.block_height
             txs.append(t)

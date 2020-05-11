@@ -1774,13 +1774,13 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                 'blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 250000000,
                                 input_key_id=keys[0].key_id)
 
-    def test_wallet_transactions_max_txs(self):
+    def test_wallet_transactions_limit(self):
         address = '15yN7NPEpu82sHhB6TzCW5z5aXoamiKeGy'
         w = wallet_create_or_open('ftrtxtstwlt', address, db_uri=self.DATABASE_URI)
-        w.transactions_update(max_txs=2)
+        w.transactions_update(limit=2)
         self.assertGreaterEqual(w.balance(), 1000)
         self.assertGreaterEqual(len(w.transactions()), 2)
-        w.transactions_update(max_txs=2)
+        w.transactions_update(limit=2)
         self.assertGreaterEqual(len(w.transactions()), 4)
 
     def test_wallet_transactions_update_by_txids(self):

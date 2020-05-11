@@ -2754,7 +2754,7 @@ class HDWallet(object):
                             last_txid = ''
                         else:
                             last_txid = self.utxo_last(address)
-                        new_utxos = srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
+                        new_utxos = srv.getutxos(address, after_txid=last_txid, limit=max_utxos)
                         if new_utxos:
                             utxos += new_utxos
                         elif new_utxos is False:
@@ -2971,7 +2971,7 @@ class HDWallet(object):
         # self._balance_update(account_id=account_id, network=network, key_id=key_id)
 
     def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None,
-                            max_txs=MAX_TRANSACTIONS):
+                            limit=MAX_TRANSACTIONS):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet. The balances and unspent outputs (UTXO's) are updated as well. Only scan keys from default network and account unless another network or account is specified.
 
@@ -2989,8 +2989,8 @@ class HDWallet(object):
         :type depth: int
         :param change: Only update change or normal keys, default is both (None)
         :type change: int
-        :param max_txs: Stop update after max_txs transactions to avoid timeouts with service providers. Default is MAX_TRANSACTIONS defined in config.py
-        :type max_txs: int
+        :param limit: Stop update after limit transactions to avoid timeouts with service providers. Default is MAX_TRANSACTIONS defined in config.py
+        :type limit: int
 
         :return bool: True if all transactions are updated
         """
@@ -3017,7 +3017,7 @@ class HDWallet(object):
             account_id=account_id, used=used, network=network, key_id=key_id, change=change, depth=depth)
         last_updated = datetime.now()
         for address in addresslist:
-            txs += srv.gettransactions(address, max_txs=max_txs, after_txid=self.transaction_last(address))
+            txs += srv.gettransactions(address, limit=limit, after_txid=self.transaction_last(address))
             if not srv.complete:
                 if txs and txs[-1].date and txs[-1].date < last_updated:
                     last_updated = txs[-1].date

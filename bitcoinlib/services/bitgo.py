@@ -50,7 +50,7 @@ class BitGoClient(BaseClient):
             balance += res['balance']
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         skip = 0
         total = 1
@@ -80,7 +80,7 @@ class BitGoClient(BaseClient):
             if skip > 2000:
                 _logger.info("BitGoClient: UTXO's list has been truncated, list is incomplete")
                 break
-        return utxos[::-1][:max_txs]
+        return utxos[::-1][:limit]
 
     # RAW TRANSACTION DOES NOT CONTAIN CORRECT RAW TRANSACTION (MISSING SIGS)
     # def gettransaction(self, tx_id):
@@ -128,7 +128,7 @@ class BitGoClient(BaseClient):
     #     return t
 
     # RAW TRANSACTION DOES NOT CONTAIN CORRECT RAW TRANSACTION (MISSING SIGS)
-    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    # def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
     #     txs = []
     #     txids = []
     #     skip = 0
@@ -143,11 +143,11 @@ class BitGoClient(BaseClient):
     #         # if total > 2000:
     #         #     raise ClientError("BitGoClient: Transactions list limit exceeded > 2000")
     #         skip = res['start'] + res['count']
-    #         if len(txids) > max_txs:
+    #         if len(txids) > limit:
     #             break
     #     if after_txid:
     #         txids = txids[txids.index(after_txid) + 1:]
-    #     for txid in txids[:max_txs]:
+    #     for txid in txids[:limit]:
     #         txs.append(self.gettransaction(txid))
     #     return txs
 

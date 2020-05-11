@@ -87,7 +87,7 @@ class LitecoreIOClient(BaseClient):
             balance += res
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, 'utxo')
         txs = []
@@ -107,21 +107,21 @@ class LitecoreIOClient(BaseClient):
                 'script': tx['scriptPubKey'],
                 'date': None
             })
-        return txs[::-1][:max_txs]
+        return txs[::-1][:limit]
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)
         return self._convert_to_transaction(tx)
 
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, 'txs')
         txs = []
         txs_dict = res['items'][::-1]
         if after_txid:
             txs_dict = txs_dict[[t['txid'] for t in txs_dict].index(after_txid) + 1:]
-        for tx in txs_dict[:max_txs]:
+        for tx in txs_dict[:limit]:
             if tx['txid'] == after_txid:
                 break
             txs.append(self._convert_to_transaction(tx))
