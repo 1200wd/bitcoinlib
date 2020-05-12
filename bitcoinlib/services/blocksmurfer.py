@@ -49,15 +49,15 @@ class BlocksmurferClient(BaseClient):
     def getbalance(self, addresslist):
         balance = 0
         for address in addresslist:
-            res = self.compose_request('address/balance', address)
-            balance += res['data']['balance']
+            res = self.compose_request('address_balance', address)
+            balance += res['balance']
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         res = self.compose_request('utxos', address, {'after_txid': after_txid})
         block_count = self.blockcount()
         utxos = []
-        for u in res['data']:
+        for u in res:
             block_height = None if not u['block_height'] else u['block_height']
             confirmations = u['confirmations']
             if block_height and not confirmations:
@@ -85,7 +85,7 @@ class BlocksmurferClient(BaseClient):
             raise ClientError("Different hash from Blocksmurfer when parsing transaction")
         t.block_height = None if not tx['block_height'] else tx['block_height']
         t.confirmations = tx['confirmations']
-        t.date = datetime.strptime(tx['date'][:19], "%Y-%m-%dT%H:%M:%S")
+        t.date = None if not tx['date'] else datetime.strptime(tx['date'][:19], "%Y-%m-%dT%H:%M:%S")
         if t.block_height and not t.confirmations and tx['status'] == 'confirmed':
             block_count = self.blockcount()
             t.confirmations = block_count - t.block_height
@@ -102,13 +102,13 @@ class BlocksmurferClient(BaseClient):
         return t
 
     def gettransaction(self, txid):
-        tx = self.compose_request('tx', txid)
-        return self._parse_transaction(tx['data'])
+        tx = self.compose_request('transaction', txid)
+        return self._parse_transaction(tx)
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         prtxs = []
         while True:
-            res = self.compose_request('tx/address', address, {'after_txid': after_txid})
+            res = self.compose_request('transactions', address, {'after_txid': after_txid})
             txs = res['data']
             prtxs += txs
             if not txs or len(txs) < limit:
@@ -137,10 +137,10 @@ class BlocksmurferClient(BaseClient):
             'blocks': str(blocks)
         }
         res = self.compose_request('fees', variables=variables)
-        return res['data']['estimated_fee_sat_kb']
+        return res['estimated_fee_sat_kb']
 
     def blockcount(self):
-        return self.compose_request('blocks', 'count')['data']['block_count']
+        return self.compose_request('blockcount')['blockcount']
 
     def mempool(self, txid):
         if txid:
