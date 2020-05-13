@@ -210,6 +210,12 @@ class Service(object):
 
         tot_balance = 0
         while addresslist:
+            for address in addresslist:
+                db_addr = self.cache.getaddress(address)
+                if db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount and db_addr.balance:
+                    tot_balance += db_addr.balance
+                    addresslist.remove(address)
+
             balance = self._provider_execute('getbalance', addresslist[:addresses_per_request])
             if balance:
                 tot_balance += balance
@@ -258,6 +264,7 @@ class Service(object):
             self.complete = False
             return utxos_cache
         else:
+            # TODO: Update cache_transactions_node
             if utxos and len(utxos) >= limit:
                 self.complete = False
             elif not after_txid:
@@ -862,7 +869,7 @@ class Cache(object):
             varname = 'fee_medium'
         else:
             varname = 'fee_low'
-        dbvar = DbCacheVars(varname=varname, network_name=self.network.name, value=fee, type='int',
+        dbvar = DbCacheVars(varname=varname, network_name=self.network.name, value=str(fee), type='int',
                             expires=datetime.now() + timedelta(seconds=600))
         self.session.merge(dbvar)
         self.commit()

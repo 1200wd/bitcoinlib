@@ -22,6 +22,7 @@ from time import sleep
 from requests import ReadTimeout
 from bitcoinlib.main import *
 from bitcoinlib.services.baseclient import BaseClient, ClientError
+from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
 
@@ -80,18 +81,37 @@ class BcoinClient(BaseClient):
             return True
         return False
 
-    # def getbalance(self, addresslist):
-    #     balance = 0.0
-    #     for address in addresslist:
-    #         res = tx = self.compose_request('address', address)
-    #         balance += int(res['balance'])
-    #     return int(balance * self.units)
+    def getbalance(self, addresslist):
+        balance = 0.0
+        for address in addresslist:
+            # First get all transactions for this address from the blockchain
+            srv = Service(network=self.network.name, providers=['bcoin'])
+            txs = srv.gettransactions(address, limit=25)
+
+            # Fail if large number of transactions are found
+            if not srv.complete:
+                raise ClientError("If not all transactions known, we cannot determine utxo's. "
+                                  "Increase limit or use other provider")
+
+            for a in [output for outputs in [t.outputs for t in txs] for output in outputs]:
+                if a.address == address:
+                    balance += a.value
+            for a in [input for inputs in [t.inputs for t in txs] for input in inputs]:
+                if a.address == address:
+                    balance -= a.value
+        return int(balance)
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        txs = self.gettransactions(address, after_txid=after_txid, limit=limit)
+        # First get all transactions for this address from the blockchain
+        srv = Service(network=self.network.name, providers=['bcoin'])
+        txs = srv.gettransactions(address, limit=25)
+
+        # Fail if large number of transactions are found
+        if not srv.complete:
+            raise ClientError("If not all transactions known, we cannot determine utxo's. "
+                              "Increase limit or use other provider")
+
         utxos = []
-        if len(txs) == limit:
-            raise ClientError("If not all transactions known, we cannot determine utxo's")
         for tx in txs:
             for unspent in tx.outputs:
                 if unspent.address != address:
@@ -112,7 +132,9 @@ class BcoinClient(BaseClient):
                             'date': tx.date,
                          }
                     )
-        return utxos
+                    if tx.hash == after_txid:
+                        utxos = []
+        return utxos[:limit]
 
     def gettransaction(self, txid):
         tx = self.compose_request('tx', txid)
@@ -160,7 +182,6 @@ class BcoinClient(BaseClient):
                         continue
                     spent = True if (t.hash, to.output_n) in address_inputs else False
                     txs[txs.index(t)].outputs[to.output_n].spent = spent
-                    print(t.hash, to.output_n, spent)
                     if spent:
                         spending_tx = spend_list[(t.hash, to.output_n)]
                         spending_index_n = \

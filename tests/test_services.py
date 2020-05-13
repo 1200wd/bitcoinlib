@@ -750,7 +750,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(b['total_txs'], 18)
         self.assertEqual(b['version'], 4)
 
-        if b['txs']:
+        if b['txs'] and len(b['txs']) > 1:
             t1 = b['txs'][1]
             self.assertEqual(t1.hash, '6e7bfce6aee69312629b1f60afe6dcef02f367207642f2dc380a554c21181eb2')
             self.assertEqual(t1.size, 225)
