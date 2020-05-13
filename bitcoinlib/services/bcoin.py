@@ -117,7 +117,7 @@ class BcoinClient(BaseClient):
             for unspent in tx.outputs:
                 if unspent.address != address:
                     continue
-                if not self.isspent(tx.hash, unspent.output_n):
+                if not srv.isspent(tx.hash, unspent.output_n):
                     utxos.append(
                         {
                             'address': unspent.address,

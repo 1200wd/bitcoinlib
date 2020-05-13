@@ -495,6 +495,13 @@ class Service(object):
             addr_dict['n_utxos'] = addr_rec.n_utxos
         return addr_dict
 
+    def isspent(self, txid, output_n):
+        t = self.cache.gettransaction(txid)
+        if t and len(t.outputs) > output_n:
+            return t.outputs[output_n].spent
+        else:
+            return self._provider_execute('isspent', txid, output_n)
+
 
 class Cache(object):
     """
@@ -561,7 +568,7 @@ class Cache(object):
         :param txid: Transaction identification hash
         :type txid: str
 
-        :return Transaction: A single transaction object
+        :return Transaction: A single Transaction object
         """
         if not SERVICE_CACHING_ENABLED:
             return False
@@ -688,7 +695,7 @@ class Cache(object):
                 })
             elif db_utxo.spent is None:
                 return []
-            if db_utxo == after_txid:
+            if db_utxo.txid == after_txid:
                 utxos = []
         return utxos
 
