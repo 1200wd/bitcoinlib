@@ -22,7 +22,6 @@ from time import sleep
 from requests import ReadTimeout
 from bitcoinlib.main import *
 from bitcoinlib.services.baseclient import BaseClient, ClientError
-from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import to_hexstring
 
@@ -83,6 +82,7 @@ class BcoinClient(BaseClient):
 
     def getbalance(self, addresslist):
         balance = 0.0
+        from bitcoinlib.services.services import Service
         for address in addresslist:
             # First get all transactions for this address from the blockchain
             srv = Service(network=self.network.name, providers=['bcoin'])
@@ -103,6 +103,7 @@ class BcoinClient(BaseClient):
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         # First get all transactions for this address from the blockchain
+        from bitcoinlib.services.services import Service
         srv = Service(network=self.network.name, providers=['bcoin'])
         txs = srv.gettransactions(address, limit=25)
 
