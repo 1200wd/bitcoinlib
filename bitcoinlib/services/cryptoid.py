@@ -158,4 +158,6 @@ class CryptoID(BaseClient):
             return [tx['txid']]
         return []
 
-    # def block
+    # def getblock
+
+    # def isspent

@@ -761,6 +761,16 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(t1.outputs[1].address, 'LMY9Uc2rLjPwf3trcUvsT7QNs7NeyGcbY3')
             self.assertEqual(t1.outputs[1].value, 10000000000)
 
+    def test_service_isspent(self):
+        srv = ServiceTest()
+        self.assertFalse(srv.isspent('9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5', 0))
+        self.assertTrue(srv.isspent('b51104386fa9422f04fffaa09f76b69fc17f91238c93e10f58eafaaf671db6d4', 0))
+
+    def test_service_isspent_litecoin(self):
+        srv = ServiceTest(network='litecoin')
+        self.assertFalse(srv.isspent('a74c2b8c5206a39e2f0becf86f296ab9b3a29259c225471c9dabfbb87b6b5d4a', 1))
+        self.assertTrue(srv.isspent('1941cd1a901b3692d2b1d6c337460745c6045c1c4a4a18b0895e5bfc137b6c60', 0))
+
 
 class TestServiceCache(unittest.TestCase):
 

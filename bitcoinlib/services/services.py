@@ -160,7 +160,7 @@ class Service(object):
                     continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(*arguments)
-                if res is False:  # pragma: no cover
+                if res is False and method not in ['isspent']:  # pragma: no cover
                     self.errors.update(
                         {sp: 'Received empty response'}
                     )

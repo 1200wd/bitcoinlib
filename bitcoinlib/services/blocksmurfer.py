@@ -150,3 +150,8 @@ class BlocksmurferClient(BaseClient):
         # else:
             # return self.compose_request('mempool', 'txids')
         return []
+
+    def isspent(self, txid, output_n):
+        # TODO: Use direct API call
+        t = self.gettransaction(txid)
+        return t.outputs[output_n].spent

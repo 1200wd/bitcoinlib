@@ -227,3 +227,7 @@ class BlockstreamClient(BaseClient):
             'limit': limit
         }
         return block
+
+    def isspent(self, txid, output_n):
+        res = self.compose_request('tx', txid, 'outspend', str(output_n))
+        return res['spent']

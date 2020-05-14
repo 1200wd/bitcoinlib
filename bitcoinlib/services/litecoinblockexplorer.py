@@ -73,10 +73,13 @@ class LitecoinBlockexplorerClient(BaseClient):
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
+            # t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
+            #              spent=True if to['spentTxId'] else False, output_n=to['n'],
+            #              spending_txid=None if not to['spentTxId'] else to['spentTxId'],
+            #              spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
+            # Found many wrong spending results
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
-                         spent=True if to['spentTxId'] else False, output_n=to['n'],
-                         spending_txid=None if not to['spentTxId'] else to['spentTxId'],
-                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
+                         spent=None, output_n=to['n'])
         return t
 
     def getbalance(self, addresslist):
@@ -178,3 +181,7 @@ class LitecoinBlockexplorerClient(BaseClient):
             'limit': limit
         }
         return block
+
+    def isspent(self, txid, output_n):
+        t = self.gettransaction(txid)
+        return t.outputs[output_n].spent

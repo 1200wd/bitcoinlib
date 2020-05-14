@@ -177,3 +177,5 @@ class InsightDashClient(BaseClient):
             'limit': limit
         }
         return block
+
+    # def isspent

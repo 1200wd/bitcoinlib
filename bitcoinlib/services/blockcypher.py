@@ -206,3 +206,7 @@ class BlockCypher(BaseClient):
             'limit': limit
         }
         return block
+
+    def isspent(self, txid, output_n):
+        t = self.gettransaction(txid)
+        return t.outputs[output_n].spent
