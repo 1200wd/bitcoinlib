@@ -73,13 +73,6 @@ class BcoinClient(BaseClient):
         t.update_totals()
         return t
 
-    def isspent(self, tx_id, index):
-        try:
-            self.compose_request('coin', tx_id, str(index))
-        except ClientError:
-            return True
-        return False
-
     def getbalance(self, addresslist):
         balance = 0.0
         from bitcoinlib.services.services import Service
@@ -256,3 +249,10 @@ class BcoinClient(BaseClient):
         block['prev_block'] = block.pop('prevBlock')
         block['merkle_root'] = block.pop('merkleRoot')
         return block
+
+    def isspent(self, tx_id, index):
+        try:
+            self.compose_request('coin', tx_id, str(index))
+        except ClientError:
+            return 1
+        return 0

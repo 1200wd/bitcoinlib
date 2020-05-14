@@ -36,10 +36,12 @@ class BlocksmurferClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, function, parameter='', variables=None, post_data='', method='get'):
+    def compose_request(self, function, parameter='', parameter2='', variables=None, post_data='', method='get'):
         url_path = function
         if parameter:
             url_path += '/' + parameter
+        if parameter2:
+            url_path += '/' + parameter2
         if variables is None:
             variables = {}
         if self.api_key:
@@ -152,6 +154,5 @@ class BlocksmurferClient(BaseClient):
         return []
 
     def isspent(self, txid, output_n):
-        # TODO: Use direct API call
-        t = self.gettransaction(txid)
-        return t.outputs[output_n].spent
+        res = self.compose_request('isspent', txid, str(output_n))
+        return 1 if res['spent'] else 0

@@ -220,4 +220,4 @@ class SmartbitClient(BaseClient):
 
     def isspent(self, txid, output_n):
         t = self.gettransaction(txid)
-        return t.outputs[output_n].spent
+        return 1 if t.outputs[output_n].spent else 0

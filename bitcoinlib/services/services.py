@@ -160,7 +160,7 @@ class Service(object):
                     continue
                 providermethod = getattr(pc_instance, method)
                 res = providermethod(*arguments)
-                if res is False and method not in ['isspent']:  # pragma: no cover
+                if res is False:  # pragma: no cover
                     self.errors.update(
                         {sp: 'Received empty response'}
                     )
@@ -497,10 +497,10 @@ class Service(object):
 
     def isspent(self, txid, output_n):
         t = self.cache.gettransaction(txid)
-        if t and len(t.outputs) > output_n:
+        if t and len(t.outputs) > output_n and t.outputs[output_n].spent is not None:
             return t.outputs[output_n].spent
         else:
-            return self._provider_execute('isspent', txid, output_n)
+            return bool(self._provider_execute('isspent', txid, output_n))
 
 
 class Cache(object):
