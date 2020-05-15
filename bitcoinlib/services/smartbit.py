@@ -29,6 +29,7 @@ from bitcoinlib.keys import Address
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'smartbit'
+REQ_LIMIT = 10
 # Please note: In the Bitaps API, the first couple of Bitcoin blocks are not correctly indexed,
 # so transactions from these blocks are missing.
 
@@ -100,14 +101,14 @@ class SmartbitClient(BaseClient):
 
     def getbalance(self, addresslist):
         res = self.compose_request('address', 'wallet', ','.join(addresslist))
-        return res['wallet']['total']['received_int']
+        return res['wallet']['total']['balance_int']
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         utxo_list = []
         next_link = ''
         while True:
-            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
+            variables = {'limit': REQ_LIMIT, 'next': next_link, 'dir': 'asc'}
             res = self.compose_request('address', 'unspent', address, variables=variables)
             next_link = res['paging']['next']
             for utxo in res['unspent']:
@@ -145,13 +146,14 @@ class SmartbitClient(BaseClient):
         txs = []
         next_link = ''
         while True:
-            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
+            variables = {'limit': REQ_LIMIT, 'next': next_link, 'dir': 'asc'}
             res = self.compose_request('address', data=address, variables=variables)
             next_link = '' if 'transaction_paging' not in res['address'] else \
                 res['address']['transaction_paging']['next']
             if 'transactions' not in res['address']:
                 break
-            for tx in res['address']['transactions']:
+            res_tx = sorted(res['address']['transactions'], key=lambda k: k['block'])
+            for tx in res_tx:
                 t = self._parse_transaction(tx)
                 txs.append(t)
                 if t.hash == after_txid:

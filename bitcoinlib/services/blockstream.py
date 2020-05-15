@@ -145,8 +145,10 @@ class BlockstreamClient(BaseClient):
             res = self.compose_request('address', address, parameter)
             prtxs += res
             if len(res) == 25:
-                before_txid = res[-1:]['txid']
+                before_txid = res[-1:][0]['txid']
             else:
+                break
+            if len(prtxs) > limit:
                 break
         txs = []
         for tx in prtxs[::-1]:
