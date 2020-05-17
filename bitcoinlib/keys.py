@@ -750,7 +750,7 @@ class Key(object):
                 self._y = change_base(y, 10, 16, 64)
                 self.public_uncompressed_hex = '04' + self._x + self._y
                 self.public_compressed_hex = pub_key
-            self.public_compressed_byte = binascii.unhexlify(self.public_hex)
+            self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
             if self.compressed:
                 self.public_byte = self.public_compressed_byte
@@ -1463,7 +1463,7 @@ class HDKey(Key):
         if not multisig:
             multisig = False if not self.multisig else self.multisig
 
-        rkey = self.private_byte or self.public_byte
+        rkey = self.private_byte or self.public_compressed_byte
         if prefix and not isinstance(prefix, (bytes, bytearray)):
             prefix = binascii.unhexlify(prefix)
         if self.is_private and is_private:
