@@ -734,7 +734,7 @@ class Key(object):
                     prefix = '03'
                 else:
                     prefix = '02'
-                self.public_hex = prefix + self._x
+                self.public_hex = pub_key
                 self.public_compressed_hex = prefix + self._x
             else:
                 self.public_hex = pub_key
