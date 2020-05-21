@@ -903,7 +903,7 @@ class Input(object):
                     self.unlocking_script = unlock_script
         elif self.script_type == 'signature':
             if self.keys:
-                self.script_code = self.keys[0].public_byte + b'\xac'
+                self.script_code = varstr(self.keys[0].public_byte) + b'\xac'
                 self.unlocking_script_unsigned = self.script_code
             if self.signatures:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + struct.pack('B', hash_type))
@@ -1026,7 +1026,8 @@ class Output(object):
             self.address = address.address()
             self.address_obj = address.address_obj
             public_key = address.public_byte
-            script_type = script_type_default(address.witness_type, address.multisig, True)
+            if not script_type:
+                script_type = script_type_default(address.witness_type, address.multisig, True)
             self.public_hash = address.hash160
         else:
             self.address = address
