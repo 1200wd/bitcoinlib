@@ -1140,6 +1140,22 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                 '7be3f3e457b000000000'
         t = Transaction.import_raw(rawtx)
         self.assertEqual(t.inputs[0].script_type, 'signature')
+        self.assertEqual(t.outputs[0].script_type, 'p2pk')
+
+    def test_transaction_sign_p2pk(self):
+        wif = 'tprv8ZgxMBicQKsPdx411rqb5SjGvY43Bjc2PyhU2UCVtbEwCDSyKzHhaM88XaKHe5LcyNVdwWgG9NBut4oytRLbhr7iHbJ7KxioG' \
+              'nQETYvZu3j'
+        k = HDKey(wif)
+        prev_txid = '9f5c85ceb8f0c6c9b4dd3ab3b4a522d6be7c90c33ee4e9097bf1f5fc8e367bcb'
+        output_n = 0
+        value = 9000
+
+        inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature')
+        outp = Output(7000, k, network='testnet', script_type='p2pk')
+        t = Transaction([inp], [outp], network='testnet')
+        t.sign(k.private_byte)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.signature_hash(sign_id=0).hex(), '67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986')
 
     def test_transaction_locktime(self):
         # FIXME: Add more usefull unittests for locktime
