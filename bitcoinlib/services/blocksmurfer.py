@@ -56,7 +56,7 @@ class BlocksmurferClient(BaseClient):
         return balance
 
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        res = self.compose_request('utxos', address, {'after_txid': after_txid})
+        res = self.compose_request('utxos', address, variables={'after_txid': after_txid})
         block_count = self.blockcount()
         utxos = []
         for u in res:
@@ -110,8 +110,7 @@ class BlocksmurferClient(BaseClient):
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         prtxs = []
         while True:
-            res = self.compose_request('transactions', address, {'after_txid': after_txid})
-            txs = res['data']
+            txs = self.compose_request('transactions', address, variables={'after_txid': after_txid})
             prtxs += txs
             if not txs or len(txs) < limit:
                 break
