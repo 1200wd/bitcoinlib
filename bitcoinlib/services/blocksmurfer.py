@@ -116,7 +116,7 @@ class BlocksmurferClient(BaseClient):
                 break
             after_txid = txs[-1:][0]['txid']
         txs = []
-        for tx in prtxs[::-1]:
+        for tx in prtxs:
             t = self._parse_transaction(tx)
             if t:
                 txs.append(t)

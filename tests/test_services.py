@@ -287,8 +287,8 @@ class TestService(unittest.TestCase, CustomAssertions):
             gettransactions('bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c',
                             after_txid='f91d0a8a78462bc59398f2c5d7a84fcff491c26ba54c4833478b202796c8aafd')
         tx_ids = [
-            'a4bc261faf9ca47722760c9f9f075ab974c7351d8da7b0b5e5a316b3aa7aefa2',
             '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803',
+            'a4bc261faf9ca47722760c9f9f075ab974c7351d8da7b0b5e5a316b3aa7aefa2',
             '04be18177781f8060d63390a705cf89ffed2252a3506fab69be7079bc7ba9410']
         self.assertIn(res[0].hash, tx_ids)
         self.assertIn(res[1].hash, tx_ids)
