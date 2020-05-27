@@ -849,8 +849,16 @@ class Cache(object):
                     filter(DbCacheTransactionNode.address == address).\
                            group_by(DbCacheTransactionNode.is_input).all()
                 balance = 0 if not plusmin else sum([(-p[1] if p[0] else p[1]) for p in plusmin])
-        new_address = DbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
-                                     balance=balance, n_utxos=n_utxos, n_txs=n_txs, last_txid=last_txid)
+        db_addr = self.getaddress(address)
+        # new_address = DbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
+        #                              balance = balance, n_utxos = n_utxos, n_txs = n_txs, last_txid = last_txid)
+        new_address = DbCacheAddress(
+            address=address, network_name=self.network.name,
+            last_block=last_block if last_block else getattr(db_addr, 'last_block', None),
+            balance=balance if balance is not None else getattr(db_addr, 'balance', None),
+            n_utxos=n_utxos if n_utxos is not None else getattr(db_addr, 'n_utxos', None),
+            n_txs=n_txs if n_txs is not None else getattr(db_addr,'n_txs', None),
+            last_txid=last_txid if last_txid is not None else getattr(db_addr, 'last_txid', None))
         self.session.merge(new_address)
         try:
             self.commit()

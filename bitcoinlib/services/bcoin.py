@@ -138,21 +138,8 @@ class BcoinClient(BaseClient):
         assert(limit > 0)
         txs = []
         while True:
-            # res = []
             variables = {'limit': limit, 'after': after_txid}
-            # retries = 0
-            # while retries < 3:
-            #     try:
             res = self.compose_request('tx', 'address', address, variables)
-                # except ReadTimeout as e:
-                #     sleep(3)
-                #     _logger.info("Bcoin client error: %s" % e)
-                #     retries += 1
-                # else:
-                #     break
-                # finally:
-                #     if retries == 3:
-                #         raise ClientError("Max retries exceeded with bcoin Client")
             for tx in res:
                 txs.append(self._parse_transaction(tx))
             if not txs or len(txs) >= limit:
