@@ -858,3 +858,9 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(txs), 5)
         txs = srv.gettransactions(address, after_txid=after_txid, limit=5)
         self.assertGreaterEqual(len(txs), 5)
+
+    def test_service_cache_correctly_update_spent_info(self):
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa', limit=1)
+        txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
+        self.assertTrue(txs[0].outputs[0].spent)

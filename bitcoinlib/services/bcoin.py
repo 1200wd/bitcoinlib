@@ -22,7 +22,7 @@ from time import sleep
 from requests import ReadTimeout
 from bitcoinlib.main import *
 from bitcoinlib.services.baseclient import BaseClient, ClientError
-from bitcoinlib.transactions import Transaction
+from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.encoding import to_hexstring
 
 
@@ -150,26 +150,8 @@ class BcoinClient(BaseClient):
                 break
 
         # Check which outputs are spent/unspent for this address
-        spend_list = {}
         if not after_txid:
-            for t in txs:
-                for inp in t.inputs:
-                    if inp.address == address:
-                        spend_list.update({(to_hexstring(inp.prev_hash), inp.output_n_int): t})
-            address_inputs = list(spend_list.keys())
-            for t in txs:
-                for to in t.outputs:
-                    if to.address != address:
-                        continue
-                    spent = True if (t.hash, to.output_n) in address_inputs else False
-                    txs[txs.index(t)].outputs[to.output_n].spent = spent
-                    if spent:
-                        spending_tx = spend_list[(t.hash, to.output_n)]
-                        spending_index_n = \
-                            [inp for inp in txs[txs.index(spending_tx)].inputs
-                             if to_hexstring(inp.prev_hash) == t.hash and inp.output_n_int == to.output_n][0].index_n
-                        txs[txs.index(t)].outputs[to.output_n].spending_txid = spending_tx.hash
-                        txs[txs.index(t)].outputs[to.output_n].spending_index_n = spending_index_n
+            txs = transaction_update_spents(txs, address)
         return txs
 
     def getrawtransaction(self, txid):

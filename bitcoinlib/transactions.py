@@ -601,6 +601,45 @@ def get_unlocking_script_type(locking_script_type, witness_type='legacy', multis
         raise TransactionError("Unknown locking script type %s" % locking_script_type)
 
 
+def transaction_update_spents(txs, address):
+    """
+    Update spent information for list of transactions for a specific address. This method assumes the list of
+    transaction complete and up-to-date.
+
+    This methods loops through all the transaction and update all transaction outputs for given address, checks
+    if the output is spent and add the spending transaction ID and index number to the outputs.
+
+    The same list of transactions with updates outputs will be returned
+
+    :param txs: Complete list of transactions for given address
+    :type txs: list of Transaction
+    :param address: Address string
+    :type address: str
+
+    :return list of Transaction:
+    """
+    spend_list = {}
+    for t in txs:
+        for inp in t.inputs:
+            if inp.address == address:
+                spend_list.update({(to_hexstring(inp.prev_hash), inp.output_n_int): t})
+    address_inputs = list(spend_list.keys())
+    for t in txs:
+        for to in t.outputs:
+            if to.address != address:
+                continue
+            spent = True if (t.hash, to.output_n) in address_inputs else False
+            txs[txs.index(t)].outputs[to.output_n].spent = spent
+            if spent:
+                spending_tx = spend_list[(t.hash, to.output_n)]
+                spending_index_n = \
+                    [inp for inp in txs[txs.index(spending_tx)].inputs
+                     if to_hexstring(inp.prev_hash) == t.hash and inp.output_n_int == to.output_n][0].index_n
+                txs[txs.index(t)].outputs[to.output_n].spending_txid = spending_tx.hash
+                txs[txs.index(t)].outputs[to.output_n].spending_index_n = spending_index_n
+    return txs
+
+
 class Input(object):
     """
     Transaction Input class, used by Transaction class

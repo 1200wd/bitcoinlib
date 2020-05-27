@@ -31,7 +31,7 @@ from bitcoinlib import services
 from bitcoinlib.networks import Network
 from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.db_cache import *
-from bitcoinlib.transactions import Transaction
+from bitcoinlib.transactions import Transaction, transaction_update_spents
 
 
 _logger = logging.getLogger(__name__)
@@ -293,7 +293,7 @@ class Service(object):
         if not tx:
             tx = self._provider_execute('gettransaction', txid)
             if len(self.results) and self.min_providers <= 1:
-                self.cache.store_transaction(tx, 0)
+                self.cache.store_transaction(tx)
         return tx
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -342,8 +342,9 @@ class Service(object):
 
         # Store transactions and address in cache
         # - disable cache if comparing providers or if after_txid is used and no cache is available
+        last_block = None
+        last_txid = None
         if self.min_providers <= 1 and not(after_txid and not db_addr):
-        # if self.min_providers <= 1:
             last_block = self._blockcount
             last_txid = qry_after_txid
             self.complete = True
@@ -356,16 +357,26 @@ class Service(object):
                 order_n = 0
                 for tx in txs:
                     if tx.confirmations != 0:
-                        res = self.cache.store_transaction(tx, order_n)
+                        res = self.cache.store_transaction(tx, order_n, commit=False)
                         order_n += 1
                         # Failure to store transaction: stop caching transaction and store last tx block height - 1
                         if res is False:
                             if tx.block_height:
                                 last_block = tx.block_height - 1
                             break
+                self.cache.session.commit()
                 self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=self.complete)
 
-        return txs_cache + txs
+        all_txs = txs_cache + txs
+        # If we have txs for this address update spent and balance information in cache
+        if self.complete:
+            all_txs = transaction_update_spents(txs_cache + txs, address)
+            self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=True)
+            # TODO: Store txs in cache
+            for t in all_txs:
+                self.cache.store_transaction(t, commit=False)
+            self.cache.session.commit()
+        return all_txs
 
     def getrawtransaction(self, txid):
         """
@@ -456,8 +467,11 @@ class Service(object):
         if not block:
             return False
         if parse_transactions and 'txs' in block and self.min_providers <= 1:
+            order_n = (page-1)*limit
             for tx in block['txs']:
-                self.cache.store_transaction(tx, 0)
+                self.cache.store_transaction(tx, order_n, commit=False)
+                order_n += 1
+            self.cache.session.commit()
         self.complete = True if len(block['txs']) == block['total_txs'] else False
         return block
 
@@ -759,7 +773,7 @@ class Cache(object):
         self.session.merge(dbvar)
         self.commit()
 
-    def store_transaction(self, t, order_n):
+    def store_transaction(self, t, order_n=None, commit=True):
         """
         Store transaction in cache. Use order number to determine order in a block
 
@@ -807,11 +821,12 @@ class Cache(object):
                                               spending_index_n=o.spending_index_n)
             self.session.add(new_node)
 
-        try:
-            self.commit()
-            _logger.info("Added transaction %s to cache" % t.hash)
-        except Exception as e:    # pragma: no cover
-            _logger.warning("Caching failure tx: %s" % e)
+        if commit:
+            try:
+                self.commit()
+                _logger.info("Added transaction %s to cache" % t.hash)
+            except Exception as e:    # pragma: no cover
+                _logger.warning("Caching failure tx: %s" % e)
 
     def store_address(self, address, last_block=None, balance=0, n_utxos=None, txs_complete=False, last_txid=None):
         """
@@ -827,6 +842,8 @@ class Cache(object):
         :type n_utxos: int
         :param txs_complete: True if all transactions for this address are added to cache
         :type txs_complete: bool
+        :param last_txid: Transaction ID of last transaction downloaded from blockchain
+        :type last_txid: str
 
         :return:
         """
