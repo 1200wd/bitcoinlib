@@ -67,7 +67,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  '1976a914c1b1668730f13dd1772977e8ce96e3f5f78d290388ac00000000'
         self.assertEqual(raw_tx, ServiceTest(network='litecoin').getrawtransaction(tx_id))
 
-    def test_transaction_get_raw_dash(self):
+    def test_service_transaction_get_raw_dash(self):
         tx_id = '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf'
         raw_tx = '0100000001edfbcd24cd10350844061d62d03be6f3ed9c28b26b0b8082539c5d29454f7cb3010000006b483045022100e' \
                  '87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b022062f1cc0f33d036c1c60a7d561de060' \
