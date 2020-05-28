@@ -27,6 +27,7 @@ MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estim
 # Use value above >0, and 1 for 100%
 
 DATABASEFILE_CACHE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache.unittest.sqlite')
+DATABASEFILE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache2.unittest.sqlite')
 TIMEOUT_TEST = 2
 
 
@@ -775,13 +776,13 @@ class TestService(unittest.TestCase, CustomAssertions):
 class TestServiceCache(unittest.TestCase):
 
     # TODO: Add mysql and postgres support
-    @classmethod
-    def setUpClass(cls):
-        if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS):
-            os.remove(DATABASEFILE_CACHE_UNITTESTS)
+    # @classmethod
+    # def setUpClass(cls):
+    #     if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS):
+    #         os.remove(DATABASEFILE_CACHE_UNITTESTS)
 
     def test_service_cache_transactions(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         address = '1JQ7ybfFBoWhPJpjoihezpeAjd2xv9nXaN'
         # Get 2 transactions, nothing in cache
         res = srv.gettransactions(address, limit=2)
@@ -801,7 +802,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertEqual(list(srv.results.values()), [])
 
     def test_service_cache_gettransaction(self):
-        srv = ServiceTest(network='litecoin_testnet', cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        srv = ServiceTest(network='litecoin_testnet', cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         txid = 'b6533d361daac291f64fff32a5c157a4785b423ce36e2eac27117879f93973da'
 
         t = srv.gettransaction(txid)
@@ -826,7 +827,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
@@ -850,7 +851,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
     def test_service_cache_with_latest_tx_query(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         address = 'bc1qxfrgfhs49d7dtcfzlhp7f7cwsp8zpp60hywp0f'
         after_txid = '13401ad121c8ae91e18b4bb0db5d8f350a2b0b5ddd5ca26165137bf07fefad90'
         srv.gettransaction('4156e78f347e47d2ccdd4a19614d958c6e4502d09a68f63ed0c72691f63a5028')
@@ -860,7 +861,7 @@ class TestServiceCache(unittest.TestCase):
         self.assertGreaterEqual(len(txs), 5)
 
     def test_service_cache_correctly_update_spent_info(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS)
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa', limit=1)
         txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
         self.assertTrue(txs[0].outputs[0].spent)
