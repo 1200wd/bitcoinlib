@@ -70,10 +70,12 @@ class BlockCypher(BaseClient):
             for tx in txrefs:
                 if tx['tx_hash'] == after_txid:
                     break
-                try:
-                    tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
-                except ValueError:
-                    tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                tdate = None
+                if 'confirmed' in tx:
+                    try:
+                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+                    except ValueError:
+                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
                 transactions.append({
                     'address': address.address_orig,
                     'tx_hash': tx['tx_hash'],
@@ -151,12 +153,13 @@ class BlockCypher(BaseClient):
     def getrawtransaction(self, tx_id):
         return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})['hex']
 
-    def sendrawtransaction(self, rawtx):
-        res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
-        return {
-            'txid': res['tx']['hash'],
-            'response_dict': res
-        }
+    # BlockCypher sometimes accepts transactions, but does not push them to the network :(
+    # def sendrawtransaction(self, rawtx):
+    #     res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
+    #     return {
+    #         'txid': res['tx']['hash'],
+    #         'response_dict': res
+    #     }
 
     def estimatefee(self, blocks):
         res = self.compose_request('', '')

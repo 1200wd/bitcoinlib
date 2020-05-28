@@ -64,8 +64,6 @@ class BlocksmurferClient(BaseClient):
             confirmations = u['confirmations']
             if block_height and not confirmations:
                 confirmations = block_count - block_height
-            # if not block_height and confirmations:
-            #     block_height = block_count - confirmations
             utxos.append({
                 'address': address,
                 'tx_hash': u['tx_hash'],
@@ -91,9 +89,6 @@ class BlocksmurferClient(BaseClient):
         if t.block_height and not t.confirmations and tx['status'] == 'confirmed':
             block_count = self.blockcount()
             t.confirmations = block_count - t.block_height
-        # if not t.block_height and t.confirmations:
-        #     block_count = self.blockcount()
-        #     t.block_height = block_count - t.confirmations
         t.status = tx['status']
         t.fee = tx['fee']
         for ti in t.inputs:

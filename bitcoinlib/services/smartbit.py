@@ -30,6 +30,7 @@ _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'smartbit'
 REQ_LIMIT = 10
+REQ_LIMIT_TOTAL = 50
 # Please note: In the Bitaps API, the first couple of Bitcoin blocks are not correctly indexed,
 # so transactions from these blocks are missing.
 
@@ -115,7 +116,7 @@ class SmartbitClient(BaseClient):
                 utxo_list.append(utxo['txid'])
                 if utxo['txid'] == after_txid:
                     utxo_list = []
-            if not next_link:
+            if not next_link or len(utxos) > REQ_LIMIT_TOTAL:
                 break
         for txid in utxo_list[:limit]:
             t = self.gettransaction(txid)
@@ -158,7 +159,7 @@ class SmartbitClient(BaseClient):
                 txs.append(t)
                 if t.hash == after_txid:
                     txs = []
-            if not next_link:
+            if not next_link or len(txs) > REQ_LIMIT_TOTAL:
                 break
         return txs[:limit]
 

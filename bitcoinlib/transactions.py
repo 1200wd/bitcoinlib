@@ -27,7 +27,6 @@ from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
 from bitcoinlib.networks import Network
 
-
 _logger = logging.getLogger(__name__)
 
 
@@ -71,7 +70,7 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
         if flag == b'\1':
             witness_type = 'segwit'
         cursor += 2
-    n_inputs, size = varbyteint_to_int(rawtx[cursor:cursor+9])
+    n_inputs, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
     cursor += size
     inputs = []
     if not isinstance(network, Network):
@@ -425,6 +424,8 @@ def script_to_string(script, name_data=False):
 
     :param script: A locking or unlocking script
     :type script: bytes, str
+    :param name_data: Replace signatures and keys strings with name
+    :type name_data: bool
 
     :return str: 
     """
@@ -437,7 +438,7 @@ def script_to_string(script, name_data=False):
         name = 'signature'
         if data['signatures'] and len(data['signatures'][0]) in [33, 65]:
             name = 'key'
-        sigs = ' '.join(['%s-%d' % (name, i) for i in range(1, len(data['signatures'])+1)])
+        sigs = ' '.join(['%s-%d' % (name, i) for i in range(1, len(data['signatures']) + 1)])
     else:
         sigs = ' '.join([to_hexstring(i) for i in data['signatures']])
 
@@ -1495,7 +1496,7 @@ class Transaction(object):
 
         :return bytes: Segwit transaction signature
         """
-        assert(self.witness_type == 'segwit')
+        assert (self.witness_type == 'segwit')
         prevouts_serialized = b''
         sequence_serialized = b''
         outputs_serialized = b''
@@ -1595,7 +1596,7 @@ class Transaction(object):
         if sign_id is not None:
             r += struct.pack('<L', hash_type)
         else:
-            if not self.size and not b'' in [i.unlocking_script for i in self.inputs]:
+            if not self.size and b'' not in [i.unlocking_script for i in self.inputs]:
                 self.size = len(r)
         return r
 
@@ -1640,7 +1641,7 @@ class Transaction(object):
             sig_id = 0
             key_n = 0
             for key in i.keys:
-                if sig_id > i.sigs_required-1:
+                if sig_id > i.sigs_required - 1:
                     break
                 if sig_id >= len(i.signatures):
                     _logger.info("No valid signatures found")
@@ -1938,7 +1939,7 @@ class Transaction(object):
         if self.witness_type == 'legacy':
             return est_size
         else:
-            self.vsize = math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
+            self.vsize = math.ceil(((est_size - witness_size) * 3 + est_size) / 4)
             return self.vsize
 
     def calculate_fee(self):
@@ -1951,7 +1952,7 @@ class Transaction(object):
 
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
-        return int(self.estimate_size()/1024.0 * self.fee_per_kb)
+        return int(self.estimate_size() / 1024.0 * self.fee_per_kb)
 
     def update_totals(self):
         """

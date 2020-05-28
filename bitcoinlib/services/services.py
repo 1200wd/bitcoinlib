@@ -337,7 +337,7 @@ class Service(object):
         txs = []
         if not(db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount):
             txs = self._provider_execute('gettransactions', address, qry_after_txid,  limit)
-            if txs == False:
+            if txs is False:
                 raise ServiceError("Error when retrieving transactions from service provider")
 
         # Store transactions and address in cache
@@ -372,7 +372,6 @@ class Service(object):
         if self.complete:
             all_txs = transaction_update_spents(txs_cache + txs, address)
             self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=True)
-            # TODO: Store txs in cache
             for t in all_txs:
                 self.cache.store_transaction(t, commit=False)
             self.cache.session.commit()
@@ -550,7 +549,8 @@ class Cache(object):
             self.session.rollback()
             raise
 
-    def _parse_db_transaction(self, db_tx):
+    @staticmethod
+    def _parse_db_transaction(db_tx):
         if not db_tx.raw:
             return False
         t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
@@ -693,7 +693,7 @@ class Cache(object):
                    DbCacheTransaction.network_name == self.network.name).all()
         utxos = []
         for db_utxo in db_utxos:
-            if db_utxo.spent == False:
+            if db_utxo.spent is False:
                 utxos.append({
                     'address': address,
                     'tx_hash': db_utxo.txid,
@@ -781,6 +781,7 @@ class Cache(object):
         :type t: Transaction
         :param order_n: Order in block
         :type order_n: int
+        :param commit: Commit transaction to database. Default is True. Can be disabled if a larger number of transactions are added to cache, so you can commit outside this method.
 
         :return:
         """
@@ -863,18 +864,16 @@ class Cache(object):
                     n_utxos = None
             if not balance:
                 plusmin = self.session.query(DbCacheTransactionNode.is_input, func.sum(DbCacheTransactionNode.value)). \
-                    filter(DbCacheTransactionNode.address == address).\
-                           group_by(DbCacheTransactionNode.is_input).all()
+                    filter(DbCacheTransactionNode.address == address). \
+                    group_by(DbCacheTransactionNode.is_input).all()
                 balance = 0 if not plusmin else sum([(-p[1] if p[0] else p[1]) for p in plusmin])
         db_addr = self.getaddress(address)
-        # new_address = DbCacheAddress(address=address, network_name=self.network.name, last_block=last_block,
-        #                              balance = balance, n_utxos = n_utxos, n_txs = n_txs, last_txid = last_txid)
         new_address = DbCacheAddress(
             address=address, network_name=self.network.name,
             last_block=last_block if last_block else getattr(db_addr, 'last_block', None),
             balance=balance if balance is not None else getattr(db_addr, 'balance', None),
             n_utxos=n_utxos if n_utxos is not None else getattr(db_addr, 'n_utxos', None),
-            n_txs=n_txs if n_txs is not None else getattr(db_addr,'n_txs', None),
+            n_txs=n_txs if n_txs is not None else getattr(db_addr, 'n_txs', None),
             last_txid=last_txid if last_txid is not None else getattr(db_addr, 'last_txid', None))
         self.session.merge(new_address)
         try:

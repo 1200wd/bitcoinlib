@@ -19,7 +19,6 @@
 #
 
 from time import sleep
-from requests import ReadTimeout
 from bitcoinlib.main import *
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction, transaction_update_spents
@@ -89,7 +88,7 @@ class BcoinClient(BaseClient):
             for a in [output for outputs in [t.outputs for t in txs] for output in outputs]:
                 if a.address == address:
                     balance += a.value
-            for a in [input for inputs in [t.inputs for t in txs] for input in inputs]:
+            for a in [i for inputs in [t.inputs for t in txs] for i in inputs]:
                 if a.address == address:
                     balance -= a.value
         return int(balance)

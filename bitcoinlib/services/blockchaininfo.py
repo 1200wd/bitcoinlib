@@ -137,7 +137,6 @@ class BlockchainInfoClient(BaseClient):
     # def estimatefee()
 
     def blockcount(self):
-        # TODO: Store in object!
         return self.compose_request('latestblock')['height']
 
     def mempool(self, txid=''):

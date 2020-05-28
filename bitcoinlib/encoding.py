@@ -858,7 +858,7 @@ def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
     :param passphrase: Required passphrase for encryption
     :type passphrase: str
     :param flagbyte: Flagbyte prefix for WIF
-    :type flagbyte: bytearray
+    :type flagbyte: bytes
 
     :return str: BIP38 passphrase encrypted private key
     """
