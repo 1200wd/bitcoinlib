@@ -19,6 +19,7 @@
 #
 
 import logging
+import numbers
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
@@ -37,12 +38,14 @@ class BlockstreamClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, function, data='', parameter='', variables=None, post_data='', method='get'):
+    def compose_request(self, function, data='', parameter='', parameter2='', variables=None, post_data='', method='get'):
         url_path = function
         if data:
             url_path += '/' + data
         if parameter:
             url_path += '/' + parameter
+        if parameter2:
+            url_path += '/' + parameter2
         if variables is None:
             variables = {}
         if self.api_key:
@@ -56,7 +59,7 @@ class BlockstreamClient(BaseClient):
             balance += (res['chain_stats']['funded_txo_sum'] - res['chain_stats']['spent_txo_sum'])
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         res = self.compose_request('address', address, 'utxo')
         blockcount = self.blockcount()
         utxos = []
@@ -79,11 +82,11 @@ class BlockstreamClient(BaseClient):
                 'size': 0,
                 'value': a['value'],
                 'script': '',
-                'date': None if 'block_time' not in a['status'] else datetime.fromtimestamp(a['status']['block_time'])
+                'date': None if 'block_time' not in a['status'] else datetime.utcfromtimestamp(a['status']['block_time'])
             })
             if a['txid'] == after_txid:
                 utxos = []
-        return utxos[:max_txs]
+        return utxos[:limit]
 
     def _parse_transaction(self, tx, blockcount=None):
         if not blockcount:
@@ -99,7 +102,7 @@ class BlockstreamClient(BaseClient):
         fee = None if 'fee' not in tx else tx['fee']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fee, size=tx['size'], hash=tx['txid'],
-                        date=None if 'block_time' not in tx['status'] else datetime.fromtimestamp(tx['status']['block_time']),
+                        date=None if 'block_time' not in tx['status'] else datetime.utcfromtimestamp(tx['status']['block_time']),
                         confirmations=confirmations, block_height=block_height, status=status,
                         coinbase=tx['vin'][0]['is_coinbase'])
         index_n = 0
@@ -108,10 +111,10 @@ class BlockstreamClient(BaseClient):
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=sum([o['value'] for o in tx['vout']]))
             else:
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'],
-                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], index_n=index_n,
-                            value=ti['prevout']['value'], address=ti['prevout']['scriptpubkey_address'],
-                            unlocking_script=ti['scriptsig'])
+                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                            unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
+                            address=ti['prevout']['scriptpubkey_address'],
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'])
             index_n += 1
         index_n = 0
         for to in tx['vout']:
@@ -124,14 +127,15 @@ class BlockstreamClient(BaseClient):
         if 'segwit' in [i.witness_type for i in t.inputs]:
             t.witness_type = 'segwit'
         t.update_totals()
+        t.size = tx['size']
         return t
 
-    def gettransaction(self, txid):
+    def gettransaction(self, txid, blockcount=None):
         tx = self.compose_request('tx', txid)
-        return self._parse_transaction(tx)
+        return self._parse_transaction(tx, blockcount)
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        block_height = self.blockcount()
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        blockcount = self.blockcount()
         prtxs = []
         before_txid = ''
         while True:
@@ -141,19 +145,21 @@ class BlockstreamClient(BaseClient):
             res = self.compose_request('address', address, parameter)
             prtxs += res
             if len(res) == 25:
-                before_txid = res[-1:]['txid']
+                before_txid = res[-1:][0]['txid']
             else:
+                break
+            if len(prtxs) > limit:
                 break
         txs = []
         for tx in prtxs[::-1]:
-            t = self._parse_transaction(tx, block_height)
+            t = self._parse_transaction(tx, blockcount)
             if t:
                 txs.append(t)
             if t.hash == after_txid:
                 txs = []
-            if len(txs) > max_txs:
+            if len(txs) > limit:
                 break
-        return txs[:max_txs]
+        return txs[:limit]
 
     def getrawtransaction(self, txid):
         return self.compose_request('tx', txid, 'hex')
@@ -184,3 +190,46 @@ class BlockstreamClient(BaseClient):
         else:
             return self.compose_request('mempool', 'txids')
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if isinstance(blockid, int):
+            blockid = self.compose_request('block-height', str(blockid))
+        if (page == 1 and limit == 10) or limit > 25:
+            limit = 25
+        elif page > 1:
+            if limit % 25 != 0:
+                return False
+        bd = self.compose_request('block', blockid)
+        btxs = self.compose_request('block', blockid, 'txs', str((page-1)*limit))
+        if parse_transactions:
+            txs = []
+            for tx in btxs[:limit]:
+                blockcount = self.blockcount()
+                try:
+                    txs.append(self._parse_transaction(tx, blockcount=blockcount))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+        else:
+            txs = [tx['txid'] for tx in btxs]
+
+        block = {
+            'bits': bd['bits'],
+            'depth': None,
+            'hash': bd['id'],
+            'height': bd['height'],
+            'merkle_root': bd['merkle_root'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousblockhash'],
+            'time': datetime.utcfromtimestamp(bd['timestamp']),
+            'total_txs': bd['tx_count'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(bd['tx_count'] // limit) + (bd['tx_count'] % limit > 0),
+            'limit': limit
+        }
+        return block
+
+    def isspent(self, txid, output_n):
+        res = self.compose_request('tx', txid, 'outspend', str(output_n))
+        return 1 if res['spent'] else 0

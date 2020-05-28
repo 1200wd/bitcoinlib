@@ -17,7 +17,7 @@ from bitcoinlib.wallets import HDWallet, BCL_DATABASE_DIR
 #
 
 # First recreate database to avoid already exist errors
-test_databasefile = BCL_DATABASE_DIR + 'bitcoinlib.test.sqlite'
+test_databasefile = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.test.sqlite')
 test_database = 'sqlite:///' + test_databasefile
 if os.path.isfile(test_databasefile):
     os.remove(test_databasefile)

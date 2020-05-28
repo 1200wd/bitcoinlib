@@ -38,7 +38,7 @@ kwargs = {}
 
 install_requires = [
       'requests>=2.20.0',
-      'fastecdsa>=1.7.5;platform_system!="Windows"',
+      'fastecdsa>=2.1.2;platform_system!="Windows"',
       'ecdsa>=0.13;platform_system=="Windows"',
       'pyaes==1.6.1',
       'scrypt>=0.8.13',
@@ -48,7 +48,7 @@ install_requires = [
 if sys.version_info < (3, 4):
     install_requires.append('enum34')
     install_requires.append('pathlib2')
-    install_requires.remove('fastecdsa>=1.7.5;platform_system!="Windows"')
+    install_requires.remove('fastecdsa>=2.1.2;platform_system!="Windows"')
     install_requires.append('fastecdsa==1.7.5;platform_system!="Windows"')
 kwargs['install_requires'] = install_requires
 
@@ -58,11 +58,14 @@ setup(
       description='Bitcoin and Other cryptocurrency Library',
       long_description=readmetxt,
       classifiers=[
-            'Development Status :: 3 - Alpha',
+            'Development Status :: 4 - Beta',
             'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
             'Intended Audience :: Developers',
             'Intended Audience :: Financial and Insurance Industry',
+            'Intended Audience :: Science/Research',
             'Intended Audience :: Information Technology',
+            'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+            'Natural Language :: English',
             'Operating System :: OS Independent',
             'Operating System :: Microsoft :: Windows',
             'Operating System :: POSIX',

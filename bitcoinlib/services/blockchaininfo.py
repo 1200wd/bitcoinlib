@@ -50,7 +50,7 @@ class BlockchainInfoClient(BaseClient):
             balance += res[address]['final_balance']
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         variables = {'active': address, 'limit': 1000}
         res = self.compose_request('unspent', variables=variables)
@@ -74,9 +74,9 @@ class BlockchainInfoClient(BaseClient):
                 'script': utxo['script'],
                 'date': None
             })
-        return utxos[::-1][:max_txs]
+        return utxos[::-1][:limit]
 
-    def gettransaction(self, tx_id):
+    def gettransaction(self, tx_id, latest_block=None):
         tx = self.compose_request('rawtx', tx_id)
         raw_tx = self.getrawtransaction(tx_id)
         t = Transaction.import_raw(raw_tx, self.network)
@@ -88,12 +88,19 @@ class BlockchainInfoClient(BaseClient):
         for n, o in enumerate(t.outputs):
             o.spent = tx['out'][n]['spent']
         if 'block_height' in tx and tx['block_height']:
+            if not latest_block:
+                latest_block = self.blockcount()
             t.status = 'confirmed'
+            t.date = datetime.utcfromtimestamp(tx['time'])
+            t.block_height = tx['block_height']
+            t.confirmations = 1
+            if latest_block > t.block_height:
+                t.confirmations = latest_block - t.block_height
         else:
             t.status = 'unconfirmed'
+            t.confirmations = 0
+            t.date = None
         t.hash = tx_id
-        t.date = datetime.fromtimestamp(tx['time'])
-        t.block_height = 0 if 'block_height' not in tx else tx['block_height']
         t.rawtx = raw_tx
         t.size = tx['size']
         t.network_name = self.network
@@ -105,7 +112,7 @@ class BlockchainInfoClient(BaseClient):
         t.fee = t.input_total - t.output_total
         return t
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
         txids = []
         variables = {'limit': 100}
@@ -116,8 +123,8 @@ class BlockchainInfoClient(BaseClient):
                 txids.insert(0, tx['hash'])
         if after_txid:
             txids = txids[txids.index(after_txid) + 1:]
-        for txid in txids[:max_txs]:
-            t = self.gettransaction(txid)
+        for txid in txids[:limit]:
+            t = self.gettransaction(txid, latest_block=latest_block)
             t.confirmations = latest_block - t.block_height
             txs.append(t)
         return txs
@@ -141,3 +148,34 @@ class BlockchainInfoClient(BaseClient):
             txs = self.compose_request('unconfirmed-transactions', variables={'format': 'json'})
             return [tx['hash'] for tx in txs['txs']]
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        bd = self.compose_request('rawblock', str(blockid))
+        if parse_transactions:
+            txs = []
+            latest_block = self.blockcount()
+            for tx in bd['tx'][(page-1)*limit:page*limit]:
+                try:
+                    txs.append(self.gettransaction(tx['hash'], latest_block=latest_block))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (tx['hash'], e))
+        else:
+            txs = [tx['hash'] for tx in bd['tx']]
+
+        block = {
+            'bits': bd['bits'],
+            'depth': None,
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['mrkl_root'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['prev_block'],
+            'time': datetime.utcfromtimestamp(bd['time']),
+            'total_txs': len(bd['tx']),
+            'txs': txs,
+            'version': bd['ver'],
+            'page': page,
+            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'limit': limit
+        }
+        return block

@@ -24,10 +24,13 @@ from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import varstr, to_bytes, to_hexstring
+from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
 
 PROVIDERNAME = 'smartbit'
+REQ_LIMIT = 10
+REQ_LIMIT_TOTAL = 50
 # Please note: In the Bitaps API, the first couple of Bitcoin blocks are not correctly indexed,
 # so transactions from these blocks are missing.
 
@@ -57,7 +60,7 @@ class SmartbitClient(BaseClient):
         input_total = tx['input_amount_int']
         t_time = None
         if tx['time']:
-            t_time = datetime.fromtimestamp(tx['time'])
+            t_time = datetime.utcfromtimestamp(tx['time'])
         if tx['coinbase']:
             input_total = tx['output_amount_int']
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
@@ -73,54 +76,49 @@ class SmartbitClient(BaseClient):
                 unlocking_script = ti['script_sig']['hex']
                 witness_type = 'legacy'
                 if ti['witness'] and ti['witness'] != ['NULL']:
-                    witness_type = 'segwit'
+                    address = Address.import_address(ti['addresses'][0])
+                    if address.script_type == 'p2sh':
+                        witness_type = 'p2sh-segwit'
+                    else:
+                        witness_type = 'segwit'
                     unlocking_script = b"".join([varstr(to_bytes(x)) for x in ti['witness']])
-                # if tx['inputs']['witness']
-
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
                             witness_type=witness_type)
                 index_n += 1
 
-                # if ti['spending_witness']:
-                #     witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
-                #     t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
-                #                 unlocking_script=witnesses, index_n=index_n, value=ti['value'],
-                #                 address=ti['recipient'], witness_type='segwit')
-                # else:
-                #     t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
-                #                 unlocking_script_unsigned=ti['script_hex'], index_n=index_n, value=ti['value'],
-                #                 address=ti['recipient'], unlocking_script=ti['spending_signature_hex'])
-
-
         for to in tx['outputs']:
-            spent = True if 'spend_txid' in to and to['spend_txid'] else False
+            spent = False
+            spending_txid = None
+            if 'spend_txid' in to and to['spend_txid']:
+                spent = True
+                spending_txid = to['spend_txid']
             address = ''
             if to['addresses']:
                 address = to['addresses'][0]
             t.add_output(value=to['value_int'], address=address, lock_script=to['script_pub_key']['hex'],
-                         spent=spent, output_n=to['n'])
+                         spent=spent, output_n=to['n'], spending_txid=spending_txid)
         return t
 
     def getbalance(self, addresslist):
         res = self.compose_request('address', 'wallet', ','.join(addresslist))
-        return res['wallet']['total']['received_int']
+        return res['wallet']['total']['balance_int']
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         utxo_list = []
         next_link = ''
         while True:
-            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
+            variables = {'limit': REQ_LIMIT, 'next': next_link, 'dir': 'asc'}
             res = self.compose_request('address', 'unspent', address, variables=variables)
             next_link = res['paging']['next']
             for utxo in res['unspent']:
                 utxo_list.append(utxo['txid'])
                 if utxo['txid'] == after_txid:
                     utxo_list = []
-            if not next_link:
+            if not next_link or len(utxos) > REQ_LIMIT_TOTAL:
                 break
-        for txid in utxo_list[:max_txs]:
+        for txid in utxo_list[:limit]:
             t = self.gettransaction(txid)
             for utxo in t.outputs:
                 if utxo.address != address:
@@ -145,24 +143,25 @@ class SmartbitClient(BaseClient):
         res = self.compose_request('tx', data=txid)
         return self._parse_transaction(res['transaction'])
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
         next_link = ''
         while True:
-            variables = {'limit': 10, 'next': next_link, 'dir': 'asc'}
+            variables = {'limit': REQ_LIMIT, 'next': next_link, 'dir': 'asc'}
             res = self.compose_request('address', data=address, variables=variables)
             next_link = '' if 'transaction_paging' not in res['address'] else \
                 res['address']['transaction_paging']['next']
             if 'transactions' not in res['address']:
                 break
-            for tx in res['address']['transactions']:
+            res_tx = sorted(res['address']['transactions'], key=lambda k: k['block'])
+            for tx in res_tx:
                 t = self._parse_transaction(tx)
                 txs.append(t)
                 if t.hash == after_txid:
                     txs = []
-            if not next_link:
+            if not next_link or len(txs) > REQ_LIMIT_TOTAL:
                 break
-        return txs[:max_txs]
+        return txs[:limit]
 
     def getrawtransaction(self, txid):
         res = self.compose_request('tx', data=txid, command='hex')
@@ -186,3 +185,42 @@ class SmartbitClient(BaseClient):
             if tx['transaction']['confirmations'] == 0:
                 return [tx['transaction']['hash']]
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if limit > 100:
+            limit = 100
+        if page > 1:  # Paging does not work with Smartbit
+            return False
+        variables = {'limit': limit}
+        bd = self.compose_request('block', str(blockid), variables=variables)['block']
+        if parse_transactions:
+            txs = []
+            for tx in bd['transactions']:
+                try:
+                    txs.append(self._parse_transaction(tx))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+        else:
+            txs = [tx['txid'] for tx in bd['transactions']]
+
+        block = {
+            'bits': int(bd['bits'], 16),
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previous_block_hash'],
+            'time': datetime.utcfromtimestamp(bd['time']),
+            'total_txs': bd['transaction_count'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(bd['transaction_count'] // limit) + (bd['transaction_count'] % limit > 0),
+            'limit': limit
+        }
+        return block
+
+    def isspent(self, txid, output_n):
+        t = self.gettransaction(txid)
+        return 1 if t.outputs[output_n].spent else 0

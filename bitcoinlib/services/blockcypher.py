@@ -56,7 +56,7 @@ class BlockCypher(BaseClient):
             balance += float(rec['final_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, variables={'unspentOnly': 1, 'limit': 2000})
         transactions = []
@@ -70,10 +70,12 @@ class BlockCypher(BaseClient):
             for tx in txrefs:
                 if tx['tx_hash'] == after_txid:
                     break
-                try:
-                    tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
-                except ValueError:
-                    tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                tdate = None
+                if 'confirmed' in tx:
+                    try:
+                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%SZ")
+                    except ValueError:
+                        tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
                 transactions.append({
                     'address': address.address_orig,
                     'tx_hash': tx['tx_hash'],
@@ -85,7 +87,7 @@ class BlockCypher(BaseClient):
                     'block_height': None,
                     'date': tdate
                 })
-        return transactions[::-1][:max_txs]
+        return transactions[::-1][:limit]
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
@@ -97,7 +99,7 @@ class BlockCypher(BaseClient):
         else:
             t.status = 'unconfirmed'
         t.confirmations = tx['confirmations']
-        t.block_height = tx['block_height'] if tx['block_height'] > 0 else 0
+        t.block_height = tx['block_height'] if tx['block_height'] > 0 else None
         t.block_hash = tx.get('block_hash')
         t.fee = tx['fees']
         t.rawtx = tx['hex']
@@ -122,10 +124,10 @@ class BlockCypher(BaseClient):
         for n, o in enumerate(t.outputs):
             if 'spent_by' in tx['outputs'][n]:
                 o.spent = True
-        # t.raw_hex()
+                o.spending_txid = tx['outputs'][n]['spent_by']
         return t
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, variables={'unspentOnly': 0, 'limit': 2000})
@@ -143,7 +145,7 @@ class BlockCypher(BaseClient):
             if len(txids) > 500:
                 _logger.info("BlockCypher: Large number of transactions for address %s, "
                                 "Transaction list may be incomplete" % address.address_orig)
-            for txid in txids[:max_txs]:
+            for txid in txids[:limit]:
                 t = self.gettransaction(txid)
                 txs.append(t)
         return txs
@@ -151,12 +153,13 @@ class BlockCypher(BaseClient):
     def getrawtransaction(self, tx_id):
         return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})['hex']
 
-    def sendrawtransaction(self, rawtx):
-        res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
-        return {
-            'txid': res['tx']['hash'],
-            'response_dict': res
-        }
+    # BlockCypher sometimes accepts transactions, but does not push them to the network :(
+    # def sendrawtransaction(self, rawtx):
+    #     res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
+    #     return {
+    #         'txid': res['tx']['hash'],
+    #         'response_dict': res
+    #     }
 
     def estimatefee(self, blocks):
         res = self.compose_request('', '')
@@ -174,3 +177,39 @@ class BlockCypher(BaseClient):
             if tx['confirmations'] == 0:
                 return [tx['hash']]
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if limit > 100:
+            limit = 100
+        bd = self.compose_request('blocks', str(blockid), variables={'limit': limit, 'txstart': (page-1)*limit})
+        if parse_transactions:
+            txs = []
+            for txid in bd['txids']:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = bd['txids']
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['depth'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['mrkl_root'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['prev_block'],
+            'time': datetime.strptime(bd['time'], "%Y-%m-%dT%H:%M:%SZ"),
+            'total_txs': bd['n_tx'],
+            'txs': txs,
+            'version': bd['ver'],
+            'page': page,
+            'pages': int(bd['n_tx'] // limit) + (bd['n_tx'] % limit > 0),
+            'limit': limit
+        }
+        return block
+
+    def isspent(self, txid, output_n):
+        t = self.gettransaction(txid)
+        return 1 if t.outputs[output_n].spent else 0

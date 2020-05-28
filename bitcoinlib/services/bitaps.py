@@ -56,9 +56,9 @@ class BitapsClient(BaseClient):
             t.status = 'confirmed'
         t.hash = tx['txId']
         if 'timestamp' in tx and tx['timestamp']:
-            t.date = datetime.fromtimestamp(tx['timestamp'])
+            t.date = datetime.utcfromtimestamp(tx['timestamp'])
         elif 'blockTime' in tx and tx['blockTime']:
-            t.date = datetime.fromtimestamp(tx['blockTime'])
+            t.date = datetime.utcfromtimestamp(tx['blockTime'])
         t.confirmations = tx['confirmations']
         if 'blockHeight' in tx:
             t.block_height = tx['blockHeight']
@@ -73,6 +73,8 @@ class BitapsClient(BaseClient):
         for o in t.outputs:
             if tx['vOut'][str(o.output_n)]['spent']:
                 o.spent = True
+                o.spending_txid = tx['vOut'][str(o.output_n)]['spent'][0]['txId']
+                o.spending_index_n = tx['vOut'][str(o.output_n)]['spent'][0]['vIn']
         if t.coinbase:
             t.input_total = tx['outputsAmount'] - t.fee
         else:
@@ -87,7 +89,7 @@ class BitapsClient(BaseClient):
             balance += res['data']['balance']
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         utxos = []
         page = 1
         while True:
@@ -119,7 +121,7 @@ class BitapsClient(BaseClient):
                             'size': 0,
                             'value': utxo['value'],
                             'script': utxo['scriptPubKey'],
-                            'date': datetime.fromtimestamp(tx['timestamp'])
+                            'date': datetime.utcfromtimestamp(tx['timestamp'])
                          }
                     )
                 if tx['hash'] == after_txid:
@@ -127,13 +129,13 @@ class BitapsClient(BaseClient):
             page += 1
             if page > res['data']['pages']:
                 break
-        return utxos[:max_txs]
+        return utxos[:limit]
 
     def gettransaction(self, txid):
         res = self.compose_request('transaction', txid)
         return self._parse_transaction(res['data'])
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         page = 0
         txs = []
         while True:
@@ -147,12 +149,12 @@ class BitapsClient(BaseClient):
                 txs.append(self._parse_transaction(tx))
                 if tx['txId'] == after_txid:
                     txs = []
-            if len(txs) > max_txs:
+            if len(txs) > limit:
                 break
             page += 1
-            if page > res['data']['pages']:
+            if page >= res['data']['pages']:
                 break
-        return txs[:max_txs]
+        return txs[:limit]
 
     def getrawtransaction(self, txid):
         tx = self.compose_request('transaction', txid)
@@ -174,3 +176,43 @@ class BitapsClient(BaseClient):
             res = self.compose_request('transactions', type='mempool')
             return [tx['hash'] for tx in res['data']['transactions']]
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if limit > 100:
+            limit = 100
+        res = self.compose_request('block', str(blockid),
+                                   variables={'transactions': True, 'limit': limit, 'page': page})
+        bd = res['data']['block']
+        td = res['data']['transactions']
+        txids = [tx['txId'] for tx in td['list']]
+        if parse_transactions:
+            txs = []
+            for txid in txids:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = txids
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleRoot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousBlockHash'],
+            'time': datetime.utcfromtimestamp(bd['blockTime']),
+            'total_txs': bd['transactionsCount'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': td['page'],
+            'pages': td['pages'],
+            'limit': td['limit']
+        }
+        return block
+
+    def isspent(self, txid, output_n):
+        t = self.gettransaction(txid)
+        return 1 if t.outputs[output_n].spent else 0

@@ -60,7 +60,7 @@ class CryptoID(BaseClient):
             balance += float(res)
         return int(balance * self.units)
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         if not self.api_key:
             raise ClientError("Method getutxos() is not available for CryptoID without API key")
         utxos = []
@@ -86,7 +86,7 @@ class CryptoID(BaseClient):
                 'script': utxo['script'],
                 'date': None
             })
-        return utxos[::-1][:max_txs]
+        return utxos[::-1][:limit]
 
     def gettransaction(self, tx_id):
         variables = {'id': tx_id, 'hex': None}
@@ -106,7 +106,7 @@ class CryptoID(BaseClient):
         else:
             t.status = 'unconfirmed'
         t.hash = tx_id
-        t.date = datetime.fromtimestamp(tx['time'])
+        t.date = datetime.utcfromtimestamp(tx['time'])
         t.block_height = tx_api['block']
         t.block_hash = tx['blockhash']
         t.confirmations = tx['confirmations']
@@ -122,7 +122,7 @@ class CryptoID(BaseClient):
         t.fee = t.input_total - t.output_total
         return t
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         txs = []
         txids = []
@@ -133,7 +133,7 @@ class CryptoID(BaseClient):
                 txids.insert(0, tx['hash'])
         if after_txid:
             txids = txids[txids.index(after_txid) + 1:]
-        for txid in txids[:max_txs]:
+        for txid in txids[:limit]:
             t = self.gettransaction(txid)
             txs.append(t)
         return txs
@@ -157,3 +157,7 @@ class CryptoID(BaseClient):
         if 'confirmations' not in tx:
             return [tx['txid']]
         return []
+
+    # def getblock
+
+    # def isspent

@@ -175,6 +175,28 @@
     "denominator": 100000000,
     "network_overrides": null
   },
+  "blockchair.litecoin": {
+    "provider": "blockchair",
+    "network": "litecoin",
+    "client_class": "BlockChairClient",
+    "provider_coin_id": "",
+    "url": "https://api.blockchair.com/litecoin/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "blockchair.dash": {
+    "provider": "blockchair",
+    "network": "dasj",
+    "client_class": "BlockChairClient",
+    "provider_coin_id": "",
+    "url": "https://api.blockchair.com/dash/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
   "bitaps": {
     "provider": "bitaps",
     "network": "bitcoin",
@@ -302,6 +324,17 @@
     "client_class": "BlockstreamClient",
     "provider_coin_id": "",
     "url": "https://blockstream.info/testnet/api/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "blocksmurfer": {
+    "provider": "blocksmurfer",
+    "network": "bitcoin",
+    "client_class": "BlocksmurferClient",
+    "provider_coin_id": "",
+    "url": "http://blocksmurfer.io/api/v1/btc/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,

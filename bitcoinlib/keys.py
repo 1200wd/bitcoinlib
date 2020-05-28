@@ -242,7 +242,8 @@ def deserialize_address(address, encoding=None, network=None):
     If more networks and or script types are found you can find these in the 'networks' field.
 
     >>> deserialize_address('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
-    {'address': '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', 'encoding': 'base58', 'public_key_hash': '13d215d212cd5188ae02c5635faabdc4d7d4ec91', 'public_key_hash_bytes': b'\\x13\\xd2\\x15\\xd2\\x12\\xcdQ\\x88\\xae\\x02\\xc5c_\\xaa\\xbd\\xc4\\xd7\\xd4\\xec\\x91', 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'networks': ['bitcoin']}
+    {'address': '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', 'encoding': 'base58', 'public_key_hash': '13d215d212cd5188ae02c5635faabdc4d7d4ec91', 'public_key_hash_bytes': b'\\x13\\xd2\\x15\\xd2\\x12\\xcdQ\\x88\\xae\\x02\\xc5c_\\xaa\\xbd\\xc4\\xd7\\xd4\\xec\\x91', 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin']}
+
 
     :param address: A base58 or bech32 encoded address
     :type address: str
@@ -271,9 +272,11 @@ def deserialize_address(address, encoding=None, network=None):
                 networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
                 public_key_hash = key_hash[1:]
                 script_type = ''
+                witness_type = ''
                 networks = []
                 if networks_p2pkh and not networks_p2sh:
                     script_type = 'p2pkh'
+                    witness_type = 'legacy'
                     networks = networks_p2pkh
                 elif networks_p2sh:
                     script_type = 'p2sh'
@@ -291,6 +294,7 @@ def deserialize_address(address, encoding=None, network=None):
                     'prefix': address_prefix,
                     'network': network,
                     'script_type': script_type,
+                    'witness_type': witness_type,
                     'networks': networks,
                 }
     if encoding == 'bech32' or encoding is None:
@@ -298,6 +302,7 @@ def deserialize_address(address, encoding=None, network=None):
             public_key_hash = addr_bech32_to_pubkeyhash(address)
             prefix = address[:address.rfind('1')]
             networks = network_by_value('prefix_bech32', prefix)
+            witness_type = 'segwit'
             if len(public_key_hash) == 20:
                 script_type = 'p2wpkh'
             else:
@@ -310,6 +315,7 @@ def deserialize_address(address, encoding=None, network=None):
                 'prefix': prefix,
                 'network': '' if not networks else networks[0],
                 'script_type': script_type,
+                'witness_type': witness_type,
                 'networks': networks,
             }
         except EncodingError as err:
@@ -729,7 +735,7 @@ class Key(object):
                     prefix = '03'
                 else:
                     prefix = '02'
-                self.public_hex = prefix + self._x
+                self.public_hex = pub_key
                 self.public_compressed_hex = prefix + self._x
             else:
                 self.public_hex = pub_key
@@ -745,7 +751,7 @@ class Key(object):
                 self._y = change_base(y, 10, 16, 64)
                 self.public_uncompressed_hex = '04' + self._x + self._y
                 self.public_compressed_hex = pub_key
-            self.public_compressed_byte = binascii.unhexlify(self.public_hex)
+            self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
             if self.compressed:
                 self.public_byte = self.public_compressed_byte
@@ -1244,6 +1250,8 @@ class HDKey(Key):
                     _logger.warning("Uncompressed private keys are not standard for BIP32 keys, use at your own risk!")
                     compressed = False
                 chain = chain if chain else b'\0' * 32
+                if not import_key.private_byte:
+                    raise BKeyError('Cannot import public Key in HDKey')
                 key = import_key.private_byte
                 key_type = 'private'
             else:
@@ -1280,7 +1288,8 @@ class HDKey(Key):
                 else:
                     key = import_key
                     chain = chain if chain else b'\0' * 32
-                    key_type = 'private'
+                    is_private = kf['is_private']
+                    key_type = 'private' if is_private else 'public'
 
         if witness_type is None:
             witness_type = DEFAULT_WITNESS_TYPE
@@ -1455,7 +1464,7 @@ class HDKey(Key):
         if not multisig:
             multisig = False if not self.multisig else self.multisig
 
-        rkey = self.private_byte or self.public_byte
+        rkey = self.private_byte or self.public_compressed_byte
         if prefix and not isinstance(prefix, (bytes, bytearray)):
             prefix = binascii.unhexlify(prefix)
         if self.is_private and is_private:
@@ -1902,17 +1911,18 @@ class Signature(object):
 
         der_signature = ''
         signature = to_bytes(signature)
+        hash_type = SIGHASH_ALL
         if len(signature) > 64 and signature.startswith(b'\x30'):
-            der_signature = signature
-            if der_signature.endswith(b'\x01'):
-                der_signature = der_signature[:-1]
+            der_signature = signature[:-1]
+            hash_type = change_base(signature[-1:], 256, 10)
             signature = convert_der_sig(signature[:-1], as_hex=False)
         signature = to_hexstring(signature)
         if len(signature) != 128:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
         r = int(signature[:64], 16)
         s = int(signature[64:], 16)
-        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key)
+        return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
+                         hash_type=hash_type)
 
     @staticmethod
     def create(tx_hash, private, use_rfc6979=True, k=None):
@@ -1986,7 +1996,8 @@ class Signature(object):
                 s = secp256k1_n - s
             return Signature(r, s, tx_hash, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
 
-    def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None, k=None):
+    def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
+                 hash_type=SIGHASH_ALL):
         """
         Initialize Signature object with provided r and r value
 
@@ -2027,9 +2038,12 @@ class Signature(object):
         self.secret = None if not secret else int(secret)
         self._der_encoded = to_bytes(der_signature)
         self._signature = to_bytes(signature)
+        if signature and len(signature) != 128:
+            raise BKeyError('Invalid Signature: length must be 64 bytes')
         self._public_key = None
         self.public_key = public_key
         self.k = k
+        self.hash_type = hash_type
 
     def __repr__(self):
         der_sig = '' if not self._der_encoded else to_hexstring(self._der_encoded)

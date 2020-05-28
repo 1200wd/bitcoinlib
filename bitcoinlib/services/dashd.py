@@ -150,7 +150,7 @@ class DashdClient(BaseClient):
             i.value = value
         t.block_hash = tx['blockhash']
         t.version = tx['version']
-        t.date = datetime.fromtimestamp(tx['blocktime'])
+        t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
 
@@ -175,7 +175,7 @@ class DashdClient(BaseClient):
     def blockcount(self):
         return self.proxy.getblockcount()
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
 
         for t in self.proxy.listunspent(0, 99999999, [address]):

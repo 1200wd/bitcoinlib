@@ -927,7 +927,7 @@ class HDWalletTransaction(Transaction):
     def export(self, skip_change=True):
         """
         Export this transaction as list of tuples in the following format:
-            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value)
+            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, fee)
 
         A transaction with multiple inputs or outputs results in multiple tuples.
 
@@ -940,15 +940,16 @@ class HDWalletTransaction(Transaction):
         wlt_addresslist = self.hdwallet.addresslist()
         input_addresslist = [i.address for i in self.inputs]
         if self.outgoing_tx:
+            fee_per_output = self.fee / len(self.outputs)
             for o in self.outputs:
                 if o.address in wlt_addresslist and skip_change:
                     continue
-                mut_list.append((self.date, self.hash, 'out', input_addresslist, o.address, -o.value))
+                mut_list.append((self.date, self.hash, 'out', input_addresslist, o.address, -o.value, fee_per_output))
         else:
             for o in self.outputs:
                 if o.address not in wlt_addresslist:
                     continue
-                mut_list.append((self.date, self.hash, 'in', input_addresslist, o.address, o.value))
+                mut_list.append((self.date, self.hash, 'in', input_addresslist, o.address, o.value, 0))
         return mut_list
 
 
@@ -2753,14 +2754,14 @@ class HDWallet(object):
                             last_txid = ''
                         else:
                             last_txid = self.utxo_last(address)
-                        new_utxos = srv.getutxos(address, after_txid=last_txid, max_txs=max_utxos)
+                        new_utxos = srv.getutxos(address, after_txid=last_txid, limit=max_utxos)
                         if new_utxos:
                             utxos += new_utxos
                         elif new_utxos is False:
                             raise WalletError("No response from any service provider, could not update UTXO's. "
                                               "Errors: %s" % srv.errors)
                     if srv.complete:
-                        self.last_updated = datetime.datetime.now()
+                        self.last_updated = datetime.now()
                     elif utxos and 'date' in utxos[-1:][0]:
                         self.last_updated = utxos[-1:][0]['date']
 
@@ -2970,7 +2971,7 @@ class HDWallet(object):
         # self._balance_update(account_id=account_id, network=network, key_id=key_id)
 
     def transactions_update(self, account_id=None, used=None, network=None, key_id=None, depth=None, change=None,
-                            max_txs=MAX_TRANSACTIONS):
+                            limit=MAX_TRANSACTIONS):
         """
         Update wallets transaction from service providers. Get all transactions for known keys in this wallet. The balances and unspent outputs (UTXO's) are updated as well. Only scan keys from default network and account unless another network or account is specified.
 
@@ -2988,8 +2989,8 @@ class HDWallet(object):
         :type depth: int
         :param change: Only update change or normal keys, default is both (None)
         :type change: int
-        :param max_txs: Stop update after max_txs transactions to avoid timeouts with service providers. Default is MAX_TRANSACTIONS defined in config.py
-        :type max_txs: int
+        :param limit: Stop update after limit transactions to avoid timeouts with service providers. Default is MAX_TRANSACTIONS defined in config.py
+        :type limit: int
 
         :return bool: True if all transactions are updated
         """
@@ -3014,9 +3015,9 @@ class HDWallet(object):
         txs = []
         addresslist = self.addresslist(
             account_id=account_id, used=used, network=network, key_id=key_id, change=change, depth=depth)
-        last_updated = datetime.datetime.now()
+        last_updated = datetime.now()
         for address in addresslist:
-            txs += srv.gettransactions(address, max_txs=max_txs, after_txid=self.transaction_last(address))
+            txs += srv.gettransactions(address, limit=limit, after_txid=self.transaction_last(address))
             if not srv.complete:
                 if txs and txs[-1].date and txs[-1].date < last_updated:
                     last_updated = txs[-1].date
@@ -3170,7 +3171,7 @@ class HDWallet(object):
     def transactions_export(self, account_id=None, network=None, include_new=False, key_id=None):
         """
         Export wallets transactions as list of tuples with the following fields:
-            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, value_cumulative)
+            (transaction_date, transaction_hash, in/out, addresses_in, addresses_out, value, value_cumulative, fee)
 
         :param account_id: Filter by Account ID. Leave empty for default account_id
         :type account_id: int, None
@@ -3200,7 +3201,8 @@ class HDWallet(object):
                 addr_list_in = tei[3] if isinstance(tei[3], list) else [tei[3]]
                 addr_list_out = tei[4] if isinstance(tei[4], list) else [tei[4]]
                 cumulative_value += tei[5]
-                txs_tuples.append((tei[0], tei[1], tei[2], addr_list_in, addr_list_out, tei[5], cumulative_value))
+                txs_tuples.append((tei[0], tei[1], tei[2], addr_list_in, addr_list_out, tei[5], cumulative_value,
+                                   tei[6]))
         return txs_tuples
 
     def transaction(self, txid):
@@ -3603,6 +3605,8 @@ class HDWallet(object):
                                   address))
             rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
             rt.vsize = t['vsize']
+            rt.size = t['size']
+            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()

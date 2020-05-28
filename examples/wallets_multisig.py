@@ -11,7 +11,7 @@ import os
 from pprint import pprint
 from bitcoinlib.wallets import *
 
-test_databasefile = BCL_DATABASE_DIR + 'bitcoinlib.test.sqlite'
+test_databasefile = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.test.sqlite')
 test_database = 'sqlite:///' + test_databasefile
 if os.path.isfile(test_databasefile):
     os.remove(test_databasefile)
@@ -67,11 +67,9 @@ print("Verified (True): ", t2.verify())
 #
 
 # Create 2 cosigner multisig wallets
-NETWORK = 'testnet'
-pk1 = HDKey('tprv8ZgxMBicQKsPd1Q44tfDiZC98iYouKRC2CzjT3HGt1yYw2zuX2awTotzGAZQEAU9bi2M5MCj8iedP9MREPjUgpDEBwBgGi2C8eK'
-            '5zNYeiX8', network=NETWORK)
-pk2 = HDKey('tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'
-            'MeQHdWDp', network=NETWORK)
+NETWORK = 'bitcoinlib_test'
+pk1 = HDKey(network=NETWORK)
+pk2 = HDKey(network=NETWORK)
 wl1 = HDWallet.create('multisig_2of2_cosigner1', sigs_required=2,
                       keys=[pk1, pk2.public_master_multisig()],
                       network=NETWORK, db_uri=test_database)
@@ -87,15 +85,16 @@ utxos = wl1.utxos()
 if not utxos:
     print("Deposit testnet bitcoin to this address to create transaction: ", nk1.address)
 else:
-    print("Utxo found, sweep address to testnet faucet address")
-    res = wl1.sweep('mwCwTceJvYV27KXBc3NJZys6CjsgsoeHmf', min_confirms=0)
+    print("Utxo's found, now sweep wallet")
+    res = wl1.sweep(wl1.new_key().address, min_confirms=0)
     assert res.hash
     wl2.utxos_update()
+    wl2.new_key()
     t2 = wl2.transaction_import(res)
     t2.sign()
     print("Verified (True): ", t2.verify())
-    print("Push transaction result: ", t2.send())
-
+    t2.send()
+    print("Push transaction result: ", t2.status)
 
 #
 # Multisig wallet using single keys for cosigner wallet instead of BIP32 type key structures

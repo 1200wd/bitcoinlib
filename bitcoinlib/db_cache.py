@@ -22,7 +22,6 @@ try:
     import enum
 except ImportError:
     import enum34 as enum
-import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, Numeric, Text)
@@ -63,21 +62,24 @@ class DbInit:
         self.session = Session()
 
 
-class dbCacheTransactionNode(Base):
+class DbCacheTransactionNode(Base):
     """
     Link table for cache transactions and addresses
     """
     __tablename__ = 'cache_transactions_node'
     txid = Column(String(64), ForeignKey('cache_transactions.txid'), primary_key=True)
-    transaction = relationship("dbCacheTransaction", back_populates='nodes', doc="Related transaction object")
-    output_n = Column(BigInteger, primary_key=True, doc="Output_n of previous transaction output that is spent in this input")
+    transaction = relationship("DbCacheTransaction", back_populates='nodes', doc="Related transaction object")
+    output_n = Column(BigInteger, primary_key=True,
+                      doc="Output_n of previous transaction output that is spent in this input")
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
     address = Column(String(255), doc="Address string base32 or base58 encoded")
     spent = Column(Boolean, default=None, doc="Is output spent?")
+    spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
+    spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
 
 
-class dbCacheTransaction(Base):
+class DbCacheTransaction(Base):
     """
     Transaction Cache Table
 
@@ -86,7 +88,7 @@ class dbCacheTransaction(Base):
     """
     __tablename__ = 'cache_transactions'
     txid = Column(String(64), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
-    date = Column(DateTime, default=datetime.datetime.utcnow,
+    date = Column(DateTime, default=datetime.utcnow,
                   doc="Date when transaction was confirmed and included in a block. "
                       "Or when it was created when transaction is not send or confirmed")
     confirmations = Column(Integer, default=0,
@@ -98,12 +100,12 @@ class dbCacheTransaction(Base):
     fee = Column(Integer, doc="Transaction fee")
     raw = Column(Text(),
                  doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
-    nodes = relationship("dbCacheTransactionNode", cascade="all,delete",
-                         doc="List of all inputs and outputs as dbCacheTransactionNode objects")
-    order_n = Column(Integer, doc='Order of transaction in block')
+    nodes = relationship("DbCacheTransactionNode", cascade="all,delete",
+                         doc="List of all inputs and outputs as DbCacheTransactionNode objects")
+    order_n = Column(Integer, doc="Order of transaction in block")
 
 
-class dbCacheAddress(Base):
+class DbCacheAddress(Base):
     """
     Address Cache Table
 
@@ -115,9 +117,12 @@ class dbCacheAddress(Base):
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
     balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
     last_block = Column(Integer, doc="Number of last updated block")
+    last_txid = Column(String(64), doc="Transaction ID of latest transaction in cache")
+    n_utxos = Column(Integer, doc="Total number of UTXO's for this address")
+    n_txs = Column(Integer, doc="Total number of transactions for this address")
 
 
-class dbCacheVars(Base):
+class DbCacheVars(Base):
     """
     Table to store various blockchain related variables
     """

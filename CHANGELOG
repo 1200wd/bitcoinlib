@@ -1,3 +1,14 @@
+RELEASE 0.4.15 - Integrate Blocksmurfer
+=================================
+* Add support for new bitcoinlib-based Blocksmurfer provider
+* Fix issues with Service class and service providers
+* Fix various Bcoin issues
+* Fix antique P2PK transactions
+* Improve database and caching performance
+* Fix issues with incorrect balance, number of txs or utoxs in cache
+* Add spending transaction information in transaction outputs
+* Add getblock method
+
 RELEASE 0.4.14 - Refactor logging
 =================================
 * Simplify logging and configuration
