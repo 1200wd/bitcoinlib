@@ -149,7 +149,7 @@ class BcoinClient(BaseClient):
                 break
 
         # Check which outputs are spent/unspent for this address
-        if not after_txid:
+        if not after_txid and len(txs) != limit:
             txs = transaction_update_spents(txs, address)
         return txs
 
