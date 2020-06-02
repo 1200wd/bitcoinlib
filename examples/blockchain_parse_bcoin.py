@@ -9,9 +9,12 @@
 #    © 2020 April - 1200 Web Development <http://1200wd.com/>
 #
 
-from time import sleep
+import time
 from bitcoinlib.services.services import Service
 from pprint import pprint
+
+
+start_time = time.time()
 
 
 srv = Service(providers=['bcoin'])
@@ -26,7 +29,7 @@ srv = Service(providers=['bcoin'])
 # blocks = range(1, 100000)
 
 # Check some more recent blocks
-blocks = range(625010, 629060)
+blocks = range(626001, 626002)
 
 
 for block in blocks:
@@ -49,3 +52,7 @@ for block in blocks:
         if not t.verified:
             print(50 * "!")
             print("Transaction could not be verified!!")
+
+
+
+print("--- %s seconds ---" % (time.time() - start_time))
