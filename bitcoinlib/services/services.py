@@ -474,6 +474,9 @@ class Service(object):
         self.complete = True if len(block['txs']) == block['total_txs'] else False
         return block
 
+    def getrawblock(self, blockid):
+        return self._provider_execute('getrawblock', blockid)
+
     def mempool(self, txid=''):
         """
         Get list of all transaction IDs in the current mempool
