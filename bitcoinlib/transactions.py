@@ -177,7 +177,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
     return Transaction(inputs, outputs, locktime, version, network, size=cursor + 4, output_total=output_total,
-                       coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=to_hexstring(rawtx))
+                       coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=rawtx)
 
 
 def script_deserialize(script, script_types=None, locking_script=None, size_bytes_check=True):
@@ -623,7 +623,7 @@ def transaction_update_spents(txs, address):
     for t in txs:
         for inp in t.inputs:
             if inp.address == address:
-                spend_list.update({(to_hexstring(inp.prev_hash), inp.output_n_int): t})
+                spend_list.update({(inp.prev_hash, inp.output_n_int): t})
     address_inputs = list(spend_list.keys())
     for t in txs:
         for to in t.outputs:
@@ -635,7 +635,7 @@ def transaction_update_spents(txs, address):
                 spending_tx = spend_list[(t.hash, to.output_n)]
                 spending_index_n = \
                     [inp for inp in txs[txs.index(spending_tx)].inputs
-                     if to_hexstring(inp.prev_hash) == t.hash and inp.output_n_int == to.output_n][0].index_n
+                     if inp.prev_hash == t.hash and inp.output_n_int == to.output_n][0].index_n
                 txs[txs.index(t)].outputs[to.output_n].spending_txid = spending_tx.hash
                 txs[txs.index(t)].outputs[to.output_n].spending_index_n = spending_index_n
     return txs
@@ -1241,6 +1241,8 @@ class Transaction(object):
         :type fee_per_kb: int
         :param size: Transaction size in bytes
         :type size: int
+        :param hash: Transaction hash used as transaction ID
+        :type hash: bytes
         :param date: Confirmation date of transaction
         :type date: datetime
         :param confirmations: Number of confirmations
@@ -1253,8 +1255,8 @@ class Transaction(object):
         :type input_total: int
         :param output_total: Total value of outputs
         :type output_total: int
-        :param rawtx: Raw hexstring of complete transaction
-        :type rawtx: str
+        :param rawtx: Bytes representation of complete transaction
+        :type rawtx: bytes
         :param status: Transaction status, for example: 'new', 'incomplete', 'unconfirmed', 'confirmed'
         :type status: str
         :param coinbase: Coinbase transaction or not?
@@ -1310,7 +1312,8 @@ class Transaction(object):
         self.fee_per_kb = fee_per_kb
         self.size = size
         self.vsize = size
-        self.hash = hash
+        self.hash = to_bytes(hash)
+        self._txid = None
         self.date = date
         self.confirmations = confirmations
         self.block_height = block_height
@@ -1325,14 +1328,20 @@ class Transaction(object):
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
         if not self.hash:
-            self.hash = to_hexstring(self.signature_hash()[::-1])
+            self.hash = self.signature_hash()[::-1]
 
     def __repr__(self):
         return "<Transaction(id=%s, inputs=%d, outputs=%d, status=%s, network=%s)>" % \
-               (self.hash, len(self.inputs), len(self.outputs), self.status, self.network.name)
+               (self.txid, len(self.inputs), len(self.outputs), self.status, self.network.name)
 
     def __str__(self):
-        return self.hash
+        return self.txid
+
+    @property
+    def txid(self):
+        if not self._txid:
+            self._txid = to_hexstring(self.hash)
+        return self._txid
 
     def as_dict(self):
         """
@@ -1348,7 +1357,7 @@ class Transaction(object):
         for o in self.outputs:
             outputs.append(o.as_dict())
         return {
-            'hash': self.hash,
+            'hash': self.txid,
             'date': self.date,
             'network': self.network.name,
             'witness_type': self.witness_type,
@@ -1386,7 +1395,7 @@ class Transaction(object):
         Prints transaction information to standard output
         """
 
-        print("Transaction %s" % self.hash)
+        print("Transaction %s" % self.txid)
         print("Date: %s" % self.date)
         print("Network: %s" % self.network.name)
         if self.locktime and self.locktime != 0xffffffff:
@@ -1447,7 +1456,7 @@ class Transaction(object):
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
 
-    def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
+    def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
         """
         Double SHA256 Hash of Transaction signature
 
@@ -1457,10 +1466,12 @@ class Transaction(object):
         :type hash_type: int
         :param witness_type: Legacy or Segwit witness type? Leave empty to use Transaction witness type
         :type witness_type: str
+        :param as_hex: Return value as hexadecimal string. Default is False
+        :type as_hex: bool
 
         :return bytes: Transaction signature hash
         """
-        return double_sha256(self.signature(sign_id, hash_type, witness_type))
+        return double_sha256(self.signature(sign_id, hash_type, witness_type), as_hex=as_hex)
 
     def signature(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
         """

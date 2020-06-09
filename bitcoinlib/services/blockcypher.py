@@ -23,7 +23,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import to_hexstring, to_bytes
 
 PROVIDERNAME = 'blockcypher'
 
@@ -102,7 +102,7 @@ class BlockCypher(BaseClient):
         t.block_height = tx['block_height'] if tx['block_height'] > 0 else None
         t.block_hash = tx.get('block_hash')
         t.fee = tx['fees']
-        t.rawtx = tx['hex']
+        t.rawtx = to_bytes(tx['hex'])
         t.size = int(len(tx['hex']) / 2)
         t.network = self.network
         t.input_total = 0

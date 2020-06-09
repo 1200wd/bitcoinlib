@@ -64,7 +64,7 @@ class BitapsClient(BaseClient):
             t.block_height = tx['blockHeight']
             t.block_hash = tx['blockHash']
         t.fee = tx['fee']
-        t.rawtx = tx['rawTx']
+        t.rawtx = to_bytes(tx['rawTx'])
         t.size = tx['size']
         t.network = self.network
         if not t.coinbase:

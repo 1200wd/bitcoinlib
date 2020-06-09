@@ -24,6 +24,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.encoding import to_bytes
 
 
 _logger = logging.getLogger(__name__)
@@ -110,7 +111,7 @@ class CryptoID(BaseClient):
         t.block_height = tx_api['block']
         t.block_hash = tx['blockhash']
         t.confirmations = tx['confirmations']
-        t.rawtx = tx['hex']
+        t.rawtx = to_bytes(tx['hex'])
         t.size = tx['size']
         t.network = self.network
         t.locktime = tx['locktime']

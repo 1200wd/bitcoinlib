@@ -126,7 +126,7 @@ class SmartbitClient(BaseClient):
                 utxos.append(
                     {
                         'address': utxo.address,
-                        'tx_hash': t.hash,
+                        'tx_hash': t.txid,
                         'confirmations': t.confirmations,
                         'output_n': utxo.output_n,
                         'input_n': 0,
@@ -157,7 +157,7 @@ class SmartbitClient(BaseClient):
             for tx in res_tx:
                 t = self._parse_transaction(tx)
                 txs.append(t)
-                if t.hash == after_txid:
+                if t.txid == after_txid:
                     txs = []
             if not next_link or len(txs) > REQ_LIMIT_TOTAL:
                 break

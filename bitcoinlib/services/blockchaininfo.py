@@ -24,6 +24,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.encoding import to_bytes
 
 
 PROVIDERNAME = 'blockchaininfo'
@@ -101,7 +102,7 @@ class BlockchainInfoClient(BaseClient):
             t.confirmations = 0
             t.date = None
         t.hash = tx_id
-        t.rawtx = raw_tx
+        t.rawtx = to_bytes(raw_tx)
         t.size = tx['size']
         t.network_name = self.network
         t.locktime = tx['lock_time']

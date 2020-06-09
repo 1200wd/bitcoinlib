@@ -109,11 +109,11 @@ class BcoinClient(BaseClient):
             for unspent in tx.outputs:
                 if unspent.address != address:
                     continue
-                if not srv.isspent(tx.hash, unspent.output_n):
+                if not srv.isspent(tx.txid, unspent.output_n):
                     utxos.append(
                         {
                             'address': unspent.address,
-                            'tx_hash': tx.hash,
+                            'tx_hash': tx.txid,
                             'confirmations': tx.confirmations,
                             'output_n': unspent.output_n,
                             'input_n': 0,
@@ -125,7 +125,7 @@ class BcoinClient(BaseClient):
                             'date': tx.date,
                          }
                     )
-                    if tx.hash == after_txid:
+                    if tx.txid == after_txid:
                         utxos = []
         return utxos[:limit]
 
@@ -161,7 +161,7 @@ class BcoinClient(BaseClient):
         txid = ''
         if 'success' in res and res['success']:
             t = Transaction.import_raw(rawtx)
-            txid = t.hash
+            txid = t.txid
         return {
             'txid': txid,
             'response_dict': res
@@ -215,9 +215,9 @@ class BcoinClient(BaseClient):
         block['merkle_root'] = block.pop('merkleRoot')
         return block
 
-    def isspent(self, tx_id, index):
+    def isspent(self, txid, index):
         try:
-            self.compose_request('coin', tx_id, str(index))
+            self.compose_request('coin', txid, str(index))
         except ClientError:
             return 1
         return 0

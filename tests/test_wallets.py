@@ -1428,7 +1428,7 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
         self.assertEqual(w.public_master(as_private=True)[1].wif, 'ZprvArYK8TRL84162ECqZEwt8NsCRdN43ZVVPYTfPsKw5YfiRGWtx3AC3eXvTuk'
                                                    'CqUsKCLKQNGDV11hHi3FUQbcD9wc9g8ro64kK6H2MP4jaM7K')
         w.transactions_update()
-        tx_hashes = sorted([t.hash for t in w.transactions()])
+        tx_hashes = sorted([t.txid for t in w.transactions()])
         tx_hashes_expected = ['53b35eca3f2e767db02e4acc6c224d7a45f32158c8063f53c3d3660ab12d53ba',
                               'b6c4f286e8883927c26ce91e6cc89c7a8dd88223c111635e8e53f78c4573712a']
         self.assertListEqual(tx_hashes, tx_hashes_expected)
@@ -1512,7 +1512,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         address = 'tb1qlh9x3jwhfqspp7u9w6l7zqxpmuvplzaczaele3'
         w = wallet_create_or_open('fix-multiple-tx-1-block', keys=address, db_uri=self.DATABASE_URI)
         w.scan()
-        self.assertEqual(w.transactions()[0].hash, 'bae05e65c13a1b1635abf581a6250a458cbd672c914e2563b5bb175274f9c5a7')
+        self.assertEqual(w.transactions()[0].txid, 'bae05e65c13a1b1635abf581a6250a458cbd672c914e2563b5bb175274f9c5a7')
 
     def test_wallet_scan_utxos(self):
         pk = 'tpubDDi7dF92m7UrWNuAmzR9mzETcCjFT9v6XZq2oXjvhH4Bzr4L13np7d6bBB5tZk1Kg3y2vB79ohpgsLiubcRA8RfA6L69nmZvSG26XfmC5Ao'
@@ -1525,7 +1525,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                        '7834f47064c7bfd5b68cef98a61f5c4c7a8a3c6985ef137c7b3447bb62fa2324',
                        '7a4b8da2b74c71c01e1752457da715bc96807da02ec5e05d3eb4ed1dcb0c4735',
                        'b71cedddf6381c8b6eba953d5b9454b9ca41e2abbdbd9498a6c90004f649abb4']
-        tx_list = sorted(list(set([t.hash for t in w.transactions()])))
+        tx_list = sorted(list(set([t.txid for t in w.transactions()])))
         self.assertListEqual(tx_list, exp_tx_list)
 
     def test_wallet_two_utxos_one_key(self):
@@ -1553,8 +1553,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
 
         t = wlt.send_to(to_key.address, 9000)
         self.assertEqual(wlt.balance(), 200000000 - t.fee)
-        self.assertEqual(t.hash, wlt.transaction_spent(t.inputs[0].prev_hash, t.inputs[0].output_n))
-        self.assertEqual(t.hash, wlt.transaction_spent(to_hexstring(t.inputs[0].prev_hash), t.inputs[0].output_n_int))
+        self.assertEqual(t.txid, wlt.transaction_spent(t.inputs[0].prev_hash, t.inputs[0].output_n))
+        self.assertEqual(t.txid, wlt.transaction_spent(to_hexstring(t.inputs[0].prev_hash), t.inputs[0].output_n_int))
         del wlt
 
     def test_wallet_balance_update_multi_network(self):
@@ -1697,7 +1697,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                             network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         w.utxos_update()
         wts = w.transactions()
-        txid = wts[0].hash
+        txid = wts[0].txid
         self.assertEqual(txid, '86eebbefb1062b45b19bc1bbc3fbe044fadcf592dc4e64f1a13a58ac362123ef')
         wt0 = HDWalletTransaction.from_txid(w, txid)
         self.assertEqual(wt0.outputs[0].address, 'zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y1')

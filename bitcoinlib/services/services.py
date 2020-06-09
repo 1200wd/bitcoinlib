@@ -29,7 +29,7 @@ from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
 from bitcoinlib.main import BCL_DATA_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import to_hexstring, to_bytes
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 
@@ -565,7 +565,8 @@ class Cache(object):
                 t.outputs[n.output_n].spent = n.spent
                 t.outputs[n.output_n].spending_txid = n.spending_txid
                 t.outputs[n.output_n].spending_index_n = n.spending_index_n
-        t.hash = db_tx.txid
+        t.hash = to_bytes(db_tx.txid)
+        t._txid = db_tx.txid
         t.date = db_tx.date
         t.confirmations = db_tx.confirmations
         t.block_hash = db_tx.block_hash
@@ -575,7 +576,7 @@ class Cache(object):
         t.update_totals()
         if t.coinbase:
             t.input_total = t.output_total
-        _logger.info("Retrieved transaction %s from cache" % t.hash)
+        _logger.info("Retrieved transaction %s from cache" % t.txid)
         return t
 
     def gettransaction(self, txid):
@@ -791,7 +792,7 @@ class Cache(object):
         if not SERVICE_CACHING_ENABLED:
             return
         # Only store complete and confirmed transaction in cache
-        if not t.hash:    # pragma: no cover
+        if not t.txid:    # pragma: no cover
             _logger.info("Caching failure tx: Incomplete transaction missing hash, date, block_height, "
                          "network or confirmations info")
             return False
@@ -803,9 +804,9 @@ class Cache(object):
             if not raw_hex:    # pragma: no cover
                 _logger.info("Caching failure tx: Raw hex missing in transaction")
                 return False
-        if self.session.query(DbCacheTransaction).filter_by(txid=t.hash).count():
+        if self.session.query(DbCacheTransaction).filter_by(txid=t.txid).count():
             return
-        new_tx = DbCacheTransaction(txid=t.hash, date=t.date, confirmations=t.confirmations,
+        new_tx = DbCacheTransaction(txid=t.txid, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
                                     fee=t.fee, raw=raw_hex, order_n=order_n)
         self.session.add(new_tx)
@@ -813,14 +814,14 @@ class Cache(object):
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
                 return False
-            new_node = DbCacheTransactionNode(txid=t.hash, address=i.address, output_n=i.index_n, value=i.value,
+            new_node = DbCacheTransactionNode(txid=t.txid, address=i.address, output_n=i.index_n, value=i.value,
                                               is_input=True)
             self.session.add(new_node)
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
                 return False
-            new_node = DbCacheTransactionNode(txid=t.hash, address=o.address, output_n=o.output_n, value=o.value,
+            new_node = DbCacheTransactionNode(txid=t.txid, address=o.address, output_n=o.output_n, value=o.value,
                                               is_input=False, spent=o.spent, spending_txid=o.spending_txid,
                                               spending_index_n=o.spending_index_n)
             self.session.add(new_node)
@@ -828,7 +829,7 @@ class Cache(object):
         if commit:
             try:
                 self.commit()
-                _logger.info("Added transaction %s to cache" % t.hash)
+                _logger.info("Added transaction %s to cache" % t.txid)
             except Exception as e:    # pragma: no cover
                 _logger.warning("Caching failure tx: %s" % e)
 

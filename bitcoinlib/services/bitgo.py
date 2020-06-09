@@ -97,7 +97,7 @@ class BitGoClient(BaseClient):
     #         t.block_height = tx['height']
     #         t.block_hash = tx['blockhash']
     #     t.fee = tx['fee']
-    #     t.rawtx = tx['hex']
+    #     t.rawtx = to_bytes(tx['hex'])
     #     t.size = len(tx['hex']) // 2
     #     t.network = self.network
     #     if t.coinbase:

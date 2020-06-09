@@ -249,7 +249,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         for provider in srv.results:
             print("Testing: %s" % provider)
             res = srv.results[provider]
-            t = [r for r in res if r.hash == tx_hash][0]
+            t = [r for r in res if r.txid == tx_hash][0]
 
             # Compare transaction
             if t.block_height:
@@ -281,7 +281,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         res = ServiceTest(timeout=TIMEOUT_TEST).\
             gettransactions('3As4asrpMryntmrVgexCD9i3f3qZP92Zct',
                             after_txid='d14f4dfafa3578250ffd596b3f69836ef5e35d57ceced1cc0850d2246964dd3a')
-        self.assertEqual(res[0].hash, '8b8a8f1de23f70b2bdaa74488d97dc64728c2d99d2d486945c71e258fdef6ca1')
+        self.assertEqual(res[0].txid, '8b8a8f1de23f70b2bdaa74488d97dc64728c2d99d2d486945c71e258fdef6ca1')
 
     def test_service_gettransactions_after_txid_segwit(self):
         res = ServiceTest(timeout=TIMEOUT_TEST).\
@@ -291,15 +291,15 @@ class TestService(unittest.TestCase, CustomAssertions):
             '9e914f4438cdfd2681bf5fb0b3dea8206fffcc48d1ca7e0f05f7b77c76115803',
             'a4bc261faf9ca47722760c9f9f075ab974c7351d8da7b0b5e5a316b3aa7aefa2',
             '04be18177781f8060d63390a705cf89ffed2252a3506fab69be7079bc7ba9410']
-        self.assertIn(res[0].hash, tx_ids)
-        self.assertIn(res[1].hash, tx_ids)
-        self.assertIn(res[2].hash, tx_ids)
+        self.assertIn(res[0].txid, tx_ids)
+        self.assertIn(res[1].txid, tx_ids)
+        self.assertIn(res[2].txid, tx_ids)
 
     def test_service_gettransactions_after_txid_litecoin(self):
         res = ServiceTest('litecoin').gettransactions(
             'LhVR1yL8cEjPJsiuVnqjEfeGCEtS25jE2J',
             after_txid='c44967c6db6fa3c1307f9a98bbe0308aa29d99330ada866192735b31bcb0d53f')
-        self.assertEqual(res[0].hash, 'e0c1e90fa2195869905e90d4fa644082dfd0523540c13baea0c7a4e246ef40e4')
+        self.assertEqual(res[0].txid, 'e0c1e90fa2195869905e90d4fa644082dfd0523540c13baea0c7a4e246ef40e4')
 
     def test_service_gettransactions_addresslist_error(self):
         self.assertRaisesRegexp(ServiceError, "Address parameter must be of type text",
@@ -465,7 +465,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         for provider in srv.results:
             print("Provider %s" % provider)
             res = srv.results[provider]
-            txs = [r for r in res if r.hash == tx_hash]
+            txs = [r for r in res if r.txid == tx_hash]
             t = txs[0]
 
             # Compare transaction
@@ -597,7 +597,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = ServiceTest(timeout=TIMEOUT_TEST)
         txid = 'c5b0bce9acfcd32961493a7f1ae1dcfc4371f56ebdcbd23d6125875a845eb33d'
         t = srv.gettransaction(txid)
-        self.assertEqual(t.hash, txid)
+        self.assertEqual(t.txid, txid)
         self.assertTrue(t.verify())
 
     def test_service_gettransaction_nulldata(self):
@@ -693,7 +693,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     tx_hash = 'f770f05d2b1c63b71b2650227252da06ef226661982c4ee9b136b64f77bbbd0c'
     #     self.assertGreaterEqual(srv.getbalance(address), 50000000000)
     #     self.assertEqual(srv.getutxos(address)[0]['tx_hash'], tx_hash)
-    #     self.assertEqual(srv.gettransactions(address)[0].hash, tx_hash)
+    #     self.assertEqual(srv.gettransactions(address)[0].txid, tx_hash)
 
     def test_service_getblock_height(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST)
@@ -710,7 +710,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(b['version'], 536928256)
 
         t1 = b['txs'][1]
-        self.assertEqual(t1.hash, '23d7e1fb5c6749c00cb9f0f0c993e0b92c477f095658a8fdaa07ed706209b288')
+        self.assertEqual(t1.txid, '23d7e1fb5c6749c00cb9f0f0c993e0b92c477f095658a8fdaa07ed706209b288')
         self.assertEqual(t1.size, 246)
         self.assertEqual(t1.fee, 84000)
         self.assertEqual(t1.locktime, 0)
@@ -753,7 +753,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         if b['txs'] and len(b['txs']) > 1:
             t1 = b['txs'][1]
-            self.assertEqual(t1.hash, '6e7bfce6aee69312629b1f60afe6dcef02f367207642f2dc380a554c21181eb2')
+            self.assertEqual(t1.txid, '6e7bfce6aee69312629b1f60afe6dcef02f367207642f2dc380a554c21181eb2')
             self.assertEqual(t1.size, 225)
             self.assertEqual(t1.fee, 200000)
             self.assertEqual(t1.locktime, 0)
@@ -776,10 +776,13 @@ class TestService(unittest.TestCase, CustomAssertions):
 class TestServiceCache(unittest.TestCase):
 
     # TODO: Add mysql and postgres support
-    # @classmethod
-    # def setUpClass(cls):
-    #     if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS):
-    #         os.remove(DATABASEFILE_CACHE_UNITTESTS)
+    @classmethod
+    def setUpClass(cls):
+        try:
+            if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS2):
+                os.remove(DATABASEFILE_CACHE_UNITTESTS2)
+        except Exception:
+            pass
 
     def test_service_cache_transactions(self):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
@@ -788,7 +791,7 @@ class TestServiceCache(unittest.TestCase):
         res = srv.gettransactions(address, limit=2)
         self.assertGreaterEqual(len(res), 2)
         self.assertEqual(srv.results_cache_n, 0)
-        self.assertEqual(res[0].hash, '2ac5145f6e7c47c2ec57ede85ad842b3d9f826feaebf2b00f861359fed3ba4a7')
+        self.assertEqual(res[0].txid, '2ac5145f6e7c47c2ec57ede85ad842b3d9f826feaebf2b00f861359fed3ba4a7')
 
         # Get 10 transactions, 2 in cache rest from service providers
         res = srv.gettransactions(address, limit=10)

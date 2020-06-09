@@ -155,7 +155,7 @@ class BlockstreamClient(BaseClient):
             t = self._parse_transaction(tx, blockcount)
             if t:
                 txs.append(t)
-            if t.hash == after_txid:
+            if t.txid == after_txid:
                 txs = []
             if len(txs) > limit:
                 break

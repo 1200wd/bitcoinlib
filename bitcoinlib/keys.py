@@ -536,7 +536,7 @@ class Address(object):
         if not isinstance(network, Network):
             self.network = Network(network)
         self.data_bytes = to_bytes(data)
-        self.data = to_hexstring(data)
+        self._data = None
         self.script_type = script_type
         self.encoding = encoding
         self.compressed = compressed
@@ -564,7 +564,7 @@ class Address(object):
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
                 self.hash_bytes = hash160(self.data_bytes)
-        self.hashed_data = to_hexstring(self.hash_bytes)
+        self._hashed_data = None
         if self.encoding == 'base58':
             if self.script_type is None:
                 self.script_type = 'p2pkh'
@@ -598,6 +598,18 @@ class Address(object):
 
     def __repr__(self):
         return "<Address(address=%s)>" % self.address
+
+    @property
+    def hashed_data(self):
+        if not self._hashed_data:
+            self._hashed_data = to_hexstring(self.hash_bytes)
+        return self._hashed_data
+
+    @property
+    def data(self):
+        if not self._data:
+            self._data = to_hexstring(self.data_bytes)
+        return self._data
 
     def as_dict(self):
         """
@@ -749,7 +761,10 @@ class Key(object):
                 if y & 1 != sign:
                     y = secp256k1_p - y
                 self._y = change_base(y, 10, 16, 64)
-                self.public_uncompressed_hex = '04' + self._x + self._y
+                if self._y:
+                    self.public_uncompressed_hex = '04' + self._x + self._y
+                else:
+                    self.public_uncompressed_hex = b''
                 self.public_compressed_hex = pub_key
             self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
             self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
@@ -1916,11 +1931,13 @@ class Signature(object):
             der_signature = signature[:-1]
             hash_type = change_base(signature[-1:], 256, 10)
             signature = convert_der_sig(signature[:-1], as_hex=False)
-        signature = to_hexstring(signature)
-        if len(signature) != 128:
+        # signature = to_hexstring(signature)
+        if len(signature) != 64:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
-        r = int(signature[:64], 16)
-        s = int(signature[64:], 16)
+        # r = int.from_bytes(signature[:32], "big")
+        # s = int.from_bytes(signature[32:], "big")
+        r = change_base(signature[:32], 256, 10)
+        s = change_base(signature[32:], 256, 10)
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
                          hash_type=hash_type)
 
@@ -2037,7 +2054,11 @@ class Signature(object):
         self.tx_hash = tx_hash
         self.secret = None if not secret else int(secret)
         self._der_encoded = to_bytes(der_signature)
-        self._signature = to_bytes(signature)
+        if isinstance(signature, bytes):
+            self._signature = signature
+            signature = to_hexstring(signature)
+        else:
+            self._signature = to_bytes(signature)
         if signature and len(signature) != 128:
             raise BKeyError('Invalid Signature: length must be 64 bytes')
         self._public_key = None

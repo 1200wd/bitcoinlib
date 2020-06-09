@@ -81,7 +81,7 @@ class BlocksmurferClient(BaseClient):
 
     def _parse_transaction(self, tx):
         t = Transaction.import_raw(tx['raw_hex'], network=self.network)
-        if t.hash != tx['txid']:
+        if t.txid != tx['txid']:
             raise ClientError("Different hash from Blocksmurfer when parsing transaction")
         t.block_height = None if not tx['block_height'] else tx['block_height']
         t.confirmations = tx['confirmations']
