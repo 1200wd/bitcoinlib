@@ -26,10 +26,10 @@ class Block:
     def __init__(self, blockhash, version, prev_block, merkle_root, timestamp, bits, nonce):
         self.blockhash = blockhash
         self.version = version
-        self.version_int = struct.unpack('<L', version)[0]
+        self.version_int = struct.unpack('>L', version)[0]
         self.prev_block = prev_block
         self.merkle_root = merkle_root
-        self.timestamp = struct.unpack('<L', timestamp)[0]
+        self.timestamp = struct.unpack('>L', timestamp)[0]
         self.bits = bits
         self.bits_int = struct.unpack('>L', bits)[0]
         self.nonce = nonce
@@ -42,12 +42,12 @@ class Block:
     def from_raw(cls, rawblock, blockhash=None):
         if not blockhash:
             blockhash = double_sha256(rawblock[:80])[::-1]
-        version = rawblock[0:4]
+        version = rawblock[0:4][::-1]
         prev_block = rawblock[4:36][::-1]
         merkle_root = rawblock[36:68][::-1]
-        timestamp = rawblock[68:72]
-        bits = rawblock[72:76]
-        nonce = rawblock[76:80]
+        timestamp = rawblock[68:72][::-1]
+        bits = rawblock[72:76][::-1]
+        nonce = rawblock[76:80][::-1]
         tx_count, size = varbyteint_to_int(rawblock[80:89])
         return cls(blockhash, version, prev_block, merkle_root, timestamp, bits, nonce)
 
@@ -66,8 +66,8 @@ class Block:
 
     @property
     def target(self):
-        exponent = self.bits[-1]
-        coefficient = struct.unpack('<L', b'\x00' + self.bits[:-1])[0]
+        exponent = self.bits[0]
+        coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         return coefficient * 256 ** (exponent - 3)
 
     @property
