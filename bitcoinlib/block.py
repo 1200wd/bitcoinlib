@@ -19,11 +19,12 @@
 #
 
 from bitcoinlib.encoding import *
+from bitcoinlib.transactions import transaction_deserialize
 
 
 class Block:
 
-    def __init__(self, blockhash, version, prev_block, merkle_root, timestamp, bits, nonce):
+    def __init__(self, blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=None):
         self.blockhash = blockhash
         self.version = version
         self.version_int = struct.unpack('>L', version)[0]
@@ -34,8 +35,6 @@ class Block:
         self.bits_int = struct.unpack('>L', bits)[0]
         self.nonce = nonce
         self.nonce_int = struct.unpack('>L', nonce)[0]
-        # self.target = None
-        # self.difficulty = None
         self.transactions = None
 
     @classmethod
@@ -48,8 +47,17 @@ class Block:
         timestamp = rawblock[68:72][::-1]
         bits = rawblock[72:76][::-1]
         nonce = rawblock[76:80][::-1]
+
         tx_count, size = varbyteint_to_int(rawblock[80:89])
-        return cls(blockhash, version, prev_block, merkle_root, timestamp, bits, nonce)
+        txs_data = rawblock[80+size:]
+        txs = []
+
+        while txs_data:
+            t = transaction_deserialize(txs_data, network='bitcoin', check_size=False)
+            txs.append(t)
+            txs_data = txs_data[t.size:]
+
+        return cls(blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=txs)
 
     def as_dict(self):
         return {

@@ -43,7 +43,7 @@ class TransactionError(Exception):
         return self.msg
 
 
-def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
+def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     """
     Deserialize a raw transaction
     
@@ -171,12 +171,12 @@ def _transaction_deserialize(rawtx, network=DEFAULT_NETWORK):
                                   signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
                                   sequence=inputs[n].sequence, index_n=inputs[n].index_n, public_hash=public_hash,
                                   network=inputs[n].network)
-    if len(rawtx[cursor:]) != 4:
+    if len(rawtx[cursor:]) != 4 and check_size:
         raise TransactionError("Error when deserializing raw transaction, bytes left for locktime must be 4 not %d" %
                                len(rawtx[cursor:]))
     locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
 
-    return Transaction(inputs, outputs, locktime, version, network, size=len(rawtx), output_total=output_total,
+    return Transaction(inputs, outputs, locktime, version, network, size=cursor + 4, output_total=output_total,
                        coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=to_hexstring(rawtx))
 
 
@@ -1195,11 +1195,11 @@ class Transaction(object):
     """
 
     @staticmethod
-    def import_raw(rawtx, network=DEFAULT_NETWORK):
+    def import_raw(rawtx, network=DEFAULT_NETWORK, check_size=True):
         """
         Import a raw transaction and create a Transaction object
         
-        Uses the _transaction_deserialize method to parse the raw transaction and then calls the init method of
+        Uses the transaction_deserialize method to parse the raw transaction and then calls the init method of
         this transaction class to create the transaction object
         
         :param rawtx: Raw transaction string
@@ -1211,7 +1211,7 @@ class Transaction(object):
         """
 
         rawtx = to_bytes(rawtx)
-        return _transaction_deserialize(rawtx, network=network)
+        return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, hash='', date=None, confirmations=None,
