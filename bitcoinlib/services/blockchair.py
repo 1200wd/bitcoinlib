@@ -248,7 +248,8 @@ class BlockChairClient(BaseClient):
 
     def getrawblock(self, blockid):
         res = self.compose_request('raw/block/', data=str(blockid))
-        return res['data'][str(blockid)]['raw_block']
+        rb = res['data'][str(blockid)]['raw_block']
+        return rb
 
     def isspent(self, txid, output_n):
         t = self.gettransaction(txid)

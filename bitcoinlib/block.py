@@ -24,7 +24,8 @@ from bitcoinlib.transactions import transaction_deserialize
 
 class Block:
 
-    def __init__(self, blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=None):
+    def __init__(self, blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=None,
+                 block_height=None):
         self.blockhash = blockhash
         self.version = version
         self.version_int = struct.unpack('>L', version)[0]
@@ -35,10 +36,15 @@ class Block:
         self.bits_int = struct.unpack('>L', bits)[0]
         self.nonce = nonce
         self.nonce_int = struct.unpack('>L', nonce)[0]
-        self.transactions = None
+        self.transactions = transactions
+        self.txs_data = None
+        self.block_height = block_height
+        if not block_height and len(self.transactions):
+            # first bytes of unlocking script of coinbase transaction contain block height
+            self.block_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
 
     @classmethod
-    def from_raw(cls, rawblock, blockhash=None):
+    def from_raw(cls, rawblock, blockhash=None, parse_transactions=True):
         if not blockhash:
             blockhash = double_sha256(rawblock[:80])[::-1]
         version = rawblock[0:4][::-1]
@@ -51,13 +57,18 @@ class Block:
         tx_count, size = varbyteint_to_int(rawblock[80:89])
         txs_data = rawblock[80+size:]
         txs = []
+        coinbase_tx = None
 
-        while txs_data:
+        while (parse_transactions or not coinbase_tx) and txs_data:
             t = transaction_deserialize(txs_data, network='bitcoin', check_size=False)
             txs.append(t)
             txs_data = txs_data[t.size:]
+            if not coinbase_tx:
+                coinbase_tx = t
 
-        return cls(blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=txs)
+        block = cls(blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=txs)
+        block.txs_data = txs_data
+        return block
 
     def as_dict(self):
         return {
@@ -70,6 +81,7 @@ class Block:
             'nonce': self.nonce_int,
             'target': self.target_hex,
             'difficulty': self.difficulty,
+            'n_transactions': len(self.transactions),
         }
 
     @property
