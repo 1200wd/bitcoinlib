@@ -43,8 +43,11 @@ class Block:
             # first bytes of unlocking script of coinbase transaction contain block height
             self.block_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
 
+    def __repr__(self):
+        return "<Block (%s, %d, transactions: %d" % (to_hexstring(self.blockhash), self.block_height, len(self.transactions))
+
     @classmethod
-    def from_raw(cls, rawblock, blockhash=None, parse_transactions=True):
+    def from_raw(cls, rawblock, blockhash=None, parse_transactions=True, verify=True):
         if not blockhash:
             blockhash = double_sha256(rawblock[:80])[::-1]
         version = rawblock[0:4][::-1]
@@ -65,6 +68,9 @@ class Block:
             txs_data = txs_data[t.size:]
             if not coinbase_tx:
                 coinbase_tx = t
+            # TODO: verify transactions, need input value from previous txs
+            # if verify and not t.verify():
+            #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, blockhash))
 
         block = cls(blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=txs)
         block.txs_data = txs_data
