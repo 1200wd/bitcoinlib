@@ -79,12 +79,14 @@ class BitapsClient(BaseClient):
         for n, ti in tx['vIn'].items():
             t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
                         unlocking_script_unsigned=ti['scriptPubKey'],
-                        address=ti['address'], sequence=ti['sequence'], index_n=int(n), value=ti['amount'])
+                        address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
+                        index_n=int(n), value=ti['amount'])
 
         for _, to in tx['vOut'].items():
             spending_txid = None if not to['spent'] else to['spent'][0]['txId']
             spending_index_n = None if not to['spent'] else to['spent'][0]['vIn']
-            t.add_output(to['value'], to['address'], to['addressHash'], lock_script=to['scriptPubKey'],
+            t.add_output(to['value'], '' if 'address' not in to else to['address'],
+                         '' if 'addressHash' not in to else to['addressHash'], lock_script=to['scriptPubKey'],
                          spent=bool(to['spent']), spending_txid=spending_txid, spending_index_n=spending_index_n)
 
         return t
