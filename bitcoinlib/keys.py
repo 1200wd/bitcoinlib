@@ -766,8 +766,8 @@ class Key(object):
                 else:
                     self.public_uncompressed_hex = b''
                 self.public_compressed_hex = pub_key
-            self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
-            self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
+            self.public_compressed_byte = to_bytes(self.public_compressed_hex)
+            self.public_uncompressed_byte = to_bytes(self.public_uncompressed_hex)
             if self.compressed:
                 self.public_byte = self.public_compressed_byte
             else:
@@ -852,9 +852,9 @@ class Key(object):
             self.public_uncompressed_hex = '04' + self._x + self._y
             self.public_hex = self.public_compressed_hex if self.compressed else self.public_uncompressed_hex
 
-            self.public_byte = binascii.unhexlify(self.public_hex)
-            self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
-            self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
+            self.public_compressed_byte = to_bytes(self.public_compressed_hex)
+            self.public_uncompressed_byte = to_bytes(self.public_uncompressed_hex)
+            self.public_byte = self.public_compressed_byte if self.compressed else self.public_uncompressed_byte
         self._address_obj = None
         self._wif = None
         self._wif_prefix = None
