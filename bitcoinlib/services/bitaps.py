@@ -79,7 +79,8 @@ class BitapsClient(BaseClient):
         for n, ti in tx['vIn'].items():
             if t.coinbase:
                 t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
-                            sequence=ti['sequence'], index_n=int(n), value=tx['inputsAmount'])
+                            sequence=ti['sequence'], index_n=int(n), value=tx['outputsAmount'])
+                t.input_total = tx['outputsAmount']
             else:
                 t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
                             unlocking_script_unsigned=ti['scriptPubKey'],
@@ -190,41 +191,42 @@ class BitapsClient(BaseClient):
             return [tx['hash'] for tx in res['data']['transactions']]
         return []
 
-    def getblock(self, blockid, parse_transactions, page, limit):
-        if limit > 100:
-            limit = 100
-        res = self.compose_request('block', str(blockid),
-                                   variables={'transactions': True, 'limit': limit, 'page': page})
-        bd = res['data']['block']
-        td = res['data']['transactions']
-        txids = [tx['txId'] for tx in td['list']]
-        if parse_transactions:
-            txs = []
-            for txid in txids:
-                try:
-                    txs.append(self.gettransaction(txid))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
-        else:
-            txs = txids
-
-        block = {
-            'bits': bd['bits'],
-            'depth': bd['confirmations'],
-            'hash': bd['hash'],
-            'height': bd['height'],
-            'merkle_root': bd['merkleRoot'],
-            'nonce': bd['nonce'],
-            'prev_block': bd['previousBlockHash'],
-            'time': datetime.utcfromtimestamp(bd['blockTime']),
-            'total_txs': bd['transactionsCount'],
-            'txs': txs,
-            'version': bd['version'],
-            'page': td['page'],
-            'pages': td['pages'],
-            'limit': td['limit']
-        }
-        return block
+    # FIXME: Bitaps doesn't seem to return block data anymore...
+    # def getblock(self, blockid, parse_transactions, page, limit):
+    #     if limit > 100:
+    #         limit = 100
+    #     res = self.compose_request('block', str(blockid),
+    #                                variables={'transactions': True, 'limit': limit, 'page': page})
+    #     bd = res['data']['block']
+    #     td = res['data']['transactions']
+    #     txids = [tx['txId'] for tx in td['list']]
+    #     if parse_transactions:
+    #         txs = []
+    #         for txid in txids:
+    #             try:
+    #                 txs.append(self.gettransaction(txid))
+    #             except Exception as e:
+    #                 _logger.error("Could not parse tx %s with error %s" % (txid, e))
+    #     else:
+    #         txs = txids
+    #
+    #     block = {
+    #         'bits': bd['bits'],
+    #         'depth': bd['confirmations'],
+    #         'hash': bd['hash'],
+    #         'height': bd['height'],
+    #         'merkle_root': bd['merkleRoot'],
+    #         'nonce': bd['nonce'],
+    #         'prev_block': bd['previousBlockHash'],
+    #         'time': datetime.utcfromtimestamp(bd['blockTime']),
+    #         'total_txs': bd['transactionsCount'],
+    #         'txs': txs,
+    #         'version': bd['version'],
+    #         'page': td['page'],
+    #         'pages': td['pages'],
+    #         'limit': td['limit']
+    #     }
+    #     return block
 
     def isspent(self, txid, output_n):
         t = self.gettransaction(txid)

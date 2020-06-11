@@ -697,7 +697,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     self.assertEqual(srv.gettransactions(address)[0].txid, tx_hash)
 
     def test_service_getblock_height(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST)
+        srv = ServiceTest(timeout=TIMEOUT_TEST, providers=['bitaps'])
         b = srv.getblock(599999, parse_transactions=True, limit=3)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b['height'], 599999)
