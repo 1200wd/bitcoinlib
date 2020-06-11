@@ -331,7 +331,7 @@ class Service(object):
                 if len(txs_cache) == limit:
                     return txs_cache
                 limit = limit - len(txs_cache)
-                qry_after_txid = txs_cache[-1:][0].hash
+                qry_after_txid = txs_cache[-1:][0].txid
 
         # Get (extra) transactions from service providers
         txs = []

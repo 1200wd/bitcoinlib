@@ -145,14 +145,15 @@ class TestService(unittest.TestCase, CustomAssertions):
             'address': '1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx',
             'date': datetime(2017, 7, 31, 6, 0, 52),
             'value': 190000}
-        srv = ServiceTest(min_providers=10)
+        srv = ServiceTest(min_providers=3)
         srv.getutxos('1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx')
         for provider in srv.results:
             print("Provider %s" % provider)
             self.assertDictEqualExt(srv.results[provider][0], expected_dict, ['date', 'block_height'])
 
     def test_service_get_utxos_after_txid(self):
-        srv = ServiceTest(min_providers=10)
+        # srv = ServiceTest(min_providers=3)
+        srv = ServiceTest(providers=['bitaps'])
         tx_hash = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
@@ -161,7 +162,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_get_utxos_litecoin(self):
-        srv = ServiceTest(network='litecoin', min_providers=10)
+        srv = ServiceTest(network='litecoin', min_providers=3)
         srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         for provider in srv.results:
@@ -169,7 +170,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
 
     def test_service_get_utxos_litecoin_after_txid(self):
-        srv = ServiceTest(network='litecoin', min_providers=10)
+        srv = ServiceTest(network='litecoin', min_providers=3)
         tx_hash = '201a27d05a2efa4c72ae5b0b9fe7094350a9d7c503ce022ddc28768196ba1d28'
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
                      after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
@@ -395,7 +396,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime(2017, 8, 4, 5, 17, 27)
         }
 
-        srv = ServiceTest(network='bitcoin', min_providers=10, timeout=10)
+        srv = ServiceTest(network='bitcoin', min_providers=3, timeout=10)
 
         # Get transactions by hash
         srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
@@ -434,7 +435,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                            '277ad1b331f78add78c6723eed00097520edc21ed2',
                  'value': 2575500000}], 'date': datetime(2018, 7, 8, 21, 35, 58)}
 
-        srv = ServiceTest(network='dash', min_providers=10)
+        srv = ServiceTest(network='dash', min_providers=3)
 
         # Get transactions by hash
         srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf')
@@ -535,7 +536,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'status': 'confirmed',
             'version': 1
         }
-        srv = ServiceTest(network='bitcoin', min_providers=10)
+        srv = ServiceTest(network='bitcoin', min_providers=3)
 
         # Get transactions by hash
         srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
@@ -585,7 +586,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 ],
             'size': 191,
         }
-        srv = ServiceTest(network='bitcoin', min_providers=10)
+        srv = ServiceTest(network='bitcoin', min_providers=3)
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
         for provider in srv.results:
@@ -628,7 +629,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertIn(txid, [utxo['tx_hash'] for utxo in utxos])
 
     def test_service_blockcount(self):
-        srv = ServiceTest(min_providers=10)
+        srv = ServiceTest(min_providers=3)
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
@@ -637,7 +638,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             n_blocks = srv.results[provider]
 
         # Test Litecoin network
-        srv = ServiceTest(min_providers=10, network='litecoin')
+        srv = ServiceTest(min_providers=3, network='litecoin')
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
@@ -646,7 +647,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             n_blocks = srv.results[provider]
 
         # Test Dash network
-        srv = ServiceTest(min_providers=10, network='dash')
+        srv = ServiceTest(min_providers=3, network='dash')
         n_blocks = None
         for provider in srv.results:
             if n_blocks is not None:
@@ -666,21 +667,21 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_mempool(self):
         txid = 'ed7e0ecceb6c4d6f10ca935d8dc037921f9855fd46a2e51d82f76dd5ec564a3a'
-        srv = ServiceTest(min_providers=10)
+        srv = ServiceTest(min_providers=3)
         srv.mempool(txid)
         for provider in srv.results:
             # print("Mempool: Comparing btc provider %s" % provider)
             self.assertListEqual(srv.results[provider], [])
 
         txid = 'b348f416ff86b28652c2e7f961fbcb1a6099fbb398c6e902e37b680208498d77'
-        srv = ServiceTest(min_providers=10, network='litecoin')
+        srv = ServiceTest(min_providers=3, network='litecoin')
         srv.mempool(txid)
         for provider in srv.results:
             # print("Mempool: Comparing ltc provider %s" % provider)
             self.assertListEqual(srv.results[provider], [])
 
         txid = '15641a37e21a0cf7611a1633954be645512f1ab725a0d5077a9ad0aa0ca20bed'
-        srv = ServiceTest(min_providers=10, network='dash')
+        srv = ServiceTest(min_providers=3, network='dash')
         srv.mempool(txid)
         for provider in srv.results:
             # print("Mempool: Comparing dash provider %s" % provider)

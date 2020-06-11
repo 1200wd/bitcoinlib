@@ -50,36 +50,43 @@ class BitapsClient(BaseClient):
         return self.request(url_path, variables=variables, method=method)
 
     def _parse_transaction(self, tx):
-        t = Transaction.import_raw(tx['rawTx'], network=self.network)
-        t.status = 'unconfirmed'
+        # t = Transaction.import_raw(tx['rawTx'], network=self.network)
+        status = 'unconfirmed'
         if tx['confirmations']:
-            t.status = 'confirmed'
-        t.hash = tx['txId']
+            status = 'confirmed'
+        date = None
         if 'timestamp' in tx and tx['timestamp']:
-            t.date = datetime.utcfromtimestamp(tx['timestamp'])
+            date = datetime.utcfromtimestamp(tx['timestamp'])
         elif 'blockTime' in tx and tx['blockTime']:
-            t.date = datetime.utcfromtimestamp(tx['blockTime'])
-        t.confirmations = tx['confirmations']
+            date = datetime.utcfromtimestamp(tx['blockTime'])
+        block_height = None
+        block_hash = None
         if 'blockHeight' in tx:
-            t.block_height = tx['blockHeight']
-            t.block_hash = tx['blockHash']
-        t.fee = tx['fee']
-        t.rawtx = to_bytes(tx['rawTx'])
-        t.size = tx['size']
-        t.network = self.network
-        if not t.coinbase:
-            for i in t.inputs:
-                i.value = tx['vIn'][str(i.index_n)]['amount']
-        for o in t.outputs:
-            if tx['vOut'][str(o.output_n)]['spent']:
-                o.spent = True
-                o.spending_txid = tx['vOut'][str(o.output_n)]['spent'][0]['txId']
-                o.spending_index_n = tx['vOut'][str(o.output_n)]['spent'][0]['vIn']
-        if t.coinbase:
-            t.input_total = tx['outputsAmount'] - t.fee
-        else:
-            t.input_total = tx['inputsAmount']
-        t.output_total = tx['outputsAmount']
+            block_height = tx['blockHeight']
+        if 'blockHash' in tx:
+            block_hash = tx['blockHash']
+        witness_type = 'legacy'
+        if tx['segwit']:
+            witness_type = 'segwit'
+
+        t = Transaction(
+            locktime=tx['lockTime'], version=tx['version'], network=self.network, fee=tx['fee'],
+            fee_per_kb=None if not 'feeRate' in tx else int(tx['feeRate']), size=tx['size'], hash=tx['txId'], date=date,
+            confirmations=tx['confirmations'], block_height=block_height, block_hash=block_hash,
+            input_total=tx['inputsAmount'], output_total=tx['outputsAmount'], status=status, coinbase=tx['coinbase'],
+            verified=None if 'valid' not in tx else tx['valid'], witness_type=witness_type)
+
+        for n, ti in tx['vIn'].items():
+            t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                        unlocking_script_unsigned=ti['scriptPubKey'],
+                        address=ti['address'], sequence=ti['sequence'], index_n=int(n), value=ti['amount'])
+
+        for _, to in tx['vOut'].items():
+            spending_txid = None if not to['spent'] else to['spent'][0]['txId']
+            spending_index_n = None if not to['spent'] else to['spent'][0]['vIn']
+            t.add_output(to['value'], to['address'], to['addressHash'], lock_script=to['scriptPubKey'],
+                         spent=bool(to['spent']), spending_txid=spending_txid, spending_index_n=spending_index_n)
+
         return t
 
     def getbalance(self, addresslist):
@@ -93,7 +100,7 @@ class BitapsClient(BaseClient):
         utxos = []
         page = 1
         while True:
-            variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
+            variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': 'asc'}
             try:
                 res = self.compose_request('address', 'transactions', address, variables)
                 res2 = self.compose_request('address', 'unconfirmed/transactions', address, variables)
@@ -124,7 +131,7 @@ class BitapsClient(BaseClient):
                             'date': datetime.utcfromtimestamp(tx['timestamp'])
                          }
                     )
-                if tx['hash'] == after_txid:
+                if tx['txId'] == after_txid:
                     utxos = []
             page += 1
             if page > res['data']['pages']:
@@ -139,7 +146,7 @@ class BitapsClient(BaseClient):
         page = 0
         txs = []
         while True:
-            variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': '1'}
+            variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': 'asc'}
             try:
                 res = self.compose_request('address', 'transactions', address, variables)
             except ClientError:
@@ -165,7 +172,7 @@ class BitapsClient(BaseClient):
     # def estimatefee
 
     def blockcount(self):
-        return self.compose_request('block', 'last')['data']['block']['height']
+        return self.compose_request('block', 'last')['data']['height']
 
     def mempool(self, txid):
         if txid:

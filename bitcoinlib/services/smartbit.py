@@ -177,7 +177,7 @@ class SmartbitClient(BaseClient):
     # def estimatefee
 
     def blockcount(self):
-        return self.compose_request('totals')['totals']['block_count']
+        return self.compose_request('totals')['totals']['block_count'] - 1
 
     def mempool(self, txid):
         if txid:

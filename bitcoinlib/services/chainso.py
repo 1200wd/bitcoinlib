@@ -19,9 +19,7 @@
 #
 
 import logging
-import time
 from datetime import datetime
-from itertools import groupby
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -48,8 +46,6 @@ class ChainSo(BaseClient):
             variables = {}
         if self.api_key:
             variables.update({'api_key': self.api_key})
-        # Sleep for n seconds to avoid 429 errors
-        time.sleep(1)
         return self.request(url_path, variables, method)
 
     def sendrawtransaction(self, rawtx):
@@ -138,6 +134,7 @@ class ChainSo(BaseClient):
             tt = (t['confirmations'], t['txid'])
             if tt not in tx_conf:
                 tx_conf.append(tt)
+        c = 0
         for tx in tx_conf[:max_txs]:
             t = self.gettransaction(tx[1])
             txs.append(t)
