@@ -358,7 +358,7 @@
     "provider_coin_id": "BTC",
     "url": "https://chain.so/api/v2/",
     "api_key": "",
-    "priority": 10,
+    "priority": 8,
     "denominator": 100000000,
     "network_overrides": null
   },
