@@ -135,7 +135,6 @@ class ChainSo(BaseClient):
             tt = (t['confirmations'], t['txid'])
             if tt not in tx_conf:
                 tx_conf.append(tt)
-        c = 0
         for tx in tx_conf[:max_txs]:
             t = self.gettransaction(tx[1])
             txs.append(t)

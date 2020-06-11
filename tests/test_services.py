@@ -797,8 +797,7 @@ class TestServiceCache(unittest.TestCase):
         # Get 10 transactions, 2 in cache rest from service providers
         res = srv.gettransactions(address, limit=10)
         self.assertEqual(len(res), 10)
-        # self.assertGreaterEqual(srv.results_cache_n, 2)  # FIXME: Should be 2, but some providers return incomplete information, so txs are not always stored in cache
-        self.assertGreaterEqual(srv.results_cache_n, 0)
+        self.assertGreaterEqual(srv.results_cache_n, 2)
 
         # Get 10 transactions, all from cache
         res = srv.gettransactions(address, limit=10)

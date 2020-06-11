@@ -352,17 +352,17 @@ class Service(object):
                 self.complete = False
                 last_block = txs[-1:][0].block_height
             if len(txs):
-                last_txid = txs[-1:][0].hash
+                last_txid = txs[-1:][0].txid
             if len(self.results):
                 order_n = 0
-                for tx in txs:
-                    if tx.confirmations != 0:
-                        res = self.cache.store_transaction(tx, order_n, commit=False)
+                for t in txs:
+                    if t.confirmations != 0:
+                        res = self.cache.store_transaction(t, order_n, commit=False)
                         order_n += 1
                         # Failure to store transaction: stop caching transaction and store last tx block height - 1
                         if res is False:
-                            if tx.block_height:
-                                last_block = tx.block_height - 1
+                            if t.block_height:
+                                last_block = t.block_height - 1
                             break
                 self.cache.session.commit()
                 self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=self.complete)
@@ -821,9 +821,10 @@ class Cache(object):
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
                 return False
-            new_node = DbCacheTransactionNode(txid=t.txid, address=o.address, output_n=o.output_n, value=o.value,
-                                              is_input=False, spent=o.spent, spending_txid=o.spending_txid,
-                                              spending_index_n=o.spending_index_n)
+            new_node = DbCacheTransactionNode(
+                txid=t.txid, address=o.address, output_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
+                spending_txid=None if not o.spending_txid else to_hexstring(o.spending_txid),
+                spending_index_n=o.spending_index_n)
             self.session.add(new_node)
 
         if commit:
