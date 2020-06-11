@@ -35,9 +35,10 @@ TIMEOUT_TEST = 2
 class ServiceTest(Service):
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
-                 timeout=TIMEOUT_TEST, cache_uri=DATABASEFILE_CACHE_UNITTESTS, ignore_priority=True):
+                 timeout=TIMEOUT_TEST, cache_uri=DATABASEFILE_CACHE_UNITTESTS, ignore_priority=True,
+                 exclude_providers=None):
         super(self.__class__, self).__init__(network, min_providers, max_providers, providers, timeout, cache_uri,
-                                             ignore_priority)
+                                             ignore_priority, exclude_providers)
 
 
 class TestService(unittest.TestCase, CustomAssertions):
@@ -395,8 +396,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime(2017, 8, 4, 5, 17, 27)
         }
 
-        # srv = ServiceTest(network='bitcoin', min_providers=3)
-        srv = ServiceTest(providers=['bitaps'])
+        srv = ServiceTest(network='bitcoin', min_providers=3)
 
         # Get transactions by hash
         srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
@@ -831,7 +831,7 @@ class TestServiceCache(unittest.TestCase):
 
     def test_service_cache_transactions_after_txid(self):
         # Do not store anything in cache if after_txid is used
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['chainso'])
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
@@ -868,4 +868,5 @@ class TestServiceCache(unittest.TestCase):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa', limit=1)
         txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
+        print(srv.results)
         self.assertTrue(txs[0].outputs[0].spent)

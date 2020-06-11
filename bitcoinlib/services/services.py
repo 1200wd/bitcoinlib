@@ -57,7 +57,7 @@ class Service(object):
     """
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
-                 timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False):
+                 timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None):
         """
         Open a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -98,6 +98,8 @@ class Service(object):
         provider_list = list([self.providers_defined[x]['provider'] for x in self.providers_defined])
         if providers is None:
             providers = []
+        if exclude_providers is None:
+            exclude_providers = []
         if not isinstance(providers, list):
             providers = [providers]
         for p in providers:
@@ -109,6 +111,8 @@ class Service(object):
             if (self.providers_defined[p]['network'] == network or self.providers_defined[p]['network'] == '') and \
                     (not providers or self.providers_defined[p]['provider'] in providers):
                 self.providers.update({p: self.providers_defined[p]})
+        for nop in exclude_providers:
+            del(self.providers[nop])
 
         if not self.providers:
             raise ServiceError("No providers found for network %s" % network)

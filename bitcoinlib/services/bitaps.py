@@ -145,30 +145,31 @@ class BitapsClient(BaseClient):
                 break
         return utxos[:limit]
 
-    def gettransaction(self, txid):
-        res = self.compose_request('transaction', txid)
-        return self._parse_transaction(res['data'])
-
-    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        page = 0
-        txs = []
-        while True:
-            variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': 'asc'}
-            try:
-                res = self.compose_request('address', 'transactions', address, variables)
-            except ClientError:
-                if "address not found" in self.resp.text:
-                    return []
-            for tx in res['data']['list']:
-                txs.append(self._parse_transaction(tx))
-                if tx['txId'] == after_txid:
-                    txs = []
-            if len(txs) > limit:
-                break
-            page += 1
-            if page >= res['data']['pages']:
-                break
-        return txs[:limit]
+    # FIXME: Disabled results very unpredictable, seem randomized... :(
+    # def gettransaction(self, txid):
+    #     res = self.compose_request('transaction', txid)
+    #     return self._parse_transaction(res['data'])
+    #
+    # def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+    #     page = 0
+    #     txs = []
+    #     while True:
+    #         variables = {'mode': 'verbose', 'limit': 50, 'page': page, 'order': 'asc'}
+    #         try:
+    #             res = self.compose_request('address', 'transactions', address, variables)
+    #         except ClientError:
+    #             if "address not found" in self.resp.text:
+    #                 return []
+    #         for tx in res['data']['list']:
+    #             txs.append(self._parse_transaction(tx))
+    #             if tx['txId'] == after_txid:
+    #                 txs = []
+    #         if len(txs) > limit:
+    #             break
+    #         page += 1
+    #         if page >= res['data']['pages']:
+    #             break
+    #     return txs[:limit]
 
     def getrawtransaction(self, txid):
         tx = self.compose_request('transaction', txid)
