@@ -152,8 +152,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertDictEqualExt(srv.results[provider][0], expected_dict, ['date', 'block_height'])
 
     def test_service_get_utxos_after_txid(self):
-        # srv = ServiceTest(min_providers=3)
-        srv = ServiceTest(providers=['bitaps'])
+        srv = ServiceTest(min_providers=3)
         tx_hash = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
@@ -245,7 +244,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'value': 4527385460
         }
 
-        srv = ServiceTest(min_providers=5)
+        srv = ServiceTest(min_providers=3)
         srv.gettransactions(address)
         for provider in srv.results:
             print("Testing: %s" % provider)
@@ -396,7 +395,8 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime(2017, 8, 4, 5, 17, 27)
         }
 
-        srv = ServiceTest(network='bitcoin', min_providers=10, timeout=10)
+        # srv = ServiceTest(network='bitcoin', min_providers=3)
+        srv = ServiceTest(providers=['bitaps'])
 
         # Get transactions by hash
         srv.gettransaction('2ae77540ec3ef7b5001de90194ed0ade7522239fe0fc57c12c772d67274e2700')
@@ -697,7 +697,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     self.assertEqual(srv.gettransactions(address)[0].txid, tx_hash)
 
     def test_service_getblock_height(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, providers=['bitaps'])
+        srv = ServiceTest(timeout=TIMEOUT_TEST)
         b = srv.getblock(599999, parse_transactions=True, limit=3)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b['height'], 599999)
