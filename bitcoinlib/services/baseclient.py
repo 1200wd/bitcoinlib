@@ -68,7 +68,7 @@ class BaseClient(object):
         if not url or not self.base_url:
             raise ClientError("No (complete) url provided: %s" % url)
         headers = {
-            'User-Agent': 'BitcoinLib %s' % BITCOINLIB_VERSION,
+            'User-Agent': 'BitcoinLib/%s' % BITCOINLIB_VERSION,
             'Accept': 'application/json',
             # 'Content-Type': 'application/json',
             "Referrer": "https://www.github.com/1200wd/bitcoinlib",
