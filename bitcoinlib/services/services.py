@@ -324,7 +324,11 @@ class Service(object):
         qry_after_txid = after_txid
 
         # Retrieve transactions from cache
-        if self.min_providers <= 1:  # Disable cache if comparing providers
+        caching_enabled = True
+        if self.min_providers > 1:  # Disable cache if comparing providers
+            caching_enabled = False
+
+        if caching_enabled:
             txs_cache = self.cache.gettransactions(address, after_txid, limit)
             if txs_cache:
                 self.results_cache_n = len(txs_cache)
@@ -335,7 +339,7 @@ class Service(object):
 
         # Get (extra) transactions from service providers
         txs = []
-        if not(db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount):
+        if not(db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount) or not caching_enabled:
             txs = self._provider_execute('gettransactions', address, qry_after_txid,  limit)
             if txs is False:
                 raise ServiceError("Error when retrieving transactions from service provider")
@@ -344,7 +348,7 @@ class Service(object):
         # - disable cache if comparing providers or if after_txid is used and no cache is available
         last_block = None
         last_txid = None
-        if self.min_providers <= 1 and not(after_txid and not db_addr):
+        if self.min_providers <= 1 and not(after_txid and not db_addr) and caching_enabled:
             last_block = self._blockcount
             last_txid = qry_after_txid
             self.complete = True
@@ -370,11 +374,12 @@ class Service(object):
         all_txs = txs_cache + txs
         # If we have txs for this address update spent and balance information in cache
         if self.complete:
-            all_txs = transaction_update_spents(txs_cache + txs, address)
-            self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=True)
-            for t in all_txs:
-                self.cache.store_transaction(t, commit=False)
-            self.cache.session.commit()
+            all_txs = transaction_update_spents(all_txs, address)
+            if caching_enabled:
+                self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=True)
+                for t in all_txs:
+                    self.cache.store_transaction(t, commit=False)
+                self.cache.session.commit()
         return all_txs
 
     def getrawtransaction(self, txid):
@@ -796,7 +801,7 @@ class Cache(object):
             _logger.info("Caching failure tx: Incomplete transaction missing hash, date, block_height, "
                          "network or confirmations info")
             return False
-        elif not t.date or not t.block_height or not t.network or not t.confirmations:
+        elif not t.date or not (t.block_height or t.block_hash) or not t.network or not t.confirmations:
             return False
         raw_hex = None
         if CACHE_STORE_RAW_TRANSACTIONS:

@@ -21,6 +21,7 @@
 import logging
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
+from bitcoinlib.encoding import to_bytes
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 
@@ -62,13 +63,13 @@ class ChainSo(BaseClient):
             balance += float(res['data']['confirmed_balance']) + float(res['data']['unconfirmed_balance'])
         return int(balance * self.units)
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
         lasttx = after_txid
         res = self.compose_request('get_tx_unspent', address, lasttx)
         if res['status'] != 'success':
             pass
-        for tx in res['data']['txs'][:max_txs]:
+        for tx in res['data']['txs'][:limit]:
             txs.append({
                 'address': address,
                 'tx_hash': tx['txid'],
@@ -90,8 +91,8 @@ class ChainSo(BaseClient):
         res = self.compose_request('get_tx', txid)
         return res['data']['tx_hex']
 
-    def gettransaction(self, tx_id):
-        res = self.compose_request('get_tx', tx_id)
+    def gettransaction(self, txid):
+        res = self.compose_request('get_tx', txid)
         tx = res['data']
         raw_tx = tx['tx_hex']
         t = Transaction.import_raw(raw_tx, network=self.network)
@@ -103,7 +104,8 @@ class ChainSo(BaseClient):
         for o in t.outputs:
             o.spent = None
             output_total += o.value
-        t.hash = tx_id
+        t.hash = to_bytes(txid)
+        t._txid = txid
         t.block_hash = tx['blockhash']
         t.date = datetime.fromtimestamp(tx['time'])
         t.rawtx = raw_tx
@@ -120,7 +122,7 @@ class ChainSo(BaseClient):
             t.status = 'unconfirmed'
         return t
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
         res1 = self.compose_request('get_tx_received', address, after_txid)
         if res1['status'] != 'success':
@@ -135,7 +137,7 @@ class ChainSo(BaseClient):
             tt = (t['confirmations'], t['txid'])
             if tt not in tx_conf:
                 tx_conf.append(tt)
-        for tx in tx_conf[:max_txs]:
+        for tx in tx_conf[:limit]:
             t = self.gettransaction(tx[1])
             txs.append(t)
         return txs

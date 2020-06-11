@@ -77,10 +77,14 @@ class BitapsClient(BaseClient):
             verified=None if 'valid' not in tx else tx['valid'], witness_type=witness_type)
 
         for n, ti in tx['vIn'].items():
-            t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
-                        unlocking_script_unsigned=ti['scriptPubKey'],
-                        address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
-                        index_n=int(n), value=ti['amount'])
+            if t.coinbase:
+                t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                            sequence=ti['sequence'], index_n=int(n))
+            else:
+                t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                            unlocking_script_unsigned=ti['scriptPubKey'],
+                            address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
+                            index_n=int(n), value=ti['amount'])
 
         for _, to in tx['vOut'].items():
             spending_txid = None if not to['spent'] else to['spent'][0]['txId']
