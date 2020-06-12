@@ -77,9 +77,9 @@ class BlockchainInfoClient(BaseClient):
             })
         return utxos[::-1][:limit]
 
-    def gettransaction(self, tx_id, latest_block=None):
-        tx = self.compose_request('rawtx', tx_id)
-        raw_tx = self.getrawtransaction(tx_id)
+    def gettransaction(self, txid, latest_block=None):
+        tx = self.compose_request('rawtx', txid)
+        raw_tx = self.getrawtransaction(txid)
         t = Transaction.import_raw(raw_tx, self.network)
         input_total = 0
         for n, i in enumerate(t.inputs):
@@ -101,7 +101,8 @@ class BlockchainInfoClient(BaseClient):
             t.status = 'unconfirmed'
             t.confirmations = 0
             t.date = None
-        t.hash = tx_id
+        # t.txid = txid
+        # t.hash = to_bytes(txid)
         t.rawtx = to_bytes(raw_tx)
         t.size = tx['size']
         t.network_name = self.network
@@ -130,8 +131,8 @@ class BlockchainInfoClient(BaseClient):
             txs.append(t)
         return txs
 
-    def getrawtransaction(self, tx_id):
-        return self.compose_request('rawtx', tx_id, {'format': 'hex'})
+    def getrawtransaction(self, txid):
+        return self.compose_request('rawtx', txid, {'format': 'hex'})
 
     # def sendrawtransaction()
 

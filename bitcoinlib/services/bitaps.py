@@ -182,15 +182,15 @@ class BitapsClient(BaseClient):
     def blockcount(self):
         return self.compose_request('block', 'last')['data']['height']
 
-    def mempool(self, txid):
-        if txid:
-            t = self.gettransaction(txid)
-            if t and not t.confirmations:
-                return [t.hash]
-        else:
-            res = self.compose_request('transactions', type='mempool')
-            return [tx['hash'] for tx in res['data']['transactions']]
-        return []
+    # def mempool(self, txid):
+    #     if txid:
+    #         t = self.gettransaction(txid)
+    #         if t and not t.confirmations:
+    #             return [t.txid]
+    #     else:
+    #         res = self.compose_request('transactions', type='mempool')
+    #         return [tx['hash'] for tx in res['data']['transactions']]
+    #     return []
 
     # FIXME: Bitaps doesn't seem to return block data anymore...
     # def getblock(self, blockid, parse_transactions, page, limit):

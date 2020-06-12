@@ -83,15 +83,14 @@ class BitGoClient(BaseClient):
         return utxos[::-1][:limit]
 
     # RAW TRANSACTION DOES NOT CONTAIN CORRECT RAW TRANSACTION (MISSING SIGS)
-    # def gettransaction(self, tx_id):
-    #     tx = self.compose_request('tx', tx_id)
+    # def gettransaction(self, txid):
+    #     tx = self.compose_request('tx', txid)
     #     t = Transaction.import_raw(tx['hex'], network=self.network)
     #     t.status = 'unconfirmed'
     #     t.date = None
     #     if tx['confirmations']:
     #         t.status = 'confirmed'
     #         t.date = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
-    #     t.hash = tx_id
     #     t.confirmations = tx['confirmations']
     #     if 'height' in tx:
     #         t.block_height = tx['height']

@@ -200,7 +200,7 @@ class BcoinClient(BaseClient):
             tx['block'] = block['hash']
             if parse_transactions:
                 t = self._parse_transaction(tx)
-                if t.hash != tx['hash']:
+                if t.txid != tx['hash']:
                     _logger.error("Could not parse tx %s. Different txid's" % (tx['hash']))
                 parsed_txs.append(t)
             else:

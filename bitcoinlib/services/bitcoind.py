@@ -23,7 +23,7 @@ from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import to_hexstring, to_bytes
 from bitcoinlib.networks import Network
 
 
@@ -194,7 +194,8 @@ class BitcoindClient(BaseClient):
         t.block_hash = tx['blockhash']
         t.version = struct.pack('>L', tx['version'])
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
-        t.hash = txid
+        # t.hash = to_bytes(txid)
+        # t.txid = txid
         t.update_totals()
         return t
 

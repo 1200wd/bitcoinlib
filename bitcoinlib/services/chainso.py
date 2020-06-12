@@ -104,8 +104,8 @@ class ChainSo(BaseClient):
         for o in t.outputs:
             o.spent = None
             output_total += o.value
-        t.hash = to_bytes(txid)
-        t._txid = txid
+        # t.hash = to_bytes(txid)
+        # t._txid = txid
         t.block_hash = tx['blockhash']
         t.date = datetime.fromtimestamp(tx['time'])
         t.rawtx = raw_tx

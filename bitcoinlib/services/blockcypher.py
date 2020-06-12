@@ -89,10 +89,11 @@ class BlockCypher(BaseClient):
                 })
         return transactions[::-1][:limit]
 
-    def gettransaction(self, tx_id):
-        tx = self.compose_request('txs', tx_id, variables={'includeHex': 'true'})
+    def gettransaction(self, txid):
+        tx = self.compose_request('txs', txid, variables={'includeHex': 'true'})
         t = Transaction.import_raw(tx['hex'], network=self.network)
-        t.hash = tx_id
+        # t.hash = to_bytes(txid)
+        # t.txid = txid
         if tx['confirmations']:
             t.status = 'confirmed'
             t.date = datetime.strptime(tx['confirmed'][:19], "%Y-%m-%dT%H:%M:%S")
@@ -150,8 +151,8 @@ class BlockCypher(BaseClient):
                 txs.append(t)
         return txs
 
-    def getrawtransaction(self, tx_id):
-        return self.compose_request('txs', tx_id, variables={'includeHex': 'true'})['hex']
+    def getrawtransaction(self, txid):
+        return self.compose_request('txs', txid, variables={'includeHex': 'true'})['hex']
 
     # BlockCypher sometimes accepts transactions, but does not push them to the network :(
     # def sendrawtransaction(self, rawtx):

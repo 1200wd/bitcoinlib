@@ -34,7 +34,7 @@ from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import to_hexstring, to_bytes
 
 
 PROVIDERNAME = 'dashd'
@@ -152,6 +152,8 @@ class DashdClient(BaseClient):
         t.version = tx['version']
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
+        # t.hash = to_bytes(txid)
+        # t.txid = txid
         return t
 
     def getrawtransaction(self, txid):

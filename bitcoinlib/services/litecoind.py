@@ -24,7 +24,7 @@ from bitcoinlib.networks import Network
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import to_hexstring, to_bytes
 
 
 PROVIDERNAME = 'litecoind'
@@ -201,7 +201,8 @@ class LitecoindClient(BaseClient):
         t.version = struct.pack('>L', tx['version'])
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
-        t.hash = txid
+        # t.hash = to_bytes(txid)
+        # t.txid = txid
         return t
 
     # def gettransactions
