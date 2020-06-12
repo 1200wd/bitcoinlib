@@ -40,6 +40,7 @@ class Block:
         self.txs_data = None
         self.block_height = block_height
         self.network = network
+        self.tx_count = None
         if not block_height and len(self.transactions):
             # first bytes of unlocking script of coinbase transaction contain block height
             self.block_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
@@ -76,8 +77,13 @@ class Block:
             # if verify and not t.verify():
             #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, blockhash))
 
+        if parse_transactions and tx_count != len(transactions):
+            raise ValueError("Number of found transactions %d is not equal to expected number %d" %
+                             (len(transactions), tx_count))
+
         block = cls(blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions, network=network)
         block.txs_data = txs_data
+        block.tx_count = tx_count
         return block
 
     def parse_transactions(self, limit=0):
