@@ -54,7 +54,6 @@ class LitecoreIOClient(BaseClient):
         value_in = 0 if 'valueIn' not in tx else tx['valueIn']
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
-            value_in = tx['valueOut']
             isCoinbase = True
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],
@@ -65,7 +64,7 @@ class LitecoreIOClient(BaseClient):
         for ti in tx['vin']:
             if isCoinbase:
                 t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
-                            script_type='coinbase', sequence=ti['sequence'])
+                            script_type='coinbase', sequence=ti['sequence'], value=0)
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],

@@ -501,7 +501,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'date': datetime(2017, 12, 24, 14, 16, 30),
             'flag': b'\1',
             'hash': '68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13',
-            'input_total': 1717718311,
+            'input_total': 0,
             'inputs': [
                 {'address': '',
                  'index_n': 0,
@@ -509,6 +509,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  'public_key': [],
                  'script_type': 'coinbase',
                  'sequence': 4294967295,
+                 'value': 0
                  }
             ],
             'locktime': 0,
@@ -548,7 +549,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     o.spending_txid = None
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'spending_txid', 'spending_index_n',
-                                     'value', 'flag'])
+                                     'flag'])
 
     def test_service_gettransaction_segwit_p2wpkh(self):
         expected_dict = {
@@ -852,6 +853,13 @@ class TestServiceCache(unittest.TestCase):
         # Test utxos
         utxos = srv.getutxos(address)
         self.assertGreaterEqual(len(utxos), 1)
+        self.assertGreaterEqual(srv.results_cache_n, 1)
+
+    def test_service_cache_transaction_coinbase(self):
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
+        srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
+        self.assertGreaterEqual(srv.results_cache_n, 0)
+        srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
     def test_service_cache_with_latest_tx_query(self):

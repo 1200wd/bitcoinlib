@@ -98,9 +98,10 @@ class ChainSo(BaseClient):
         t = Transaction.import_raw(raw_tx, network=self.network)
         input_total = 0
         output_total = 0
-        for n, i in enumerate(t.inputs):
-            i.value = int(round(float(tx['inputs'][n]['value']) * self.units, 0))
-            input_total += i.value
+        if not t.coinbase:
+            for n, i in enumerate(t.inputs):
+                i.value = int(round(float(tx['inputs'][n]['value']) * self.units, 0))
+                input_total += i.value
         for o in t.outputs:
             o.spent = None
             output_total += o.value

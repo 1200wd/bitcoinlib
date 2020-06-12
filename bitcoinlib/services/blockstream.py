@@ -109,7 +109,7 @@ class BlockstreamClient(BaseClient):
         for ti in tx['vin']:
             if tx['vin'][0]['is_coinbase']:
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
-                            unlocking_script=ti['scriptsig'], value=sum([o['value'] for o in tx['vout']]))
+                            unlocking_script=ti['scriptsig'], value=0)
             else:
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],

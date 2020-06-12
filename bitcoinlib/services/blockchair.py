@@ -109,8 +109,6 @@ class BlockChairClient(BaseClient):
         if tx['has_witness']:
             witness_type = 'segwit'
         input_total = tx['input_total']
-        if tx['is_coinbase']:
-            input_total = tx['output_total']
         t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], hash=tx['hash'],
                         date=None if not confirmations else datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S"),
@@ -120,7 +118,8 @@ class BlockChairClient(BaseClient):
         index_n = 0
         if not res['data'][tx_id]['inputs']:
             # This is a coinbase transaction, add input
-            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=input_total)
+            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=0)
+
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
                 witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])

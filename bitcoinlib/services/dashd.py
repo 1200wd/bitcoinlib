@@ -145,6 +145,9 @@ class DashdClient(BaseClient):
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
+            if i.prev_hash == b'\x00' * 32:
+                i.script_type = 'coinbase'
+                continue
             txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
             value = int(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
             i.value = value
@@ -152,8 +155,6 @@ class DashdClient(BaseClient):
         t.version = tx['version']
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
-        # t.hash = to_bytes(txid)
-        # t.txid = txid
         return t
 
     def getrawtransaction(self, txid):

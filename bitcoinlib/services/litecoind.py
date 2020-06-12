@@ -190,7 +190,6 @@ class LitecoindClient(BaseClient):
             t.verified = True
         for i in t.inputs:
             if i.prev_hash == b'\x00' * 32:
-                i.value = t.output_total
                 i.script_type = 'coinbase'
                 continue
             txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
@@ -201,8 +200,6 @@ class LitecoindClient(BaseClient):
         t.version = struct.pack('>L', tx['version'])
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
-        # t.hash = to_bytes(txid)
-        # t.txid = txid
         return t
 
     # def gettransactions

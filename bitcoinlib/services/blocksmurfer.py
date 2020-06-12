@@ -95,6 +95,8 @@ class BlocksmurferClient(BaseClient):
             t.inputs[ti.index_n].value = tx['inputs'][ti.index_n]['value']
         for to in t.outputs:
             t.outputs[to.output_n].spent = tx['outputs'][to.output_n]['spent']
+        if t.coinbase:  # TODO: Remove when blocksmurfer is fixed
+            t.inputs[0].value = 0
         t.update_totals()
         return t
 

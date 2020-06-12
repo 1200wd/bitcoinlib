@@ -107,8 +107,6 @@ class BlockCypher(BaseClient):
         t.size = int(len(tx['hex']) / 2)
         t.network = self.network
         t.input_total = 0
-        if t.coinbase:
-            t.input_total = t.output_total
         if len(t.inputs) != len(tx['inputs']):
             raise ClientError("Invalid number of inputs provided. Raw tx: %d, blockcypher: %d" %
                               (len(t.inputs), len(tx['inputs'])))
@@ -117,7 +115,8 @@ class BlockCypher(BaseClient):
                         tx['inputs'][n]['prev_hash'] == to_hexstring(i.prev_hash)):
                 raise ClientError("Transaction inputs do not match raw transaction")
             if 'output_value' in tx['inputs'][n]:
-                i.value = tx['inputs'][n]['output_value']
+                if not t.coinbase:
+                    i.value = tx['inputs'][n]['output_value']
                 t.input_total += i.value
         if len(t.outputs) != len(tx['outputs']):
             raise ClientError("Invalid number of outputs provided. Raw tx: %d, blockcypher: %d" %

@@ -61,8 +61,6 @@ class SmartbitClient(BaseClient):
         t_time = None
         if tx['time']:
             t_time = datetime.utcfromtimestamp(tx['time'])
-        if tx['coinbase']:
-            input_total = tx['output_amount_int']
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
                         size=tx['size'], hash=tx['txid'], date=t_time,
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
@@ -70,7 +68,7 @@ class SmartbitClient(BaseClient):
                         output_total=tx['output_amount_int'], witness_type=witness_type)
         index_n = 0
         if tx['coinbase']:
-            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=input_total)
+            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=0)
         else:
             for ti in tx['inputs']:
                 unlocking_script = ti['script_sig']['hex']

@@ -22,11 +22,14 @@ import unittest
 from random import shuffle
 try:
     import mysql.connector
-    import psycopg2
     from parameterized import parameterized_class
+    import psycopg2
     from psycopg2 import sql
     from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-except ImportError:
+except ImportError as e:
+    print("Could not import all modules. Error: %s" % e)
+    # from psycopg2cffi import compat  # Use for PyPy support
+    # compat.register()
     pass  # Only necessary when mysql or postgres is used
 from sqlalchemy.orm import close_all_sessions
 from bitcoinlib.wallets import *

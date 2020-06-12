@@ -99,6 +99,7 @@ class CryptoID(BaseClient):
             if i.script_type != 'coinbase':
                 i.value = int(round(tx_api['inputs'][n]['amount'] * self.units, 0))
             else:
+                i.value = 0
                 t.coinbase = True
         for n, o in enumerate(t.outputs):
             o.spent = None
@@ -117,8 +118,6 @@ class CryptoID(BaseClient):
         t.version = struct.pack('>L', tx['version'])
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
         t.input_total = t.output_total
-        if not t.coinbase:
-            t.input_total = int(round(tx_api['total_input'] * self.units, 0))
         t.fee = t.input_total - t.output_total
         return t
 
