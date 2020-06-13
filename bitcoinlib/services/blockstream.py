@@ -113,7 +113,8 @@ class BlockstreamClient(BaseClient):
             else:
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
-                            address=ti['prevout']['scriptpubkey_address'],
+                            address='' if 'scriptpubkey_address' not in ti['prevout']
+                            else ti['prevout']['scriptpubkey_address'],
                             unlocking_script_unsigned=ti['prevout']['scriptpubkey'])
             index_n += 1
         index_n = 0
@@ -203,8 +204,8 @@ class BlockstreamClient(BaseClient):
         btxs = self.compose_request('block', blockid, 'txs', str((page-1)*limit))
         if parse_transactions:
             txs = []
+            blockcount = self.blockcount()
             for tx in btxs[:limit]:
-                blockcount = self.blockcount()
                 try:
                     txs.append(self._parse_transaction(tx, blockcount=blockcount))
                 except Exception as e:

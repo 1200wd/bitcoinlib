@@ -477,7 +477,8 @@ class Service(object):
         if parse_transactions and 'txs' in block and self.min_providers <= 1:
             order_n = (page-1)*limit
             for tx in block['txs']:
-                self.cache.store_transaction(tx, order_n, commit=False)
+                if isinstance(tx, Transaction):
+                    self.cache.store_transaction(tx, order_n, commit=False)
                 order_n += 1
             self.cache.session.commit()
         self.complete = True if len(block['txs']) == block['total_txs'] else False

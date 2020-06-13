@@ -22,6 +22,15 @@ from bitcoinlib.encoding import *
 from bitcoinlib.transactions import transaction_deserialize
 
 
+def parse_transactions(self, limit=0):
+    n = 0
+    while self.txs_data and (limit == 0 or n < limit):
+        t = transaction_deserialize(self.txs_data, network=self.network, check_size=False)
+        self.transactions.append(t)
+        self.txs_data = self.txs_data[t.size:]
+        n += 1
+
+
 class Block:
 
     def __init__(self, blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=None,
@@ -46,10 +55,10 @@ class Block:
             self.block_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
 
     def __repr__(self):
-        return "<Block (%s, %d, transactions: %d" % (to_hexstring(self.blockhash), self.block_height, len(self.transactions))
+        return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.blockhash), self.block_height, self.tx_count)
 
     @classmethod
-    def from_raw(cls, rawblock, blockhash=None, parse_transactions=True, network=DEFAULT_NETWORK):
+    def from_raw(cls, rawblock, blockhash=None, parse_transactions=False, network=DEFAULT_NETWORK):
         blockhash_calc = double_sha256(rawblock[:80])[::-1]
         if not blockhash:
             blockhash = blockhash_calc
@@ -93,6 +102,7 @@ class Block:
             self.transactions.append(t)
             self.txs_data = self.txs_data[t.size:]
             n += 1
+        return self
 
     def as_dict(self):
         return {

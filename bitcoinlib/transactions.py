@@ -881,8 +881,9 @@ class Input(object):
                 self.public_hash = self.keys[0].hash160
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
-            self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
-                                   script_type=self.script_type, witness_type=self.witness_type).address
+            addr_data = self.public_hash
+            # self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
+            #                        script_type=self.script_type, witness_type=self.witness_type).address
             self.witnesses = []
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() +
@@ -905,9 +906,10 @@ class Input(object):
                     self.public_hash = hashlib.sha256(self.redeemscript).digest()
                 else:
                     self.public_hash = hash160(self.redeemscript)
-            if not self.address and self.public_hash:
-                self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
-                                       script_type=self.script_type, witness_type=self.witness_type).address
+            addr_data = self.public_hash
+            # if not self.address and self.public_hash:
+            #     self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
+            #                            script_type=self.script_type, witness_type=self.witness_type).address
             self.unlocking_script_unsigned = self.redeemscript
 
             if self.redeemscript and self.keys:
@@ -945,11 +947,12 @@ class Input(object):
             if self.keys:
                 self.script_code = varstr(self.keys[0].public_byte) + b'\xac'
                 self.unlocking_script_unsigned = self.script_code
+                addr_data = self.keys[0].public_byte
             if self.signatures:
                 self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + struct.pack('B', hash_type))
         elif self.script_type not in ['coinbase', 'unknown']:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
-        if addr_data:
+        if addr_data and not self.address:
             self.address = Address(addr_data, encoding=self.encoding, network=self.network,
                                    script_type=self.script_type, witness_type=self.witness_type).address
 

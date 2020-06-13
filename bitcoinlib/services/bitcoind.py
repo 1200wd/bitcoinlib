@@ -175,11 +175,10 @@ class BitcoindClient(BaseClient):
 
         return txs
 
-    def gettransaction(self, txid):
-        tx = self.proxy.getrawtransaction(txid, 1)
+    def _parse_transaction(self, tx, block_height=None):
         t = Transaction.import_raw(tx['hex'], network=self.network)
-        t.confirmations = tx['confirmations']
-        if t.confirmations:
+        t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
+        if t.confirmations or block_height:
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
@@ -191,10 +190,15 @@ class BitcoindClient(BaseClient):
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx['blockhash']
+        t.block_height = block_height
         t.version = struct.pack('>L', tx['version'])
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
+
+    def gettransaction(self, txid):
+        tx = self.proxy.getrawtransaction(txid, 1)
+        return self._parse_transaction(tx)
 
     # def gettransactions
 
@@ -229,6 +233,48 @@ class BitcoindClient(BaseClient):
         elif txid in txids:
             return [txid]
         return []
+
+    def getblock(self, blockid, parse_transactions, page=None, limit=None):
+        if isinstance(blockid, int):
+            blockid = self.proxy.getblockhash(blockid)
+        bd = self.proxy.getblock(blockid, 2)
+        if not limit:
+            limit = 99999
+
+        txs = []
+        if parse_transactions:
+
+            for tx in bd['tx'][:limit]:
+                try:
+                    tx['blocktime'] = bd['time']
+                    tx['blockhash'] = bd['hash']
+                    txs.append(self._parse_transaction(tx, block_height=bd['height']))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+        txs += [tx['hash'] for tx in bd['tx'][limit:]]
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousblockhash'],
+            'time': datetime.utcfromtimestamp(bd['time']),
+            'total_txs': bd['nTx'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': None,
+            'limit': limit
+        }
+        return block
+
+    def getrawblock(self, blockid):
+        if isinstance(blockid, int):
+            blockid = self.proxy.getblockhash(blockid)
+        return self.proxy.getblock(blockid, 0)
 
 
 if __name__ == '__main__':
