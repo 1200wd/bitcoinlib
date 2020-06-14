@@ -953,7 +953,7 @@ class Input(object):
         elif self.script_type not in ['coinbase', 'unknown']:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data and not self.address:
-            self.address = Address(addr_data, encoding=self.encoding, network=self.network,
+            self.address = Address(hashed_data=addr_data, encoding=self.encoding, network=self.network,
                                    script_type=self.script_type, witness_type=self.witness_type).address
 
         if self.locktime_cltv:

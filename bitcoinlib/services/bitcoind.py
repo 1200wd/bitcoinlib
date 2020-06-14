@@ -175,7 +175,7 @@ class BitcoindClient(BaseClient):
 
         return txs
 
-    def _parse_transaction(self, tx, block_height=None):
+    def _parse_transaction(self, tx, block_height=None, get_input_values=True):
         t = Transaction.import_raw(tx['hex'], network=self.network)
         t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
         if t.confirmations or block_height:
@@ -185,8 +185,9 @@ class BitcoindClient(BaseClient):
             if i.prev_hash == b'\x00' * 32:
                 i.script_type = 'coinbase'
                 continue
-            txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+            if get_input_values:
+                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx['blockhash']
@@ -234,24 +235,26 @@ class BitcoindClient(BaseClient):
             return [txid]
         return []
 
-    def getblock(self, blockid, parse_transactions, page=None, limit=None):
+    def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
         if isinstance(blockid, int):
             blockid = self.proxy.getblockhash(blockid)
-        bd = self.proxy.getblock(blockid, 2)
         if not limit:
             limit = 99999
 
         txs = []
         if parse_transactions:
-
+            bd = self.proxy.getblock(blockid, 2)
             for tx in bd['tx'][:limit]:
                 try:
                     tx['blocktime'] = bd['time']
                     tx['blockhash'] = bd['hash']
-                    txs.append(self._parse_transaction(tx, block_height=bd['height']))
+                    txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
                 except Exception as e:
                     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
-        txs += [tx['hash'] for tx in bd['tx'][limit:]]
+            txs += [tx['hash'] for tx in bd['tx'][len(txs):]]
+        else:
+            bd = self.proxy.getblock(blockid, 1)
+            txs = bd['tx']
 
         block = {
             'bits': bd['bits'],
