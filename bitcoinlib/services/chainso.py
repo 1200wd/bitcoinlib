@@ -105,8 +105,6 @@ class ChainSo(BaseClient):
         for o in t.outputs:
             o.spent = None
             output_total += o.value
-        # t.hash = to_bytes(txid)
-        # t._txid = txid
         t.block_hash = tx['blockhash']
         t.date = datetime.fromtimestamp(tx['time'])
         t.rawtx = raw_tx
@@ -143,7 +141,7 @@ class ChainSo(BaseClient):
             txs.append(t)
         return txs
 
-    def block_count(self):
+    def blockcount(self):
         return self.compose_request('get_info')['data']['blocks']
 
     def mempool(self, txid):
@@ -151,3 +149,42 @@ class ChainSo(BaseClient):
         if res['status'] == 'success' and res['data']['confirmations'] == 0:
             return [txid]
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        if limit > 5:
+            limit = 5
+        bd = self.compose_request('get_block', str(blockid))['data']
+        if parse_transactions:
+            txs = []
+            for txid in bd['txs'][:limit]:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = bd['txs']
+
+        n_txs = len(bd['txs'])
+        block = {
+            'bits': None,
+            'depth': bd['confirmations'],
+            'hash': bd['blockhash'],
+            'height': bd['block_no'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': None,
+            'prev_block': bd['previous_blockhash'],
+            'time': datetime.utcfromtimestamp(bd['time']),
+            'total_txs': n_txs,
+            'txs': txs,
+            'version': None,
+            'page': page,
+            'pages': int(n_txs // limit) + (n_txs % limit > 0),
+            'limit': limit
+        }
+        return block
+
+    # def getrawblock(self, blockid):
+
+    def isspent(self, txid, output_n):
+        res = self.compose_request('is_tx_spent', txid, str(output_n))
+        return res['data']['is_spent']

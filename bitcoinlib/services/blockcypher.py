@@ -210,6 +210,8 @@ class BlockCypher(BaseClient):
         }
         return block
 
+    # def getrawblock(self, blockid):
+
     def isspent(self, txid, output_n):
         t = self.gettransaction(txid)
         return 1 if t.outputs[output_n].spent else 0

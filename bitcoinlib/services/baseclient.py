@@ -98,6 +98,8 @@ class BaseClient(object):
             raise ClientError("Error connecting to %s on url %s, response [%d] %s" %
                               (self.provider, url, self.resp.status_code, resp_text))
         try:
+            if not self.resp.apparent_encoding and not self.resp.encoding:
+                return self.resp.content
             return json.loads(self.resp.text)
         except ValueError or json.decoder.JSONDecodeError:
             return self.resp.text

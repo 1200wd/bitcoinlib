@@ -231,12 +231,12 @@ class BlockstreamClient(BaseClient):
         }
         return block
 
-    # def getrawblock(self, blockid):
-    #     if isinstance(blockid, int):
-    #         blockid = self.compose_request('block-height', str(blockid))
-    #     rawblock = self.compose_request('block', blockid, 'raw')
-    #     hexrawblock = to_hexstring(rawblock)
-    #     return hexrawblock
+    def getrawblock(self, blockid):
+        if isinstance(blockid, int):
+            blockid = self.compose_request('block-height', str(blockid))
+        rawblock = self.compose_request('block', blockid, 'raw')
+        hexrawblock = to_hexstring(rawblock)
+        return hexrawblock
 
     def isspent(self, txid, output_n):
         res = self.compose_request('tx', txid, 'outspend', str(output_n))

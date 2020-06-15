@@ -101,8 +101,6 @@ class BlockchainInfoClient(BaseClient):
             t.status = 'unconfirmed'
             t.confirmations = 0
             t.date = None
-        # t.txid = txid
-        # t.hash = to_bytes(txid)
         t.rawtx = to_bytes(raw_tx)
         t.size = tx['size']
         t.network_name = self.network
@@ -179,3 +177,6 @@ class BlockchainInfoClient(BaseClient):
             'limit': limit
         }
         return block
+
+    def getrawblock(self, blockid):
+        return self.compose_request('rawblock', str(blockid), {'format': 'hex'})
