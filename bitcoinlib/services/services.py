@@ -69,13 +69,15 @@ class Service(object):
         :param max_providers: Maximum number of providers to connect to. Default is 1.
         :type max_providers: int
         :param providers: List of providers to connect to. Default is all providers and select a provider at random.
-        :type providers: list, str
+        :type providers: list of str
         :param timeout: Timeout for web requests. Leave empty to use default from config settings
         :type timeout: int
         :param cache_uri: Database to use for caching
         :type cache_uri: str
         :param ignore_priority: Ignores provider priority if set to True. Could be used for unit testing, so no providers are missed when testing. Default is False
         :type ignore_priority: bool
+        :param exclude_providers: Exclude providers in this list, can be used when problems with certain providers arise.
+        :type exclude_providers: list of str
 
         """
 
@@ -112,7 +114,8 @@ class Service(object):
                     (not providers or self.providers_defined[p]['provider'] in providers):
                 self.providers.update({p: self.providers_defined[p]})
         for nop in exclude_providers:
-            del(self.providers[nop])
+            if nop in self.providers:
+                del(self.providers[nop])
 
         if not self.providers:
             raise ServiceError("No providers found for network %s" % network)

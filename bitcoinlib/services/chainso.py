@@ -156,7 +156,7 @@ class ChainSo(BaseClient):
         bd = self.compose_request('get_block', str(blockid))['data']
         if parse_transactions:
             txs = []
-            for txid in bd['txs'][:limit]:
+            for txid in bd['txs'][(page-1)*limit:page*limit]:
                 try:
                     txs.append(self.gettransaction(txid))
                 except Exception as e:
