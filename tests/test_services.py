@@ -863,27 +863,22 @@ class TestServiceCache(unittest.TestCase):
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
-        print("1 Test cache using provider %s" % list(srv.results.keys()))
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 0)
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
-        print("2 Test cache using provider %s" % list(srv.results.keys()))
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 0)
         res = srv.gettransactions(address)
-        print("3 Test cache using provider %s" % list(srv.results.keys()))
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 0)
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
-        print("4 Test cache using provider %s" % list(srv.results.keys()))
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
         # Test utxos
         utxos = srv.getutxos(address)
-        print("5 Test cache using provider %s" % list(srv.results.keys()))
         self.assertGreaterEqual(len(utxos), 1)
         self.assertGreaterEqual(srv.results_cache_n, 1)
 

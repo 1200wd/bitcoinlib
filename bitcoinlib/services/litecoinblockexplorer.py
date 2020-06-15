@@ -76,7 +76,7 @@ class LitecoinBlockexplorerClient(BaseClient):
             #              spent=True if to['spentTxId'] else False, output_n=to['n'],
             #              spending_txid=None if not to['spentTxId'] else to['spentTxId'],
             #              spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
-            # Found many wrong spending results
+            # FIXME: Found many wrong spending results
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=None, output_n=to['n'])
         return t
