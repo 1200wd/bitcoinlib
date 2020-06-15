@@ -741,6 +741,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_getblock_parse_tx_paging(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST)
+        print("Test getblock using provider %s" % list(srv.results.keys())[0])
         expected_dict = {
              'hash': '0000000000000e07595fca57b37fea8522e95e0f6891779cfd34d7e537524471',
              'height': 120000,
@@ -791,7 +792,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(prb, rb)
 
     def test_service_isspent(self):
-        srv = ServiceTest()
+        srv = ServiceTest(providers=['bitcoind'])
         self.assertFalse(srv.isspent('9b0fc92260312ce44e74ef369f5c66bbb85848f2eddd5a7a1cde251e54ccfdd5', 0))
         self.assertTrue(srv.isspent('b51104386fa9422f04fffaa09f76b69fc17f91238c93e10f58eafaaf671db6d4', 0))
 
@@ -862,22 +863,27 @@ class TestServiceCache(unittest.TestCase):
         address = '12spqcvLTFhL38oNJDDLfW1GpFGxLdaLCL'
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
+        print("1 Test cache using provider %s" % list(srv.results.keys())[0])
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 0)
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
+        print("2 Test cache using provider %s" % list(srv.results.keys())[0])
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 0)
         res = srv.gettransactions(address)
+        print("3 Test cache using provider %s" % list(srv.results.keys())[0])
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 0)
         res = srv.gettransactions(address,
                                   after_txid='5f31da8f47a5bd92a6929179082c559e8acc270a040b19838230aab26309cf2d')
+        print("4 Test cache using provider %s" % list(srv.results.keys())[0])
         self.assertGreaterEqual(len(res), 1)
         self.assertGreaterEqual(srv.results_cache_n, 1)
 
         # Test utxos
         utxos = srv.getutxos(address)
+        print("5 Test cache using provider %s" % list(srv.results.keys())[0])
         self.assertGreaterEqual(len(utxos), 1)
         self.assertGreaterEqual(srv.results_cache_n, 1)
 

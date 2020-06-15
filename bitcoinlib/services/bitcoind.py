@@ -279,7 +279,11 @@ class BitcoindClient(BaseClient):
             blockid = self.proxy.getblockhash(blockid)
         return self.proxy.getblock(blockid, 0)
 
-    # def isspent(self):
+    def isspent(self, txid, index):
+        res = self.proxy.gettxout(txid, index)
+        if not res:
+            return True
+        return False
 
 
 if __name__ == '__main__':
