@@ -39,9 +39,9 @@ class BlocksmurferClient(BaseClient):
     def compose_request(self, function, parameter='', parameter2='', variables=None, post_data='', method='get'):
         url_path = function
         if parameter:
-            url_path += '/' + parameter
+            url_path += '/' + str(parameter)
         if parameter2:
-            url_path += '/' + parameter2
+            url_path += '/' + str(parameter2)
         if variables is None:
             variables = {}
         if self.api_key:
@@ -81,6 +81,7 @@ class BlocksmurferClient(BaseClient):
 
     def _parse_transaction(self, tx):
         t = Transaction.import_raw(tx['raw_hex'], network=self.network)
+        print(tx['raw_hex'])
         if t.txid != tx['txid']:
             raise ClientError("Different hash from Blocksmurfer when parsing transaction")
         t.block_height = None if not tx['block_height'] else tx['block_height']
@@ -120,11 +121,11 @@ class BlocksmurferClient(BaseClient):
         return txs[:limit]
 
     def getrawtransaction(self, txid):
-        tx = self.compose_request('tx/hex', txid)
-        return tx['data']['rawtx']
+        tx = self.compose_request('transaction', txid, variables={'raw': True})
+        return tx['raw_hex']
 
     def sendrawtransaction(self, rawtx):
-        res = self.compose_request('tx', post_data=rawtx, method='post')
+        res = self.compose_request('transaction', post_data=rawtx, method='post')
         return {
             'txid': res,
             'response_dict': res
@@ -149,7 +150,28 @@ class BlocksmurferClient(BaseClient):
             # return self.compose_request('mempool', 'txids')
         return []
 
-    # def getblock(self, blockid):
+    def getblock(self, blockid, parse_transactions, page, limit):
+        variables = {'parse_transactions': parse_transactions, 'page': page, 'limit': limit}
+        bd = self.compose_request('block', blockid, variables=variables)
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['depth'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkle_root'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['prev_block'],
+            'time': bd['time'],
+            'total_txs': bd['total_txs'],
+            'txs': bd['txs'],
+            'version': bd['version'],
+            'page': page,
+            'pages': int(bd['total_txs'] // limit) + (bd['total_txs'] % limit > 0),
+            'limit': limit
+        }
+        return block
+
 
     # def getrawblock(self, blockid):
 

@@ -479,26 +479,8 @@ class Service(object):
         if not bd or isinstance(bd, bool):
             return False
 
-        # block = {
-        #     'bits': bd['bits'],
-        #     'depth': bd['confirmations'],
-        #     'hash': bd['hash'],
-        #     'height': bd['height'],
-        #     'merkle_root': bd['merkleroot'],
-        #     'nonce': bd['nonce'],
-        #     'prev_block': bd['previousblockhash'],
-        #     'time': bd['time'],
-        #     'total_txs': bd['nTx'],
-        #     'txs': txs,
-        #     'version': bd['version'],
-        #     'page': page,
-        #     'pages': None,
-        #     'limit': limit
-        # }
-        block = Block(bd['hash'], bd['version'], bd['prev_block'], bd['merkle_root'],
-                     bd['time'],
-                     bd['bits'], bd['nonce'],
-                     bd['txs'], bd['height'], bd['depth'], self.network)
+        block = Block(bd['hash'], bd['version'], bd['prev_block'], bd['merkle_root'], bd['time'], bd['bits'],
+                      bd['nonce'], bd['txs'], bd['height'], bd['depth'], self.network)
         block.tx_count = bd['total_txs']
         if parse_transactions and self.min_providers <= 1:
             order_n = (page-1)*limit

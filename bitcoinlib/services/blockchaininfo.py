@@ -166,7 +166,7 @@ class BlockchainInfoClient(BaseClient):
             'hash': bd['hash'],
             'height': bd['height'],
             'merkle_root': bd['mrkl_root'],
-            'nonce': bd['nonce'],
+            'nonce': abs(bd['nonce']),
             'prev_block': bd['prev_block'],
             'time': bd['time'],
             'total_txs': len(bd['tx']),
