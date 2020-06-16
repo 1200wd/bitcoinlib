@@ -20,7 +20,11 @@
 
 import math
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
+try:
+    from datetime import timezone
+except:
+    pass
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction

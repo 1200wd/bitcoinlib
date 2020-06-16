@@ -160,7 +160,7 @@ class ChainSo(BaseClient):
                 try:
                     txs.append(self.gettransaction(txid))
                 except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+                    raise ClientError("Could not parse tx %s with error %s" % (txid, e))
         else:
             txs = bd['txs']
 
