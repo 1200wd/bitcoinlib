@@ -20,7 +20,7 @@
 
 import math
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -234,8 +234,8 @@ class BlockChairClient(BaseClient):
             'height': bd['id'],
             'merkle_root': bd['merkle_root'],
             'nonce': bd['nonce'],
-            'prev_block': None,
-            'time': datetime.strptime(bd['time'], "%Y-%m-%d %H:%M:%S"),
+            'prev_block': b'',
+            'time': int(datetime.strptime(bd['time'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).timestamp()),
             'total_txs': bd['transaction_count'],
             'txs': txs,
             'version': bd['version'],

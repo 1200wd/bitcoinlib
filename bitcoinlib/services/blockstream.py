@@ -222,7 +222,7 @@ class BlockstreamClient(BaseClient):
             'merkle_root': bd['merkle_root'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousblockhash'],
-            'time': datetime.utcfromtimestamp(bd['timestamp']),
+            'time': bd['timestamp'],
             'total_txs': bd['tx_count'],
             'txs': txs,
             'version': bd['version'],

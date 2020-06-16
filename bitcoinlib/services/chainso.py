@@ -173,10 +173,10 @@ class ChainSo(BaseClient):
             'merkle_root': bd['merkleroot'],
             'nonce': None,
             'prev_block': bd['previous_blockhash'],
-            'time': datetime.utcfromtimestamp(bd['time']),
+            'time': bd['time'],
             'total_txs': n_txs,
             'txs': txs,
-            'version': None,
+            'version': b'',
             'page': page,
             'pages': int(n_txs // limit) + (n_txs % limit > 0),
             'limit': limit

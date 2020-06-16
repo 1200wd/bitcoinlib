@@ -61,12 +61,8 @@ class BcoinClient(BaseClient):
         t.block_height = tx['height'] if tx['height'] > 0 else None
         t.block_hash = tx['block']
         t.status = status
-        if t.coinbase:
-            t.input_total = t.output_total
-            t.inputs[0].value = t.output_total
-        else:
-            for i in t.inputs:
-                i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']
+        for i in t.inputs:
+            i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']
         for o in t.outputs:
             o.spent = None
         t.update_totals()
@@ -206,7 +202,7 @@ class BcoinClient(BaseClient):
             else:
                 parsed_txs.append(tx['hash'])
 
-        block['time'] = datetime.utcfromtimestamp(block['time'])
+        block['time'] = block['time']
         block['txs'] = parsed_txs
         block['page'] = page
         block['pages'] = int(block['total_txs'] // limit) + (block['total_txs'] % limit > 0)

@@ -209,7 +209,7 @@ class SmartbitClient(BaseClient):
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previous_block_hash'],
-            'time': datetime.utcfromtimestamp(bd['time']),
+            'time': bd['time'],
             'total_txs': bd['transaction_count'],
             'txs': txs,
             'version': bd['version'],

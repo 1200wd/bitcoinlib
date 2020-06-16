@@ -32,6 +32,7 @@ from bitcoinlib.networks import Network
 from bitcoinlib.encoding import to_hexstring, to_bytes
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
+from bitcoinlib.blocks import Block
 
 
 _logger = logging.getLogger(__name__)
@@ -474,17 +475,39 @@ class Service(object):
     def getblock(self, blockid, parse_transactions=False, page=1, limit=None):
         if not limit:
             limit = 10 if parse_transactions else 99999
-        block = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
-        if not block:
+        bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
+        if not bd or isinstance(bd, bool):
             return False
-        if parse_transactions and 'txs' in block and self.min_providers <= 1:
+
+        # block = {
+        #     'bits': bd['bits'],
+        #     'depth': bd['confirmations'],
+        #     'hash': bd['hash'],
+        #     'height': bd['height'],
+        #     'merkle_root': bd['merkleroot'],
+        #     'nonce': bd['nonce'],
+        #     'prev_block': bd['previousblockhash'],
+        #     'time': bd['time'],
+        #     'total_txs': bd['nTx'],
+        #     'txs': txs,
+        #     'version': bd['version'],
+        #     'page': page,
+        #     'pages': None,
+        #     'limit': limit
+        # }
+        block = Block(bd['hash'], bd['version'], bd['prev_block'], bd['merkle_root'],
+                     bd['time'],
+                     bd['bits'], bd['nonce'],
+                     bd['txs'], bd['height'], bd['depth'], self.network)
+        block.tx_count = bd['total_txs']
+        if parse_transactions and self.min_providers <= 1:
             order_n = (page-1)*limit
-            for tx in block['txs']:
+            for tx in block.transactions:
                 if isinstance(tx, Transaction):
                     self.cache.store_transaction(tx, order_n, commit=False)
                 order_n += 1
             self.cache.session.commit()
-        self.complete = True if len(block['txs']) == block['total_txs'] else False
+        self.complete = True if len(block.transactions) == block.tx_count else False
         return block
 
     def getrawblock(self, blockid):

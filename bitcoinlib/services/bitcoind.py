@@ -23,6 +23,7 @@ from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.blocks import Block
 from bitcoinlib.encoding import to_hexstring, to_bytes
 from bitcoinlib.networks import Network
 
@@ -158,7 +159,9 @@ class BitcoindClient(BaseClient):
             raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
                               "address to wallet." % address)
 
-        for t in self.proxy.listunspent(0, 99999999, [address]):
+        txs_list = self.proxy.listunspent(0, 99999999, [address])
+        txs_sorted = sorted(txs_list, key=lambda x: x['confirmations'], reverse=True)
+        for t in txs_sorted:
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
@@ -172,6 +175,8 @@ class BitcoindClient(BaseClient):
                 'script': t['scriptPubKey'],
                 'date': None,
             })
+            if t['txid'] == after_txid:
+                txs = []
 
         return txs
 
@@ -264,7 +269,7 @@ class BitcoindClient(BaseClient):
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousblockhash'],
-            'time': datetime.utcfromtimestamp(bd['time']),
+            'time': bd['time'],
             'total_txs': bd['nTx'],
             'txs': txs,
             'version': bd['version'],

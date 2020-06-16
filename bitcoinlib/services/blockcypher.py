@@ -19,7 +19,7 @@
 #
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
@@ -181,7 +181,7 @@ class BlockCypher(BaseClient):
     def getblock(self, blockid, parse_transactions, page, limit):
         if limit > 100:
             limit = 100
-        bd = self.compose_request('blocks', str(blockid), variables={'limit': limit, 'txstart': (page-1)*limit})
+        bd = self.compose_request('blocks', str(blockid), variables={'limit': limit, 'txstart': ((page-1)*limit)})
         if parse_transactions:
             txs = []
             for txid in bd['txids']:
@@ -200,7 +200,7 @@ class BlockCypher(BaseClient):
             'merkle_root': bd['mrkl_root'],
             'nonce': bd['nonce'],
             'prev_block': bd['prev_block'],
-            'time': datetime.strptime(bd['time'], "%Y-%m-%dT%H:%M:%SZ"),
+            'time': int(datetime.strptime(bd['time'], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()),
             'total_txs': bd['n_tx'],
             'txs': txs,
             'version': bd['ver'],

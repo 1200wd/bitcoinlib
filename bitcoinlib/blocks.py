@@ -19,7 +19,7 @@
 #
 
 from bitcoinlib.encoding import *
-from bitcoinlib.transactions import transaction_deserialize
+from bitcoinlib.transactions import transaction_deserialize, Transaction
 
 
 def parse_transactions(self, limit=0):
@@ -33,29 +33,44 @@ def parse_transactions(self, limit=0):
 
 class Block:
 
-    def __init__(self, blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions=None,
-                 block_height=None, network=DEFAULT_NETWORK):
-        self.blockhash = blockhash
-        self.version = version
-        self.version_int = struct.unpack('>L', version)[0]
-        self.prev_block = prev_block
-        self.merkle_root = merkle_root
-        self.timestamp = struct.unpack('>L', timestamp)[0]
-        self.bits = bits
-        self.bits_int = struct.unpack('>L', bits)[0]
-        self.nonce = nonce
-        self.nonce_int = struct.unpack('>L', nonce)[0]
+    def __init__(self, blockhash, version, prev_block, merkle_root, time, bits, nonce, transactions=None,
+                 height=None, confirmations=None, network=DEFAULT_NETWORK):
+        self.blockhash = to_bytes(blockhash)
+        if isinstance(version, int):
+            self.version = struct.pack('>L', version)
+            self.version_int = version
+        else:
+            self.version = to_bytes(version)
+            self.version_int = 0 if not self.version else struct.unpack('>L', self.version)[0]
+        self.prev_block = to_bytes(prev_block)
+        self.merkle_root = to_bytes(merkle_root)
+        self.time = time
+        if not isinstance(time, int):
+            self.time = struct.unpack('>L', time)[0]
+        if isinstance(bits, int):
+            self.bits = struct.pack('>L', bits)
+            self.bits_int = bits
+        else:
+            self.bits = to_bytes(bits)
+            self.bits_int = 0 if not self.bits else struct.unpack('>L', self.bits)[0]
+        if isinstance(nonce, int):
+            self.nonce = struct.pack('>L', nonce)
+            self.nonce_int = nonce
+        else:
+            self.nonce = to_bytes(nonce)
+            self.nonce_int = 0 if not self.nonce else struct.unpack('>L', self.nonce)[0]
         self.transactions = transactions
         self.txs_data = None
-        self.block_height = block_height
+        self.height = height
+        self.confirmations = confirmations
         self.network = network
         self.tx_count = None
-        if not block_height and len(self.transactions):
+        if not height and len(self.transactions) and isinstance(self.transactions[0], Transaction):
             # first bytes of unlocking script of coinbase transaction contain block height
             self.block_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
 
     def __repr__(self):
-        return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.blockhash), self.block_height, self.tx_count)
+        return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.blockhash), self.height, self.tx_count)
 
     @classmethod
     def from_raw(cls, rawblock, blockhash=None, parse_transactions=False, network=DEFAULT_NETWORK):
@@ -68,7 +83,7 @@ class Block:
         version = rawblock[0:4][::-1]
         prev_block = rawblock[4:36][::-1]
         merkle_root = rawblock[36:68][::-1]
-        timestamp = rawblock[68:72][::-1]
+        time = rawblock[68:72][::-1]
         bits = rawblock[72:76][::-1]
         nonce = rawblock[76:80][::-1]
         tx_count, size = varbyteint_to_int(rawblock[80:89])
@@ -90,7 +105,7 @@ class Block:
             raise ValueError("Number of found transactions %d is not equal to expected number %d" %
                              (len(transactions), tx_count))
 
-        block = cls(blockhash, version, prev_block, merkle_root, timestamp, bits, nonce, transactions, network=network)
+        block = cls(blockhash, version, prev_block, merkle_root, time, bits, nonce, transactions, network=network)
         block.txs_data = txs_data
         block.tx_count = tx_count
         return block
@@ -107,15 +122,17 @@ class Block:
     def as_dict(self):
         return {
             'blockhash': to_hexstring(self.blockhash),
+            'height': self.height,
             'version': self.version_int,
             'prev_block': to_hexstring(self.prev_block),
             'merkle_root': to_hexstring(self.merkle_root),
-            'timestamp': self.timestamp,
+            'timestamp': self.time,
             'bits': self.bits_int,
             'nonce': self.nonce_int,
             'target': self.target_hex,
             'difficulty': self.difficulty,
-            'n_transactions': len(self.transactions),
+            'tx_count': self.tx_count,
+            'transactions': self.transactions
         }
 
     @property

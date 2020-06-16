@@ -1315,6 +1315,7 @@ class Transaction(object):
         self.fee_per_kb = fee_per_kb
         self.size = size
         self.vsize = size
+        # TODO: check if hash is bytes or hexstring, and update _txid as well
         self.hash = to_bytes(hash)
         self._txid = None
         self.date = date
