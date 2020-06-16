@@ -137,25 +137,31 @@ class DashdClient(BaseClient):
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def gettransaction(self, txid):
-        tx = self.proxy.getrawtransaction(txid, 1)
+    def _parse_transaction(self, tx, block_height=None, get_input_values=True):
         t = Transaction.import_raw(tx['hex'], network=self.network)
-        t.confirmations = tx['confirmations']
-        if t.confirmations:
+        t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
+        if t.confirmations or block_height:
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
             if i.prev_hash == b'\x00' * 32:
                 i.script_type = 'coinbase'
                 continue
-            txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            value = int(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator)
-            i.value = value
+            if get_input_values:
+                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+        for o in t.outputs:
+            o.spent = None
         t.block_hash = tx['blockhash']
-        t.version = tx['version']
+        t.block_height = block_height
+        t.version = struct.pack('>L', tx['version'])
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
+
+    def gettransaction(self, txid):
+        tx = self.proxy.getrawtransaction(txid, 1)
+        return self._parse_transaction(tx)
 
     def getrawtransaction(self, txid):
         res = self.proxy.getrawtransaction(txid)
@@ -181,7 +187,8 @@ class DashdClient(BaseClient):
     def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         txs = []
 
-        for t in self.proxy.listunspent(0, 99999999, [address]):
+        txs_list = self.proxy.listunspent(0, 99999999, [address])
+        for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
@@ -195,8 +202,61 @@ class DashdClient(BaseClient):
                 'script': t['scriptPubKey'],
                 'date': None,
             })
+            if t['txid'] == after_txid:
+                txs = []
 
         return txs
+
+    def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
+        if isinstance(blockid, int):
+            blockid = self.proxy.getblockhash(blockid)
+        if not limit:
+            limit = 99999
+
+        txs = []
+        if parse_transactions:
+            bd = self.proxy.getblock(blockid, 2)
+            for tx in bd['tx'][(page - 1) * limit:page * limit]:
+                try:
+                    tx['blocktime'] = bd['time']
+                    tx['blockhash'] = bd['hash']
+                    txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+            # txs += [tx['hash'] for tx in bd['tx'][len(txs):]]
+        else:
+            bd = self.proxy.getblock(blockid, 1)
+            txs = bd['tx']
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousblockhash'],
+            'time': bd['time'],
+            'total_txs': bd['nTx'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': None,
+            'limit': limit
+        }
+        return block
+
+    def getrawblock(self, blockid):
+        if isinstance(blockid, int):
+            blockid = self.proxy.getblockhash(blockid)
+        return self.proxy.getblock(blockid, 0)
+
+    def isspent(self, txid, index):
+        res = self.proxy.gettxout(txid, index)
+        if not res:
+            return True
+        return False
+
 
 if __name__ == '__main__':
     #

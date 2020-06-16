@@ -537,7 +537,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'status': 'confirmed',
             'version': 1
         }
-        srv = ServiceTest(network='bitcoin', min_providers=3, providers=['bcoin'])
+        srv = ServiceTest(network='bitcoin', min_providers=3)
 
         # Get transactions by hash
         srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')

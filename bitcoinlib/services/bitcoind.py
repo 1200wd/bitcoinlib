@@ -160,8 +160,7 @@ class BitcoindClient(BaseClient):
                               "address to wallet." % address)
 
         txs_list = self.proxy.listunspent(0, 99999999, [address])
-        txs_sorted = sorted(txs_list, key=lambda x: x['confirmations'], reverse=True)
-        for t in txs_sorted:
+        for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
