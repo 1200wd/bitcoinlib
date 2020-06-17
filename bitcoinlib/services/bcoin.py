@@ -212,6 +212,8 @@ class BcoinClient(BaseClient):
         block['merkle_root'] = block.pop('merkleRoot')
         return block
 
+    # def getrawblock
+
     def isspent(self, txid, index):
         try:
             self.compose_request('coin', txid, str(index))

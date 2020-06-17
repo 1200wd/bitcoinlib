@@ -132,7 +132,8 @@ class Block:
             'target': self.target_hex,
             'difficulty': self.difficulty,
             'tx_count': self.tx_count,
-            'transactions': self.transactions
+            'transactions': self.transactions,
+            'confirmations': self.confirmations
         }
 
     @property

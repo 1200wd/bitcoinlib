@@ -473,6 +473,30 @@ class Service(object):
         return self._blockcount
 
     def getblock(self, blockid, parse_transactions=False, page=1, limit=None):
+        """
+        Get block with specified block height or block hash from service providers.
+
+        If parse_transaction is set to True a list of Transaction object will be returned otherwise a
+        list of transaction ID's.
+
+        Some providers require 1 or 2 extra request per transaction, so to avoid timeouts or rate limiting errors
+        you can specify a page and limit for the transaction. For instance with page=2, limit=4 only transaction
+        5 to 8 are returned in the Blocks's 'transaction' attribute.
+
+        If you only use a local bcoin or bitcoind provider, make sure you set the limit to maximum (i.e. 9999)
+        because all transactions are already downloaded when fetching the block.
+
+        :param blockid: Hash or block height of block
+        :type blockid: str, int
+        :param parse_transactions: Return Transaction objects or just transaction ID's. Default is return txids.
+        :type parse_transactions: bool
+        :param page: Page number of transaction paging. Default is start from the beginning: 1
+        :type page: int
+        :param limit: Maximum amount of transaction to return. Default is 10 is parse transaction is enabled, otherwise returns all txid's (9999)
+        :type limit: int
+
+        :return Block:
+        """
         if not limit:
             limit = 10 if parse_transactions else 99999
         bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
@@ -493,6 +517,17 @@ class Service(object):
         return block
 
     def getrawblock(self, blockid):
+        """
+        Get raw block as hexadecimal string for block with specified hash or block height.
+
+        Not many providers offer this option, and it can be slow, so it is advised to use a local client such
+        as bitcoind.
+
+        :param blockid: Block hash or block height
+        :type blockid: str, int
+
+        :return str:
+        """
         return self._provider_execute('getrawblock', blockid)
 
     def mempool(self, txid=''):
