@@ -59,7 +59,7 @@ class JSONRPCException(Exception):
         parent_args = []
         try:
             parent_args.append(rpc_error['message'])
-        except:
+        except Exception:
             pass
         Exception.__init__(self, *parent_args)
         self.error = rpc_error

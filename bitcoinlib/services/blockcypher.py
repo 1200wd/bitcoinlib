@@ -23,7 +23,7 @@ from datetime import datetime
 # Not supported in PY2, remove in PY3
 try:
     from datetime import timezone
-except:
+except Exception:
     pass
 
 from bitcoinlib.main import MAX_TRANSACTIONS

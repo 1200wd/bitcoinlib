@@ -23,7 +23,7 @@ import logging
 from datetime import datetime
 try:
     from datetime import timezone
-except:
+except Exception:
     pass
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError

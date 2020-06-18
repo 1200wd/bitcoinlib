@@ -87,7 +87,7 @@ class DbInit:
             url = ''
             try:
                 url = str(session.bind.url)
-            except:
+            except Exception:
                 pass
             session.merge(DbConfig(variable='installation_url', value=url))
             session.commit()

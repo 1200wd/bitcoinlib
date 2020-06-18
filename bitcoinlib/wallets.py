@@ -448,7 +448,7 @@ class HDWalletKey(object):
     def _commit(self):
         try:
             self._session.commit()
-        except:
+        except Exception:
             self._session.rollback()
             raise
 
@@ -1036,7 +1036,7 @@ class HDWallet(object):
     def _commit(self):
         try:
             self._session.commit()
-        except:
+        except Exception:
             self._session.rollback()
             raise
 

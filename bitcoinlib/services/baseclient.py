@@ -59,7 +59,7 @@ class BaseClient(object):
             self.latest_block = latest_block
             if network_overrides is not None:
                 self.network_overrides = network_overrides
-        except:
+        except Exception:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
     def request(self, url_path, variables=None, method='get', secure=True, post_data=''):
