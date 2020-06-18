@@ -162,13 +162,13 @@ class BlocksmurferClient(BaseClient):
         block = {
             'bits': bd['bits'],
             'depth': bd['depth'],
-            'hash': bd['blockhash'],
+            'block_hash': bd['blockhash'],
             'height': bd['height'],
             'merkle_root': bd['merkle_root'],
             'nonce': bd['nonce'],
             'prev_block': bd['prev_block'],
             'time': bd['time'],
-            'total_txs': bd['total_txs'],
+            'tx_count': bd['total_txs'],
             'txs': bd['transactions'],
             'version': bd['version'],
             'page': page,
@@ -176,7 +176,6 @@ class BlocksmurferClient(BaseClient):
             'limit': limit
         }
         return block
-
 
     # def getrawblock(self, blockid):
 

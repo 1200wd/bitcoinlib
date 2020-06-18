@@ -250,8 +250,8 @@ class BitcoindClient(BaseClient):
             bd = self.proxy.getblock(blockid, 2)
             for tx in bd['tx'][(page - 1) * limit:page * limit]:
                 # try:
-                tx['blocktime'] = bd['time']
-                tx['blockhash'] = bd['hash']
+                tx['block_time'] = bd['time']
+                tx['block_hash'] = bd['hash']
                 txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
@@ -263,13 +263,13 @@ class BitcoindClient(BaseClient):
         block = {
             'bits': bd['bits'],
             'depth': bd['confirmations'],
-            'hash': bd['hash'],
+            'block_hash': bd['hash'],
             'height': bd['height'],
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousblockhash'],
             'time': bd['time'],
-            'total_txs': bd['nTx'],
+            'tx_count': bd['nTx'],
             'txs': txs,
             'version': bd['version'],
             'page': page,

@@ -22,20 +22,11 @@ from bitcoinlib.encoding import *
 from bitcoinlib.transactions import transaction_deserialize, Transaction
 
 
-def parse_transactions(self, limit=0):
-    n = 0
-    while self.txs_data and (limit == 0 or n < limit):
-        t = transaction_deserialize(self.txs_data, network=self.network, check_size=False)
-        self.transactions.append(t)
-        self.txs_data = self.txs_data[t.size:]
-        n += 1
-
-
 class Block:
 
-    def __init__(self, blockhash, version, prev_block, merkle_root, time, bits, nonce, transactions=None,
+    def __init__(self, block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions=None,
                  height=None, confirmations=None, network=DEFAULT_NETWORK):
-        self.blockhash = to_bytes(blockhash)
+        self.block_hash = to_bytes(block_hash)
         if isinstance(version, int):
             self.version = struct.pack('>L', version)
             self.version_int = version
@@ -67,61 +58,90 @@ class Block:
         self.tx_count = None
         if not height and len(self.transactions) and isinstance(self.transactions[0], Transaction):
             # first bytes of unlocking script of coinbase transaction contain block height
-            self.block_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
+            self.height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
 
     def __repr__(self):
-        return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.blockhash), self.height, self.tx_count)
+        return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.block_hash), self.height, self.tx_count)
 
     @classmethod
-    def from_raw(cls, rawblock, blockhash=None, parse_transactions=False, network=DEFAULT_NETWORK):
-        blockhash_calc = double_sha256(rawblock[:80])[::-1]
-        if not blockhash:
-            blockhash = blockhash_calc
-        elif blockhash != blockhash_calc:
-            raise ValueError("Provided blockhash does not correspond to calculated blockhash %s" % blockhash_calc)
+    def from_raw(cls, raw, block_hash=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
+        """
+        Create Block object from raw serialized block in bytes. 
+        
+        :param raw: Raw serialize block
+        :type raw: bytes
+        :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
+        :type block_hash: bytes
+        :param parse_transactions: Indicate if transactions in raw block need to be parsed and converted to Transaction objects. Default is False
+        :type parse_transactions: bool
+        :param limit: Maximum number of transactions to parse. Default is 0: parse all transactions. Only used if parse_transaction is set to True
+        :type limit: int
+        :param network: Name of network
+        :type network: str
 
-        version = rawblock[0:4][::-1]
-        prev_block = rawblock[4:36][::-1]
-        merkle_root = rawblock[36:68][::-1]
-        time = rawblock[68:72][::-1]
-        bits = rawblock[72:76][::-1]
-        nonce = rawblock[76:80][::-1]
-        tx_count, size = varbyteint_to_int(rawblock[80:89])
-        txs_data = rawblock[80+size:]
+        :return Block:
+        """
+        block_hash_calc = double_sha256(raw[:80])[::-1]
+        if not block_hash:
+            block_hash = block_hash_calc
+        elif block_hash != block_hash_calc:
+            raise ValueError("Provided block hash does not correspond to calculated block hash %s" %
+                             to_hexstring(block_hash_calc))
+
+        version = raw[0:4][::-1]
+        prev_block = raw[4:36][::-1]
+        merkle_root = raw[36:68][::-1]
+        time = raw[68:72][::-1]
+        bits = raw[72:76][::-1]
+        nonce = raw[76:80][::-1]
+        tx_count, size = varbyteint_to_int(raw[80:89])
+        txs_data = raw[80+size:]
 
         # Parse coinbase transaction so we can extract extra information
         transactions = [transaction_deserialize(txs_data, network=network, check_size=False)]
         txs_data = txs_data[transactions[0].size:]
 
-        while parse_transactions and txs_data:
+        while parse_transactions and limit != 0 and txs_data[:limit]:
             t = transaction_deserialize(txs_data, network=network, check_size=False)
             transactions.append(t)
             txs_data = txs_data[t.size:]
             # TODO: verify transactions, need input value from previous txs
             # if verify and not t.verify():
-            #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, blockhash))
+            #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))
 
         if parse_transactions and tx_count != len(transactions):
             raise ValueError("Number of found transactions %d is not equal to expected number %d" %
                              (len(transactions), tx_count))
 
-        block = cls(blockhash, version, prev_block, merkle_root, time, bits, nonce, transactions, network=network)
+        block = cls(block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions, network=network)
         block.txs_data = txs_data
         block.tx_count = tx_count
         return block
 
     def parse_transactions(self, limit=0):
+        """
+        Parse raw transactions from Block, if transaction data is available in txs_data attribute. Creates
+        Transaction objects in Block.transactions list
+
+        :param limit: Maximum number of transactions to parse
+
+        :return:
+        """
         n = 0
         while self.txs_data and (limit == 0 or n < limit):
             t = transaction_deserialize(self.txs_data, network=self.network, check_size=False)
             self.transactions.append(t)
             self.txs_data = self.txs_data[t.size:]
             n += 1
-        return self
 
     def as_dict(self):
+        """
+        Get representation of current Block as dictionary.
+
+        :return dict:
+        """
         return {
-            'blockhash': to_hexstring(self.blockhash),
+            'block_hash': to_hexstring(self.block_hash),
             'height': self.height,
             'version': self.version_int,
             'prev_block': to_hexstring(self.prev_block),
@@ -138,15 +158,34 @@ class Block:
 
     @property
     def target(self):
+        """
+        Block target calculated from block's bits. Block hash must be below this target. Used to calculate
+        block difficulty.
+
+        :return int:
+        """
         exponent = self.bits[0]
         coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         return coefficient * 256 ** (exponent - 3)
 
     @property
     def target_hex(self):
+        """
+        Block target in hexadecimal string of 64 characters.
+
+        :return str:
+        """
         return hex(self.target)[2:].zfill(64)
 
     @property
     def difficulty(self):
+        """
+        Block difficulty calculated from bits / target. Human readable representation of block's target.
+
+        :return int:
+        """
         difficulty = 0xffff * 256 ** (0x1d - 3) / self.target
         return 0xffff001d if difficulty < 0xffff001d else difficulty
+
+    def serialize(self):
+        pass  # TODO

@@ -503,9 +503,9 @@ class Service(object):
         if not bd or isinstance(bd, bool):
             return False
 
-        block = Block(bd['hash'], bd['version'], bd['prev_block'], bd['merkle_root'], bd['time'], bd['bits'],
+        block = Block(bd['block_hash'], bd['version'], bd['prev_block'], bd['merkle_root'], bd['time'], bd['bits'],
                       bd['nonce'], bd['txs'], bd['height'], bd['depth'], self.network)
-        block.tx_count = bd['total_txs']
+        block.tx_count = bd['tx_count']
         if parse_transactions and self.min_providers <= 1:
             order_n = (page-1)*limit
             for tx in block.transactions:

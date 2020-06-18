@@ -702,7 +702,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         b = srv.getblock(599999, parse_transactions=True, limit=3)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 599999)
-        self.assertEqual(to_hexstring(b.blockhash), '00000000000000000003ecd827f336c6971f6f77a0b9fba362398dd867975645')
+        self.assertEqual(to_hexstring(b.block_hash), '00000000000000000003ecd827f336c6971f6f77a0b9fba362398dd867975645')
         self.assertEqual(to_hexstring(b.merkle_root), 'ca13ce7f21619f73fb5a062696ec06a4427c6ad9e523e7bc1cf5287c137ddcea')
         self.assertEqual(b.nonce_int, 687352075)
         if list(srv.results.keys())[0] != 'blockchair':
@@ -728,7 +728,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc')
         print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 128594)
-        self.assertEqual(to_hexstring(b.blockhash), '0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc')
+        self.assertEqual(to_hexstring(b.block_hash), '0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc')
         self.assertEqual(to_hexstring(b.merkle_root),
                          '36cbe8252102410779271e8e325183f63ed9c18534ebc13ef4220f57ae2a9c17')
         self.assertEqual(b.nonce_int, 423727070)
@@ -745,7 +745,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv = ServiceTest(timeout=TIMEOUT_TEST, providers=['blockchaininfo'])
         b = srv.getblock(120000, parse_transactions=True, limit=4, page=2)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
-        self.assertEqual(to_hexstring(b.blockhash),
+        self.assertEqual(to_hexstring(b.block_hash),
                          '0000000000000e07595fca57b37fea8522e95e0f6891779cfd34d7e537524471')
         self.assertEqual(b.height, 120000)
         self.assertEqual(to_hexstring(b.merkle_root),
@@ -759,7 +759,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         b = srv.getblock(1000000, parse_transactions=True, limit=2)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 1000000)
-        self.assertEqual(to_hexstring(b.blockhash), '8ceae698f0a2d338e39b213eb9c253a91a270ca6451a4d9bba7bf2c9e637dfda')
+        self.assertEqual(to_hexstring(b.block_hash), '8ceae698f0a2d338e39b213eb9c253a91a270ca6451a4d9bba7bf2c9e637dfda')
         self.assertEqual(to_hexstring(b.merkle_root),
                          '8473ff4c3ae380d9d1bf0f1f0b5c389676d3a3877923c0a23e9b21388624c5ab')
         # self.assertEqual(b['nonce'], 282613863)
