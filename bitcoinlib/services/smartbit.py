@@ -194,10 +194,10 @@ class SmartbitClient(BaseClient):
         if parse_transactions:
             txs = []
             for tx in bd['transactions']:
-                try:
-                    txs.append(self._parse_transaction(tx))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+                # try:
+                txs.append(self._parse_transaction(tx))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
         else:
             txs = [tx['txid'] for tx in bd['transactions']]
 

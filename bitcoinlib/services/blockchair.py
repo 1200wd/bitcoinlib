@@ -224,10 +224,7 @@ class BlockChairClient(BaseClient):
         if parse_transactions:
             txs = []
             for txid in txids:
-                try:
-                    txs.append(self.gettransaction(txid))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+                txs.append(self.gettransaction(txid))
         else:
             txs = txids
 

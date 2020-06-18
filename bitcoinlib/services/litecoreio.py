@@ -156,10 +156,10 @@ class LitecoreIOClient(BaseClient):
         if parse_transactions:
             txs = []
             for txid in bd['tx'][(page-1)*limit:page*limit]:
-                try:
-                    txs.append(self.gettransaction(txid))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+                # try:
+                txs.append(self.gettransaction(txid))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (txid, e))
         else:
             txs = bd['tx']
 

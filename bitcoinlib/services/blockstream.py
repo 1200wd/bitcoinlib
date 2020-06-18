@@ -207,10 +207,10 @@ class BlockstreamClient(BaseClient):
             txs = []
             blockcount = self.blockcount()
             for tx in btxs[:limit]:
-                try:
-                    txs.append(self._parse_transaction(tx, blockcount=blockcount))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+                # try:
+                txs.append(self._parse_transaction(tx, blockcount=blockcount))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
         else:
             txs = [tx['txid'] for tx in btxs]
 

@@ -153,10 +153,10 @@ class BlockchainInfoClient(BaseClient):
             txs = []
             latest_block = self.blockcount()
             for tx in bd['tx'][(page-1)*limit:page*limit]:
-                try:
-                    txs.append(self.gettransaction(tx['hash'], latest_block=latest_block))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (tx['hash'], e))
+                # try:
+                txs.append(self.gettransaction(tx['hash'], latest_block=latest_block))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['hash'], e))
         else:
             txs = [tx['hash'] for tx in bd['tx']]
 

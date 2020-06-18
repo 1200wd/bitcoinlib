@@ -667,8 +667,8 @@ class Input(object):
         :type keys: list (bytes, str, Key)
         :param signatures: Specify optional signatures
         :type signatures: list (bytes, str, Signature)
-        :param public_hash: Public key or script hash. Specify if key is not available
-        :type public_hash: bytes, str
+        :param public_hash: Public key hash or script hash. Specify if key is not available
+        :type public_hash: bytes
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
         :param unlocking_script_unsigned: Unlocking script for signing transaction
@@ -771,15 +771,17 @@ class Input(object):
         self.script_code = b''
 
         # If unlocking script is specified extract keys, signatures, type from script
-        if self.unlocking_script and self.script_type != 'coinbase' and not signatures:
+        if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
             us_dict = script_deserialize(self.unlocking_script)
             if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
                 raise TransactionError("Could not parse unlocking script (%s)" % to_hexstring(self.unlocking_script))
             if us_dict['script_type'] not in ['', 'unknown', 'empty']:
                 self.sigs_required = us_dict['number_of_sigs_n']
                 self.redeemscript = us_dict['redeemscript']
-                signatures += us_dict['signatures']
-                keys += us_dict['keys']
+                if us_dict['signatures'] not in signatures:
+                    signatures += us_dict['signatures']
+                if not keys:
+                    keys = us_dict['keys']
                 sigs_required = us_dict['number_of_sigs_m']
                 if not signatures and not self.public_hash:
                     self.public_hash = us_dict['hashes'][0]
@@ -1785,7 +1787,7 @@ class Transaction(object):
         :param signatures: Add signatures to input if already known
         :type signatures: bytes, str
         :param public_hash: Specify public hash from key or redeemscript if key is not available
-        :type public_hash: bytes, str
+        :type public_hash: bytes
         :param unlocking_script: Unlocking script (scriptSig) to prove ownership. Optional
         :type unlocking_script: bytes, hexstring
         :param unlocking_script_unsigned: TODO: find better name...

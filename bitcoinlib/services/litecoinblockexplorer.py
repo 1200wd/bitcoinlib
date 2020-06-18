@@ -156,10 +156,10 @@ class LitecoinBlockexplorerClient(BaseClient):
         if parse_transactions:
             txs = []
             for tx in bd['tx'][(page-1)*limit:page*limit]:
-                try:
-                    txs.append(self.gettransaction(tx['id']))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (tx['id'], e))
+                # try:
+                txs.append(self.gettransaction(tx['id']))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['id'], e))
         else:
             txs = [tx['id'] for tx in bd['tx']]
 
