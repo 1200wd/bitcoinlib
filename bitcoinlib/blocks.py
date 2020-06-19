@@ -52,21 +52,26 @@ class Block:
             self.nonce_int = 0 if not self.nonce else struct.unpack('>L', self.nonce)[0]
         self.transactions = transactions
         self.txs_data = None
-        self.height = height
         self.confirmations = confirmations
         self.network = network
         self.tx_count = None
         self.page = 1
         self.limit = 0
-        if not height and len(self.transactions) and isinstance(self.transactions[0], Transaction):
-            # first bytes of unlocking script of coinbase transaction contain block height
-            self.height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
+        self.height = height
+        if len(self.transactions) and isinstance(self.transactions[0], Transaction) \
+                and self.version_int > 1:
+            # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
+            calc_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
+            if height and calc_height != height:
+                raise ValueError("Specified block height is different than calculated block height according to "
+                                 "BIP0034")
+            self.height = calc_height
 
     def __repr__(self):
         return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.block_hash), self.height, self.tx_count)
 
     @classmethod
-    def from_raw(cls, raw, block_hash=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
+    def from_raw(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
         """
         Create Block object from raw serialized block in bytes. 
         
@@ -115,7 +120,8 @@ class Block:
             raise ValueError("Number of found transactions %d is not equal to expected number %d" %
                              (len(transactions), tx_count))
 
-        block = cls(block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions, network=network)
+        block = cls(block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions, height,
+                    network=network)
         block.txs_data = txs_data
         block.tx_count = tx_count
         return block
@@ -169,6 +175,8 @@ class Block:
         if not self.bits:
             return 0
         exponent = self.bits[0]
+        # exponent = self.bits[-1]
+        # coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         return coefficient * 256 ** (exponent - 3)
 
@@ -192,8 +200,7 @@ class Block:
         """
         if not self.bits:
             return 0
-        difficulty = 0xffff * 256 ** (0x1d - 3) / self.target
-        return 0xffff001d if difficulty < 0xffff001d else difficulty
+        return 0xffff * 256 ** (0x1d - 3) / self.target
 
     def serialize(self):
         pass  # TODO
