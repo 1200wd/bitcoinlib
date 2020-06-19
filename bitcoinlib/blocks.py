@@ -177,6 +177,8 @@ class Block:
         if not self.bits:
             return 0
         exponent = self.bits[0]
+        if not PY3:
+            exponent = ord(exponent)
         coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         return coefficient * 256 ** (exponent - 3)
 
@@ -203,4 +205,35 @@ class Block:
         return 0xffff * 256 ** (0x1d - 3) / self.target
 
     def serialize(self):
-        pass  # TODO
+        """
+        Serialize raw block in bytes.
+
+        A block consists of a 80 bytes header:
+        * version - 4 bytes
+        * previous block - 32 bytes
+        * merkle root - 32 bytes
+        * timestamp - 4 bytes
+        * bits - 4 bytes
+        * nonce - 4 bytes
+
+        Followed by a list of raw serialized transactions.
+
+        Method will raise an error if one of the header fields is missing or has an incorrect size.
+        
+        :return bytes:
+        """
+        if len(self.transactions) != self.tx_count or len(self.transactions) < 1:
+            raise ValueError("Block contains incorrect number of transactions, can not serialize")
+        rb = self.version[::-1]
+        rb += self.prev_block[::-1]
+        rb += self.merkle_root[::-1]
+        rb += struct.pack('>L', self.time)[::-1]
+        rb += self.bits[::-1]
+        rb += self.nonce[::-1]
+        if len(rb) != 80:
+            raise ValueError("Missing or incorrect length of 1 of the block header variables: version, prev_block, "
+                             "merkle_root, time, bits or nonce.")
+        rb += int_to_varbyteint(len(self.transactions))
+        for t in self.transactions:
+            rb += t.raw()
+        return rb

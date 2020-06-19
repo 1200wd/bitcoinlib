@@ -142,6 +142,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                     elif len(witness) == item_size + size:  # Redeemscript
                         rsds = script_deserialize(witness, script_types=['multisig'])
                         if not rsds['script_type'] == 'multisig':
+                            # FIXME: Parse unknown scripts
                             _logger.warning("Could not parse witnesses in transaction. Multisig redeemscript expected")
                             witness_script_type = 'unknown'
                             script_type = 'unknown'

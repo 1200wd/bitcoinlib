@@ -23,7 +23,7 @@ try:
 except ImportError:
     import enum34 as enum
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Numeric, Text
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Numeric, Text, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 try:
@@ -129,11 +129,11 @@ class DbCacheBlock(Base):
     """
     __tablename__ = 'cache_blocks'
     height = Column(Integer, primary_key=True, doc="Height or sequence number for this block")
-    block_hash = Column(String(32), index=True, doc="Hash of this block")
+    block_hash = Column(LargeBinary(32), index=True, doc="Hash of this block")
     network_name = Column(String(20), doc="Blockchain network name")
     version = Column(Integer, doc="Block version to specify which features are used (hex)")
-    prev_block = Column(String(32), doc="Block hash of previous block")
-    merkle_root = Column(String(32), doc="Merkle root used to validate transaction in block")
+    prev_block = Column(LargeBinary(32), doc="Block hash of previous block")
+    merkle_root = Column(LargeBinary(32), doc="Merkle root used to validate transaction in block")
     time = Column(Integer, doc="Timestamp to indicated when block was created")
     bits = Column(Integer, doc="Encoding for proof-of-work, used to determine target and difficulty")
     nonce = Column(Integer, doc="Nonce (number used only once or n-once) is used to create different block hashes")

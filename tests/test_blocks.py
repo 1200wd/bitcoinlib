@@ -26,6 +26,17 @@ from tests.test_custom import CustomAssertions
 
 class TestBlocks(unittest.TestCase, CustomAssertions):
 
+    def setUp(self):
+        filename = os.path.join(os.path.dirname(__file__), "block250000.pickle")
+        pickle_in = open(filename, "rb")
+        self.rb250000 = pickle.load(pickle_in)
+        pickle_in.close()
+
+        filename = os.path.join(os.path.dirname(__file__), "block330000.pickle")
+        pickle_in = open(filename, "rb")
+        self.rb330000 = pickle.load(pickle_in)
+        pickle_in.close()
+
     def test_blocks_parse_genesis(self):
         raw_block = '0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3' \
                     'e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c010100000001000000000000000000' \
@@ -68,11 +79,7 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertDictEqualExt(b.as_dict(), expected_dict)
 
     def test_blocks_parse_block_and_transactions(self):
-        filename = os.path.join(os.getcwd(), "block250000.pickle")
-        pickle_in = open(filename, "rb")
-        rb = pickle.load(pickle_in)
-        pickle_in.close()
-        b = Block.from_raw(rb, parse_transactions=True)
+        b = Block.from_raw(self.rb250000, parse_transactions=True)
         self.assertEqual(to_hexstring(b.block_hash), '000000000000003887df1f29024b06fc2200b55f8af8f35453d7be294df2d214')
         self.assertEqual(b.height, 250000)
         self.assertEqual(b.version_int, 2)
@@ -90,15 +97,12 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.transactions[155].txid, 'e3d6cb87bd37ca53509cdc9ecdabf82ef966d9b25a2598b7de87c8173beb40d5')
 
     def test_blocks_parse_block_exceptions(self):
-        filename = os.path.join(os.getcwd(), "block250000.pickle")
-        pickle_in = open(filename, "rb")
-        rb = pickle.load(pickle_in)
-        pickle_in.close()
         self.assertRaisesRegex(ValueError, "Specified block height is different than calculated block height "
-                               "according to BIP0034", Block.from_raw, rb, parse_transactions=False, height=100)
+                               "according to BIP0034", Block.from_raw, self.rb250000, parse_transactions=False,
+                               height=100)
         self.assertRaisesRegex(ValueError, "Provided block hash does not correspond to calculated block hash "
                                            "000000000000003887df1f29024b06fc2200b55f8af8f35453d7be294df2d214",
-                               Block.from_raw, rb, parse_transactions=False,
+                               Block.from_raw, self.rb250000, parse_transactions=False,
                                block_hash='000000000000003887df1f29024b06fc2200b55f8af8f35453d7be294df2d214')
         incomplete_raw = '010000008a27a4849da1fea18e8f062e7948eb839ca3665d0b129d8095e1ea1a0000000049460f6df908fdf763' \
                          '4a5e73a984cf49e0555ba5066d52ffacaf5c892b2d3aeeeca7c04b15112a1cf36e610303010000000100000000' \
@@ -115,11 +119,7 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
                                Block.from_raw, to_bytes(incomplete_raw), parse_transactions=True)
 
     def test_blocks_parse_block_and_transactions(self):
-        filename = os.path.join(os.getcwd(), "block330000.pickle")
-        pickle_in = open(filename, "rb")
-        rb = pickle.load(pickle_in)
-        pickle_in.close()
-        b = Block.from_raw(rb, parse_transactions=True, limit=5)
+        b = Block.from_raw(self.rb330000, parse_transactions=True, limit=5)
         self.assertEqual(to_hexstring(b.block_hash), '00000000000000000faabab19f17c0178c754dbed023e6c871dcaf74159c5f02')
         self.assertEqual(b.height, 330000)
         self.assertEqual(b.version_int, 2)
@@ -138,3 +138,8 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         b.parse_transactions(10)
         self.assertEqual(len(b.transactions), 81)
         self.assertEqual(b.transactions[80].txid, '7c8483c890942334ecb73db3802f7571b06047b5c15febe3bad11e460065709b')
+
+    def test_block_serialize(self):
+        b = Block.from_raw(self.rb330000, parse_transactions=True)
+        rb_ser = b.serialize()
+        self.assertEqual(rb_ser, self.rb330000)
