@@ -58,7 +58,7 @@ class Block:
         self.page = 1
         self.limit = 0
         self.height = height
-        if len(self.transactions) and isinstance(self.transactions[0], Transaction) \
+        if self.transactions and len(self.transactions) and isinstance(self.transactions[0], Transaction) \
                 and self.version_int > 1:
             # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
             calc_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
@@ -108,7 +108,9 @@ class Block:
         transactions = [transaction_deserialize(txs_data, network=network, check_size=False)]
         txs_data = txs_data[transactions[0].size:]
 
-        while parse_transactions and limit != 0 and txs_data[:limit]:
+        while parse_transactions and txs_data:
+            if limit != 0 and len(transactions) >= limit:
+                break
             t = transaction_deserialize(txs_data, network=network, check_size=False)
             transactions.append(t)
             txs_data = txs_data[t.size:]
@@ -116,7 +118,7 @@ class Block:
             # if verify and not t.verify():
             #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))
 
-        if parse_transactions and tx_count != len(transactions):
+        if parse_transactions and limit == 0 and tx_count != len(transactions):
             raise ValueError("Number of found transactions %d is not equal to expected number %d" %
                              (len(transactions), tx_count))
 
@@ -175,8 +177,6 @@ class Block:
         if not self.bits:
             return 0
         exponent = self.bits[0]
-        # exponent = self.bits[-1]
-        # coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         return coefficient * 256 ** (exponent - 3)
 
