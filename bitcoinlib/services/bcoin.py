@@ -194,8 +194,8 @@ class BcoinClient(BaseClient):
         for tx in txs:
             tx['confirmations'] = block['depth']
             tx['time'] = block['time']
-            tx['block_height'] = block['height']
-            tx['block_hash'] = block['hash']
+            tx['height'] = block['height']
+            tx['block'] = block['hash']
             if parse_transactions:
                 t = self._parse_transaction(tx)
                 if t.txid != tx['hash']:

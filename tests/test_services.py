@@ -723,28 +723,9 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(t1.outputs[1].address, '3ADMeKFFJB4cNJ3mYNGTsaFv85ad5ZcjHu')
         # self.assertEqual(t1.outputs[1].value, 8638768306)
 
-    def test_service_getblock_hash(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'])
-        b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc')
-        print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
-        self.assertEqual(b.height, 128594)
-        self.assertEqual(to_hexstring(b.block_hash), '0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc')
-        self.assertEqual(to_hexstring(b.merkle_root),
-                         '36cbe8252102410779271e8e325183f63ed9c18534ebc13ef4220f57ae2a9c17')
-        self.assertEqual(b.nonce_int, 423727070)
-        if list(srv.results.keys())[0] != 'blockchair':
-            self.assertEqual(to_hexstring(b.prev_block),
-                             '000000000000166d87b745a1d2af24f51c4b98021f8c027954711ce45f2024b3')
-        if list(srv.results.keys())[0] != 'blockchaininfo':
-            self.assertEqual(b.time, 1307204137)
-        self.assertEqual(b.tx_count, 93)
-        self.assertEqual(b.version_int, 1)
-        self.assertEqual(b.transactions[0], '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577')
-
     def test_service_getblock_parse_tx_paging(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, providers=['blockchaininfo'])
+        srv = ServiceTest(timeout=TIMEOUT_TEST)
         b = srv.getblock(120000, parse_transactions=True, limit=4, page=2)
-        print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(to_hexstring(b.block_hash),
                          '0000000000000e07595fca57b37fea8522e95e0f6891779cfd34d7e537524471')
         self.assertEqual(b.height, 120000)
@@ -906,3 +887,31 @@ class TestServiceCache(unittest.TestCase):
         txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
         print(srv.results)
         self.assertTrue(txs[0].outputs[0].spent)
+
+    def test_service_cache_getblock_hash(self):
+
+        def check_block_128594(b):
+            self.assertEqual(b.height, 128594)
+            self.assertEqual(to_hexstring(b.block_hash),
+                             '0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc')
+            self.assertEqual(to_hexstring(b.merkle_root),
+                             '36cbe8252102410779271e8e325183f63ed9c18534ebc13ef4220f57ae2a9c17')
+            self.assertEqual(b.nonce_int, 423727070)
+            self.assertEqual(to_hexstring(b.prev_block),
+                             '000000000000166d87b745a1d2af24f51c4b98021f8c027954711ce45f2024b3')
+            self.assertEqual(b.time, 1307204137)
+            self.assertEqual(b.tx_count, 93)
+            self.assertEqual(b.version_int, 1)
+            self.assertEqual(b.transactions[0].txid, '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577')
+
+        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2,
+                          exclude_providers=['chainso', 'blockchair', 'blockchaininfo'])  # Those providers return incomplete results
+        b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
+        print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
+        check_block_128594(b)
+        self.assertEqual(srv.results_cache_n, 0)
+
+        # Now retrieve from cache
+        bc = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc')
+        self.assertEqual(srv.results_cache_n, 1)
+        check_block_128594(bc)

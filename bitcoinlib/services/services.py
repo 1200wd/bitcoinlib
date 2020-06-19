@@ -472,7 +472,7 @@ class Service(object):
                 self.cache.store_blockcount(self._blockcount)
         return self._blockcount
 
-    def getblock(self, blockid, parse_transactions=False, page=1, limit=None):
+    def getblock(self, blockid, parse_transactions=True, page=1, limit=None):
         """
         Get block with specified block height or block hash from service providers.
 
@@ -508,6 +508,7 @@ class Service(object):
             block.transactions = self.cache.getblocktransactions(block.height, page, limit)
             if not block.transactions:
                 block = None
+            self.results_cache_n = 1
         if not block:
             bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
             if not bd or isinstance(bd, bool):
@@ -515,6 +516,8 @@ class Service(object):
             block = Block(bd['block_hash'], bd['version'], bd['prev_block'], bd['merkle_root'], bd['time'], bd['bits'],
                           bd['nonce'], bd['txs'], bd['height'], bd['depth'], self.network)
             block.tx_count = bd['tx_count']
+            block.limit = limit
+            block.page = page
 
             if parse_transactions and self.min_providers <= 1:
                 order_n = (page-1)*limit
@@ -845,7 +848,7 @@ class Cache(object):
         if isinstance(blockid, int):
             block = qr.filter_by(height=blockid, network_name=self.network.name).scalar()
         else:
-            block = qr.filter_by(block_hash=blockid).scalar()
+            block = qr.filter_by(block_hash=to_bytes(blockid)).scalar()
         if not block:
             return False
         b = Block(block_hash=block.block_hash, height=block.height, network=block.network_name,

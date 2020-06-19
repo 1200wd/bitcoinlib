@@ -56,6 +56,8 @@ class Block:
         self.confirmations = confirmations
         self.network = network
         self.tx_count = None
+        self.page = 1
+        self.limit = 0
         if not height and len(self.transactions) and isinstance(self.transactions[0], Transaction):
             # first bytes of unlocking script of coinbase transaction contain block height
             self.height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
@@ -164,6 +166,8 @@ class Block:
 
         :return int:
         """
+        if not self.bits:
+            return 0
         exponent = self.bits[0]
         coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         return coefficient * 256 ** (exponent - 3)
@@ -175,6 +179,8 @@ class Block:
 
         :return str:
         """
+        if not self.bits:
+            return ''
         return hex(self.target)[2:].zfill(64)
 
     @property
@@ -184,6 +190,8 @@ class Block:
 
         :return int:
         """
+        if not self.bits:
+            return 0
         difficulty = 0xffff * 256 ** (0x1d - 3) / self.target
         return 0xffff001d if difficulty < 0xffff001d else difficulty
 
