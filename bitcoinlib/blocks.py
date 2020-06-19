@@ -61,11 +61,12 @@ class Block:
         if self.transactions and len(self.transactions) and isinstance(self.transactions[0], Transaction) \
                 and self.version_int > 1:
             # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
-            calc_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
-            if height and calc_height != height:
-                raise ValueError("Specified block height is different than calculated block height according to "
-                                 "BIP0034")
-            self.height = calc_height
+            if self.transactions[0].inputs[0].unlocking_script:
+                calc_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
+                if height and calc_height != height:
+                    raise ValueError("Specified block height is different than calculated block height according to "
+                                     "BIP0034")
+                self.height = calc_height
 
     def __repr__(self):
         return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.block_hash), self.height, self.tx_count)
@@ -219,7 +220,7 @@ class Block:
         Followed by a list of raw serialized transactions.
 
         Method will raise an error if one of the header fields is missing or has an incorrect size.
-        
+
         :return bytes:
         """
         if len(self.transactions) != self.tx_count or len(self.transactions) < 1:
