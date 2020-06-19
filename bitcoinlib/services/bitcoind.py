@@ -194,10 +194,10 @@ class BitcoindClient(BaseClient):
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.block_hash = tx['blockhash']
+        t.block_hash = tx['block_hash']
         t.block_height = block_height
         t.version = struct.pack('>L', tx['version'])
-        t.date = datetime.utcfromtimestamp(tx['blocktime'])
+        t.date = datetime.utcfromtimestamp(tx['block_time'])
         t.update_totals()
         return t
 

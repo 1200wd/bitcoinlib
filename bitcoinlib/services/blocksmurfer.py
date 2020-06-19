@@ -79,13 +79,17 @@ class BlocksmurferClient(BaseClient):
             })
         return utxos[:limit]
 
-    def _parse_transaction(self, tx):
+    def _parse_transaction(self, tx, block_count=None):
         block_height = None if not tx['block_height'] else tx['block_height']
         confirmations = tx['confirmations']
         if block_height and not confirmations and tx['status'] == 'confirmed':
-            block_count = self.blockcount()
+            if not block_count:
+                block_count = self.blockcount()
             confirmations = block_count - block_height
-        tdate = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
+        try:  # FIXME: On blocksmurfer side: always return timestamp
+            tdate = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
+        except (KeyError, TypeError):
+            tdate = datetime.utcfromtimestamp(tx['time'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], hash=tx['txid'],
                         date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],
@@ -159,6 +163,21 @@ class BlocksmurferClient(BaseClient):
         variables = {'parse_transactions': parse_transactions, 'page': page, 'limit': limit}
         bd = self.compose_request('block', blockid, variables=variables)
 
+        txs = []
+        if parse_transactions and bd['transactions'] and isinstance(bd['transactions'][0], dict):
+            block_count = self.blockcount()
+            for tx in bd['transactions']:
+                tx['confirmations'] = bd['depth']
+                tx['time'] = bd['time']
+                tx['block_height'] = bd['height']
+                tx['block_hash'] = bd['blockhash']
+                t = self._parse_transaction(tx, block_count)
+                if t.txid != tx['txid']:
+                    raise ClientError("Could not parse tx %s. Different txid's" % (tx['txid']))
+                txs.append(t)
+        else:
+            txs = bd['transactions']
+
         block = {
             'bits': bd['bits'],
             'depth': bd['depth'],
@@ -169,7 +188,7 @@ class BlocksmurferClient(BaseClient):
             'prev_block': bd['prev_block'],
             'time': bd['time'],
             'tx_count': bd['total_txs'],
-            'txs': bd['transactions'],
+            'txs': txs,
             'version': bd['version'],
             'page': page,
             'pages': int(bd['total_txs'] // limit) + (bd['total_txs'] % limit > 0),

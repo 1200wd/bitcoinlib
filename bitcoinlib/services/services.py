@@ -486,6 +486,8 @@ class Service(object):
         If you only use a local bcoin or bitcoind provider, make sure you set the limit to maximum (i.e. 9999)
         because all transactions are already downloaded when fetching the block.
 
+        # TODO: Add getblock examples
+
         :param blockid: Hash or block height of block
         :type blockid: str, int
         :param parse_transactions: Return Transaction objects or just transaction ID's. Default is return txids.
@@ -499,21 +501,30 @@ class Service(object):
         """
         if not limit:
             limit = 10 if parse_transactions else 99999
-        bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
-        if not bd or isinstance(bd, bool):
-            return False
 
-        block = Block(bd['block_hash'], bd['version'], bd['prev_block'], bd['merkle_root'], bd['time'], bd['bits'],
-                      bd['nonce'], bd['txs'], bd['height'], bd['depth'], self.network)
-        block.tx_count = bd['tx_count']
-        if parse_transactions and self.min_providers <= 1:
-            order_n = (page-1)*limit
-            for tx in block.transactions:
-                if isinstance(tx, Transaction):
-                    self.cache.store_transaction(tx, order_n, commit=False)
-                order_n += 1
-            self.cache.session.commit()
-        self.complete = True if len(block.transactions) == block.tx_count else False
+        block = self.cache.getblock(blockid)
+        if block:
+            # Block found get transactions from cache
+            block.transactions = self.cache.getblocktransactions(block.height, page, limit)
+            if not block.transactions:
+                block = None
+        if not block:
+            bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
+            if not bd or isinstance(bd, bool):
+                return False
+            block = Block(bd['block_hash'], bd['version'], bd['prev_block'], bd['merkle_root'], bd['time'], bd['bits'],
+                          bd['nonce'], bd['txs'], bd['height'], bd['depth'], self.network)
+            block.tx_count = bd['tx_count']
+
+            if parse_transactions and self.min_providers <= 1:
+                order_n = (page-1)*limit
+                for tx in block.transactions:
+                    if isinstance(tx, Transaction):
+                        self.cache.store_transaction(tx, order_n, commit=False)
+                    order_n += 1
+                self.cache.session.commit()
+            self.complete = True if len(block.transactions) == block.tx_count else False
+            self.cache.store_block(block)
         return block
 
     def getrawblock(self, blockid):
@@ -710,6 +721,19 @@ class Cache(object):
             return txs
         return []
 
+    def getblocktransactions(self, height, page, limit):
+        n_from = (page-1) * limit
+        n_to = page * limit
+        db_txs = self.session.query(DbCacheTransaction).\
+            filter(DbCacheTransaction.block_height == height, DbCacheTransaction.order_n >= n_from,
+                   DbCacheTransaction.order_n < n_to).all()
+        txs = []
+        for db_tx in db_txs:
+            t = self._parse_db_transaction(db_tx)
+            if t:
+                txs.append(t)
+        return txs
+
     def getrawtransaction(self, txid):
         """
         Get a raw transaction string from the database cache if available
@@ -814,6 +838,23 @@ class Cache(object):
             return int(dbvar.value)
         return False
 
+    def getblock(self, blockid):
+        if not SERVICE_CACHING_ENABLED:
+            return False
+        qr = self.session.query(DbCacheBlock)
+        if isinstance(blockid, int):
+            block = qr.filter_by(height=blockid, network_name=self.network.name).scalar()
+        else:
+            block = qr.filter_by(block_hash=blockid).scalar()
+        if not block:
+            return False
+        b = Block(block_hash=block.block_hash, height=block.height, network=block.network_name,
+                  merkle_root=block.merkle_root, time=block.time, nonce=block.nonce,
+                  version=block.version, prev_block=block.prev_block, bits=block.bits)
+        b.tx_count = block.tx_count
+        _logger.info("Retrieved block with height %d from cache" % b.height)
+        return b
+
     def store_blockcount(self, blockcount):
         """
         Store network blockcount in cache for 60 seconds
@@ -849,7 +890,7 @@ class Cache(object):
             _logger.info("Caching failure tx: Incomplete transaction missing hash, date, block_height, "
                          "network or confirmations info")
             return False
-        elif not t.date or not (t.block_height or t.block_hash) or not t.network or not t.confirmations:
+        elif not t.date or not (t.block_height or t.block_hash) or not t.network:
             return False
         raw_hex = None
         if CACHE_STORE_RAW_TRANSACTIONS:
@@ -962,3 +1003,21 @@ class Cache(object):
                             expires=datetime.now() + timedelta(seconds=600))
         self.session.merge(dbvar)
         self.commit()
+
+    def store_block(self, block):
+        if not SERVICE_CACHING_ENABLED:
+            return
+        if not (block.height and block.block_hash and block.prev_block and block.merkle_root and block.bits and
+                block.version):
+            _logger.info("Caching failure block: incomplete data")
+            return False
+
+        new_block = DbCacheBlock(
+            block_hash=block.block_hash, height=block.height, network_name=self.network.name,
+            version=block.version_int, prev_block=block.prev_block, bits=block.bits_int,
+            merkle_root=block.merkle_root, nonce=block.nonce_int, time=block.time, tx_count=block.tx_count)
+        self.session.merge(new_block)
+        try:
+            self.commit()
+        except Exception as e:    # pragma: no cover
+            _logger.warning("Caching failure block: %s" % e)

@@ -185,6 +185,7 @@ class BcoinClient(BaseClient):
 
     def getblock(self, blockid, parse_transactions, page, limit):
         block = self.compose_request('block', blockid)
+        # FIXME: This doesnt work if page or limit is used, also see pages calc below
         block['tx_count'] = len(block['txs'])
         txs = block['txs']
         parsed_txs = []
@@ -193,8 +194,8 @@ class BcoinClient(BaseClient):
         for tx in txs:
             tx['confirmations'] = block['depth']
             tx['time'] = block['time']
-            tx['height'] = block['height']
-            tx['block'] = block['hash']
+            tx['block_height'] = block['height']
+            tx['block_hash'] = block['hash']
             if parse_transactions:
                 t = self._parse_transaction(tx)
                 if t.txid != tx['hash']:
@@ -206,11 +207,11 @@ class BcoinClient(BaseClient):
         block['time'] = block['time']
         block['txs'] = parsed_txs
         block['page'] = page
-        block['pages'] = int(block['total_txs'] // limit) + (block['total_txs'] % limit > 0)
+        block['pages'] = int(block['tx_count'] // limit) + (block['tx_count'] % limit > 0)
         block['limit'] = limit
         block['prev_block'] = block.pop('prevBlock')
         block['merkle_root'] = block.pop('merkleRoot')
-        block['block_hash'] = block.pop('blockhash')
+        block['block_hash'] = block.pop('hash')
         return block
 
     # def getrawblock
