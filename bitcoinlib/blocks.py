@@ -122,7 +122,7 @@ class Block:
             #     print(t.txid)
             #     print(traw)
             #     print(tblock)
-            # txs_data = txs_data[t.size:]
+            txs_data = txs_data[t.size:]
             # TODO: verify transactions, need input value from previous txs
             # if verify and not t.verify():
             #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))

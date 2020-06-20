@@ -624,6 +624,12 @@ class Cache(object):
         if not db_tx.raw:
             return False
         t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
+        # locktime, version, coinbase?, witness_type
+        # t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
+        #                 fee=tx['fee'], size=tx['size'], hash=tx['txid'],
+        #                 date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],
+        #                 confirmations=confirmations, block_height=block_height, status=tx['status'],
+        #                 coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
         for n in db_tx.nodes:
             if n.is_input:
                 t.inputs[n.output_n].value = n.value
