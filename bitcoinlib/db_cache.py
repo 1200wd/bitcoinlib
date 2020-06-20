@@ -68,11 +68,19 @@ class DbCacheTransactionNode(Base):
     __tablename__ = 'cache_transactions_node'
     txid = Column(String(64), ForeignKey('cache_transactions.txid'), primary_key=True)
     transaction = relationship("DbCacheTransaction", back_populates='nodes', doc="Related transaction object")
+    # TODO: Add fields to allow to create full transaction (+ split input / output?)
+    # index_n = Column(BigInteger, primary_key=True,
+    #                  doc="Output_n of previous transaction output that is spent in this input")
+    # prev_hash = Column(String(64),
+    #                    doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
+    #                        "in this input")
     output_n = Column(BigInteger, primary_key=True,
                       doc="Output_n of previous transaction output that is spent in this input")
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
     address = Column(String(255), doc="Address string base32 or base58 encoded")
+    # script = Column(Text, doc="Unlocking script to unlock previous locked output")
+    # sequence = Column(BigInteger, doc="Transaction sequence number. Used for timelock transaction inputs")
     spent = Column(Boolean, default=None, doc="Is output spent?")
     spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
@@ -90,9 +98,18 @@ class DbCacheTransaction(Base):
     date = Column(DateTime, default=datetime.utcnow,
                   doc="Date when transaction was confirmed and included in a block. "
                       "Or when it was created when transaction is not send or confirmed")
-    confirmations = Column(Integer, default=0,
-                           doc="Number of confirmation when this transaction is included in a block. "
-                               "Default is 0: unconfirmed")
+    # TODO: Add fields to allow to create full transaction
+    # witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
+    # version = Column(Integer, default=1,
+    #                  doc="Tranaction version. Default is 1 but some wallets use another version number")
+    # locktime = Column(Integer, default=0,
+    #                   doc="Transaction level locktime. Locks the transaction until a specified block "
+    #                       "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
+    #                       " Default value is 0 for transactions without locktime")
+    # coinbase = Column(Boolean, default=False, doc="Is True when this is a coinbase transaction, default is False")
+    # confirmations = Column(Integer, default=0,
+    #                        doc="Number of confirmation when this transaction is included in a block. "
+    #                            "Default is 0: unconfirmed")
     block_height = Column(Integer, index=True, doc="Height of block this transaction is included in")
     block_hash = Column(String(64), index=True, doc="Hash of block this transaction is included in")  # TODO: Remove, is redundant
     network_name = Column(String(20), doc="Blockchain network name of this transaction")

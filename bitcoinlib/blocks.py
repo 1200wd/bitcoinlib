@@ -68,6 +68,20 @@ class Block:
                                      "BIP0034")
                 self.height = calc_height
 
+    def check_proof_of_work(self):
+        """
+        Check proof of work for this block. Block hash must be below target.
+
+        This library is not optimised for mining, but you can use this for testing or learning purposes.
+
+        :return bool:
+        """
+        if not self.block_hash or not self.bits:
+            return False
+        if change_base(self.block_hash, 256, 10) < self.target:
+            return True
+        return False
+
     def __repr__(self):
         return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.block_hash), self.height, self.tx_count)
 

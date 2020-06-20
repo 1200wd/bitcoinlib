@@ -134,12 +134,10 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                 for witness in witnesses:
                     if witness == b'\0':
                         continue
-                    # item_size, size = varbyteint_to_int(witness)
                     if 70 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
                         signatures.append(witness)
                     elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
                         keys.append(witness)
-                    # elif len(witness) == item_size + size:  # Redeemscript
                     else:
                         rsds = script_deserialize(witness, script_types=['multisig'])
                         if not rsds['script_type'] == 'multisig':
@@ -153,10 +151,6 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                             sigs_required = rsds['number_of_sigs_m']
                             witness_script_type = 'p2sh'
                             script_type = 'p2sh_multisig'
-                    # else:
-                    #     witness_script_type = 'unknown'
-                    #     script_type = 'unknown'
-                    #     _logger.warning("Could not parse witnesses in transaction")
 
                 inp_witness_type = inputs[n].witness_type
                 usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
@@ -701,6 +695,8 @@ class Input(object):
         :type key_path: str, list
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
+        :param witnesses: List of witnesses for inputs, used for segwit transactions for instance.
+        :type witnesses: list of bytes
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty for default
         :type encoding: str
         :param network: Network, leave empty for default
@@ -886,8 +882,6 @@ class Input(object):
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
             addr_data = self.public_hash
-            # self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
-            #                        script_type=self.script_type, witness_type=self.witness_type).address
             self.witnesses = []  # TODO: Remove?
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() +
@@ -911,9 +905,6 @@ class Input(object):
                 else:
                     self.public_hash = hash160(self.redeemscript)
             addr_data = self.public_hash
-            # if not self.address and self.public_hash:
-            #     self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
-            #                            script_type=self.script_type, witness_type=self.witness_type).address
             self.unlocking_script_unsigned = self.redeemscript
 
             if self.redeemscript and self.keys:
