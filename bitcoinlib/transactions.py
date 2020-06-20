@@ -121,7 +121,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                 witness = b'\0'
                 item_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
                 if item_size:
-                    witness = rawtx[cursor:cursor + item_size + size]
+                    witness = rawtx[cursor + size:cursor + item_size + size]
                 cursor += item_size + size
                 witnesses.append(witness)
             if witnesses and not coinbase:
@@ -134,12 +134,13 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                 for witness in witnesses:
                     if witness == b'\0':
                         continue
-                    item_size, size = varbyteint_to_int(witness)
-                    if 70 <= item_size <= 74 and witness[1:2] == b'\x30':  # witness is DER encoded signature
-                        signatures.append(witness[1:])
-                    elif item_size == 33 and len(witness) == 33 + size and len(signatures) == 1:  # key from sig_pk
-                        keys.append(witness[1:])
-                    elif len(witness) == item_size + size:  # Redeemscript
+                    # item_size, size = varbyteint_to_int(witness)
+                    if 70 <= len(witness) <= 74 and witness[0:1] == b'\x30':  # witness is DER encoded signature
+                        signatures.append(witness)
+                    elif len(witness) == 33 and len(signatures) == 1:  # key from sig_pk
+                        keys.append(witness)
+                    # elif len(witness) == item_size + size:  # Redeemscript
+                    else:
                         rsds = script_deserialize(witness, script_types=['multisig'])
                         if not rsds['script_type'] == 'multisig':
                             # FIXME: Parse unknown scripts
@@ -152,10 +153,10 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                             sigs_required = rsds['number_of_sigs_m']
                             witness_script_type = 'p2sh'
                             script_type = 'p2sh_multisig'
-                    else:
-                        witness_script_type = 'unknown'
-                        script_type = 'unknown'
-                        _logger.warning("Could not parse witnesses in transaction")
+                    # else:
+                    #     witness_script_type = 'unknown'
+                    #     script_type = 'unknown'
+                    #     _logger.warning("Could not parse witnesses in transaction")
 
                 inp_witness_type = inputs[n].witness_type
                 usd = script_deserialize(inputs[n].unlocking_script, locking_script=True)
@@ -171,7 +172,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                                   unlocking_script=inputs[n].unlocking_script, sigs_required=sigs_required,
                                   signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
                                   sequence=inputs[n].sequence, index_n=inputs[n].index_n, public_hash=public_hash,
-                                  network=inputs[n].network)
+                                  network=inputs[n].network, witnesses=witnesses)
     if len(rawtx[cursor:]) != 4 and check_size:
         raise TransactionError("Error when deserializing raw transaction, bytes left for locktime must be 4 not %d" %
                                len(rawtx[cursor:]))
@@ -656,7 +657,7 @@ class Input(object):
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=None, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
-                 encoding=None, network=DEFAULT_NETWORK):
+                 witnesses=None, encoding=None, network=DEFAULT_NETWORK):
         """
         Create a new transaction input
         
@@ -768,7 +769,7 @@ class Input(object):
             self.encoding = encoding
         self.valid = None
         self.key_path = key_path
-        self.witnesses = []
+        self.witnesses = witnesses if witnesses else []
         self.script_code = b''
 
         # If unlocking script is specified extract keys, signatures, type from script
@@ -887,7 +888,7 @@ class Input(object):
             addr_data = self.public_hash
             # self.address = Address(hashed_data=self.public_hash, encoding=self.encoding, network=self.network,
             #                        script_type=self.script_type, witness_type=self.witness_type).address
-            self.witnesses = []
+            self.witnesses = []  # TODO: Remove?
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() +
                                   struct.pack('B', hash_type) if hash_type else b'', self.keys[0].public_byte]

@@ -114,7 +114,15 @@ class Block:
                 break
             t = transaction_deserialize(txs_data, network=network, check_size=False)
             transactions.append(t)
-            txs_data = txs_data[t.size:]
+
+            # t.rawtx = b''
+            # traw = t.raw_hex()
+            # tblock = txs_data[:t.size].hex()
+            # if traw != tblock:
+            #     print(t.txid)
+            #     print(traw)
+            #     print(tblock)
+            # txs_data = txs_data[t.size:]
             # TODO: verify transactions, need input value from previous txs
             # if verify and not t.verify():
             #     raise ValueError("Could not verify transaction %s in block %s" % (t.txid, block_hash))
