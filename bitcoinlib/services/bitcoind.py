@@ -267,7 +267,7 @@ class BitcoindClient(BaseClient):
             'height': bd['height'],
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
-            'prev_block': bd['previousblockhash'],
+            'prev_block': None if 'previousblockhash' not in bd else bd['previousblockhash'],
             'time': bd['time'],
             'tx_count': bd['nTx'],
             'txs': txs,

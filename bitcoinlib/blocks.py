@@ -30,7 +30,9 @@ class Block:
         """
         Create a new Block object with provided parameters.
 
-
+        >>> b = Block('0000000000000000000154ba9d02ddd6cee0d71d1ea232753e02c9ac6affd709', version=0x20000000, prev_block='0000000000000000000f9578cda278ae7a2002e50d8e6079d11e2ea1f672b483', merkle_root='20e86f03c24c53c12014264d0e405e014e15a02ad02c174f017ee040750f8d9d', time=1592848036, bits=387044594, nonce=791719079)
+        >>> b
+        <Block(0000000000000000000154ba9d02ddd6cee0d71d1ea232753e02c9ac6affd709, None, transactions: None)>
 
         :param block_hash: Hash value of serialized block
         :type block_hash: bytes, str
@@ -106,6 +108,10 @@ class Block:
 
         This library is not optimised for mining, but you can use this for testing or learning purposes.
 
+        >>> b = Block('0000000000000000000154ba9d02ddd6cee0d71d1ea232753e02c9ac6affd709', version=0x20000000, prev_block='0000000000000000000f9578cda278ae7a2002e50d8e6079d11e2ea1f672b483', merkle_root='20e86f03c24c53c12014264d0e405e014e15a02ad02c174f017ee040750f8d9d', time=1592848036, bits=387044594, nonce=791719079)
+        >>> b.check_proof_of_work()
+        True
+
         :return bool:
         """
         if not self.block_hash or not self.bits:
@@ -115,12 +121,20 @@ class Block:
         return False
 
     def __repr__(self):
-        return "<Block(%s, %d, transactions: %d)>" % (to_hexstring(self.block_hash), self.height, self.tx_count)
+        return "<Block(%s, %s, transactions: %s)>" % (to_hexstring(self.block_hash), self.height, self.tx_count)
 
     @classmethod
     def from_raw(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
         """
-        Create Block object from raw serialized block in bytes. 
+        Create Block object from raw serialized block in bytes.
+
+        Get genesis block:
+
+        >>> from bitcoinlib.services.services import Service
+        >>> srv = Service()
+        >>> b = srv.getblock(0)
+        >>> b.block_hash.hex()
+        '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f'
         
         :param raw: Raw serialize block
         :type raw: bytes
@@ -209,7 +223,7 @@ class Block:
             'block_hash': to_hexstring(self.block_hash),
             'height': self.height,
             'version': self.version_int,
-            'prev_block': to_hexstring(self.prev_block),
+            'prev_block': None if not self.prev_block else to_hexstring(self.prev_block),
             'merkle_root': to_hexstring(self.merkle_root),
             'timestamp': self.time,
             'bits': self.bits_int,
@@ -253,7 +267,15 @@ class Block:
         """
         Block difficulty calculated from bits / target. Human readable representation of block's target.
 
-        :return int:
+        Genesis block has difficulty of 1.0
+
+        >>> from bitcoinlib.services.services import Service
+        >>> srv = Service()
+        >>> b = srv.getblock(0)
+        >>> b.difficulty
+        1.0
+
+        :return float:
         """
         if not self.bits:
             return 0

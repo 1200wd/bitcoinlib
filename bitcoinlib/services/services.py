@@ -1017,8 +1017,10 @@ class Cache(object):
     def store_block(self, block):
         if not SERVICE_CACHING_ENABLED:
             return
-        if not (block.height and block.block_hash and block.prev_block and block.merkle_root and block.bits and
-                block.version):
+        if not (block.height and block.block_hash and block.prev_block and block.merkle_root and
+                block.bits and block.version) \
+                and not block.block_hash == b'\x00\x00\x00\x00\x00\x19\xd6h\x9c\x08Z\xe1e\x83\x1e\x93O\xf7c\xaeF' \
+                                            b'\xa2\xa6\xc1r\xb3\xf1\xb6\n\x8c\xe2o':
             _logger.info("Caching failure block: incomplete data")
             return False
 

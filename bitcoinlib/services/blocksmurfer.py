@@ -161,7 +161,7 @@ class BlocksmurferClient(BaseClient):
 
     def getblock(self, blockid, parse_transactions, page, limit):
         variables = {'parse_transactions': parse_transactions, 'page': page, 'limit': limit}
-        bd = self.compose_request('block', blockid, variables=variables)
+        bd = self.compose_request('block', str(blockid), variables=variables)
 
         txs = []
         if parse_transactions and bd['transactions'] and isinstance(bd['transactions'][0], dict):
