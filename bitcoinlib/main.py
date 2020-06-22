@@ -21,7 +21,6 @@
 import functools
 import logging
 from logging.handlers import RotatingFileHandler
-from bitcoinlib.config.opcodes import *
 from bitcoinlib.config.config import *
 
 

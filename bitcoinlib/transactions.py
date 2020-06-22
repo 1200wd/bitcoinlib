@@ -20,7 +20,6 @@
 
 from datetime import datetime
 import json
-import struct
 
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
@@ -55,6 +54,8 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     :type rawtx: str, bytes, bytearray
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
     :type network: str, Network
+    :param check_size: Check if not bytes are left when parsing is finished. Disable when parsing list of transactions, such as the transactions in a raw block. Default is True
+    :type check_size: bool
 
     :return Transaction:
     """
@@ -1204,6 +1205,8 @@ class Transaction(object):
         :type rawtx: bytes, str
         :param network: Network, leave empty for   default
         :type network: str, Network
+        :param check_size: Check if not bytes are left when parsing is finished. Disable when parsing list of transactions, such as the transactions in a raw block. Default is True
+        :type check_size: bool
 
         :return Transaction:
         """

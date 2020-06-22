@@ -18,13 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from datetime import datetime
+import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.blocks import Block
-from bitcoinlib.encoding import to_hexstring, to_bytes
+from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.networks import Network
 
 

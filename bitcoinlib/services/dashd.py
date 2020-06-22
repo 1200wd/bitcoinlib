@@ -29,12 +29,12 @@
 #   "denominator": 100000000
 # }
 
-from datetime import datetime
+import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring, to_bytes
+from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'dashd'

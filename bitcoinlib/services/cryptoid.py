@@ -70,7 +70,7 @@ class CryptoID(BaseClient):
         res = self.compose_request('unspent', variables=variables)
         if len(res['unspent_outputs']) > 50:
             _logger.info("CryptoID: Large number of outputs for address %s, "
-                            "UTXO list may be incomplete" % address.address)
+                         "UTXO list may be incomplete" % address.address)
         for utxo in res['unspent_outputs'][::-1]:
             if utxo['tx_hash'] == after_txid:
                 break

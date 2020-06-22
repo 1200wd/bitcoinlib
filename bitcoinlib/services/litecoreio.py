@@ -19,7 +19,6 @@
 #
 
 from datetime import datetime
-import struct
 import logging
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
@@ -111,7 +110,6 @@ class LitecoreIOClient(BaseClient):
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)
         return self._convert_to_transaction(tx)
-
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)

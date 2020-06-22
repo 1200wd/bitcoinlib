@@ -486,7 +486,11 @@ class Service(object):
         If you only use a local bcoin or bitcoind provider, make sure you set the limit to maximum (i.e. 9999)
         because all transactions are already downloaded when fetching the block.
 
-        # TODO: Add getblock examples
+        >>> from bitcoinlib.services.services import Service
+        >>> srv = Service()
+        >>> b = srv.getblock(0)
+        >>> b
+        <Block(000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f, 0, transactions: 1)>
 
         :param blockid: Hash or block height of block
         :type blockid: str, int
@@ -824,7 +828,7 @@ class Cache(object):
         else:
             varname = 'fee_low'
         dbvar = self.session.query(DbCacheVars).filter_by(varname=varname, network_name=self.network.name).\
-                                                filter(DbCacheVars.expires > datetime.now()).scalar()
+            filter(DbCacheVars.expires > datetime.now()).scalar()
         if dbvar:
             return int(dbvar.value)
         return False

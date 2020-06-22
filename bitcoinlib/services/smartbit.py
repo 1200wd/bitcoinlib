@@ -21,7 +21,7 @@
 import logging
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
-from bitcoinlib.services.baseclient import BaseClient, ClientError
+from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import varstr, to_bytes, to_hexstring
 from bitcoinlib.keys import Address

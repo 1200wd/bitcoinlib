@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from datetime import datetime
+import struct
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network
 from bitcoinlib.services.authproxy import AuthServiceProxy

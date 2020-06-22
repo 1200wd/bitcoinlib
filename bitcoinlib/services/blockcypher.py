@@ -118,7 +118,7 @@ class BlockCypher(BaseClient):
                               (len(t.inputs), len(tx['inputs'])))
         for n, i in enumerate(t.inputs):
             if not t.coinbase and not (tx['inputs'][n]['output_index'] == i.output_n_int and
-                        tx['inputs'][n]['prev_hash'] == to_hexstring(i.prev_hash)):
+                                       tx['inputs'][n]['prev_hash'] == to_hexstring(i.prev_hash)):
                 raise ClientError("Transaction inputs do not match raw transaction")
             if 'output_value' in tx['inputs'][n]:
                 if not t.coinbase:
@@ -150,7 +150,7 @@ class BlockCypher(BaseClient):
                     txids = []
             if len(txids) > 500:
                 _logger.info("BlockCypher: Large number of transactions for address %s, "
-                                "Transaction list may be incomplete" % address.address_orig)
+                             "Transaction list may be incomplete" % address.address_orig)
             for txid in txids[:limit]:
                 t = self.gettransaction(txid)
                 txs.append(t)

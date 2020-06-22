@@ -20,7 +20,6 @@
 
 import logging
 from datetime import datetime
-import struct
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction

@@ -20,6 +20,7 @@
 
 import unittest
 
+from bitcoinlib.config.opcodes import opcode
 from bitcoinlib.encoding import *
 from bitcoinlib.encoding import _bech32_polymod, _codestring_to_array
 

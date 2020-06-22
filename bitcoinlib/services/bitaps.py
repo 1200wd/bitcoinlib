@@ -18,14 +18,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import math
 import logging
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.keys import deserialize_address
-from bitcoinlib.encoding import EncodingError, varstr, to_bytes
 
 _logger = logging.getLogger(__name__)
 
@@ -71,7 +68,7 @@ class BitapsClient(BaseClient):
 
         t = Transaction(
             locktime=tx['lockTime'], version=tx['version'], network=self.network, fee=tx['fee'],
-            fee_per_kb=None if not 'feeRate' in tx else int(tx['feeRate']), size=tx['size'], hash=tx['txId'], date=date,
+            fee_per_kb=None if 'feeRate' not in tx else int(tx['feeRate']), size=tx['size'], hash=tx['txId'], date=date,
             confirmations=tx['confirmations'], block_height=block_height, block_hash=block_hash,
             input_total=tx['inputsAmount'], output_total=tx['outputsAmount'], status=status, coinbase=tx['coinbase'],
             verified=None if 'valid' not in tx else tx['valid'], witness_type=witness_type)

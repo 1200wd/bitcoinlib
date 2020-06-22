@@ -140,6 +140,8 @@ class Block:
         :type raw: bytes
         :param block_hash: Specify block hash if known to verify raw block. Value error will be raised if calculated block hash is different than specified.
         :type block_hash: bytes
+        :param height: Specify height if known. Will be derived from coinbase transaction if not provided.
+        :type height: int
         :param parse_transactions: Indicate if transactions in raw block need to be parsed and converted to Transaction objects. Default is False
         :type parse_transactions: bool
         :param limit: Maximum number of transactions to parse. Default is 0: parse all transactions. Only used if parse_transaction is set to True

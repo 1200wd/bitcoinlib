@@ -32,18 +32,17 @@ srv = Service(providers=['bcoin'])
 blocks = range(626001, 626002)
 
 
-for block in blocks:
-    print("Getting block %s" % block)
-    block_dict = srv.getblock(block, parse_transactions=True, limit=99999)
-    transactions = block_dict['txs']
-    print("Found %d transactions" % len(transactions))
+for blockid in blocks:
+    print("Getting block %s" % blockid)
+    block = srv.getblock(blockid, parse_transactions=True, limit=99999)
+    print("Found %d transactions" % block.tx_count)
 
     MAX_TRANSACTIONS = 10000
     count = 0
     count_segwit = 0
 
-    for t in transactions[:MAX_TRANSACTIONS]:
-        print("=== Deserialize transaction %s (#%d, segwit %d) ===" % (t.hash, count, count_segwit))
+    for t in block.transactions[:MAX_TRANSACTIONS]:
+        print("=== Deserialize transaction %s (#%d, segwit %d) ===" % (t.txid, count, count_segwit))
         count += 1
         t.verify()
         # t.info()
