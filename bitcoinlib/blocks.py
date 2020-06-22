@@ -19,6 +19,7 @@
 #
 
 from bitcoinlib.encoding import *
+from bitcoinlib.networks import Network
 from bitcoinlib.transactions import transaction_deserialize, Transaction
 
 
@@ -26,6 +27,35 @@ class Block:
 
     def __init__(self, block_hash, version, prev_block, merkle_root, time, bits, nonce, transactions=None,
                  height=None, confirmations=None, network=DEFAULT_NETWORK):
+        """
+        Create a new Block object with provided parameters.
+
+
+
+        :param block_hash: Hash value of serialized block
+        :type block_hash: bytes, str
+        :param version: Block version to indicate which software / BIPs are used to create block
+        :type version: bytes, str, in
+        :param prev_block: Hash of previous block in blockchain
+        :type prev_block: bytes, str
+        :param merkle_root: Merkle root. Top item merkle chain tree to validate transactions.
+        :type merkle_root: bytes, str
+        :param time: Timestamp of time when block was included in blockchain
+        :type time: int, bytes
+        :param bits: Bits are used to indicate target / difficulty
+        :type bits: bytes, str, int
+        :param nonce: Number used once, n-once is used to create randomness for miners to find a suitable block hash
+        :type nonce: bytes, str, int
+        :param transactions: List of transaction included in this block. As list of transaction objects or list of transaction IDs strings
+        :type transactions: list of Transaction, list of str
+        :param height: Height of this block in the Blockchain
+        :type height: int
+        :param confirmations: Number of confirmations for this block, or depth. Increased when new blocks are found
+        :type confirmations: int
+        :param network: Network, leave empty for default network
+        :type network: str, Network
+        """
+
         self.block_hash = to_bytes(block_hash)
         if isinstance(version, int):
             self.version = struct.pack('>L', version)
@@ -54,6 +84,8 @@ class Block:
         self.txs_data = None
         self.confirmations = confirmations
         self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
         self.tx_count = None
         self.page = 1
         self.limit = 0
@@ -262,29 +294,63 @@ class Block:
         return rb
 
     def version_bin(self):
+        """
+        Get the block version as binary string. Since BIP9 protocol changes are signaled by changing one of the 29
+        last bits of the version number.
+
+        >>> from bitcoinlib.services.services import Service
+        >>> srv = Service()
+        >>> b = srv.getblock(450001)
+        >>> print(b.version_bin())
+        00100000000000000000000000000010
+
+        :return str:
+        """
         return bin(self.version_int)[2:].zfill(32)
 
     def version_bips(self):
+        """
+        Extract version signaling information from the block's version number.
+
+        The block version shows which software the miner used to create the block. Changes to the bitcoin
+        protocol are described in Bitcoin Improvement Proposals (BIPs) and a miner shows which BIPs it supports
+        in the block version number.
+
+        This method returns a list of BIP version number as string.
+
+        Example: This block uses the BIP9 versioning system and signals BIP141 (segwit)
+        >>> from bitcoinlib.services.services import Service
+        >>> srv = Service()
+        >>> b = srv.getblock(450001)
+        >>> print(b.version_bips())
+        ['BIP9', 'BIP141']
+
+        :return list of str:
+        """
         bips = []
-        if self.version_int >> 29 == 0b001:
+        if self.version_int >> 29 == 0b001 and self.height >= 407021:
             bips.append('BIP9')
             if self.version_int >> 0 & 1 == 1:
-                bips.append('BIP68')  # BIP112, BIP113
+                bips.append('BIP68')   # BIP112, BIP113 (CSV)
             if self.version_int >> 1 & 1 == 1:
                 bips.append('BIP141')  # BIP143, BIP147 (Segwit)
+            if self.version_int >> 4 & 1 == 1:
+                bips.append('BIP91')   # Segwit?
             if self.version_int == 0x30000000:
                 bips.append('BIP109')
             mask = 0x1fffe000
-            if self.version_int & mask and self.height > 500000:  # check height
-                bips.append('BIP310')  # version-rolling
-        else:
+            if self.version_int & mask and self.height >= 500000:
+                bips.append('BIP310')   # version-rolling
+        elif self.height < 500000:
             if self.version_int == 2:
-                bips.append('BIP34')
+                bips.append('BIP34')    # Version 2: Block Height in Coinbase
             if self.version_int == 3:
-                bips.append('BIP66')
+                bips.append('BIP66')    # Version 3: Relative lock-time using consensus-enforced sequence numbers
             if self.version_int == 4:
-                bips.append('BIP65')
-        if self.version_int >> 4 & 1 == 1:
-            bips.append('BIP91')
+                bips.append('BIP65')    # Version 4: Introduce Checklocktimeverify
+            if self.version_int == 0x30000000:
+                bips.append('BIP109')   # Increase block size 2MB (rejected)
+            if self.version_int == 0x20000007:
+                bips.append('BIP101')   # Increase block size 8MB (rejected)
 
         return bips
