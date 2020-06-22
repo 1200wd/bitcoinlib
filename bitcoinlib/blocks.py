@@ -260,3 +260,31 @@ class Block:
         for t in self.transactions:
             rb += t.raw()
         return rb
+
+    def version_bin(self):
+        return bin(self.version_int)[2:].zfill(32)
+
+    def version_bips(self):
+        bips = []
+        if self.version_int >> 29 == 0b001:
+            bips.append('BIP9')
+            if self.version_int >> 0 & 1 == 1:
+                bips.append('BIP68')  # BIP112, BIP113
+            if self.version_int >> 1 & 1 == 1:
+                bips.append('BIP141')  # BIP143, BIP147 (Segwit)
+            if self.version_int == 0x30000000:
+                bips.append('BIP109')
+            mask = 0x1fffe000
+            if self.version_int & mask and self.height > 500000:  # check height
+                bips.append('BIP310')  # version-rolling
+        else:
+            if self.version_int == 2:
+                bips.append('BIP34')
+            if self.version_int == 3:
+                bips.append('BIP66')
+            if self.version_int == 4:
+                bips.append('BIP65')
+        if self.version_int >> 4 & 1 == 1:
+            bips.append('BIP91')
+
+        return bips

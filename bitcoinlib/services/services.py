@@ -506,9 +506,10 @@ class Service(object):
         if block:
             # Block found get transactions from cache
             block.transactions = self.cache.getblocktransactions(block.height, page, limit)
-            if not block.transactions:
+            if not block.transactions and parse_transactions:
                 block = None
-            self.results_cache_n = 1
+            else:
+                self.results_cache_n = 1
         if not block:
             bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
             if not bd or isinstance(bd, bool):

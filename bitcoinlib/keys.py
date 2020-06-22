@@ -502,6 +502,15 @@ class Address(object):
                        compressed=compressed, encoding=addr_dict['encoding'], depth=depth, change=change,
                        address_index=address_index, network=network, network_overrides=network_overrides)
 
+    # @classmethod
+    # def from_script(cls, script, witness_type='legacy', encoding=None):
+    #     us_dict = script_deserialize(script)
+    #     if witness_type == 'segwit' and not encoding:
+    #         encoding = 'bech32'
+    #     elif not encoding:
+    #         encoding = 'legacy'
+    #     cls(hashed_data=us_dict['hashes'][0], script_type=us_dict['script_type'], encoding=encoding)
+
     def __init__(self, data='', hashed_data='', prefix=None, script_type=None,
                  compressed=None, encoding=None, witness_type=None, depth=None, change=None,
                  address_index=None, network=DEFAULT_NETWORK, network_overrides=None):

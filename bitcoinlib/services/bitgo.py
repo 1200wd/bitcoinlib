@@ -199,3 +199,5 @@ class BitGoClient(BaseClient):
     #         'limit': limit
     #     }
     #     return block
+
+    # def isspent(self, txid, index):

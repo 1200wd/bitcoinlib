@@ -180,3 +180,5 @@ class BlockchainInfoClient(BaseClient):
 
     def getrawblock(self, blockid):
         return self.compose_request('rawblock', str(blockid), {'format': 'hex'})
+
+    # def isspent(self, txid, index):

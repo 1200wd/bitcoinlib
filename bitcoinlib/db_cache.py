@@ -107,9 +107,9 @@ class DbCacheTransaction(Base):
     #                       "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
     #                       " Default value is 0 for transactions without locktime")
     # coinbase = Column(Boolean, default=False, doc="Is True when this is a coinbase transaction, default is False")
-    # confirmations = Column(Integer, default=0,
-    #                        doc="Number of confirmation when this transaction is included in a block. "
-    #                            "Default is 0: unconfirmed")
+    confirmations = Column(Integer, default=0,
+                           doc="Number of confirmation when this transaction is included in a block. "
+                               "Default is 0: unconfirmed")
     block_height = Column(Integer, index=True, doc="Height of block this transaction is included in")
     block_hash = Column(String(64), index=True, doc="Hash of block this transaction is included in")  # TODO: Remove, is redundant
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
