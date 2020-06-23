@@ -193,10 +193,10 @@ class BitcoindClient(BaseClient):
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.block_hash = tx['block_hash']
+        t.block_hash = tx.get('block_hash', tx['txid'])  # FIXME, use only one
         t.block_height = block_height
         t.version = struct.pack('>L', tx['version'])
-        t.date = datetime.utcfromtimestamp(tx['block_time'])
+        t.date = datetime.utcfromtimestamp(tx['time'])
         t.update_totals()
         return t
 
@@ -249,8 +249,8 @@ class BitcoindClient(BaseClient):
             bd = self.proxy.getblock(blockid, 2)
             for tx in bd['tx'][(page - 1) * limit:page * limit]:
                 # try:
-                tx['block_time'] = bd['time']
-                tx['block_hash'] = bd['hash']
+                tx['time'] = bd['time']
+                tx['txid'] = bd['hash']
                 txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
