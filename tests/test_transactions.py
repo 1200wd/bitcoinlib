@@ -159,6 +159,18 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual('19MCFyVmyEhFjYNS8aKJT454jm4YZQjbqm',
                          Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
 
+    def test_transaction_deserialize_raw_coinbase(self):
+        rawtx = "02000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d03f6591c046945e" \
+                "35e2f706f6f6c696e2e636f6d2ffabe6d6d3bd89000dd7bd942b167b95cca4bf887bb60a45511c7fe875b4ece4844893351" \
+                "01000000000000001f9aff78ef65000000000000ffffffff026dd1b34a000000001976a914b0b0451e297b39ea0f5298279" \
+                "3fb245ff446438988ac0000000000000000266a24aa21a9ed9eed30e9aebb9f3b08026a3c3105e3ca963a895cf5f9b55037" \
+                "cfdf592c02d77100000000"
+        t = Transaction.import_raw(rawtx)
+        self.assertTrue(t.coinbase)
+        self.assertEqual(t.inputs[0].value, 0)
+        self.assertEqual(t.input_total, 0)
+        self.assertEqual(t.txid, '0d2a5833c7c71fdc6fbd57ff0ace4afbf8aeb513d16bebae082e6b08dfa91632')
+
     def test_transactions_deserialize_p2sh_output(self):
         rawtx = '01000000011a422ceb2104d9c3ace9fcbda16b9a9f12a1a93c389a0740c70c9b56d3a0c7bf00000000fd4501004730440220' \
                 '7ed9498344a1ddb6e52d2b3fb270c85ec49527fe7cc0915264aa334a9d61a7770220032cb9d97cec92d027fcf80f0e11fbe7' \
@@ -959,7 +971,7 @@ class TestTransactions(unittest.TestCase):
         t = Transaction.import_raw(raw_tx)
         self.assertEqual(t.output_total, 4534776015)
         self.assertEqual(t.size, 523)
-        self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
+        self.assertEqual(t.txid, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
         self.assertEqual(repr(t), '<Transaction(id=6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74, '
                                   'inputs=3, outputs=2, status=new, network=bitcoin)>')
         self.assertEqual(str(t), '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
@@ -1619,7 +1631,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.outputs[1].address, 'ltc1q3nhtez2yezaj470kw9xkpjygvqv3qvhn5sp469')
         self.assertEqual(t.outputs[1].value, 10182078)
         self.assertEqual(t.raw_hex(), rawtx)
-        self.assertEqual(t.hash, '6bf265d81f235a995dfd433765dcee7da56786973234be2b8db4a156ac64b0e1')
+        self.assertEqual(t.txid, '6bf265d81f235a995dfd433765dcee7da56786973234be2b8db4a156ac64b0e1')
 
     def test_transaction_segwit_redeemscript_bug(self):
         t = Transaction(

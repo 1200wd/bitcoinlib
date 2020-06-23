@@ -54,7 +54,7 @@ class BitcoinLibTestClient(BaseClient):
     def _get_tx_hash(self, address, n):
         try:
             pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
-        except:
+        except Exception:
             pkh = str(n).encode() + addr_bech32_to_pubkeyhash(address)[1:]
         return hashlib.sha256(pkh).hexdigest()
 

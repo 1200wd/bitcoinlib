@@ -24,6 +24,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.encoding import to_bytes
 
 
 PROVIDERNAME = 'blockchaininfo'
@@ -56,7 +57,7 @@ class BlockchainInfoClient(BaseClient):
         res = self.compose_request('unspent', variables=variables)
         if len(res['unspent_outputs']) > 299:
             _logger.info("BlockchainInfoClient: Large number of outputs for address %s, "
-                            "UTXO list may be incomplete" % address)
+                         "UTXO list may be incomplete" % address)
         res['unspent_outputs'].sort(key=lambda x: x['confirmations'])
         for utxo in res['unspent_outputs']:
             if utxo['tx_hash_big_endian'] == after_txid:
@@ -76,9 +77,9 @@ class BlockchainInfoClient(BaseClient):
             })
         return utxos[::-1][:limit]
 
-    def gettransaction(self, tx_id, latest_block=None):
-        tx = self.compose_request('rawtx', tx_id)
-        raw_tx = self.getrawtransaction(tx_id)
+    def gettransaction(self, txid, latest_block=None):
+        tx = self.compose_request('rawtx', txid)
+        raw_tx = self.getrawtransaction(txid)
         t = Transaction.import_raw(raw_tx, self.network)
         input_total = 0
         for n, i in enumerate(t.inputs):
@@ -100,15 +101,12 @@ class BlockchainInfoClient(BaseClient):
             t.status = 'unconfirmed'
             t.confirmations = 0
             t.date = None
-        t.hash = tx_id
-        t.rawtx = raw_tx
+        t.rawtx = to_bytes(raw_tx)
         t.size = tx['size']
         t.network_name = self.network
         t.locktime = tx['lock_time']
         t.version = struct.pack('>L', tx['ver'])
         t.input_total = input_total
-        if t.coinbase:
-            t.input_total = t.output_total
         t.fee = t.input_total - t.output_total
         return t
 
@@ -129,8 +127,8 @@ class BlockchainInfoClient(BaseClient):
             txs.append(t)
         return txs
 
-    def getrawtransaction(self, tx_id):
-        return self.compose_request('rawtx', tx_id, {'format': 'hex'})
+    def getrawtransaction(self, txid):
+        return self.compose_request('rawtx', txid, {'format': 'hex'})
 
     # def sendrawtransaction()
 
@@ -155,23 +153,23 @@ class BlockchainInfoClient(BaseClient):
             txs = []
             latest_block = self.blockcount()
             for tx in bd['tx'][(page-1)*limit:page*limit]:
-                try:
-                    txs.append(self.gettransaction(tx['hash'], latest_block=latest_block))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (tx['hash'], e))
+                # try:
+                txs.append(self.gettransaction(tx['hash'], latest_block=latest_block))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['hash'], e))
         else:
             txs = [tx['hash'] for tx in bd['tx']]
 
         block = {
             'bits': bd['bits'],
             'depth': None,
-            'hash': bd['hash'],
+            'block_hash': bd['hash'],
             'height': bd['height'],
             'merkle_root': bd['mrkl_root'],
-            'nonce': bd['nonce'],
+            'nonce': abs(bd['nonce']),
             'prev_block': bd['prev_block'],
-            'time': datetime.utcfromtimestamp(bd['time']),
-            'total_txs': len(bd['tx']),
+            'time': bd['time'],
+            'tx_count': len(bd['tx']),
             'txs': txs,
             'version': bd['ver'],
             'page': page,
@@ -179,3 +177,8 @@ class BlockchainInfoClient(BaseClient):
             'limit': limit
         }
         return block
+
+    def getrawblock(self, blockid):
+        return self.compose_request('rawblock', str(blockid), {'format': 'hex'})
+
+    # def isspent(self, txid, index):

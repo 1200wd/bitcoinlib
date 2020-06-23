@@ -72,7 +72,11 @@ Development environment
 
 Install database packages for MySQL and PostgreSQL
 
-``sudo apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev postgresql-server-dev-11``
+``sudo apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev``
+
+Check for the latest version of the PostgreSQL dev server:
+
+``sudo apt install postgresql-server-dev-<version>``
 
 From library root directory install the Python requirements
 

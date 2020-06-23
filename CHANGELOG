@@ -1,5 +1,13 @@
+RELEASE 0.4.16 - Blocks
+=======================
+* Create Block object to parse, serialize and extract information
+* Add getblock and getblock method to service providers
+* Add caching for blocks
+* Fix various issues with service providers
+* Fix conversion issues, and increase speed by avoiding unnecessary conversions
+
 RELEASE 0.4.15 - Integrate Blocksmurfer
-=================================
+=======================================
 * Add support for new bitcoinlib-based Blocksmurfer provider
 * Fix issues with Service class and service providers
 * Fix various Bcoin issues

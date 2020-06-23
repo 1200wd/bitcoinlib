@@ -365,9 +365,10 @@ https://bitcoinlib.readthedocs.io/en/latest/_static/manuals.install.html#install
 Future / Roadmap
 ================
 
+* Create Block class
 * Create Script class and support advanced scripts
 * Fully support timelocks
+* Support for lightning network
 * Support for Trezor wallet
 * Improve speed and security
 * Integrate in ERP and shopping solutions such as Odoo, Magento, Shopware
-* Support for lightning network

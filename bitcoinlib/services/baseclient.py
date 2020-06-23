@@ -59,7 +59,7 @@ class BaseClient(object):
             self.latest_block = latest_block
             if network_overrides is not None:
                 self.network_overrides = network_overrides
-        except:
+        except Exception:
             raise ClientError("This Network is not supported by %s Client" % provider)
 
     def request(self, url_path, variables=None, method='get', secure=True, post_data=''):
@@ -68,7 +68,7 @@ class BaseClient(object):
         if not url or not self.base_url:
             raise ClientError("No (complete) url provided: %s" % url)
         headers = {
-            'User-Agent': 'BitcoinLib %s' % BITCOINLIB_VERSION,
+            'User-Agent': 'BitcoinLib/%s' % BITCOINLIB_VERSION,
             'Accept': 'application/json',
             # 'Content-Type': 'application/json',
             "Referrer": "https://www.github.com/1200wd/bitcoinlib",
@@ -98,6 +98,8 @@ class BaseClient(object):
             raise ClientError("Error connecting to %s on url %s, response [%d] %s" %
                               (self.provider, url, self.resp.status_code, resp_text))
         try:
+            if not self.resp.apparent_encoding and not self.resp.encoding:
+                return self.resp.content
             return json.loads(self.resp.text)
         except ValueError or json.decoder.JSONDecodeError:
             return self.resp.text

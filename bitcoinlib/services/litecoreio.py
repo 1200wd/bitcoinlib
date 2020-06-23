@@ -19,7 +19,6 @@
 #
 
 from datetime import datetime
-import struct
 import logging
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
@@ -54,7 +53,6 @@ class LitecoreIOClient(BaseClient):
         value_in = 0 if 'valueIn' not in tx else tx['valueIn']
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
-            value_in = tx['valueOut']
             isCoinbase = True
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],
@@ -65,7 +63,7 @@ class LitecoreIOClient(BaseClient):
         for ti in tx['vin']:
             if isCoinbase:
                 t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
-                            script_type='coinbase', sequence=ti['sequence'])
+                            script_type='coinbase', sequence=ti['sequence'], value=0)
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
@@ -113,7 +111,6 @@ class LitecoreIOClient(BaseClient):
         tx = self.compose_request('tx', tx_id)
         return self._convert_to_transaction(tx)
 
-
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, 'txs')
@@ -157,23 +154,23 @@ class LitecoreIOClient(BaseClient):
         if parse_transactions:
             txs = []
             for txid in bd['tx'][(page-1)*limit:page*limit]:
-                try:
-                    txs.append(self.gettransaction(txid))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+                # try:
+                txs.append(self.gettransaction(txid))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (txid, e))
         else:
             txs = bd['tx']
 
         block = {
             'bits': int(bd['bits'], 16),
             'depth': bd['confirmations'],
-            'hash': bd['hash'],
+            'block_hash': bd['hash'],
             'height': bd['height'],
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousblockhash'],
-            'time': datetime.utcfromtimestamp(bd['time']),
-            'total_txs': len(bd['tx']),
+            'time': bd['time'],
+            'tx_count': len(bd['tx']),
             'txs': txs,
             'version': bd['version'],
             'page': page,

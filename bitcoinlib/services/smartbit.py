@@ -21,7 +21,7 @@
 import logging
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
-from bitcoinlib.services.baseclient import BaseClient, ClientError
+from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.encoding import varstr, to_bytes, to_hexstring
 from bitcoinlib.keys import Address
@@ -61,8 +61,6 @@ class SmartbitClient(BaseClient):
         t_time = None
         if tx['time']:
             t_time = datetime.utcfromtimestamp(tx['time'])
-        if tx['coinbase']:
-            input_total = tx['output_amount_int']
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
                         size=tx['size'], hash=tx['txid'], date=t_time,
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
@@ -70,7 +68,7 @@ class SmartbitClient(BaseClient):
                         output_total=tx['output_amount_int'], witness_type=witness_type)
         index_n = 0
         if tx['coinbase']:
-            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=input_total)
+            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=0)
         else:
             for ti in tx['inputs']:
                 unlocking_script = ti['script_sig']['hex']
@@ -126,7 +124,7 @@ class SmartbitClient(BaseClient):
                 utxos.append(
                     {
                         'address': utxo.address,
-                        'tx_hash': t.hash,
+                        'tx_hash': t.txid,
                         'confirmations': t.confirmations,
                         'output_n': utxo.output_n,
                         'input_n': 0,
@@ -157,7 +155,7 @@ class SmartbitClient(BaseClient):
             for tx in res_tx:
                 t = self._parse_transaction(tx)
                 txs.append(t)
-                if t.hash == after_txid:
+                if t.txid == after_txid:
                     txs = []
             if not next_link or len(txs) > REQ_LIMIT_TOTAL:
                 break
@@ -177,7 +175,7 @@ class SmartbitClient(BaseClient):
     # def estimatefee
 
     def blockcount(self):
-        return self.compose_request('totals')['totals']['block_count']
+        return self.compose_request('totals')['totals']['block_count'] - 1
 
     def mempool(self, txid):
         if txid:
@@ -196,23 +194,23 @@ class SmartbitClient(BaseClient):
         if parse_transactions:
             txs = []
             for tx in bd['transactions']:
-                try:
-                    txs.append(self._parse_transaction(tx))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+                # try:
+                txs.append(self._parse_transaction(tx))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
         else:
             txs = [tx['txid'] for tx in bd['transactions']]
 
         block = {
             'bits': int(bd['bits'], 16),
             'depth': bd['confirmations'],
-            'hash': bd['hash'],
+            'block_hash': bd['hash'],
             'height': bd['height'],
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previous_block_hash'],
-            'time': datetime.utcfromtimestamp(bd['time']),
-            'total_txs': bd['transaction_count'],
+            'time': bd['time'],
+            'tx_count': bd['transaction_count'],
             'txs': txs,
             'version': bd['version'],
             'page': page,

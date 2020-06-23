@@ -71,8 +71,8 @@ class EncodingError(Exception):
 
 
 bytesascii = b''
-for x in range(256):
-    bytesascii += bytes(bytearray((x,)))
+for bxn in range(256):
+    bytesascii += bytes(bytearray((bxn,)))
 
 code_strings = {
     2: b'01',
@@ -81,7 +81,7 @@ code_strings = {
     16: b'0123456789abcdef',
     32: b'abcdefghijklmnopqrstuvwxyz234567',
     58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
-    256: b''.join([bytes(bytearray((x,))) for x in range(256)]),
+    256: b''.join([bytes(bytearray((csx,))) for csx in range(256)]),
     'bech32': b'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 }
 
@@ -222,8 +222,13 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             return to_hexstring(inp)
         elif base_from == 16 and base_to == 256:
             return binascii.unhexlify(inp)
-    if base_from == 16 and base_to == 10:
+    if base_from == 16 and base_to == 10 and PY3:
         return int(inp, 16)
+    if base_from == 10 and base_to == 16 and PY3:
+        hex_outp = hex(inp)[2:]
+        return hex_outp.zfill(min_length) if min_length else hex_outp
+    if base_from == 256 and base_to == 10 and PY3:
+        return int.from_bytes(inp, 'big')
 
     if output_even is None and base_to == 16:
         output_even = True

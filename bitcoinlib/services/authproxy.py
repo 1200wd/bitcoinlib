@@ -59,7 +59,7 @@ class JSONRPCException(Exception):
         parent_args = []
         try:
             parent_args.append(rpc_error['message'])
-        except:
+        except Exception:
             pass
         Exception.__init__(self, *parent_args)
         self.error = rpc_error
@@ -125,7 +125,7 @@ class AuthServiceProxy(object):
     def __call__(self, *args):
         AuthServiceProxy.__id_count += 1
 
-        log.debug("-%s-> %s %s" % (AuthServiceProxy.__id_count, self.__service_name,
+        log.info("-%s-> %s %s" % (AuthServiceProxy.__id_count, self.__service_name,
                                    json.dumps(args, default=EncodeDecimal)))
         postdata = json.dumps({'version': '1.1',
                                'method': self.__service_name,
@@ -144,7 +144,7 @@ class AuthServiceProxy(object):
         elif 'result' not in response:
             raise JSONRPCException({
                 'code': -343, 'message': 'missing JSON-RPC result'})
-
+        self.__conn.close()
         return response['result']
 
     def batch_(self, rpc_calls):

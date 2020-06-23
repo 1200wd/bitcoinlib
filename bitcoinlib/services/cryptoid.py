@@ -24,6 +24,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.encoding import to_bytes
 
 
 _logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ class CryptoID(BaseClient):
         res = self.compose_request('unspent', variables=variables)
         if len(res['unspent_outputs']) > 50:
             _logger.info("CryptoID: Large number of outputs for address %s, "
-                            "UTXO list may be incomplete" % address.address)
+                         "UTXO list may be incomplete" % address.address)
         for utxo in res['unspent_outputs'][::-1]:
             if utxo['tx_hash'] == after_txid:
                 break
@@ -88,16 +89,17 @@ class CryptoID(BaseClient):
             })
         return utxos[::-1][:limit]
 
-    def gettransaction(self, tx_id):
-        variables = {'id': tx_id, 'hex': None}
+    def gettransaction(self, txid):
+        variables = {'id': txid, 'hex': None}
         tx = self.compose_request(path_type='explorer', variables=variables)
         t = Transaction.import_raw(tx['hex'], self.network)
-        variables = {'t': tx_id}
+        variables = {'t': txid}
         tx_api = self.compose_request('txinfo', path_type='api', variables=variables)
         for n, i in enumerate(t.inputs):
             if i.script_type != 'coinbase':
                 i.value = int(round(tx_api['inputs'][n]['amount'] * self.units, 0))
             else:
+                i.value = 0
                 t.coinbase = True
         for n, o in enumerate(t.outputs):
             o.spent = None
@@ -105,20 +107,17 @@ class CryptoID(BaseClient):
             t.status = 'confirmed'
         else:
             t.status = 'unconfirmed'
-        t.hash = tx_id
         t.date = datetime.utcfromtimestamp(tx['time'])
         t.block_height = tx_api['block']
         t.block_hash = tx['blockhash']
         t.confirmations = tx['confirmations']
-        t.rawtx = tx['hex']
+        t.rawtx = to_bytes(tx['hex'])
         t.size = tx['size']
         t.network = self.network
         t.locktime = tx['locktime']
         t.version = struct.pack('>L', tx['version'])
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
         t.input_total = t.output_total
-        if not t.coinbase:
-            t.input_total = int(round(tx_api['total_input'] * self.units, 0))
         t.fee = t.input_total - t.output_total
         return t
 
@@ -138,8 +137,8 @@ class CryptoID(BaseClient):
             txs.append(t)
         return txs
 
-    def getrawtransaction(self, tx_id):
-        variables = {'id': tx_id, 'hex': None}
+    def getrawtransaction(self, txid):
+        variables = {'id': txid, 'hex': None}
         tx = self.compose_request(path_type='explorer', variables=variables)
         return tx['hex']
 

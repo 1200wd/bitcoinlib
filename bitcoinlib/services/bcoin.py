@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from time import sleep
 from bitcoinlib.main import *
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction, transaction_update_spents
@@ -61,10 +60,7 @@ class BcoinClient(BaseClient):
         t.block_height = tx['height'] if tx['height'] > 0 else None
         t.block_hash = tx['block']
         t.status = status
-        if t.coinbase:
-            t.input_total = t.output_total
-            t.inputs[0].value = t.output_total
-        else:
+        if not t.coinbase:
             for i in t.inputs:
                 i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']
         for o in t.outputs:
@@ -109,11 +105,11 @@ class BcoinClient(BaseClient):
             for unspent in tx.outputs:
                 if unspent.address != address:
                     continue
-                if not srv.isspent(tx.hash, unspent.output_n):
+                if not srv.isspent(tx.txid, unspent.output_n):
                     utxos.append(
                         {
                             'address': unspent.address,
-                            'tx_hash': tx.hash,
+                            'tx_hash': tx.txid,
                             'confirmations': tx.confirmations,
                             'output_n': unspent.output_n,
                             'input_n': 0,
@@ -125,7 +121,7 @@ class BcoinClient(BaseClient):
                             'date': tx.date,
                          }
                     )
-                    if tx.hash == after_txid:
+                    if tx.txid == after_txid:
                         utxos = []
         return utxos[:limit]
 
@@ -161,7 +157,7 @@ class BcoinClient(BaseClient):
         txid = ''
         if 'success' in res and res['success']:
             t = Transaction.import_raw(rawtx)
-            txid = t.hash
+            txid = t.txid
         return {
             'txid': txid,
             'response_dict': res
@@ -187,8 +183,9 @@ class BcoinClient(BaseClient):
         return []
 
     def getblock(self, blockid, parse_transactions, page, limit):
-        block = self.compose_request('block', blockid)
-        block['total_txs'] = len(block['txs'])
+        block = self.compose_request('block', str(blockid))
+        # FIXME: This doesnt work if page or limit is used, also see pages calc below
+        block['tx_count'] = len(block['txs'])
         txs = block['txs']
         parsed_txs = []
         if parse_transactions:
@@ -200,24 +197,27 @@ class BcoinClient(BaseClient):
             tx['block'] = block['hash']
             if parse_transactions:
                 t = self._parse_transaction(tx)
-                if t.hash != tx['hash']:
-                    _logger.error("Could not parse tx %s. Different txid's" % (tx['hash']))
+                if t.txid != tx['hash']:
+                    raise ClientError("Could not parse tx %s. Different txid's" % (tx['hash']))
                 parsed_txs.append(t)
             else:
                 parsed_txs.append(tx['hash'])
 
-        block['time'] = datetime.utcfromtimestamp(block['time'])
+        block['time'] = block['time']
         block['txs'] = parsed_txs
         block['page'] = page
-        block['pages'] = int(block['total_txs'] // limit) + (block['total_txs'] % limit > 0)
+        block['pages'] = int(block['tx_count'] // limit) + (block['tx_count'] % limit > 0)
         block['limit'] = limit
         block['prev_block'] = block.pop('prevBlock')
         block['merkle_root'] = block.pop('merkleRoot')
+        block['block_hash'] = block.pop('hash')
         return block
 
-    def isspent(self, tx_id, index):
+    # def getrawblock
+
+    def isspent(self, txid, index):
         try:
-            self.compose_request('coin', tx_id, str(index))
+            self.compose_request('coin', txid, str(index))
         except ClientError:
             return 1
         return 0

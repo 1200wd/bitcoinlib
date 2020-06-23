@@ -502,6 +502,15 @@ class Address(object):
                        compressed=compressed, encoding=addr_dict['encoding'], depth=depth, change=change,
                        address_index=address_index, network=network, network_overrides=network_overrides)
 
+    # @classmethod
+    # def from_script(cls, script, witness_type='legacy', encoding=None):
+    #     us_dict = script_deserialize(script)
+    #     if witness_type == 'segwit' and not encoding:
+    #         encoding = 'bech32'
+    #     elif not encoding:
+    #         encoding = 'legacy'
+    #     cls(hashed_data=us_dict['hashes'][0], script_type=us_dict['script_type'], encoding=encoding)
+
     def __init__(self, data='', hashed_data='', prefix=None, script_type=None,
                  compressed=None, encoding=None, witness_type=None, depth=None, change=None,
                  address_index=None, network=DEFAULT_NETWORK, network_overrides=None):
@@ -536,7 +545,7 @@ class Address(object):
         if not isinstance(network, Network):
             self.network = Network(network)
         self.data_bytes = to_bytes(data)
-        self.data = to_hexstring(data)
+        self._data = None
         self.script_type = script_type
         self.encoding = encoding
         self.compressed = compressed
@@ -564,7 +573,7 @@ class Address(object):
                 self.hash_bytes = hashlib.sha256(self.data_bytes).digest()
             else:
                 self.hash_bytes = hash160(self.data_bytes)
-        self.hashed_data = to_hexstring(self.hash_bytes)
+        self._hashed_data = None
         if self.encoding == 'base58':
             if self.script_type is None:
                 self.script_type = 'p2pkh'
@@ -598,6 +607,18 @@ class Address(object):
 
     def __repr__(self):
         return "<Address(address=%s)>" % self.address
+
+    @property
+    def hashed_data(self):
+        if not self._hashed_data:
+            self._hashed_data = to_hexstring(self.hash_bytes)
+        return self._hashed_data
+
+    @property
+    def data(self):
+        if not self._data:
+            self._data = to_hexstring(self.data_bytes)
+        return self._data
 
     def as_dict(self):
         """
@@ -687,6 +708,8 @@ class Key(object):
         self.private_hex = None
         self._x = None
         self._y = None
+        self.x_hex = None
+        self.y_hex = None
         self.secret = None
         self.compressed = compressed
         self._hash160 = None
@@ -728,31 +751,32 @@ class Key(object):
             pub_key = to_hexstring(import_key)
             if len(pub_key) == 130:
                 self.public_uncompressed_hex = pub_key
-                self._x = pub_key[2:66]
-                self._y = pub_key[66:130]
+                self.x_hex = pub_key[2:66]
+                self.y_hex = pub_key[66:130]
+                self._y = change_base(self.y_hex, 16, 10)
                 self.compressed = False
-                if int(self._y, 16) % 2:
+                if self._y % 2:
                     prefix = '03'
                 else:
                     prefix = '02'
                 self.public_hex = pub_key
-                self.public_compressed_hex = prefix + self._x
+                self.public_compressed_hex = prefix + self.x_hex
             else:
                 self.public_hex = pub_key
-                self._x = pub_key[2:66]
+                self.x_hex = pub_key[2:66]
                 self.compressed = True
                 # Calculate y from x with y=x^3 + 7 function
                 sign = pub_key[:2] == '03'
-                x = int(self._x, 16)
-                ys = pow(x, 3, secp256k1_p) + 7 % secp256k1_p
-                y = mod_sqrt(ys)
-                if y & 1 != sign:
-                    y = secp256k1_p - y
-                self._y = change_base(y, 10, 16, 64)
-                self.public_uncompressed_hex = '04' + self._x + self._y
+                self._x = change_base(self.x_hex, 16, 10)
+                ys = pow(self._x, 3, secp256k1_p) + 7 % secp256k1_p
+                self._y = mod_sqrt(ys)
+                if self._y & 1 != sign:
+                    self._y = secp256k1_p - self._y
+                self.y_hex = change_base(self._y, 10, 16, 64)
+                self.public_uncompressed_hex = '04' + self.x_hex + self.y_hex
                 self.public_compressed_hex = pub_key
-            self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
-            self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
+            self.public_compressed_byte = to_bytes(self.public_compressed_hex)
+            self.public_uncompressed_byte = to_bytes(self.public_uncompressed_hex)
             if self.compressed:
                 self.public_byte = self.public_compressed_byte
             else:
@@ -812,7 +836,7 @@ class Key(object):
                 raise BKeyError("Cannot format key in hex or byte format")
             self.private_hex = key_hex
             self.private_byte = key_byte
-            self.secret = int(key_hex, 16)
+            self.secret = change_base(key_hex, 16, 10)
         else:
             raise BKeyError("Cannot import key. Public key format unknown")
 
@@ -821,25 +845,25 @@ class Key(object):
                 raise BKeyError("Private key has no known secret number")
             p = ec_point(self.secret)
             if USE_FASTECDSA:
-                point_x = p.x
-                point_y = p.y
+                self._x = p.x
+                self._y = p.y
             else:
-                point_x = p.x()
-                point_y = p.y()
-            self._x = change_base(point_x, 10, 16, 64)
-            self._y = change_base(point_y, 10, 16, 64)
-            if point_y % 2:
+                self._x = p.x()
+                self._y = p.y()
+            self.x_hex = change_base(self._x, 10, 16, 64)
+            self.y_hex = change_base(self._y, 10, 16, 64)
+            if self._y % 2:
                 prefix = '03'
             else:
                 prefix = '02'
 
-            self.public_compressed_hex = prefix + self._x
-            self.public_uncompressed_hex = '04' + self._x + self._y
+            self.public_compressed_hex = prefix + self.x_hex
+            self.public_uncompressed_hex = '04' + self.x_hex + self.y_hex
             self.public_hex = self.public_compressed_hex if self.compressed else self.public_uncompressed_hex
 
-            self.public_byte = binascii.unhexlify(self.public_hex)
-            self.public_compressed_byte = binascii.unhexlify(self.public_compressed_hex)
-            self.public_uncompressed_byte = binascii.unhexlify(self.public_uncompressed_hex)
+            self.public_compressed_byte = to_bytes(self.public_compressed_hex)
+            self.public_uncompressed_byte = to_bytes(self.public_uncompressed_hex)
+            self.public_byte = self.public_compressed_byte if self.compressed else self.public_uncompressed_byte
         self._address_obj = None
         self._wif = None
         self._wif_prefix = None
@@ -866,6 +890,18 @@ class Key(object):
             return self.secret
         else:
             return None
+
+    @property
+    def x(self):
+        if not self._x and self.x_hex:
+            self._x = change_base(self.x_hex, 16, 10)
+        return self._x
+
+    @property
+    def y(self):
+        if not self._y and self.y_hex:
+            self._y = change_base(self.y_hex, 16, 10)
+        return self._y
 
     def as_dict(self, include_private=False):
         """
@@ -1000,9 +1036,7 @@ class Key(object):
 
         :return tuple: (x, y) point
         """
-        x = self._x and int(self._x, 16)
-        y = self._y and int(self._y, 16)
-        return (x, y)
+        return (self.x, self.y)
 
     @property
     def hash160(self):
@@ -1916,11 +1950,13 @@ class Signature(object):
             der_signature = signature[:-1]
             hash_type = change_base(signature[-1:], 256, 10)
             signature = convert_der_sig(signature[:-1], as_hex=False)
-        signature = to_hexstring(signature)
-        if len(signature) != 128:
+        # signature = to_hexstring(signature)
+        if len(signature) != 64:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
-        r = int(signature[:64], 16)
-        s = int(signature[64:], 16)
+        # r = int.from_bytes(signature[:32], "big")
+        # s = int.from_bytes(signature[32:], "big")
+        r = change_base(signature[:32], 256, 10)
+        s = change_base(signature[32:], 256, 10)
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
                          hash_type=hash_type)
 
@@ -1990,8 +2026,8 @@ class Signature(object):
             tx_hash_bytes = to_bytes(tx_hash)
             sig_der = sk.sign_digest(tx_hash_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
             signature = convert_der_sig(sig_der)
-            r = int(signature[:64], 16)
-            s = int(signature[64:], 16)
+            r = change_base(signature[:64], 16, 10)
+            s = change_base(signature[64:], 16, 10)
             if s > secp256k1_n / 2:
                 s = secp256k1_n - s
             return Signature(r, s, tx_hash, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
@@ -2037,7 +2073,11 @@ class Signature(object):
         self.tx_hash = tx_hash
         self.secret = None if not secret else int(secret)
         self._der_encoded = to_bytes(der_signature)
-        self._signature = to_bytes(signature)
+        if isinstance(signature, bytes):
+            self._signature = signature
+            signature = to_hexstring(signature)
+        else:
+            self._signature = to_bytes(signature)
         if signature and len(signature) != 128:
             raise BKeyError('Invalid Signature: length must be 64 bytes')
         self._public_key = None

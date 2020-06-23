@@ -23,7 +23,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import to_bytes
 
 PROVIDERNAME = 'blocksmurfer'
 
@@ -39,9 +39,9 @@ class BlocksmurferClient(BaseClient):
     def compose_request(self, function, parameter='', parameter2='', variables=None, post_data='', method='get'):
         url_path = function
         if parameter:
-            url_path += '/' + parameter
+            url_path += '/' + str(parameter)
         if parameter2:
-            url_path += '/' + parameter2
+            url_path += '/' + str(parameter2)
         if variables is None:
             variables = {}
         if self.api_key:
@@ -79,22 +79,34 @@ class BlocksmurferClient(BaseClient):
             })
         return utxos[:limit]
 
-    def _parse_transaction(self, tx):
-        t = Transaction.import_raw(tx['raw_hex'], network=self.network)
-        if t.hash != tx['txid']:
-            raise ClientError("Different hash from Blocksmurfer when parsing transaction")
-        t.block_height = None if not tx['block_height'] else tx['block_height']
-        t.confirmations = tx['confirmations']
-        t.date = None if not tx['date'] else datetime.strptime(tx['date'][:19], "%Y-%m-%dT%H:%M:%S")
-        if t.block_height and not t.confirmations and tx['status'] == 'confirmed':
-            block_count = self.blockcount()
-            t.confirmations = block_count - t.block_height
-        t.status = tx['status']
-        t.fee = tx['fee']
-        for ti in t.inputs:
-            t.inputs[ti.index_n].value = tx['inputs'][ti.index_n]['value']
-        for to in t.outputs:
-            t.outputs[to.output_n].spent = tx['outputs'][to.output_n]['spent']
+    def _parse_transaction(self, tx, block_count=None):
+        block_height = None if not tx['block_height'] else tx['block_height']
+        confirmations = tx['confirmations']
+        if block_height and not confirmations and tx['status'] == 'confirmed':
+            if not block_count:
+                block_count = self.blockcount()
+            confirmations = block_count - block_height
+        try:  # FIXME: On blocksmurfer side: always return timestamp
+            tdate = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
+        except (KeyError, TypeError):
+            tdate = datetime.utcfromtimestamp(tx['time'])
+        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
+                        fee=tx['fee'], size=tx['size'], hash=tx['txid'],
+                        date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],
+                        confirmations=confirmations, block_height=block_height, status=tx['status'],
+                        coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
+        for ti in tx['inputs']:
+            t.add_input(prev_hash=ti['prev_hash'], output_n=ti['output_n'], index_n=ti['index_n'],
+                        unlocking_script=ti['script'], value=ti['value'], public_hash=to_bytes(ti['public_hash']),
+                        address=ti['address'], witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
+                        locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
+                        encoding=ti['encoding'], unlocking_script_unsigned=ti['script_code'],
+                        sigs_required=ti['sigs_required'])
+        for to in tx['outputs']:
+            t.add_output(value=to['value'], address=to['address'], public_hash=to['public_hash'],
+                         lock_script=to['script'], spent=to['spent'])
+        if t.coinbase:  # TODO: Remove when blocksmurfer is fixed
+            t.inputs[0].value = 0
         t.update_totals()
         return t
 
@@ -118,11 +130,11 @@ class BlocksmurferClient(BaseClient):
         return txs[:limit]
 
     def getrawtransaction(self, txid):
-        tx = self.compose_request('tx/hex', txid)
-        return tx['data']['rawtx']
+        tx = self.compose_request('transaction', txid, variables={'raw': True})
+        return tx['raw_hex']
 
     def sendrawtransaction(self, rawtx):
-        res = self.compose_request('tx', post_data=rawtx, method='post')
+        res = self.compose_request('transaction', post_data=rawtx, method='post')
         return {
             'txid': res,
             'response_dict': res
@@ -146,6 +158,45 @@ class BlocksmurferClient(BaseClient):
         # else:
             # return self.compose_request('mempool', 'txids')
         return []
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        variables = {'parse_transactions': parse_transactions, 'page': page, 'limit': limit}
+        bd = self.compose_request('block', str(blockid), variables=variables)
+
+        txs = []
+        if parse_transactions and bd['transactions'] and isinstance(bd['transactions'][0], dict):
+            block_count = self.blockcount()
+            for tx in bd['transactions']:
+                tx['confirmations'] = bd['depth']
+                tx['time'] = bd['time']
+                tx['block_height'] = bd['height']
+                tx['block_hash'] = bd['blockhash']
+                t = self._parse_transaction(tx, block_count)
+                if t.txid != tx['txid']:
+                    raise ClientError("Could not parse tx %s. Different txid's" % (tx['txid']))
+                txs.append(t)
+        else:
+            txs = bd['transactions']
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['depth'],
+            'block_hash': bd['blockhash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkle_root'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['prev_block'],
+            'time': bd['time'],
+            'tx_count': bd['total_txs'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(bd['total_txs'] // limit) + (bd['total_txs'] % limit > 0),
+            'limit': limit
+        }
+        return block
+
+    # def getrawblock(self, blockid):
 
     def isspent(self, txid, output_n):
         res = self.compose_request('isspent', txid, str(output_n))

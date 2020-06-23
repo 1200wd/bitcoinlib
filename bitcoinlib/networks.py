@@ -178,7 +178,7 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     if len(wif) > 8:
         try:
             key_hex = change_base(wif, 58, 16)
-        except:
+        except Exception:
             pass
     else:
         key_hex = wif

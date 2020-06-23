@@ -20,7 +20,6 @@
 
 import logging
 from datetime import datetime
-import struct
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
@@ -54,7 +53,6 @@ class LitecoinBlockexplorerClient(BaseClient):
         value_in = 0 if 'valueIn' not in tx else tx['valueIn']
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
-            value_in = tx['valueOut']
             isCoinbase = True
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, fee=fees, hash=tx['txid'],
                         date=datetime.utcfromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
@@ -64,7 +62,7 @@ class LitecoinBlockexplorerClient(BaseClient):
         for ti in tx['vin']:
             if isCoinbase:
                 t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
-                            script_type='coinbase', sequence=ti['sequence'])
+                            script_type='coinbase', sequence=ti['sequence'], value=0)
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
                 us = '' if 'hex' not in ti['scriptSig'] else ti['scriptSig']['hex']
@@ -77,7 +75,7 @@ class LitecoinBlockexplorerClient(BaseClient):
             #              spent=True if to['spentTxId'] else False, output_n=to['n'],
             #              spending_txid=None if not to['spentTxId'] else to['spentTxId'],
             #              spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
-            # Found many wrong spending results
+            # FIXME: Found many wrong spending results
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
                          spent=None, output_n=to['n'])
         return t
@@ -157,23 +155,23 @@ class LitecoinBlockexplorerClient(BaseClient):
         if parse_transactions:
             txs = []
             for tx in bd['tx'][(page-1)*limit:page*limit]:
-                try:
-                    txs.append(self.gettransaction(tx['id']))
-                except Exception as e:
-                    _logger.error("Could not parse tx %s with error %s" % (tx['id'], e))
+                # try:
+                txs.append(self.gettransaction(tx['id']))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['id'], e))
         else:
             txs = [tx['id'] for tx in bd['tx']]
 
         block = {
             'bits': bd['bits'],
             'depth': bd['confirmations'],
-            'hash': bd['hash'],
+            'block_hash': bd['hash'],
             'height': bd['height'],
             'merkle_root': bd['merkleroot'],
             'nonce': bd['nonce'],
             'prev_block': bd['previousblockhash'],
-            'time': datetime.utcfromtimestamp(bd['time']),
-            'total_txs': len(bd['tx']),
+            'time': bd['time'],
+            'tx_count': len(bd['tx']),
             'txs': txs,
             'version': bd['version'],
             'page': page,
