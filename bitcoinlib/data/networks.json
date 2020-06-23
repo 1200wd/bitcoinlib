@@ -257,16 +257,12 @@
     "prefix_address": "1E",
     "prefix_address_p2sh": "16",
     "prefix_bech32": "doge",
-    "prefix_wif": "80",
+    "prefix_wif": "9E",
     "prefixes_wif": [
       ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],
       ["0488B21E", "xpub", "public",  true,  "legacy",      "p2sh"],
       ["0488ADE4", "xprv", "private", false, "legacy",      "p2pkh"],
-      ["0488ADE4", "xprv", "private", true,  "legacy",      "p2sh"],
-      ["044A5262", "upub", "public",  false, "p2sh-segwit", "p2sh_p2wpkh"],
-      ["024289EF", "Upub", "public",  true,  "p2sh-segwit", "p2sh_p2wsh"],
-      ["044A4E28", "uprv", "private", false, "p2sh-segwit", "p2sh_p2wpkh"],
-      ["024285B5", "Uprv", "private", true,  "p2sh-segwit", "p2sh_p2wsh"]
+      ["0488ADE4", "xprv", "private", true,  "legacy",      "p2sh"]
     ],
     "bip44_cointype": 3,
     "denominator": 0.00000001,
@@ -274,7 +270,7 @@
     "fee_default": 100000000,
     "fee_min": 100000000,
     "fee_max": 1000000000,
-    "priority": 12
+    "priority": 10
   },
   "dogecoin_testnet":
   {
@@ -283,19 +279,15 @@
     "currency_name_plural": "test-dogecoins",
     "currency_symbol": "TDOGE",
     "currency_code": "TDOGE",
-    "prefix_address": "6F",
-    "prefix_address_p2sh": "16",
+    "prefix_address": "71",
+    "prefix_address_p2sh": "C4",
     "prefix_bech32": "tdoge",
-    "prefix_wif": "EF",
+    "prefix_wif": "F1",
     "prefixes_wif": [
       ["043587CF", "tpub", "public",  false, "legacy",      "p2pkh"],
       ["043587CF", "tpub", "public",  true,  "legacy",      "p2sh"],
       ["04358394", "tprv", "private", false, "legacy",      "p2pkh"],
-      ["04358394", "tprv", "private", true,  "legacy",      "p2sh"],
-      ["0436F6E1", "ttub", "public",  false, "p2sh-segwit", "p2sh_p2wpkh"],
-      ["0436F6E1", "ttub", "public",  true,  "p2sh-segwit", "p2sh_p2wsh"],
-      ["0436EF7D", "ttpv", "private", false, "p2sh-segwit", "p2sh_p2wpkh"],
-      ["0436EF7D", "ttpv", "private", true,  "p2sh-segwit", "p2sh_p2wsh"]
+      ["04358394", "tprv", "private", true,  "legacy",      "p2sh"]
     ],
     "bip44_cointype": 1,
     "denominator": 0.00000001,
@@ -303,6 +295,6 @@
     "fee_default": 100000000,
     "fee_min": 100000000,
     "fee_max": 1000000000,
-    "priority": 10
+    "priority": 6
   }
 }
