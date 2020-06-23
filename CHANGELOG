@@ -5,6 +5,7 @@ RELEASE 0.4.16 - Blocks
 * Add caching for blocks
 * Fix various issues with service providers
 * Fix conversion issues, and increase speed by avoiding unnecessary conversions
+* Add Dogecoin
 
 RELEASE 0.4.15 - Integrate Blocksmurfer
 =======================================
