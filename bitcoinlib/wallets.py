@@ -1179,8 +1179,11 @@ class HDWallet(object):
             network = DEFAULT_NETWORK
         if witness_type is None:
             witness_type = DEFAULT_WITNESS_TYPE
-        if (network == 'dash' or network == 'dash_testnet') and witness_type != 'legacy':
+        if network in ('dash', 'dash_testnet') and witness_type != 'legacy':
             raise WalletError("Segwit is not supported for Dash wallets")
+        elif network in ('dogecoin', 'dogecoin_testnet') and witness_type not in ('legacy', 'p2sh-segwit'):
+            raise WalletError("Pure segwit addresses are not supported for Dogecoin wallets. "
+                              "Please use p2sh-segwit instead")
 
         if not key_path:
             if scheme == 'single':

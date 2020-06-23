@@ -1,8 +1,9 @@
 [run]
-omit = 
+omit =
     *bitcoinlib/tools/*
     *dashd.py
     *bitcoind.py
+    *dogecoind.py
     *bcoin.py
     *litecoind.py
     *authproxy.py
