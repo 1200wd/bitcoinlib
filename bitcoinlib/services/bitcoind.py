@@ -196,7 +196,7 @@ class BitcoindClient(BaseClient):
         t.block_hash = tx.get('block_hash', tx['txid'])  # FIXME, use only one
         t.block_height = block_height
         t.version = struct.pack('>L', tx['version'])
-        t.date = datetime.utcfromtimestamp(tx['time'])
+        t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
         t.update_totals()
         return t
 
@@ -239,8 +239,8 @@ class BitcoindClient(BaseClient):
         return []
 
     def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
-        if isinstance(blockid, int):
-            blockid = self.proxy.getblockhash(blockid)
+        if isinstance(blockid, int) or len(blockid) < 10:
+            blockid = self.proxy.getblockhash(int(blockid))
         if not limit:
             limit = 99999
 
