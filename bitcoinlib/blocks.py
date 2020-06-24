@@ -95,7 +95,7 @@ class Block:
         if self.transactions and len(self.transactions) and isinstance(self.transactions[0], Transaction) \
                 and self.version_int > 1:
             # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
-            if self.transactions[0].inputs[0].unlocking_script:
+            if self.transactions[0].coinbase and self.transactions[0].inputs[0].unlocking_script:
                 calc_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
                 if height and calc_height != height:
                     raise ValueError("Specified block height is different than calculated block height according to "
@@ -317,6 +317,7 @@ class Block:
             rb += t.raw()
         return rb
 
+    @property
     def version_bin(self):
         """
         Get the block version as binary string. Since BIP9 protocol changes are signaled by changing one of the 29
