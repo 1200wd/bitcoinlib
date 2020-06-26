@@ -113,7 +113,7 @@ class DbCacheTransaction(Base):
     block_height = Column(Integer, index=True, doc="Height of block this transaction is included in")
     block_hash = Column(String(64), index=True, doc="Hash of block this transaction is included in")  # TODO: Remove, is redundant
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
-    fee = Column(Integer, doc="Transaction fee")
+    fee = Column(BigInteger, doc="Transaction fee")
     raw = Column(Text(),
                  doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
     nodes = relationship("DbCacheTransactionNode", cascade="all,delete",
@@ -148,12 +148,12 @@ class DbCacheBlock(Base):
     height = Column(Integer, primary_key=True, doc="Height or sequence number for this block")
     block_hash = Column(LargeBinary(32), index=True, doc="Hash of this block")
     network_name = Column(String(20), doc="Blockchain network name")
-    version = Column(Integer, doc="Block version to specify which features are used (hex)")
+    version = Column(BigInteger, doc="Block version to specify which features are used (hex)")
     prev_block = Column(LargeBinary(32), doc="Block hash of previous block")
     merkle_root = Column(LargeBinary(32), doc="Merkle root used to validate transaction in block")
-    time = Column(Integer, doc="Timestamp to indicated when block was created")
-    bits = Column(Integer, doc="Encoding for proof-of-work, used to determine target and difficulty")
-    nonce = Column(Integer, doc="Nonce (number used only once or n-once) is used to create different block hashes")
+    time = Column(BigInteger, doc="Timestamp to indicated when block was created")
+    bits = Column(BigInteger, doc="Encoding for proof-of-work, used to determine target and difficulty")
+    nonce = Column(BigInteger, doc="Nonce (number used only once or n-once) is used to create different block hashes")
     tx_count = Column(Integer, doc="Number of transactions included in this block")
 
 

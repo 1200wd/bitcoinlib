@@ -150,37 +150,39 @@ class BitcoindClient(BaseClient):
 
     # def getbalance
 
-    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
-        txs = []
-
-        res = self.proxy.getaddressinfo(address)
-        if not (res['ismine'] or res['iswatchonly']):
-            raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
-                              "address to wallet." % address)
-
-        txs_list = self.proxy.listunspent(0, 99999999, [address])
-        for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
-            txs.append({
-                'address': t['address'],
-                'tx_hash': t['txid'],
-                'confirmations': t['confirmations'],
-                'output_n': t['vout'],
-                'input_n': -1,
-                'block_height': None,
-                'fee': None,
-                'size': 0,
-                'value': int(t['amount'] * self.units),
-                'script': t['scriptPubKey'],
-                'date': None,
-            })
-            if t['txid'] == after_txid:
-                txs = []
-
-        return txs
+    # Missing block_height, input_n, date so not usable
+    # def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+    #     txs = []
+    #
+    #     res = self.proxy.getaddressinfo(address)
+    #     if not (res['ismine'] or res['iswatchonly']):
+    #         raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
+    #                           "address to wallet." % address)
+    #
+    #     txs_list = self.proxy.listunspent(0, 99999999, [address])
+    #     for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
+    #         txs.append({
+    #             'address': t['address'],
+    #             'tx_hash': t['txid'],
+    #             'confirmations': t['confirmations'],
+    #             'output_n': t['vout'],
+    #             'input_n': -1,
+    #             'block_height': None,
+    #             'fee': None,
+    #             'size': 0,
+    #             'value': int(t['amount'] * self.units),
+    #             'script': t['scriptPubKey'],
+    #             'date': None,
+    #         })
+    #         if t['txid'] == after_txid:
+    #             txs = []
+    #
+    #     return txs
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
         t = Transaction.import_raw(tx['hex'], network=self.network)
         t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
+        t.status = 'unconfirmed'
         if t.confirmations or block_height:
             t.status = 'confirmed'
             t.verified = True
@@ -193,7 +195,7 @@ class BitcoindClient(BaseClient):
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.block_hash = tx.get('block_hash', tx['txid'])  # FIXME, use only one
+        t.block_hash = tx.get('blockhash', '')
         t.block_height = block_height
         t.version = struct.pack('>L', tx['version'])
         t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
@@ -250,7 +252,7 @@ class BitcoindClient(BaseClient):
             for tx in bd['tx'][(page - 1) * limit:page * limit]:
                 # try:
                 tx['time'] = bd['time']
-                tx['txid'] = bd['hash']
+                tx['blockhash'] = bd['hash']
                 txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
                 # except Exception as e:
                 #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
