@@ -901,10 +901,10 @@ class Cache(object):
             return
         # Only store complete and confirmed transaction in cache
         if not t.txid:    # pragma: no cover
-            _logger.info("Caching failure tx: Incomplete transaction missing hash, date, block_height, "
-                         "network or confirmations info")
+            _logger.info("Caching failure tx: Missing transaction hash")
             return False
-        elif not t.date or not (t.block_height or t.block_hash) or not t.network:
+        elif not t.date or not t.block_height or not t.network:
+            _logger.info("Caching failure tx: Incomplete transaction missing date, block height or network info")
             return False
         raw_hex = None
         if CACHE_STORE_RAW_TRANSACTIONS:

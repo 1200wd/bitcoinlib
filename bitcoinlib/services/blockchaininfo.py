@@ -107,7 +107,9 @@ class BlockchainInfoClient(BaseClient):
         t.locktime = tx['lock_time']
         t.version = struct.pack('>L', tx['ver'])
         t.input_total = input_total
-        t.fee = t.input_total - t.output_total
+        t.fee = 0
+        if t.input_total:
+            t.fee = t.input_total - t.output_total
         return t
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
