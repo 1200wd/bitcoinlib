@@ -77,7 +77,7 @@ class ChainSo(BaseClient):
                 'confirmations': tx['confirmations'],
                 'output_n': -1 if 'output_no' not in tx else tx['output_no'],
                 'input_n': -1 if 'input_no' not in tx else tx['input_no'],
-                'block_height': self.latest_block - tx['confirmations'],
+                'block_height': (self.latest_block - tx['confirmations']) + 1,
                 'fee': None,
                 'size': 0,
                 'value': int(round(float(tx['value']) * self.units, 0)),
