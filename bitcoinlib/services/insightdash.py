@@ -145,7 +145,7 @@ class InsightDashClient(BaseClient):
         res = self.compose_request('tx', txid)
         if res['confirmations'] == 0:
             return res['txid']
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions, page, limit):
         bd = self.compose_request('block', str(blockid))

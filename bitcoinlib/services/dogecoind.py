@@ -221,7 +221,7 @@ class DogecoindClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return []
+        return False
 
 
 if __name__ == '__main__':

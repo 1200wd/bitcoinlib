@@ -157,7 +157,7 @@ class CryptoID(BaseClient):
         tx = self.compose_request(path_type='explorer', variables=variables)
         if 'confirmations' not in tx:
             return [tx['txid']]
-        return []
+        return False
 
     # def getblock
 

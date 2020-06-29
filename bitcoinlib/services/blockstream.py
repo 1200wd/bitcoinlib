@@ -190,7 +190,7 @@ class BlockstreamClient(BaseClient):
                 return [t.hash]
         else:
             return self.compose_request('mempool', 'txids')
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if isinstance(blockid, int):

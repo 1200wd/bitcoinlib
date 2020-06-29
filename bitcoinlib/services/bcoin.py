@@ -180,7 +180,7 @@ class BcoinClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions, page, limit):
         block = self.compose_request('block', str(blockid))

@@ -242,7 +242,7 @@ class LitecoindClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
         if isinstance(blockid, int):
