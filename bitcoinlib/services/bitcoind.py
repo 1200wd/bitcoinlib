@@ -196,6 +196,8 @@ class BitcoindClient(BaseClient):
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx.get('blockhash', '')
+        if not block_height and t.block_hash:
+            block_height = self.proxy.getblock(t.block_hash, 1)['hash']
         t.block_height = block_height
         t.version = struct.pack('>L', tx['version'])
         t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
