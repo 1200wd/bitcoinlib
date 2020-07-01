@@ -183,9 +183,6 @@ class BitcoindClient(BaseClient):
         t = Transaction.import_raw(tx['hex'], network=self.network)
         t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
         t.status = 'unconfirmed'
-        if t.confirmations or block_height:
-            t.status = 'confirmed'
-            t.verified = True
         for i in t.inputs:
             if i.prev_hash == b'\x00' * 32:
                 i.script_type = 'coinbase'
@@ -195,10 +192,19 @@ class BitcoindClient(BaseClient):
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
+
         t.block_hash = tx.get('blockhash', '')
         if not block_height and t.block_hash:
             block_height = self.proxy.getblock(t.block_hash, 1)['hash']
         t.block_height = block_height
+        if not t.confirmations and block_height:
+            if not self.latest_block:
+                self.latest_block = self.blockcount()
+            t.confirmations = (self.latest_block - block_height) + 1
+        if t.confirmations or block_height:
+            t.status = 'confirmed'
+            t.verified = True
+
         t.version = struct.pack('>L', tx['version'])
         t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
         t.update_totals()

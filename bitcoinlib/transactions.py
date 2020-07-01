@@ -1457,6 +1457,7 @@ class Transaction(object):
         print("Vsize: %s" % self.vsize)
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
+        print("Block: %s" % self.block_height)
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
         """
