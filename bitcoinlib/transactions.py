@@ -1211,7 +1211,6 @@ class Transaction(object):
         :return Transaction:
         """
 
-        rawtx = to_bytes(rawtx)
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
@@ -1364,7 +1363,7 @@ class Transaction(object):
             'network': self.network.name,
             'witness_type': self.witness_type,
             'coinbase': self.coinbase,
-            'flag': self.flag,
+            'flag': ord(self.flag),
             'confirmations': self.confirmations,
             'block_height': self.block_height,
             'block_hash': self.block_hash,
