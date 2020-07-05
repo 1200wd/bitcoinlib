@@ -1363,7 +1363,7 @@ class Transaction(object):
             'network': self.network.name,
             'witness_type': self.witness_type,
             'coinbase': self.coinbase,
-            'flag': ord(self.flag),
+            'flag': None if not self.flag else ord(self.flag),
             'confirmations': self.confirmations,
             'block_height': self.block_height,
             'block_hash': self.block_hash,
