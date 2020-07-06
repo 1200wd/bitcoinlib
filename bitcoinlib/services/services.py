@@ -177,6 +177,7 @@ class Service(object):
                 self.results.update(
                     {sp: res}
                 )
+                _logger.debug("Executed method %s from provider %s" % (method, sp))
                 self.resultcount += 1
             except Exception as e:
                 if not isinstance(e, AttributeError):
