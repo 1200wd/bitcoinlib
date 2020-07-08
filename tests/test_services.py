@@ -735,6 +735,11 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.transactions[0].txid, '79b8ea58d3a3d18b583ac7b8fed5b7b06706a5198d4ffc38095d9fc55dc62030')
         self.assertEqual(b.transactions[3].txid, '6182f42ea89a59df3a417f958e1c9bb3f0ea8ee7193cda760b477c4ce09c357c')
 
+    def test_service_getblock_parse_tx_paging_last_page(self):
+        srv = ServiceTest(timeout=TIMEOUT_TEST)
+        b = srv.getblock(336454, limit=10, page=29)
+        self.assertEqual(len(b.transactions), 7)
+
     def test_service_getblock_litecoin(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, network='litecoin')
         b = srv.getblock(1000000, parse_transactions=True, limit=2)
@@ -913,6 +918,6 @@ class TestServiceCache(unittest.TestCase):
         self.assertEqual(srv.results_cache_n, 0)
 
         # Now retrieve from cache
-        bc = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc')
+        bc = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
         self.assertEqual(srv.results_cache_n, 1)
         check_block_128594(bc)

@@ -121,7 +121,7 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertRaisesRegex(ValueError, "Number of found transactions 2 is not equal to expected number 3",
                                Block.from_raw, to_bytes(incomplete_raw), parse_transactions=True)
 
-    def test_blocks_parse_block_and_transactions(self):
+    def test_blocks_parse_block_and_transactions_2(self):
         b = Block.from_raw(self.rb330000, parse_transactions=True, limit=5)
         self.assertEqual(to_hexstring(b.block_hash), '00000000000000000faabab19f17c0178c754dbed023e6c871dcaf74159c5f02')
         self.assertEqual(b.height, 330000)

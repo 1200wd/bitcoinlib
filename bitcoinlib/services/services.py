@@ -508,14 +508,16 @@ class Service(object):
             limit = 10 if parse_transactions else 99999
 
         block = self.cache.getblock(blockid)
+        is_last_page = False
         if block:
             # Block found get transactions from cache
             block.transactions = self.cache.getblocktransactions(block.height, page, limit)
-            if not block.transactions and parse_transactions:
-                block = None
-            else:
+            if block.transactions:
                 self.results_cache_n = 1
-        if not block:
+            is_last_page = page*limit > block.tx_count
+        if not block or not len(block.transactions) or (not is_last_page and len(block.transactions) < limit) or \
+                (is_last_page and ((page-1)*limit - block.tx_count + len(block.transactions)) < 0):
+            self.results_cache_n = 0
             bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
             if not bd or isinstance(bd, bool):
                 return False
@@ -906,6 +908,9 @@ class Cache(object):
             return False
         elif not t.date or not t.block_height or not t.network:
             _logger.info("Caching failure tx: Incomplete transaction missing date, block height or network info")
+            return False
+        elif not t.coinbase and [i for i in t.inputs if not i.value]:
+            _logger.info("Caching failure tx: One the transaction inputs has value 0")
             return False
         raw_hex = None
         if CACHE_STORE_RAW_TRANSACTIONS:
