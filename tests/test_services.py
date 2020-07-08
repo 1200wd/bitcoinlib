@@ -737,8 +737,8 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_getblock_parse_tx_paging_last_page(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST)
-        b = srv.getblock(336454, limit=10, page=29)
-        self.assertEqual(len(b.transactions), 7)
+        b = srv.getblock(336454, limit=5, page=58)
+        self.assertEqual(len(b.transactions), 2)
 
     def test_service_getblock_litecoin(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, network='litecoin')
