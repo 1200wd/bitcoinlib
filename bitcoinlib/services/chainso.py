@@ -190,6 +190,14 @@ class ChainSo(BaseClient):
 
     # def getrawblock(self, blockid):
 
-    def isspent(self, txid, output_n):
-        res = self.compose_request('is_tx_spent', txid, str(output_n))
-        return res['data']['is_spent']
+    # def isspent(self, txid, output_n):
+
+    def getinfo(self):
+        info = self.compose_request('get_info')['data']
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['name'],
+            'difficulty': int(float(info['mining_difficulty'])),
+            'hashrate': int(float(info['hashrate'])),
+            'mempool_size': int(info['unconfirmed_txs']),
+        }

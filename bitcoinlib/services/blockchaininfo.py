@@ -184,3 +184,16 @@ class BlockchainInfoClient(BaseClient):
         return self.compose_request('rawblock', str(blockid), {'format': 'hex'})
 
     # def isspent(self, txid, index):
+
+    def getinfo(self):
+        import requests
+        import json
+        info = json.loads(requests.get('https://api.blockchain.info/stats', timeout=self.timeout).text)
+        unconfirmed = self.compose_request('q', 'unconfirmedcount')
+        return {
+            'blockcount': info['n_blocks_total'],
+            'chain': '',
+            'difficulty': info['difficulty'],
+            'hashrate': int(float(info['hash_rate'] * 10**9)),
+            'mempool_size': unconfirmed,
+        }

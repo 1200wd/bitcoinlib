@@ -201,3 +201,5 @@ class BlocksmurferClient(BaseClient):
     def isspent(self, txid, output_n):
         res = self.compose_request('isspent', txid, str(output_n))
         return 1 if res['spent'] else 0
+
+    # def getinfo(self): # TODO

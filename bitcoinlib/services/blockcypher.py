@@ -221,3 +221,5 @@ class BlockCypher(BaseClient):
     def isspent(self, txid, output_n):
         t = self.gettransaction(txid)
         return 1 if t.outputs[output_n].spent else 0
+
+    # def getinfo(self):

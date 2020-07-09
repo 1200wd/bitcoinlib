@@ -221,3 +221,14 @@ class BcoinClient(BaseClient):
         except ClientError:
             return 1
         return 0
+
+    def getinfo(self):
+        res = self.compose_request('', variables={'method': 'getmininginfo'}, method='post')
+        info = res['result']
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['chain'],
+            'difficulty': info['difficulty'],
+            'hashrate': info['networkhashps'],
+            'mempool_size': info['pooledtx']
+        }

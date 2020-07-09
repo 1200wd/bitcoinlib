@@ -162,3 +162,5 @@ class CryptoID(BaseClient):
     # def getblock
 
     # def isspent
+
+    # def getinfo(self):

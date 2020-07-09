@@ -223,6 +223,16 @@ class DogecoindClient(BaseClient):
             return [txid]
         return False
 
+    def getinfo(self):
+        info = self.proxy.getmininginfo()
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['chain'],
+            'difficulty': int(info['difficulty']),
+            'hashrate': int(info['networkhashps']),
+            'mempool_size': int(info['pooledtx']),
+        }
+
 
 if __name__ == '__main__':
     #

@@ -182,3 +182,13 @@ class LitecoreIOClient(BaseClient):
     def isspent(self, txid, output_n):
         t = self.gettransaction(txid)
         return 1 if t.outputs[output_n].spent else 0
+
+    def getinfo(self):
+        info = self.compose_request('status', '')['info']
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['network'],
+            'difficulty': int(float(info['difficulty'])),
+            'hashrate': 0,
+            'mempool_size': 0,
+        }

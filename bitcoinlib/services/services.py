@@ -609,6 +609,9 @@ class Service(object):
         else:
             return bool(self._provider_execute('isspent', txid, output_n))
 
+    def getinfo(self):
+        return self._provider_execute('getinfo')
+
 
 
 class Cache(object):
