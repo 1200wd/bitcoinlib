@@ -593,11 +593,22 @@ class Service(object):
         return addr_dict
 
     def isspent(self, txid, output_n):
+        """
+        Check if the output with provided transaction ID and output number is spent.
+
+        :param txid: Transaction ID hex
+        :type txid: str
+        :param output_n: Output number
+        :type output_n: int
+
+        :return bool:
+        """
         t = self.cache.gettransaction(txid)
         if t and len(t.outputs) > output_n and t.outputs[output_n].spent is not None:
             return t.outputs[output_n].spent
         else:
             return bool(self._provider_execute('isspent', txid, output_n))
+
 
 
 class Cache(object):
