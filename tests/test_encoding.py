@@ -346,6 +346,8 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
             self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, "tb", test)
 
     def test_quantity_class(self):
+        if not PY3:
+            self.skipTest()
         self.assertEqual(str(Quantity(121608561109507200000, 'H/s', precision=10)), '121.6085611095 EH/s')
         self.assertEqual(str(Quantity(1 / 121608561109507200000, 'ots', precision=10)), '8.2231052722 zots')
         self.assertEqual(str(Quantity(0.0000000001, 'm', precision=2)), '100.00 pm')
