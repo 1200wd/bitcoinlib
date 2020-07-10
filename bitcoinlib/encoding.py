@@ -927,4 +927,5 @@ class Quantity:
         self.value = value
 
     def __str__(self):
-        return f"{self.value:4.{self.precision}f} {self.prefix_list[self.base]}{self.units}"
+        # > Python 3.6: return f"{self.value:4.{self.precision}f} {self.prefix_list[self.base]}{self.units}"
+        return '%4.*f %s%s' % (self.precision, self.value, self.prefix_list[self.base], self.units)
