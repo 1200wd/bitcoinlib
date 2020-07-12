@@ -55,8 +55,13 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 Other requirements Linux
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+On Debian, Ubuntu or their derivatives:
 
 ``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
+
+On Fedora, CentOS or RHEL:
+
+``sudo dnf install python3-devel gmp-devel``
 
 To install OpenSSL development package on Debian, Ubuntu or their derivatives
 
