@@ -690,7 +690,7 @@ class Input(object):
         :type double_spend: bool
         :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
         :type locktime_cltv: int
-        :param locktime_csv: Check Sequency Verify value.
+        :param locktime_csv: Check Sequence Verify value.
         :type locktime_csv: int
         :param key_path: Key path of input key as BIP32 string or list
         :type key_path: str, list

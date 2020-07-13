@@ -134,9 +134,9 @@ class BlocksmurferClient(BaseClient):
         return tx['raw_hex']
 
     def sendrawtransaction(self, rawtx):
-        res = self.compose_request('transaction', post_data=rawtx, method='post')
+        res = self.compose_request('transaction_broadcast', post_data=rawtx, method='post')
         return {
-            'txid': res,
+            'txid': res['txid'],
             'response_dict': res
         }
 
