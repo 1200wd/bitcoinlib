@@ -920,10 +920,10 @@ class Quantity:
         while (value < 1 or value > 1000) and 0 < self.base < len(self.prefix_list)-1:
             if value > 1000:
                 self.base += 1
-                value /= 1000
+                value /= 1000.0
             elif value < 1000:
                 self.base -= 1
-                value *= 1000
+                value *= 1000.0
         self.value = value
 
     def __str__(self):

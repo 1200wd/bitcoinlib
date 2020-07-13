@@ -202,4 +202,8 @@ class BlocksmurferClient(BaseClient):
         res = self.compose_request('isspent', txid, str(output_n))
         return 1 if res['spent'] else 0
 
-    # def getinfo(self): # TODO
+    def getinfo(self):
+        res = self.compose_request('')
+        info = {k: v for k, v in res.items() if k in ['chain', 'blockcount', 'hashrate', 'mempool_size',
+                                                          'difficulty']}
+        return info

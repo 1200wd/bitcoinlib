@@ -788,6 +788,12 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertFalse(srv.isspent('a74c2b8c5206a39e2f0becf86f296ab9b3a29259c225471c9dabfbb87b6b5d4a', 1))
         self.assertTrue(srv.isspent('1941cd1a901b3692d2b1d6c337460745c6045c1c4a4a18b0895e5bfc137b6c60', 0))
 
+    def test_service_getinfo(self):
+        srv = ServiceTest()
+        res = srv.getinfo()
+        fields = [k for k, _ in res.items()]
+        self.assertListEqual(sorted(fields), ['blockcount', 'chain', 'difficulty', 'hashrate', 'mempool_size'])
+
 
 class TestServiceCache(unittest.TestCase):
 
