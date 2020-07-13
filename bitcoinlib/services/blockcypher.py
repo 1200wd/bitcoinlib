@@ -159,13 +159,15 @@ class BlockCypher(BaseClient):
     def getrawtransaction(self, txid):
         return self.compose_request('txs', txid, variables={'includeHex': 'true'})['hex']
 
-    # BlockCypher sometimes accepts transactions, but does not push them to the network :(
-    # def sendrawtransaction(self, rawtx):
-    #     res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
-    #     return {
-    #         'txid': res['tx']['hash'],
-    #         'response_dict': res
-    #     }
+    def sendrawtransaction(self, rawtx):
+        # BlockCypher sometimes accepts transactions, but does not push them to the network :(
+        if self.network.name in ['bitcoin', 'litecoin']:
+            return False
+        res = self.compose_request('txs', 'push', variables={'tx': rawtx}, method='post')
+        return {
+            'txid': res['tx']['hash'],
+            'response_dict': res
+        }
 
     def estimatefee(self, blocks):
         res = self.compose_request('', '')
