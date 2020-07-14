@@ -25,7 +25,7 @@ from bitcoinlib.config.config import *
 
 
 # Initialize logging
-logger = logging.getLogger()
+logger = logging.getLogger('bitcoinlib')
 logger.setLevel(LOGLEVEL)
 
 if ENABLE_BITCOINLIB_LOGGING:
