@@ -66,8 +66,6 @@ class ChainSo(BaseClient):
         txs = []
         lasttx = after_txid
         res = self.compose_request('get_tx_unspent', address, lasttx)
-        if not self.latest_block:
-            self.latest_block = self.blockcount()
         if res['status'] != 'success':
             pass
         for tx in res['data']['txs'][:limit]:
@@ -77,7 +75,7 @@ class ChainSo(BaseClient):
                 'confirmations': tx['confirmations'],
                 'output_n': -1 if 'output_no' not in tx else tx['output_no'],
                 'input_n': -1 if 'input_no' not in tx else tx['input_no'],
-                'block_height': (self.latest_block - tx['confirmations']) + 1,
+                'block_height': None,
                 'fee': None,
                 'size': 0,
                 'value': int(round(float(tx['value']) * self.units, 0)),
