@@ -5,8 +5,6 @@ language: python
 env:
     - BCL_CONFIG_FILE=config.ini.unittest
 python:
-    - 2.7
-    - 3.5
     - 3.6
 matrix:
   include:
