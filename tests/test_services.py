@@ -928,3 +928,10 @@ class TestServiceCache(unittest.TestCase):
         bc = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
         self.assertEqual(srv.results_cache_n, 1)
         check_block_128594(bc)
+
+    def test_service_cache_disabled(self):
+        srv = ServiceTest(cache_uri='')
+        srv.gettransaction('eeb0c4bae63970f2ece284bcc871098942d5aff1d960398e523a9b339d25f73e')
+        self.assertEqual(srv.results_cache_n, 0)
+        srv.gettransaction('eeb0c4bae63970f2ece284bcc871098942d5aff1d960398e523a9b339d25f73e')
+        self.assertEqual(srv.results_cache_n, 0)
