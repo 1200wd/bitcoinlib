@@ -170,7 +170,7 @@ class BlocksmurferClient(BaseClient):
                 tx['confirmations'] = bd['depth']
                 tx['time'] = bd['time']
                 tx['block_height'] = bd['height']
-                tx['block_hash'] = bd['blockhash']
+                tx['block_hash'] = bd['block_hash']
                 t = self._parse_transaction(tx, block_count)
                 if t.txid != tx['txid']:
                     raise ClientError("Could not parse tx %s. Different txid's" % (tx['txid']))
@@ -181,17 +181,17 @@ class BlocksmurferClient(BaseClient):
         block = {
             'bits': bd['bits'],
             'depth': bd['depth'],
-            'block_hash': bd['blockhash'],
+            'block_hash': bd['block_hash'],
             'height': bd['height'],
             'merkle_root': bd['merkle_root'],
             'nonce': bd['nonce'],
             'prev_block': bd['prev_block'],
             'time': bd['time'],
-            'tx_count': bd['total_txs'],
+            'tx_count': bd['tx_count'],
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(bd['total_txs'] // limit) + (bd['total_txs'] % limit > 0),
+            'pages': int(bd['tx_count'] // limit) + (bd['tx_count'] % limit > 0),
             'limit': limit
         }
         return block
