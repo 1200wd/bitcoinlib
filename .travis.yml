@@ -34,7 +34,7 @@ matrix:
         - choco install python --version=3.8.4
         - choco install postgresql --params '/Password:postgres' --paramsglobal
         - choco install mysql
-        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+        - export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
 
 before_install:
