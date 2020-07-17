@@ -24,10 +24,7 @@ from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckCons
                         ForeignKey, DateTime, Numeric, Text)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)

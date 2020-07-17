@@ -18,15 +18,13 @@
 #
 
 import json
-import numbers
 import random
 import warnings
 from itertools import groupby
 from operator import itemgetter
-import struct
 
 from bitcoinlib.db import *
-from bitcoinlib.encoding import EncodingError, to_bytes, to_hexstring
+from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.networks import Network
