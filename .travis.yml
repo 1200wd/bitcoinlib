@@ -25,7 +25,7 @@ matrix:
       sudo: true
       env:
         - UNITTESTS_FULL_DATABASE_TEST=True
-    - python: 3.9
+    - python: 3.9-dev
       dist: xenial
       sudo: true
     - os: windows
