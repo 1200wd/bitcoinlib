@@ -98,6 +98,7 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.transactions[49].txid, '3b6d97f107cba804270f4d22fafda3295b3bfb735366da6c1473157cc94a5f7c')
         self.assertEqual(b.transactions[122].txid, 'a5cc9bd850b6eedc3e466b3e0f5c85fb640de0a3537259eb0cae761d0a4f78b4')
         self.assertEqual(b.transactions[155].txid, 'e3d6cb87bd37ca53509cdc9ecdabf82ef966d9b25a2598b7de87c8173beb40d5')
+        self.assertTrue(b.check_proof_of_work())
 
     def test_blocks_parse_block_exceptions(self):
         self.assertRaisesRegex(ValueError, "Specified block height is different than calculated block height "
@@ -126,6 +127,8 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(to_hexstring(b.block_hash), '00000000000000000faabab19f17c0178c754dbed023e6c871dcaf74159c5f02')
         self.assertEqual(b.height, 330000)
         self.assertEqual(b.version_int, 2)
+        self.assertEqual(b.version_bin, '00000000000000000000000000000010')
+        self.assertListEqual(b.version_bips(), ['BIP34'])
         self.assertEqual(b.prev_block, to_bytes('000000000000000003e20f90920dc065da4a507bcf045f44b9abac7fabff4857'))
         self.assertEqual(b.merkle_root, to_bytes('5a97519772c615a875c12859f447d9c1fea922f7e36bd08e96cc95eee235d28f'))
         self.assertEqual(b.bits_int, 404472624)
