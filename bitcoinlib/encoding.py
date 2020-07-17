@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
+import sys
 import math
 import numbers
 from copy import deepcopy
@@ -97,10 +97,7 @@ def _array_to_codestring(array, base):
     codebase = code_strings[base]
     codestring = ""
     for i in array:
-        if not PY3:
-            codestring += codebase[i]
-        else:
-            codestring += chr(codebase[i])
+        codestring += chr(codebase[i])
     return codestring
 
 
@@ -132,22 +129,13 @@ def normalize_var(var, base=256):
     :return: Normalized var in string for Python 2, bytes for Python 3, decimal for base10
     """
     try:
-        if PY3 and isinstance(var, str):
+        if isinstance(var, str):
             var = var.encode('ISO-8859-1')
     except ValueError:
         try:
             var = var.encode('utf-8')
         except ValueError:
             raise EncodingError("Unknown character '%s' in input format" % var)
-
-    if not PY3 and isinstance(var, unicode):
-        try:
-            var = str(var)
-        except UnicodeEncodeError:
-            try:
-                var = var.encode('utf-8')
-            except ValueError:
-                raise EncodingError("Cannot convert this unicode to string format")
 
     if base == 10:
         return int(var)
@@ -222,12 +210,12 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             return to_hexstring(inp)
         elif base_from == 16 and base_to == 256:
             return binascii.unhexlify(inp)
-    if base_from == 16 and base_to == 10 and PY3:
+    if base_from == 16 and base_to == 10:
         return int(inp, 16)
-    if base_from == 10 and base_to == 16 and PY3:
+    if base_from == 10 and base_to == 16:
         hex_outp = hex(inp)[2:]
         return hex_outp.zfill(min_length) if min_length else hex_outp
-    if base_from == 256 and base_to == 10 and PY3:
+    if base_from == 256 and base_to == 10:
         return int.from_bytes(inp, 'big')
 
     if output_even is None and base_to == 16:
@@ -254,10 +242,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
 
             # Add leading zero if there are leading zero's in input
             if not pos * factor:
-                if not PY3:
-                    firstchar = code_str_from[0]
-                else:
-                    firstchar = chr(code_str_from[0]).encode('utf-8')
+                firstchar = chr(code_str_from[0]).encode('utf-8')
                 if isinstance(inp, list):
                     if not len([x for x in inp if x != firstchar]):
                         addzeros += 1
@@ -294,25 +279,14 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     if not output_as_list and isinstance(output, list):
         if len(output) == 0:
             output = 0
-        elif not PY3:
-            output = ''.join(output)
         else:
             co = ''
             for c in output:
                 co += chr(c)
             output = co
-        # elif isinstance(output[0], bytes):
-        #     output = b''.join(output)
-        # elif isinstance(output[0], int):
-        #     co = ''
-        #     for c in output:
-        #         co += chr(c)
-        #     output = co
-        # else:
-        #     output = ''.join(output)
     if base_to == 10:
         return int(0) or (output != '' and int(output))
-    if PY3 and base_to == 256 and not output_as_list:
+    if base_to == 256 and not output_as_list:
         return output.encode('ISO-8859-1')
     else:
         return output
@@ -334,10 +308,7 @@ def varbyteint_to_int(byteint):
     """
     if not isinstance(byteint, (bytes, list, bytearray)):
         raise EncodingError("Byteint must be a list or defined as bytes")
-    if PY3 or isinstance(byteint, (list, bytearray)):
-        ni = byteint[0]
-    else:
-        ni = ord(byteint[0])
+    ni = byteint[0]
     if ni < 253:
         return ni, 1
     if ni == 253:  # integer of 2 bytes
@@ -656,8 +627,6 @@ def convertbits(data, frombits, tobits, pad=True):
     maxv = (1 << tobits) - 1
     max_acc = (1 << (frombits + tobits - 1)) - 1
     for value in data:
-        if not PY3 and isinstance(value, str):
-            value = int(value, 16)
         if value < 0 or (value >> frombits):
             return None
         acc = ((acc << frombits) | value) & max_acc
@@ -746,18 +715,12 @@ def to_hexstring(string):
     if isinstance(string, (str, bytes)):
         try:
             binascii.unhexlify(string)
-            if PY3:
-                return str(string, 'ISO-8859-1')
-            else:
-                return string
+            return str(string, 'ISO-8859-1')
         except (TypeError, binascii.Error):
             pass
 
     s = binascii.hexlify(string)
-    if PY3:
-        return str(s, 'ISO-8859-1')
-    else:
-        return s
+    return str(s, 'ISO-8859-1')
 
 
 def normalize_string(string):
@@ -770,7 +733,7 @@ def normalize_string(string):
 
     :return: string
     """
-    if isinstance(string, str if sys.version < '3' else bytes):
+    if isinstance(string, bytes):
         utxt = string.decode('utf8')
     elif isinstance(string, TYPE_TEXT):
         utxt = string
@@ -831,7 +794,7 @@ def bip38_decrypt(encrypted_privkey, passphrase):
         compressed = True
     else:
         raise EncodingError("Unrecognised password protected key format. Flagbyte incorrect.")
-    if isinstance(passphrase, str) and sys.version_info > (3,):
+    if isinstance(passphrase, str):
         passphrase = passphrase.encode('utf-8')
     addresshash = d[0:4]
     d = d[4:-4]
@@ -867,9 +830,9 @@ def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
 
     :return str: BIP38 passphrase encrypted private key
     """
-    if isinstance(address, str) and sys.version_info > (3,):
+    if isinstance(address, str):
         address = address.encode('utf-8')
-    if isinstance(passphrase, str) and sys.version_info > (3,):
+    if isinstance(passphrase, str):
         passphrase = passphrase.encode('utf-8')
     addresshash = double_sha256(address)[0:4]
     key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)

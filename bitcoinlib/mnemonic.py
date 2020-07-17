@@ -219,8 +219,6 @@ class Mnemonic(object):
                     language = fn.split('.')[0]
                     wlcount[language] = 0
                     for word in words:
-                        if sys.version < '3':
-                            word = word.encode('utf-8')
                         if word in wordlist:
                             wlcount[language] += 1
         detlang = max(wlcount.keys(), key=(lambda key: wlcount[key]))
@@ -247,8 +245,6 @@ class Mnemonic(object):
         with open(os.path.join(str(BCL_INSTALL_DIR), 'wordlist', '%s.txt' % language)) as f:
             wordlist = [w.strip() for w in f.readlines()]
             for word in words:
-                if sys.version < '3':
-                    word = word.encode('utf-8')
                 if word not in wordlist:
                     raise Warning("Unrecognised word %s in mnemonic sentence" % word.encode('utf8'))
         return ' '.join(words)

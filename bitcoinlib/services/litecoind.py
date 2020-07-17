@@ -70,10 +70,7 @@ class LitecoindClient(BaseClient):
 
         :return LitecoindClient:
         """
-        if PY3:
-            config = configparser.ConfigParser(strict=False)
-        else:
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser(strict=False)
         config_fn = 'litecoin.conf'
         if isinstance(network, Network):
             network = network.name

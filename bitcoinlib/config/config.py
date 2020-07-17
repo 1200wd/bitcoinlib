@@ -19,26 +19,16 @@
 #
 
 import os
-import sys
 import locale
 import platform
+import configparser
+from pathlib import Path
 from datetime import datetime
 
 # General defaults
-PY3 = sys.version_info[0] == 3
 TYPE_TEXT = str
-if not PY3:
-    TYPE_TEXT = (str, unicode)
 TYPE_INT = int
-if not PY3:
-    TYPE_INT = (int, long)
 LOGLEVEL = 'WARNING'
-if PY3:
-    import configparser
-    from pathlib import Path
-else:
-    import ConfigParser as configparser
-    from pathlib2 import Path
 
 
 # File locations
@@ -197,16 +187,10 @@ def read_config():
 
     def config_get(section, var, fallback, is_boolean=False):
         try:
-            if PY3:
-                if is_boolean:
-                    val = config.getboolean(section, var, fallback=fallback)
-                else:
-                    val = config.get(section, var, fallback=fallback)
+            if is_boolean:
+                val = config.getboolean(section, var, fallback=fallback)
             else:
-                if is_boolean:
-                    val = config.getboolean(section, var)
-                else:
-                    val = config.get(section, var)
+                val = config.get(section, var, fallback=fallback)
             return val
         except Exception:
             return fallback

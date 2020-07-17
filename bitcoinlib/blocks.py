@@ -248,8 +248,6 @@ class Block:
         if not self.bits:
             return 0
         exponent = self.bits[0]
-        if not PY3:
-            exponent = ord(exponent)
         coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
         return coefficient * 256 ** (exponent - 3)
 

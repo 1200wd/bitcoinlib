@@ -670,11 +670,10 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
     def test_wallet_key_exceptions(self):
         w = HDWallet.create('test_wallet_key_not_found', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', HDWalletKey, 1000000, w._session)
-        if PY3:
-            self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
-                                               "network then specified: bitcoin",
-                                    HDWalletKey.from_key, '', w.wallet_id, w._session,
-                                    'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
+        self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
+                                           "network then specified: bitcoin",
+                                HDWalletKey.from_key, '', w.wallet_id, w._session,
+                                'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
 
 
 @parameterized_class(*params)

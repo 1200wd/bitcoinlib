@@ -27,9 +27,6 @@ from tests.test_custom import CustomAssertions
 class TestBlocks(unittest.TestCase, CustomAssertions):
 
     def setUp(self):
-        if not PY3:
-            self.skipTest("Python 2 not supported for Blocks unittest")
-
         filename = os.path.join(os.path.dirname(__file__), "block250000.pickle")
         pickle_in = open(filename, "rb")
         self.rb250000 = pickle.load(pickle_in)

@@ -961,7 +961,7 @@ class Key(object):
         # Verify addresshash
         k = Key(priv, compressed=compressed, network=network)
         addr = k.address()
-        if isinstance(addr, str) and sys.version_info > (3,):
+        if isinstance(addr, str):
             addr = addr.encode('utf-8')
         if double_sha256(addr)[0:4] != addresshash:
             raise BKeyError('Addresshash verification failed! Password or '
@@ -1274,9 +1274,7 @@ class HDKey(Key):
                 seed = os.urandom(64)
                 key, chain = self._key_derivation(seed)
             # If key is 64 bytes long assume a HD Key with key and chain part
-            elif (PY3 and isinstance(import_key, (bytearray, bytes))) or \
-                    (not PY3 and isinstance(import_key, (bytearray, str)) and to_hexstring(import_key) != import_key) \
-                    and len(import_key) == 64:
+            elif isinstance(import_key, (bytearray, bytes)) and len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
             elif isinstance(import_key, Key):
@@ -1463,7 +1461,7 @@ class HDKey(Key):
         # Verify addresshash
         k = HDKey(priv, compressed=compressed, network=network, witness_type=witness_type)
         addr = k.address()
-        if isinstance(addr, str) and sys.version_info > (3,):
+        if isinstance(addr, str):
             addr = addr.encode('utf-8')
         if double_sha256(addr)[0:4] != addresshash:
             raise BKeyError('Addresshash verification failed! Password or '

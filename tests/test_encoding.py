@@ -119,9 +119,8 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
     def test_encoding_exceptions(self):
         self.assertRaisesRegexp(EncodingError, "Unknown input format {}",
                                 change_base, {}, 4, 2)
-        if PY3:
-            self.assertRaisesRegexp(EncodingError, "Byteint must be a list or defined as bytes",
-                                    varbyteint_to_int, 'fd1027')
+        self.assertRaisesRegexp(EncodingError, "Byteint must be a list or defined as bytes",
+                                varbyteint_to_int, 'fd1027')
         self.assertRaisesRegexp(EncodingError, "Input must be a number type",
                                 int_to_varbyteint, '1000')
         self.assertRaisesRegexp(TypeError, "String value expected", normalize_string, 100)

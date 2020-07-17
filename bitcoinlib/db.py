@@ -18,10 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-try:
-    import enum
-except ImportError:
-    import enum34 as enum
+import enum
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, Numeric, Text)
