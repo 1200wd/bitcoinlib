@@ -220,7 +220,7 @@ class Service(object):
         while addresslist:
             for address in addresslist:
                 db_addr = self.cache.getaddress(address)
-                if db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount and db_addr.balance:
+                if db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount() and db_addr.balance:
                     tot_balance += db_addr.balance
                     addresslist.remove(address)
 
@@ -259,7 +259,7 @@ class Service(object):
         if utxos_cache:
             self.results_cache_n = len(utxos_cache)
 
-            if db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount:
+            if db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount():
                 return utxos_cache
             else:
                 utxos_cache = []
@@ -347,7 +347,7 @@ class Service(object):
 
         # Get (extra) transactions from service providers
         txs = []
-        if not(db_addr and db_addr.last_block and db_addr.last_block >= self._blockcount) or not caching_enabled:
+        if not(db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount()) or not caching_enabled:
             txs = self._provider_execute('gettransactions', address, qry_after_txid,  limit)
             if txs is False:
                 raise ServiceError("Error when retrieving transactions from service provider")
@@ -357,7 +357,7 @@ class Service(object):
         last_block = None
         last_txid = None
         if self.min_providers <= 1 and not(after_txid and not db_addr) and caching_enabled:
-            last_block = self._blockcount
+            last_block = self.blockcount()
             last_txid = qry_after_txid
             self.complete = True
             if len(txs) == limit:
@@ -646,9 +646,9 @@ class Cache(object):
         t.hash = to_bytes(db_tx.txid)
         t._txid = db_tx.txid
         t.date = db_tx.date
-        t.confirmations = db_tx.confirmations
         t.block_hash = db_tx.block_hash
         t.block_height = db_tx.block_height
+        t.confirmations = db_tx.confirmations
         t.status = 'confirmed'
         t.fee = db_tx.fee
         t.update_totals()
@@ -672,7 +672,10 @@ class Cache(object):
         if not db_tx:
             return False
         db_tx.txid = txid
-        return self._parse_db_transaction(db_tx)
+        t =  self._parse_db_transaction(db_tx)
+        if t.block_height:
+            t.confirmations = (self.blockcount() - t.block_height) + 1
+        return t
 
     def getaddress(self, address):
         """
@@ -729,6 +732,8 @@ class Cache(object):
             for db_tx in db_txs:
                 t = self._parse_db_transaction(db_tx)
                 if t:
+                    if t.block_height:
+                        t.confirmations = (self.blockcount() - t.block_height) + 1
                     txs.append(t)
                     if len(txs) >= limit:
                         break
