@@ -144,7 +144,7 @@ class BitcoindClient(BaseClient):
         if 'password' in base_url:
             raise ConfigError("Invalid password in bitcoind provider settings. "
                               "Please replace default password and set url in providers.json or bitcoin.conf file")
-        _logger.info("Connect to bitcoind on %s" % base_url)
+        _logger.info("Connect to bitcoind")
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 

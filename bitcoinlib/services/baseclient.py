@@ -80,10 +80,12 @@ class BaseClient(object):
             if variables:
                 url_vars = '?' + urlencode(variables)
             url += url_vars
-            _logger.info("Url get request %s" % url)
+            log_url = url if '@' not in url else url.split('@')[1]
+            _logger.info("Url get request %s" % log_url)
             self.resp = requests.get(url, timeout=self.timeout, verify=secure, headers=headers)
         elif method == 'post':
-            _logger.info("Url post request %s" % url)
+            log_url = url if '@' not in url else url.split('@')[1]
+            _logger.info("Url post request %s" % log_url)
             self.resp = requests.post(url, json=dict(variables), data=post_data, timeout=self.timeout, verify=secure,
                                       headers=headers)
 
@@ -91,12 +93,13 @@ class BaseClient(object):
         if len(resp_text) > 1000:
             resp_text = self.resp.text[:970] + '... truncated, length %d' % len(resp_text)
         _logger.debug("Response [%d] %s" % (self.resp.status_code, resp_text))
+        log_url = url if '@' not in url else url.split('@')[1]
         if self.resp.status_code == 429:
             raise ClientError("Maximum number of requests reached for %s with url %s, response [%d] %s" %
-                              (self.provider, url, self.resp.status_code, resp_text))
+                              (self.provider, log_url, self.resp.status_code, resp_text))
         elif not(self.resp.status_code == 200 or self.resp.status_code == 201):
             raise ClientError("Error connecting to %s on url %s, response [%d] %s" %
-                              (self.provider, url, self.resp.status_code, resp_text))
+                              (self.provider, log_url, self.resp.status_code, resp_text))
         try:
             if not self.resp.apparent_encoding and not self.resp.encoding:
                 return self.resp.content
