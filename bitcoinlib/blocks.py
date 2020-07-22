@@ -95,7 +95,7 @@ class Block:
         if self.transactions and len(self.transactions) and isinstance(self.transactions[0], Transaction) \
                 and self.version_int > 1:
             # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
-            if self.transactions[0].inputs[0].unlocking_script:
+            if self.transactions[0].coinbase and self.transactions[0].inputs[0].unlocking_script:
                 calc_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
                 if height and calc_height != height:
                     raise ValueError("Specified block height is different than calculated block height according to "
@@ -317,6 +317,7 @@ class Block:
             rb += t.raw()
         return rb
 
+    @property
     def version_bin(self):
         """
         Get the block version as binary string. Since BIP9 protocol changes are signaled by changing one of the 29
@@ -325,7 +326,7 @@ class Block:
         >>> from bitcoinlib.services.services import Service
         >>> srv = Service()
         >>> b = srv.getblock(450001)
-        >>> print(b.version_bin())
+        >>> print(b.version_bin)
         00100000000000000000000000000010
 
         :return str:
@@ -355,13 +356,13 @@ class Block:
         if self.version_int >> 29 == 0b001 and self.height >= 407021:
             bips.append('BIP9')
             if self.version_int >> 0 & 1 == 1:
-                bips.append('BIP68')   # BIP112, BIP113 (CSV)
+                bips.append('BIP68')   # BIP112 (CHECKSEQUENCEVERIFY), BIP113 - Relative lock-time using consensus-enforced sequence numbers
             if self.version_int >> 1 & 1 == 1:
                 bips.append('BIP141')  # BIP143, BIP147 (Segwit)
             if self.version_int >> 4 & 1 == 1:
                 bips.append('BIP91')   # Segwit?
             if self.version_int == 0x30000000:
-                bips.append('BIP109')
+                bips.append('BIP109')  # Increase block size 2MB (rejected)
             mask = 0x1fffe000
             if self.version_int & mask and self.height >= 500000:
                 bips.append('BIP310')   # version-rolling
@@ -369,9 +370,9 @@ class Block:
             if self.version_int == 2:
                 bips.append('BIP34')    # Version 2: Block Height in Coinbase
             if self.version_int == 3:
-                bips.append('BIP66')    # Version 3: Relative lock-time using consensus-enforced sequence numbers
+                bips.append('BIP66')    # Version 3: Strict DER signatures
             if self.version_int == 4:
-                bips.append('BIP65')    # Version 4: Introduce Checklocktimeverify
+                bips.append('BIP65')    # Version 4: Introduce CHECKLOCKTIMEVERIFY
             if self.version_int == 0x30000000:
                 bips.append('BIP109')   # Increase block size 2MB (rejected)
             if self.version_int == 0x20000007:

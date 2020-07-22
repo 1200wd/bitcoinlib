@@ -133,7 +133,7 @@ class DashdClient(BaseClient):
         if 'password' in base_url:
             raise ConfigError("Invalid password 'password' in dashd provider settings. "
                               "Please set password and url in providers.json file")
-        _logger.info("Connect to dashd on %s" % base_url)
+        _logger.info("Connect to dashd")
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
@@ -256,6 +256,16 @@ class DashdClient(BaseClient):
         if not res:
             return True
         return False
+
+    def getinfo(self):
+        info = self.proxy.getmininginfo()
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['chain'],
+            'difficulty': int(info['difficulty']),
+            'hashrate': int(info['networkhashps']),
+            'mempool_size': int(info['pooledtx']),
+        }
 
 
 if __name__ == '__main__':

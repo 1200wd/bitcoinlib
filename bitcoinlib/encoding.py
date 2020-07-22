@@ -46,7 +46,7 @@ if 'scrypt' not in sys.modules:
 if not USING_MODULE_SCRYPT:
     if 'scrypt_error' not in locals():
         SCRYPT_ERROR = 'unknown'
-    _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
+    _logger.warning("Error when trying to import scrypt module %s" % SCRYPT_ERROR)
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
@@ -883,3 +883,49 @@ def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
     encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
     encrypted_privkey += double_sha256(encrypted_privkey)[:4]
     return change_base(encrypted_privkey, 256, 58)
+
+
+class Quantity:
+    """
+    Class to convert very large or very small numbers to a readable format.
+
+    Provided value is converted to number between 0 and 1000, and a metric prefix will be added.
+
+    >>> # Example - the Hashrate on 10th July 2020
+    >>> str(Quantity(122972532877979100000, 'H/s'))
+    '122.973 EH/s'
+
+    """
+
+    def __init__(self, value, units='', precision=3):
+        """
+        Convert given value to number between 0 and 1000 and determine metric prefix
+
+        :param value: Value as integer in base 0
+        :type value: int, float
+        :param units: Base units, so 'g' for grams for instance
+        :type units: str
+        :param precision: Number of digits after the comma
+        :type precision: int
+
+        """
+        # Metric prefixes according to BIPM, the International System of Units (SI) in 10**3 steps
+        self.prefix_list = list('yzafpnμm1kMGTPEZY')
+        self.base = self.prefix_list.index('1')
+        assert value > 0
+
+        self.absolute = value
+        self.units = units
+        self.precision = precision
+        while (value < 1 or value > 1000) and 0 < self.base < len(self.prefix_list)-1:
+            if value > 1000:
+                self.base += 1
+                value /= 1000.0
+            elif value < 1000:
+                self.base -= 1
+                value *= 1000.0
+        self.value = value
+
+    def __str__(self):
+        # > Python 3.6: return f"{self.value:4.{self.precision}f} {self.prefix_list[self.base]}{self.units}"
+        return '%4.*f %s%s' % (self.precision, self.value, self.prefix_list[self.base], self.units)

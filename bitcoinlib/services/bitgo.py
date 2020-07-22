@@ -201,3 +201,5 @@ class BitGoClient(BaseClient):
     #     return block
 
     # def isspent(self, txid, index):
+
+    # def getinfo(self):

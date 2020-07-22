@@ -190,7 +190,7 @@ class BlockstreamClient(BaseClient):
                 return [t.hash]
         else:
             return self.compose_request('mempool', 'txids')
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if isinstance(blockid, int):
@@ -241,3 +241,5 @@ class BlockstreamClient(BaseClient):
     def isspent(self, txid, output_n):
         res = self.compose_request('tx', txid, 'outspend', str(output_n))
         return 1 if res['spent'] else 0
+
+    # def getinfo(self):

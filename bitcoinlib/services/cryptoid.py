@@ -118,7 +118,9 @@ class CryptoID(BaseClient):
         t.version = struct.pack('>L', tx['version'])
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
         t.input_total = t.output_total
-        t.fee = t.input_total - t.output_total
+        t.fee = 0
+        if t.input_total:
+            t.fee = t.input_total - t.output_total
         return t
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -155,8 +157,10 @@ class CryptoID(BaseClient):
         tx = self.compose_request(path_type='explorer', variables=variables)
         if 'confirmations' not in tx:
             return [tx['txid']]
-        return []
+        return False
 
     # def getblock
 
     # def isspent
+
+    # def getinfo(self):

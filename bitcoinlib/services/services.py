@@ -130,13 +130,24 @@ class Service(object):
         self._blockcount_update = 0
         self._blockcount = None
         self.cache = None
-        self.cache = Cache(self.network, db_uri=cache_uri)
+        self.cache_uri = cache_uri
+        try:
+            self.cache = Cache(self.network, db_uri=cache_uri)
+        except Exception as e:
+            self.cache = Cache(self.network, db_uri='')
+            _logger.warning("Could not connect to cache database. Error: %s" % e)
         self.results_cache_n = 0
         self.ignore_priority = ignore_priority
         if self.min_providers > 1:
-            self._blockcount = Service(network=network).blockcount()
+            self._blockcount = Service(network=network, cache_uri=cache_uri).blockcount()
         else:
             self._blockcount = self.blockcount()
+
+    def __exit__(self):
+        try:
+            self.cache.session.close()
+        except Exception:
+            pass
 
     def _reset_results(self):
         self.results = {}
@@ -177,6 +188,7 @@ class Service(object):
                 self.results.update(
                     {sp: res}
                 )
+                _logger.debug("Executed method %s from provider %s" % (method, sp))
                 self.resultcount += 1
             except Exception as e:
                 if not isinstance(e, AttributeError):
@@ -254,7 +266,7 @@ class Service(object):
 
         utxos_cache = []
         if self.min_providers <= 1:
-            utxos_cache = self.cache.getutxos(address, after_txid)
+            utxos_cache = self.cache.getutxos(address, after_txid) or []
         db_addr = self.cache.getaddress(address)
         if utxos_cache:
             self.results_cache_n = len(utxos_cache)
@@ -337,7 +349,7 @@ class Service(object):
             caching_enabled = False
 
         if caching_enabled:
-            txs_cache = self.cache.gettransactions(address, after_txid, limit)
+            txs_cache = self.cache.gettransactions(address, after_txid, limit) or []
             if txs_cache:
                 self.results_cache_n = len(txs_cache)
                 if len(txs_cache) == limit:
@@ -507,14 +519,16 @@ class Service(object):
             limit = 10 if parse_transactions else 99999
 
         block = self.cache.getblock(blockid)
+        is_last_page = False
         if block:
             # Block found get transactions from cache
             block.transactions = self.cache.getblocktransactions(block.height, page, limit)
-            if not block.transactions and parse_transactions:
-                block = None
-            else:
+            if block.transactions:
                 self.results_cache_n = 1
-        if not block:
+            is_last_page = page*limit > block.tx_count
+        if not block or not len(block.transactions) or (not is_last_page and len(block.transactions) < limit) or \
+                (is_last_page and ((page-1)*limit - block.tx_count + len(block.transactions)) < 0):
+            self.results_cache_n = 0
             bd = self._provider_execute('getblock', blockid, parse_transactions, page, limit)
             if not bd or isinstance(bd, bool):
                 return False
@@ -584,11 +598,24 @@ class Service(object):
         return addr_dict
 
     def isspent(self, txid, output_n):
+        """
+        Check if the output with provided transaction ID and output number is spent.
+
+        :param txid: Transaction ID hex
+        :type txid: str
+        :param output_n: Output number
+        :type output_n: int
+
+        :return bool:
+        """
         t = self.cache.gettransaction(txid)
         if t and len(t.outputs) > output_n and t.outputs[output_n].spent is not None:
             return t.outputs[output_n].spent
         else:
             return bool(self._provider_execute('isspent', txid, output_n))
+
+    def getinfo(self):
+        return self._provider_execute('getinfo')
 
 
 class Cache(object):
@@ -616,6 +643,17 @@ class Cache(object):
         if SERVICE_CACHING_ENABLED:
             self.session = DbInit(db_uri=db_uri).session
         self.network = network
+
+    def __exit__(self):
+        try:
+            self.session.close()
+        except Exception:
+            pass
+
+    def cache_enabled(self):
+        if not SERVICE_CACHING_ENABLED or not self.session:
+            return False
+        return True
 
     def commit(self):
         try:
@@ -666,7 +704,7 @@ class Cache(object):
 
         :return Transaction: A single Transaction object
         """
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return False
         db_tx = self.session.query(DbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
         if not db_tx:
@@ -686,8 +724,8 @@ class Cache(object):
 
         :return DbCacheAddress: An address cache database object
         """
-        if not SERVICE_CACHING_ENABLED:
-            return
+        if not self.cache_enabled():
+            return False
         return self.session.query(DbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -703,8 +741,8 @@ class Cache(object):
 
         :return list: List of Transaction objects
         """
-        if not SERVICE_CACHING_ENABLED:
-            return []
+        if not self.cache_enabled():
+            return False
         db_addr = self.getaddress(address)
         txs = []
         if db_addr:
@@ -741,6 +779,20 @@ class Cache(object):
         return []
 
     def getblocktransactions(self, height, page, limit):
+        """
+        Get range of transactions from a block
+
+        :param height: Block height
+        :type height: int
+        :param page: Transaction page
+        :type page: int
+        :param limit: Number of transactions per page
+        :type limit: int
+
+        :return:
+        """
+        if not self.cache_enabled():
+            return False
         n_from = (page-1) * limit
         n_to = page * limit
         db_txs = self.session.query(DbCacheTransaction).\
@@ -762,7 +814,7 @@ class Cache(object):
 
         :return str: Raw transaction as hexstring
         """
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return False
         tx = self.session.query(DbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
         if not tx:
@@ -782,8 +834,8 @@ class Cache(object):
 
         :return dict: UTXO's per address
         """
-        if not SERVICE_CACHING_ENABLED:
-            return []
+        if not self.cache_enabled():
+            return False
         db_utxos = self.session.query(DbCacheTransactionNode.spent, DbCacheTransactionNode.output_n,
                                       DbCacheTransactionNode.value, DbCacheTransaction.confirmations,
                                       DbCacheTransaction.block_height, DbCacheTransaction.fee,
@@ -824,7 +876,7 @@ class Cache(object):
 
         :return int: Fee in smallest network denominator (satoshi)
         """
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return False
         if blocks <= 1:
             varname = 'fee_high'
@@ -847,7 +899,7 @@ class Cache(object):
 
         :return int:
         """
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return False
         qr = self.session.query(DbCacheVars).filter_by(varname='blockcount', network_name=self.network.name)
         if not never_expires:
@@ -858,7 +910,7 @@ class Cache(object):
         return False
 
     def getblock(self, blockid):
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return False
         qr = self.session.query(DbCacheBlock)
         if isinstance(blockid, int):
@@ -883,7 +935,7 @@ class Cache(object):
 
         :return:
         """
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return
         dbvar = DbCacheVars(varname='blockcount', network_name=self.network.name, value=str(blockcount), type='int',
                             expires=datetime.now() + timedelta(seconds=60))
@@ -902,14 +954,17 @@ class Cache(object):
 
         :return:
         """
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return
         # Only store complete and confirmed transaction in cache
         if not t.txid:    # pragma: no cover
-            _logger.info("Caching failure tx: Incomplete transaction missing hash, date, block_height, "
-                         "network or confirmations info")
+            _logger.info("Caching failure tx: Missing transaction hash")
             return False
-        elif not t.date or not (t.block_height or t.block_hash) or not t.network:
+        elif not t.date or not t.block_height or not t.network:
+            _logger.info("Caching failure tx: Incomplete transaction missing date, block height or network info")
+            return False
+        elif not t.coinbase and [i for i in t.inputs if not i.value]:
+            _logger.info("Caching failure tx: One the transaction inputs has value 0")
             return False
         raw_hex = None
         if CACHE_STORE_RAW_TRANSACTIONS:
@@ -966,7 +1021,7 @@ class Cache(object):
 
         :return:
         """
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return
         n_txs = None
         if txs_complete:
@@ -1010,7 +1065,7 @@ class Cache(object):
 
         :return:
         """
-        if not SERVICE_CACHING_ENABLED:
+        if not self.cache_enabled():
             return
         if blocks <= 1:
             varname = 'fee_high'
@@ -1024,14 +1079,22 @@ class Cache(object):
         self.commit()
 
     def store_block(self, block):
-        if not SERVICE_CACHING_ENABLED:
+        """
+        Store block in cache database
+
+        :param block: Block
+        :type block: Block
+
+        :return:
+        """
+        if not self.cache_enabled():
             return
         if not (block.height and block.block_hash and block.prev_block and block.merkle_root and
                 block.bits and block.version) \
                 and not block.block_hash == b'\x00\x00\x00\x00\x00\x19\xd6h\x9c\x08Z\xe1e\x83\x1e\x93O\xf7c\xaeF' \
-                                            b'\xa2\xa6\xc1r\xb3\xf1\xb6\n\x8c\xe2o':
+                                            b'\xa2\xa6\xc1r\xb3\xf1\xb6\n\x8c\xe2o':  # Bitcoin genesis block
             _logger.info("Caching failure block: incomplete data")
-            return False
+            return
 
         new_block = DbCacheBlock(
             block_hash=block.block_hash, height=block.height, network_name=self.network.name,

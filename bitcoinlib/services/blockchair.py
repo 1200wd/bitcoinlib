@@ -182,22 +182,7 @@ class BlockChairClient(BaseClient):
         }
 
     def estimatefee(self, blocks):
-        # Non-scientific method to estimate transaction fees. It's probably good when it looks complicated...
-        res = self.compose_request('stats')
-        memtx = res['data']['mempool_transactions']
-        memsize = res['data']['mempool_size']
-        medfee = res['data']['median_transaction_fee_24h']
-        avgfee = res['data']['average_transaction_fee_24h']
-        memtotfee = res['data']['mempool_total_fee_usd']
-        price = res['data']['market_price_usd']
-        avgtxsize = memsize / memtx
-        mempool_feekb = ((memtotfee / price * 100000000) / memtx) * medfee/avgfee
-        avgfeekb_24h = avgtxsize * (medfee / 1000)
-        fee_estimate = (mempool_feekb + avgfeekb_24h) / 2
-        estimated_fee = int(fee_estimate * (1 / math.log(blocks+2, 6)))
-        if estimated_fee < self.network.dust_amount:
-            estimated_fee = self.network.dust_amount
-        return estimated_fee
+        return self.compose_request('stats')['data']['suggested_transaction_fee_per_byte_sat'] * 1000
 
     def blockcount(self):
         """
@@ -254,3 +239,13 @@ class BlockChairClient(BaseClient):
     def isspent(self, txid, output_n):
         t = self.gettransaction(txid)
         return 1 if t.outputs[output_n].spent else 0
+
+    def getinfo(self):
+        info = self.compose_request('stats')['data']
+        return {
+            'blockcount': info['best_block_height'],
+            'chain': '',
+            'difficulty': int(float(info['difficulty'])),
+            'hashrate': int(info['hashrate_24h']),
+            'mempool_size': int(info['mempool_transactions']),
+        }

@@ -242,7 +242,7 @@ class LitecoindClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
         if isinstance(blockid, int):
@@ -293,6 +293,16 @@ class LitecoindClient(BaseClient):
         if not res:
             return True
         return False
+
+    def getinfo(self):
+        info = self.proxy.getmininginfo()
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['chain'],
+            'difficulty': int(info['difficulty']),
+            'hashrate': int(info['networkhashps']),
+            'mempool_size': int(info['pooledtx']),
+        }
 
 
 if __name__ == '__main__':

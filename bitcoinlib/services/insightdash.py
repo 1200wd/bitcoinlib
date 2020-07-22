@@ -145,7 +145,7 @@ class InsightDashClient(BaseClient):
         res = self.compose_request('tx', txid)
         if res['confirmations'] == 0:
             return res['txid']
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions, page, limit):
         bd = self.compose_request('block', str(blockid))
@@ -177,4 +177,16 @@ class InsightDashClient(BaseClient):
         }
         return block
 
-    # def isspent
+    def isspent(self, txid, output_n):
+        t = self.gettransaction(txid)
+        return 1 if t.outputs[output_n].spent else 0
+
+    def getinfo(self):
+        info = self.compose_request('status', '')['info']
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['network'],
+            'difficulty': int(float(info['difficulty'])),
+            'hashrate': 0,
+            'mempool_size': 0,
+        }

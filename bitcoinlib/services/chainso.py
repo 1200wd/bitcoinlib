@@ -80,7 +80,7 @@ class ChainSo(BaseClient):
                 'size': 0,
                 'value': int(round(float(tx['value']) * self.units, 0)),
                 'script': tx['script_hex'],
-                'date': datetime.fromtimestamp(tx['time']),
+                'date': datetime.utcfromtimestamp(tx['time']),
             })
         if len(txs) >= 1000:
             _logger.warning("ChainSo: transaction list has been truncated, and thus is incomplete")
@@ -90,7 +90,7 @@ class ChainSo(BaseClient):
         res = self.compose_request('get_tx', txid)
         return res['data']['tx_hex']
 
-    def gettransaction(self, txid):
+    def gettransaction(self, txid, block_height=None):
         res = self.compose_request('get_tx', txid)
         tx = res['data']
         raw_tx = tx['tx_hex']
@@ -104,15 +104,19 @@ class ChainSo(BaseClient):
         for o in t.outputs:
             o.spent = None
             output_total += o.value
+        if not t.block_height:
+            t.block_height = self.getblock(tx['blockhash'], False, 1, 1)['height']
         t.block_hash = tx['blockhash']
-        t.date = datetime.fromtimestamp(tx['time'])
+        t.date = datetime.utcfromtimestamp(tx['time'])
         t.rawtx = raw_tx
         t.size = tx['size']
         t.network = self.network
         t.locktime = tx['locktime']
         t.input_total = input_total
         t.output_total = output_total
-        t.fee = t.input_total - t.output_total
+        t.fee = 0
+        if t.input_total:
+            t.fee = t.input_total - t.output_total
         t.confirmations = tx['confirmations']
         if tx['confirmations']:
             t.status = 'confirmed'
@@ -147,7 +151,7 @@ class ChainSo(BaseClient):
         res = self.compose_request('is_tx_confirmed', txid)
         if res['status'] == 'success' and res['data']['confirmations'] == 0:
             return [txid]
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if limit > 5:
@@ -157,7 +161,7 @@ class ChainSo(BaseClient):
             txs = []
             for txid in bd['txs'][(page-1)*limit:page*limit]:
                 # try:
-                txs.append(self.gettransaction(txid))
+                txs.append(self.gettransaction(txid, block_height=bd['block_no']))
                 # except Exception as e:
                 #     raise ClientError("Could not parse tx %s with error %s" % (txid, e))
         else:
@@ -184,6 +188,14 @@ class ChainSo(BaseClient):
 
     # def getrawblock(self, blockid):
 
-    def isspent(self, txid, output_n):
-        res = self.compose_request('is_tx_spent', txid, str(output_n))
-        return res['data']['is_spent']
+    # def isspent(self, txid, output_n):
+
+    def getinfo(self):
+        info = self.compose_request('get_info')['data']
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['name'],
+            'difficulty': int(float(info['mining_difficulty'])),
+            'hashrate': int(float(info['hashrate'])),
+            'mempool_size': int(info['unconfirmed_txs']),
+        }

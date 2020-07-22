@@ -182,7 +182,7 @@ class SmartbitClient(BaseClient):
             tx = self.compose_request('tx', data=txid)
             if tx['transaction']['confirmations'] == 0:
                 return [tx['transaction']['hash']]
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions, page, limit):
         if limit > 100:
@@ -222,3 +222,5 @@ class SmartbitClient(BaseClient):
     def isspent(self, txid, output_n):
         t = self.gettransaction(txid)
         return 1 if t.outputs[output_n].spent else 0
+
+    # def getinfo(self):

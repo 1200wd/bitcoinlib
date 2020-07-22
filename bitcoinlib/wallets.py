@@ -1776,6 +1776,15 @@ class HDWallet(object):
         return self.new_key(name=name, account_id=account_id, network=network, change=1)
 
     def scan_key(self, key):
+        """
+        Scan for new transactions for specified wallet key and update wallet transactions
+
+        :param key: The wallet key as object or index
+        :type key: HDWalletKey, int
+
+        :return bool: New transactions found?
+
+        """
         if isinstance(key, int):
             key = self.key(key)
         txs_found = False
@@ -1829,17 +1838,16 @@ class HDWallet(object):
             for key in self.keys_addresses(account_id=account_id, change=change, network=network, used=True):
                 self.scan_key(key.id)
 
-        # Update already known transactions
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
-        blockcount = srv.blockcount()
+        # Update already known transactions with known block height
+        self.transactions_update_confirmations()
+
+        # Check unconfirmed transactions
         db_txs = self._session.query(DbTransaction). \
             filter(DbTransaction.wallet_id == self.wallet_id,
-                   DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
+                   DbTransaction.network_name == network, DbTransaction.confirmations == 0).all()
         for db_tx in db_txs:
-            self._session.query(DbTransaction).filter_by(id=db_tx.id). \
-                update({DbTransaction.status: 'confirmed',
-                        DbTransaction.confirmations: blockcount - DbTransaction.block_height})
-        self._commit()
+            self.transactions_update_by_txids([db_tx.hash])
 
         # Scan each key address, stop when no new transactions are found after set scan gap limit
         if change is None:
@@ -2937,6 +2945,24 @@ class HDWallet(object):
             order_by(DbTransaction.confirmations).first()
         return '' if not to else to[0]
 
+    def transactions_update_confirmations(self):
+        """
+        Update number of confirmations and status for transactions in database
+
+        :return:
+        """
+        network = self.network.name
+        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
+        blockcount = srv.blockcount()
+        db_txs = self._session.query(DbTransaction). \
+            filter(DbTransaction.wallet_id == self.wallet_id,
+                   DbTransaction.network_name == network, DbTransaction.block_height > 0).all()
+        for db_tx in db_txs:
+            self._session.query(DbTransaction).filter_by(id=db_tx.id). \
+                update({DbTransaction.status: 'confirmed',
+                        DbTransaction.confirmations: (blockcount - DbTransaction.block_height) + 1})
+        self._commit()
+
     def transactions_update_by_txids(self, txids):
         """
         Update transaction or list or transaction for this wallet with provided transaction ID
@@ -3002,9 +3028,12 @@ class HDWallet(object):
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
         if depth is None:
             depth = self.key_depth
-        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
 
         # Update number of confirmations and status for already known transactions
+        if not key_id:
+            self.transactions_update_confirmations()
+
+        srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
         blockcount = srv.blockcount()
         db_txs = self._session.query(DbTransaction).\
             filter(DbTransaction.wallet_id == self.wallet_id,
@@ -3012,7 +3041,7 @@ class HDWallet(object):
         for db_tx in db_txs:
             self._session.query(DbTransaction).filter_by(id=db_tx.id).\
                 update({DbTransaction.status: 'confirmed',
-                        DbTransaction.confirmations: blockcount - DbTransaction.block_height})
+                        DbTransaction.confirmations: (blockcount - DbTransaction.block_height) + 1})
         self._commit()
 
         # Get transactions for wallet's addresses

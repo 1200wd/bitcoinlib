@@ -690,7 +690,7 @@ class Input(object):
         :type double_spend: bool
         :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
         :type locktime_cltv: int
-        :param locktime_csv: Check Sequency Verify value.
+        :param locktime_csv: Check Sequence Verify value.
         :type locktime_csv: int
         :param key_path: Key path of input key as BIP32 string or list
         :type key_path: str, list
@@ -1211,7 +1211,6 @@ class Transaction(object):
         :return Transaction:
         """
 
-        rawtx = to_bytes(rawtx)
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
@@ -1364,7 +1363,7 @@ class Transaction(object):
             'network': self.network.name,
             'witness_type': self.witness_type,
             'coinbase': self.coinbase,
-            'flag': self.flag,
+            'flag': None if not self.flag else ord(self.flag),
             'confirmations': self.confirmations,
             'block_height': self.block_height,
             'block_hash': self.block_hash,
@@ -1457,6 +1456,7 @@ class Transaction(object):
         print("Vsize: %s" % self.vsize)
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
+        print("Block: %s" % self.block_height)
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
         """

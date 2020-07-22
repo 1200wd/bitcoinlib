@@ -145,7 +145,7 @@ class DogecoindClient(BaseClient):
         if 'password' in base_url:
             raise ConfigError("Invalid password in dogecoind provider settings. "
                               "Please replace default password and set url in providers.json or dogecoin.conf file")
-        _logger.info("Connect to dogecoind on %s" % base_url)
+        _logger.info("Connect to dogecoind")
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
@@ -221,7 +221,17 @@ class DogecoindClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return []
+        return False
+
+    def getinfo(self):
+        info = self.proxy.getmininginfo()
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['chain'],
+            'difficulty': int(info['difficulty']),
+            'hashrate': int(info['networkhashps']),
+            'mempool_size': int(info['pooledtx']),
+        }
 
 
 if __name__ == '__main__':

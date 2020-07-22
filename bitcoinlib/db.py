@@ -428,8 +428,8 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
         column2 = Column('spending_index_n', Integer, doc="Index number of transaction input which spends this output")
         add_column(db.engine, 'transaction_outputs', column1)
         add_column(db.engine, 'transaction_outputs', column2)
-        version_db = db_update_version_id(db, '0.4.15')
 
+    version_db = db_update_version_id(db, code_version)
     return version_db
 
 

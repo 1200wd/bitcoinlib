@@ -134,9 +134,9 @@ class BlocksmurferClient(BaseClient):
         return tx['raw_hex']
 
     def sendrawtransaction(self, rawtx):
-        res = self.compose_request('transaction', post_data=rawtx, method='post')
+        res = self.compose_request('transaction_broadcast', post_data=rawtx, method='post')
         return {
-            'txid': res,
+            'txid': res['txid'],
             'response_dict': res
         }
 
@@ -157,7 +157,7 @@ class BlocksmurferClient(BaseClient):
                 return [t.hash]
         # else:
             # return self.compose_request('mempool', 'txids')
-        return []
+        return False
 
     def getblock(self, blockid, parse_transactions, page, limit):
         variables = {'parse_transactions': parse_transactions, 'page': page, 'limit': limit}
@@ -170,7 +170,7 @@ class BlocksmurferClient(BaseClient):
                 tx['confirmations'] = bd['depth']
                 tx['time'] = bd['time']
                 tx['block_height'] = bd['height']
-                tx['block_hash'] = bd['blockhash']
+                tx['block_hash'] = bd['block_hash']
                 t = self._parse_transaction(tx, block_count)
                 if t.txid != tx['txid']:
                     raise ClientError("Could not parse tx %s. Different txid's" % (tx['txid']))
@@ -181,17 +181,17 @@ class BlocksmurferClient(BaseClient):
         block = {
             'bits': bd['bits'],
             'depth': bd['depth'],
-            'block_hash': bd['blockhash'],
+            'block_hash': bd['block_hash'],
             'height': bd['height'],
             'merkle_root': bd['merkle_root'],
             'nonce': bd['nonce'],
             'prev_block': bd['prev_block'],
             'time': bd['time'],
-            'tx_count': bd['total_txs'],
+            'tx_count': bd['tx_count'],
             'txs': txs,
             'version': bd['version'],
             'page': page,
-            'pages': int(bd['total_txs'] // limit) + (bd['total_txs'] % limit > 0),
+            'pages': int(bd['tx_count'] // limit) + (bd['tx_count'] % limit > 0),
             'limit': limit
         }
         return block
@@ -201,3 +201,9 @@ class BlocksmurferClient(BaseClient):
     def isspent(self, txid, output_n):
         res = self.compose_request('isspent', txid, str(output_n))
         return 1 if res['spent'] else 0
+
+    def getinfo(self):
+        res = self.compose_request('')
+        info = {k: v for k, v in res.items() if k in ['chain', 'blockcount', 'hashrate', 'mempool_size',
+                                                          'difficulty']}
+        return info
