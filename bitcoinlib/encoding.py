@@ -892,8 +892,8 @@ class Quantity:
     Provided value is converted to number between 0 and 1000, and a metric prefix will be added.
 
     >>> # Example - the Hashrate on 10th July 2020
-    >>> Quantity(122972532877979100000, 'H/s')
-    122.973 EH/s
+    >>> str(Quantity(122972532877979100000, 'H/s'))
+    '122.973 EH/s'
 
     """
 

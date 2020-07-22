@@ -326,7 +326,7 @@ class Block:
         >>> from bitcoinlib.services.services import Service
         >>> srv = Service()
         >>> b = srv.getblock(450001)
-        >>> print(b.version_bin())
+        >>> print(b.version_bin)
         00100000000000000000000000000010
 
         :return str:

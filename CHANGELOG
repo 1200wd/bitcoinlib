@@ -1,3 +1,12 @@
+RELEASE 0.4.17 - Bug fix release
+================================
+* Fix logging, cache and database issues
+* Fix several bitcoind noode issues
+* Fix issues with Block object
+* Fix issues with Chainso, Blocksmurfer, Blockcypher and Blockchair
+* Disable cache when database problems occur
+* Add Quantity class to represent very large/small numbers
+
 RELEASE 0.4.16 - Blocks
 =======================
 * Create Block object to parse, serialize and extract information
