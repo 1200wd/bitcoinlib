@@ -197,7 +197,7 @@ class BitcoindClient(BaseClient):
         if not block_height and t.block_hash:
             block_height = self.proxy.getblock(t.block_hash, 1)['height']
         t.block_height = block_height
-        if not t.confirmations and block_height:
+        if not t.confirmations and block_height is not None:
             if not self.latest_block:
                 self.latest_block = self.blockcount()
             t.confirmations = (self.latest_block - block_height) + 1
