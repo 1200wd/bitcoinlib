@@ -615,6 +615,11 @@ class Service(object):
             return bool(self._provider_execute('isspent', txid, output_n))
 
     def getinfo(self):
+        """
+        Returns info about current network. Such as difficulty, latest block, mempool size and network hashrate.
+
+        :return dict:
+        """
         return self._provider_execute('getinfo')
 
 
@@ -651,11 +656,21 @@ class Cache(object):
             pass
 
     def cache_enabled(self):
+        """
+        Check if caching is enabled. Returns False if SERVICE_CACHING_ENABLED is False or no session is defined.
+
+        :return bool:
+        """
         if not SERVICE_CACHING_ENABLED or not self.session:
             return False
         return True
 
     def commit(self):
+        """
+        Commit queries in self.session. Rollback if commit fails.
+
+        :return:
+        """
         try:
             self.session.commit()
         except Exception:
@@ -667,6 +682,7 @@ class Cache(object):
         if not db_tx.raw:
             return False
         t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
+        # TODO: Avoid using raw transaction
         # locktime, version, coinbase?, witness_type
         # t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
         #                 fee=tx['fee'], size=tx['size'], hash=tx['txid'],
@@ -910,6 +926,14 @@ class Cache(object):
         return False
 
     def getblock(self, blockid):
+        """
+        Get specific block from database cache.
+
+        :param blockid: Block height or block hash
+        :type blockid: int, str
+
+        :return Block:
+        """
         if not self.cache_enabled():
             return False
         qr = self.session.query(DbCacheBlock)
