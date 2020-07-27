@@ -388,7 +388,7 @@ class Service(object):
                             if t.block_height:
                                 last_block = t.block_height - 1
                             break
-                self.cache.session.commit()
+                self.cache.commit()
                 self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=self.complete)
 
         all_txs = txs_cache + txs
@@ -399,7 +399,7 @@ class Service(object):
                 self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=True)
                 for t in all_txs:
                     self.cache.store_transaction(t, commit=False)
-                self.cache.session.commit()
+                self.cache.commit()
         return all_txs
 
     def getrawtransaction(self, txid):
@@ -544,7 +544,7 @@ class Service(object):
                     if isinstance(tx, Transaction):
                         self.cache.store_transaction(tx, order_n, commit=False)
                     order_n += 1
-                self.cache.session.commit()
+                self.cache.commit()
             self.complete = True if len(block.transactions) == block.tx_count else False
             self.cache.store_block(block)
         return block
@@ -671,6 +671,8 @@ class Cache(object):
 
         :return:
         """
+        if not self.session:
+            return
         try:
             self.session.commit()
         except Exception:
