@@ -10,7 +10,6 @@
 
 import sys
 import argparse
-import binascii
 import struct
 import ast
 from pprint import pprint
@@ -26,10 +25,6 @@ try:
 except ImportError:
     QRCODES_AVAILABLE = False
 
-try:
-    input = raw_input
-except NameError:
-    pass
 
 DEFAULT_NETWORK = 'bitcoin'
 
@@ -158,7 +153,7 @@ def create_wallet(wallet_name, args, db_uri):
             for _ in range(keys_missing):
                 passphrase = get_passphrase(args)
                 passphrase = ' '.join(passphrase)
-                seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+                seed = Mnemonic().to_seed(passphrase).hex()
                 key_list.append(HDKey.from_seed(seed, network=args.network))
         return HDWallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
                                cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
@@ -178,7 +173,7 @@ def create_wallet(wallet_name, args, db_uri):
         if len(passphrase) < 12:
             clw_exit("Please specify passphrase with 12 words or more")
         passphrase = ' '.join(passphrase)
-        seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+        seed = Mnemonic().to_seed(passphrase).hex()
         hdkey = HDKey.from_seed(seed, network=args.network)
         return HDWallet.create(wallet_name, hdkey, network=args.network, witness_type=args.witness_type,
                                db_uri=db_uri)
@@ -229,7 +224,7 @@ def main():
     if args.generate_key:
         passphrase = get_passphrase(args)
         passphrase = ' '.join(passphrase)
-        seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+        seed = Mnemonic().to_seed(passphrase).hex()
         hdkey = HDKey.from_seed(seed, network=args.network)
         print("Private Master key, to create multisig wallet on this machine:\n%s" % hdkey.wif_private())
         print("Public Master key, to share with other cosigner multisig wallets:\n%s" %

@@ -60,7 +60,7 @@ NETWORK_DEFINITIONS = _read_network_definitions()
 
 def _format_value(field, value):
     if field[:6] == 'prefix':
-        return binascii.unhexlify(value)
+        return bytes.fromhex(value)
     elif field == 'denominator':
         return float(value)
     else:
@@ -221,10 +221,10 @@ class Network(object):
         self.currency_code = NETWORK_DEFINITIONS[network_name]['currency_code']
         self.currency_symbol = NETWORK_DEFINITIONS[network_name]['currency_symbol']
         self.description = NETWORK_DEFINITIONS[network_name]['description']
-        self.prefix_address_p2sh = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address_p2sh'])
-        self.prefix_address = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address'])
+        self.prefix_address_p2sh = bytes.fromhex(NETWORK_DEFINITIONS[network_name]['prefix_address_p2sh'])
+        self.prefix_address = bytes.fromhex(NETWORK_DEFINITIONS[network_name]['prefix_address'])
         self.prefix_bech32 = NETWORK_DEFINITIONS[network_name]['prefix_bech32']
-        self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
+        self.prefix_wif = bytes.fromhex(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
         self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
         self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']
         self.dust_amount = NETWORK_DEFINITIONS[network_name]['dust_amount']

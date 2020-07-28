@@ -165,12 +165,6 @@ class TestPrivateKeyImport(unittest.TestCase):
         k = Key(pk)
         self.assertEqual('f93677c417d4750c7a5806f849739265cc46b8a9', to_hexstring(k.hash160))
 
-    def test_private_key_import_key_bytearray(self):
-        pk = bytearray(b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>'
-                       b'A\xda\xa6\x01')
-        self.k = Key(pk)
-        self.assertEqual('KyBsPXxTuVD82av65KZkrGrWi5qLMah5SdNq6uftawDbgKa2wv6S', self.k.wif())
-
     def test_private_key_import_wif(self):
         self.k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
         self.assertEqual('88ccb90221d9b44df8dd317307de2d6019c9c7448dccaa1e45bae77e5a022b7b', self.k.private_hex)

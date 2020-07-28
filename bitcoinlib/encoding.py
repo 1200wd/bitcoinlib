@@ -23,7 +23,6 @@ import numbers
 from copy import deepcopy
 import hashlib
 import pyaes
-import binascii
 import unicodedata
 import struct
 from bitcoinlib.main import *
@@ -203,12 +202,12 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     addzeros = 0
     inp = normalize_var(chars, base_from)
 
-    # Use binascii and int for standard conversions to speedup things
+    # Use bytes and int's methods for standard conversions to speedup things
     if not min_length:
         if base_from == 256 and base_to == 16:
-            return to_hexstring(inp)
+            return inp.hex()
         elif base_from == 16 and base_to == 256:
-            return binascii.unhexlify(inp)
+            return bytes.fromhex(chars)
     if base_from == 16 and base_to == 10:
         return int(inp, 16)
     if base_from == 10 and base_to == 16:
@@ -216,6 +215,8 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
         return hex_outp.zfill(min_length) if min_length else hex_outp
     if base_from == 256 and base_to == 10:
         return int.from_bytes(inp, 'big')
+    if base_from == 10 and base_to == 256:
+        return inp.to_bytes(min_length, byteorder='big')
 
     if output_even is None and base_to == 16:
         output_even = True
@@ -371,7 +372,7 @@ def convert_der_sig(signature, as_hex=True):
     if as_hex:
         return sig
     else:
-        return binascii.unhexlify(sig)
+        return bytes.fromhex(sig)
 
 
 def der_encode_sig(r, s):
@@ -543,7 +544,7 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
     :return str: Base-58 encoded address
     """
     # prefix = to_bytes(prefix)
-    key = to_bytearray(prefix) + to_bytearray(pubkeyhash)
+    key = to_bytes(prefix) + to_bytes(pubkeyhash)
     addr256 = key + double_sha256(key)[:4]
     return change_base(addr256, 256, 58)
 
@@ -659,47 +660,36 @@ def varstr(string):
     return int_to_varbyteint(len(s)) + s
 
 
-def to_bytearray(string):
-    """
-    Convert String, Unicode or Bytes to Python 2 and 3 compatible ByteArray
-
-    :param string: String, Unicode, Bytes or ByteArray
-    :type string: bytes, str, bytearray
-
-    :return bytearray:
-    """
-    if isinstance(string, TYPE_TEXT):
-        try:
-            string = binascii.unhexlify(string)
-        except (TypeError, binascii.Error):
-            pass
-    return bytearray(string)
-
-
 def to_bytes(string, unhexlify=True):
     """
-    Convert String, Unicode or ByteArray to Bytes
+    Convert string, hexadecimal string or bytearray to bytes
 
     :param string: String to convert
-    :type string: str, unicode, bytes, bytearray
+    :type string: str, bytes, bytearray
     :param unhexlify: Try to unhexlify hexstring
     :type unhexlify: bool
 
     :return: Bytes var
     """
-    s = normalize_var(string)
+    if not string:
+        return b''
     if unhexlify:
         try:
-            s = binascii.unhexlify(s)
+            if isinstance(string, bytes):
+                string = string.decode()
+            s = bytes.fromhex(string)
             return s
-        except (TypeError, binascii.Error):
+        except (TypeError, ValueError):
             pass
-    return s
+    if isinstance(string, bytes):
+        return string
+    else:
+        return bytes(string, 'utf8')
 
 
 def to_hexstring(string):
     """
-    Convert Bytes or ByteArray to hexadecimal string
+    Convert Bytes or ByteArray to a hexadecimal string
 
     >>> to_hexstring('\x12\xaa\xdd')
     '12aadd'
@@ -709,17 +699,15 @@ def to_hexstring(string):
 
     :return: hexstring
     """
-    string = normalize_var(string)
+    try:
+        bytes.fromhex(string)
+        return string
+    except (ValueError, TypeError):
+        pass
 
-    if isinstance(string, (str, bytes)):
-        try:
-            binascii.unhexlify(string)
-            return str(string, 'ISO-8859-1')
-        except (TypeError, binascii.Error):
-            pass
-
-    s = binascii.hexlify(string)
-    return str(s, 'ISO-8859-1')
+    if not isinstance(string, bytes):
+        string = bytes(string, 'utf8')
+    return string.hex()
 
 
 def normalize_string(string):
@@ -806,7 +794,7 @@ def bip38_decrypt(encrypted_privkey, passphrase):
     decryptedhalf2 = aes.decrypt(encryptedhalf2)
     decryptedhalf1 = aes.decrypt(encryptedhalf1)
     priv = decryptedhalf1 + decryptedhalf2
-    priv = binascii.unhexlify('%064x' % (int(binascii.hexlify(priv), 16) ^ int(binascii.hexlify(derivedhalf1), 16)))
+    priv = (int.from_bytes(priv, 'big') ^ int.from_bytes(derivedhalf1, 'big')).to_bytes(32, 'big')
     # if compressed:
     #     # FIXME: This works but does probably not follow the BIP38 standards (was before: priv = b'\0' + priv)
     #     priv += b'\1'
@@ -838,10 +826,10 @@ def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     aes = pyaes.AESModeOfOperationECB(derivedhalf2)
-    encryptedhalf1 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(private_hex[0:32], 16) ^
-                                                                int(binascii.hexlify(derivedhalf1[0:16]), 16))))
-    encryptedhalf2 = aes.encrypt(binascii.unhexlify('%0.32x' % (int(private_hex[32:64], 16) ^
-                                                                int(binascii.hexlify(derivedhalf1[16:32]), 16))))
+    encryptedhalf1 = \
+        aes.encrypt((int(private_hex[0:32], 16) ^ int.from_bytes(derivedhalf1[0:16], 'big')).to_bytes(16, 'big'))
+    encryptedhalf2 = \
+        aes.encrypt((int(private_hex[32:64], 16) ^ int.from_bytes(derivedhalf1[16:32], 'big')).to_bytes(16, 'big'))
     encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
     encrypted_privkey += double_sha256(encrypted_privkey)[:4]
     return change_base(encrypted_privkey, 256, 58)

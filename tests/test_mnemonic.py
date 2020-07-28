@@ -97,5 +97,6 @@ class TestMnemonics(unittest.TestCase):
         self.assertEqual(Mnemonic(language='chinese_traditional').word(2047), '歇')
         self.assertEqual(len(Mnemonic().wordlist()), 2048)
 
+
 if __name__ == '__main__':
     unittest.main()

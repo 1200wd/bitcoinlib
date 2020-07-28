@@ -468,7 +468,7 @@ class Address(object):
 
         >>> addr = Address.import_address('bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3')
         >>> addr.as_dict()
-        {'network': 'bitcoin', 'data': '', 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', 'hashed_data': '225601de37da89d0cef77f2ddbacf16bd5df05bd3fe9cbd8d62a56204364e783', 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
+        {'network': 'bitcoin', '_data': None, 'script_type': 'p2wsh', 'encoding': 'bech32', 'compressed': None, 'witness_type': 'segwit', 'depth': None, 'change': None, 'address_index': None, 'prefix': 'bc', 'redeemscript': '', '_hashed_data': None, 'address': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3', 'address_orig': 'bc1qyftqrh3hm2yapnhh0ukaht83d02a7pda8l5uhkxk9ftzqsmyu7pst6rke3'}
 
         :param address: Address to import
         :type address: str
@@ -595,7 +595,7 @@ class Address(object):
                 self.prefix = self.network.prefix_bech32
         else:
             raise BKeyError("Encoding %s not supported" % self.encoding)
-        self.address = pubkeyhash_to_addr(bytearray(self.hash_bytes), prefix=self.prefix, encoding=self.encoding)
+        self.address = pubkeyhash_to_addr(self.hash_bytes, prefix=self.prefix, encoding=self.encoding)
         self.address_orig = None
         provider_prefix = None
         if network_overrides and 'prefix_address_p2sh' in network_overrides and self.script_type == 'p2sh':
@@ -783,14 +783,14 @@ class Key(object):
         elif self.is_private and self.key_format == 'decimal':
             self.secret = import_key
             self.private_hex = change_base(import_key, 10, 16, 64)
-            self.private_byte = binascii.unhexlify(self.private_hex)
+            self.private_byte = bytes.fromhex(self.private_hex)
         elif self.is_private:
             if self.key_format == 'hex':
                 key_hex = import_key
-                key_byte = binascii.unhexlify(key_hex)
+                key_byte = bytes.fromhex(key_hex)
             elif self.key_format == 'hex_compressed':
                 key_hex = import_key[:-2]
-                key_byte = binascii.unhexlify(key_hex)
+                key_byte = bytes.fromhex(key_hex)
                 self.compressed = True
             elif self.key_format == 'bin':
                 key_byte = import_key
@@ -1001,7 +1001,7 @@ class Key(object):
             versionbyte = self.network.prefix_wif
         else:
             if not isinstance(prefix, (bytes, bytearray)):
-                versionbyte = binascii.unhexlify(prefix)
+                versionbyte = bytes.fromhex(prefix)
             else:
                 versionbyte = prefix
 
@@ -1497,7 +1497,7 @@ class HDKey(Key):
 
         rkey = self.private_byte or self.public_compressed_byte
         if prefix and not isinstance(prefix, (bytes, bytearray)):
-            prefix = binascii.unhexlify(prefix)
+            prefix = bytes.fromhex(prefix)
         if self.is_private and is_private:
             if not prefix:
                 prefix = self.network.wif_prefix(is_private=True, witness_type=witness_type, multisig=multisig)
@@ -1889,7 +1889,7 @@ class HDKey(Key):
         else:
             prefix = '02'
         xhex = change_base(ki_x, 10, 16, 64)
-        secret = binascii.unhexlify(prefix + xhex)
+        secret = bytes.fromhex(prefix + xhex)
         return HDKey(key=secret, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
                      child_index=index, is_private=False, witness_type=self.witness_type, multisig=self.multisig,
                      encoding=self.encoding, network=network)
@@ -1986,7 +1986,7 @@ class Signature(object):
         if isinstance(tx_hash, bytes):
             tx_hash = to_hexstring(tx_hash)
         if len(tx_hash) > 64:
-            tx_hash = double_sha256(binascii.unhexlify(tx_hash), as_hex=True)
+            tx_hash = double_sha256(bytes.fromhex(tx_hash), as_hex=True)
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
         pub_key = private.public()
@@ -2215,7 +2215,7 @@ class Signature(object):
             except ecdsa.keys.BadSignatureError:
                 return False
             except ecdsa.keys.BadDigestError as e:
-                _logger.info("Bad Digest %s (error %s)" % (binascii.hexlify(signature), e))
+                _logger.info("Bad Digest %s (error %s)" % (signature.hex(), e))
                 return False
             return True
 

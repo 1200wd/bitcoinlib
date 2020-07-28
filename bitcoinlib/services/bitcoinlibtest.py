@@ -22,7 +22,7 @@ import logging
 import hashlib
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.main import MAX_TRANSACTIONS
-from bitcoinlib.encoding import addr_to_pubkeyhash, to_hexstring, to_bytes, addr_bech32_to_pubkeyhash, double_sha256
+from bitcoinlib.encoding import addr_to_pubkeyhash, addr_bech32_to_pubkeyhash, double_sha256, to_bytes
 
 _logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ class BitcoinLibTestClient(BaseClient):
 
         :return str: Transaction hash
         """
-        txid = double_sha256[::-1].hex()
+        txid = double_sha256(to_bytes(rawtx))[::-1].hex()
         return {
             'txid': txid,
             'response_dict': {}
