@@ -610,13 +610,13 @@ class Address(object):
     @property
     def hashed_data(self):
         if not self._hashed_data:
-            self._hashed_data = to_hexstring(self.hash_bytes)
+            self._hashed_data = self.hash_bytes.hex()
         return self._hashed_data
 
     @property
     def data(self):
         if not self._data:
-            self._data = to_hexstring(self.data_bytes)
+            self._data = self.data_bytes.hex()
         return self._data
 
     def as_dict(self):
@@ -630,8 +630,8 @@ class Address(object):
         del(addr_dict['hash_bytes'])
         if isinstance(addr_dict['network'], Network):
             addr_dict['network'] = addr_dict['network'].name
-        addr_dict['redeemscript'] = to_hexstring(addr_dict['redeemscript'])
-        addr_dict['prefix'] = to_hexstring(addr_dict['prefix'])
+        addr_dict['redeemscript'] = addr_dict['redeemscript'].hex()
+        addr_dict['prefix'] = addr_dict['prefix']
         return addr_dict
 
     def as_json(self):
@@ -794,12 +794,12 @@ class Key(object):
                 self.compressed = True
             elif self.key_format == 'bin':
                 key_byte = import_key
-                key_hex = to_hexstring(key_byte)
+                key_hex = key_byte.hex()
             elif self.key_format == 'bin_compressed':
                 key_byte = import_key
                 if len(import_key) in [33, 65, 129] and import_key[-1:] == b'\1':
                     key_byte = import_key[:-1]
-                key_hex = to_hexstring(key_byte)
+                key_hex = key_byte.hex()
                 self.compressed = True
             elif self.is_private and self.key_format in ['wif', 'wif_compressed']:
                 # Check and remove Checksum, prefix and postfix tags
@@ -827,7 +827,7 @@ class Key(object):
                 else:
                     self.compressed = False
                 key_byte = key[1:]
-                key_hex = to_hexstring(key_byte)
+                key_hex = key_byte.hex()
             else:
                 raise BKeyError("Unknown key format %s" % self.key_format)
 
@@ -923,7 +923,7 @@ class Key(object):
             key_dict['wif'] = self.wif()
         key_dict['public_hex'] = self.public_hex
         key_dict['public_uncompressed_hex'] = self.public_uncompressed_hex
-        key_dict['hash160'] = to_hexstring(self.hash160)
+        key_dict['hash160'] = self.hash160.hex()
         key_dict['address'] = self.address()
         x, y = self.public_point()
         key_dict['point_x'] = x
@@ -1135,7 +1135,7 @@ class Key(object):
         print("PUBLIC KEY")
         print(" Public Key (hex)            %s" % self.public_hex)
         print(" Public Key uncompr. (hex)   %s" % self.public_uncompressed_hex)
-        print(" Public Key Hash160          %s" % to_hexstring(self.hash160))
+        print(" Public Key Hash160          %s" % self.hash160.hex())
         print(" Address (b58)               %s" % self.address())
         point_x, point_y = self.public_point()
         print(" Point x                     %s" % point_x)
@@ -1374,9 +1374,9 @@ class HDKey(Key):
 
         key_dict = super(HDKey, self).as_dict()
         if include_private:
-            key_dict['fingerprint'] = to_hexstring(self.fingerprint)
-            key_dict['chain_code'] = to_hexstring(self.chain)
-            key_dict['fingerprint_parent'] = to_hexstring(self.parent_fingerprint)
+            key_dict['fingerprint'] = self.fingerprint.hex()
+            key_dict['chain_code'] = self.chain.hex()
+            key_dict['fingerprint_parent'] = self.parent_fingerprint.hex()
         key_dict['child_index'] = self.child_index
         key_dict['depth'] = self.depth
         key_dict['extended_wif_public'] = self.wif_public()
@@ -1921,7 +1921,7 @@ class Signature(object):
     >>> sk = HDKey('f2620684cef2b677dc2f043be8f0873b61e79b274c7e7feeb434477c082e0dc2')
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
-    >>> to_hexstring(signature.as_der_encoded())
+    >>> signature.as_der_encoded().hex()
     '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba'
     
     """
@@ -1947,13 +1947,10 @@ class Signature(object):
             der_signature = signature[:-1]
             hash_type = change_base(signature[-1:], 256, 10)
             signature = convert_der_sig(signature[:-1], as_hex=False)
-        # signature = to_hexstring(signature)
         if len(signature) != 64:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
-        # r = int.from_bytes(signature[:32], "big")
-        # s = int.from_bytes(signature[32:], "big")
-        r = change_base(signature[:32], 256, 10)
-        s = change_base(signature[32:], 256, 10)
+        r = int.from_bytes(signature[:32], "big")
+        s = int.from_bytes(signature[32:], "big")
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
                          hash_type=hash_type)
 
@@ -1984,7 +1981,7 @@ class Signature(object):
         :return Signature: 
         """
         if isinstance(tx_hash, bytes):
-            tx_hash = to_hexstring(tx_hash)
+            tx_hash = tx_hash.hex()
         if len(tx_hash) > 64:
             tx_hash = double_sha256(bytes.fromhex(tx_hash), as_hex=True)
         if not isinstance(private, (Key, HDKey)):
@@ -2023,8 +2020,8 @@ class Signature(object):
             tx_hash_bytes = to_bytes(tx_hash)
             sig_der = sk.sign_digest(tx_hash_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
             signature = convert_der_sig(sig_der)
-            r = change_base(signature[:64], 16, 10)
-            s = change_base(signature[64:], 16, 10)
+            r = int(signature[:64], 16)
+            s = int(signature[64:], 16)
             if s > secp256k1_n / 2:
                 s = secp256k1_n - s
             return Signature(r, s, tx_hash, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
@@ -2072,7 +2069,7 @@ class Signature(object):
         self._der_encoded = to_bytes(der_signature)
         if isinstance(signature, bytes):
             self._signature = signature
-            signature = to_hexstring(signature)
+            signature = signature.hex()
         else:
             self._signature = to_bytes(signature)
         if signature and len(signature) != 128:
@@ -2083,7 +2080,7 @@ class Signature(object):
         self.hash_type = hash_type
 
     def __repr__(self):
-        der_sig = '' if not self._der_encoded else to_hexstring(self._der_encoded)
+        der_sig = '' if not self._der_encoded else self._der_encoded.hex()
         return "<Signature(r=%d, s=%d, signature=%s, der_signature=%s)>" % \
                (self.r, self.s, self.hex(), der_sig)
 
@@ -2096,7 +2093,7 @@ class Signature(object):
         if value is not None:
             self._tx_hash = value
             if isinstance(value, bytes):
-                self._tx_hash = to_hexstring(value)
+                self._tx_hash = value.hex()
 
     @property
     def public_key(self):
@@ -2229,7 +2226,7 @@ def sign(tx_hash, private, use_rfc6979=True, k=None):
     >>> sk = HDKey('728afb86a98a0b60cc81faadaa2c12bc17d5da61b8deaf1c08fc07caf424d493')
     >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
     >>> signature = sign(tx_hash, sk)
-    >>> to_hexstring(signature.as_der_encoded())
+    >>> signature.as_der_encoded().hex()
     '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a1'
 
     :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.

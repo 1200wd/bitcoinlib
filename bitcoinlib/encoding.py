@@ -326,7 +326,7 @@ def int_to_varbyteint(inp):
 
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
-    >>> to_hexstring(int_to_varbyteint(10000))
+    >>> int_to_varbyteint(10000).hex()
     'fd1027'
 
     :param inp: Integer to convert
@@ -646,7 +646,7 @@ def varstr(string):
     """
     Convert string to variably sized string: Bytestring preceded with length byte
 
-    >>> to_hexstring(varstr(to_bytes('5468697320737472696e67206861732061206c656e677468206f66203330')))
+    >>> varstr(to_bytes('5468697320737472696e67206861732061206c656e677468206f66203330')).hex()
     '1e5468697320737472696e67206861732061206c656e677468206f66203330'
 
     :param string: String input
@@ -689,9 +689,9 @@ def to_bytes(string, unhexlify=True):
 
 def to_hexstring(string):
     """
-    Convert Bytes or ByteArray to a hexadecimal string
+    Convert bytes, string, bytearray to a hexadecimal string
 
-    >>> to_hexstring('\x12\xaa\xdd')
+    >>> to_hexstring(b'\x12\xaa\xdd')
     '12aadd'
 
     :param string: Variable to convert to hex string
