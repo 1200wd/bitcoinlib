@@ -163,7 +163,7 @@ class TestPrivateKeyImport(unittest.TestCase):
         pk = '4781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd' \
              '991064c2e7f7d532b9c9ca825671a8809ab6876c78b'
         k = Key(pk)
-        self.assertEqual('f93677c417d4750c7a5806f849739265cc46b8a9', to_hexstring(k.hash160))
+        self.assertEqual('f93677c417d4750c7a5806f849739265cc46b8a9', k.hash160.hex())
 
     def test_private_key_import_wif(self):
         self.k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
@@ -213,10 +213,10 @@ class TestPublicKeyConversion(unittest.TestCase):
                          self.K.public_point())
 
     def test_public_key_get_hash160_uncompressed(self):
-        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', to_hexstring(self.K.hash160))
+        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', self.K.hash160.hex())
 
     def test_public_key_get_hash160(self):
-        self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', to_hexstring(self.KC.hash160))
+        self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', self.KC.hash160.hex())
 
     def test_public_key_try_private(self):
         self.assertFalse(self.K.private_hex)
@@ -776,12 +776,12 @@ class TestKeysSignatures(unittest.TestCase):
         ]
         sig_method1 = sign(sig_tests[0][0], sig_tests[0][1], k=sig_tests[0][2])
         self.assertEqual(sig_method1.hex(), sig_tests[0][3])
-        self.assertEqual(to_hexstring(sig_method1.as_der_encoded()), sig_tests[0][4])
+        self.assertEqual(sig_method1.as_der_encoded().hex(), sig_tests[0][4])
         count = 0
         for case in sig_tests:
             sig = Signature.create(case[0], case[1], k=case[2])
             self.assertEqual(sig.hex(), case[3], msg="Error in #%d: %s != %s" % (count, sig.hex(), case[3]))
-            self.assertEqual(to_hexstring(sig.as_der_encoded()), case[4])
+            self.assertEqual(sig.as_der_encoded().hex(), case[4])
             self.assertTrue(sig.verify())
             count += 1
 
@@ -872,7 +872,7 @@ class TestKeysSignatures(unittest.TestCase):
                            'c8ccd1cc6d1ebc631b94c42f7c4578f28590d651c6e'
 
         sig = Signature(r, s)
-        self.assertEqual(to_hexstring(sig.as_der_encoded()), expected_der)
+        self.assertEqual(sig.as_der_encoded().hex(), expected_der)
         self.assertEqual(sig.bytes(), expected_sig_bytes)
         self.assertEqual(sig.hex(), expected_sig_hex)
 

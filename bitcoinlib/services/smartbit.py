@@ -23,7 +23,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import varstr, to_bytes, to_hexstring
+from bitcoinlib.encoding import varstr, to_bytes
 from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
@@ -132,7 +132,7 @@ class SmartbitClient(BaseClient):
                         'fee': t.fee,
                         'size': t.size,
                         'value': utxo.value,
-                        'script': to_hexstring(utxo.lock_script),
+                        'script': utxo.lock_script.hex(),
                         'date': t.date
                     })
         return utxos

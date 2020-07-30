@@ -69,8 +69,7 @@ class Mnemonic(object):
         
         First use 'sanitize_mnemonic' to determine language and validate and check words
 
-        >>> from bitcoinlib.encoding import to_hexstring
-        >>> to_hexstring(Mnemonic().to_seed('chunk gun celery million wood kite tackle twenty story episode raccoon dutch'))
+        >>> Mnemonic().to_seed('chunk gun celery million wood kite tackle twenty story episode raccoon dutch').hex()
         '6969ed4666db67fc74fae7869e2acf3c766b5ef95f5e31eb2fcebd93d76069c6de971225f700042b0b513f0ad6c8562277fc4b5ee1344b720f1686dc2dccc220'
 
         :param words: Mnemonic passphrase as string with space separated words
@@ -160,8 +159,7 @@ class Mnemonic(object):
         """
         Convert Mnemonic words back to key data entropy
 
-        >>> from bitcoinlib.encoding import to_hexstring
-        >>> to_hexstring(Mnemonic().to_entropy('chunk gun celery million wood kite tackle twenty story episode raccoon dutch'))
+        >>> Mnemonic().to_entropy('chunk gun celery million wood kite tackle twenty story episode raccoon dutch').hex()
         '28acfc94465fd2f6774759d6897ec122'
 
 

@@ -1475,7 +1475,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             '4fffbf7c50009e5477ac06b9f1741890f7237191d1cf5489c7b4039df2ebd626',
             '9423919185b15c633d2fcd5095195b521a8970f01ca6413c43dbe5646e5b8e1e',
             'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f']
-        prev_tx_list = sorted([to_hexstring(x.prev_hash) for x in tx.inputs])
+        prev_tx_list = sorted([x.prev_hash.hex() for x in tx.inputs])
         self.assertListEqual(prev_tx_list, prev_tx_list_check)
         self.wallet.transactions_export()
 
@@ -1556,7 +1556,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         t = wlt.send_to(to_key.address, 9000)
         self.assertEqual(wlt.balance(), 200000000 - t.fee)
         self.assertEqual(t.txid, wlt.transaction_spent(t.inputs[0].prev_hash, t.inputs[0].output_n))
-        self.assertEqual(t.txid, wlt.transaction_spent(to_hexstring(t.inputs[0].prev_hash), t.inputs[0].output_n_int))
+        self.assertEqual(t.txid, wlt.transaction_spent(t.inputs[0].prev_hash.hex(), t.inputs[0].output_n_int))
         del wlt
 
     def test_wallet_balance_update_multi_network(self):

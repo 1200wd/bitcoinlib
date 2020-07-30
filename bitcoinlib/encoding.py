@@ -689,7 +689,8 @@ def to_bytes(string, unhexlify=True):
 
 def to_hexstring(string):
     """
-    Convert bytes, string, bytearray to a hexadecimal string
+    Convert bytes, string, bytearray to a hexadecimal string. Use instead of built-in hex() method if format
+    of input string is not known.
 
     >>> to_hexstring(b'\x12\xaa\xdd')
     '12aadd'
@@ -699,6 +700,8 @@ def to_hexstring(string):
 
     :return: hexstring
     """
+    if not string:
+        return ''
     try:
         bytes.fromhex(string)
         return string

@@ -725,9 +725,9 @@ class HDWalletTransaction(Transaction):
 
         return cls(hdwallet=hdwallet, inputs=inputs, outputs=outputs, locktime=db_tx.locktime,
                    version=db_tx.version, network=network, fee=db_tx.fee, fee_per_kb=fee_per_kb,
-                   size=db_tx.size, hash=txid, date=db_tx.date, confirmations=db_tx.confirmations,
+                   size=db_tx.size, hash=bytes.fromhex(txid), date=db_tx.date, confirmations=db_tx.confirmations,
                    block_height=db_tx.block_height, block_hash=db_tx.block_hash, input_total=db_tx.input_total,
-                   output_total=db_tx.output_total, rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
+                   output_total=db_tx.output_total, rawtx=to_hexstring(db_tx.raw), status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)  # flag=db_tx.flag
 
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=None):

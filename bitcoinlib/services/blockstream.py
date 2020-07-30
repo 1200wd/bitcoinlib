@@ -23,7 +23,6 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
 
 PROVIDERNAME = 'blockstream'
 # Please note: In the Blockstream API, the first couple of Bitcoin blocks are not correctly indexed,
@@ -235,7 +234,7 @@ class BlockstreamClient(BaseClient):
         if isinstance(blockid, int):
             blockid = self.compose_request('block-height', str(blockid))
         rawblock = self.compose_request('block', blockid, 'raw')
-        hexrawblock = to_hexstring(rawblock)
+        hexrawblock = rawblock.hex()
         return hexrawblock
 
     def isspent(self, txid, output_n):

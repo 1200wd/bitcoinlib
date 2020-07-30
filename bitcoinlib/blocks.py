@@ -121,7 +121,7 @@ class Block:
         return False
 
     def __repr__(self):
-        return "<Block(%s, %s, transactions: %s)>" % (to_hexstring(self.block_hash), self.height, self.tx_count)
+        return "<Block(%s, %s, transactions: %s)>" % (self.block_hash.hex(), self.height, self.tx_count)
 
     @classmethod
     def from_raw(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
@@ -156,7 +156,7 @@ class Block:
             block_hash = block_hash_calc
         elif block_hash != block_hash_calc:
             raise ValueError("Provided block hash does not correspond to calculated block hash %s" %
-                             to_hexstring(block_hash_calc))
+                             block_hash_calc.hex())
 
         version = raw[0:4][::-1]
         prev_block = raw[4:36][::-1]
@@ -222,11 +222,11 @@ class Block:
         :return dict:
         """
         return {
-            'block_hash': to_hexstring(self.block_hash),
+            'block_hash': self.block_hash.hex(),
             'height': self.height,
             'version': self.version_int,
-            'prev_block': None if not self.prev_block else to_hexstring(self.prev_block),
-            'merkle_root': to_hexstring(self.merkle_root),
+            'prev_block': None if not self.prev_block else self.prev_block.hex(),
+            'merkle_root': self.merkle_root.hex(),
             'timestamp': self.time,
             'bits': self.bits_int,
             'nonce': self.nonce_int,

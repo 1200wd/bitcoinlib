@@ -21,7 +21,6 @@
 from bitcoinlib.main import *
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction, transaction_update_spents
-from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'bcoin'
@@ -117,7 +116,7 @@ class BcoinClient(BaseClient):
                             'fee': tx.fee,
                             'size': tx.size,
                             'value': unspent.value,
-                            'script': to_hexstring(unspent.lock_script),
+                            'script': unspent.lock_script.hex(),
                             'date': tx.date,
                          }
                     )

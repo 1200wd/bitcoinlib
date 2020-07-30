@@ -2125,7 +2125,10 @@ class Signature(object):
 
         :return hexstring:
         """
-        return to_hexstring(self.bytes())
+        return self.bytes().hex()
+
+    def __index__(self):
+        return self.bytes()
 
     def bytes(self):
         """
@@ -2135,7 +2138,7 @@ class Signature(object):
         """
 
         if not self._signature:
-            self._signature = to_bytes('%064x%064x' % (self.r, self.s))
+            self._signature = self.r.to_bytes(32, 'big') + self.s.to_bytes(32, 'big')
         return self._signature
 
     def as_der_encoded(self, as_hex=False):
@@ -2149,10 +2152,7 @@ class Signature(object):
         """
         if not self._der_encoded:
             self._der_encoded = der_encode_sig(self.r, self.s)
-        if as_hex:
-            return to_hexstring(self._der_encoded)
-        else:
-            return self._der_encoded
+        return self._der_encoded.hex() if as_hex else self._der_encoded
 
     def verify(self, tx_hash=None, public_key=None):
         """
