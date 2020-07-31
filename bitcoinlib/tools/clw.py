@@ -16,7 +16,6 @@ from pprint import pprint
 from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
-from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.main import BITCOINLIB_VERSION
 
 try:
@@ -198,7 +197,7 @@ def print_transaction(wt):
         'network': wt.network.name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
             'address': o.address, 'value': o.value
         } for o in wt.outputs], 'inputs': [{
-            'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
+            'prev_hash': i.prev_hash.hex(), 'output_n': struct.unpack('>I', i.output_n)[0],
             'address': i.address, 'signatures': [{
                 'signature': s.hex(), 'sig_der': s.as_der_encoded(as_hex=True),
                 'pub_key': s.public_key.public_hex,

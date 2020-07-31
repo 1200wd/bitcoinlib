@@ -288,7 +288,7 @@ def deserialize_address(address, encoding=None, network=None):
                 return {
                     'address': address,
                     'encoding': 'base58',
-                    'public_key_hash': change_base(public_key_hash, 256, 16),
+                    'public_key_hash': '' if not public_key_hash else public_key_hash.hex(),
                     'public_key_hash_bytes': public_key_hash,
                     'prefix': address_prefix,
                     'network': network,
@@ -309,7 +309,7 @@ def deserialize_address(address, encoding=None, network=None):
             return {
                 'address': address,
                 'encoding': 'bech32',
-                'public_key_hash': change_base(public_key_hash, 256, 16),
+                'public_key_hash': '' if not public_key_hash else public_key_hash.hex(),
                 'public_key_hash_bytes': public_key_hash,
                 'prefix': prefix,
                 'network': '' if not networks else networks[0],
@@ -752,7 +752,7 @@ class Key(object):
                 self.public_uncompressed_hex = pub_key
                 self.x_hex = pub_key[2:66]
                 self.y_hex = pub_key[66:130]
-                self._y = change_base(self.y_hex, 16, 10)
+                self._y = int(self.y_hex, 16)
                 self.compressed = False
                 if self._y % 2:
                     prefix = '03'
@@ -766,7 +766,7 @@ class Key(object):
                 self.compressed = True
                 # Calculate y from x with y=x^3 + 7 function
                 sign = pub_key[:2] == '03'
-                self._x = change_base(self.x_hex, 16, 10)
+                self._x = int(self.x_hex, 16)
                 ys = pow(self._x, 3, secp256k1_p) + 7 % secp256k1_p
                 self._y = mod_sqrt(ys)
                 if self._y & 1 != sign:
@@ -781,8 +781,8 @@ class Key(object):
             else:
                 self.public_byte = self.public_uncompressed_byte
         elif self.is_private and self.key_format == 'decimal':
-            self.secret = import_key
-            self.private_hex = change_base(import_key, 10, 16, 64)
+            self.secret = int(import_key)
+            self.private_hex = change_base(self.secret, 10, 16, 64)
             self.private_byte = bytes.fromhex(self.private_hex)
         elif self.is_private:
             if self.key_format == 'hex':
@@ -835,7 +835,7 @@ class Key(object):
                 raise BKeyError("Cannot format key in hex or byte format")
             self.private_hex = key_hex
             self.private_byte = key_byte
-            self.secret = change_base(key_hex, 16, 10)
+            self.secret = int(key_hex, 16)
         else:
             raise BKeyError("Cannot import key. Public key format unknown")
 
@@ -893,13 +893,13 @@ class Key(object):
     @property
     def x(self):
         if not self._x and self.x_hex:
-            self._x = change_base(self.x_hex, 16, 10)
+            self._x = int(self.x_hex, 16)
         return self._x
 
     @property
     def y(self):
         if not self._y and self.y_hex:
-            self._y = change_base(self.y_hex, 16, 10)
+            self._y = int(self.y_hex, 16)
         return self._y
 
     def as_dict(self, include_private=False):
@@ -1008,7 +1008,7 @@ class Key(object):
         if self._wif and self._wif_prefix == versionbyte:
             return self._wif
 
-        key = versionbyte + change_base(self.secret, 10, 256, 32)
+        key = versionbyte + self.secret.to_bytes(32, byteorder='big')
         if self.compressed:
             key += b'\1'
         key += double_sha256(key)[:4]
@@ -1179,7 +1179,7 @@ class HDKey(Key):
         i = hmac.new(b"Bitcoin seed", seed, hashlib.sha512).digest()
         key = i[:32]
         chain = i[32:]
-        key_int = change_base(key, 256, 10)
+        key_int = int.from_bytes(key, 'big')
         if key_int >= secp256k1_n:
             raise BKeyError("Key int value cannot be greater than secp256k1_n")
         return HDKey(key=key, chain=chain, network=network, key_type=key_type, compressed=compressed,
@@ -1307,9 +1307,8 @@ class HDKey(Key):
                         key = bkey[46:78]
                     depth = ord(bkey[4:5])
                     parent_fingerprint = bkey[5:9]
-                    child_index = int(change_base(bkey[9:13], 256, 10))
+                    child_index = int.from_bytes(bkey[9:13], 'big')
                     chain = bkey[13:45]
-                    # chk = bkey[78:82]
                 elif kf['format'] == 'mnemonic':
                     raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
                 elif kf['format'] == 'wif_protected':
@@ -1350,9 +1349,9 @@ class HDKey(Key):
 
         print("EXTENDED KEY")
         print(" Key Type                    %s" % self.key_type)
-        print(" Chain code (hex)            %s" % change_base(self.chain, 256, 16))
+        print(" Chain code (hex)            %s" % self.chain.hex())
         print(" Child Index                 %s" % self.child_index)
-        print(" Parent Fingerprint (hex)    %s" % change_base(self.parent_fingerprint, 256, 16))
+        print(" Parent Fingerprint (hex)    %s" % self.parent_fingerprint.hex())
         print(" Depth                       %s" % self.depth)
         print(" Extended Public Key (wif)   %s" % self.wif_public())
         print(" Witness type                %s" % self.witness_type)
@@ -1408,7 +1407,7 @@ class HDKey(Key):
         i = hmac.new(chain, seed, hashlib.sha512).digest()
         key = i[:32]
         chain = i[32:]
-        key_int = change_base(key, 256, 10)
+        key_int = int.from_bytes(key, 'big')
         if key_int >= secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
         return key, chain
@@ -1827,13 +1826,13 @@ class HDKey(Key):
             data = self.public_byte + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
 
-        key = change_base(key, 256, 10)
+        key = int.from_bytes(key, 'big')
         if key >= secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
         newkey = (key + self.secret) % secp256k1_n
         if newkey == 0:
             raise BKeyError("Key cannot be zero. Try another index number.")
-        newkey = change_base(newkey, 10, 256, 32)
+        newkey = int.to_bytes(newkey, 32, 'big')
 
         return HDKey(key=newkey, chain=chain, depth=self.depth+1, parent_fingerprint=self.fingerprint,
                      child_index=index, witness_type=self.witness_type, multisig=self.multisig,
@@ -1870,7 +1869,7 @@ class HDKey(Key):
             raise BKeyError("Cannot derive hardened key from public private key. Index must be less than 0x80000000")
         data = self.public_byte + struct.pack('>L', index)
         key, chain = self._key_derivation(data)
-        key = change_base(key, 256, 10)
+        key = int.from_bytes(key, 'big')
         if key >= secp256k1_n:
             raise BKeyError("Key cannot be greater than secp256k1_n. Try another index number.")
 
@@ -1945,12 +1944,12 @@ class Signature(object):
         hash_type = SIGHASH_ALL
         if len(signature) > 64 and signature.startswith(b'\x30'):
             der_signature = signature[:-1]
-            hash_type = change_base(signature[-1:], 256, 10)
+            hash_type = int.from_bytes(signature[-1:], 'big')
             signature = convert_der_sig(signature[:-1], as_hex=False)
         if len(signature) != 64:
             raise BKeyError("Signature length must be 64 bytes or 128 character hexstring")
-        r = int.from_bytes(signature[:32], "big")
-        s = int.from_bytes(signature[32:], "big")
+        r = int.from_bytes(signature[:32], 'big')
+        s = int.from_bytes(signature[32:], 'big')
         return Signature(r, s, signature=signature, der_signature=der_signature, public_key=public_key,
                          hash_type=hash_type)
 

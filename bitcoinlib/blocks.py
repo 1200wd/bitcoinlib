@@ -116,7 +116,7 @@ class Block:
         """
         if not self.block_hash or not self.bits:
             return False
-        if change_base(self.block_hash, 256, 10) < self.target:
+        if int.from_bytes(self.block_hash, 'big') < self.target:
             return True
         return False
 

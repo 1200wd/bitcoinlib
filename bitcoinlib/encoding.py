@@ -317,7 +317,7 @@ def varbyteint_to_int(byteint):
         size = 4
     else:  # integer of 8 bytes
         size = 8
-    return change_base(byteint[1:1+size][::-1], 256, 10), size + 1
+    return int.from_bytes(byteint[1:1+size][::-1], 'big'), size + 1
 
 
 def int_to_varbyteint(inp):
@@ -445,7 +445,7 @@ def addr_base58_to_pubkeyhash(address, as_hex=False):
     checksum = double_sha256(pkh)[0:4]
     assert (check == checksum), "Invalid address, checksum incorrect"
     if as_hex:
-        return change_base(pkh, 256, 16)[2:]
+        return to_hexstring(pkh)[2:]
     else:
         return pkh[1:]
 
