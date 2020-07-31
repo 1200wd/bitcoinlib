@@ -103,7 +103,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     cursor += size
     output_total = 0
     for n in range(0, n_outputs):
-        value = change_base(rawtx[cursor:cursor + 8][::-1], 256, 10)
+        value = int.from_bytes(rawtx[cursor:cursor + 8][::-1], 'big')
         cursor += 8
         lock_script_size, size = varbyteint_to_int(rawtx[cursor:cursor + 9])
         cursor += size
@@ -171,7 +171,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     if len(rawtx[cursor:]) != 4 and check_size:
         raise TransactionError("Error when deserializing raw transaction, bytes left for locktime must be 4 not %d" %
                                len(rawtx[cursor:]))
-    locktime = change_base(rawtx[cursor:cursor + 4][::-1], 256, 10)
+    locktime = int.from_bytes(rawtx[cursor:cursor + 4][::-1], 'big')
 
     return Transaction(inputs, outputs, locktime, version, network, size=cursor + 4, output_total=output_total,
                        coinbase=coinbase, flag=flag, witness_type=witness_type, rawtx=rawtx)

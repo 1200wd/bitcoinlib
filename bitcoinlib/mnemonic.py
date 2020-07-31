@@ -145,7 +145,7 @@ class Mnemonic(object):
         :return str: Mnemonic passphrase consisting of a space seperated list of words
         """
         data = to_bytes(data)
-        data_int = change_base(data, 256, 10)
+        data_int = int.from_bytes(data, 'big')
         if check_on_curve and not 0 < data_int < secp256k1_n:
             raise ValueError("Integer value of data should be in secp256k1 domain between 1 and secp256k1_n-1")
         if add_checksum:

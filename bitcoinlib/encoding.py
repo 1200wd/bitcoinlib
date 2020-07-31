@@ -497,7 +497,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
         datalen = len(decoded)
         prefix = bytearray([data[0] + 0x50 if data[0] else 0, datalen])
     if as_hex:
-        return change_base(prefix + decoded, 256, 16)
+        return (prefix + decoded).hex()
     return prefix + decoded
 
 
