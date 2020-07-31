@@ -111,7 +111,7 @@ class CryptoID(BaseClient):
         t.block_height = tx_api['block']
         t.block_hash = tx['blockhash']
         t.confirmations = tx['confirmations']
-        t.rawtx = to_bytes(tx['hex'])
+        t.rawtx = bytes.fromhex(tx['hex'])
         t.size = tx['size']
         t.network = self.network
         t.locktime = tx['locktime']

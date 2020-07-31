@@ -100,7 +100,7 @@ def _array_to_codestring(array, base):
 
 
 def _codestring_to_array(codestring, base):
-    codestring = to_bytes(codestring)
+    codestring = bytes(codestring, 'utf8')
     codebase = code_strings[base]
     array = []
     for s in codestring:
@@ -298,7 +298,7 @@ def varbyteint_to_int(byteint):
 
     See https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer for specification
 
-    >>> varbyteint_to_int(to_bytes('fd1027'))
+    >>> varbyteint_to_int(bytes.fromhex('fd1027'))
     (10000, 3)
 
     :param byteint: 1-9 byte representation
@@ -561,7 +561,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
     For more information see BIP173 proposal at https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 
     :param pubkeyhash: Public key hash
-    :type pubkeyhash: str, bytes, bytearray
+    :type pubkeyhash: str, bytes
     :param prefix: Address prefix or Human-readable part. Default is 'bc' an abbreviation of Bitcoin. Use 'tb' for testnet.
     :type prefix: str
     :param witver: Witness version between 0 and 16

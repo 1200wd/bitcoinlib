@@ -293,7 +293,7 @@ class Network(object):
             ip = 'private'
         else:
             ip = 'public'
-        found_prefixes = [to_bytes(pf[0]) for pf in self.prefixes_wif if pf[2] == ip and script_type == pf[5]]
+        found_prefixes = [bytes.fromhex(pf[0]) for pf in self.prefixes_wif if pf[2] == ip and script_type == pf[5]]
         if found_prefixes:
             return found_prefixes[0]
         else:

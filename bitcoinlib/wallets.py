@@ -799,7 +799,7 @@ class HDWalletTransaction(Transaction):
             return None
         if 'txid' in res:
             _logger.info("Successfully pushed transaction, result: %s" % res)
-            self.hash = to_bytes(res['txid'])
+            self.hash = bytes.fromhex(res['txid'])
             self._txid = res['txid']
             self.status = 'unconfirmed'
             self.confirmations = 0
@@ -3601,7 +3601,7 @@ class HDWallet(object):
             input_arr = []
 
             for i in t['inputs']:
-                signatures = [to_bytes(sig) for sig in i['signatures']]
+                signatures = [bytes.fromhex(sig) for sig in i['signatures']]
                 script = b'' if 'script' not in i else i['script']
                 address = '' if 'address' not in i else i['address']
                 input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, script,

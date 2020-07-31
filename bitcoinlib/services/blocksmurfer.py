@@ -23,7 +23,6 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_bytes
 
 PROVIDERNAME = 'blocksmurfer'
 
@@ -97,7 +96,7 @@ class BlocksmurferClient(BaseClient):
                         coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
         for ti in tx['inputs']:
             t.add_input(prev_hash=ti['prev_hash'], output_n=ti['output_n'], index_n=ti['index_n'],
-                        unlocking_script=ti['script'], value=ti['value'], public_hash=to_bytes(ti['public_hash']),
+                        unlocking_script=ti['script'], value=ti['value'], public_hash=bytes.fromhex(ti['public_hash']),
                         address=ti['address'], witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
                         locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
                         encoding=ti['encoding'], unlocking_script_unsigned=ti['script_code'],

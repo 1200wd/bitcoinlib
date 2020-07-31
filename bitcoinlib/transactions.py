@@ -51,7 +51,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     Will raise an error if wrong number of inputs are found or if there are no output found.
     
     :param rawtx: Raw transaction as String, Byte or Bytearray
-    :type rawtx: str, bytes, bytearray
+    :type rawtx: str, bytes
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
     :type network: str, Network
     :param check_size: Check if not bytes are left when parsing is finished. Disable when parsing list of transactions, such as the transactions in a raw block. Default is True
@@ -182,7 +182,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     Deserialize a script: determine type, number of signatures and script data.
     
     :param script: Raw script
-    :type script: str, bytes, bytearray
+    :type script: str, bytes
     :param script_types: Limit script type determination to this list. Leave to default None to search in all script types.
     :type script_types: list
     :param locking_script: Only deserialize locking scripts. Specify False to only deserialize for unlocking scripts. Default is None for both
@@ -194,7 +194,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
     """
 
     def _parse_data(scr, max_items=None, redeemscript_expected=False, item_length=0):
-        scr = to_bytes(scr)
+        # scr = to_bytes(scr)
         items = []
         total_length = 0
         if 70 <= len(scr) <= 74 and scr[:1] == b'\x30':
@@ -424,7 +424,7 @@ def script_to_string(script, name_data=False):
     :return str: 
     """
 
-    script = to_bytes(script)
+    # script = to_bytes(script)
     data = script_deserialize(script)
     if not data or data['script_type'] == 'empty':
         return ""
@@ -500,7 +500,7 @@ def serialize_multisig_redeemscript(key_list, n_required=None, compressed=True):
         elif len(k) == 65 and k[0:1] == b'\x04' or len(k) == 33 and k[0:1] in [b'\x02', b'\x03']:
             public_key_list.append(k)
         elif len(k) == 132 and k[0:2] == '04' or len(k) == 66 and k[0:2] in ['02', '03']:
-            public_key_list.append(to_bytes(k))
+            public_key_list.append(bytes.fromhex(k))
         else:
             kobj = Key(k)
             if compressed:
@@ -654,7 +654,7 @@ class Input(object):
         Create a new transaction input
         
         :param prev_hash: Transaction hash of the UTXO (previous output) which will be spent.
-        :type prev_hash: bytes, hexstring
+        :type prev_hash: bytes, str
         :param output_n: Output number in previous transaction.
         :type output_n: bytes, int
         :param keys: A list of Key objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
@@ -1141,7 +1141,8 @@ class Output(object):
             elif self.script_type == 'p2pk':
                 if not self.public_key:
                     raise TransactionError("Public key is needed to create P2PK script for output %d" % output_n)
-                self.lock_script = varstr(to_bytes(self.public_key)) + b'\xac'
+                # self.lock_script = varstr(to_bytes(self.public_key)) + b'\xac'
+                self.lock_script = varstr(self.public_key) + b'\xac'
             else:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
                                        self.script_type)
@@ -1311,7 +1312,8 @@ class Transaction(object):
         self.size = size
         self.vsize = size
         # TODO: check if hash is bytes or hexstring, and update _txid as well
-        self.hash = to_bytes(hash)
+        # self.hash = to_bytes(hash)
+        self.hash = hash
         self._txid = None
         self.date = date
         self.confirmations = confirmations
