@@ -220,10 +220,10 @@ def read_config():
     BCL_DATABASE_DIR = Path(BCL_DATA_DIR, config_get('locations', 'database_dir', 'database'))
     BCL_DATABASE_DIR.mkdir(parents=True, exist_ok=True)
     default_databasefile = config_get('locations', 'default_databasefile', fallback='bitcoinlib.sqlite')
-    DEFAULT_DATABASE = str(Path(BCL_DATABASE_DIR, default_databasefile))
+    DEFAULT_DATABASE = Path(BCL_DATABASE_DIR, default_databasefile)
     default_databasefile_cache = \
         config_get('locations', 'default_databasefile_cache', fallback='bitcoinlib_cache.sqlite')
-    DEFAULT_DATABASE_CACHE = str(Path(BCL_DATABASE_DIR, default_databasefile_cache))
+    DEFAULT_DATABASE_CACHE = Path(BCL_DATABASE_DIR, default_databasefile_cache)
     ALLOW_DATABASE_THREADS = config_get("common", "allow_database_threads", fallback=True, is_boolean=True)
     SERVICE_CACHING_ENABLED = config_get('common', 'service_caching_enabled', fallback=True, is_boolean=True)
 
@@ -281,7 +281,7 @@ def initialize_lib():
     for file in Path(BCL_INSTALL_DIR, 'data').iterdir():
         if file.suffix not in ['.ini', '.json']:
             continue
-        copyfile(str(file), str(Path(BCL_DATA_DIR, file.name)))
+        copyfile(str(file), Path(BCL_DATA_DIR, file.name))
 
 # Initialize library
 read_config()
