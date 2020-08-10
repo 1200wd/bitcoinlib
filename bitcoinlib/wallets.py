@@ -3233,7 +3233,7 @@ class HDWallet(object):
         """
         txid = to_hexstring(txid)
         if isinstance(output_n, bytes):
-            output_n = struct.unpack('>I', output_n)[0]
+            output_n = int.from_bytes(output_n, 'big')
         qr = self._session.query(DbTransactionInput, DbTransaction.confirmations,
                                  DbTransaction.hash, DbTransaction.status). \
             join(DbTransaction). \
@@ -3485,7 +3485,7 @@ class HDWallet(object):
                 # Get key_ids, value from Db if not specified
                 if not (key_id and value and unlocking_script_type):
                     if not isinstance(output_n, TYPE_INT):
-                        output_n = struct.unpack('>I', output_n)[0]
+                        output_n = int.from_bytes(output_n, 'big')
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == to_hexstring(prev_hash),

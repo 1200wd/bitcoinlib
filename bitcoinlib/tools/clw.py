@@ -10,7 +10,6 @@
 
 import sys
 import argparse
-import struct
 import ast
 from pprint import pprint
 from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
@@ -197,7 +196,7 @@ def print_transaction(wt):
         'network': wt.network.name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
             'address': o.address, 'value': o.value
         } for o in wt.outputs], 'inputs': [{
-            'prev_hash': i.prev_hash.hex(), 'output_n': struct.unpack('>I', i.output_n)[0],
+            'prev_hash': i.prev_hash.hex(), 'output_n': int.from_bytes(i.output_n, 'big'),
             'address': i.address, 'signatures': [{
                 'signature': s.hex(), 'sig_der': s.as_der_encoded(as_hex=True),
                 'pub_key': s.public_key.public_hex,

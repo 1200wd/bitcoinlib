@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    Unit Tests for Transaction Class
-#    © 2019 November - 1200 Web Development <http://1200wd.com/>
+#    Unit Tests for Block Class
+#    © 2020 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as

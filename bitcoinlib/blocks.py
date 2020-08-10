@@ -64,24 +64,24 @@ class Block:
             self.version_int = version
         else:
             self.version = to_bytes(version)
-            self.version_int = 0 if not self.version else struct.unpack('>L', self.version)[0]
+            self.version_int = 0 if not self.version else int.from_bytes(self.version, 'big')
         self.prev_block = to_bytes(prev_block)
         self.merkle_root = to_bytes(merkle_root)
         self.time = time
         if not isinstance(time, int):
-            self.time = struct.unpack('>L', time)[0]
+            self.time = int.from_bytes(time, 'big')
         if isinstance(bits, int):
             self.bits = struct.pack('>L', bits)
             self.bits_int = bits
         else:
             self.bits = to_bytes(bits)
-            self.bits_int = 0 if not self.bits else struct.unpack('>L', self.bits)[0]
+            self.bits_int = 0 if not self.bits else int.from_bytes(self.bits, 'big')
         if isinstance(nonce, int):
             self.nonce = struct.pack('>L', nonce)
             self.nonce_int = nonce
         else:
             self.nonce = to_bytes(nonce)
-            self.nonce_int = 0 if not self.nonce else struct.unpack('>L', self.nonce)[0]
+            self.nonce_int = 0 if not self.nonce else int.from_bytes(self.nonce, 'big')
         self.transactions = transactions
         self.txs_data = None
         self.confirmations = confirmations
@@ -96,7 +96,7 @@ class Block:
                 and self.version_int > 1:
             # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
             if self.transactions[0].inputs[0].unlocking_script:
-                calc_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
+                calc_height = int.from_bytes(self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00', 'little')
                 if height and calc_height != height:
                     raise ValueError("Specified block height is different than calculated block height according to "
                                      "BIP0034")
@@ -248,7 +248,7 @@ class Block:
         if not self.bits:
             return 0
         exponent = self.bits[0]
-        coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
+        coefficient = int.from_bytes(b'\x00' + self.bits[1:], 'big')
         return coefficient * 256 ** (exponent - 3)
 
     @property

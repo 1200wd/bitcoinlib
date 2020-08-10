@@ -333,13 +333,13 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     if len(script) < 4:
                         found = False
                         break
-                    data['locktime_cltv'] = struct.unpack('<L', script[cur:cur + 4])[0]
+                    data['locktime_cltv'] = int.from_bytes(script[cur:cur + 4], 'little')
                     cur += 4
                 elif ch == 'locktime_csv':
                     if len(script) < 4:
                         found = False
                         break
-                    data['locktime_csv'] = struct.unpack('<L', script[cur:cur + 4])[0]
+                    data['locktime_csv'] = int.from_bytes(script[cur:cur + 4], 'little')
                     cur += 4
                 else:
                     try:
@@ -707,7 +707,7 @@ class Input(object):
             self.output_n_int = output_n
             self.output_n = struct.pack('>I', output_n)
         else:
-            self.output_n_int = struct.unpack('>I', output_n)[0]
+            self.output_n_int = int.from_bytes(output_n, 'big')
             self.output_n = output_n
         self.unlocking_script = b'' if unlocking_script is None else to_bytes(unlocking_script)
         self.unlocking_script_unsigned = b'' if unlocking_script_unsigned is None \
@@ -715,7 +715,7 @@ class Input(object):
         if isinstance(sequence, numbers.Number):
             self.sequence = sequence
         else:
-            self.sequence = struct.unpack('<I', sequence)[0]
+            self.sequence = int.from_bytes(sequence, 'little')
         self.compressed = compressed
         self.network = network
         if not isinstance(network, Network):
@@ -908,7 +908,7 @@ class Input(object):
             if self.redeemscript and self.keys:
                 n_tag = self.redeemscript[0:1]
                 if not isinstance(n_tag, int):
-                    n_tag = struct.unpack('B', n_tag)[0]
+                    n_tag = int.from_bytes(n_tag, 'big')
                 self.sigs_required = n_tag - 80
                 signatures = [s.as_der_encoded() for s in self.signatures[:self.sigs_required]]
                 if b'' in signatures:
@@ -1301,7 +1301,7 @@ class Transaction(object):
             self.version_int = version
         else:
             self.version = version
-            self.version_int = struct.unpack('>L', version)[0]
+            self.version_int = int.from_bytes(version, 'big')
         self.locktime = locktime
         self.network = network
         if not isinstance(network, Network):
@@ -1823,7 +1823,7 @@ class Transaction(object):
             index_n = len(self.inputs)
         sequence_int = sequence
         if isinstance(sequence, bytes):
-            sequence_int = struct.unpack('<L', sequence)[0]
+            sequence_int = int.from_bytes(sequence, 'little')
         if self.version == b'\x00\x00\x00\x01' and 0 < sequence_int < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
