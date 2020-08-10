@@ -281,7 +281,7 @@ def initialize_lib():
     for file in Path(BCL_INSTALL_DIR, 'data').iterdir():
         if file.suffix not in ['.ini', '.json']:
             continue
-        copyfile(str(stfile), Path(BCL_DATA_DIR, file.name))
+        copyfile(str(file), Path(BCL_DATA_DIR, file.name))
 
 # Initialize library
 read_config()
