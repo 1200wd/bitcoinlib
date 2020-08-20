@@ -520,7 +520,7 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=
     for sig in sigs:
         s = sig
         if hash_type:
-            s += struct.pack('B', hash_type)
+            s += hash_type.to_bytes(1, 'big')
         if as_list:
             usu.append(s)
         else:
@@ -553,7 +553,7 @@ def script_add_locktime_cltv(locktime_cltv, script):
     if script and len(script) > 6:
         if script[4:6] == lockbytes:
             return script
-    return struct.pack('<L', locktime_cltv) + lockbytes + script
+    return locktime_cltv.to_bytes(4, 'little') + lockbytes + script
 
 
 def script_add_locktime_csv(locktime_csv, script):
@@ -561,7 +561,7 @@ def script_add_locktime_csv(locktime_csv, script):
     if script and len(script) > 6:
         if script[4:6] == lockbytes:
             return script
-    return struct.pack('<L', locktime_csv) + lockbytes + script
+    return locktime_csv.to_bytes(4, 'little') + lockbytes + script
 
 
 def get_unlocking_script_type(locking_script_type, witness_type='legacy', multisig=False):
@@ -703,9 +703,9 @@ class Input(object):
 
         self.prev_hash = to_bytes(prev_hash)
         self.output_n = output_n
-        if isinstance(output_n, numbers.Number):
+        if isinstance(output_n, int):
             self.output_n_int = output_n
-            self.output_n = struct.pack('>I', output_n)
+            self.output_n = output_n.to_bytes(4, 'big')
         else:
             self.output_n_int = int.from_bytes(output_n, 'big')
             self.output_n = output_n
@@ -883,7 +883,7 @@ class Input(object):
             self.witnesses = []  # TODO: Remove?
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() +
-                                  struct.pack('B', hash_type) if hash_type else b'', self.keys[0].public_byte]
+                                  hash_type.to_bytes(1, 'big') if hash_type else b'', self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
             if self.witness_type == 'p2sh-segwit':
                 self.unlocking_script = varstr(b'\0' + varstr(self.public_hash))
@@ -942,7 +942,7 @@ class Input(object):
                 self.unlocking_script_unsigned = self.script_code
                 addr_data = self.keys[0].public_byte
             if self.signatures:
-                self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + struct.pack('B', hash_type))
+                self.unlocking_script = varstr(self.signatures[0].as_der_encoded() + hash_type.to_bytes(1, 'big'))
         elif self.script_type not in ['coinbase', 'unknown']:
             raise TransactionError("Unknown unlocking script type %s for input %d" % (self.script_type, self.index_n))
         if addr_data and not self.address:
@@ -1297,7 +1297,7 @@ class Transaction(object):
                                        "transaction outputs")
 
         if isinstance(version, int):
-            self.version = struct.pack('>L', version)
+            self.version = version.to_bytes(4, 'big')
             self.version_int = version
         else:
             self.version = version
@@ -1518,18 +1518,18 @@ class Transaction(object):
 
         for i in self.inputs:
             prevouts_serialized += i.prev_hash[::-1] + i.output_n[::-1]
-            sequence_serialized += struct.pack('<L', i.sequence)
+            sequence_serialized += i.sequence.to_bytes(4, 'little')
         if not hash_type & SIGHASH_ANYONECANPAY:
             hash_prevouts = double_sha256(prevouts_serialized)
             if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
                 hash_sequence = double_sha256(sequence_serialized)
         if (hash_type & 0x1f) != SIGHASH_SINGLE and (hash_type & 0x1f) != SIGHASH_NONE:
             for o in self.outputs:
-                outputs_serialized += struct.pack('<Q', int(o.value))
+                outputs_serialized += int(o.value).to_bytes(8, 'little')
                 outputs_serialized += varstr(o.lock_script)
             hash_outputs = double_sha256(outputs_serialized)
         elif (hash_type & 0x1f) != SIGHASH_SINGLE and sign_id < len(self.outputs):
-            outputs_serialized += struct.pack('<Q', int(self.outputs[sign_id].value))
+            outputs_serialized += int(self.outputs[sign_id].value).to_bytes(8, 'little')
             outputs_serialized += varstr(self.outputs[sign_id].lock_script)
             hash_outputs = double_sha256(outputs_serialized)
 
@@ -1547,9 +1547,9 @@ class Transaction(object):
         ser_tx = \
             self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
-            varstr(script_code) + struct.pack('<Q', int(self.inputs[sign_id].value)) + \
-            struct.pack('<L', self.inputs[sign_id].sequence) + \
-            hash_outputs + struct.pack('<L', self.locktime) + struct.pack('<L', hash_type)
+            varstr(script_code) + int(self.inputs[sign_id].value).to_bytes(8, 'little') + \
+            self.inputs[sign_id].sequence.to_bytes(4, 'little') + \
+            hash_outputs + self.locktime.to_bytes(4, 'little') + hash_type.to_bytes(4, 'little')
         # print(to_hexstring(ser_tx))
         # print(sign_id, to_hexstring(script_code))
         return ser_tx
@@ -1592,21 +1592,21 @@ class Transaction(object):
                 r += varstr(i.unlocking_script_unsigned)
             else:
                 r += b'\0'
-            r += struct.pack('<L', i.sequence)
+            r += i.sequence.to_bytes(4, 'little')
 
         r += int_to_varbyteint(len(self.outputs))
         for o in self.outputs:
             if o.value < 0:
                 raise TransactionError("Output value < 0 not allowed")
-            r += struct.pack('<Q', int(o.value))
+            r += int(o.value).to_bytes(8, 'little')
             r += varstr(o.lock_script)
 
         if sign_id is None and witness_type == 'segwit':
             r += r_witness
 
-        r += struct.pack('<L', self.locktime)
+        r += self.locktime.to_bytes(4, 'little')
         if sign_id is not None:
-            r += struct.pack('<L', hash_type)
+            r += hash_type.to_bytes(4, 'little')
         else:
             if not self.size and b'' not in [i.unlocking_script for i in self.inputs]:
                 self.size = len(r)

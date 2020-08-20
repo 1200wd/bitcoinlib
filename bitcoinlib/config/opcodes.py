@@ -19,8 +19,6 @@
 #
 
 
-import struct
-
 _opcodes = [
     ("OP_0", 0), ("OP_PUSHDATA1", 76), "OP_PUSHDATA2", "OP_PUSHDATA4", "OP_1NEGATE", "OP_RESERVED", "OP_1",
     "OP_2", "OP_3", "OP_4", "OP_5", "OP_6", "OP_7", "OP_8", "OP_9", "OP_10", "OP_11", "OP_12", "OP_13", "OP_14",
@@ -68,7 +66,7 @@ def opcode(name, as_bytes=True):
     """
     opcode_int = opcodes[name]
     if as_bytes:
-        return struct.pack('B', opcode_int)
+        return opcode_int.to_bytes(1, 'big')
     return opcode_int
 
 

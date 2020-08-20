@@ -19,7 +19,6 @@
 #
 
 import logging
-import struct
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
@@ -115,7 +114,7 @@ class CryptoID(BaseClient):
         t.size = tx['size']
         t.network = self.network
         t.locktime = tx['locktime']
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'little')
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
         t.input_total = t.output_total
         t.fee = t.input_total - t.output_total

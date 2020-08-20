@@ -185,7 +185,7 @@ class DogecoindClient(BaseClient):
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx['blockhash']
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'little')
         t.date = datetime.fromtimestamp(tx['blocktime'])
         t.hash = txid
         t.update_totals()

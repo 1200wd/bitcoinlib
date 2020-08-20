@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
@@ -194,7 +193,7 @@ class BitcoindClient(BaseClient):
             o.spent = None
         t.block_hash = tx.get('block_hash', tx['txid'])  # FIXME, use only one
         t.block_height = block_height
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'little')
         t.date = datetime.utcfromtimestamp(tx['time'])
         t.update_totals()
         return t

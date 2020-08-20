@@ -19,7 +19,6 @@
 #
 
 import logging
-import struct
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
@@ -104,7 +103,7 @@ class BlockchainInfoClient(BaseClient):
         t.size = tx['size']
         t.network_name = self.network
         t.locktime = tx['lock_time']
-        t.version = struct.pack('>L', tx['ver'])
+        t.version = tx['version'].to_bytes(4, 'little')
         t.input_total = input_total
         t.fee = t.input_total - t.output_total
         return t

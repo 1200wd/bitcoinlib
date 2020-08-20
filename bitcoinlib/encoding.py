@@ -24,7 +24,6 @@ from copy import deepcopy
 import hashlib
 import pyaes
 import unicodedata
-import struct
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
 
@@ -337,13 +336,13 @@ def int_to_varbyteint(inp):
     if not isinstance(inp, numbers.Number):
         raise EncodingError("Input must be a number type")
     if inp < 0xfd:
-        return struct.pack('B', inp)
+        return inp.to_bytes(1, 'little')
     elif inp < 0xffff:
-        return struct.pack('<cH', b'\xfd', inp)
+        return b'\xfd' + inp.to_bytes(2, 'little')
     elif inp < 0xffffffff:
-        return struct.pack('<cL', b'\xfe', inp)
+        return b'\xfe' + inp.to_bytes(4, 'little')
     else:
-        return struct.pack('<cQ', b'\xff', inp)
+        return b'\xff' + inp.to_bytes(8, 'little')
 
 
 def convert_der_sig(signature, as_hex=True):

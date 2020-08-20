@@ -21,7 +21,6 @@
 import os
 import unittest
 import json
-
 from bitcoinlib.networks import NETWORK_DEFINITIONS
 from bitcoinlib.keys import *
 

@@ -1509,8 +1509,8 @@ class HDKey(Key):
                 rkey = self.public_byte
         if child_index:
             self.child_index = child_index
-        raw = prefix + struct.pack('B', self.depth) + self.parent_fingerprint + \
-            struct.pack('>L', self.child_index) + self.chain + typebyte + rkey
+        raw = prefix + self.depth.to_bytes(1, 'big') + self.parent_fingerprint + \
+            self.child_index.to_bytes(4, 'big') + self.chain + typebyte + rkey
         chk = double_sha256(raw)[:4]
         ret = raw+chk
         return change_base(ret, 256, 58, 111)
@@ -1821,9 +1821,9 @@ class HDKey(Key):
             raise BKeyError("Need a private key to create child private key")
         if hardened:
             index |= 0x80000000
-            data = b'\0' + self.private_byte + struct.pack('>L', index)
+            data = b'\0' + self.private_byte + index.to_bytes(4, 'big')
         else:
-            data = self.public_byte + struct.pack('>L', index)
+            data = self.public_byte + index.to_bytes(4, 'big')
         key, chain = self._key_derivation(data)
 
         key = int.from_bytes(key, 'big')
@@ -1867,7 +1867,7 @@ class HDKey(Key):
             network = self.network.name
         if index > 0x80000000:
             raise BKeyError("Cannot derive hardened key from public private key. Index must be less than 0x80000000")
-        data = self.public_byte + struct.pack('>L', index)
+        data = self.public_byte + index.to_bytes(4, 'big')
         key, chain = self._key_derivation(data)
         key = int.from_bytes(key, 'big')
         if key >= secp256k1_n:

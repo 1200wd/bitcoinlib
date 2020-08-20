@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import struct
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network
 from bitcoinlib.services.authproxy import AuthServiceProxy
@@ -197,7 +196,7 @@ class LitecoindClient(BaseClient):
             o.spent = None
         t.block_hash = tx['blockhash']
         t.block_height = block_height
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'little')
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
