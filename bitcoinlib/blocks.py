@@ -60,7 +60,7 @@ class Block:
 
         self.block_hash = to_bytes(block_hash)
         if isinstance(version, int):
-            self.version = struct.pack('>L', version)
+            self.version = version.to_bytes(4, byteorder='big')
             self.version_int = version
         else:
             self.version = to_bytes(version)
@@ -71,13 +71,13 @@ class Block:
         if not isinstance(time, int):
             self.time = int.from_bytes(time, 'big')
         if isinstance(bits, int):
-            self.bits = struct.pack('>L', bits)
+            self.bits = bits.to_bytes(4, 'big')
             self.bits_int = bits
         else:
             self.bits = to_bytes(bits)
             self.bits_int = 0 if not self.bits else int.from_bytes(self.bits, 'big')
         if isinstance(nonce, int):
-            self.nonce = struct.pack('>L', nonce)
+            self.nonce = nonce.to_bytes(4, 'big')
             self.nonce_int = nonce
         else:
             self.nonce = to_bytes(nonce)
@@ -304,7 +304,7 @@ class Block:
         rb = self.version[::-1]
         rb += self.prev_block[::-1]
         rb += self.merkle_root[::-1]
-        rb += struct.pack('>L', self.time)[::-1]
+        rb += self.time.to_bytes(4, 'little')
         rb += self.bits[::-1]
         rb += self.nonce[::-1]
         if len(rb) != 80:
