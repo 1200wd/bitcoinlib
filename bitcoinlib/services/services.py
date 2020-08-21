@@ -25,7 +25,7 @@ from datetime import timedelta
 from sqlalchemy import func
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import *
+from bitcoinlib.encoding import to_bytes
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.blocks import Block
@@ -282,11 +282,10 @@ class Service(object):
         Get a transaction by its transaction hashtxos. Convert to Bitcoinlib transaction object.
 
         :param txid: Transaction identification hash
-        :type txid: str, bytes
+        :type txid: str
 
         :return Transaction: A single transaction object
         """
-        txid = to_hexstring(txid)
         tx = None
         self.results_cache_n = 0
 
@@ -391,11 +390,10 @@ class Service(object):
         Get a raw transaction by its transaction hash
 
         :param txid: Transaction identification hash
-        :type txid: str, bytes
+        :type txid: str
 
         :return str: Raw transaction as hexstring
         """
-        txid = to_hexstring(txid)
         self.results_cache_n = 0
         rawtx = self.cache.getrawtransaction(txid)
         if rawtx:
@@ -408,11 +406,10 @@ class Service(object):
         Push a raw transaction to the network
 
         :param rawtx: Raw transaction as hexstring or bytes
-        :type rawtx: str, bytes
+        :type rawtx: str
 
         :return dict: Send transaction result
         """
-        rawtx = to_hexstring(rawtx)
         return self._provider_execute('sendrawtransaction', rawtx)
 
     def estimatefee(self, blocks=3):
@@ -927,7 +924,7 @@ class Cache(object):
                 return False
             new_node = DbCacheTransactionNode(
                 txid=t.txid, address=o.address, output_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
-                spending_txid=None if not o.spending_txid else to_hexstring(o.spending_txid),
+                spending_txid=None if not o.spending_txid else o.spending_txid,
                 spending_index_n=o.spending_index_n)
             self.session.add(new_node)
 
