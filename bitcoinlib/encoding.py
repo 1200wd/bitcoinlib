@@ -484,7 +484,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     if not _bech32_polymod(hrp_expanded + data) == 1:
         raise EncodingError("Bech polymod check failed")
     data = data[:-6]
-    decoded = bytearray(convertbits(data[1:], 5, 8, pad=False))
+    decoded = bytes(convertbits(data[1:], 5, 8, pad=False))
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
         raise EncodingError("Invalid decoded data length, must be between 2 and 40")
     if data[0] > 16:
@@ -494,7 +494,7 @@ def addr_bech32_to_pubkeyhash(bech, prefix=None, include_witver=False, as_hex=Fa
     prefix = b''
     if include_witver:
         datalen = len(decoded)
-        prefix = bytearray([data[0] + 0x50 if data[0] else 0, datalen])
+        prefix = bytes([data[0] + 0x50 if data[0] else 0, datalen])
     if as_hex:
         return (prefix + decoded).hex()
     return prefix + decoded
@@ -542,7 +542,6 @@ def pubkeyhash_to_addr_base58(pubkeyhash, prefix=b'\x00'):
 
     :return str: Base-58 encoded address
     """
-    # prefix = to_bytes(prefix)
     key = to_bytes(prefix) + to_bytes(pubkeyhash)
     addr256 = key + double_sha256(key)[:4]
     return change_base(addr256, 256, 58)
@@ -571,8 +570,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
     :return str: Bech32 encoded address
     """
 
-    if not isinstance(pubkeyhash, bytearray):
-        pubkeyhash = bytearray(to_bytes(pubkeyhash))
+    pubkeyhash = to_bytes(pubkeyhash)
 
     if len(pubkeyhash) not in [20, 32]:
         if int(pubkeyhash[0]) != 0:
@@ -661,10 +659,10 @@ def varstr(string):
 
 def to_bytes(string, unhexlify=True):
     """
-    Convert string, hexadecimal string or bytearray to bytes
+    Convert string, hexadecimal string  to bytes
 
     :param string: String to convert
-    :type string: str, bytes, bytearray
+    :type string: str, bytes
     :param unhexlify: Try to unhexlify hexstring
     :type unhexlify: bool
 
@@ -688,14 +686,14 @@ def to_bytes(string, unhexlify=True):
 
 def to_hexstring(string):
     """
-    Convert bytes, string, bytearray to a hexadecimal string. Use instead of built-in hex() method if format
+    Convert bytes, string to a hexadecimal string. Use instead of built-in hex() method if format
     of input string is not known.
 
     >>> to_hexstring(b'\x12\xaa\xdd')
     '12aadd'
 
     :param string: Variable to convert to hex string
-    :type string: bytes, bytearray, str
+    :type string: bytes, str
 
     :return: hexstring
     """
@@ -718,7 +716,7 @@ def normalize_string(string):
     See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
     :param string: string value
-    :type string: bytes, bytearray, str
+    :type string: bytes, str
 
     :return: string
     """
