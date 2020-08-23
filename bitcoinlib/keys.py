@@ -70,7 +70,7 @@ def check_network_and_key(key, network=None, kf_networks=None, default_network=D
     A BKeyError will be raised if key does not correspond with network or if multiple network are found.
     
     :param key: Key in any format recognized by get_key_format function
-    :type key: str, int, bytes, bytearray
+    :type key: str, int, bytes
     :param network: Optional network. Method raises BKeyError if keys belongs to another network
     :type network: str
     :param kf_networks: Optional list of networks which is returned by get_key_format. If left empty the get_key_format function will be called.
@@ -117,7 +117,7 @@ def get_key_format(key, is_private=None):
     {'format': 'hdkey_public', 'networks': ['bitcoin'], 'is_private': False, 'script_types': ['p2wsh'], 'witness_types': ['segwit'], 'multisig': [True]}
 
     :param key: Any private or public key
-    :type key: str, int, bytes, bytearray
+    :type key: str, int, bytes
     :param is_private: Is key private or not?
     :type is_private: bool
     
@@ -131,23 +131,23 @@ def get_key_format(key, is_private=None):
     witness_types = ['legacy']
     multisig = [False]
 
-    # if isinstance(key, (bytes, bytearray)) and len(key) in [128, 130]:
+    # if isinstance(key, bytes) and len(key) in [128, 130]:
     #     key = to_hexstring(key)
     if not (is_private is None or isinstance(is_private, bool)):
         raise BKeyError("Attribute 'is_private' must be False or True")
     elif isinstance(key, numbers.Number):
         key_format = 'decimal'
         is_private = True
-    elif isinstance(key, (bytes, bytearray)) and len(key) in [33, 65] and key[:1] in [b'\2', b'\3']:
+    elif isinstance(key, bytes) and len(key) in [33, 65] and key[:1] in [b'\2', b'\3']:
         key_format = 'bin_compressed'
         is_private = False
-    elif isinstance(key, (bytes, bytearray)) and (len(key) in [33, 65] and key[:1] == b'\4'):
+    elif isinstance(key, bytes) and (len(key) in [33, 65] and key[:1] == b'\4'):
         key_format = 'bin'
         is_private = False
-    elif isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[-1:] == b'\1':
+    elif isinstance(key, bytes) and len(key) == 33 and key[-1:] == b'\1':
         key_format = 'bin_compressed'
         is_private = True
-    elif isinstance(key, (bytes, bytearray)) and len(key) == 32:
+    elif isinstance(key, bytes) and len(key) == 32:
         key_format = 'bin'
         is_private = True
     elif len(key) == 130 and key[:2] == '04' and not is_private:
@@ -685,7 +685,7 @@ class Key(object):
         12127227708610754620337553985245292396444216111803695028419544944213442390363
 
         :param import_key: If specified import given private or public key. If not specified a new private key is generated.
-        :type import_key: str, int, bytes, bytearray
+        :type import_key: str, int, bytes
         :param network: Bitcoin, testnet, litecoin or other network
         :type network: str, Network
         :param compressed: Is key compressed or not, default is True
@@ -1000,7 +1000,7 @@ class Key(object):
         if prefix is None:
             versionbyte = self.network.prefix_wif
         else:
-            if not isinstance(prefix, (bytes, bytearray)):
+            if not isinstance(prefix, bytes):
                 versionbyte = bytes.fromhex(prefix)
             else:
                 versionbyte = prefix
@@ -1229,7 +1229,7 @@ class HDKey(Key):
         <HDKey(public_hex=0363c152144dcd5253c1216b733fdc6eb8a94ab2cd5caa8ead5e59ab456ff99927, wif_public=xpub661MyMwAqRbcEYS8w7XLSVeEsBXy79zSzH1J8vCdxAZningWLdN3zgtU6SmypHzZG2cYrwpGkWJqRxS6EAW77gd7CHFoXNpBd3LN8xjAyCW, network=bitcoin)>
 
         :param import_key: HD Key to import in WIF format or as byte with key (32 bytes) and chain (32 bytes)
-        :type import_key: str, bytes, int, bytearray
+        :type import_key: str, bytes, int
         :param key: Private or public key (length 32)
         :type key: bytes
         :param chain: A chain code (length 32)
@@ -1273,7 +1273,7 @@ class HDKey(Key):
                 seed = os.urandom(64)
                 key, chain = self._key_derivation(seed)
             # If key is 64 bytes long assume a HD Key with key and chain part
-            elif isinstance(import_key, (bytearray, bytes)) and len(import_key) == 64:
+            elif isinstance(import_key, bytes) and len(import_key) == 64:
                 key = import_key[:32]
                 chain = import_key[32:]
             elif isinstance(import_key, Key):
@@ -1495,7 +1495,7 @@ class HDKey(Key):
             multisig = False if not self.multisig else self.multisig
 
         rkey = self.private_byte or self.public_compressed_byte
-        if prefix and not isinstance(prefix, (bytes, bytearray)):
+        if prefix and not isinstance(prefix, bytes):
             prefix = bytes.fromhex(prefix)
         if self.is_private and is_private:
             if not prefix:

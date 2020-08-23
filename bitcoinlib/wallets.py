@@ -345,7 +345,7 @@ class HDWalletKey(object):
         :param session: Required Sqlalchemy Session object
         :type session: sqlalchemy.orm.session.Session
         :param key: Optional key in any format accepted by the HDKey class
-        :type key: str, int, byte, bytearray, HDKey
+        :type key: str, int, byte, HDKey
         :param account_id: Account ID for specified key, default is 0
         :type account_id: int
         :param network: Network of specified key
@@ -1080,7 +1080,7 @@ class HDWallet(object):
         :param name: Unique name of this Wallet
         :type name: str
         :param keys: Masterkey to or list of keys to use for this wallet. Will be automatically created if not specified. One or more keys are obligatory for multisig wallets. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
-        :type keys: str, bytes, int, bytearray
+        :type keys: str, bytes, int
         :param owner: Wallet owner for your own reference
         :type owner: str
         :param network: Network name, use default if not specified
@@ -1598,7 +1598,7 @@ class HDWallet(object):
         Add new single key to wallet.
 
         :param key: Key to import
-        :type key: str, bytes, int, bytearray, HDKey, Address
+        :type key: str, bytes, int, HDKey, Address
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
         :param name: Specify name for key, leave empty for default

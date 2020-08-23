@@ -50,7 +50,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
     
     Will raise an error if wrong number of inputs are found or if there are no output found.
     
-    :param rawtx: Raw transaction as String, Byte or Bytearray
+    :param rawtx: Raw transaction as hexadecimal string or bytes
     :type rawtx: str, bytes
     :param network: Network code, i.e. 'bitcoin', 'testnet', 'litecoin', etc. Leave emtpy for default network
     :type network: str, Network

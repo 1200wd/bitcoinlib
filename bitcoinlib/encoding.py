@@ -69,7 +69,7 @@ class EncodingError(Exception):
 
 bytesascii = b''
 for bxn in range(256):
-    bytesascii += bytes(bytearray((bxn,)))
+    bytesascii += bytes((bxn,))
 
 code_strings = {
     2: b'01',
@@ -78,7 +78,7 @@ code_strings = {
     16: b'0123456789abcdef',
     32: b'abcdefghijklmnopqrstuvwxyz234567',
     58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
-    256: b''.join([bytes(bytearray((csx,))) for csx in range(256)]),
+    256: b''.join([bytes((csx,)) for csx in range(256)]),
     'bech32': b'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 }
 
@@ -119,7 +119,7 @@ def normalize_var(var, base=256):
     Convert decimals to integer type
 
     :param var: input variable in any format
-    :type var: str, byte, bytearray, unicode
+    :type var: str, byte
     :param base: specify variable format, i.e. 10 for decimal, 16 for hex
     :type base: int
 
@@ -222,7 +222,7 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
 
     if isinstance(inp, numbers.Number):
         input_dec = inp
-    elif isinstance(inp, (str, list, bytes, bytearray)):
+    elif isinstance(inp, (str, list, bytes)):
         factor = 1
         while len(inp):
             if isinstance(inp, list):
@@ -301,11 +301,11 @@ def varbyteint_to_int(byteint):
     (10000, 3)
 
     :param byteint: 1-9 byte representation
-    :type byteint: bytes, list, bytearray
+    :type byteint: bytes, list
 
     :return (int, int): tuple wit converted integer and size
     """
-    if not isinstance(byteint, (bytes, list, bytearray)):
+    if not isinstance(byteint, (bytes, list)):
         raise EncodingError("Byteint must be a list or defined as bytes")
     ni = byteint[0]
     if ni < 253:
@@ -608,7 +608,7 @@ def convertbits(data, frombits, tobits, pad=True):
     Source: https://github.com/sipa/bech32/tree/master/ref/python
 
     :param data: Data values to convert
-    :type data: list, bytearray
+    :type data: list
     :param frombits: Number of bits in source data
     :type frombits: int
     :param tobits: Number of bits in result data
