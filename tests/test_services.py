@@ -699,7 +699,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     self.assertEqual(srv.gettransactions(address)[0].txid, tx_hash)
 
     def test_service_getblock_height(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'])
+        srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'], cache_uri='')
         b = srv.getblock(599999, parse_transactions=True, limit=3)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 599999)
@@ -725,7 +725,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         # self.assertEqual(t1.outputs[1].value, 8638768306)
 
     def test_service_getblock_parse_tx_paging(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST)
+        srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(120000, parse_transactions=True, limit=4, page=2)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(to_hexstring(b.block_hash),
@@ -738,12 +738,12 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.transactions[3].txid, '6182f42ea89a59df3a417f958e1c9bb3f0ea8ee7193cda760b477c4ce09c357c')
 
     def test_service_getblock_parse_tx_paging_last_page(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST)
+        srv = ServiceTest(timeout=TIMEOUT_TEST, cache_uri='')
         b = srv.getblock(336454, limit=5, page=58)
         self.assertEqual(len(b.transactions), 2)
 
     def test_service_getblock_litecoin(self):
-        srv = ServiceTest(timeout=TIMEOUT_TEST, network='litecoin')
+        srv = ServiceTest(timeout=TIMEOUT_TEST, network='litecoin', cache_uri='')
         b = srv.getblock(1000000, parse_transactions=True, limit=2)
         print("Test getblock using provider %s" % list(srv.results.keys())[0])
         self.assertEqual(b.height, 1000000)
