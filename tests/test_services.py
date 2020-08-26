@@ -21,6 +21,7 @@
 import unittest
 from datetime import datetime
 from bitcoinlib.services.services import *
+from bitcoinlib.encoding import to_hexstring, to_bytes
 from tests.test_custom import CustomAssertions
 
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
@@ -899,7 +900,6 @@ class TestServiceCache(unittest.TestCase):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, exclude_providers=['chainso'])
         srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa', limit=1)
         txs = srv.gettransactions('1KoAvaL3wfpcNvGCQYkqFJG9Ccqm52sZHa')
-        print(srv.results)
         self.assertTrue(txs[0].outputs[0].spent)
 
     def test_service_cache_getblock_hash(self):

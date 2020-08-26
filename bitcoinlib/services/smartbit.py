@@ -23,7 +23,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import varstr, to_bytes, to_hexstring
+from bitcoinlib.encoding import varstr
 from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ class SmartbitClient(BaseClient):
                         witness_type = 'p2sh-segwit'
                     else:
                         witness_type = 'segwit'
-                    unlocking_script = b"".join([varstr(to_bytes(x)) for x in ti['witness']])
+                    unlocking_script = b"".join([varstr(bytes.fromhex(x)) for x in ti['witness']])
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
                             witness_type=witness_type)
@@ -132,7 +132,7 @@ class SmartbitClient(BaseClient):
                         'fee': t.fee,
                         'size': t.size,
                         'value': utxo.value,
-                        'script': to_hexstring(utxo.lock_script),
+                        'script': utxo.lock_script.hex(),
                         'date': t.date
                     })
         return utxos

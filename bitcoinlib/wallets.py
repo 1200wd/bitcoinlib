@@ -18,15 +18,13 @@
 #
 
 import json
-import numbers
 import random
 import warnings
 from itertools import groupby
 from operator import itemgetter
-import struct
 
 from bitcoinlib.db import *
-from bitcoinlib.encoding import EncodingError, to_bytes, to_hexstring
+from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.networks import Network
@@ -347,7 +345,7 @@ class HDWalletKey(object):
         :param session: Required Sqlalchemy Session object
         :type session: sqlalchemy.orm.session.Session
         :param key: Optional key in any format accepted by the HDKey class
-        :type key: str, int, byte, bytearray, HDKey
+        :type key: str, int, byte, HDKey
         :param account_id: Account ID for specified key, default is 0
         :type account_id: int
         :param network: Network of specified key
@@ -727,9 +725,9 @@ class HDWalletTransaction(Transaction):
 
         return cls(hdwallet=hdwallet, inputs=inputs, outputs=outputs, locktime=db_tx.locktime,
                    version=db_tx.version, network=network, fee=db_tx.fee, fee_per_kb=fee_per_kb,
-                   size=db_tx.size, hash=txid, date=db_tx.date, confirmations=db_tx.confirmations,
+                   size=db_tx.size, hash=bytes.fromhex(txid), date=db_tx.date, confirmations=db_tx.confirmations,
                    block_height=db_tx.block_height, block_hash=db_tx.block_hash, input_total=db_tx.input_total,
-                   output_total=db_tx.output_total, rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
+                   output_total=db_tx.output_total, rawtx=to_hexstring(db_tx.raw), status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)  # flag=db_tx.flag
 
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=None):
@@ -801,7 +799,7 @@ class HDWalletTransaction(Transaction):
             return None
         if 'txid' in res:
             _logger.info("Successfully pushed transaction, result: %s" % res)
-            self.hash = to_bytes(res['txid'])
+            self.hash = bytes.fromhex(res['txid'])
             self._txid = res['txid']
             self.status = 'unconfirmed'
             self.confirmations = 0
@@ -1082,7 +1080,7 @@ class HDWallet(object):
         :param name: Unique name of this Wallet
         :type name: str
         :param keys: Masterkey to or list of keys to use for this wallet. Will be automatically created if not specified. One or more keys are obligatory for multisig wallets. Can contain all key formats accepted by the HDKey object, a HDKey object or BIP39 passphrase
-        :type keys: str, bytes, int, bytearray
+        :type keys: str, bytes, int
         :param owner: Wallet owner for your own reference
         :type owner: str
         :param network: Network name, use default if not specified
@@ -1600,7 +1598,7 @@ class HDWallet(object):
         Add new single key to wallet.
 
         :param key: Key to import
-        :type key: str, bytes, int, bytearray, HDKey, Address
+        :type key: str, bytes, int, HDKey, Address
         :param account_id: Account ID. Default is last used or created account ID.
         :type account_id: int
         :param name: Specify name for key, leave empty for default
@@ -3264,7 +3262,7 @@ class HDWallet(object):
         """
         txid = to_hexstring(txid)
         if isinstance(output_n, bytes):
-            output_n = struct.unpack('>I', output_n)[0]
+            output_n = int.from_bytes(output_n, 'big')
         qr = self._session.query(DbTransactionInput, DbTransaction.confirmations,
                                  DbTransaction.hash, DbTransaction.status). \
             join(DbTransaction). \
@@ -3516,7 +3514,7 @@ class HDWallet(object):
                 # Get key_ids, value from Db if not specified
                 if not (key_id and value and unlocking_script_type):
                     if not isinstance(output_n, TYPE_INT):
-                        output_n = struct.unpack('>I', output_n)[0]
+                        output_n = int.from_bytes(output_n, 'big')
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash == to_hexstring(prev_hash),
@@ -3632,7 +3630,7 @@ class HDWallet(object):
             input_arr = []
 
             for i in t['inputs']:
-                signatures = [to_bytes(sig) for sig in i['signatures']]
+                signatures = [bytes.fromhex(sig) for sig in i['signatures']]
                 script = b'' if 'script' not in i else i['script']
                 address = '' if 'address' not in i else i['address']
                 input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, script,

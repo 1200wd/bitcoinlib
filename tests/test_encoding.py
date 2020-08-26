@@ -119,9 +119,8 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
     def test_encoding_exceptions(self):
         self.assertRaisesRegexp(EncodingError, "Unknown input format {}",
                                 change_base, {}, 4, 2)
-        if PY3:
-            self.assertRaisesRegexp(EncodingError, "Byteint must be a list or defined as bytes",
-                                    varbyteint_to_int, 'fd1027')
+        self.assertRaisesRegexp(EncodingError, "Byteint must be a list or defined as bytes",
+                                varbyteint_to_int, 'fd1027')
         self.assertRaisesRegexp(EncodingError, "Input must be a number type",
                                 int_to_varbyteint, '1000')
         self.assertRaisesRegexp(TypeError, "String value expected", normalize_string, 100)
@@ -212,10 +211,6 @@ class TestEncodingMethodsStructures(unittest.TestCase):
         self.assertEqual(b'\x07\xdcX \xa0\xe5\x18!]!,\xd5\x18\x8a\xe0,V5\xfa\xab',
                          to_bytes(b'07dc5820a0e518215d212cd5188ae02c5635faab'))
 
-    def test_to_bytes_bytearray(self):
-        self.assertEqual(bytearray(b'\x06\x07<F\x00\xff   \xc8\x1b'),
-                         to_bytes(bytearray([6, 7, 60, 70, 0, 255, 32, 32, 32, 200, 27])))
-
     def test_to_hexstring_string(self):
         self.assertEqual('deadbeef', to_hexstring('deadbeef'))
 
@@ -229,10 +224,6 @@ class TestEncodingMethodsStructures(unittest.TestCase):
     def test_to_hexstring_unicode(self):
         self.assertEqual('07dc5820a0e518215d212cd5188ae02c5635faab',
                          to_hexstring(u'07dc5820a0e518215d212cd5188ae02c5635faab'))
-
-    def test_to_hexstring_bytearray(self):
-        self.assertEqual('06073c4600ff202020c81b',
-                         to_hexstring(bytearray([6, 7, 60, 70, 0, 255, 32, 32, 32, 200, 27])))
 
     def test_der_encode_sig(self):
         r = 80828100789555555332401870818771238079532314371107341426356071258591122886343
@@ -335,7 +326,7 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
                 scriptpubkey = addr_bech32_to_pubkeyhash(address, include_witver=True)
             except EncodingError:
                 scriptpubkey = addr_bech32_to_pubkeyhash(address, prefix='tb', include_witver=True)
-            self.assertEqual(scriptpubkey, binascii.unhexlify(hexscript))
+            self.assertEqual(scriptpubkey, bytes.fromhex(hexscript))
             addr = pubkeyhash_to_addr_bech32(scriptpubkey, address[:2].lower())
             self.assertEqual(address.lower(), addr)
 

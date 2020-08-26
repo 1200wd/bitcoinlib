@@ -29,7 +29,7 @@ from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.keys import deserialize_address, Address
-from bitcoinlib.encoding import EncodingError, varstr, to_bytes
+from bitcoinlib.encoding import EncodingError, varstr
 
 _logger = logging.getLogger(__name__)
 
@@ -126,7 +126,7 @@ class BlockChairClient(BaseClient):
 
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
-                witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
+                witnesses = b"".join([varstr(bytes.fromhex(x)) for x in ti['spending_witness'].split(",")])
                 address = Address.import_address(ti['recipient'])
                 if address.script_type == 'p2sh':
                     witness_type = 'p2sh-segwit'

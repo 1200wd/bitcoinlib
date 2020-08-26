@@ -18,6 +18,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# Do not remove any of the imports below, used by other files
+import os
+import sys
 import functools
 import logging
 from logging.handlers import RotatingFileHandler

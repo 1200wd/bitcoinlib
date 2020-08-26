@@ -18,13 +18,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import struct
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring, to_bytes
 
 
 PROVIDERNAME = 'litecoind'
@@ -70,10 +68,7 @@ class LitecoindClient(BaseClient):
 
         :return LitecoindClient:
         """
-        if PY3:
-            config = configparser.ConfigParser(strict=False)
-        else:
-            config = configparser.ConfigParser()
+        config = configparser.ConfigParser(strict=False)
         config_fn = 'litecoin.conf'
         if isinstance(network, Network):
             network = network.name
@@ -195,13 +190,13 @@ class LitecoindClient(BaseClient):
                 i.script_type = 'coinbase'
                 continue
             if get_input_values:
-                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+                txi = self.proxy.getrawtransaction(i.prev_hash.hex(), 1)
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx['blockhash']
         t.block_height = block_height
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'little')
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
