@@ -1341,7 +1341,7 @@ class Transaction(object):
     @property
     def txid(self):
         if not self._txid:
-            self._txid = to_hexstring(self.hash)
+            self._txid = self.hash.hex()
         return self._txid
 
     def as_dict(self):
@@ -1550,8 +1550,6 @@ class Transaction(object):
             varstr(script_code) + int(self.inputs[sign_id].value).to_bytes(8, 'little') + \
             self.inputs[sign_id].sequence.to_bytes(4, 'little') + \
             hash_outputs + self.locktime.to_bytes(4, 'little') + hash_type.to_bytes(4, 'little')
-        # print(to_hexstring(ser_tx))
-        # print(sign_id, to_hexstring(script_code))
         return ser_tx
 
     def raw(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None):
@@ -1626,7 +1624,7 @@ class Transaction(object):
         :return hexstring: 
         """
 
-        return to_hexstring(self.raw(sign_id, hash_type=hash_type, witness_type=witness_type))
+        return self.raw(sign_id, hash_type=hash_type, witness_type=witness_type).hex()
 
     def verify(self):
         """
