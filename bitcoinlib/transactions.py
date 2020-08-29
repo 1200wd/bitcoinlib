@@ -1340,7 +1340,9 @@ class Transaction(object):
     @property
     def txid(self):
         if not self._txid:
-            self._txid = self.hash.hex()
+            self._txid = to_hexstring(self.hash)
+            # FIXME: Different types in self.hash:
+            # self._txid = self.hash.hex()
         return self._txid
 
     def as_dict(self):
