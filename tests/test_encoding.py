@@ -20,6 +20,7 @@
 
 import unittest
 
+from bitcoinlib.config.opcodes import opcode
 from bitcoinlib.encoding import *
 from bitcoinlib.encoding import _bech32_polymod, _codestring_to_array
 
@@ -343,6 +344,16 @@ class TestEncodingBech32SegwitAddresses(unittest.TestCase):
         for test in INVALID_ADDRESS:
             self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, "bc", test)
             self.assertRaises(EncodingError, addr_bech32_to_pubkeyhash, "tb", test)
+
+    def test_quantity_class(self):
+        if not PY3:
+            self.skipTest("This class is not supported in Python2")
+        self.assertEqual(str(Quantity(121608561109507200000, 'H/s', precision=10)), '121.6085611095 EH/s')
+        self.assertEqual(str(Quantity(1 / 121608561109507200000, 'ots', precision=10)), '8.2231052722 zots')
+        self.assertEqual(str(Quantity(0.0000000001, 'm', precision=2)), '100.00 pm')
+        self.assertEqual(str(Quantity(121608561109507200000000000000000)), '121608561.110 Y')
+        self.assertEqual(str(Quantity(1/1216085611095072000000000000000)), '0.000 y')
+        self.assertEqual(str(Quantity(1/1216085611095072000000000000000, precision=10)), '0.0000008223 y')
 
 
 class TestEncodingConfig(unittest.TestCase):

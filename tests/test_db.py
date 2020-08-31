@@ -23,7 +23,7 @@ from tests.db_0_4_10 import DbInit as DbInitOld
 from bitcoinlib.db import *
 
 
-DATABASEFILE_UNITTESTS = os.path.join(BCL_DATABASE_DIR, 'bitcoinlib.unittest.sqlite')
+DATABASEFILE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.sqlite')
 
 
 class TestDb(unittest.TestCase):

@@ -10,6 +10,50 @@
     "denominator": 100000000,
     "network_overrides": null
   },
+  "bitcoind": {
+    "provider": "bitcoind",
+    "network": "bitcoin",
+    "client_class": "BitcoindClient",
+    "provider_coin_id": "",
+    "url": "",
+    "api_key": "",
+    "priority": 20,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "bitcoind.testnet": {
+    "provider": "bitcoind",
+    "network": "testnet",
+    "client_class": "BitcoindClient",
+    "provider_coin_id": "",
+    "url": "",
+    "api_key": "",
+    "priority": 20,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+    "litecoind": {
+    "provider": "litecoind",
+    "network": "litecoin",
+    "client_class": "LitecoindClient",
+    "provider_coin_id": "",
+    "url": "",
+    "api_key": "",
+    "priority": 20,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "litecoind.testnet": {
+    "provider": "litecoind",
+    "network": "litecoin_testnet",
+    "client_class": "LitecoindClient",
+    "provider_coin_id": "",
+    "url": "",
+    "api_key": "",
+    "priority": 20,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
   "blockchaininfo": {
     "provider": "blockchaininfo",
     "network": "bitcoin",
@@ -120,6 +164,28 @@
     "denominator": 100000000,
     "network_overrides": {"prefix_address_p2sh": "32"}
   },
+  "dashd": {
+    "provider": "dashd",
+    "network": "dash",
+    "client_class": "DashdClient",
+    "url": "",
+    "provider_coin_id": "",
+    "api_key": "",
+    "priority": 20,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
+  "dashd.testnet": {
+    "provider": "dashd",
+    "network": "dash_testnet",
+    "client_class": "DashdClient",
+    "url": "",
+    "provider_coin_id": "",
+    "api_key": "",
+    "priority": 20,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
   "cryptoid.dash": {
     "provider": "cryptoid",
     "network": "dash",
@@ -175,58 +241,25 @@
     "denominator": 100000000,
     "network_overrides": null
   },
-  "blockchair.litecoin": {
-    "provider": "blockchair",
-    "network": "litecoin",
-    "client_class": "BlockChairClient",
+  "bcoin": {
+    "provider": "bcoin",
+    "network": "bitcoin",
+    "client_class": "BcoinClient",
     "provider_coin_id": "",
-    "url": "https://api.blockchair.com/litecoin/",
+    "url": "",
     "api_key": "",
-    "priority": 10,
+    "priority": 20,
     "denominator": 100000000,
     "network_overrides": null
   },
-  "blockchair.dash": {
-    "provider": "blockchair",
-    "network": "dash",
-    "client_class": "BlockChairClient",
+  "bcoin.testnet": {
+    "provider": "bcoin",
+    "network": "testnet",
+    "client_class": "BcoinClient",
     "provider_coin_id": "",
-    "url": "https://api.blockchair.com/dash/",
+    "url": "",
     "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "blockchair.dogecoin": {
-    "provider": "blockchair",
-    "network": "dogecoin",
-    "client_class": "BlockChairClient",
-    "provider_coin_id": "",
-    "url": "https://api.blockchair.com/dogecoin/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "blockchair.bitcoin_cash": {
-    "provider": "blockchair",
-    "network": "bitcoin_cash",
-    "client_class": "BlockChairClient",
-    "provider_coin_id": "",
-    "url": "https://api.blockchair.com/bitcoin-cash/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "blockchair.bitcoin_sv": {
-    "provider": "blockchair",
-    "network": "bitcoin_sv",
-    "client_class": "BlockChairClient",
-    "provider_coin_id": "",
-    "url": "https://api.blockchair.com/bitcoin-sv/",
-    "api_key": "",
-    "priority": 10,
+    "priority": 20,
     "denominator": 100000000,
     "network_overrides": null
   },
@@ -357,117 +390,6 @@
     "client_class": "BlockstreamClient",
     "provider_coin_id": "",
     "url": "https://blockstream.info/testnet/api/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "blocksmurfer": {
-    "provider": "blocksmurfer",
-    "network": "bitcoin",
-    "client_class": "BlocksmurferClient",
-    "provider_coin_id": "",
-    "url": "http://blocksmurfer.io/api/v1/btc/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-    "chainso.litecoin.testnet": {
-    "provider": "chainso",
-    "network": "litecoin_testnet",
-    "client_class": "ChainSo",
-    "provider_coin_id": "LTCTEST",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso": {
-    "provider": "chainso",
-    "network": "bitcoin",
-    "client_class": "ChainSo",
-    "provider_coin_id": "BTC",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 8,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.testnet": {
-    "provider": "chainso",
-    "network": "testnet",
-    "client_class": "ChainSo",
-    "provider_coin_id": "BTCTEST",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.litecoin": {
-    "provider": "chainso",
-    "network": "litecoin",
-    "client_class": "ChainSo",
-    "provider_coin_id": "LTC",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.litecoin.legacy":
-    {
-    "provider": "chainso",
-    "network": "litecoin_legacy",
-    "client_class": "ChainSo",
-    "provider_coin_id": "LTC",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.dash": {
-    "provider": "chainso",
-    "network": "dash",
-    "client_class": "ChainSo",
-    "provider_coin_id": "DASH",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.dash.testnet": {
-    "provider": "chainso",
-    "network": "dash_testnet",
-    "client_class": "ChainSo",
-    "provider_coin_id": "DASHTEST",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.dogecoin": {
-    "provider": "chainso",
-    "network": "dogecoin",
-    "client_class": "ChainSo",
-    "provider_coin_id": "DOGE",
-    "url": "https://chain.so/api/v2/",
-    "api_key": "",
-    "priority": 10,
-    "denominator": 100000000,
-    "network_overrides": null
-  },
-  "chainso.dogecoin.testnet": {
-    "provider": "chainso",
-    "network": "dogecoin_testnet",
-    "client_class": "ChainSo",
-    "provider_coin_id": "DOGETEST",
-    "url": "https://chain.so/api/v2/",
     "api_key": "",
     "priority": 10,
     "denominator": 100000000,

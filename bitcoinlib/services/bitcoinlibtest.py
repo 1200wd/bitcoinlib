@@ -54,11 +54,11 @@ class BitcoinLibTestClient(BaseClient):
     def _get_tx_hash(self, address, n):
         try:
             pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
-        except:
+        except Exception:
             pkh = str(n).encode() + addr_bech32_to_pubkeyhash(address)[1:]
         return hashlib.sha256(pkh).hexdigest()
 
-    def getutxos(self, address, after_txid='', max_txs=10, utxos_per_address=2):
+    def getutxos(self, address, after_txid='', limit=10, utxos_per_address=2):
         """
         Dummy method to retreive UTXO's. This method creates a new UTXO for each address provided out of the
         testnet void, which can be used to create test transactions for the bitcoinlib testnet.
@@ -67,8 +67,8 @@ class BitcoinLibTestClient(BaseClient):
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos. If used only provide a single address
         :type after_txid: str
-        :param max_txs: Maximum number of utxo's to return
-        :type max_txs: int
+        :param limit: Maximum number of utxo's to return
+        :type limit: int
 
         :return list: The created UTXO set
         """
@@ -90,7 +90,7 @@ class BitcoinLibTestClient(BaseClient):
 
     # def gettransaction(self, tx_id):
 
-    # def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    # def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
 
     def sendrawtransaction(self, rawtx):
         """

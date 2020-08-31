@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    Client for litecoind deamon
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    Client for dogecoind daemon
+#    © 2017 June - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -18,16 +18,16 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import struct
+from datetime import datetime
 from bitcoinlib.main import *
-from bitcoinlib.networks import Network
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring, to_bytes
+from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.networks import Network
 
 
-PROVIDERNAME = 'litecoind'
+PROVIDERNAME = 'dogecoind'
 
 _logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ class ConfigError(Exception):
 
     def __str__(self):
         return self.msg
+
 
 try:
     import configparser
@@ -53,37 +54,37 @@ def _read_from_config(configparser, section, value, fallback=None):
         return fallback
 
 
-class LitecoindClient(BaseClient):
+class DogecoindClient(BaseClient):
     """
-    Class to interact with litecoind, the Litecoin deamon
+    Class to interact with dogecoind, the Dogecoin daemon
     """
 
     @staticmethod
-    def from_config(configfile=None, network='litecoin'):
+    def from_config(configfile=None, network='dogecoin'):
         """
-        Read settings from litecoind config file
+        Read settings from dogecoind config file
 
         :param configfile: Path to config file. Leave empty to look in default places
         :type: str
-        :param network: Litecoin mainnet or testnet. Default is litecoin mainnet
+        :param network: Dogecoin mainnet or testnet. Default is dogecoin mainnet
         :type: str
 
-        :return LitecoindClient:
+        :return DogecoindClient:
         """
-        if PY3:
+        try:
             config = configparser.ConfigParser(strict=False)
-        else:
+        except TypeError:
             config = configparser.ConfigParser()
-        config_fn = 'litecoin.conf'
+        config_fn = 'dogecoin.conf'
         if isinstance(network, Network):
             network = network.name
         if network == 'testnet':
-            config_fn = 'litecoin-testnet.conf'
+            config_fn = 'dogecoin-testnet.conf'
 
         cfn = None
         if not configfile:
-            config_locations = ['~/.bitcoinlib', '~/.litecoin', '~/Application Data/Litecoin',
-                                '~/Library/Application Support/Litecoin']
+            config_locations = ['~/.bitcoinlib', '~/.dogecoin', '~/Application Data/Dogecoin',
+                                '~/Library/Application Support/Dogecoin']
             for location in config_locations:
                 cfn = Path(location, config_fn).expanduser()
                 if cfn.exists():
@@ -91,15 +92,8 @@ class LitecoindClient(BaseClient):
         else:
             cfn = Path(BCL_DATA_DIR, 'config', configfile)
         if not cfn or not cfn.is_file():
-            raise ConfigError(
-                "Config file %s not found. Please install Litecoin client and specify a path to config "
-                "file if path is not default. Or place a config file in .bitcoinlib/litecoin.conf to "
-                "reference to an external server." % cfn)
-        else:
-            cfn = Path(BCL_DATA_DIR, 'config', configfile)
-        if not cfn or not cfn.is_file():
-            raise ConfigError("Config file %s not found. Please install Litecoin client and specify a path to config "
-                              "file if path is not default. Or place a config file in .bitcoinlib/litecoin.conf to "
+            raise ConfigError("Config file %s not found. Please install dogecoin client and specify a path to config "
+                              "file if path is not default. Or place a config file in .bitcoinlib/dogecoin.conf to "
                               "reference to an external server." % cfn)
 
         try:
@@ -115,26 +109,27 @@ class LitecoindClient(BaseClient):
         if _read_from_config(config, 'rpc', 'rpcpassword') == 'specify_rpc_password':
             raise ConfigError("Please update config settings in %s" % cfn)
         if network == 'testnet':
-            port = 19332
+            port = 44555
         else:
-            port = 9332
+            port = 22555
         port = _read_from_config(config, 'rpc', 'rpcport', port)
         server = '127.0.0.1'
         server = _read_from_config(config, 'rpc', 'rpcconnect', server)
         server = _read_from_config(config, 'rpc', 'bind', server)
         server = _read_from_config(config, 'rpc', 'externalip', server)
+
         url = "http://%s:%s@%s:%s" % (config.get('rpc', 'rpcuser'), config.get('rpc', 'rpcpassword'), server, port)
-        return LitecoindClient(network, url)
+        return DogecoindClient(network, url)
 
-    def __init__(self, network='litecoin', base_url='', denominator=100000000, *args):
+    def __init__(self, network='dogecoin', base_url='', denominator=100000000, *args):
         """
-        Open connection to litecoin node
+        Open connection to dogecoin node
 
-        :param network: Litecoin mainnet or testnet. Default is litecoin mainnet
+        :param network: Dogecoin mainnet or testnet. Default is dogecoin mainnet
         :type: str
         :param base_url: Connection URL in format http(s)://user:password@host:port.
         :type: str
-        :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for litecoin
+        :param denominator: Denominator for this currency. Should be always 100000000 (satoshis) for dogecoin
         :type: str
         """
         if isinstance(network, Network):
@@ -144,28 +139,20 @@ class LitecoindClient(BaseClient):
             base_url = bdc.base_url
             network = bdc.network
         if len(base_url.split(':')) != 4:
-            raise ConfigError("Litecoind connection URL must be of format 'http(s)://user:password@host:port,"
-                              "current format is %s. Please set url in providers.json file or check litecoin config "
+            raise ConfigError("Dogecoind connection URL must be of format 'http(s)://user:password@host:port,"
+                              "current format is %s. Please set url in providers.json file or check dogecoin config "
                               "file" % base_url)
         if 'password' in base_url:
-            raise ConfigError("Invalid password in litecoind provider settings. "
-                              "Please replace default password and set url in providers.json or litecoin.conf file")
-        _logger.info("Connect to litecoind on %s" % base_url)
+            raise ConfigError("Invalid password in dogecoind provider settings. "
+                              "Please replace default password and set url in providers.json or dogecoin.conf file")
+        _logger.info("Connect to dogecoind")
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    # def getbalance
-
-    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
         txs = []
 
-        res = self.proxy.getaddressinfo(address)
-        if not (res['ismine'] or res['iswatchonly']):
-            raise ClientError("Address %s not found in litecoind wallet, use 'importaddress' to add address to "
-                              "wallet." % address)
-
-        txs_list = self.proxy.listunspent(0, 99999999, [address])
-        for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
+        for t in self.proxy.listunspent(0, 99999999, [address]):
             txs.append({
                 'address': t['address'],
                 'tx_hash': t['txid'],
@@ -179,42 +166,34 @@ class LitecoindClient(BaseClient):
                 'script': t['scriptPubKey'],
                 'date': None,
             })
-            if t['txid'] == after_txid:
-                txs = []
 
         return txs
 
-    def _parse_transaction(self, tx, block_height=None, get_input_values=True):
+    def gettransaction(self, txid):
+        tx = self.proxy.getrawtransaction(txid, 1)
         t = Transaction.import_raw(tx['hex'], network=self.network)
-        t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
-        if t.confirmations or block_height:
+        t.confirmations = tx['confirmations']
+        if t.confirmations:
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
             if i.prev_hash == b'\x00' * 32:
+                i.value = t.output_total
                 i.script_type = 'coinbase'
                 continue
-            if get_input_values:
-                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+            txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx['blockhash']
-        t.block_height = block_height
         t.version = struct.pack('>L', tx['version'])
-        t.date = datetime.utcfromtimestamp(tx['blocktime'])
+        t.date = datetime.fromtimestamp(tx['blocktime'])
+        t.hash = txid
         t.update_totals()
         return t
 
-    def gettransaction(self, txid):
-        tx = self.proxy.getrawtransaction(txid, 1)
-        return self._parse_transaction(tx)
-
-    # def gettransactions
-
     def getrawtransaction(self, txid):
-        res = self.proxy.getrawtransaction(txid)
-        return res
+        return self.proxy.getrawtransaction(txid)
 
     def sendrawtransaction(self, rawtx):
         res = self.proxy.sendrawtransaction(rawtx)
@@ -229,7 +208,7 @@ class LitecoindClient(BaseClient):
             pres = self.proxy.estimatesmartfee(blocks)
             res = pres['feerate']
         except KeyError as e:
-            _logger.info("litecoind error: %s, %s" % (e, pres))
+            _logger.info("dogecoind error: %s, %s" % (e, pres))
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
@@ -242,56 +221,6 @@ class LitecoindClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return False
-
-    def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
-        if isinstance(blockid, int):
-            blockid = self.proxy.getblockhash(blockid)
-        if not limit:
-            limit = 99999
-
-        txs = []
-        if parse_transactions:
-            bd = self.proxy.getblock(blockid, 2)
-            for tx in bd['tx'][(page - 1) * limit:page * limit]:
-                # try:
-                tx['blocktime'] = bd['time']
-                tx['blockhash'] = bd['hash']
-                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=False))
-                # except Exception as e:
-                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
-            # txs += [tx['hash'] for tx in bd['tx'][len(txs):]]
-        else:
-            bd = self.proxy.getblock(blockid, 1)
-            txs = bd['tx']
-
-        block = {
-            'bits': bd['bits'],
-            'depth': bd['confirmations'],
-            'block_hash': bd['hash'],
-            'height': bd['height'],
-            'merkle_root': bd['merkleroot'],
-            'nonce': bd['nonce'],
-            'prev_block': bd['previousblockhash'],
-            'time': bd['time'],
-            'tx_count': bd['nTx'],
-            'txs': txs,
-            'version': bd['version'],
-            'page': page,
-            'pages': None,
-            'limit': limit
-        }
-        return block
-
-    def getrawblock(self, blockid):
-        if isinstance(blockid, int):
-            blockid = self.proxy.getblockhash(blockid)
-        return self.proxy.getblock(blockid, 0)
-
-    def isspent(self, txid, index):
-        res = self.proxy.gettxout(txid, index)
-        if not res:
-            return True
         return False
 
     def getinfo(self):
@@ -313,31 +242,31 @@ if __name__ == '__main__':
     from pprint import pprint
 
     # 1. Connect by specifying connection URL
-    # base_url = 'http://litecoin:passwd@host:9432'
-    # bdc = LitecoindClient(base_url=base_url)
+    # base_url = 'http://dogecoinrpc:passwd@host:8332'
+    # bdc = BitcoindClient(base_url=base_url)
 
     # 2. Or connect using default settings or settings from config file
-    client = LitecoindClient()
+    bdc = DogecoindClient()
 
     print("\n=== SERVERINFO ===")
-    pprint(client.proxy.getnetworkinfo())
+    pprint(bdc.proxy.getnetworkinfo())
 
     print("\n=== Best Block ===")
-    blockhash = client.proxy.getbestblockhash()
-    bestblock = client.proxy.getblock(blockhash)
+    blockhash = bdc.proxy.getbestblockhash()
+    bestblock = bdc.proxy.getblock(blockhash)
     bestblock['tx'] = '...' + str(len(bestblock['tx'])) + ' transactions...'
     pprint(bestblock)
 
     print("\n=== Mempool ===")
-    rmp = client.proxy.getrawmempool()
+    rmp = bdc.proxy.getrawmempool()
     pprint(rmp[:25])
     print('... truncated ...')
     print("Mempool Size %d" % len(rmp))
 
     print("\n=== Raw Transaction by txid ===")
-    t = client.getrawtransaction('fa3906a4219078364372d0e2715f93e822edd0b47ce146c71ba7ba57179b50f6')
+    t = bdc.getrawtransaction('7eb5332699644b753cd3f5afba9562e67612ea71ef119af1ac46559adb69ea0d')
     pprint(t)
 
     print("\n=== Current network fees ===")
-    t = client.estimatefee(5)
+    t = bdc.estimatefee(5)
     pprint(t)

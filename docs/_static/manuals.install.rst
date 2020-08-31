@@ -55,8 +55,13 @@ Required Python Packages, are automatically installed upon installing bitcoinlib
 Other requirements Linux
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+On Debian, Ubuntu or their derivatives:
 
 ``sudo apt install build-essential python-dev python3-dev libgmp3-dev``
+
+On Fedora, CentOS or RHEL:
+
+``sudo dnf install python3-devel gmp-devel``
 
 To install OpenSSL development package on Debian, Ubuntu or their derivatives
 
@@ -72,7 +77,11 @@ Development environment
 
 Install database packages for MySQL and PostgreSQL
 
-``sudo apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev postgresql-server-dev-11``
+``sudo apt install mysql-server postgresql postgresql-contrib libmysqlclient-dev``
+
+Check for the latest version of the PostgreSQL dev server:
+
+``sudo apt install postgresql-server-dev-<version>``
 
 From library root directory install the Python requirements
 
@@ -155,7 +164,18 @@ It works but it is slow when using BIP38 password protected keys.
 
     $ pip install pyscrypt
 
-If you run into issues to not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
+If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
+
+
+Using library in other software
+-------------------------------
+
+If you use the library in other software and want to change file locations and other settings you can specify a
+location for a config file in the BCL_CONFIG_FILE:
+
+.. code-block:: python
+
+    os.environ['BCL_CONFIG_FILE'] = '/var/www/blocksmurfer/bitcoinlib.ini'
 
 
 Tweak BitcoinLib
@@ -164,7 +184,7 @@ Tweak BitcoinLib
 You can `Add another service Provider <manuals.add-provider.html>`_ to this library by updating settings
 and write a new service provider class.
 
-If you use this library in a production environment it is advised to run your own Bitcoin, Litecoin or Dash node,
+If you use this library in a production environment it is advised to run your own Bcoin, Bitcoin, Litecoin or Dash node,
 both for privacy and reliability reasons. More setup information:
 `Setup connection to bitcoin node <manuals.setup-bitcoind-connection.html>`_
 

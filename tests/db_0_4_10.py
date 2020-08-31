@@ -60,7 +60,7 @@ class DbInit:
     def _import_config_data(ses):
         session = ses()
         session.add(DbConfig(variable='version', value='0.4.10'))
-        session.add(DbConfig(variable='installation_date', value=str(datetime.datetime.now())))
+        session.add(DbConfig(variable='installation_date', value=str(datetime.now())))
         url = ''
         try:
             url = str(session.bind.url)
@@ -224,7 +224,7 @@ class DbTransaction(Base):
     witness_type = Column(String(20), default='legacy')
     version = Column(Integer, default=1)
     locktime = Column(Integer, default=0)
-    date = Column(DateTime, default=datetime.datetime.utcnow)
+    date = Column(DateTime, default=datetime.utcnow)
     coinbase = Column(Boolean, default=False)
     confirmations = Column(Integer, default=0)
     block_height = Column(Integer, index=True)

@@ -26,3 +26,4 @@ import tests.test_transactions
 import tests.test_services
 import tests.test_tools
 import tests.test_db
+import tests.test_blocks

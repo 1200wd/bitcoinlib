@@ -18,7 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from datetime import datetime
 import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
@@ -36,7 +35,7 @@ _logger = logging.getLogger(__name__)
 class ConfigError(Exception):
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.warning(msg)
+        _logger.info(msg)
 
     def __str__(self):
         return self.msg
@@ -80,26 +79,26 @@ class BitcoindClient(BaseClient):
             network = network.name
         if network == 'testnet':
             config_fn = 'bitcoin-testnet.conf'
+
+        cfn = None
         if not configfile:
-            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Linux
-                cfn = os.path.join(os.path.expanduser("~"), '.bitcoin/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Try Windows path
-                cfn = os.path.join(os.path.expanduser("~"), 'Application Data/Bitcoin/%s' % config_fn)
-            if not os.path.isfile(cfn):  # Try Mac path
-                cfn = os.path.join(os.path.expanduser("~"), 'Library/Application Support/Bitcoin/%s' % config_fn)
-            if not os.path.isfile(cfn):
-                raise ConfigError("Please install bitcoin client and specify a path to config file if path is not "
-                                  "default. Or place a config file in .bitcoinlib/config/bitcoin.conf to reference to "
-                                  "an external server.")
+            config_locations = ['~/.bitcoinlib', '~/.bitcoin', '~/Application Data/Bitcoin',
+                                '~/Library/Application Support/Bitcoin']
+            for location in config_locations:
+                cfn = Path(location, config_fn).expanduser()
+                if cfn.exists():
+                    break
         else:
-            cfn = os.path.join(BCL_CONFIG_DIR, configfile)
-            if not os.path.isfile(cfn):
-                raise ConfigError("Config file %s not found" % cfn)
+            cfn = Path(BCL_DATA_DIR, 'config', configfile)
+        if not cfn or not cfn.is_file():
+            raise ConfigError("Config file %s not found. Please install bitcoin client and specify a path to config "
+                              "file if path is not default. Or place a config file in .bitcoinlib/bitcoin.conf to "
+                              "reference to an external server." % cfn)
+
         try:
             config.read(cfn)
         except Exception:
-            with open(cfn, 'r') as f:
+            with cfn.open() as f:
                 config_string = '[rpc]\n' + f.read()
             config.read_string(config_string)
 
@@ -145,59 +144,75 @@ class BitcoindClient(BaseClient):
         if 'password' in base_url:
             raise ConfigError("Invalid password in bitcoind provider settings. "
                               "Please replace default password and set url in providers.json or bitcoin.conf file")
-        _logger.info("Connect to bitcoind on %s" % base_url)
+        _logger.info("Connect to bitcoind")
         self.proxy = AuthServiceProxy(base_url)
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
     # def getbalance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = []
+    # Missing block_height, input_n, date so not usable
+    # def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+    #     txs = []
+    #
+    #     res = self.proxy.getaddressinfo(address)
+    #     if not (res['ismine'] or res['iswatchonly']):
+    #         raise ClientError("Address %s not found in bitcoind wallet, use 'importpubkey' or 'importaddress' to add "
+    #                           "address to wallet." % address)
+    #
+    #     txs_list = self.proxy.listunspent(0, 99999999, [address])
+    #     for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
+    #         txs.append({
+    #             'address': t['address'],
+    #             'tx_hash': t['txid'],
+    #             'confirmations': t['confirmations'],
+    #             'output_n': t['vout'],
+    #             'input_n': -1,
+    #             'block_height': None,
+    #             'fee': None,
+    #             'size': 0,
+    #             'value': int(t['amount'] * self.units),
+    #             'script': t['scriptPubKey'],
+    #             'date': None,
+    #         })
+    #         if t['txid'] == after_txid:
+    #             txs = []
+    #
+    #     return txs
 
-        res = self.proxy.getaddressinfo(address)
-        if not (res['ismine'] or res['iswatchonly']):
-            raise ClientError("Address %s not found in bitcoind wallet, use 'importaddress' to add address to "
-                              "wallet." % address)
+    def _parse_transaction(self, tx, block_height=None, get_input_values=True):
+        t = Transaction.import_raw(tx['hex'], network=self.network)
+        t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
+        t.status = 'unconfirmed'
+        for i in t.inputs:
+            if i.prev_hash == b'\x00' * 32:
+                i.script_type = 'coinbase'
+                continue
+            if get_input_values:
+                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+        for o in t.outputs:
+            o.spent = None
 
-        for t in self.proxy.listunspent(0, 99999999, [address]):
-            txs.append({
-                'address': t['address'],
-                'tx_hash': t['txid'],
-                'confirmations': t['confirmations'],
-                'output_n': t['vout'],
-                'input_n': -1,
-                'block_height': None,
-                'fee': None,
-                'size': 0,
-                'value': int(t['amount'] * self.units),
-                'script': t['scriptPubKey'],
-                'date': None,
-            })
+        t.block_hash = tx.get('blockhash', '')
+        if not block_height and t.block_hash:
+            block_height = self.proxy.getblock(t.block_hash, 1)['height']
+        t.block_height = block_height
+        if not t.confirmations and block_height:
+            if not self.latest_block:
+                self.latest_block = self.blockcount()
+            t.confirmations = (self.latest_block - block_height) + 1
+        if t.confirmations or block_height:
+            t.status = 'confirmed'
+            t.verified = True
 
-        return txs
+        t.version = struct.pack('>L', tx['version'])
+        t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
+        t.update_totals()
+        return t
 
     def gettransaction(self, txid):
         tx = self.proxy.getrawtransaction(txid, 1)
-        t = Transaction.import_raw(tx['hex'], network=self.network)
-        t.confirmations = tx['confirmations']
-        if t.confirmations:
-            t.status = 'confirmed'
-            t.verified = True
-        for i in t.inputs:
-            if i.prev_hash == b'\x00' * 32:
-                i.value = t.output_total
-                i.script_type = 'coinbase'
-                continue
-            txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
-        for o in t.outputs:
-            o.spent = None
-        t.block_hash = tx['blockhash']
-        t.version = struct.pack('>L', tx['version'])
-        t.date = datetime.fromtimestamp(tx['blocktime'])
-        t.hash = txid
-        t.update_totals()
-        return t
+        return self._parse_transaction(tx)
 
     # def gettransactions
 
@@ -218,7 +233,7 @@ class BitcoindClient(BaseClient):
             pres = self.proxy.estimatesmartfee(blocks)
             res = pres['feerate']
         except KeyError as e:
-            _logger.warning("bitcoind error: %s, %s" % (e, pres))
+            _logger.info("bitcoind error: %s, %s" % (e, pres))
             res = self.proxy.estimatefee(blocks)
         return int(res * self.units)
 
@@ -232,6 +247,66 @@ class BitcoindClient(BaseClient):
         elif txid in txids:
             return [txid]
         return []
+
+    def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
+        if isinstance(blockid, int) or len(blockid) < 10:
+            blockid = self.proxy.getblockhash(int(blockid))
+        if not limit:
+            limit = 99999
+
+        txs = []
+        if parse_transactions:
+            bd = self.proxy.getblock(blockid, 2)
+            for tx in bd['tx'][(page - 1) * limit:page * limit]:
+                # try:
+                tx['time'] = bd['time']
+                tx['blockhash'] = bd['hash']
+                txs.append(self._parse_transaction(tx, block_height=bd['height'], get_input_values=True))
+                # except Exception as e:
+                #     _logger.error("Could not parse tx %s with error %s" % (tx['txid'], e))
+            # txs += [tx['hash'] for tx in bd['tx'][len(txs):]]
+        else:
+            bd = self.proxy.getblock(blockid, 1)
+            txs = bd['tx']
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['confirmations'],
+            'block_hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': None if 'previousblockhash' not in bd else bd['previousblockhash'],
+            'time': bd['time'],
+            'tx_count': bd['nTx'],
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': None,
+            'limit': limit
+        }
+        return block
+
+    def getrawblock(self, blockid):
+        if isinstance(blockid, int):
+            blockid = self.proxy.getblockhash(blockid)
+        return self.proxy.getblock(blockid, 0)
+
+    def isspent(self, txid, index):
+        res = self.proxy.gettxout(txid, index)
+        if not res:
+            return True
+        return False
+
+    def getinfo(self):
+        info = self.proxy.getmininginfo()
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['chain'],
+            'difficulty': int(info['difficulty']),
+            'hashrate': int(info['networkhashps']),
+            'mempool_size': int(info['pooledtx']),
+        }
 
 
 if __name__ == '__main__':

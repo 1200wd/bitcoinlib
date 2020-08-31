@@ -159,6 +159,18 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual('19MCFyVmyEhFjYNS8aKJT454jm4YZQjbqm',
                          Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
 
+    def test_transaction_deserialize_raw_coinbase(self):
+        rawtx = "02000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d03f6591c046945e" \
+                "35e2f706f6f6c696e2e636f6d2ffabe6d6d3bd89000dd7bd942b167b95cca4bf887bb60a45511c7fe875b4ece4844893351" \
+                "01000000000000001f9aff78ef65000000000000ffffffff026dd1b34a000000001976a914b0b0451e297b39ea0f5298279" \
+                "3fb245ff446438988ac0000000000000000266a24aa21a9ed9eed30e9aebb9f3b08026a3c3105e3ca963a895cf5f9b55037" \
+                "cfdf592c02d77100000000"
+        t = Transaction.import_raw(rawtx)
+        self.assertTrue(t.coinbase)
+        self.assertEqual(t.inputs[0].value, 0)
+        self.assertEqual(t.input_total, 0)
+        self.assertEqual(t.txid, '0d2a5833c7c71fdc6fbd57ff0ace4afbf8aeb513d16bebae082e6b08dfa91632')
+
     def test_transactions_deserialize_p2sh_output(self):
         rawtx = '01000000011a422ceb2104d9c3ace9fcbda16b9a9f12a1a93c389a0740c70c9b56d3a0c7bf00000000fd4501004730440220' \
                 '7ed9498344a1ddb6e52d2b3fb270c85ec49527fe7cc0915264aa334a9d61a7770220032cb9d97cec92d027fcf80f0e11fbe7' \
@@ -199,7 +211,7 @@ class TestTransactions(unittest.TestCase):
                 '8e0acdfd92976b7c2103a1b26313f430c4b15bb1fdce663207659d8cac749a0e53d70f01874496feff2103c96d495bfdd5' \
                 'ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000'
         self.assertRaisesRegexp(TransactionError,
-                                'Could not parse witnesses in transaction. Multisig redeemscript expected',
+                                "Error when deserializing raw transaction, bytes left for locktime must be 4 not 3",
                                 Transaction.import_raw, rawtx)
 
     def test_transactions_verify_signature(self):
@@ -959,8 +971,9 @@ class TestTransactions(unittest.TestCase):
         t = Transaction.import_raw(raw_tx)
         self.assertEqual(t.output_total, 4534776015)
         self.assertEqual(t.size, 523)
-        self.assertEqual(t.hash, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
-        self.assertEqual(repr(t), '<Transaction(input_count=3, output_count=2, status=new, network=bitcoin)>')
+        self.assertEqual(t.txid, '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
+        self.assertEqual(repr(t), '<Transaction(id=6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74, '
+                                  'inputs=3, outputs=2, status=new, network=bitcoin)>')
         self.assertEqual(str(t), '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74')
 
     def test_transaction_sendto_wrong_address(self):
@@ -1139,6 +1152,23 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                 '7be3f3e457b000000000'
         t = Transaction.import_raw(rawtx)
         self.assertEqual(t.inputs[0].script_type, 'signature')
+        self.assertEqual(t.outputs[0].script_type, 'p2pk')
+
+    def test_transaction_sign_p2pk(self):
+        wif = 'tprv8ZgxMBicQKsPdx411rqb5SjGvY43Bjc2PyhU2UCVtbEwCDSyKzHhaM88XaKHe5LcyNVdwWgG9NBut4oytRLbhr7iHbJ7KxioG' \
+              'nQETYvZu3j'
+        k = HDKey(wif)
+        prev_txid = '9f5c85ceb8f0c6c9b4dd3ab3b4a522d6be7c90c33ee4e9097bf1f5fc8e367bcb'
+        output_n = 0
+        value = 9000
+
+        inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature')
+        outp = Output(7000, k, network='testnet', script_type='p2pk')
+        t = Transaction([inp], [outp], network='testnet')
+        t.sign(k.private_byte)
+        self.assertTrue(t.verify())
+        self.assertEqual(to_hexstring(t.signature_hash(sign_id=0)),
+                         '67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986')
 
     def test_transaction_locktime(self):
         # FIXME: Add more usefull unittests for locktime
@@ -1148,10 +1178,24 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertIsNotNone(s_cltv)
         self.assertIsNotNone(s_csv)
         # Test deserialize locktime transactions
-        rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044022003ea734e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b161ffb654be7e89c84de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d0977337376868b033029ba49cc64765dfdffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a327696a70a000000006a47304402207758c05e849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef98a21a3c567b4c6defe8ffca06012103ab51db28d30d3ac99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdffffff029b040000000000001976a91406d66adea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a9140614a615ee10d84a1e6d85ec1ff7fff527757d5987b0cc0800'
+        rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044022003ea7' \
+                '34e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b161ffb654be7e89c84' \
+                'de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d0977337376868b033029ba49cc64765df' \
+                'dffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a327696a70a000000006a47304402207758c05e' \
+                '849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef9' \
+                '8a21a3c567b4c6defe8ffca06012103ab51db28d30d3ac99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdff' \
+                'ffff029b040000000000001976a91406d66adea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a914061' \
+                '4a615ee10d84a1e6d85ec1ff7fff527757d5987b0cc0800'
         t = Transaction.import_raw(rawtx)
         self.assertEqual(t.locktime, 576688)
-        rawtx = '010000000159dc9ad3dc18cd76827f107a50fd96981e323aec7be4cbf982df176b9ab64f4900000000fd17014730440220797987a17ee28181a94437e20c60b9d8da8974e68f91f250c424b623f06aeea9022036faa2834da6f883078abc3dd2fb48c19fc17097aa5b87fa11d00385fd21740b0121025c8ee352e8b0d12aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac800bd206a9068119b30840206281418227f33f76c53c43fa59fad748d2954e6ecd595a94c8aa6140d424014e59608dae01e97700da0b53b3095a1af882102ef7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d1187632102ef7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d11ac670475f2df5cb17521025c8ee352e8b0d12aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac800bdac68feffffff011f000200000000001976a91436963a21b49f701acf03dd1e778ab5774017b53c88ac75f2df5c'
+        rawtx = '010000000159dc9ad3dc18cd76827f107a50fd96981e323aec7be4cbf982df176b9ab64f4900000000fd170147304402207' \
+                '97987a17ee28181a94437e20c60b9d8da8974e68f91f250c424b623f06aeea9022036faa2834da6f883078abc3dd2fb48c1' \
+                '9fc17097aa5b87fa11d00385fd21740b0121025c8ee352e8b0d12aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac80' \
+                '0bd206a9068119b30840206281418227f33f76c53c43fa59fad748d2954e6ecd595a94c8aa6140d424014e59608dae01e97' \
+                '700da0b53b3095a1af882102ef7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d1187632102ef' \
+                '7f775819d4518c67c904201e30d4181190552f0026db94f93bfde557e23d11ac670475f2df5cb17521025c8ee352e8b0d12' \
+                'aecd8b3d9ac3bd93cae1b2cc5de7ac56c2995ab506ac800bdac68feffffff011f000200000000001976a91436963a21b49f' \
+                '701acf03dd1e778ab5774017b53c88ac75f2df5c'
         t = Transaction.import_raw(rawtx)
         self.assertEqual(t.locktime, 1558180469)
         # Input level locktimes
@@ -1170,7 +1214,11 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                                 'troep')
 
     def test_transaction_redeemscript(self):
-        redeemscript = '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09e63975a1700c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff90e28da1848f640de68c2fe913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c70776538d079fbae117dc38effafb33304af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea600bd217870a8b4f1f09f3a8e8353ae'
+        redeemscript = '524104a882d414e478039cd5b52a92ffb13dd5e6bd4515497439dffd691a0f12af9575fa349b5694ed3155b136f09' \
+                       'e63975a1700c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff' \
+                       '90e28da1848f640de68c2fe913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c7' \
+                       '0776538d079fbae117dc38effafb33304af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea6' \
+                       '00bd217870a8b4f1f09f3a8e8353ae'
         sd = script_deserialize('00c9' + redeemscript)
         self.assertEqual(to_hexstring(sd['redeemscript']), redeemscript)
 
@@ -1583,7 +1631,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.outputs[1].address, 'ltc1q3nhtez2yezaj470kw9xkpjygvqv3qvhn5sp469')
         self.assertEqual(t.outputs[1].value, 10182078)
         self.assertEqual(t.raw_hex(), rawtx)
-        self.assertEqual(t.hash, '6bf265d81f235a995dfd433765dcee7da56786973234be2b8db4a156ac64b0e1')
+        self.assertEqual(t.txid, '6bf265d81f235a995dfd433765dcee7da56786973234be2b8db4a156ac64b0e1')
 
     def test_transaction_segwit_redeemscript_bug(self):
         t = Transaction(

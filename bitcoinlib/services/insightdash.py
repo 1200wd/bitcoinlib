@@ -18,14 +18,16 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 from datetime import datetime
-import struct
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
 
 PROVIDERNAME = 'insightdash'
 REQUEST_LIMIT = 50
+
+_logger = logging.getLogger(__name__)
 
 
 class InsightDashClient(BaseClient):
@@ -51,18 +53,17 @@ class InsightDashClient(BaseClient):
         value_in = 0 if 'valueIn' not in tx else tx['valueIn']
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
-            value_in = tx['valueOut']
             isCoinbase = True
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], hash=tx['txid'],
-                        date=datetime.fromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
+                        date=datetime.utcfromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
                         block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
         for ti in tx['vin']:
             if isCoinbase:
                 t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
-                            script_type='coinbase', sequence=ti['sequence'])
+                            script_type='coinbase', sequence=ti['sequence'], value=0)
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=ti['scriptSig']['hex'],
@@ -71,7 +72,9 @@ class InsightDashClient(BaseClient):
         for to in tx['vout']:
             value = int(round(float(to['value']) * self.units, 0))
             t.add_output(value=value, lock_script=to['scriptPubKey']['hex'],
-                         spent=True if to['spentTxId'] else False, output_n=to['n'])
+                         spent=True if to['spentTxId'] else False, output_n=to['n'],
+                         spending_txid=None if not to['spentTxId'] else to['spentTxId'],
+                         spending_index_n=None if not to['spentIndex'] else to['spentIndex'])
         return t
 
     def getbalance(self, addresslist):
@@ -82,7 +85,7 @@ class InsightDashClient(BaseClient):
             balance += res
         return balance
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, 'utxo')
         txs = []
@@ -102,20 +105,20 @@ class InsightDashClient(BaseClient):
                 'script': tx['scriptPubKey'],
                 'date': None
             })
-        return txs[::-1][:max_txs]
+        return txs[::-1][:limit]
 
     def gettransaction(self, tx_id):
         tx = self.compose_request('tx', tx_id)
         return self._convert_to_transaction(tx)
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
         address = self._address_convert(address)
         res = self.compose_request('addrs', address.address, 'txs')
         txs = []
         txs_dict = res['items'][::-1]
         if after_txid:
             txs_dict = txs_dict[[t['txid'] for t in txs_dict].index(after_txid) + 1:]
-        for tx in txs_dict[:max_txs]:
+        for tx in txs_dict[:limit]:
             if tx['txid'] == after_txid:
                 break
             txs.append(self._convert_to_transaction(tx))
@@ -142,4 +145,48 @@ class InsightDashClient(BaseClient):
         res = self.compose_request('tx', txid)
         if res['confirmations'] == 0:
             return res['txid']
-        return []
+        return False
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        bd = self.compose_request('block', str(blockid))
+        if parse_transactions:
+            txs = []
+            for txid in bd['tx'][(page-1)*limit:page*limit]:
+                try:
+                    txs.append(self.gettransaction(txid))
+                except Exception as e:
+                    _logger.error("Could not parse tx %s with error %s" % (txid, e))
+        else:
+            txs = bd['tx']
+
+        block = {
+            'bits': bd['bits'],
+            'depth': bd['confirmations'],
+            'hash': bd['hash'],
+            'height': bd['height'],
+            'merkle_root': bd['merkleroot'],
+            'nonce': bd['nonce'],
+            'prev_block': bd['previousblockhash'],
+            'time': datetime.utcfromtimestamp(bd['time']),
+            'total_txs': len(bd['tx']),
+            'txs': txs,
+            'version': bd['version'],
+            'page': page,
+            'pages': int(len(bd['tx']) // limit) + (len(bd['tx']) % limit > 0),
+            'limit': limit
+        }
+        return block
+
+    def isspent(self, txid, output_n):
+        t = self.gettransaction(txid)
+        return 1 if t.outputs[output_n].spent else 0
+
+    def getinfo(self):
+        info = self.compose_request('status', '')['info']
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['network'],
+            'difficulty': int(float(info['difficulty'])),
+            'hashrate': 0,
+            'mempool_size': 0,
+        }

@@ -246,9 +246,11 @@ class TestPublicKeyUncompressed(unittest.TestCase):
         self.K = Key('025c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec')
 
     def test_public_key_point(self):
-        self.assertEqual((41637322786646325214887832269588396900663353932545912953362782457239403430124,
-                          16388935128781238405526710466724741593761085120864331449066658622400339362166),
-                         self.K.public_point(),)
+        x = 41637322786646325214887832269588396900663353932545912953362782457239403430124
+        y = 16388935128781238405526710466724741593761085120864331449066658622400339362166
+        px, py = self.K.public_point()
+        self.assertEqual(px, x)
+        self.assertEqual(py, y)
 
     def test_public_key_uncompressed(self):
         self.assertEqual('045c0de3b9c8ab18dd04e3511243ec2952002dbfadc864b9628910169d9b9b00ec243bcefdd4347074d4'
@@ -497,7 +499,7 @@ class TestHDKeys(unittest.TestCase):
             k = HDKey(network=network)
             for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
                 for multisig in [False, True]:
-                    if network[:4] == 'dash' and witness_type != 'legacy':
+                    if (network[:4] == 'dash' or network[:4] == 'doge') and witness_type != 'legacy':
                         break
                     kwif = k.wif_private(witness_type=witness_type, multisig=multisig)
                     hdkey = wif_prefix_search(kwif, witness_type=witness_type, multisig=multisig, network=network)

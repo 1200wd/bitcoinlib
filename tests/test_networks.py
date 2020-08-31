@@ -12,7 +12,7 @@ from bitcoinlib.networks import *
 class TestNetworks(unittest.TestCase):
 
     def test_networks_prefix_wif_network_by_value(self):
-        self.assertEqual(network_by_value('prefix_wif', '80'), ['bitcoin'])
+        self.assertEqual(network_by_value('prefix_wif', '80')[:1], ['bitcoin'])
         self.assertEqual(network_by_value('prefix_wif', 10), [])
 
     def test_networks_prefix_bech32_network_by_value(self):

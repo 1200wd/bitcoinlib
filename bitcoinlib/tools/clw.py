@@ -334,7 +334,7 @@ def main():
         if args.push:
             res = wt.send()
             if res:
-                print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
+                print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
             else:
                 print("Error creating transaction: %s" % wt.error)
         wt.info()
@@ -369,7 +369,7 @@ def main():
         if args.push:
             wt.send()
             if wt.pushed:
-                print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
+                print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
             else:
                 print("Error creating transaction: %s" % wt.error)
         else:

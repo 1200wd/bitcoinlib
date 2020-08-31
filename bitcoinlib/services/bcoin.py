@@ -18,17 +18,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from datetime import datetime
-from time import sleep
-from requests import ReadTimeout
 from bitcoinlib.main import *
 from bitcoinlib.services.baseclient import BaseClient, ClientError
-from bitcoinlib.transactions import Transaction
+from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'bcoin'
-LIMIT_TX = 10
 
 _logger = logging.getLogger(__name__)
 
@@ -44,7 +40,7 @@ class BcoinClient(BaseClient):
     def compose_request(self, func, data='', parameter='', variables=None, method='get'):
         url_path = func
         if data:
-            url_path += '/' + data
+            url_path += '/' + str(data)
         if parameter:
             url_path += '/' + parameter
         if variables is None:
@@ -59,15 +55,12 @@ class BcoinClient(BaseClient):
         t.locktime = tx['locktime']
         t.network = self.network
         t.fee = tx['fee']
-        t.date = datetime.fromtimestamp(tx['time'])
+        t.date = datetime.utcfromtimestamp(tx['time']) if tx['time'] else None
         t.confirmations = tx['confirmations']
-        t.block_height = tx['height']
+        t.block_height = tx['height'] if tx['height'] > 0 else None
         t.block_hash = tx['block']
         t.status = status
-        if t.coinbase:
-            t.input_total = t.output_total
-            t.inputs[0].value = t.output_total
-        else:
+        if not t.coinbase:
             for i in t.inputs:
                 i.value = tx['inputs'][t.inputs.index(i)]['coin']['value']
         for o in t.outputs:
@@ -75,32 +68,48 @@ class BcoinClient(BaseClient):
         t.update_totals()
         return t
 
-    def isspent(self, tx_id, index):
-        try:
-            self.compose_request('coin', tx_id, str(index))
-        except ClientError:
-            return True
-        return False
+    def getbalance(self, addresslist):
+        balance = 0.0
+        from bitcoinlib.services.services import Service
+        for address in addresslist:
+            # First get all transactions for this address from the blockchain
+            srv = Service(network=self.network.name, providers=['bcoin'])
+            txs = srv.gettransactions(address, limit=25)
 
-    # def getbalance(self, addresslist):
-    #     balance = 0.0
-    #     for address in addresslist:
-    #         res = tx = self.compose_request('address', address)
-    #         balance += int(res['balance'])
-    #     return int(balance * self.units)
+            # Fail if large number of transactions are found
+            if not srv.complete:
+                raise ClientError("If not all transactions known, we cannot determine utxo's. "
+                                  "Increase limit or use other provider")
 
-    def getutxos(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
-        txs = self.gettransactions(address, after_txid=after_txid, max_txs=max_txs)
+            for a in [output for outputs in [t.outputs for t in txs] for output in outputs]:
+                if a.address == address:
+                    balance += a.value
+            for a in [i for inputs in [t.inputs for t in txs] for i in inputs]:
+                if a.address == address:
+                    balance -= a.value
+        return int(balance)
+
+    def getutxos(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        # First get all transactions for this address from the blockchain
+        from bitcoinlib.services.services import Service
+        srv = Service(network=self.network.name, providers=['bcoin'])
+        txs = srv.gettransactions(address, limit=25)
+
+        # Fail if large number of transactions are found
+        if not srv.complete:
+            raise ClientError("If not all transactions known, we cannot determine utxo's. "
+                              "Increase limit or use other provider")
+
         utxos = []
         for tx in txs:
             for unspent in tx.outputs:
                 if unspent.address != address:
                     continue
-                if not self.isspent(tx.hash, unspent.output_n):
+                if not srv.isspent(tx.txid, unspent.output_n):
                     utxos.append(
                         {
                             'address': unspent.address,
-                            'tx_hash': tx.hash,
+                            'tx_hash': tx.txid,
                             'confirmations': tx.confirmations,
                             'output_n': unspent.output_n,
                             'input_n': 0,
@@ -112,48 +121,32 @@ class BcoinClient(BaseClient):
                             'date': tx.date,
                          }
                     )
-        return utxos
+                    if tx.txid == after_txid:
+                        utxos = []
+        return utxos[:limit]
 
     def gettransaction(self, txid):
         tx = self.compose_request('tx', txid)
         return self._parse_transaction(tx)
 
-    def gettransactions(self, address, after_txid='', max_txs=MAX_TRANSACTIONS):
+    def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
+        assert(limit > 0)
         txs = []
         while True:
-            variables = {'limit': LIMIT_TX, 'after': after_txid}
-            retries = 0
-            while retries < 3:
-                try:
-                    res = self.compose_request('tx', 'address', address, variables)
-                except ReadTimeout as e:
-                    sleep(3)
-                    _logger.warning("Bcoin client error: %s" % e)
-                    retries += 1
-                else:
-                    break
-                finally:
-                    if retries == 3:
-                        raise ClientError("Max retries exceeded with bcoin Client")
+            variables = {'limit': limit, 'after': after_txid}
+            res = self.compose_request('tx', 'address', address, variables)
             for tx in res:
                 txs.append(self._parse_transaction(tx))
-            if len(txs) >= max_txs:
+            if not txs or len(txs) >= limit:
                 break
-            if len(res) == LIMIT_TX:
-                after_txid = res[LIMIT_TX-1]['hash']
+            if len(res) == limit:
+                after_txid = res[limit-1]['hash']
             else:
                 break
 
         # Check which outputs are spent/unspent for this address
-        if not after_txid:
-            address_inputs = [(to_hexstring(inp.prev_hash), inp.output_n_int) for ti in
-                              [t.inputs for t in txs] for inp in ti if inp.address == address]
-            for tx in txs:
-                for to in tx.outputs:
-                    if to.address != address:
-                        continue
-                    spent = True if (tx.hash, to.output_n) in address_inputs else False
-                    txs[txs.index(tx)].outputs[to.output_n].spent = spent
+        if not after_txid and len(txs) != limit:
+            txs = transaction_update_spents(txs, address)
         return txs
 
     def getrawtransaction(self, txid):
@@ -164,7 +157,7 @@ class BcoinClient(BaseClient):
         txid = ''
         if 'success' in res and res['success']:
             t = Transaction.import_raw(rawtx)
-            txid = t.hash
+            txid = t.txid
         return {
             'txid': txid,
             'response_dict': res
@@ -187,4 +180,55 @@ class BcoinClient(BaseClient):
             return txids
         elif txid in txids:
             return [txid]
-        return []
+        return False
+
+    def getblock(self, blockid, parse_transactions, page, limit):
+        block = self.compose_request('block', str(blockid))
+        # FIXME: This doesnt work if page or limit is used, also see pages calc below
+        block['tx_count'] = len(block['txs'])
+        txs = block['txs']
+        parsed_txs = []
+        if parse_transactions:
+            txs = txs[(page-1)*limit:page*limit]
+        for tx in txs:
+            tx['confirmations'] = block['depth']
+            tx['time'] = block['time']
+            tx['height'] = block['height']
+            tx['block'] = block['hash']
+            if parse_transactions:
+                t = self._parse_transaction(tx)
+                if t.txid != tx['hash']:
+                    raise ClientError("Could not parse tx %s. Different txid's" % (tx['hash']))
+                parsed_txs.append(t)
+            else:
+                parsed_txs.append(tx['hash'])
+
+        block['time'] = block['time']
+        block['txs'] = parsed_txs
+        block['page'] = page
+        block['pages'] = int(block['tx_count'] // limit) + (block['tx_count'] % limit > 0)
+        block['limit'] = limit
+        block['prev_block'] = block.pop('prevBlock')
+        block['merkle_root'] = block.pop('merkleRoot')
+        block['block_hash'] = block.pop('hash')
+        return block
+
+    # def getrawblock
+
+    def isspent(self, txid, index):
+        try:
+            self.compose_request('coin', txid, str(index))
+        except ClientError:
+            return 1
+        return 0
+
+    def getinfo(self):
+        res = self.compose_request('', variables={'method': 'getmininginfo'}, method='post')
+        info = res['result']
+        return {
+            'blockcount': info['blocks'],
+            'chain': info['chain'],
+            'difficulty': info['difficulty'],
+            'hashrate': info['networkhashps'],
+            'mempool_size': info['pooledtx']
+        }

@@ -26,6 +26,7 @@ import hashlib
 import pyaes
 import binascii
 import unicodedata
+import struct
 from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ if 'scrypt' not in sys.modules:
 if not USING_MODULE_SCRYPT:
     if 'scrypt_error' not in locals():
         SCRYPT_ERROR = 'unknown'
-    _logger.warning("Error when trying to import scrypt module", SCRYPT_ERROR)
+    _logger.warning("Error when trying to import scrypt module %s" % SCRYPT_ERROR)
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
@@ -64,15 +65,14 @@ class EncodingError(Exception):
     """ Log and raise encoding errors """
     def __init__(self, msg=''):
         self.msg = msg
-        _logger.error(msg)
 
     def __str__(self):
         return self.msg
 
 
 bytesascii = b''
-for x in range(256):
-    bytesascii += bytes(bytearray((x,)))
+for bxn in range(256):
+    bytesascii += bytes(bytearray((bxn,)))
 
 code_strings = {
     2: b'01',
@@ -81,7 +81,7 @@ code_strings = {
     16: b'0123456789abcdef',
     32: b'abcdefghijklmnopqrstuvwxyz234567',
     58: b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
-    256: b''.join([bytes(bytearray((x,))) for x in range(256)]),
+    256: b''.join([bytes(bytearray((csx,))) for csx in range(256)]),
     'bech32': b'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 }
 
@@ -222,8 +222,13 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             return to_hexstring(inp)
         elif base_from == 16 and base_to == 256:
             return binascii.unhexlify(inp)
-    if base_from == 16 and base_to == 10:
+    if base_from == 16 and base_to == 10 and PY3:
         return int(inp, 16)
+    if base_from == 10 and base_to == 16 and PY3:
+        hex_outp = hex(inp)[2:]
+        return hex_outp.zfill(min_length) if min_length else hex_outp
+    if base_from == 256 and base_to == 10 and PY3:
+        return int.from_bytes(inp, 'big')
 
     if output_even is None and base_to == 16:
         output_even = True
@@ -760,7 +765,7 @@ def normalize_string(string):
     Normalize a string to the default NFKD unicode format
     See https://en.wikipedia.org/wiki/Unicode_equivalence#Normalization
 
-    :param string: string valuehttps://www.reddit.com/r/thenetherlands/comments/egp9qu/nederlands_gezin_steunt_boerensector_met_500_euro/
+    :param string: string value
     :type string: bytes, bytearray, str
 
     :return: string
@@ -799,7 +804,7 @@ def hash160(string):
     :param string: Script
     :type string: bytes
 
-    :return bytes: RIPEMD-160 hash ohttps://www.reddit.com/r/thenetherlands/comments/egp9qu/nederlands_gezin_steunt_boerensector_met_500_euro/f script
+    :return bytes: RIPEMD-160 hash of script
     """
     return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()
 
@@ -851,8 +856,14 @@ def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
     BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
     Based on code from https://github.com/nomorecoin/python-bip38-testing
 
+    :param private_hex: Private key in hex format
+    :type private_hex: str
+    :param address: Address string
+    :type address: str
     :param passphrase: Required passphrase for encryption
     :type passphrase: str
+    :param flagbyte: Flagbyte prefix for WIF
+    :type flagbyte: bytes
 
     :return str: BIP38 passphrase encrypted private key
     """
@@ -872,3 +883,49 @@ def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
     encrypted_privkey = b'\x01\x42' + flagbyte + addresshash + encryptedhalf1 + encryptedhalf2
     encrypted_privkey += double_sha256(encrypted_privkey)[:4]
     return change_base(encrypted_privkey, 256, 58)
+
+
+class Quantity:
+    """
+    Class to convert very large or very small numbers to a readable format.
+
+    Provided value is converted to number between 0 and 1000, and a metric prefix will be added.
+
+    >>> # Example - the Hashrate on 10th July 2020
+    >>> str(Quantity(122972532877979100000, 'H/s'))
+    '122.973 EH/s'
+
+    """
+
+    def __init__(self, value, units='', precision=3):
+        """
+        Convert given value to number between 0 and 1000 and determine metric prefix
+
+        :param value: Value as integer in base 0
+        :type value: int, float
+        :param units: Base units, so 'g' for grams for instance
+        :type units: str
+        :param precision: Number of digits after the comma
+        :type precision: int
+
+        """
+        # Metric prefixes according to BIPM, the International System of Units (SI) in 10**3 steps
+        self.prefix_list = list('yzafpnμm1kMGTPEZY')
+        self.base = self.prefix_list.index('1')
+        assert value > 0
+
+        self.absolute = value
+        self.units = units
+        self.precision = precision
+        while (value < 1 or value > 1000) and 0 < self.base < len(self.prefix_list)-1:
+            if value > 1000:
+                self.base += 1
+                value /= 1000.0
+            elif value < 1000:
+                self.base -= 1
+                value *= 1000.0
+        self.value = value
+
+    def __str__(self):
+        # > Python 3.6: return f"{self.value:4.{self.precision}f} {self.prefix_list[self.base]}{self.units}"
+        return '%4.*f %s%s' % (self.precision, self.value, self.prefix_list[self.base], self.units)

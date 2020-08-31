@@ -255,7 +255,59 @@
     "priority": 6,
     "fork_id": 0
   },
-  "bitcoin_cash":
+  "dogecoin":
+  {
+    "description": "Dogecoin",
+    "currency_name": "dogecoin",
+    "currency_name_plural": "dogecoins",
+    "currency_symbol": "Ð",
+    "currency_code": "DOGE",
+    "prefix_address": "1E",
+    "prefix_address_p2sh": "16",
+    "prefix_bech32": "doge",
+    "prefix_wif": "9E",
+    "prefixes_wif": [
+      ["0488B21E", "xpub", "public",  false, "legacy",      "p2pkh"],
+      ["0488B21E", "xpub", "public",  true,  "legacy",      "p2sh"],
+      ["0488ADE4", "xprv", "private", false, "legacy",      "p2pkh"],
+      ["0488ADE4", "xprv", "private", true,  "legacy",      "p2sh"]
+    ],
+    "bip44_cointype": 3,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 100000000,
+    "fee_min": 100000000,
+    "fee_max": 1000000000,
+    "priority": 10,
+    "fork_id": 0
+  },
+  "dogecoin_testnet":
+  {
+    "description": "Dogecoin Testnet Network",
+    "currency_name": "test-dogecoin",
+    "currency_name_plural": "test-dogecoins",
+    "currency_symbol": "TDOGE",
+    "currency_code": "TDOGE",
+    "prefix_address": "71",
+    "prefix_address_p2sh": "C4",
+    "prefix_bech32": "tdoge",
+    "prefix_wif": "F1",
+    "prefixes_wif": [
+      ["043587CF", "tpub", "public",  false, "legacy",      "p2pkh"],
+      ["043587CF", "tpub", "public",  true,  "legacy",      "p2sh"],
+      ["04358394", "tprv", "private", false, "legacy",      "p2pkh"],
+      ["04358394", "tprv", "private", true,  "legacy",      "p2sh"]
+    ],
+    "bip44_cointype": 1,
+    "denominator": 0.00000001,
+    "dust_amount": 1000,
+    "fee_default": 100000000,
+    "fee_min": 100000000,
+    "fee_max": 1000000000,
+    "priority": 6,
+    "fork_id": 0
+  },
+    "bitcoin_cash":
   {
     "description": "Bitcoin Cash",
     "currency_name": "bitcoin cash",

@@ -1,3 +1,39 @@
+RELEASE 0.4.17 - Bug fix release
+================================
+* Fix logging, cache and database issues
+* Fix several bitcoind noode issues
+* Fix issues with Block object
+* Fix issues with Chainso, Blocksmurfer, Blockcypher and Blockchair
+* Disable cache when database problems occur
+* Add Quantity class to represent very large/small numbers
+
+RELEASE 0.4.16 - Blocks
+=======================
+* Create Block object to parse, serialize and extract information
+* Add getblock and getblock method to service providers
+* Add caching for blocks
+* Fix various issues with service providers
+* Fix conversion issues, and increase speed by avoiding unnecessary conversions
+* Add Dogecoin
+
+RELEASE 0.4.15 - Integrate Blocksmurfer
+=======================================
+* Add support for new bitcoinlib-based Blocksmurfer provider
+* Fix issues with Service class and service providers
+* Fix various Bcoin issues
+* Fix antique P2PK transactions
+* Improve database and caching performance
+* Fix issues with incorrect balance, number of txs or utoxs in cache
+* Add spending transaction information in transaction outputs
+* Add getblock method
+
+RELEASE 0.4.14 - Refactor logging
+=================================
+* Simplify logging and configuration
+* Use pathlib module instead of os.path
+* Allow to use mysql or postgresql for cache database
+* Fix some issues from service providers
+
 RELEASE 0.4.13 - Add caching
 ============================
 * Cache transactions and address info retrieved from Service providers
