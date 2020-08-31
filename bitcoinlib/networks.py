@@ -236,6 +236,7 @@ class Network(object):
         self.fee_max = NETWORK_DEFINITIONS[network_name]['fee_max']
         self.priority = NETWORK_DEFINITIONS[network_name]['priority']
         self.prefixes_wif = NETWORK_DEFINITIONS[network_name]['prefixes_wif']
+        self.fork_id = NETWORK_DEFINITIONS[network_name]['fork_id']
 
         # This could be more shorter and more flexible with this code, but this gives 'Unresolved attributes' warnings
         # for f in list(NETWORK_DEFINITIONS[network_name].keys()):
