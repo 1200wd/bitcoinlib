@@ -95,9 +95,7 @@ class DbCacheTransaction(Base):
     """
     __tablename__ = 'cache_transactions'
     txid = Column(String(64), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
-    date = Column(DateTime, default=datetime.utcnow,
-                  doc="Date when transaction was confirmed and included in a block. "
-                      "Or when it was created when transaction is not send or confirmed")
+    date = Column(DateTime, doc="Date when transaction was confirmed and included in a block")
     # TODO: Add fields to allow to create full transaction
     # witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
     # version = Column(Integer, default=1,
