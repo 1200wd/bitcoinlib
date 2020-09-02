@@ -191,7 +191,6 @@ class BitcoindClient(BaseClient):
         for o in t.outputs:
             o.spent = None
 
-        t.block_hash = tx.get('blockhash', '')
         if not block_height and t.block_hash:
             block_height = self.proxy.getblock(t.block_hash, 1)['height']
         t.block_height = block_height

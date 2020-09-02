@@ -994,7 +994,7 @@ class Cache(object):
         if self.session.query(DbCacheTransaction).filter_by(txid=t.txid).count():
             return
         new_tx = DbCacheTransaction(txid=t.txid, date=t.date, confirmations=t.confirmations,
-                                    block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
+                                    block_height=t.block_height, network_name=t.network.name,
                                     fee=t.fee, raw=raw_hex, order_n=order_n)
         self.session.add(new_tx)
         for i in t.inputs:

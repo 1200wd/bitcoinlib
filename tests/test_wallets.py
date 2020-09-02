@@ -2214,7 +2214,8 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         self.assertEqual(w.addresslist(), [address])
         self.assertIsNone(w.main_key.key_public)
         w.import_key(wif)
-        self.assertEqual(w.main_key.key_public, '0225248feed626f2496276109329f1ce30225e7a3153fe24b5c56828b0773bae75')
+        self.assertEqual(w.main_key.key_public.hex(),
+                         '0225248feed626f2496276109329f1ce30225e7a3153fe24b5c56828b0773bae75')
 
     def test_wallet_address_import_public_key_segwit(self):
         address = 'bc1q84xq6lrzr09t3h2pw5ys5zee7rn3mxh5v65732'

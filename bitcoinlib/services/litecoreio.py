@@ -55,9 +55,9 @@ class LitecoreIOClient(BaseClient):
         if 'isCoinBase' in tx and tx['isCoinBase']:
             isCoinbase = True
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=fees, size=tx['size'], hash=tx['txid'],
+                        fee=fees, size=tx['size'], hash_tx=bytes.fromhex(tx['txid']),
                         date=datetime.utcfromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
-                        block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
+                        block_height=tx['blockheight'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
         for ti in tx['vin']:

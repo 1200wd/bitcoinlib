@@ -168,7 +168,7 @@ class DogecoindClient(BaseClient):
 
         return txs
 
-    def gettransaction(self, txid):
+    def gettransaction(self, txid, block_height=None, get_input_values=True):
         tx = self.proxy.getrawtransaction(txid, 1)
         t = Transaction.import_raw(tx['hex'], network=self.network)
         t.confirmations = tx['confirmations']
@@ -180,14 +180,14 @@ class DogecoindClient(BaseClient):
                 i.value = t.output_total
                 i.script_type = 'coinbase'
                 continue
-            txi = self.proxy.getrawtransaction(i.prev_hash.hex(), 1)
-            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+            if get_input_values:
+                txi = self.proxy.getrawtransaction(i.prev_hash.hex(), 1)
+                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.block_hash = tx['blockhash']
         t.version = tx['version'].to_bytes(4, 'little')
         t.date = datetime.fromtimestamp(tx['blocktime'])
-        t.hash = txid
+        t.block_height = block_height
         t.update_totals()
         return t
 

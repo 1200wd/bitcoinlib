@@ -99,7 +99,7 @@ class BlockstreamClient(BaseClient):
             status = 'confirmed'
         fee = None if 'fee' not in tx else tx['fee']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=fee, size=tx['size'], hash=tx['txid'],
+                        fee=fee, size=tx['size'], hash_tx=bytes.fromhex(tx['txid']),
                         date=None if 'block_time' not in tx['status'] else datetime.utcfromtimestamp(tx['status']['block_time']),
                         confirmations=confirmations, block_height=block_height, status=status,
                         coinbase=tx['vin'][0]['is_coinbase'])

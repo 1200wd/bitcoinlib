@@ -409,19 +409,19 @@ class HDWalletKey(object):
             address = k.address(encoding=encoding, script_type=script_type)
             wk = session.query(DbKey).filter(
                 DbKey.wallet_id == wallet_id,
-                or_(DbKey.public == k.public_hex,
+                or_(DbKey.public == k.public_byte,
                     DbKey.wif == k.wif(witness_type=witness_type, multisig=multisig, is_private=False),
                     DbKey.address == address)).first()
             if wk:
                 wk.wif = k.wif(witness_type=witness_type, multisig=multisig, is_private=True)
                 wk.is_private = True
-                wk.private = k.private_hex
-                wk.public = k.public_hex
+                wk.private = k.private_byte
+                wk.public = k.public_byte
                 wk.path = path
                 session.commit()
                 return HDWalletKey(wk.id, session, k)
 
-            nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_hex, private=k.private_hex, purpose=purpose,
+            nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_byte, private=k.private_byte, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                        wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
                        parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path,
@@ -471,8 +471,8 @@ class HDWalletKey(object):
             self.key_id = key_id
             self._name = wk.name
             self.wallet_id = wk.wallet_id
-            self.key_public = wk.public
-            self.key_private = wk.private
+            self.key_public = None if not wk.public else wk.public
+            self.key_private = None if not wk.private else wk.private
             self.account_id = wk.account_id
             self.change = wk.change
             self.address_index = wk.address_index
@@ -564,7 +564,8 @@ class HDWalletKey(object):
         pub_key = self
         pub_key.is_private = False
         pub_key.key_private = None
-        pub_key.wif = self.key().wif()
+        if self.key():
+            pub_key.wif = self.key().wif()
         return pub_key
 
     def as_dict(self, include_private=False):
@@ -582,7 +583,7 @@ class HDWalletKey(object):
             'network': self.network.name,
             'is_private': self.is_private,
             'name': self.name,
-            'key_public': self.key_public,
+            'key_public': self.key_public.hex(),
             'account_id':  self.account_id,
             'parent_id': self.parent_id,
             'depth': self.depth,
@@ -596,7 +597,7 @@ class HDWalletKey(object):
         }
         if include_private:
             kdict.update({
-                'key_private': self.key_private,
+                'key_private': self.key_private.hex(),
                 'wif': self.wif,
             })
         return kdict
@@ -647,7 +648,7 @@ class HDWalletTransaction(Transaction):
         :param t: Specify Transaction object
         :type t: Transaction
 
-        :return HDWalletClass:
+        :return HDWalletTransaction:
         """
         return cls(hdwallet=hdwallet, inputs=t.inputs, outputs=t.outputs, locktime=t.locktime, version=t.version,
                    network=t.network.name, fee=t.fee, fee_per_kb=t.fee_per_kb, size=t.size,
@@ -692,7 +693,7 @@ class HDWalletTransaction(Transaction):
                 if key.key_type == 'multisig':
                     db_key = sess.query(DbKey).filter_by(id=key.key_id).scalar()
                     for ck in db_key.multisig_children:
-                        inp_keys.append(ck.child_key.public)
+                        inp_keys.append(ck.child_key.public.hex())
 
                 else:
                     inp_keys = key.key()
@@ -726,8 +727,8 @@ class HDWalletTransaction(Transaction):
         return cls(hdwallet=hdwallet, inputs=inputs, outputs=outputs, locktime=db_tx.locktime,
                    version=db_tx.version, network=network, fee=db_tx.fee, fee_per_kb=fee_per_kb,
                    size=db_tx.size, hash_tx=bytes.fromhex(txid), date=db_tx.date, confirmations=db_tx.confirmations,
-                   block_height=db_tx.block_height, block_hash=db_tx.block_hash, input_total=db_tx.input_total,
-                   output_total=db_tx.output_total, rawtx=to_hexstring(db_tx.raw), status=db_tx.status, coinbase=db_tx.coinbase,
+                   block_height=db_tx.block_height, input_total=db_tx.input_total,output_total=db_tx.output_total,
+                   rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)  # flag=db_tx.flag
 
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=None):
@@ -846,7 +847,7 @@ class HDWalletTransaction(Transaction):
                 wallet_id=self.hdwallet.wallet_id, hash_tx=self.hash_tx, block_height=self.block_height,
                 size=self.size, confirmations=self.confirmations, date=self.date, fee=self.fee, status=self.status,
                 input_total=self.input_total, output_total=self.output_total, network_name=self.network.name,
-                block_hash=self.block_hash, raw=to_hexstring(self.rawtx), verified=self.verified)
+                raw=self.rawtx, verified=self.verified)
             sess.add(new_tx)
             self.hdwallet._commit()
             txidn = new_tx.id
@@ -860,7 +861,7 @@ class HDWalletTransaction(Transaction):
             db_tx.input_total = self.input_total if self.input_total else db_tx.input_total
             db_tx.output_total = self.output_total if self.output_total else db_tx.output_total
             db_tx.network_name = self.network.name if self.network.name else db_tx.name
-            db_tx.raw = to_hexstring(self.rawtx) if self.rawtx else db_tx.raw
+            db_tx.raw = self.rawtx if self.rawtx else db_tx.raw
             db_tx.verified = self.verified
             self.hdwallet._commit()
 
@@ -1692,10 +1693,11 @@ class HDWallet(object):
         if not name:
             name = "Multisig Key " + '/'.join(public_key_ids)
 
+        # FIXME: Redeemscript check type + need to store redeemscript in Key?
         multisig_key = DbKey(
             name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
             depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
-            public=to_hexstring(redeemscript), wif='multisig-%s' % address, address=address, cosigner_id=cosigner_id,
+            public=to_bytes(redeemscript), wif='multisig-%s' % address, address=address, cosigner_id=cosigner_id,
             key_type='multisig', network_name=network)
         self._session.add(multisig_key)
         self._commit()
@@ -1903,6 +1905,7 @@ class HDWallet(object):
         network, account_id, _ = self._get_account_defaults(network, account_id)
         if cosigner_id is None:
             cosigner_id = self.cosigner_id
+        # TODO: Rewrite below with query(DbKey,id)... or 0
         last_used_qr = self._session.query(DbKey).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network, cosigner_id=cosigner_id,
                       used=True, change=change, depth=self.key_depth).\
@@ -2322,7 +2325,8 @@ class HDWallet(object):
 
         if depth is None:
             depth = self.key_depth
-        return self.keys(account_id, depth=depth, used=used, change=change, is_active=is_active, network=network, as_dict=as_dict)
+        return self.keys(account_id, depth=depth, used=used, change=change, is_active=is_active, network=network,
+                         as_dict=as_dict)
 
     def keys_address_payment(self, account_id=None, used=None, network=None, as_dict=False):
         """
@@ -2815,8 +2819,8 @@ class HDWallet(object):
                             block_height = None
                             if block_height in utxo and utxo['block_height']:
                                 block_height = utxo['block_height']
-                            new_tx = DbTransaction(wallet_id=self.wallet_id, hash_tx=bytes.fromhex(utxo['tx_hash']), status=status,
-                                                   block_height=block_height,
+                            new_tx = DbTransaction(wallet_id=self.wallet_id, hash_tx=bytes.fromhex(utxo['tx_hash']),
+                                                   status=status, block_height=block_height,
                                                    confirmations=utxo['confirmations'], network_name=self.network.name)
                             self._session.add(new_tx)
                             self._commit()
@@ -3322,7 +3326,7 @@ class HDWallet(object):
 
         utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
             filter(DbTransaction.wallet_id == self.wallet_id, DbKey.account_id == account_id,
-                   DbKey.network_name == network, DbKey.public != '',
+                   DbKey.network_name == network, DbKey.public != b'',
                    DbTransactionOutput.spent.is_(False), DbTransaction.confirmations >= min_confirms)
         if input_key_id:
             utxo_query = utxo_query.filter(DbKey.id == input_key_id)
@@ -3515,6 +3519,7 @@ class HDWallet(object):
                 if not (key_id and value and unlocking_script_type):
                     if not isinstance(output_n, TYPE_INT):
                         output_n = int.from_bytes(output_n, 'big')
+                    # FIXME: Need to join dbkey?
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.hash_tx == to_bytes(prev_hash),

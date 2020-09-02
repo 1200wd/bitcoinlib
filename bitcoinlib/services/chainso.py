@@ -108,7 +108,7 @@ class ChainSo(BaseClient):
             t.block_height = self.getblock(tx['blockhash'], False, 1, 1)['height']
         t.block_hash = tx['blockhash']
         t.date = datetime.utcfromtimestamp(tx['time'])
-        t.rawtx = raw_tx
+        t.rawtx = bytes.fromhex(raw_tx)
         t.size = tx['size']
         t.network = self.network
         t.locktime = tx['locktime']

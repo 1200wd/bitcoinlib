@@ -57,19 +57,16 @@ class BitapsClient(BaseClient):
         elif 'blockTime' in tx and tx['blockTime']:
             date = datetime.utcfromtimestamp(tx['blockTime'])
         block_height = None
-        block_hash = None
         if 'blockHeight' in tx:
             block_height = tx['blockHeight']
-        if 'blockHash' in tx:
-            block_hash = tx['blockHash']
         witness_type = 'legacy'
         if tx['segwit']:
             witness_type = 'segwit'
 
         t = Transaction(
             locktime=tx['lockTime'], version=tx['version'], network=self.network, fee=tx['fee'],
-            fee_per_kb=None if 'feeRate' not in tx else int(tx['feeRate']), size=tx['size'], hash=tx['txId'], date=date,
-            confirmations=tx['confirmations'], block_height=block_height, block_hash=block_hash,
+            fee_per_kb=None if 'feeRate' not in tx else int(tx['feeRate']), size=tx['size'],
+            hash_tx=bytes.fromhex(tx['txId']), date=date, confirmations=tx['confirmations'], block_height=block_height,
             input_total=tx['inputsAmount'], output_total=tx['outputsAmount'], status=status, coinbase=tx['coinbase'],
             verified=None if 'valid' not in tx else tx['valid'], witness_type=witness_type)
 
