@@ -58,7 +58,7 @@ class LitecoinBlockexplorerClient(BaseClient):
                         date=datetime.utcfromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
                         block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
-                        output_total=int(round(float(tx['valueOut']) * self.units, 0)))
+                        output_total=int(round(float(tx['valueOut']) * self.units, 0)), size=len(tx['rawtx']) // 2)
         for ti in tx['vin']:
             if isCoinbase:
                 t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
