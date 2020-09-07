@@ -735,7 +735,7 @@ class TestKeysSignatures(unittest.TestCase):
 
     def test_signatures(self):
         sig_tests = [
-            # tx_hash, key_hex, k, signature, DER encoded sign.
+            # txid, key_hex, k, signature, DER encoded sign.
             ('0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c',
              'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b', 1002,
              '70b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df5da0917d7bd645c2a09671894375e3d353313'

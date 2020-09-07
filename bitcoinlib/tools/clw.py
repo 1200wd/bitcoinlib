@@ -382,7 +382,7 @@ def main():
         wt.info()
         if args.push:
             if wt.pushed:
-                print("Transaction pushed to network. Transaction ID: %s" % wt.hash_tx)
+                print("Transaction pushed to network. Transaction ID: %s" % wt.txhash)
             elif not wt:
                 print("Cannot sweep wallet, are UTXO's updated and available?")
             else:

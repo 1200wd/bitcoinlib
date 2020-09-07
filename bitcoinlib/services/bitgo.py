@@ -63,7 +63,7 @@ class BitGoClient(BaseClient):
                 utxos.append(
                     {
                         'address': utxo['address'],
-                        'tx_hash': utxo['tx_hash'],
+                        'txid': utxo['tx_hash'],
                         'confirmations': utxo['confirmations'],
                         'output_n': utxo['tx_output_n'],
                         'input_n': 0,

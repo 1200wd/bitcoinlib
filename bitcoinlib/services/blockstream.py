@@ -71,7 +71,7 @@ class BlockstreamClient(BaseClient):
                 confirmations = blockcount - block_height
             utxos.append({
                 'address': address,
-                'tx_hash': a['txid'],
+                'txid': a['txid'],
                 'confirmations': confirmations,
                 'output_n': a['vout'],
                 'input_n': 0,
@@ -99,7 +99,7 @@ class BlockstreamClient(BaseClient):
             status = 'confirmed'
         fee = None if 'fee' not in tx else tx['fee']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=fee, size=tx['size'], hash_tx=bytes.fromhex(tx['txid']),
+                        fee=fee, size=tx['size'], txid=tx['txid'],
                         date=None if 'block_time' not in tx['status'] else datetime.utcfromtimestamp(tx['status']['block_time']),
                         confirmations=confirmations, block_height=block_height, status=status,
                         coinbase=tx['vin'][0]['is_coinbase'])
@@ -116,6 +116,9 @@ class BlockstreamClient(BaseClient):
                             unlocking_script_unsigned=ti['prevout']['scriptpubkey'])
             index_n += 1
         index_n = 0
+        if len(tx['vout']) > 50:
+            # Every output needs an extra query, stop execution if there are too many transaction outputs
+            return False
         for to in tx['vout']:
             address = ''
             if 'scriptpubkey_address' in to:
@@ -186,7 +189,7 @@ class BlockstreamClient(BaseClient):
         if txid:
             t = self.gettransaction(txid)
             if t and not t.confirmations:
-                return [t.hash]
+                return [t.txid]
         else:
             return self.compose_request('mempool', 'txids')
         return False

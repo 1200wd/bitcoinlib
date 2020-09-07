@@ -62,7 +62,7 @@ class BlockchainInfoClient(BaseClient):
                 break
             utxos.append({
                 'address': address,
-                'tx_hash': utxo['tx_hash_big_endian'],
+                'txid': utxo['tx_hash_big_endian'],
                 'confirmations': utxo['confirmations'],
                 'output_n': utxo['tx_output_n'],
                 'input_n':  utxo['tx_index'],
@@ -103,7 +103,7 @@ class BlockchainInfoClient(BaseClient):
         t.size = tx['size']
         t.network_name = self.network
         t.locktime = tx['lock_time']
-        t.version = tx['version'].to_bytes(4, 'little')
+        t.version = tx['ver'].to_bytes(4, 'little')
         t.input_total = input_total
         t.fee = 0
         if t.input_total:

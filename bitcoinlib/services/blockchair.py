@@ -85,7 +85,7 @@ class BlockChairClient(BaseClient):
                     continue
                 utxos.append({
                     'address': address,
-                    'tx_hash': utxo['transaction_hash'],
+                    'txid': utxo['transaction_hash'],
                     'confirmations': current_block - utxo['block_id'],
                     'output_n': utxo['index'],
                     'input_n': 0,
@@ -114,7 +114,7 @@ class BlockChairClient(BaseClient):
             witness_type = 'segwit'
         input_total = tx['input_total']
         t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=tx['size'], hash_tx=bytes.fromhex(tx['hash']),
+                        fee=tx['fee'], size=tx['size'], txid=tx['hash'],
                         date=None if not confirmations else datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S"),
                         confirmations=confirmations, block_height=tx['block_id'] if tx['block_id'] > 0 else None,
                         status=status, input_total=input_total, coinbase=tx['is_coinbase'],

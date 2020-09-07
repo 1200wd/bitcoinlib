@@ -274,7 +274,7 @@ class DbTransaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True,
                 doc="Unique transaction index for internal usage")
-    hash_tx = Column(LargeBinary(32), index=True, doc="Hexadecimal representation of transaction hash or transaction ID")
+    txid = Column(LargeBinary(32), index=True, doc="Bytes representation of transaction ID")
     wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True,
                        doc="ID of wallet which contains this transaction")
     wallet = relationship("DbWallet", back_populates="transactions",
@@ -315,7 +315,7 @@ class DbTransaction(Base):
     verified = Column(Boolean, default=False, doc="Is transaction verified. Default is False")
 
     __table_args__ = (
-        UniqueConstraint('wallet_id', 'hash_tx', name='constraint_wallet_transaction_hash_unique'),
+        UniqueConstraint('wallet_id', 'txid', name='constraint_wallet_transaction_hash_unique'),
         CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed']),
                         name='constraint_status_allowed'),
         CheckConstraint(witness_type.in_(['legacy', 'segwit']), name='transaction_constraint_allowed_types'),
@@ -323,10 +323,6 @@ class DbTransaction(Base):
 
     def __repr__(self):
         return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.txid, self.confirmations)
-
-    @property
-    def txid(self):
-        return self.hash_tx.hex()
 
 
 class DbTransactionInput(Base):

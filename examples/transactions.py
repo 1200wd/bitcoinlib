@@ -99,8 +99,8 @@ pk1 = HDKey()
 pk2 = HDKey()
 pk3 = HDKey()
 t = Transaction()
-test_tx_hash = 'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618'
-t.add_input(prev_hash=test_tx_hash, output_n=0,
+test_txid = 'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618'
+t.add_input(prev_hash=test_txid, output_n=0,
             keys=[pk1.public_byte, pk2.public_byte, pk3.public_byte],
             script_type='p2sh_multisig', sigs_required=2)
 t.add_output(100000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')

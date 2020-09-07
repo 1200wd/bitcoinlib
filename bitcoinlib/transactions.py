@@ -617,20 +617,20 @@ def transaction_update_spents(txs, address):
     for t in txs:
         for inp in t.inputs:
             if inp.address == address:
-                spend_list.update({(inp.prev_hash, inp.output_n_int): t})
+                spend_list.update({(inp.prev_hash.hex(), inp.output_n_int): t})
     address_inputs = list(spend_list.keys())
     for t in txs:
         for to in t.outputs:
             if to.address != address:
                 continue
-            spent = True if (t.hash_tx, to.output_n) in address_inputs else False
+            spent = True if (t.txid, to.output_n) in address_inputs else False
             txs[txs.index(t)].outputs[to.output_n].spent = spent
             if spent:
-                spending_tx = spend_list[(t.hash_tx, to.output_n)]
+                spending_tx = spend_list[(t.txid, to.output_n)]
                 spending_index_n = \
                     [inp for inp in txs[txs.index(spending_tx)].inputs
-                     if inp.prev_hash == t.hash_tx and inp.output_n_int == to.output_n][0].index_n
-                txs[txs.index(t)].outputs[to.output_n].spending_txid = spending_tx.hash_tx
+                     if inp.prev_hash.hex() == t.txid and inp.output_n_int == to.output_n][0].index_n
+                txs[txs.index(t)].outputs[to.output_n].spending_txid = spending_tx.txid
                 txs[txs.index(t)].outputs[to.output_n].spending_index_n = spending_index_n
     return txs
 
@@ -1212,7 +1212,7 @@ class Transaction(object):
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
     def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
-                 fee=None, fee_per_kb=None, size=None, hash_tx=b'', date=None, confirmations=None,
+                 fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'', status='new',
                  coinbase=False, verified=False, witness_type='legacy', flag=None):
         """
@@ -1239,8 +1239,10 @@ class Transaction(object):
         :type fee_per_kb: int
         :param size: Transaction size in bytes
         :type size: int
-        :param hash_tx: Transaction hash used as transaction ID
-        :type hash_tx: bytes
+        :param txid: The transaction id (same for legacy/segwit) based on [nVersion][txins][txouts][nLockTime as hexadecimal string
+        :type txid: str
+        :param txhash: The transaction hash (differs from txid for witness transactions), based on [nVersion][marker][flag][txins][txouts][witness][nLockTime] in Segwit (as hexadecimal string)
+        :type txhash: str
         :param date: Confirmation date of transaction
         :type date: datetime
         :param confirmations: Number of confirmations
@@ -1310,8 +1312,8 @@ class Transaction(object):
         self.fee_per_kb = fee_per_kb
         self.size = size
         self.vsize = size
-        self.hash_tx = hash_tx
-        self._txid = None
+        self.txid = txid
+        self.txhash = txhash
         self.date = date
         self.confirmations = confirmations
         self.block_height = block_height
@@ -1325,8 +1327,8 @@ class Transaction(object):
         self.change = 0
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
-        if not self.hash_tx:
-            self.hash_tx = self.signature_hash()[::-1]
+        if not self.txid:
+            self.txid = self.signature_hash()[::-1].hex()
 
     def __repr__(self):
         return "<Transaction(id=%s, inputs=%d, outputs=%d, status=%s, network=%s)>" % \
@@ -1334,12 +1336,6 @@ class Transaction(object):
 
     def __str__(self):
         return self.txid
-
-    @property
-    def txid(self):
-        if not self._txid:
-            self._txid = self.hash_tx.hex()
-        return self._txid
 
     def as_dict(self):
         """
@@ -1355,7 +1351,8 @@ class Transaction(object):
         for o in self.outputs:
             outputs.append(o.as_dict())
         return {
-            'hash': self.txid,
+            'txid': self.txid,
+            'txhash': self.txhash,
             'date': self.date,
             'network': self.network.name,
             'witness_type': self.witness_type,
@@ -1715,7 +1712,7 @@ class Transaction(object):
             n_total_sigs = len(self.inputs[tid].keys)
             sig_domain = [''] * n_total_sigs
 
-            tx_hash = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
+            txid = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
             for key in tid_keys:
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
@@ -1729,7 +1726,7 @@ class Transaction(object):
 
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
-                sig = sign(tx_hash, key)
+                sig = sign(txid, key)
                 newsig_pos = pub_key_list.index(key.public_byte)
                 sig_domain[newsig_pos] = sig
                 n_signs += 1

@@ -188,7 +188,7 @@ class DashdClient(BaseClient):
         for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
             txs.append({
                 'address': t['address'],
-                'tx_hash': t['txid'],
+                'txid': t['txid'],
                 'confirmations': t['confirmations'],
                 'output_n': t['vout'],
                 'input_n': -1,

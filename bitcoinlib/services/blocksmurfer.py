@@ -65,7 +65,7 @@ class BlocksmurferClient(BaseClient):
                 confirmations = block_count - block_height
             utxos.append({
                 'address': address,
-                'tx_hash': u['tx_hash'],
+                'txid': u['tx_hash'],
                 'confirmations': confirmations,
                 'output_n': u['output_n'],
                 'input_n': u['input_n'],
@@ -90,7 +90,7 @@ class BlocksmurferClient(BaseClient):
         except (KeyError, TypeError):
             tdate = datetime.utcfromtimestamp(tx['time'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=tx['size'], hash_tx=bytes.fromhex(tx['txid']),
+                        fee=tx['fee'], size=tx['size'], txid=tx['txid'],
                         date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],
                         confirmations=confirmations, block_height=block_height, status=tx['status'],
                         coinbase=tx['coinbase'], rawtx=bytes.fromhex(tx['raw_hex']),

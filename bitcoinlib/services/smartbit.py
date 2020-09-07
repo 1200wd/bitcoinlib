@@ -62,7 +62,7 @@ class SmartbitClient(BaseClient):
         if tx['time']:
             t_time = datetime.utcfromtimestamp(tx['time'])
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
-                        size=tx['size'], hash_tx=bytes.fromhex(tx['txid']), date=t_time,
+                        size=tx['size'], txid=tx['txid'], date=t_time,
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
                         input_total=input_total, coinbase=tx['coinbase'],
                         output_total=tx['output_amount_int'], witness_type=witness_type)
@@ -124,7 +124,7 @@ class SmartbitClient(BaseClient):
                 utxos.append(
                     {
                         'address': utxo.address,
-                        'tx_hash': t.txid,
+                        'txid': t.txid,
                         'confirmations': t.confirmations,
                         'output_n': utxo.output_n,
                         'input_n': 0,

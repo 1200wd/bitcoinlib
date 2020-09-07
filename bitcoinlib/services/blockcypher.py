@@ -78,7 +78,7 @@ class BlockCypher(BaseClient):
                         tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
                 transactions.append({
                     'address': address.address_orig,
-                    'tx_hash': tx['tx_hash'],
+                    'txid': tx['tx_hash'],
                     'confirmations': tx['confirmations'],
                     'output_n': tx['tx_output_n'],
                     'index': 0,
@@ -135,9 +135,9 @@ class BlockCypher(BaseClient):
                 continue
             txids = []
             for t in a['txrefs'][::-1]:
-                if t['tx_hash'] not in txids:
-                    txids.append(t['tx_hash'])
-                if t['tx_hash'] == after_txid:
+                if t['txid'] not in txids:
+                    txids.append(t['txid'])
+                if t['txid'] == after_txid:
                     txids = []
             if len(txids) > 500:
                 _logger.info("BlockCypher: Large number of transactions for address %s, "

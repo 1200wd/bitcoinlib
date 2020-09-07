@@ -38,10 +38,7 @@ class ConfigError(Exception):
     def __str__(self):
         return self.msg
 
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
+import configparser
 
 
 def _read_from_config(configparser, section, value, fallback=None):
@@ -163,7 +160,7 @@ class LitecoindClient(BaseClient):
         for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
             txs.append({
                 'address': t['address'],
-                'tx_hash': t['txid'],
+                'txid': t['txid'],
                 'confirmations': t['confirmations'],
                 'output_n': t['vout'],
                 'input_n': -1,

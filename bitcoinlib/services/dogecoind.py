@@ -154,7 +154,7 @@ class DogecoindClient(BaseClient):
         for t in self.proxy.listunspent(0, 99999999, [address]):
             txs.append({
                 'address': t['address'],
-                'tx_hash': t['txid'],
+                'txid': t['txid'],
                 'confirmations': t['confirmations'],
                 'output_n': t['vout'],
                 'input_n': -1,

@@ -161,7 +161,7 @@ class BitcoindClient(BaseClient):
     #     for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
     #         txs.append({
     #             'address': t['address'],
-    #             'tx_hash': t['txid'],
+    #             'txid': t['txid'],
     #             'confirmations': t['confirmations'],
     #             'output_n': t['vout'],
     #             'input_n': -1,
@@ -179,7 +179,8 @@ class BitcoindClient(BaseClient):
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
         t = Transaction.import_raw(tx['hex'], network=self.network)
-        t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
+        t.confirmations = tx.get('confirmations')
+        t.block_hash = tx.get('blockhash')
         t.status = 'unconfirmed'
         for i in t.inputs:
             if i.prev_hash == b'\x00' * 32:

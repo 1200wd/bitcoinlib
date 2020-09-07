@@ -55,7 +55,7 @@ class LitecoinBlockexplorerClient(BaseClient):
         if 'isCoinBase' in tx and tx['isCoinBase']:
             isCoinbase = True
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, fee=fees,
-                        hash_tx=bytes.fromhex(tx['txid']), date=datetime.utcfromtimestamp(tx['blocktime']),
+                        txid=tx['txid'], date=datetime.utcfromtimestamp(tx['blocktime']),
                         confirmations=tx['confirmations'], block_height=tx['blockheight'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
@@ -97,7 +97,7 @@ class LitecoinBlockexplorerClient(BaseClient):
                 break
             txs.append({
                 'address': address.address_orig,
-                'tx_hash': tx['txid'],
+                'txid': tx['txid'],
                 'confirmations': tx['confirmations'],
                 'output_n': tx['vout'],
                 'input_n': 0,

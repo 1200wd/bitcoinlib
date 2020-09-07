@@ -1918,8 +1918,8 @@ class Signature(object):
     Sign a transaction hash with a private key and show DER encoded signature:
 
     >>> sk = HDKey('f2620684cef2b677dc2f043be8f0873b61e79b274c7e7feeb434477c082e0dc2')
-    >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
-    >>> signature = sign(tx_hash, sk)
+    >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
+    >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
     '3044022015f9d39d8b53c68c7549d5dc4cbdafe1c71bae3656b93a02d2209e413d9bbcd00220615cf626da0a81945a707f42814cc51ecde499442eb31913a870b9401af6a4ba'
     
@@ -1954,13 +1954,13 @@ class Signature(object):
                          hash_type=hash_type)
 
     @staticmethod
-    def create(tx_hash, private, use_rfc6979=True, k=None):
+    def create(txid, private, use_rfc6979=True, k=None):
         """
         Sign a transaction hash and create a signature with provided private key.
 
         >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
-        >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
-        >>> sig = Signature.create(tx_hash, k)
+        >>> txid = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        >>> sig = Signature.create(txid, k)
         >>> sig.hex()
         '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
         >>> sig.r
@@ -1968,21 +1968,21 @@ class Signature(object):
         >>> sig.s
         12990793585889366641563976043319195006380846016310271470330687369836458989268
 
-        :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
-        :type tx_hash: bytes, str
+        :param txid: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
+        :type txid: bytes, str
         :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
         :type private: HDKey, Key, str, hexstring, bytes
-        :param use_rfc6979: Use deterministic value for k nonce to derive k from tx_hash/message according to RFC6979 standard. Default is True, set to False to use random k
+        :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
         :type use_rfc6979: bool
         :param k: Provide own k. Only use for testing or if you known what you are doing. Providing wrong value for k can result in leaking your private key!
         :type k: int
         
         :return Signature: 
         """
-        if isinstance(tx_hash, bytes):
-            tx_hash = tx_hash.hex()
-        if len(tx_hash) > 64:
-            tx_hash = double_sha256(bytes.fromhex(tx_hash), as_hex=True)
+        if isinstance(txid, bytes):
+            txid = txid.hex()
+        if len(txid) > 64:
+            txid = double_sha256(bytes.fromhex(txid), as_hex=True)
         if not isinstance(private, (Key, HDKey)):
             private = HDKey(private)
         pub_key = private.public()
@@ -1990,7 +1990,7 @@ class Signature(object):
 
         if not k:
             if use_rfc6979 and USE_FASTECDSA:
-                rfc6979 = RFC6979(tx_hash, secret, secp256k1_n, hashlib.sha256)
+                rfc6979 = RFC6979(txid, secret, secp256k1_n, hashlib.sha256)
                 k = rfc6979.gen_nonce()
             else:
                 global rfc6979_warning_given
@@ -2001,7 +2001,7 @@ class Signature(object):
 
         if USE_FASTECDSA:
             r, s = _ecdsa.sign(
-                tx_hash,
+                txid,
                 str(secret),
                 str(k),
                 str(secp256k1_p),
@@ -2013,19 +2013,19 @@ class Signature(object):
             )
             if int(s) > secp256k1_n / 2:
                 s = secp256k1_n - int(s)
-            return Signature(r, s, tx_hash, secret, public_key=pub_key, k=k)
+            return Signature(r, s, txid, secret, public_key=pub_key, k=k)
         else:
             sk = ecdsa.SigningKey.from_string(private.private_byte, curve=ecdsa.SECP256k1)
-            tx_hash_bytes = to_bytes(tx_hash)
-            sig_der = sk.sign_digest(tx_hash_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
+            txid_bytes = to_bytes(txid)
+            sig_der = sk.sign_digest(txid_bytes, sigencode=ecdsa.util.sigencode_der, k=k)
             signature = convert_der_sig(sig_der)
             r = int(signature[:64], 16)
             s = int(signature[64:], 16)
             if s > secp256k1_n / 2:
                 s = secp256k1_n - s
-            return Signature(r, s, tx_hash, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
+            return Signature(r, s, txid, secret, public_key=pub_key, der_signature=sig_der, signature=signature, k=k)
 
-    def __init__(self, r, s, tx_hash=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
+    def __init__(self, r, s, txid=None, secret=None, signature=None, der_signature=None, public_key=None, k=None,
                  hash_type=SIGHASH_ALL):
         """
         Initialize Signature object with provided r and r value
@@ -2040,8 +2040,8 @@ class Signature(object):
         :type r: int
         :param s: s value of signature
         :type s: int
-        :param tx_hash: Transaction hash z to sign if known
-        :type tx_hash: bytes, hexstring
+        :param txid: Transaction hash z to sign if known
+        :type txid: bytes, hexstring
         :param secret: Private key secret number
         :type secret: int
         :param signature: r and s value of signature as string
@@ -2062,8 +2062,8 @@ class Signature(object):
             raise BKeyError('Invalid Signature: r is not a positive integer smaller than the curve order')
         elif self.s < 1 or self.s >= secp256k1_n:
             raise BKeyError('Invalid Signature: s is not a positive integer smaller than the curve order')
-        self._tx_hash = None
-        self.tx_hash = tx_hash
+        self._txid = None
+        self.txid = txid
         self.secret = None if not secret else int(secret)
         self._der_encoded = to_bytes(der_signature)
         if isinstance(signature, bytes):
@@ -2084,15 +2084,15 @@ class Signature(object):
                (self.r, self.s, self.hex(), der_sig)
 
     @property
-    def tx_hash(self):
-        return self._tx_hash
+    def txid(self):
+        return self._txid
 
-    @tx_hash.setter
-    def tx_hash(self, value):
+    @txid.setter
+    def txid(self, value):
         if value is not None:
-            self._tx_hash = value
+            self._txid = value
             if isinstance(value, bytes):
-                self._tx_hash = value.hex()
+                self._txid = value.hex()
 
     @property
     def public_key(self):
@@ -2153,38 +2153,38 @@ class Signature(object):
             self._der_encoded = der_encode_sig(self.r, self.s)
         return self._der_encoded.hex() if as_hex else self._der_encoded
 
-    def verify(self, tx_hash=None, public_key=None):
+    def verify(self, txid=None, public_key=None):
         """
-        Verify this signature. Provide tx_hash or public_key if not already known
+        Verify this signature. Provide txid or public_key if not already known
 
         >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
         >>> pub_key = HDKey(k).public()
-        >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+        >>> txid = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
         >>> sig = '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
         >>> sig = Signature.from_str(sig)
-        >>> sig.verify(tx_hash, pub_key)
+        >>> sig.verify(txid, pub_key)
         True
 
-        :param tx_hash: Transaction hash
-        :type tx_hash: bytes, hexstring
+        :param txid: Transaction hash
+        :type txid: bytes, hexstring
         :param public_key: Public key P
         :type public_key: HDKey, Key, str, hexstring, bytes
                 
         :return bool: 
         """
-        if tx_hash is not None:
-            self.tx_hash = to_hexstring(tx_hash)
+        if txid is not None:
+            self.txid = to_hexstring(txid)
         if public_key is not None:
             self.public_key = public_key
 
-        if not self.tx_hash or not self.public_key:
-            raise BKeyError("Please provide tx_hash and public_key to verify signature")
+        if not self.txid or not self.public_key:
+            raise BKeyError("Please provide txid and public_key to verify signature")
 
         if USE_FASTECDSA:
             return _ecdsa.verify(
                 str(self.r),
                 str(self.s),
-                self.tx_hash,
+                self.txid,
                 str(self.x),
                 str(self.y),
                 str(secp256k1_p),
@@ -2195,7 +2195,7 @@ class Signature(object):
                 str(secp256k1_Gy)
             )
         else:
-            transaction_to_sign = to_bytes(self.tx_hash)
+            transaction_to_sign = to_bytes(self.txid)
             signature = self.bytes()
             if len(transaction_to_sign) != 32:
                 transaction_to_sign = double_sha256(transaction_to_sign)
@@ -2216,46 +2216,46 @@ class Signature(object):
             return True
 
 
-def sign(tx_hash, private, use_rfc6979=True, k=None):
+def sign(txid, private, use_rfc6979=True, k=None):
     """
     Sign transaction hash or message with secret private key. Creates a signature object.
     
     Sign a transaction hash with a private key and show DER encoded signature
 
     >>> sk = HDKey('728afb86a98a0b60cc81faadaa2c12bc17d5da61b8deaf1c08fc07caf424d493')
-    >>> tx_hash = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
-    >>> signature = sign(tx_hash, sk)
+    >>> txid = 'c77545c8084b6178366d4e9a06cf99a28d7b5ff94ba8bd76bbbce66ba8cdef70'
+    >>> signature = sign(txid, sk)
     >>> signature.as_der_encoded().hex()
     '30440220792f04c5ba654e27eb636ceb7804c5590051dd77da8b80244f1fa8dfbff369b302204ba03b039c808a0403d067f3d75fbe9c65831444c35d64d4192b408d2a7410a1'
 
-    :param tx_hash: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
-    :type tx_hash: bytes, str
+    :param txid: Transaction signature or transaction hash. If unhashed transaction or message is provided the double_sha256 hash of message will be calculated.
+    :type txid: bytes, str
     :param private: Private key as HDKey or Key object, or any other string accepted by HDKey object
     :type private: HDKey, Key, str, hexstring, bytes
-    :param use_rfc6979: Use deterministic value for k nonce to derive k from tx_hash/message according to RFC6979 standard. Default is True, set to False to use random k
+    :param use_rfc6979: Use deterministic value for k nonce to derive k from txid/message according to RFC6979 standard. Default is True, set to False to use random k
     :type use_rfc6979: bool
     :param k: Provide own k. Only use for testing or if you known what you are doing. Providing wrong value for k can result in leaking your private key!
     :type k: int
         
     :return Signature: 
     """
-    return Signature.create(tx_hash, private, use_rfc6979, k)
+    return Signature.create(txid, private, use_rfc6979, k)
 
 
-def verify(tx_hash, signature, public_key=None):
+def verify(txid, signature, public_key=None):
     """
-    Verify provided signature with tx_hash message. If provided signature is no Signature object a new object will
+    Verify provided signature with txid message. If provided signature is no Signature object a new object will
     be created for verification.
 
     >>> k = 'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b'
     >>> pub_key = HDKey(k).public()
-    >>> tx_hash = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
+    >>> txid = '0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c'
     >>> sig = '48e994862e2cdb372149bad9d9894cf3a5562b4565035943efe0acc502769d351cb88752b5fe8d70d85f3541046df617f8459e991d06a7c0db13b5d4531cd6d4'
-    >>> verify(tx_hash, sig, pub_key)
+    >>> verify(txid, sig, pub_key)
     True
 
-    :param tx_hash: Transaction hash
-    :type tx_hash: bytes, hexstring
+    :param txid: Transaction hash
+    :type txid: bytes, hexstring
     :param signature: signature as hexstring or bytes
     :type signature: str, bytes
     :param public_key: Public key P. If not provided it will be derived from provided Signature object or raise an error if not available
@@ -2267,7 +2267,7 @@ def verify(tx_hash, signature, public_key=None):
         if not public_key:
             raise BKeyError("No public key provided, cannot verify")
         signature = Signature.from_str(signature, public_key=public_key)
-    return signature.verify(tx_hash, public_key)
+    return signature.verify(txid, public_key)
 
 
 def ec_point(m):
