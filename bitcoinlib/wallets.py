@@ -694,7 +694,6 @@ class HDWalletTransaction(Transaction):
                     db_key = sess.query(DbKey).filter_by(id=key.key_id).scalar()
                     for ck in db_key.multisig_children:
                         inp_keys.append(ck.child_key.public.hex())
-
                 else:
                     inp_keys = key.key()
             inputs.append(Input(
@@ -809,7 +808,7 @@ class HDWalletTransaction(Transaction):
 
             # Update db: Update spent UTXO's, add transaction to database
             for inp in self.inputs:
-                txid = to_bytes(inp.prev_hash)
+                txid = inp.prev_hash
                 utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
                     filter(DbTransaction.txid == txid,
                            DbTransactionOutput.output_n == inp.output_n_int,
@@ -1696,7 +1695,7 @@ class HDWallet(object):
         multisig_key = DbKey(
             name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
             depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
-            public=to_bytes(redeemscript), wif='multisig-%s' % address, address=address, cosigner_id=cosigner_id,
+            public=redeemscript, wif='multisig-%s' % address, address=address, cosigner_id=cosigner_id,
             key_type='multisig', network_name=network)
         self._session.add(multisig_key)
         self._commit()
@@ -2988,7 +2987,7 @@ class HDWallet(object):
         for t in txs:
             wt = HDWalletTransaction.from_transaction(self, t)
             wt.save()
-            utxos = [(to_hexstring(ti.prev_hash), ti.output_n_int) for ti in wt.inputs]
+            utxos = [(ti.prev_hash.hex(), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
 
         for utxo in list(utxo_set):
@@ -3067,7 +3066,7 @@ class HDWallet(object):
         for t in txs:
             wt = HDWalletTransaction.from_transaction(self, t)
             wt.save()
-            utxos = [(to_hexstring(ti.prev_hash), ti.output_n_int) for ti in wt.inputs]
+            utxos = [(ti.prev_hash.hex(), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
