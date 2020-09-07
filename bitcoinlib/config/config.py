@@ -58,6 +58,7 @@ ALLOW_DATABASE_THREADS = None
 TIMEOUT_REQUESTS = 5
 MAX_TRANSACTIONS = 20
 BLOCK_COUNT_CACHE_TIME = 3
+SERVICE_MAX_ERRORS = 5  # Fail service request when more then max errors occur
 
 # Transactions
 SCRIPT_TYPES_LOCKING = {
@@ -216,6 +217,7 @@ def read_config():
     global BCL_LOG_FILE, LOGLEVEL, ENABLE_BITCOINLIB_LOGGING
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
     global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED, CACHE_STORE_RAW_TRANSACTIONS
+    global SERVICE_MAX_ERRORS, BLOCK_COUNT_CACHE_TIME, MAX_TRANSACTIONS
 
     # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
     config_file_name = os.environ.get('BCL_CONFIG_FILE')
@@ -252,8 +254,13 @@ def read_config():
     BCL_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     LOGLEVEL = config_get('logs', 'loglevel', fallback=LOGLEVEL)
 
-    # Other settings
+    # Service settings
     TIMEOUT_REQUESTS = int(config_get('common', 'timeout_requests', fallback=TIMEOUT_REQUESTS))
+    SERVICE_MAX_ERRORS = int(config_get('common', 'service_max_errors', fallback=SERVICE_MAX_ERRORS))
+    MAX_TRANSACTIONS = int(config_get('common', 'max_transactions', fallback=MAX_TRANSACTIONS))
+    BLOCK_COUNT_CACHE_TIME = int(config_get('common', 'block_count_cache_time', fallback=BLOCK_COUNT_CACHE_TIME))
+
+    # Other settings
     DEFAULT_LANGUAGE = config_get('common', 'default_language', fallback=DEFAULT_LANGUAGE)
     DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)

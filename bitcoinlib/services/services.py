@@ -58,7 +58,8 @@ class Service(object):
     """
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
-                 timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None):
+                 timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
+                 max_errors=SERVICE_MAX_ERRORS):
         """
         Open a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -125,6 +126,7 @@ class Service(object):
         self.results = {}
         self.errors = {}
         self.resultcount = 0
+        self.max_errors = max_errors
         self.complete = None
         self.timeout = timeout
         self._blockcount_update = 0
@@ -202,13 +204,17 @@ class Service(object):
                     # -- Use this to debug specific Services errors --
                     # from pprint import pprint
                     # pprint(self.errors)
-                _logger.info("%s.%s(%s) Error %s" % (sp, method, arguments, e))
+
+                if len(self.errors) >= self.max_errors:
+                    _logger.warning("No successful response from serviceproviders, max errors exceeded: %s" %
+                                    list(self.errors.keys()))
+                    return False
 
             if self.resultcount >= self.max_providers:
                 break
 
         if not self.resultcount:
-            _logger.warning("No successfull response from any serviceprovider: %s" % list(self.providers.keys()))
+            _logger.warning("No successful response from any serviceprovider: %s" % list(self.providers.keys()))
             return False
         return list(self.results.values())[0]
 
