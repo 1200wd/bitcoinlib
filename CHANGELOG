@@ -1,3 +1,8 @@
+RELEASE 0.4.19 - Bug fix and cache updates
+==========================================
+* Fix errors in Blockstream and Litecoinblockexplorer
+* Increase cache efficiency
+
 RELEASE 0.4.17 - Bug fix release
 ================================
 * Fix logging, cache and database issues
