@@ -670,11 +670,10 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
     def test_wallet_key_exceptions(self):
         w = HDWallet.create('test_wallet_key_not_found', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', HDWalletKey, 1000000, w._session)
-        if PY3:
-            self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
-                                               "network then specified: bitcoin",
-                                    HDWalletKey.from_key, '', w.wallet_id, w._session,
-                                    'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
+        self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
+                                           "network then specified: bitcoin",
+                                HDWalletKey.from_key, '', w.wallet_id, w._session,
+                                'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
 
 
 @parameterized_class(*params)
@@ -1050,7 +1049,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         msw2.utxos_update()
         utxos = msw1.utxos()
         output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
-        input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
+        input_arr = [(utxos[0]['txid'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = msw1.transaction_create(output_arr, input_arr, fee=50000)
         t.sign()
         t2 = msw2.transaction_import(t)
@@ -1081,7 +1080,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         msw2.utxos_update()
         utxos = msw1.utxos()
         output_arr = [('21KnydRNSmqAf8Py74mMiwRXYHGxW27zyDu', utxos[0]['value'] - 50000)]
-        input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
+        input_arr = [(utxos[0]['txid'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = msw1.transaction_create(output_arr, input_arr, fee=50000)
         t.sign()
         t2 = msw2.transaction_import(t)
@@ -1122,7 +1121,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         wlt = wallet_dict[wallet_id]
         utxos = wlt.utxos()
         output_arr = [(random_output_address, utxos[0]['value'] - fee)]
-        input_arr = [(utxos[0]['tx_hash'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
+        input_arr = [(utxos[0]['txid'], utxos[0]['output_n'], utxos[0]['key_id'], utxos[0]['value'])]
         t = wlt.transaction_create(output_arr, input_arr, fee=fee)
         t.sign()
         n_signs = 1
@@ -1428,13 +1427,14 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
         self.assertEqual(w.public_master(as_private=True)[1].wif, wif2)
         w.import_key(p2)
         self.assertTrue(w.public_master(as_private=True)[1].is_private)
-        self.assertEqual(w.public_master(as_private=True)[1].wif, 'ZprvArYK8TRL84162ECqZEwt8NsCRdN43ZVVPYTfPsKw5YfiRGWtx3AC3eXvTuk'
-                                                   'CqUsKCLKQNGDV11hHi3FUQbcD9wc9g8ro64kK6H2MP4jaM7K')
+        self.assertEqual(w.public_master(as_private=True)[1].wif,
+                         'ZprvArYK8TRL84162ECqZEwt8NsCRdN43ZVVPYTfPsKw5YfiRGWtx3AC3eXvTuk'
+                         'CqUsKCLKQNGDV11hHi3FUQbcD9wc9g8ro64kK6H2MP4jaM7K')
         w.transactions_update()
-        tx_hashes = sorted([t.txid for t in w.transactions()])
-        tx_hashes_expected = ['53b35eca3f2e767db02e4acc6c224d7a45f32158c8063f53c3d3660ab12d53ba',
-                              'b6c4f286e8883927c26ce91e6cc89c7a8dd88223c111635e8e53f78c4573712a']
-        self.assertListEqual(tx_hashes, tx_hashes_expected)
+        txids = sorted([t.txid for t in w.transactions()])
+        txids_expected = ['53b35eca3f2e767db02e4acc6c224d7a45f32158c8063f53c3d3660ab12d53ba',
+                          'b6c4f286e8883927c26ce91e6cc89c7a8dd88223c111635e8e53f78c4573712a']
+        self.assertListEqual(txids, txids_expected)
 
 
 @parameterized_class(*params)
@@ -1476,7 +1476,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             '4fffbf7c50009e5477ac06b9f1741890f7237191d1cf5489c7b4039df2ebd626',
             '9423919185b15c633d2fcd5095195b521a8970f01ca6413c43dbe5646e5b8e1e',
             'fb575942ef5ddc0d6afe10ccf73928faa81315a1f9be2d5b8a801daf7d251a6f']
-        prev_tx_list = sorted([to_hexstring(x.prev_hash) for x in tx.inputs])
+        prev_tx_list = sorted([x.prev_hash.hex() for x in tx.inputs])
         self.assertListEqual(prev_tx_list, prev_tx_list_check)
         self.wallet.transactions_export()
 
@@ -1493,7 +1493,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             'script': '',
             'confirmations': 10,
             'output_n': 1,
-            'tx_hash': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
+            'txid': '9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003',
             'value': 8970937
         }]
         wlt.utxos_update(utxos=utxos)
@@ -1537,9 +1537,9 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wlt.utxos_update()
         utxos = wlt.utxos()
 
-        inp1 = Input(prev_hash=utxos[0]['tx_hash'], output_n=utxos[0]['output_n'], keys=key.key_public,
+        inp1 = Input(prev_hash=utxos[0]['txid'], output_n=utxos[0]['output_n'], keys=key.key_public,
                      network='bitcoinlib_test')
-        inp2 = Input(prev_hash=utxos[1]['tx_hash'], output_n=utxos[1]['output_n'], keys=key.key_public,
+        inp2 = Input(prev_hash=utxos[1]['txid'], output_n=utxos[1]['output_n'], keys=key.key_public,
                      network='bitcoinlib_test')
         out = Output(10000000, address=key.address, network='bitcoinlib_test')
 
@@ -1557,7 +1557,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         t = wlt.send_to(to_key.address, 9000)
         self.assertEqual(wlt.balance(), 200000000 - t.fee)
         self.assertEqual(t.txid, wlt.transaction_spent(t.inputs[0].prev_hash, t.inputs[0].output_n))
-        self.assertEqual(t.txid, wlt.transaction_spent(to_hexstring(t.inputs[0].prev_hash), t.inputs[0].output_n_int))
+        self.assertEqual(t.txid, wlt.transaction_spent(t.inputs[0].prev_hash.hex(), t.inputs[0].output_n_int))
         del wlt
 
     def test_wallet_balance_update_multi_network(self):
@@ -1648,13 +1648,13 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertNotEqual(t.fee, 0)
 
     def test_wallet_transactions_estimate_size(self):
-        prev_tx_hash = '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5'
+        prev_txid = '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5'
 
         for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
             wallet_delete_if_exists('wallet_estimate_size', force=True, db_uri=self.DATABASE_URI)
             wl3 = HDWallet.create('wallet_estimate_size', witness_type=witness_type,
                                   db_uri=self.DATABASE_URI)
-            wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
+            wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
             to_address = wl3.get_key_change().address
             t = wl3.transaction_create([(to_address, 90000)], fee=10000)
             t.estimate_size()
@@ -1673,7 +1673,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             wallet_delete_if_exists('wallet_estimate_size_multisig', force=True, db_uri=self.DATABASE_URI)
             wl3 = HDWallet.create('wallet_estimate_size_multisig', [p1, p2.public_master(), p3.public_master()],
                                   sigs_required=2, db_uri=self.DATABASE_URI)
-            wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
+            wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
             to_address = wl3.get_key_change().address
             t = wl3.transaction_create([(to_address, 90000)], fee=10000)
             t.estimate_size()
@@ -1749,7 +1749,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             'script': '',
             'confirmations': 10,
             'output_n': 1,
-            'tx_hash': '9f5d4004c7cc5a31a735bddea6ff517e52f1cd700df208d2c39ddc536670f1fe',
+            'txid': '9f5d4004c7cc5a31a735bddea6ff517e52f1cd700df208d2c39ddc536670f1fe',
             'value': 1956783097
         }]
         w.utxos_update(utxos=utxos)
@@ -1990,7 +1990,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         # Create several SegWit wallet and create transaction to send to each other. Uses utxo_add() method to create
         # test UTXO's
 
-        prev_tx_hash = '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5'
+        prev_txid = '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5'
 
         # === Segwit P2WSH to P2WSH ===
         pk2 = HDKey()
@@ -2002,7 +2002,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
         wl1 = HDWallet.create('segwit_bitcoin_p2wsh_send', key_list, sigs_required=2, witness_type='segwit',
                               db_uri=self.DATABASE_URI)
-        wl1.utxo_add(wl1.get_key().address, 10000000, prev_tx_hash, 0)
+        wl1.utxo_add(wl1.get_key().address, 10000000, prev_txid, 0)
         to_address = wl1.get_key_change().address
         t = wl1.transaction_create([(to_address, 100000)], fee=10000)
 
@@ -2013,7 +2013,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
         # === Segwit P2WPKH to P2WSH ===
         wl2 = HDWallet.create('segwit_bitcoin_p2wpkh_send', witness_type='segwit', db_uri=self.DATABASE_URI)
-        wl2.utxo_add(wl2.get_key().address, 200000, prev_tx_hash, 0)
+        wl2.utxo_add(wl2.get_key().address, 200000, prev_txid, 0)
         to_address = wl1.get_key_change().address
         t = wl2.transaction_create([(to_address, 100000)], fee=10000)
         t.sign()
@@ -2024,7 +2024,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         # === Segwit P2SH-P2WPKH to P2WPK ===
         wl3 = HDWallet.create('segwit_bitcoin_p2sh_p2wpkh_send', witness_type='p2sh-segwit',
                               db_uri=self.DATABASE_URI)
-        wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
+        wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
         t = wl3.transaction_create([(to_address, 100000)], fee=10000)
         t.sign()
         self.assertTrue(t.verify())
@@ -2215,7 +2215,8 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         self.assertEqual(w.addresslist(), [address])
         self.assertIsNone(w.main_key.key_public)
         w.import_key(wif)
-        self.assertEqual(w.main_key.key_public, '0225248feed626f2496276109329f1ce30225e7a3153fe24b5c56828b0773bae75')
+        self.assertEqual(w.main_key.key_public.hex(),
+                         '0225248feed626f2496276109329f1ce30225e7a3153fe24b5c56828b0773bae75')
 
     def test_wallet_address_import_public_key_segwit(self):
         address = 'bc1q84xq6lrzr09t3h2pw5ys5zee7rn3mxh5v65732'

@@ -19,10 +19,7 @@
 #
 
 import requests
-try:
-    from urllib.parse import urlencode
-except ImportError:
-    from urllib import urlencode
+from urllib.parse import urlencode
 import json
 from bitcoinlib.main import *
 from bitcoinlib.networks import Network

@@ -23,7 +23,6 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
 
 PROVIDERNAME = 'blockstream'
 # Please note: In the Blockstream API, the first couple of Bitcoin blocks are not correctly indexed,
@@ -72,7 +71,7 @@ class BlockstreamClient(BaseClient):
                 confirmations = blockcount - block_height
             utxos.append({
                 'address': address,
-                'tx_hash': a['txid'],
+                'txid': a['txid'],
                 'confirmations': confirmations,
                 'output_n': a['vout'],
                 'input_n': 0,
@@ -100,7 +99,7 @@ class BlockstreamClient(BaseClient):
             status = 'confirmed'
         fee = None if 'fee' not in tx else tx['fee']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=fee, size=tx['size'], hash=tx['txid'],
+                        fee=fee, size=tx['size'], txid=tx['txid'],
                         date=None if 'block_time' not in tx['status'] else datetime.utcfromtimestamp(tx['status']['block_time']),
                         confirmations=confirmations, block_height=block_height, status=status,
                         coinbase=tx['vin'][0]['is_coinbase'])
@@ -117,6 +116,9 @@ class BlockstreamClient(BaseClient):
                             unlocking_script_unsigned=ti['prevout']['scriptpubkey'])
             index_n += 1
         index_n = 0
+        if len(tx['vout']) > 50:
+            # Every output needs an extra query, stop execution if there are too many transaction outputs
+            return False
         for to in tx['vout']:
             address = ''
             if 'scriptpubkey_address' in to:
@@ -187,7 +189,7 @@ class BlockstreamClient(BaseClient):
         if txid:
             t = self.gettransaction(txid)
             if t and not t.confirmations:
-                return [t.hash]
+                return [t.txid]
         else:
             return self.compose_request('mempool', 'txids')
         return False
@@ -235,7 +237,7 @@ class BlockstreamClient(BaseClient):
         if isinstance(blockid, int):
             blockid = self.compose_request('block-height', str(blockid))
         rawblock = self.compose_request('block', blockid, 'raw')
-        hexrawblock = to_hexstring(rawblock)
+        hexrawblock = rawblock.hex()
         return hexrawblock
 
     def isspent(self, txid, output_n):

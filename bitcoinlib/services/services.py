@@ -18,18 +18,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
-import logging
 import json
 import random
 import time
 from datetime import timedelta
 from sqlalchemy import func
-from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
-from bitcoinlib.main import BCL_DATA_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import to_hexstring, to_bytes
+from bitcoinlib.encoding import to_bytes
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.blocks import Block
@@ -272,7 +268,7 @@ class Service(object):
 
         utxos_cache = []
         if self.min_providers <= 1:
-            utxos_cache = self.cache.getutxos(address, after_txid) or []
+            utxos_cache = self.cache.getutxos(address, bytes.fromhex(after_txid)) or []
         db_addr = self.cache.getaddress(address)
         if utxos_cache:
             self.results_cache_n = len(utxos_cache)
@@ -281,7 +277,7 @@ class Service(object):
                 return utxos_cache
             else:
                 utxos_cache = []
-                # after_txid = utxos_cache[-1:][0]['tx_hash']
+                # after_txid = utxos_cache[-1:][0]['txid']
         # if db_addr and db_addr.last_txid:
         #     after_txid = db_addr.last_txid
 
@@ -304,16 +300,15 @@ class Service(object):
         Get a transaction by its transaction hashtxos. Convert to Bitcoinlib transaction object.
 
         :param txid: Transaction identification hash
-        :type txid: str, bytes
+        :type txid: str
 
         :return Transaction: A single transaction object
         """
-        txid = to_hexstring(txid)
         tx = None
         self.results_cache_n = 0
 
         if self.min_providers <= 1:
-            tx = self.cache.gettransaction(txid)
+            tx = self.cache.gettransaction(bytes.fromhex(txid))
             if tx:
                 self.results_cache_n = 1
         if not tx:
@@ -347,7 +342,7 @@ class Service(object):
             after_txid = ''
         db_addr = self.cache.getaddress(address)
         txs_cache = []
-        qry_after_txid = after_txid
+        qry_after_txid = bytes.fromhex(after_txid)
 
         # Retrieve transactions from cache
         caching_enabled = True
@@ -355,18 +350,18 @@ class Service(object):
             caching_enabled = False
 
         if caching_enabled:
-            txs_cache = self.cache.gettransactions(address, after_txid, limit) or []
+            txs_cache = self.cache.gettransactions(address, qry_after_txid, limit) or []
             if txs_cache:
                 self.results_cache_n = len(txs_cache)
                 if len(txs_cache) == limit:
                     return txs_cache
                 limit = limit - len(txs_cache)
-                qry_after_txid = txs_cache[-1:][0].txid
+                qry_after_txid = bytes.fromhex(txs_cache[-1:][0].txid)
 
         # Get (extra) transactions from service providers
         txs = []
         if not(db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount()) or not caching_enabled:
-            txs = self._provider_execute('gettransactions', address, qry_after_txid,  limit)
+            txs = self._provider_execute('gettransactions', address, qry_after_txid.hex(),  limit)
             if txs is False:
                 raise ServiceError("Error when retrieving transactions from service provider")
 
@@ -382,7 +377,7 @@ class Service(object):
                 self.complete = False
                 last_block = txs[-1:][0].block_height
             if len(txs):
-                last_txid = txs[-1:][0].txid
+                last_txid = bytes.fromhex(txs[-1:][0].txid)
             if len(self.results):
                 order_n = 0
                 for t in txs:
@@ -413,13 +408,12 @@ class Service(object):
         Get a raw transaction by its transaction hash
 
         :param txid: Transaction identification hash
-        :type txid: str, bytes
+        :type txid: str
 
         :return str: Raw transaction as hexstring
         """
-        txid = to_hexstring(txid)
         self.results_cache_n = 0
-        rawtx = self.cache.getrawtransaction(txid)
+        rawtx = self.cache.getrawtransaction(bytes.fromhex(txid))
         if rawtx:
             self.results_cache_n = 1
             return rawtx
@@ -430,11 +424,10 @@ class Service(object):
         Push a raw transaction to the network
 
         :param rawtx: Raw transaction as hexstring or bytes
-        :type rawtx: str, bytes
+        :type rawtx: str
 
         :return dict: Send transaction result
         """
-        rawtx = to_hexstring(rawtx)
         return self._provider_execute('sendrawtransaction', rawtx)
 
     def estimatefee(self, blocks=3):
@@ -614,7 +607,7 @@ class Service(object):
 
         :return bool:
         """
-        t = self.cache.gettransaction(txid)
+        t = self.cache.gettransaction(bytes.fromhex(txid))
         if t and len(t.outputs) > output_n and t.outputs[output_n].spent is not None:
             return t.outputs[output_n].spent
         else:
@@ -705,8 +698,7 @@ class Cache(object):
                 t.outputs[n.output_n].spent = n.spent
                 t.outputs[n.output_n].spending_txid = n.spending_txid
                 t.outputs[n.output_n].spending_index_n = n.spending_index_n
-        t.hash = to_bytes(db_tx.txid)
-        t._txid = db_tx.txid
+        t.txid = db_tx.txid.hex()
         t.date = db_tx.date
         t.block_hash = db_tx.block_hash
         t.block_height = db_tx.block_height
@@ -724,7 +716,7 @@ class Cache(object):
         Get transaction from cache. Returns False if not available
 
         :param txid: Transaction identification hash
-        :type txid: str
+        :type txid: bytes
 
         :return Transaction: A single Transaction object
         """
@@ -734,7 +726,7 @@ class Cache(object):
         if not db_tx:
             return False
         db_tx.txid = txid
-        t =  self._parse_db_transaction(db_tx)
+        t = self._parse_db_transaction(db_tx)
         if t.block_height:
             t.confirmations = (self.blockcount() - t.block_height) + 1
         return t
@@ -759,7 +751,7 @@ class Cache(object):
         :param address: Address string
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
-        :type after_txid: str
+        :type after_txid: bytes
         :param limit: Maximum number of transactions to return
         :type limit: int
 
@@ -834,7 +826,7 @@ class Cache(object):
         Get a raw transaction string from the database cache if available
 
         :param txid: Transaction identification hash
-        :type txid: str, bytes
+        :type txid: bytes
 
         :return str: Raw transaction as hexstring
         """
@@ -854,7 +846,7 @@ class Cache(object):
         :param address: Address string
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
-        :type after_txid: str
+        :type after_txid: bytes
 
         :return dict: UTXO's per address
         """
@@ -872,7 +864,7 @@ class Cache(object):
             if db_utxo.spent is False:
                 utxos.append({
                     'address': address,
-                    'tx_hash': db_utxo.txid,
+                    'txid': db_utxo.txid,
                     'confirmations': db_utxo.confirmations,
                     'output_n': db_utxo.output_n,
                     'input_n': 0,
@@ -1004,17 +996,18 @@ class Cache(object):
             if not raw_hex:    # pragma: no cover
                 _logger.info("Caching failure tx: Raw hex missing in transaction")
                 return False
-        if self.session.query(DbCacheTransaction).filter_by(txid=t.txid).count():
+        txid = bytes.fromhex(t.txid)
+        if self.session.query(DbCacheTransaction).filter_by(txid=txid).count():
             return
-        new_tx = DbCacheTransaction(txid=t.txid, date=t.date, confirmations=t.confirmations,
-                                    block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
+        new_tx = DbCacheTransaction(txid=txid, date=t.date, confirmations=t.confirmations,
+                                    block_height=t.block_height, network_name=t.network.name,
                                     fee=t.fee, raw=raw_hex, order_n=order_n)
         self.session.add(new_tx)
         for i in t.inputs:
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
                 return False
-            new_node = DbCacheTransactionNode(txid=t.txid, address=i.address, output_n=i.index_n, value=i.value,
+            new_node = DbCacheTransactionNode(txid=txid, address=i.address, output_n=i.index_n, value=i.value,
                                               is_input=True)
             self.session.add(new_node)
         for o in t.outputs:
@@ -1022,8 +1015,8 @@ class Cache(object):
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
                 return False
             new_node = DbCacheTransactionNode(
-                txid=t.txid, address=o.address, output_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
-                spending_txid=None if not o.spending_txid else to_hexstring(o.spending_txid),
+                txid=txid, address=o.address, output_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
+                spending_txid=None if not o.spending_txid else bytes.fromhex(o.spending_txid),
                 spending_index_n=o.spending_index_n)
             self.session.add(new_node)
 
@@ -1049,7 +1042,7 @@ class Cache(object):
         :param txs_complete: True if all transactions for this address are added to cache
         :type txs_complete: bool
         :param last_txid: Transaction ID of last transaction downloaded from blockchain
-        :type last_txid: str
+        :type last_txid: bytes
 
         :return:
         """

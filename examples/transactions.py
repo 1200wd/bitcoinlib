@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Transaction Class examples
 #
-#    © 2017 - 2018 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 July - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -24,7 +24,7 @@ t.add_input(prev_hash=prev_tx, output_n=1, keys=ki.public_hex, compressed=False)
 t.add_output(99900000, '1runeksijzfVxyrpiyCY2LCBvYsSiFsCm')
 t.sign(ki.private_byte)
 pprint(t.as_dict())
-print("Raw:", binascii.hexlify(t.raw()))
+print("Raw:", t.raw_hex())
 print("Verified %s " % t.verify())
 print(t.raw_hex())
 
@@ -37,7 +37,7 @@ pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
 transaction_output = Output(value=91234, public_hash=pkh)
 t = Transaction([transaction_input], [transaction_output])
 t.sign(ki.private_byte)
-print("Raw:", binascii.hexlify(t.raw()))
+print("Raw:", t.raw_hex())
 pprint(t.as_dict())
 print("Verified %s " % t.verify())
 
@@ -57,7 +57,7 @@ for output_address in output_addresses:
 t = Transaction([transaction_input], transaction_outputs, network='testnet')
 t.sign(ki.private_byte)
 pprint(t.as_dict())
-print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+print("Raw Signed Transaction %s" % t.raw_hex())
 print("Verified %s" % t.verify())
 
 print("\n=== Create and sign Testnet Transaction with Multiple INPUTS using keys from "
@@ -86,7 +86,7 @@ for ti in transaction_inputs:
     t.sign(ki.private_byte, icount)
     icount += 1
 pprint(t.as_dict())
-print("Raw Signed Transaction %s" % binascii.hexlify(t.raw()))
+print("Raw Signed Transaction %s" % t.raw_hex())
 print("Verified %s" % t.verify())
 
 
@@ -99,8 +99,8 @@ pk1 = HDKey()
 pk2 = HDKey()
 pk3 = HDKey()
 t = Transaction()
-test_tx_hash = 'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618'
-t.add_input(prev_hash=test_tx_hash, output_n=0,
+test_txid = 'f3d9b08dbd873631aaca66a1d18342ba24a22437ea107805405f6bedd3851618'
+t.add_input(prev_hash=test_txid, output_n=0,
             keys=[pk1.public_byte, pk2.public_byte, pk3.public_byte],
             script_type='p2sh_multisig', sigs_required=2)
 t.add_output(100000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')

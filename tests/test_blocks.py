@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    Unit Tests for Transaction Class
-#    © 2019 November - 1200 Web Development <http://1200wd.com/>
+#    Unit Tests for Block Class
+#    © 2020 July - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -27,9 +27,6 @@ from tests.test_custom import CustomAssertions
 class TestBlocks(unittest.TestCase, CustomAssertions):
 
     def setUp(self):
-        if not PY3:
-            self.skipTest("Python 2 not supported for Blocks unittest")
-
         filename = os.path.join(os.path.dirname(__file__), "block250000.pickle")
         pickle_in = open(filename, "rb")
         self.rb250000 = pickle.load(pickle_in)
@@ -48,14 +45,14 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
                     '20666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03' \
                     '909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000'
         b = Block.from_raw(to_bytes(raw_block), height=0)
-        self.assertEqual(to_hexstring(b.block_hash), '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f')
+        self.assertEqual(b.block_hash.hex(), '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f')
         self.assertEqual(b.height, 0)
         self.assertEqual(b.version_int, 1)
         self.assertEqual(b.prev_block, 32 * b'\x00')
-        self.assertEqual(to_hexstring(b.merkle_root), '4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b')
-        self.assertEqual(to_hexstring(b.bits), '1d00ffff')
+        self.assertEqual(b.merkle_root.hex(), '4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b')
+        self.assertEqual(b.bits.hex(), '1d00ffff')
         self.assertEqual(b.time, 1231006505)
-        self.assertEqual(to_hexstring(b.nonce), '7c2bac1d')
+        self.assertEqual(b.nonce.hex(), '7c2bac1d')
         self.assertEqual(b.difficulty, 1)
         self.assertEqual(b.target_hex, '00000000ffff0000000000000000000000000000000000000000000000000000')
         self.assertEqual(b.tx_count, 1)
@@ -83,7 +80,7 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
 
     def test_blocks_parse_block_and_transactions(self):
         b = Block.from_raw(self.rb250000, parse_transactions=True)
-        self.assertEqual(to_hexstring(b.block_hash), '000000000000003887df1f29024b06fc2200b55f8af8f35453d7be294df2d214')
+        self.assertEqual(b.block_hash.hex(), '000000000000003887df1f29024b06fc2200b55f8af8f35453d7be294df2d214')
         self.assertEqual(b.height, 250000)
         self.assertEqual(b.version_int, 2)
         self.assertEqual(b.prev_block, to_bytes('0000000000000009c2e82d884ec07b4aafb64ca3ef83baca2b6b0b5eb72c8f02'))
@@ -124,7 +121,7 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
 
     def test_blocks_parse_block_and_transactions_2(self):
         b = Block.from_raw(self.rb330000, parse_transactions=True, limit=5)
-        self.assertEqual(to_hexstring(b.block_hash), '00000000000000000faabab19f17c0178c754dbed023e6c871dcaf74159c5f02')
+        self.assertEqual(b.block_hash.hex(), '00000000000000000faabab19f17c0178c754dbed023e6c871dcaf74159c5f02')
         self.assertEqual(b.height, 330000)
         self.assertEqual(b.version_int, 2)
         self.assertEqual(b.version_bin, '00000000000000000000000000000010')

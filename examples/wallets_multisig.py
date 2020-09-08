@@ -47,7 +47,7 @@ fee = 29348
 wl1.utxos_update()  # On bitcoinlib testnet, this automatically creates an UTXO
 utxo = wl1.utxos()[0]
 output_arr = [('23Gd1mfrqgaYiPGkMm5n5UDRkCxruDAA8wo', utxo['value'] - fee)]
-input_arr = [(utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value'])]
+input_arr = [(utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value'])]
 t = wl1.transaction_create(output_arr, input_arr, fee=fee)
 
 # Now sign transaction with first wallet, should not verify yet

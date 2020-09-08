@@ -21,7 +21,6 @@
 import os
 import unittest
 import json
-
 from bitcoinlib.networks import NETWORK_DEFINITIONS
 from bitcoinlib.keys import *
 
@@ -129,8 +128,6 @@ class TestPrivateKeyConversions(unittest.TestCase):
 
     def test_private_key_conversions_wif(self):
         self.assertEqual('L3RyKcjp8kzdJ6rhGhTC5bXWEYnC2eL3b1vrZoduXMht6m9MQeHy', self.k.wif())
-        if not PY3:
-            return
         self.assertEqual('XHVtmt8BSSd5MRs5JTT4apiX9a3mUSwHxbGm6Ky6qiyyVvFRhmU7', self.k.wif(prefix='cc'))
         self.assertEqual('XHVtmt8BSSd5MRs5JTT4apiX9a3mUSwHxbGm6Ky6qiyyVvFRhmU7', self.k.wif(prefix=b'\xcc'))
 
@@ -165,13 +162,7 @@ class TestPrivateKeyImport(unittest.TestCase):
         pk = '4781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd' \
              '991064c2e7f7d532b9c9ca825671a8809ab6876c78b'
         k = Key(pk)
-        self.assertEqual('f93677c417d4750c7a5806f849739265cc46b8a9', to_hexstring(k.hash160))
-
-    def test_private_key_import_key_bytearray(self):
-        pk = bytearray(b':\xbaAb\xc7%\x1c\x89\x12\x07\xb7G\x84\x05Q\xa7\x199\xb0\xde\x08\x1f\x85\xc4\xe4L\xf7\xc1>'
-                       b'A\xda\xa6\x01')
-        self.k = Key(pk)
-        self.assertEqual('KyBsPXxTuVD82av65KZkrGrWi5qLMah5SdNq6uftawDbgKa2wv6S', self.k.wif())
+        self.assertEqual('f93677c417d4750c7a5806f849739265cc46b8a9', k.hash160.hex())
 
     def test_private_key_import_wif(self):
         self.k = Key('L1odb1uUozbfK2NrsMyhJfvRsxGM2AxixgPL8vG9BUBnE6W1VyTX')
@@ -221,10 +212,10 @@ class TestPublicKeyConversion(unittest.TestCase):
                          self.K.public_point())
 
     def test_public_key_get_hash160_uncompressed(self):
-        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', to_hexstring(self.K.hash160))
+        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', self.K.hash160.hex())
 
     def test_public_key_get_hash160(self):
-        self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', to_hexstring(self.KC.hash160))
+        self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', self.KC.hash160.hex())
 
     def test_public_key_try_private(self):
         self.assertFalse(self.K.private_hex)
@@ -342,8 +333,6 @@ class TestHDKeysImport(unittest.TestCase):
             self.assertEqual(HDKey(wif[0]).wif(is_private=wif[1]), wif[0])
 
     def test_hdkey_import_from_private_byte(self):
-        if not PY3:
-            return
         keystr = b"fch\xe4w\xa8\xdd\xd4h\x08\xc5'\xcc<Pg\x19\xbb?R\xa9'\xb6\xc152\x98KqKV\xad\x91`G-a\xb1\xad\xd8eL" \
                  b"\xcc\x8an\x94\xa3\x93\xb5\xa5\xe6\xc3\xf1\x98\x91h6wt\xf0z=\x1f\x17"
         hdkey = HDKey(keystr)
@@ -746,7 +735,7 @@ class TestKeysSignatures(unittest.TestCase):
 
     def test_signatures(self):
         sig_tests = [
-            # tx_hash, key_hex, k, signature, DER encoded sign.
+            # txid, key_hex, k, signature, DER encoded sign.
             ('0d12fdc4aac9eaaab9730999e0ce84c3bd5bb38dfd1f4c90c613ee177987429c',
              'b2da575054fb5daba0efde613b0b8e37159b8110e4be50f73cbe6479f6038f5b', 1002,
              '70b55404702ffa86ecfa4e88e0f354004a0965a5eea5fbbd297436001ae920df5da0917d7bd645c2a09671894375e3d353313'
@@ -786,12 +775,12 @@ class TestKeysSignatures(unittest.TestCase):
         ]
         sig_method1 = sign(sig_tests[0][0], sig_tests[0][1], k=sig_tests[0][2])
         self.assertEqual(sig_method1.hex(), sig_tests[0][3])
-        self.assertEqual(to_hexstring(sig_method1.as_der_encoded()), sig_tests[0][4])
+        self.assertEqual(sig_method1.as_der_encoded().hex(), sig_tests[0][4])
         count = 0
         for case in sig_tests:
             sig = Signature.create(case[0], case[1], k=case[2])
             self.assertEqual(sig.hex(), case[3], msg="Error in #%d: %s != %s" % (count, sig.hex(), case[3]))
-            self.assertEqual(to_hexstring(sig.as_der_encoded()), case[4])
+            self.assertEqual(sig.as_der_encoded().hex(), case[4])
             self.assertTrue(sig.verify())
             count += 1
 
@@ -882,7 +871,7 @@ class TestKeysSignatures(unittest.TestCase):
                            'c8ccd1cc6d1ebc631b94c42f7c4578f28590d651c6e'
 
         sig = Signature(r, s)
-        self.assertEqual(to_hexstring(sig.as_der_encoded()), expected_der)
+        self.assertEqual(sig.as_der_encoded().hex(), expected_der)
         self.assertEqual(sig.bytes(), expected_sig_bytes)
         self.assertEqual(sig.hex(), expected_sig_hex)
 

@@ -29,12 +29,10 @@
 #   "denominator": 100000000
 # }
 
-import struct
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'dashd'
@@ -148,13 +146,12 @@ class DashdClient(BaseClient):
                 i.script_type = 'coinbase'
                 continue
             if get_input_values:
-                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+                txi = self.proxy.getrawtransaction(i.prev_hash.hex(), 1)
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.block_hash = tx['blockhash']
         t.block_height = block_height
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'little')
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
@@ -191,7 +188,7 @@ class DashdClient(BaseClient):
         for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
             txs.append({
                 'address': t['address'],
-                'tx_hash': t['txid'],
+                'txid': t['txid'],
                 'confirmations': t['confirmations'],
                 'output_n': t['vout'],
                 'input_n': -1,

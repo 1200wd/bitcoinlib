@@ -18,18 +18,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-try:
-    import enum
-except ImportError:
-    import enum34 as enum
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Numeric, Text, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -73,7 +66,7 @@ class DbCacheTransactionNode(Base):
     Link table for cache transactions and addresses
     """
     __tablename__ = 'cache_transactions_node'
-    txid = Column(String(64), ForeignKey('cache_transactions.txid'), primary_key=True)
+    txid = Column(LargeBinary(32), ForeignKey('cache_transactions.txid'), primary_key=True)
     transaction = relationship("DbCacheTransaction", back_populates='nodes', doc="Related transaction object")
     # TODO: Add fields to allow to create full transaction (+ split input / output?)
     # index_n = Column(BigInteger, primary_key=True,
@@ -86,10 +79,10 @@ class DbCacheTransactionNode(Base):
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
     address = Column(String(255), doc="Address string base32 or base58 encoded", index=True)
-    # script = Column(Text, doc="Unlocking script to unlock previous locked output")
+    # script = Column(LargeBinary, doc="Unlocking script to unlock previous locked output")
     # sequence = Column(BigInteger, doc="Transaction sequence number. Used for timelock transaction inputs")
     spent = Column(Boolean, default=None, doc="Is output spent?")
-    spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
+    spending_txid = Column(LargeBinary(32), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
 
 
@@ -101,10 +94,8 @@ class DbCacheTransaction(Base):
 
     """
     __tablename__ = 'cache_transactions'
-    txid = Column(String(64), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
-    date = Column(DateTime, default=datetime.utcnow,
-                  doc="Date when transaction was confirmed and included in a block. "
-                      "Or when it was created when transaction is not send or confirmed")
+    txid = Column(LargeBinary(32), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
+    date = Column(DateTime, doc="Date when transaction was confirmed and included in a block")
     # TODO: Add fields to allow to create full transaction
     # witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
     # version = Column(Integer, default=1,
@@ -118,7 +109,7 @@ class DbCacheTransaction(Base):
                            doc="Number of confirmation when this transaction is included in a block. "
                                "Default is 0: unconfirmed")
     block_height = Column(Integer, index=True, doc="Height of block this transaction is included in")
-    block_hash = Column(String(64), index=True, doc="Hash of block this transaction is included in")  # TODO: Remove, is redundant
+    block_hash = Column(LargeBinary(32), index=True, doc="Hash of block this transaction is included in")  # TODO: Remove, is redundant
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
     fee = Column(BigInteger, doc="Transaction fee")
     raw = Column(Text(),
@@ -140,7 +131,7 @@ class DbCacheAddress(Base):
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
     balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
     last_block = Column(Integer, doc="Number of last updated block")
-    last_txid = Column(String(64), doc="Transaction ID of latest transaction in cache")
+    last_txid = Column(LargeBinary(32), doc="Transaction ID of latest transaction in cache")
     n_utxos = Column(Integer, doc="Total number of UTXO's for this address")
     n_txs = Column(Integer, doc="Total number of transactions for this address")
 

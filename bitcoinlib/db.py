@@ -18,19 +18,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-try:
-    import enum
-except ImportError:
-    import enum34 as enum
+import enum
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
-                        ForeignKey, DateTime, Numeric, Text)
+                        ForeignKey, DateTime, Numeric, Text, LargeBinary)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
@@ -203,8 +197,8 @@ class DbKey(Base):
                        "depth=1 are the masterkeys children.")
     change = Column(Integer, doc="Change or normal address: Normal=0, Change=1")
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
-    public = Column(String(512), index=True, doc="Hexadecimal representation of public key")
-    private = Column(String(512), index=True, doc="Hexadecimal representation of private key")
+    public = Column(LargeBinary(), index=True, doc="Bytes representation of public key")
+    private = Column(LargeBinary(), index=True, doc="Bytes representation of private key")
     wif = Column(String(255), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")
     key_type = Column(String(10), default='bip32', doc="Type of key: single, bip32 or multisig. Default is bip32")
@@ -279,8 +273,8 @@ class DbTransaction(Base):
     """
     __tablename__ = 'transactions'
     id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True,
-                doc="Unique transaction ID for internal usage")
-    hash = Column(String(64), index=True, doc="Hexadecimal representation of transaction hash or transaction ID")
+                doc="Unique transaction index for internal usage")
+    txid = Column(LargeBinary(32), index=True, doc="Bytes representation of transaction ID")
     wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True,
                        doc="ID of wallet which contains this transaction")
     wallet = relationship("DbWallet", back_populates="transactions",
@@ -300,7 +294,6 @@ class DbTransaction(Base):
                            doc="Number of confirmation when this transaction is included in a block. "
                                "Default is 0: unconfirmed")
     block_height = Column(Integer, index=True, doc="Number of block this transaction is included in")
-    block_hash = Column(String(64), index=True, doc="Transaction is included in block with this hash")
     size = Column(Integer, doc="Size of the raw transaction in bytes")
     fee = Column(Integer, doc="Transaction fee")
     inputs = relationship("DbTransactionInput", cascade="all,delete",
@@ -317,19 +310,19 @@ class DbTransaction(Base):
                           doc="Total value of the outputs of this transaction. Output total = Input total - fee")
     network_name = Column(String(20), ForeignKey('networks.name'), doc="Blockchain network name of this transaction")
     network = relationship("DbNetwork", doc="Link to DbNetwork object")
-    raw = Column(Text(),
+    raw = Column(LargeBinary,
                  doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
     verified = Column(Boolean, default=False, doc="Is transaction verified. Default is False")
 
     __table_args__ = (
-        UniqueConstraint('wallet_id', 'hash', name='constraint_wallet_transaction_hash_unique'),
+        UniqueConstraint('wallet_id', 'txid', name='constraint_wallet_transaction_hash_unique'),
         CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed']),
                         name='constraint_status_allowed'),
         CheckConstraint(witness_type.in_(['legacy', 'segwit']), name='transaction_constraint_allowed_types'),
     )
 
     def __repr__(self):
-        return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.hash, self.confirmations)
+        return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.txid, self.confirmations)
 
 
 class DbTransactionInput(Base):
@@ -347,7 +340,7 @@ class DbTransactionInput(Base):
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this input")
     key = relationship("DbKey", back_populates="transaction_inputs", doc="Related DbKey object")
     address = Column(String(255),
-                     doc="Address string of input, used if not key is associated. "
+                     doc="Address string of input, used if no key is associated. "
                          "An cryptocurrency address is a hash of the public key")
     witness_type = Column(String(20), default='legacy',
                           doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is legacy")
@@ -355,7 +348,7 @@ class DbTransactionInput(Base):
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
     output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
-    script = Column(Text, doc="Unlocking script to unlock previous locked output")
+    script = Column(String, doc="Unlocking script to unlock previous locked output")
     script_type = Column(String(20), default='sig_pubkey',
                          doc="Unlocking script type. Can be 'coinbase', 'sig_pubkey', 'p2sh_multisig', 'signature', "
                              "'unknown', 'p2sh_p2wpkh' or 'p2sh_p2wsh'. Default is sig_pubkey")
@@ -389,7 +382,7 @@ class DbTransactionOutput(Base):
     output_n = Column(BigInteger, primary_key=True, doc="Sequence number of transaction output")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this transaction output")
     key = relationship("DbKey", back_populates="transaction_outputs", doc="List of DbKey object used in this output")
-    script = Column(Text, doc="Locking script which locks transaction output")
+    script = Column(String, doc="Locking script which locks transaction output")
     script_type = Column(String(20), default='p2pkh',
                          doc="Locking script type. Can be one of these values: 'p2pkh', 'multisig', 'p2sh', 'p2pk', "
                              "'nulldata', 'unknown', 'p2wpkh' or 'p2wsh'. Default is p2pkh")

@@ -23,7 +23,6 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_bytes
 
 PROVIDERNAME = 'blocksmurfer'
 
@@ -66,7 +65,7 @@ class BlocksmurferClient(BaseClient):
                 confirmations = block_count - block_height
             utxos.append({
                 'address': address,
-                'tx_hash': u['tx_hash'],
+                'txid': u['tx_hash'],
                 'confirmations': confirmations,
                 'output_n': u['output_n'],
                 'input_n': u['input_n'],
@@ -91,13 +90,14 @@ class BlocksmurferClient(BaseClient):
         except (KeyError, TypeError):
             tdate = datetime.utcfromtimestamp(tx['time'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=tx['size'], hash=tx['txid'],
+                        fee=tx['fee'], size=tx['size'], txid=tx['txid'],
                         date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],
                         confirmations=confirmations, block_height=block_height, status=tx['status'],
-                        coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
+                        coinbase=tx['coinbase'], rawtx=bytes.fromhex(tx['raw_hex']),
+                        witness_type=tx['witness_type'])
         for ti in tx['inputs']:
             t.add_input(prev_hash=ti['prev_hash'], output_n=ti['output_n'], index_n=ti['index_n'],
-                        unlocking_script=ti['script'], value=ti['value'], public_hash=to_bytes(ti['public_hash']),
+                        unlocking_script=ti['script'], value=ti['value'], public_hash=bytes.fromhex(ti['public_hash']),
                         address=ti['address'], witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
                         locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
                         encoding=ti['encoding'], unlocking_script_unsigned=ti['script_code'],
@@ -105,8 +105,8 @@ class BlocksmurferClient(BaseClient):
         for to in tx['outputs']:
             t.add_output(value=to['value'], address=to['address'], public_hash=to['public_hash'],
                          lock_script=to['script'], spent=to['spent'])
-        if t.coinbase:  # TODO: Remove when blocksmurfer is fixed
-            t.inputs[0].value = 0
+        # if t.coinbase:  # TODO: Remove when blocksmurfer is fixed
+        #     t.inputs[0].value = 0
         t.update_totals()
         return t
 
