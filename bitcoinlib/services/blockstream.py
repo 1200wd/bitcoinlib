@@ -125,7 +125,7 @@ class BlockstreamClient(BaseClient):
             t.add_output(value=to['value'], address=address, lock_script=to['scriptpubkey'],
                          output_n=index_n, spent=spent)
             index_n += 1
-        if 'segwit' in [i.witness_type for i in t.inputs]:
+        if 'segwit' in [i.witness_type for i in t.inputs] or 'p2sh-segwit' in [i.witness_type for i in t.inputs]:
             t.witness_type = 'segwit'
         t.update_totals()
         t.size = tx['size']

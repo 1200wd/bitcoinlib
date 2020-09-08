@@ -58,7 +58,8 @@ class Service(object):
     """
 
     def __init__(self, network=DEFAULT_NETWORK, min_providers=1, max_providers=1, providers=None,
-                 timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None):
+                 timeout=TIMEOUT_REQUESTS, cache_uri=None, ignore_priority=False, exclude_providers=None,
+                 max_errors=SERVICE_MAX_ERRORS):
         """
         Open a service object for the specified network. By default the object connect to 1 service provider, but you
         can specify a list of providers or a minimum or maximum number of providers.
@@ -125,6 +126,7 @@ class Service(object):
         self.results = {}
         self.errors = {}
         self.resultcount = 0
+        self.max_errors = max_errors
         self.complete = None
         self.timeout = timeout
         self._blockcount_update = 0
@@ -202,13 +204,17 @@ class Service(object):
                     # -- Use this to debug specific Services errors --
                     # from pprint import pprint
                     # pprint(self.errors)
-                _logger.info("%s.%s(%s) Error %s" % (sp, method, arguments, e))
+
+                if len(self.errors) >= self.max_errors:
+                    _logger.warning("No successful response from serviceproviders, max errors exceeded: %s" %
+                                    list(self.errors.keys()))
+                    return False
 
             if self.resultcount >= self.max_providers:
                 break
 
         if not self.resultcount:
-            _logger.warning("No successfull response from any serviceprovider: %s" % list(self.providers.keys()))
+            _logger.warning("No successful response from any serviceprovider: %s" % list(self.providers.keys()))
             return False
         return list(self.results.values())[0]
 
@@ -388,7 +394,7 @@ class Service(object):
                             if t.block_height:
                                 last_block = t.block_height - 1
                             break
-                self.cache.session.commit()
+                self.cache.commit()
                 self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=self.complete)
 
         all_txs = txs_cache + txs
@@ -399,7 +405,7 @@ class Service(object):
                 self.cache.store_address(address, last_block, last_txid=last_txid, txs_complete=True)
                 for t in all_txs:
                     self.cache.store_transaction(t, commit=False)
-                self.cache.session.commit()
+                self.cache.commit()
         return all_txs
 
     def getrawtransaction(self, txid):
@@ -544,7 +550,7 @@ class Service(object):
                     if isinstance(tx, Transaction):
                         self.cache.store_transaction(tx, order_n, commit=False)
                     order_n += 1
-                self.cache.session.commit()
+                self.cache.commit()
             self.complete = True if len(block.transactions) == block.tx_count else False
             self.cache.store_block(block)
         return block
@@ -615,6 +621,11 @@ class Service(object):
             return bool(self._provider_execute('isspent', txid, output_n))
 
     def getinfo(self):
+        """
+        Returns info about current network. Such as difficulty, latest block, mempool size and network hashrate.
+
+        :return dict:
+        """
         return self._provider_execute('getinfo')
 
 
@@ -651,11 +662,23 @@ class Cache(object):
             pass
 
     def cache_enabled(self):
+        """
+        Check if caching is enabled. Returns False if SERVICE_CACHING_ENABLED is False or no session is defined.
+
+        :return bool:
+        """
         if not SERVICE_CACHING_ENABLED or not self.session:
             return False
         return True
 
     def commit(self):
+        """
+        Commit queries in self.session. Rollback if commit fails.
+
+        :return:
+        """
+        if not self.session:
+            return
         try:
             self.session.commit()
         except Exception:
@@ -667,6 +690,7 @@ class Cache(object):
         if not db_tx.raw:
             return False
         t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
+        # TODO: Avoid using raw transaction
         # locktime, version, coinbase?, witness_type
         # t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
         #                 fee=tx['fee'], size=tx['size'], hash=tx['txid'],
@@ -910,6 +934,14 @@ class Cache(object):
         return False
 
     def getblock(self, blockid):
+        """
+        Get specific block from database cache.
+
+        :param blockid: Block height or block hash
+        :type blockid: int, str
+
+        :return Block:
+        """
         if not self.cache_enabled():
             return False
         qr = self.session.query(DbCacheBlock)

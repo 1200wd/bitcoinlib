@@ -85,7 +85,7 @@ class DbCacheTransactionNode(Base):
                       doc="Output_n of previous transaction output that is spent in this input")
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
-    address = Column(String(255), doc="Address string base32 or base58 encoded")
+    address = Column(String(255), doc="Address string base32 or base58 encoded", index=True)
     # script = Column(Text, doc="Unlocking script to unlock previous locked output")
     # sequence = Column(BigInteger, doc="Transaction sequence number. Used for timelock transaction inputs")
     spent = Column(Boolean, default=None, doc="Is output spent?")
