@@ -982,12 +982,8 @@ class Cache(object):
         elif not t.coinbase and [i for i in t.inputs if not i.value]:
             _logger.info("Caching failure tx: One the transaction inputs has value 0")
             return False
-        raw_hex = None
-        if CACHE_STORE_RAW_TRANSACTIONS:
-            raw_hex = t.raw_hex()
-            if not raw_hex:    # pragma: no cover
-                _logger.info("Caching failure tx: Raw hex missing in transaction")
-                return False
+        # TODO: Check if inputs / outputs are complete? script, value, prev_hash, sequence, output/input_n
+
         txid = bytes.fromhex(t.txid)
         if self.session.query(DbCacheTransaction).filter_by(txid=txid).count():
             return
