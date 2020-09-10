@@ -1211,7 +1211,7 @@ class Transaction(object):
 
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
                  fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'', status='new',
                  coinbase=False, verified=False, witness_type='legacy', flag=None):

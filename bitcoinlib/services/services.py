@@ -682,7 +682,7 @@ class Cache(object):
     def _parse_db_transaction(db_tx):
         # if not db_tx.raw:
         #     return False
-        t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
+        # t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
         # TODO: Avoid using raw transaction
         # locktime, version, coinbase?, witness_type
         t = Transaction(locktime=db_tx.locktime, version=db_tx.version, network=db_tx.network_name,
@@ -692,22 +692,13 @@ class Cache(object):
                         #coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
         for n in db_tx.nodes:
             if n.is_input:
-                t.add_input(n.p)
-                t.inputs[n.output_n].value = n.value
-                t.inputs[n.output_n].address = n.address
+                t.add_input(n.ref_txid, n.ref_index_n, unlocking_script=n.script, address=n.address,
+                            sequence=n.sequence, value=n.value, index_n=n.index_n)
             else:
-                t.outputs[n.output_n].spent = n.spent
-                t.outputs[n.output_n].spending_txid = n.spending_txid
-                t.outputs[n.output_n].spending_index_n = n.spending_index_n
-        # t.txid = db_tx.txid.hex()
-        # t.date = db_tx.date
-        # t.block_height = db_tx.block_height
-        # t.confirmations = db_tx.confirmations
-        # t.status = 'confirmed'
-        # t.fee = db_tx.fee
-        # t.update_totals()
-        # if t.coinbase:
-        #     t.input_total = t.output_total
+                t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent,
+                             output_n=n.index_n, spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
+
+        t.update_totals()
         _logger.info("Retrieved transaction %s from cache" % t.txid)
         return t
 
@@ -835,7 +826,8 @@ class Cache(object):
         tx = self.session.query(DbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
         if not tx:
             return False
-        return tx.raw
+        t = self._parse_db_transaction(tx)
+        return t.raw_hex()
 
     def getutxos(self, address, after_txid=''):
         """
@@ -852,7 +844,7 @@ class Cache(object):
         """
         if not self.cache_enabled():
             return False
-        db_utxos = self.session.query(DbCacheTransactionNode.spent, DbCacheTransactionNode.output_n,
+        db_utxos = self.session.query(DbCacheTransactionNode.spent, DbCacheTransactionNode.index_n,
                                       DbCacheTransactionNode.value, DbCacheTransaction.confirmations,
                                       DbCacheTransaction.block_height, DbCacheTransaction.fee,
                                       DbCacheTransaction.date, DbCacheTransaction.txid).join(DbCacheTransaction). \
@@ -866,7 +858,7 @@ class Cache(object):
                     'address': address,
                     'txid': db_utxo.txid,
                     'confirmations': db_utxo.confirmations,
-                    'output_n': db_utxo.output_n,
+                    'output_n': db_utxo.index_n,
                     'input_n': 0,
                     'block_height': db_utxo.block_height,
                     'fee': db_utxo.fee,
@@ -1001,23 +993,25 @@ class Cache(object):
             return
         new_tx = DbCacheTransaction(txid=txid, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, network_name=t.network.name,
-                                    fee=t.fee, raw=raw_hex, order_n=order_n)
+                                    fee=t.fee, order_n=order_n, version=t.version_int,
+                                    locktime=t.locktime)
         self.session.add(new_tx)
         for i in t.inputs:
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
                 return False
-            new_node = DbCacheTransactionNode(txid=txid, address=i.address, output_n=i.index_n, value=i.value,
-                                              is_input=True)
+            new_node = DbCacheTransactionNode(txid=txid, address=i.address, index_n=i.index_n, value=i.value,
+                                              is_input=True, ref_txid=i.prev_hash, ref_index_n=i.output_n,
+                                              script=i.unlocking_script, sequence=i.sequence)
             self.session.add(new_node)
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
                 return False
             new_node = DbCacheTransactionNode(
-                txid=txid, address=o.address, output_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
-                spending_txid=None if not o.spending_txid else bytes.fromhex(o.spending_txid),
-                spending_index_n=o.spending_index_n)
+                txid=txid, address=o.address, index_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
+                ref_txid=None if not o.spending_txid else bytes.fromhex(o.spending_txid),
+                ref_index_n=o.spending_index_n, script=o.lock_script)
             self.session.add(new_node)
 
         if commit:
