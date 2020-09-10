@@ -247,6 +247,9 @@ class DbNetwork(Base):
     """
     Database definitions for networks in Sqlalchemy format
 
+    Most network settings and variables can be found outside the database in the libraries configurations settings.
+    Use the bitcoinlib/data/networks.json file to view and manage settings.
+
     """
     __tablename__ = 'networks'
     name = Column(String(20), unique=True, primary_key=True, doc="Network name, i.e.: bitcoin, litecoin, dash")

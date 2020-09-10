@@ -680,34 +680,34 @@ class Cache(object):
 
     @staticmethod
     def _parse_db_transaction(db_tx):
-        if not db_tx.raw:
-            return False
+        # if not db_tx.raw:
+        #     return False
         t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
         # TODO: Avoid using raw transaction
         # locktime, version, coinbase?, witness_type
-        # t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-        #                 fee=tx['fee'], size=tx['size'], hash=tx['txid'],
-        #                 date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],
-        #                 confirmations=confirmations, block_height=block_height, status=tx['status'],
-        #                 coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
+        t = Transaction(locktime=db_tx.locktime, version=db_tx.version, network=db_tx.network_name,
+                        fee=db_tx.fee, txid=db_tx.txid.hex(),  # size
+                        date=db_tx.date,  #, input_total=tx['input_total'], output_total=tx['output_total'],
+                        confirmations=db_tx.confirmations, block_height=db_tx.block_height, status='confirmed')
+                        #coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
         for n in db_tx.nodes:
             if n.is_input:
+                t.add_input(n.p)
                 t.inputs[n.output_n].value = n.value
                 t.inputs[n.output_n].address = n.address
             else:
                 t.outputs[n.output_n].spent = n.spent
                 t.outputs[n.output_n].spending_txid = n.spending_txid
                 t.outputs[n.output_n].spending_index_n = n.spending_index_n
-        t.txid = db_tx.txid.hex()
-        t.date = db_tx.date
-        t.block_hash = db_tx.block_hash
-        t.block_height = db_tx.block_height
-        t.confirmations = db_tx.confirmations
-        t.status = 'confirmed'
-        t.fee = db_tx.fee
-        t.update_totals()
-        if t.coinbase:
-            t.input_total = t.output_total
+        # t.txid = db_tx.txid.hex()
+        # t.date = db_tx.date
+        # t.block_height = db_tx.block_height
+        # t.confirmations = db_tx.confirmations
+        # t.status = 'confirmed'
+        # t.fee = db_tx.fee
+        # t.update_totals()
+        # if t.coinbase:
+        #     t.input_total = t.output_total
         _logger.info("Retrieved transaction %s from cache" % t.txid)
         return t
 
@@ -1044,7 +1044,7 @@ class Cache(object):
         :param last_txid: Transaction ID of last transaction downloaded from blockchain
         :type last_txid: bytes
 
-        :return:
+ .       :return:
         """
         if not self.cache_enabled():
             return

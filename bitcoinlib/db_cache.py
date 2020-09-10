@@ -98,18 +98,18 @@ class DbCacheTransaction(Base):
     date = Column(DateTime, doc="Date when transaction was confirmed and included in a block")
     # TODO: Add fields to allow to create full transaction
     # witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
-    # version = Column(Integer, default=1,
-    #                  doc="Tranaction version. Default is 1 but some wallets use another version number")
-    # locktime = Column(Integer, default=0,
-    #                   doc="Transaction level locktime. Locks the transaction until a specified block "
-    #                       "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
-    #                       " Default value is 0 for transactions without locktime")
+    version = Column(Integer, default=1,
+                     doc="Tranaction version. Default is 1 but some wallets use another version number")
+    locktime = Column(Integer, default=0,
+                      doc="Transaction level locktime. Locks the transaction until a specified block "
+                          "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
+                          " Default value is 0 for transactions without locktime")
     # coinbase = Column(Boolean, default=False, doc="Is True when this is a coinbase transaction, default is False")
     confirmations = Column(Integer, default=0,
                            doc="Number of confirmation when this transaction is included in a block. "
                                "Default is 0: unconfirmed")
     block_height = Column(Integer, index=True, doc="Height of block this transaction is included in")
-    block_hash = Column(LargeBinary(32), index=True, doc="Hash of block this transaction is included in")  # TODO: Remove, is redundant
+    # block_hash = Column(LargeBinary(32), index=True, doc="Hash of block this transaction is included in")  # TODO: Remove, is redundant
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
     fee = Column(BigInteger, doc="Transaction fee")
     raw = Column(Text(),
