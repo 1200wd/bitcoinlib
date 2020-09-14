@@ -23,6 +23,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
+from bitcoinlib.encoding import varstr
 
 PROVIDERNAME = 'blockstream'
 # Please note: In the Blockstream API, the first couple of Bitcoin blocks are not correctly indexed,
@@ -109,11 +110,12 @@ class BlockstreamClient(BaseClient):
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=0)
             else:
+                witnesses = [bytes.fromhex(w) for w in ti['witness']]
                 t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
                             address='' if 'scriptpubkey_address' not in ti['prevout']
                             else ti['prevout']['scriptpubkey_address'],
-                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'])
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses)
             index_n += 1
         index_n = 0
         if len(tx['vout']) > 50:

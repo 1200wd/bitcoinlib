@@ -259,12 +259,12 @@ class DbNetwork(Base):
         return "<DbNetwork(name='%s', description='%s'>" % (self.name, self.description)
 
 
-class TransactionType(enum.Enum):
-    """
-    Incoming or Outgoing transaction Enumeration
-    """
-    incoming = 1
-    outgoing = 2
+# class TransactionType(enum.Enum):
+#     """
+#     Incoming or Outgoing transaction Enumeration
+#     """
+#     incoming = 1
+#     outgoing = 2
 
 
 class DbTransaction(Base):

@@ -22,6 +22,7 @@ import os
 import locale
 import platform
 import configparser
+import enum
 from pathlib import Path
 from datetime import datetime
 
@@ -287,6 +288,7 @@ def initialize_lib():
         if file.suffix not in ['.ini', '.json']:
             continue
         copyfile(str(file), Path(BCL_DATA_DIR, file.name))
+
 
 # Initialize library
 read_config()

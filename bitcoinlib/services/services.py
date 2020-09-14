@@ -25,7 +25,7 @@ from datetime import timedelta
 from sqlalchemy import func
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import to_bytes
+from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr, varbyteint_to_int
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.blocks import Block
@@ -197,6 +197,7 @@ class Service(object):
                     self.errors.update(
                         {sp: err}
                     )
+                    _logger.debug("Error %s on provider %s" % (e, sp))
                     # -- Use this to debug specific Services errors --
                     # from pprint import pprint
                     # pprint(self.errors)
@@ -690,13 +691,30 @@ class Cache(object):
                         date=db_tx.date,  #, input_total=tx['input_total'], output_total=tx['output_total'],
                         confirmations=db_tx.confirmations, block_height=db_tx.block_height, status='confirmed')
                         #coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
+        witness_type = 'legacy'
         for n in db_tx.nodes:
             if n.is_input:
+                witnesses = []
+                # TODO: Move code to Script class
+                witness_type = 'legacy'
+                if n.witnesses:
+                    witness_str = n.witnesses
+                    n_items, cursor = varbyteint_to_int(witness_str[0:9])
+                    t.witness_type = 'segwit'
+                    for m in range(0, n_items):
+                        witness = b'\0'
+                        item_size, size = varbyteint_to_int(witness_str[cursor:cursor + 9])
+                        if item_size:
+                            witness = witness_str[cursor + size:cursor + item_size + size]
+                        cursor += item_size + size
+                        witnesses.append(witness)
                 t.add_input(n.ref_txid, n.ref_index_n, unlocking_script=n.script, address=n.address,
-                            sequence=n.sequence, value=n.value, index_n=n.index_n)
+                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses)
             else:
-                t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent,
-                             output_n=n.index_n, spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
+                n = t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
+                                 spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
+                # if t.outputs[n].witness_type == 'segwit':
+                #     t.witness_type = 'segwit'
 
         t.update_totals()
         _logger.info("Retrieved transaction %s from cache" % t.txid)
@@ -990,15 +1008,17 @@ class Cache(object):
         new_tx = DbCacheTransaction(txid=txid, date=t.date, confirmations=t.confirmations,
                                     block_height=t.block_height, network_name=t.network.name,
                                     fee=t.fee, order_n=order_n, version=t.version_int,
-                                    locktime=t.locktime)
+                                    locktime=t.locktime, witness_type=t.witness_type)
         self.session.add(new_tx)
         for i in t.inputs:
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
                 return False
+            witnesses = int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
             new_node = DbCacheTransactionNode(txid=txid, address=i.address, index_n=i.index_n, value=i.value,
                                               is_input=True, ref_txid=i.prev_hash, ref_index_n=i.output_n,
-                                              script=i.unlocking_script, sequence=i.sequence)
+                                              script=i.unlocking_script, sequence=i.sequence,
+                                              witnesses=witnesses)
             self.session.add(new_node)
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover

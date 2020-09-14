@@ -103,7 +103,8 @@ class BlockchainInfoClient(BaseClient):
         t.size = tx['size']
         t.network_name = self.network
         t.locktime = tx['lock_time']
-        t.version = tx['ver'].to_bytes(4, 'little')
+        t.version_int = tx['ver']
+        t.version = tx['ver'].to_bytes(4, 'big')
         t.input_total = input_total
         t.fee = 0
         if t.input_total:

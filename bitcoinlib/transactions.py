@@ -796,7 +796,10 @@ class Input(object):
                     self.witness_type = 'segwit'
                 self.script_type = get_unlocking_script_type(ls_dict['script_type'])
         self.sigs_required = sigs_required
+        if self.script_type is None and self.witness_type is None and self.witnesses:
+            self.witness_type = 'segwit'
         if self.witness_type is None or self.witness_type == 'legacy':
+            # if self.script_type in ['p2wpkh', 'p2wsh', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
@@ -880,7 +883,7 @@ class Input(object):
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
             addr_data = self.public_hash
-            self.witnesses = []  # TODO: Remove?
+            # self.witnesses = []  # TODO: Remove?
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() +
                                   hash_type.to_bytes(1, 'big') if hash_type else b'', self.keys[0].public_byte]
@@ -1760,7 +1763,7 @@ class Transaction(object):
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  key_path='', witness_type=None, encoding=None):
+                  key_path='', witness_type=None, witnesses=None, encoding=None):
         """
         Add input to this transaction
         
@@ -1806,6 +1809,8 @@ class Transaction(object):
         :type key_path: str, list
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
+        :param witnesses: List of witnesses for inputs, used for segwit transactions for instance.
+        :type witnesses: list of bytes
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from script or script type
         :type encoding: str
 
@@ -1825,7 +1830,7 @@ class Transaction(object):
                   script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, key_path=key_path, witness_type=witness_type,
-                  encoding=encoding, network=self.network.name))
+                  witnesses=witnesses, encoding=encoding, network=self.network.name))
         return index_n
 
     def add_output(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,

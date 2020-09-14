@@ -19,7 +19,7 @@
 #
 
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Numeric, Text, LargeBinary
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Numeric, Enum, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from urllib.parse import urlparse
@@ -28,6 +28,11 @@ from bitcoinlib.main import *
 _logger = logging.getLogger(__name__)
 _logger.info("Using Cache Database %s" % DEFAULT_DATABASE_CACHE)
 Base = declarative_base()
+
+
+class WitnessTypeTransactions(enum.Enum):
+    legacy = 0
+    segwit = 1
 
 
 class DbInit:
@@ -72,6 +77,7 @@ class DbCacheTransactionNode(Base):
     value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
     address = Column(String(255), index=True, doc="Address string base32 or base58 encoded")
     script = Column(LargeBinary, doc="Locking or unlocking script")
+    witnesses = Column(LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
     sequence = Column(BigInteger, default=0xffffffff, doc="Transaction sequence number. Used for timelock transaction inputs")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
     spent = Column(Boolean, default=None, doc="Is output spent?")
@@ -120,6 +126,8 @@ class DbCacheTransaction(Base):
     nodes = relationship("DbCacheTransactionNode", cascade="all,delete",
                          doc="List of all inputs and outputs as DbCacheTransactionNode objects")
     order_n = Column(Integer, doc="Order of transaction in block")
+    witness_type = Column(Enum(WitnessTypeTransactions), default=WitnessTypeTransactions.legacy,
+                          doc="Transaction type enum: legacy or segwit")
 
 
 class DbCacheAddress(Base):

@@ -135,9 +135,9 @@ class BlockCypher(BaseClient):
                 continue
             txids = []
             for t in a['txrefs'][::-1]:
-                if t['txid'] not in txids:
-                    txids.append(t['txid'])
-                if t['txid'] == after_txid:
+                if t['tx_hash'] not in txids:
+                    txids.append(t['tx_hash'])
+                if t['tx_hash'] == after_txid:
                     txids = []
             if len(txids) > 500:
                 _logger.info("BlockCypher: Large number of transactions for address %s, "
