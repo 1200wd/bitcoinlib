@@ -96,12 +96,13 @@ class BlocksmurferClient(BaseClient):
                         coinbase=tx['coinbase'], rawtx=bytes.fromhex(tx['raw_hex']),
                         witness_type=tx['witness_type'])
         for ti in tx['inputs']:
+            # TODO: Fix value of ti['witness'] list of str?
             t.add_input(prev_hash=ti['prev_hash'], output_n=ti['output_n'], index_n=ti['index_n'],
                         unlocking_script=ti['script'], value=ti['value'], public_hash=bytes.fromhex(ti['public_hash']),
                         address=ti['address'], witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
                         locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
                         encoding=ti['encoding'], unlocking_script_unsigned=ti['script_code'],
-                        sigs_required=ti['sigs_required'], witnesses=ti['witness'])
+                        sigs_required=ti['sigs_required'], witnesses=[bytes.fromhex(ti['witness'])])
         for to in tx['outputs']:
             t.add_output(value=to['value'], address=to['address'], public_hash=to['public_hash'],
                          lock_script=to['script'], spent=to['spent'])

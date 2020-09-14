@@ -31,8 +31,8 @@ Base = declarative_base()
 
 
 class WitnessTypeTransactions(enum.Enum):
-    legacy = 0
-    segwit = 1
+    legacy = "legacy"
+    segwit = "segwit"
 
 
 class DbInit:

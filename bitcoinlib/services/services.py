@@ -681,26 +681,16 @@ class Cache(object):
 
     @staticmethod
     def _parse_db_transaction(db_tx):
-        # if not db_tx.raw:
-        #     return False
-        # t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
-        # TODO: Avoid using raw transaction
-        # locktime, version, coinbase?, witness_type
         t = Transaction(locktime=db_tx.locktime, version=db_tx.version, network=db_tx.network_name,
-                        fee=db_tx.fee, txid=db_tx.txid.hex(),  # size
-                        date=db_tx.date,  #, input_total=tx['input_total'], output_total=tx['output_total'],
-                        confirmations=db_tx.confirmations, block_height=db_tx.block_height, status='confirmed')
-                        #coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
-        witness_type = 'legacy'
+                        fee=db_tx.fee, txid=db_tx.txid.hex(), date=db_tx.date, confirmations=db_tx.confirmations,
+                        block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value)
         for n in db_tx.nodes:
             if n.is_input:
                 witnesses = []
                 # TODO: Move code to Script class
-                witness_type = 'legacy'
                 if n.witnesses:
                     witness_str = n.witnesses
                     n_items, cursor = varbyteint_to_int(witness_str[0:9])
-                    t.witness_type = 'segwit'
                     for m in range(0, n_items):
                         witness = b'\0'
                         item_size, size = varbyteint_to_int(witness_str[cursor:cursor + 9])
@@ -711,10 +701,8 @@ class Cache(object):
                 t.add_input(n.ref_txid, n.ref_index_n, unlocking_script=n.script, address=n.address,
                             sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses)
             else:
-                n = t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
+                t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
                                  spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
-                # if t.outputs[n].witness_type == 'segwit':
-                #     t.witness_type = 'segwit'
 
         t.update_totals()
         _logger.info("Retrieved transaction %s from cache" % t.txid)
