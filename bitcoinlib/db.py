@@ -21,7 +21,7 @@
 import enum
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
-                        ForeignKey, DateTime, Numeric, Text, LargeBinary)
+                        ForeignKey, DateTime, LargeBinary)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from urllib.parse import urlparse
@@ -215,7 +215,7 @@ class DbKey(Base):
                                       doc="All DbTransactionInput objects this key is part of")
     transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key",
                                        doc="All DbTransactionOutput objects this key is part of")
-    balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
+    balance = Column(BigInteger, default=0, doc="Total balance of UTXO's linked to this key")
     used = Column(Boolean, default=False, doc="Has key already been used on the blockchain in as input or output? "
                                               "Default is False")
     network_name = Column(String(20), ForeignKey('networks.name'),
@@ -283,9 +283,9 @@ class DbTransaction(Base):
     wallet = relationship("DbWallet", back_populates="transactions",
                           doc="Link to HDWallet object which contains this transaction")
     witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
-    version = Column(Integer, default=1,
+    version = Column(BigInteger, default=1,
                      doc="Tranaction version. Default is 1 but some wallets use another version number")
-    locktime = Column(Integer, default=0,
+    locktime = Column(BigInteger, default=0,
                       doc="Transaction level locktime. Locks the transaction until a specified block "
                           "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
                           " Default value is 0 for transactions without locktime")
@@ -298,7 +298,7 @@ class DbTransaction(Base):
                                "Default is 0: unconfirmed")
     block_height = Column(Integer, index=True, doc="Number of block this transaction is included in")
     size = Column(Integer, doc="Size of the raw transaction in bytes")
-    fee = Column(Integer, doc="Transaction fee")
+    fee = Column(BigInteger, doc="Transaction fee")
     inputs = relationship("DbTransactionInput", cascade="all,delete",
                           doc="List of all inputs as DbTransactionInput objects")
     outputs = relationship("DbTransactionOutput", cascade="all,delete",
@@ -306,10 +306,10 @@ class DbTransaction(Base):
     status = Column(String(20), default='new',
                     doc="Current status of transaction, can be one of the following: new', 'incomplete', "
                         "'unconfirmed', 'confirmed'. Default is 'new'")
-    input_total = Column(Numeric(25, 0, asdecimal=False), default=0,
+    input_total = Column(BigInteger, default=0,
                          doc="Total value of the inputs of this transaction. Input total = Output total + fee. "
                              "Default is 0")
-    output_total = Column(Numeric(25, 0, asdecimal=False), default=0,
+    output_total = Column(BigInteger, default=0,
                           doc="Total value of the outputs of this transaction. Output total = Input total - fee")
     network_name = Column(String(20), ForeignKey('networks.name'), doc="Blockchain network name of this transaction")
     network = relationship("DbNetwork", doc="Link to DbNetwork object")
@@ -350,13 +350,13 @@ class DbTransactionInput(Base):
     prev_hash = Column(String(64),
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
-    output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
+    output_n = Column(Integer, doc="Output_n of previous transaction output that is spent in this input")
     script = Column(String, doc="Unlocking script to unlock previous locked output")
     script_type = Column(String(20), default='sig_pubkey',
                          doc="Unlocking script type. Can be 'coinbase', 'sig_pubkey', 'p2sh_multisig', 'signature', "
                              "'unknown', 'p2sh_p2wpkh' or 'p2sh_p2wsh'. Default is sig_pubkey")
     sequence = Column(BigInteger, doc="Transaction sequence number. Used for timelock transaction inputs")
-    value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
+    value = Column(BigInteger, default=0, doc="Value of transaction input")
     double_spend = Column(Boolean, default=False,
                           doc="Indicates if a service provider tagged this transaction as double spend")
 
@@ -382,14 +382,14 @@ class DbTransactionOutput(Base):
                             doc="Transaction ID of parent transaction")
     transaction = relationship("DbTransaction", back_populates='outputs',
                                doc="Link to transaction object")
-    output_n = Column(BigInteger, primary_key=True, doc="Sequence number of transaction output")
+    output_n = Column(Integer, primary_key=True, doc="Sequence number of transaction output")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this transaction output")
     key = relationship("DbKey", back_populates="transaction_outputs", doc="List of DbKey object used in this output")
     script = Column(String, doc="Locking script which locks transaction output")
     script_type = Column(String(20), default='p2pkh',
                          doc="Locking script type. Can be one of these values: 'p2pkh', 'multisig', 'p2sh', 'p2pk', "
                              "'nulldata', 'unknown', 'p2wpkh' or 'p2wsh'. Default is p2pkh")
-    value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total transaction output value")
+    value = Column(BigInteger, default=0, doc="Total transaction output value")
     spent = Column(Boolean(), default=False, doc="Indicated if output is already spent in another transaction")
     spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")

@@ -73,12 +73,13 @@ class DbCacheTransactionNode(Base):
     __tablename__ = 'cache_transactions_node'
     txid = Column(LargeBinary(32), ForeignKey('cache_transactions.txid'), primary_key=True)
     transaction = relationship("DbCacheTransaction", back_populates='nodes', doc="Related transaction object")
-    index_n = Column(BigInteger, primary_key=True, doc="Order of input/output in this transaction")
-    value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
+    index_n = Column(Integer, primary_key=True, doc="Order of input/output in this transaction")
+    value = Column(BigInteger, default=0, doc="Value of transaction input")
     address = Column(String(255), index=True, doc="Address string base32 or base58 encoded")
     script = Column(LargeBinary, doc="Locking or unlocking script")
     witnesses = Column(LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
-    sequence = Column(BigInteger, default=0xffffffff, doc="Transaction sequence number. Used for timelock transaction inputs")
+    sequence = Column(BigInteger, default=0xffffffff,
+                      doc="Transaction sequence number. Used for timelock transaction inputs")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
     spent = Column(Boolean, default=None, doc="Is output spent?")
     ref_txid = Column(LargeBinary(32), index=True, doc="Transaction hash of input which spends this output")
@@ -111,9 +112,9 @@ class DbCacheTransaction(Base):
     __tablename__ = 'cache_transactions'
     txid = Column(LargeBinary(32), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
     date = Column(DateTime, doc="Date when transaction was confirmed and included in a block")
-    version = Column(Integer, default=1,
+    version = Column(BigInteger, default=1,
                      doc="Tranaction version. Default is 1 but some wallets use another version number")
-    locktime = Column(Integer, default=0,
+    locktime = Column(BigInteger, default=0,
                       doc="Transaction level locktime. Locks the transaction until a specified block "
                           "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
                           " Default value is 0 for transactions without locktime")
@@ -140,7 +141,7 @@ class DbCacheAddress(Base):
     __tablename__ = 'cache_address'
     address = Column(String(255), primary_key=True, doc="Address string base32 or base58 encoded")
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
-    balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
+    balance = Column(BigInteger, default=0, doc="Total balance of UTXO's linked to this key")
     last_block = Column(Integer, doc="Number of last updated block")
     last_txid = Column(LargeBinary(32), doc="Transaction ID of latest transaction in cache")
     n_utxos = Column(Integer, doc="Total number of UTXO's for this address")
