@@ -92,7 +92,7 @@ class TestWalletMixin:
                     os.remove(db)
         elif cls.SCHEMA == 'postgresql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
-                cls.create_db_if_needed(db)
+                # cls.create_db_if_needed(db)
                 con = psycopg2.connect(user='postgres', host='localhost', password='postgres', database=db)
                 con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
                 cur = con.cursor()
@@ -112,12 +112,12 @@ class TestWalletMixin:
                     con.close()
         elif cls.SCHEMA == 'mysql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
-                cls.create_db_if_needed(db)
+                # cls.create_db_if_needed(db)
                 con = mysql.connector.connect(user='root', host='localhost', database=db, autocommit=True)
                 cur = con.cursor(buffered=True)
                 try:
                     cur.execute("DROP DATABASE {};".format(db))
-                    cur.execute("CREATE DATABASE {};".format(db))
+                    # cur.execute("CREATE DATABASE {};".format(db))
                 finally:
                     cur.close()
                     con.close()

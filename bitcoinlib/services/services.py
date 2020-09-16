@@ -646,7 +646,7 @@ class Cache(object):
         """
         self.session = None
         if SERVICE_CACHING_ENABLED:
-            self.session = DbInit(db_uri=db_uri).session
+            self.session = DbCache(db_uri=db_uri).session
         self.network = network
 
     def __exit__(self):

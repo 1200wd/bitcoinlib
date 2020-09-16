@@ -61,7 +61,7 @@ def wallets_list(db_uri=None, include_cosigners=False):
     :return dict: Dictionary of wallets defined in database
     """
 
-    session = DbInit(db_uri=db_uri).session
+    session = Db(db_uri=db_uri).session
     wallets = session.query(DbWallet).order_by(DbWallet.id).all()
     wlst = []
     for w in wallets:
@@ -156,7 +156,7 @@ def wallet_delete(wallet, db_uri=None, force=False):
     :return int: Number of rows deleted, so 1 if succesfull
     """
 
-    session = DbInit(db_uri=db_uri).session
+    session = Db(db_uri=db_uri).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
     else:
@@ -208,7 +208,7 @@ def wallet_empty(wallet, db_uri=None):
     :return bool: True if successful
     """
 
-    session = DbInit(db_uri=db_uri).session
+    session = Db(db_uri=db_uri).session
     if isinstance(wallet, int) or wallet.isdigit():
         w = session.query(DbWallet).filter_by(id=wallet)
     else:
@@ -969,7 +969,7 @@ class HDWallet(object):
     def _create(cls, name, key, owner, network, account_id, purpose, scheme, parent_id, sort_keys,
                 witness_type, encoding, multisig, sigs_required, cosigner_id, key_path, db_uri):
 
-        session = DbInit(db_uri=db_uri).session
+        session = Db(db_uri=db_uri).session
         if session.query(DbWallet).filter_by(name=name).count():
             raise WalletError("Wallet with name '%s' already exists" % name)
         else:
@@ -1321,7 +1321,7 @@ class HDWallet(object):
         if session:
             self._session = session
         else:
-            dbinit = DbInit(db_uri=db_uri)
+            dbinit = Db(db_uri=db_uri)
             self._session = dbinit.session
             self._engine = dbinit.engine
         self.db_uri = db_uri

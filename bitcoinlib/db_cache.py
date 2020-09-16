@@ -21,7 +21,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Numeric, Enum, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
 from urllib.parse import urlparse
 from bitcoinlib.main import *
 
@@ -35,9 +35,9 @@ class WitnessTypeTransactions(enum.Enum):
     segwit = "segwit"
 
 
-class DbInit:
+class DbCache:
     """
-    Initialize database and open session
+    Cache Database object. Initialize database and open session when creating database object.
 
     Create new database if is doesn't exist yet
 
@@ -49,9 +49,9 @@ class DbInit:
             db_uri = DEFAULT_DATABASE_CACHE
         elif not db_uri:
             return
-        o = urlparse(db_uri)
+        self.o = urlparse(db_uri)
 
-        if not o.scheme or len(o.scheme) < 2:
+        if not self.o.scheme or len(self.o.scheme) < 2:
             db_uri = 'sqlite:///%s' % db_uri
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
             if "?" in db_uri:
@@ -63,7 +63,14 @@ class DbInit:
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
         Session = sessionmaker(bind=self.engine)
         Base.metadata.create_all(self.engine)
+        self.db_uri = db_uri
         self.session = Session()
+
+    def drop_db(self):
+        self.session.commit()
+        self.session.close_all()
+        close_all_sessions()
+        Base.metadata.drop_all(self.engine)
 
 
 class DbCacheTransactionNode(Base):
@@ -179,5 +186,6 @@ class DbCacheVars(Base):
     expires = Column(DateTime, doc="Datetime value when variable expires")
 
 
-if __name__ == '__main__':
-    DbInit()
+# if __name__ == '__main__':
+#     DbCache()
+#

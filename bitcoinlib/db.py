@@ -23,18 +23,18 @@ from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, LargeBinary)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
 from urllib.parse import urlparse
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
-_logger.info("Using Database %s" % DEFAULT_DATABASE)
 Base = declarative_base()
 
 
-class DbInit:
+class Db:
     """
-    Initialize database and open session
+    Bitcoinlib Database object used by Service() and HDWallet() class. Initialize database and open session when
+    creating database object.
 
     Create new database if is doesn't exist yet
 
@@ -42,9 +42,9 @@ class DbInit:
     def __init__(self, db_uri=None):
         if db_uri is None:
             db_uri = DEFAULT_DATABASE
-        o = urlparse(db_uri)
-        if not o.scheme or \
-                len(o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
+        self.o = urlparse(db_uri)
+        if not self.o.scheme or \
+                len(self.o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
             db_uri = 'sqlite:///%s' % db_uri
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
             if "?" in db_uri: db_uri += "&"
@@ -55,8 +55,10 @@ class DbInit:
 
         Base.metadata.create_all(self.engine)
         self._import_config_data(Session)
-
         self.session = Session()
+
+        _logger.info("Using Database %s" % db_uri)
+        self.db_uri = db_uri
 
         # VERIFY AND UPDATE DATABASE
         # Just a very simple database update script, without any external libraries for now
@@ -70,6 +72,13 @@ class DbInit:
 
         except Exception as e:
             _logger.warning("Error when verifying version or updating database: %s" % e)
+
+    def drop_db(self, yes_i_am_sure=False):
+        if yes_i_am_sure:
+            self.session.commit()
+            self.session.close_all()
+            close_all_sessions()
+            Base.metadata.drop_all(self.engine)
 
     @staticmethod
     def _import_config_data(ses):
@@ -429,5 +438,5 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
     return version_db
 
 
-if __name__ == '__main__':
-    DbInit()
+# if __name__ == '__main__':
+#     DbInit()
