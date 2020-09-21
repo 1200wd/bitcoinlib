@@ -55,6 +55,7 @@ def init_mysql(_):
     cur.close()
     con.close()
 
+
 db_uris = (('sqlite:///' + SQLITE_DATABASE_FILE, init_sqlite),)
 if UNITTESTS_FULL_DATABASE_TEST:
     db_uris += (

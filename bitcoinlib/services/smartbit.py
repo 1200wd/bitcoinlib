@@ -40,8 +40,8 @@ class SmartbitClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, category, command='', data='', variables=None, type='blockchain', method='get'):
-        url_path = type + '/' + category
+    def compose_request(self, category, command='', data='', variables=None, req_type='blockchain', method='get'):
+        url_path = req_type + '/' + category
         if data:
             if url_path[-1:] != '/':
                 url_path += '/'

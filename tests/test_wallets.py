@@ -105,8 +105,7 @@ class TestWalletMixin:
                             FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
                                 EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                             END LOOP;
-                        END $$;"""
-                    ))
+                        END $$;"""))
                 finally:
                     cur.close()
                     con.close()
@@ -292,6 +291,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         wallet = HDWallet.create("test_wallet_as_dict_json", db_uri=self.DATABASE_URI, network='bitcoinlib_test')
         self.assertTrue(wallet.as_dict())
         self.assertTrue(wallet.as_json())
+
 
 @parameterized_class(*params)
 class TestWalletImport(TestWalletMixin, unittest.TestCase):
@@ -520,7 +520,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
     def setUpClass(cls):
         cls.db_remove()
         cls.private_wif = 'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF9ySUHZw5qJkk5LCALAhXS' \
-                           'XoCmCSnStRvgwLBtcbGsg1PeKT2en'
+                          'XoCmCSnStRvgwLBtcbGsg1PeKT2en'
         cls.wallet = HDWallet.create(
             keys=cls.private_wif,
             name='test_wallet_keys',
@@ -1003,15 +1003,15 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_multisig_litecoin_transaction_send_offline(self):
         self.db_remove()
-        NETWORK = 'litecoin_legacy'
-        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d', network=NETWORK)
+        network = 'litecoin_legacy'
+        pk2 = HDKey('e2cbed99ad03c500f2110f1a3c90e0562a3da4ba0cff0e74028b532c3d69d29d', network=network)
         key_list = [
-            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067', network=NETWORK),
+            HDKey('e9e5095d3e26643cc4d996efc6cb9a8d8eb55119fdec9fa28a684ba297528067', network=network),
             pk2.public_master(multisig=True),
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6',
-                  network=NETWORK).public_master(multisig=True),
+                  network=network).public_master(multisig=True),
         ]
-        wl = HDWallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2, network=NETWORK,
+        wl = HDWallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2, network=network,
                              db_uri=self.DATABASE_URI)
         wl.get_key(number_of_keys=2)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
@@ -1319,8 +1319,6 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                                   db_uri=self.DATABASE_URI)
         w.new_key(cosigner_id=2)
         self.assertEqual(w.keys()[3].address, '3Q9rnDniMa55jZFyzBDKihtXwZSM34zfEj')
-
-
 
 
 @parameterized_class(*params)

@@ -341,7 +341,7 @@ class DbTransaction(Base):
     )
 
     def __repr__(self):
-        return "<DbTransaction(hash='%s', confirmations='%s')>" % (self.txid, self.confirmations)
+        return "<DbTransaction(txid='%s', confirmations='%s')>" % (self.txid, self.confirmations)
 
 
 class DbTransactionInput(Base):
