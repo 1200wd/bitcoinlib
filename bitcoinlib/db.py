@@ -18,12 +18,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import enum
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, LargeBinary)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
+from sqlalchemy.exc import OperationalError
+from sqlalchemy_utils import create_database
 from urllib.parse import urlparse
 from bitcoinlib.main import *
 
@@ -51,8 +52,14 @@ class Db:
             else: db_uri += "?"
             db_uri += "check_same_thread=False"
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
-        Session = sessionmaker(bind=self.engine)
 
+        # Try to connect to database, create database if it doesn't exist
+        try:
+            self.engine.connect()
+        except OperationalError:
+            create_database(db_uri)
+
+        Session = sessionmaker(bind=self.engine)
         Base.metadata.create_all(self.engine)
         self._import_config_data(Session)
         self.session = Session()

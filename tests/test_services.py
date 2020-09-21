@@ -29,6 +29,8 @@ MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estim
 
 DATABASEFILE_CACHE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache.unittest.sqlite')
 DATABASEFILE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache2.unittest.sqlite')
+DATABASEFILE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitcoinlibcache.unittest'
+DATABASEFILE_CACHE_MYSQL = 'mysql://root@localhost:3306/bitcoinlibcache.unittest'
 TIMEOUT_TEST = 2
 
 
@@ -807,6 +809,11 @@ class TestServiceCache(unittest.TestCase):
                 os.remove(DATABASEFILE_CACHE_UNITTESTS2)
         except Exception:
             pass
+        try:
+            DbCache(DATABASEFILE_CACHE_POSTGRESQL).drop_db()
+            DbCache(DATABASEFILE_CACHE_MYSQL).drop_db()
+        except Exception:
+            pass
 
     def test_service_cache_transactions(self):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
@@ -887,19 +894,22 @@ class TestServiceCache(unittest.TestCase):
             self.assertGreaterEqual(srv.results_cache_n, 1)
 
     # FIXME: Fails with some providers, needs testing
-    def test_service_cache_transaction_segwit(self):
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2, network='bitcoin',
-                          exclude_providers=['blocksmurfer'])
-        rawtx = "020000000001012d83146744d37b0aa13b609a206206860d550e911882c89afabc3abaeebc5f7d0100000000ffffffff01" \
-                "cb2500000000000017a914da4540e3b144eb0c6d3be573fba0ffab3887c6138702473044022067be0a16037511c15b310b" \
-                "cad2e8d40d36680f4bffbfb1f76a170ac552df8aaf0220110024eb5d17a4b3c3928d3c2ca28bb023b4ee3348004a79632a" \
-                "03613ed6a3b50121031811df1f3cc40e1f8bb0e1cd4dbf86a897be03cc8cbddbfa136a1e6f84b540f500000000"
-        # Get transaction from provider, should be added to cache
-        t = srv.gettransaction('656333aa98d6207de1eb59e029850b649935e6ef2e5f90bc8834a13333b90963')
-        self.assertEqual(t.raw_hex(), rawtx)
-        # Get transaction from cache
-        t = srv.gettransaction('656333aa98d6207de1eb59e029850b649935e6ef2e5f90bc8834a13333b90963')
-        self.assertEqual(t.raw_hex(), rawtx)
+    def test_service_cache_transaction_segwit_database(self):
+        for db_uri in [DATABASEFILE_CACHE_UNITTESTS2, DATABASEFILE_CACHE_POSTGRESQL, DATABASEFILE_CACHE_MYSQL]:
+            srv = ServiceTest(cache_uri=db_uri, network='bitcoin',
+                              exclude_providers=['blocksmurfer'])
+            rawtx \
+                = "020000000001012d83146744d37b0aa13b609a206206860d550e911882c89afabc3abaeebc5f7d0100000000ffffffff01" \
+                  "cb2500000000000017a914da4540e3b144eb0c6d3be573fba0ffab3887c6138702473044022067be0a16037511c15b310b" \
+                  "cad2e8d40d36680f4bffbfb1f76a170ac552df8aaf0220110024eb5d17a4b3c3928d3c2ca28bb023b4ee3348004a79632a" \
+                  "03613ed6a3b50121031811df1f3cc40e1f8bb0e1cd4dbf86a897be03cc8cbddbfa136a1e6f84b540f500000000"
+            # Get transaction from provider, should be added to cache
+            t = srv.gettransaction('656333aa98d6207de1eb59e029850b649935e6ef2e5f90bc8834a13333b90963')
+            self.assertEqual(t.raw_hex(), rawtx)
+            # Get transaction from cache
+            t = srv.gettransaction('656333aa98d6207de1eb59e029850b649935e6ef2e5f90bc8834a13333b90963')
+            self.assertGreaterEqual(srv.results_cache_n, 1)
+            self.assertEqual(t.raw_hex(), rawtx)
 
     def test_service_cache_with_latest_tx_query(self):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
