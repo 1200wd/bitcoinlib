@@ -107,11 +107,13 @@ class BlockstreamClient(BaseClient):
         index_n = 0
         for ti in tx['vin']:
             if tx['vin'][0]['is_coinbase']:
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=0)
             else:
-                witnesses = [bytes.fromhex(w) for w in ti['witness']]
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                witnesses = []
+                if 'witness' in ti:
+                    witnesses = [bytes.fromhex(w) for w in ti['witness']]
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
                             address='' if 'scriptpubkey_address' not in ti['prevout']
                             else ti['prevout']['scriptpubkey_address'],

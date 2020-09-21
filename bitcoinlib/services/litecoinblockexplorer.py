@@ -61,12 +61,12 @@ class LitecoinBlockexplorerClient(BaseClient):
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)), size=len(tx['rawtx']) // 2)
         for ti in tx['vin']:
             if isCoinbase:
-                t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
+                t.add_input(prev_txid=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
                             script_type='coinbase', sequence=ti['sequence'], value=0)
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
                 us = '' if 'hex' not in ti['scriptSig'] else ti['scriptSig']['hex']
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=us,
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=us,
                             index_n=ti['n'], value=value, sequence=ti['sequence'],
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:

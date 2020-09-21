@@ -72,10 +72,10 @@ class BitapsClient(BaseClient):
 
         for n, ti in tx['vIn'].items():
             if t.coinbase:
-                t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
                             sequence=ti['sequence'], index_n=int(n), value=0)
             else:
-                t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
                             unlocking_script_unsigned=ti['scriptPubKey'],
                             address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
                             index_n=int(n), value=ti['amount'])

@@ -196,8 +196,3 @@ class DbCacheVars(Base):
     value = Column(String(255), doc="Value of variable")
     type = Column(String(20), doc="Type of variable: int, string or float")
     expires = Column(DateTime, doc="Datetime value when variable expires")
-
-
-# if __name__ == '__main__':
-#     DbCache()
-#

@@ -697,7 +697,7 @@ class HDWalletTransaction(Transaction):
                 else:
                     inp_keys = key.key()
             inputs.append(Input(
-                prev_hash=inp.prev_hash, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
+                prev_txid=inp.prev_txid, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
                 double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address))
         # TODO / FIXME: Field in Input object, but not in database:
@@ -808,7 +808,7 @@ class HDWalletTransaction(Transaction):
 
             # Update db: Update spent UTXO's, add transaction to database
             for inp in self.inputs:
-                txid = inp.prev_hash
+                txid = inp.prev_txid
                 utxos = self.hdwallet._session.query(DbTransactionOutput).join(DbTransaction).\
                     filter(DbTransaction.txid == txid,
                            DbTransactionOutput.output_n == inp.output_n_int,
@@ -875,7 +875,7 @@ class HDWalletTransaction(Transaction):
             if not tx_input:
                 new_tx_item = DbTransactionInput(
                     transaction_id=txidn, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
-                    prev_hash=to_hexstring(ti.prev_hash), index_n=ti.index_n, double_spend=ti.double_spend,
+                    prev_txid=to_hexstring(ti.prev_txid), index_n=ti.index_n, double_spend=ti.double_spend,
                     script=to_hexstring(ti.unlocking_script), script_type=ti.script_type, witness_type=ti.witness_type,
                     sequence=ti.sequence, address=ti.address)
                 sess.add(new_tx_item)
@@ -883,8 +883,8 @@ class HDWalletTransaction(Transaction):
                 tx_input.key_id = key_id
                 if ti.value:
                     tx_input.value = ti.value
-                if ti.prev_hash:
-                    tx_input.prev_hash = to_hexstring(ti.prev_hash)
+                if ti.prev_txid:
+                    tx_input.prev_txid = to_hexstring(ti.prev_txid)
                 if ti.unlocking_script:
                     tx_input.script = to_hexstring(ti.unlocking_script)
 
@@ -2798,7 +2798,7 @@ class HDWallet(object):
                                DbTransactionOutput.output_n == utxo['output_n'])
                     spent_in_db = self._session.query(DbTransactionInput).join(DbTransaction).\
                         filter(DbTransaction.wallet_id == self.wallet_id,
-                               DbTransactionInput.prev_hash == bytes.fromhex(utxo['txid']),
+                               DbTransactionInput.prev_txid == bytes.fromhex(utxo['txid']),
                                DbTransactionInput.output_n == utxo['output_n'])
                     if utxo_in_db.count():
                         utxo_record = utxo_in_db.scalar()
@@ -2987,7 +2987,7 @@ class HDWallet(object):
         for t in txs:
             wt = HDWalletTransaction.from_transaction(self, t)
             wt.save()
-            utxos = [(ti.prev_hash.hex(), ti.output_n_int) for ti in wt.inputs]
+            utxos = [(ti.prev_txid.hex(), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
 
         for utxo in list(utxo_set):
@@ -3066,7 +3066,7 @@ class HDWallet(object):
         for t in txs:
             wt = HDWalletTransaction.from_transaction(self, t)
             wt.save()
-            utxos = [(ti.prev_hash.hex(), ti.output_n_int) for ti in wt.inputs]
+            utxos = [(ti.prev_txid.hex(), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
         for utxo in list(utxo_set):
             tos = self._session.query(DbTransactionOutput).join(DbTransaction).\
@@ -3268,7 +3268,7 @@ class HDWallet(object):
                                  DbTransaction.txid, DbTransaction.status). \
             join(DbTransaction). \
             filter(DbTransaction.wallet_id == self.wallet_id,
-                   DbTransactionInput.prev_hash == txid, DbTransactionInput.output_n == output_n).scalar()
+                   DbTransactionInput.prev_txid == txid, DbTransactionInput.output_n == output_n).scalar()
         if qr:
             return qr.transaction.txid.hex()
 
@@ -3294,7 +3294,7 @@ class HDWallet(object):
 
         >>> w = HDWallet('bitcoinlib_legacy_wallet_test')
         >>> w.select_inputs(50000000)
-        [<Input(prev_hash='748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', output_n=0, address='16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', index_n=0, type='sig_pubkey')>]
+        [<Input(prev_txid='748799c9047321cb27a6320a827f1f69d767fe889c14bf11f27549638d566fe4', output_n=0, address='16QaHuFkfuebXGcYHmehRXBBX7RG9NbtLg', index_n=0, type='sig_pubkey')>]
 
         :param amount: Total value of inputs in smallest denominator (sathosi) to select
         :type amount: int
@@ -3482,7 +3482,7 @@ class HDWallet(object):
                 unlocking_script_unsigned = None
                 unlocking_script_type = ''
                 if isinstance(inp, Input):
-                    prev_hash = inp.prev_hash
+                    prev_txid = inp.prev_txid
                     output_n = inp.output_n
                     key_id = None
                     value = inp.value
@@ -3495,7 +3495,7 @@ class HDWallet(object):
                     locktime_cltv = inp.locktime_cltv
                     locktime_csv = inp.locktime_csv
                 # elif isinstance(inp, DbTransactionOutput):
-                #     prev_hash = inp.transaction.txid
+                #     prev_txid = inp.transaction.txid
                 #     output_n = inp.output_n
                 #     key_id = inp.key_id
                 #     value = inp.value
@@ -3505,7 +3505,7 @@ class HDWallet(object):
                 #     unlocking_script_type = get_unlocking_script_type(inp.script_type)
                 #     address = inp.key.address
                 else:
-                    prev_hash = inp[0]
+                    prev_txid = inp[0]
                     output_n = inp[1]
                     key_id = None if len(inp) <= 2 else inp[2]
                     value = 0 if len(inp) <= 3 else inp[3]
@@ -3519,7 +3519,7 @@ class HDWallet(object):
                     # FIXME: Need to join dbkey?
                     inp_utxo = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
                         filter(DbTransaction.wallet_id == self.wallet_id,
-                               DbTransaction.txid == to_bytes(prev_hash),
+                               DbTransaction.txid == to_bytes(prev_txid),
                                DbTransactionOutput.output_n == output_n).first()
                     if inp_utxo:
                         key_id = inp_utxo.key_id
@@ -3529,19 +3529,19 @@ class HDWallet(object):
                         # witness_type = inp_utxo.witness_type
                     else:
                         _logger.info("UTXO %s not found in this wallet. Please update UTXO's if this is not an "
-                                     "offline wallet" % to_hexstring(prev_hash))
+                                     "offline wallet" % to_hexstring(prev_txid))
                         key_id = self._session.query(DbKey.id).\
                             filter(DbKey.wallet_id == self.wallet_id, DbKey.address == address).scalar()
                         if not key_id:
                             raise WalletError("UTXO %s and key with address %s not found in this wallet" % (
-                                to_hexstring(prev_hash), address))
+                                to_hexstring(prev_txid), address))
                         if not value:
                             raise WalletError("Input value is zero for address %s. Import or update UTXO's first "
                                               "or import transaction as dictionary" % address)
 
                 amount_total_input += value
                 inp_keys, key = self._objects_by_key_id(key_id)
-                transaction.add_input(prev_hash, output_n, keys=inp_keys, script_type=unlocking_script_type,
+                transaction.add_input(prev_txid, output_n, keys=inp_keys, script_type=unlocking_script_type,
                                       sigs_required=self.multisig_n_required, sort=self.sort_keys,
                                       compressed=key.compressed, value=value, signatures=signatures,
                                       unlocking_script=unlocking_script, address=address,
@@ -3635,7 +3635,7 @@ class HDWallet(object):
                 signatures = [bytes.fromhex(sig) for sig in i['signatures']]
                 script = b'' if 'script' not in i else i['script']
                 address = '' if 'address' not in i else i['address']
-                input_arr.append((i['prev_hash'], i['output_n'], None, int(i['value']), signatures, script,
+                input_arr.append((i['prev_txid'], i['output_n'], None, int(i['value']), signatures, script,
                                   address))
             rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
             rt.vsize = t['vsize']

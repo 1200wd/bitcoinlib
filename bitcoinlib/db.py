@@ -363,7 +363,7 @@ class DbTransactionInput(Base):
                          "An cryptocurrency address is a hash of the public key")
     witness_type = Column(String(20), default='legacy',
                           doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is legacy")
-    prev_hash = Column(String(64),
+    prev_txid = Column(String(64),
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
     output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
@@ -406,7 +406,7 @@ class DbTransactionOutput(Base):
                          doc="Locking script type. Can be one of these values: 'p2pkh', 'multisig', 'p2sh', 'p2pk', "
                              "'nulldata', 'unknown', 'p2wpkh' or 'p2wsh'. Default is p2pkh")
     value = Column(BigInteger, default=0, doc="Total transaction output value")
-    spent = Column(Boolean(), default=False, doc="Indicated if output is already spent in another transaction")
+    spent = Column(Boolean, default=False, doc="Indicated if output is already spent in another transaction")
     spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
 
@@ -443,7 +443,3 @@ def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
 
     version_db = db_update_version_id(db, code_version)
     return version_db
-
-
-# if __name__ == '__main__':
-#     DbInit()

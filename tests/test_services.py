@@ -239,14 +239,14 @@ class TestService(unittest.TestCase, CustomAssertions):
             'address': '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w',
             'index_n': 0,
             'output_n': 1,
-            'prev_hash': '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef',
+            'prev_txid': '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef',
             'value': 3200955
         }
         input2 = {
             'address': '1E1MxdfLkv1TZWQRkCtszxEVnrxwRBByZP',
             'index_n': 2,
             'output_n': 1,
-            'prev_hash': 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52',
+            'prev_txid': 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52',
             'value': 4527385460
         }
 
@@ -273,13 +273,13 @@ class TestService(unittest.TestCase, CustomAssertions):
 
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
-                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
+                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_txid', 'value']}
                 for inp in [i.as_dict() for i in t.inputs]
             ]
 
             if provider in ['blockchaininfo']:  # Some providers do not provide previous hashes
-                r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
-                r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
+                r_inputs[0]['prev_txid'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
+                r_inputs[2]['prev_txid'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
 
@@ -319,7 +319,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 299889,
                     'output_n': 51,
-                    'prev_hash': 'fa7b29d0e1cf62c79749c977dd9b3fedcfa348e696600f2240206eedaccbb309',
+                    'prev_txid': 'fa7b29d0e1cf62c79749c977dd9b3fedcfa348e696600f2240206eedaccbb309',
                     'double_spend': False,
                     'index_n': 0,
                     'script_type': 'sig_pubkey',
@@ -328,7 +328,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 1000022,
                     'output_n': 0,
-                    'prev_hash': '512f4363ccb28d04d47edd684840cc074f2a3b625838909a6074d277883b9f83',
+                    'prev_txid': '512f4363ccb28d04d47edd684840cc074f2a3b625838909a6074d277883b9f83',
                     'double_spend': False,
                     'index_n': 1,
                     'script_type': 'sig_pubkey',
@@ -337,7 +337,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 219439,
                     'output_n': 55,
-                    'prev_hash': '0ccd49e93261c9dd2bee124d90849677e93f789d2dc83013bfb0643beb962733',
+                    'prev_txid': '0ccd49e93261c9dd2bee124d90849677e93f789d2dc83013bfb0643beb962733',
                     'double_spend': False,
                     'index_n': 2,
                     'script_type': 'sig_pubkey',
@@ -346,7 +346,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 219436,
                     'output_n': 56,
-                    'prev_hash': '1b110073aed6637f9a492ceaac45d2b978b75f0139df0401032ad68c0944d38c',
+                    'prev_txid': '1b110073aed6637f9a492ceaac45d2b978b75f0139df0401032ad68c0944d38c',
                     'double_spend': False,
                     'index_n': 3,
                     'script_type': 'sig_pubkey',
@@ -355,7 +355,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 110996,
                     'output_n': 50,
-                    'prev_hash': 'a2d613e5a649102672462aa6a09e3e833769f5a85a65a8844acc723c07a8991d',
+                    'prev_txid': 'a2d613e5a649102672462aa6a09e3e833769f5a85a65a8844acc723c07a8991d',
                     'double_spend': False,
                     'index_n': 4,
                     'script_type': 'sig_pubkey',
@@ -364,7 +364,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 602,
                     'output_n': 2434,
-                    'prev_hash': 'd8505b78a4cddbd058372443bbce9ea74a313c27c586b7bbe8bc3825b7c7cbd7',
+                    'prev_txid': 'd8505b78a4cddbd058372443bbce9ea74a313c27c586b7bbe8bc3825b7c7cbd7',
                     'double_spend': False,
                     'index_n': 5,
                     'script_type': 'sig_pubkey',
@@ -427,7 +427,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                          'fee': 200000, 'inputs': [
                 {'redeemscript': '', 'address': 'XczHdW9k4Kg9mu6AdJayJ1PJtfX3Z9wYxm', 'double_spend': False,
                  'sequence': 4294967295,
-                 'prev_hash': 'b37c4f45295d9c5382800b6bb2289cedf3e63bd0621d0644083510cd24cdfbed', 'output_n': 1,
+                 'prev_txid': 'b37c4f45295d9c5382800b6bb2289cedf3e63bd0621d0644083510cd24cdfbed', 'output_n': 1,
                  'signatures': [
                      'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
                      '6067528fffca52292d803b75e53f7dfbf63d',
@@ -462,7 +462,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'address': 'Lg9fq8MQLF3MLhUzrVSphzBvWRV8CsX7bW',
             'index_n': 0,
             'output_n': 0,
-            'prev_hash': '76e0a579e4fdde4c1d87a3795f6ec66e92268213b923e3441182480521153a8d',
+            'prev_txid': '76e0a579e4fdde4c1d87a3795f6ec66e92268213b923e3441182480521153a8d',
             'value': 122349237
         }
 
@@ -490,12 +490,12 @@ class TestService(unittest.TestCase, CustomAssertions):
 
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
-                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
+                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_txid', 'value']}
                 for inp in [i.as_dict() for i in t.inputs]
             ]
             if provider in ['blockchaininfo']:  # Some providers do not provide previous hashes
-                r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
-                r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
+                r_inputs[0]['prev_txid'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
+                r_inputs[2]['prev_txid'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
 
     def test_service_gettransaction_coinbase(self):
@@ -510,7 +510,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'inputs': [
                 {'address': '',
                  'index_n': 0,
-                 'prev_hash': '0000000000000000000000000000000000000000000000000000000000000000',
+                 'prev_txid': '0000000000000000000000000000000000000000000000000000000000000000',
                  'public_key': [],
                  'script_type': 'coinbase',
                  'sequence': 4294967295,
@@ -571,7 +571,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'address': 'bc1qpjnaav9yvane7qq3a7efq6nw229g6gh09jzlvc',
                     'index_n': 0,
                     'output_n': 1,
-                    'prev_hash': '444c4a42da547711063be57eecb48cd92d1a6d4afbc64a57e75b69d74df59eb9',
+                    'prev_txid': '444c4a42da547711063be57eecb48cd92d1a6d4afbc64a57e75b69d74df59eb9',
                     'public_hash': '0ca7deb0a467679f0011efb2906a6e528a8d22ef',
                     'script_code': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
                     'sequence': 4294967295,
@@ -723,7 +723,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         # self.assertEqual(t1.fee, 84000)
         self.assertEqual(t1.locktime, 0)
         self.assertEqual(t1.inputs[0].address, '3Fe8L5dUaRn4uLHQLsfUGSJAT6S23Wtk47')
-        self.assertEqual(to_hexstring(t1.inputs[0].prev_hash),
+        self.assertEqual(to_hexstring(t1.inputs[0].prev_txid),
                  'a3cc61610b3a662fd3d3d6b4bf15c6a295cb8246f90e8fe132852f8265a4713b')
         self.assertEqual(t1.outputs[1].address, '3ADMeKFFJB4cNJ3mYNGTsaFv85ad5ZcjHu')
         # self.assertEqual(t1.outputs[1].value, 8638768306)
@@ -769,7 +769,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(t1.fee, 200000)
             self.assertEqual(t1.locktime, 0)
             self.assertEqual(t1.inputs[0].address, 'LQW7Swb2rqW1HSNoqcxeQqqyzN9ZrLHux8')
-            self.assertEqual(to_hexstring(t1.inputs[0].prev_hash), 'd4668ec9fe59feee65e6800b186a89b8c8fe16fda966139'
+            self.assertEqual(to_hexstring(t1.inputs[0].prev_txid), 'd4668ec9fe59feee65e6800b186a89b8c8fe16fda966139'
                                                                    '3037e4ccb5c439abe')
             self.assertEqual(t1.outputs[1].address, 'LMY9Uc2rLjPwf3trcUvsT7QNs7NeyGcbY3')
             self.assertEqual(t1.outputs[1].value, 10000000000)

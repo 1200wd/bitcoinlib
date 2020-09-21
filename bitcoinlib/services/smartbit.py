@@ -68,7 +68,7 @@ class SmartbitClient(BaseClient):
                         output_total=tx['output_amount_int'], witness_type=witness_type)
         index_n = 0
         if tx['coinbase']:
-            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=0)
+            t.add_input(prev_txid=b'\00' * 32, output_n=0, value=0)
         else:
             for ti in tx['inputs']:
                 unlocking_script = ti['script_sig']['hex']
@@ -80,7 +80,7 @@ class SmartbitClient(BaseClient):
                     else:
                         witness_type = 'segwit'
                     unlocking_script = b"".join([varstr(bytes.fromhex(x)) for x in ti['witness']])
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
                             witness_type=witness_type)
                 index_n += 1

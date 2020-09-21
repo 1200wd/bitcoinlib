@@ -122,7 +122,7 @@ class BlockChairClient(BaseClient):
         index_n = 0
         if not res['data'][tx_id]['inputs']:
             # This is a coinbase transaction, add input
-            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=0)
+            t.add_input(prev_txid=b'\00' * 32, output_n=0, value=0)
 
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
@@ -132,11 +132,11 @@ class BlockChairClient(BaseClient):
                     witness_type = 'p2sh-segwit'
                 else:
                     witness_type = 'segwit'
-                t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
+                t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=witnesses, index_n=index_n, value=ti['value'],
                             address=address, witness_type=witness_type)
             else:
-                t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
+                t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=ti['spending_signature_hex'], index_n=index_n, value=ti['value'],
                             address=ti['recipient'], unlocking_script_unsigned=ti['script_hex'])
             index_n += 1

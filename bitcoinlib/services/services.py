@@ -988,7 +988,7 @@ class Cache(object):
         elif not t.coinbase and [i for i in t.inputs if not i.value]:
             _logger.info("Caching failure tx: One the transaction inputs has value 0")
             return False
-        # TODO: Check if inputs / outputs are complete? script, value, prev_hash, sequence, output/input_n
+        # TODO: Check if inputs / outputs are complete? script, value, prev_txid, sequence, output/input_n
 
         txid = bytes.fromhex(t.txid)
         if self.session.query(DbCacheTransaction).filter_by(txid=txid).count():
@@ -1004,7 +1004,7 @@ class Cache(object):
                 return False
             witnesses = int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
             new_node = DbCacheTransactionNode(txid=txid, address=i.address, index_n=i.index_n, value=i.value,
-                                              is_input=True, ref_txid=i.prev_hash, ref_index_n=i.output_n_int,
+                                              is_input=True, ref_txid=i.prev_txid, ref_index_n=i.output_n_int,
                                               script=i.unlocking_script, sequence=i.sequence,
                                               witnesses=witnesses)
             self.session.add(new_node)
