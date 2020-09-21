@@ -30,7 +30,8 @@ MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estim
 DATABASEFILE_CACHE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache.unittest.sqlite')
 DATABASEFILE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache2.unittest.sqlite')
 DATABASEFILE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitcoinlibcache.unittest'
-DATABASEFILE_CACHE_MYSQL = 'mysql://root@localhost:3306/bitcoinlibcache.unittest'
+# FIXME: MySQL databases are not supported. Not allowed to create indexes/primary keys on binary fields
+# DATABASEFILE_CACHE_MYSQL = 'mysql://root@localhost:3306/bitcoinlibcache.unittest'
 TIMEOUT_TEST = 2
 
 
@@ -811,7 +812,7 @@ class TestServiceCache(unittest.TestCase):
             pass
         try:
             DbCache(DATABASEFILE_CACHE_POSTGRESQL).drop_db()
-            DbCache(DATABASEFILE_CACHE_MYSQL).drop_db()
+            # DbCache(DATABASEFILE_CACHE_MYSQL).drop_db()
         except Exception:
             pass
 
@@ -895,7 +896,7 @@ class TestServiceCache(unittest.TestCase):
 
     # FIXME: Fails with some providers, needs testing
     def test_service_cache_transaction_segwit_database(self):
-        for db_uri in [DATABASEFILE_CACHE_UNITTESTS2, DATABASEFILE_CACHE_POSTGRESQL, DATABASEFILE_CACHE_MYSQL]:
+        for db_uri in [DATABASEFILE_CACHE_UNITTESTS2, DATABASEFILE_CACHE_POSTGRESQL]:
             srv = ServiceTest(cache_uri=db_uri, network='bitcoin',
                               exclude_providers=['blocksmurfer'])
             rawtx \
