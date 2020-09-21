@@ -40,6 +40,7 @@ matrix:
 before_install:
   - sudo apt-get install -y postgresql postgresql-contrib
   - sudo apt-get install -y mysql-server
+  - sudo apt-get install -y sqlalchemy_utils
   - sudo service postgresql start
   - sudo service mysql start
 
