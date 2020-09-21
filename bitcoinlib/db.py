@@ -366,7 +366,7 @@ class DbTransactionInput(Base):
     prev_hash = Column(String(64),
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
-    output_n = Column(Integer, doc="Output_n of previous transaction output that is spent in this input")
+    output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
     script = Column(String, doc="Unlocking script to unlock previous locked output")
     script_type = Column(String(20), default='sig_pubkey',
                          doc="Unlocking script type. Can be 'coinbase', 'sig_pubkey', 'p2sh_multisig', 'signature', "

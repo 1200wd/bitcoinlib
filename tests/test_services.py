@@ -29,9 +29,10 @@ MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estim
 
 DATABASEFILE_CACHE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache.unittest.sqlite')
 DATABASEFILE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache2.unittest.sqlite')
-DATABASEFILE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitcoinlibcache.unittest'
+DATABASE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitcoinlibcache.unittest'
 # FIXME: MySQL databases are not supported. Not allowed to create indexes/primary keys on binary fields
-# DATABASEFILE_CACHE_MYSQL = 'mysql://root@localhost:3306/bitcoinlibcache.unittest'
+# DATABASE_CACHE_MYSQL = 'mysql://root@localhost:3306/bitcoinlibcache.unittest'
+DATABASES_CACHE = [DATABASEFILE_CACHE_UNITTESTS2, DATABASE_CACHE_POSTGRESQL]
 TIMEOUT_TEST = 2
 
 
@@ -811,7 +812,7 @@ class TestServiceCache(unittest.TestCase):
         except Exception:
             pass
         try:
-            DbCache(DATABASEFILE_CACHE_POSTGRESQL).drop_db()
+            DbCache(DATABASE_CACHE_POSTGRESQL).drop_db()
             # DbCache(DATABASEFILE_CACHE_MYSQL).drop_db()
         except Exception:
             pass
@@ -896,7 +897,7 @@ class TestServiceCache(unittest.TestCase):
 
     # FIXME: Fails with some providers, needs testing
     def test_service_cache_transaction_segwit_database(self):
-        for db_uri in [DATABASEFILE_CACHE_UNITTESTS2, DATABASEFILE_CACHE_POSTGRESQL]:
+        for db_uri in DATABASES_CACHE:
             srv = ServiceTest(cache_uri=db_uri, network='bitcoin',
                               exclude_providers=['blocksmurfer'])
             rawtx \
@@ -944,17 +945,18 @@ class TestServiceCache(unittest.TestCase):
             self.assertEqual(b.version_int, 1)
             self.assertEqual(b.transactions[0].txid, '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577')
 
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2,
-                          exclude_providers=['chainso', 'blockchair', 'blockchaininfo'])  # Those providers return incomplete results
-        b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
-        print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
-        check_block_128594(b)
-        self.assertEqual(srv.results_cache_n, 0)
+        for cache_db in DATABASES_CACHE:
+            srv = ServiceTest(cache_uri=cache_db,
+                              exclude_providers=['chainso', 'blockchair', 'blockchaininfo'])  # Those providers return incomplete results
+            b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
+            print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
+            check_block_128594(b)
+            self.assertEqual(srv.results_cache_n, 0)
 
-        # Now retrieve from cache
-        bc = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
-        self.assertEqual(srv.results_cache_n, 1)
-        check_block_128594(bc)
+            # Now retrieve from cache
+            bc = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
+            self.assertEqual(srv.results_cache_n, 1)
+            check_block_128594(bc)
 
     def test_service_cache_disabled(self):
         srv = ServiceTest(cache_uri='')

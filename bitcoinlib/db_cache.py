@@ -102,7 +102,7 @@ class DbCacheTransactionNode(Base):
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
     spent = Column(Boolean, default=None, doc="Is output spent?")
     ref_txid = Column(LargeBinary(32), index=True, doc="Transaction hash of input which spends this output")
-    ref_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
+    ref_index_n = Column(BigInteger, doc="Index number of transaction input which spends this output")
 
     def prev_txid(self):
         if self.is_input:
