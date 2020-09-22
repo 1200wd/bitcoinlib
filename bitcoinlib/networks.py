@@ -264,7 +264,7 @@ class Network(object):
         symb = self.currency_code
         denominator = self.denominator
         denominator_size = -int(math.log10(denominator))
-        balance = round(value * denominator, denominator_size)
+        balance = round(float(value) * denominator, denominator_size)
         format_str = "%%.%df %%s" % denominator_size
         return format_str % (balance, symb)
 

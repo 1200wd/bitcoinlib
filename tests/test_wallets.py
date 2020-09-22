@@ -44,11 +44,15 @@ DATABASEFILE_UNITTESTS_2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unitt
 DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
 
-db_uris = (('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
+db_uris = (
+    ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
+# ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
+#  'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),)
+
 print("UNITTESTS_FULL_DATABASE_TEST: %s" % UNITTESTS_FULL_DATABASE_TEST)
 if UNITTESTS_FULL_DATABASE_TEST:
-    db_uris = (
-        ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
+    db_uris += (
+        # ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
         ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
          'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
     )

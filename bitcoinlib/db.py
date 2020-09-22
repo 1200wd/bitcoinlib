@@ -244,7 +244,7 @@ class DbKey(Base):
                                      order_by="DbKeyMultisigChildren.key_order",
                                      primaryjoin=id == DbKeyMultisigChildren.parent_id,
                                      doc="List of children keys")
-    latest_txid = Column(String(64), doc="TxId of latest transaction downloaded from the blockchain")
+    latest_txid = Column(LargeBinary(32), doc="TxId of latest transaction downloaded from the blockchain")
 
     __table_args__ = (
         CheckConstraint(key_type.in_(['single', 'bip32', 'multisig']), name='constraint_key_types_allowed'),
@@ -363,7 +363,7 @@ class DbTransactionInput(Base):
                          "An cryptocurrency address is a hash of the public key")
     witness_type = Column(String(20), default='legacy',
                           doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is legacy")
-    prev_txid = Column(String(64),
+    prev_txid = Column(LargeBinary(32),
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
     output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
@@ -407,7 +407,7 @@ class DbTransactionOutput(Base):
                              "'nulldata', 'unknown', 'p2wpkh' or 'p2wsh'. Default is p2pkh")
     value = Column(BigInteger, default=0, doc="Total transaction output value")
     spent = Column(Boolean, default=False, doc="Indicated if output is already spent in another transaction")
-    spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
+    spending_txid = Column(LargeBinary(32), doc="Transaction hash of input which spends this output")
     spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
 
     __table_args__ = (CheckConstraint(script_type.in_(['', 'p2pkh',  'multisig', 'p2sh', 'p2pk', 'nulldata',
