@@ -251,8 +251,8 @@ def read_config():
 
     full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
     if full_db_test:
-        if full_db_test in [0, False, 'False', 'false', 'FALSE']:
-            UNITTESTS_FULL_DATABASE_TEST = False
+        if full_db_test in [1, True, 'True', 'true', 'TRUE']:
+            UNITTESTS_FULL_DATABASE_TEST = True
 
     if not data:
         return False

@@ -44,14 +44,14 @@ DATABASEFILE_UNITTESTS_2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unitt
 DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
 
-# db_uris = (('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
+db_uris = (('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
 print("UNITTESTS_FULL_DATABASE_TEST: %s" % UNITTESTS_FULL_DATABASE_TEST)
-# if UNITTESTS_FULL_DATABASE_TEST:
-db_uris = (
-    ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
-    ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
-     'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
-)
+if UNITTESTS_FULL_DATABASE_TEST:
+    db_uris = (
+        ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
+        ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
+         'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
+    )
 params = (('SCHEMA', 'DATABASE_URI', 'DATABASE_URI_2'), (
     db_uris
 ))
@@ -93,7 +93,7 @@ class TestWalletMixin:
                     os.remove(db)
         elif cls.SCHEMA == 'postgresql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
-                # cls.create_db_if_needed(db)
+                cls.create_db_if_needed(db)
                 con = psycopg2.connect(user='postgres', host='localhost', password='postgres', database=db)
                 con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
                 cur = con.cursor()
@@ -112,12 +112,12 @@ class TestWalletMixin:
                     con.close()
         elif cls.SCHEMA == 'mysql':
             for db in [DATABASE_NAME, DATABASE_NAME_2]:
-                # cls.create_db_if_needed(db)
+                cls.create_db_if_needed(db)
                 con = mysql.connector.connect(user='root', host='localhost', database=db, autocommit=True)
                 cur = con.cursor(buffered=True)
                 try:
                     cur.execute("DROP DATABASE {};".format(db))
-                    # cur.execute("CREATE DATABASE {};".format(db))
+                    cur.execute("CREATE DATABASE {};".format(db))
                 finally:
                     cur.close()
                     con.close()
