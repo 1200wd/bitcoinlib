@@ -32,7 +32,11 @@ DATABASEFILE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibc
 DATABASE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitcoinlibcache.unittest'
 # FIXME: MySQL databases are not supported. Not allowed to create indexes/primary keys on binary fields
 # DATABASE_CACHE_MYSQL = 'mysql://root@localhost:3306/bitcoinlibcache.unittest'
-DATABASES_CACHE = [DATABASEFILE_CACHE_UNITTESTS2, DATABASE_CACHE_POSTGRESQL]
+DATABASES_CACHE = [
+    DATABASEFILE_CACHE_UNITTESTS2,
+    DATABASE_CACHE_POSTGRESQL,
+    # DATABASE_CACHE_MYSQL
+]
 TIMEOUT_TEST = 2
 
 

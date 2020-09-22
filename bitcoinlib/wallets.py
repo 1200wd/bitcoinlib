@@ -875,8 +875,8 @@ class HDWalletTransaction(Transaction):
             if not tx_input:
                 new_tx_item = DbTransactionInput(
                     transaction_id=txidn, output_n=ti.output_n_int, key_id=key_id, value=ti.value,
-                    prev_txid=to_hexstring(ti.prev_txid), index_n=ti.index_n, double_spend=ti.double_spend,
-                    script=to_hexstring(ti.unlocking_script), script_type=ti.script_type, witness_type=ti.witness_type,
+                    prev_txid=ti.prev_txid, index_n=ti.index_n, double_spend=ti.double_spend,
+                    script=ti.unlocking_script, script_type=ti.script_type, witness_type=ti.witness_type,
                     sequence=ti.sequence, address=ti.address)
                 sess.add(new_tx_item)
             elif key_id:
@@ -884,9 +884,9 @@ class HDWalletTransaction(Transaction):
                 if ti.value:
                     tx_input.value = ti.value
                 if ti.prev_txid:
-                    tx_input.prev_txid = to_hexstring(ti.prev_txid)
+                    tx_input.prev_txid = ti.prev_txid
                 if ti.unlocking_script:
-                    tx_input.script = to_hexstring(ti.unlocking_script)
+                    tx_input.script = ti.unlocking_script
 
             self.hdwallet._commit()
         for to in self.outputs:
@@ -902,7 +902,7 @@ class HDWalletTransaction(Transaction):
             if not tx_output:
                 new_tx_item = DbTransactionOutput(
                     transaction_id=txidn, output_n=to.output_n, key_id=key_id, value=to.value, spent=spent,
-                    script=to_hexstring(to.lock_script), script_type=to.script_type)
+                    script=to.lock_script.hex(), script_type=to.script_type)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_output.key_id = key_id
@@ -3261,7 +3261,7 @@ class HDWallet(object):
 
         :return str: Transaction ID
         """
-        txid = to_hexstring(txid)
+        txid = to_bytes(txid)
         if isinstance(output_n, bytes):
             output_n = int.from_bytes(output_n, 'big')
         qr = self._session.query(DbTransactionInput, DbTransaction.confirmations,
