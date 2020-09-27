@@ -590,7 +590,7 @@ class Service(object):
         """
         addr_dict = {'address': address}
         addr_rec = self.cache.getaddress(address)
-        if addr_rec:
+        if isinstance(addr_rec, DbCacheAddress):
             addr_dict['balance'] = addr_rec.balance
             addr_dict['last_block'] = addr_rec.last_block
             addr_dict['n_txs'] = addr_rec.n_txs
@@ -702,7 +702,7 @@ class Cache(object):
                             sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses)
             else:
                 t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
-                                 spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
+                             spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
 
         t.update_totals()
         _logger.info("Retrieved transaction %s from cache" % t.txid)
@@ -738,7 +738,7 @@ class Cache(object):
         :return DbCacheAddress: An address cache database object
         """
         if not self.cache_enabled():
-            return False
+            return
         return self.session.query(DbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):

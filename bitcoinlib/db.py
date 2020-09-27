@@ -48,8 +48,7 @@ class Db:
                 len(self.o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
             db_uri = 'sqlite:///%s' % db_uri
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
-            if "?" in db_uri: db_uri += "&"
-            else: db_uri += "?"
+            db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
 
@@ -115,7 +114,7 @@ def add_column(engine, table_name, column):
     """
     column_name = column.compile(dialect=engine.dialect)
     column_type = column.type.compile(engine.dialect)
-    engine.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table_name, column_name, column_type))
+    engine.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table_name, column_name, column_type))
 
 
 class DbConfig(Base):

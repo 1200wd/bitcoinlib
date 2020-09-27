@@ -31,7 +31,6 @@ except ImportError as e:
     # from psycopg2cffi import compat  # Use for PyPy support
     # compat.register()
     pass  # Only necessary when mysql or postgres is used
-from sqlalchemy.orm import close_all_sessions
 from bitcoinlib.wallets import *
 from bitcoinlib.encoding import USE_FASTECDSA
 from bitcoinlib.mnemonic import Mnemonic
@@ -46,8 +45,6 @@ DATABASE_NAME_2 = 'bitcoinlib2_test'
 
 db_uris = (
     ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
-# ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
-#  'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),)
 
 print("UNITTESTS_FULL_DATABASE_TEST: %s" % UNITTESTS_FULL_DATABASE_TEST)
 if UNITTESTS_FULL_DATABASE_TEST:
