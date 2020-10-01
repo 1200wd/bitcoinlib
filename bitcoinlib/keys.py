@@ -1637,39 +1637,6 @@ class HDKey(Key):
                     key = key.child_private(index=index, hardened=hardened, network=network)
         return key
 
-    @deprecated  # In version 0.4.5
-    def account_key(self, account_id=0, purpose=44, set_network=None):  # pragma: no cover
-        """
-        Deprecated since version 0.4.5, use public_master() method instead
-
-        Derive account BIP44 key for current master key
-
-        :param account_id: Account ID. Leave empty for account 0
-        :type account_id: int
-        :param purpose: BIP standard used, i.e. 44 for default, 45 for multisig, 84 for segwit
-        :type purpose: int
-        :param set_network: Derive account key for different network. Please note this calls the network_change method and changes the network for current key!
-        :type set_network: str
-
-        :return HDKey:
-
-        """
-        warnings.warn("Deprecated since version 0.4.5, use public_master() method instead", DeprecationWarning)
-        if self.depth == 3:
-            return self
-        elif self.depth != 0:
-            raise BKeyError("Need a master key to generate account key")
-        if set_network:
-            self.network_change(set_network)
-        if self.is_private:
-            path = ["m"]
-        else:
-            path = ["M"]
-        path.append("%d'" % purpose)
-        path.append("%d'" % self.network.bip44_cointype)
-        path.append("%d'" % account_id)
-        return self.subkey_for_path(path)
-
     def public_master(self, account_id=0, purpose=None, multisig=None, witness_type=None, as_private=False):
         """
         Derives a public master key for current HDKey. A public master key can be shared with other software
@@ -1732,52 +1699,6 @@ class HDKey(Key):
         """
 
         return self.public_master(account_id, purpose, True, witness_type, as_private)
-
-    @deprecated  # In version 0.4.5
-    def account_multisig_key(self, account_id=0, witness_type=DEFAULT_WITNESS_TYPE):  # pragma: no cover
-        """
-        Deprecated since version 0.4.5, use public_master() method instead
-
-        Derives a multisig account key according to BIP44/45 definition.
-        Wrapper for the 'account_key' method.
-
-        :param account_id: Account ID. Leave empty for account 0
-        :type account_id: int
-        :param witness_type: Specify witness type, default is legacy. Use 'segwit' for segregated witness.
-        :type witness_type: str
-
-        :return HDKey:
-        """
-        warnings.warn("Deprecated since version 0.4.5, use public_master() method instead", DeprecationWarning)
-        script_type = 0
-        if self.key_type == 'single':
-            return self
-        if witness_type == 'legacy':
-            purpose = 45
-        elif witness_type == 'p2sh-segwit':
-            purpose = 48
-            script_type = 1
-        elif witness_type == 'segwit':
-            purpose = 48
-            script_type = 2
-        else:
-            raise BKeyError("Unknown witness type %s" % witness_type)
-
-        if self.depth == 3 and purpose == 44:
-            return self
-        elif self.depth == 4 and purpose == 45:
-            return self
-        elif self.depth != 0:
-            raise BKeyError("Need a master key to generate account key")
-
-        path = ["%s" % 'm' if self.is_private else 'M', "%d'" % purpose]
-        if purpose == 45:
-            return self.subkey_for_path(path)
-        elif purpose == 48:
-            path += ["%d'" % self.network.bip44_cointype, "%d'" % account_id, "%d'" % script_type]
-            return self.subkey_for_path(path)
-        else:
-            raise BKeyError("Unknown purpose %d, cannot determine wallet public cosigner key" % purpose)
 
     def network_change(self, new_network):
         """

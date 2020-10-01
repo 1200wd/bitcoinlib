@@ -728,9 +728,9 @@ class TestKeysDash(unittest.TestCase):
         pk = 'xprv9s21ZrQH143K3cq8ueA8GV9uv7cHqkyQGBQu8YZkAU2EXG5oSKVFeQnYK25zhHEEqqjfyTFEcV5enh6vh4tFA3FvdGuWAqPqvY' \
              'ECNLB78mV'
         k = HDKey(pk, network='dash')
-        self.assertEqual(k.account_key().wif(is_private=True), 'xprv9ySHTHmm4KdkKa2RV2zuSmVUAPNynEvkrCDVa95Js9StLECY2'
-                                                               'RjuxNpHKaVfA2hnjob5Zumx1kTg3MhQPsZf7W5h8aEM61AMSqz1zV'
-                                                               'Wjt4Q')
+        self.assertEqual(k.public_master().wif(),
+                         'xpub6CRdroJethC3Y46tb4XuouSCiRDUBhecDR96NXUvRUysD2XgZy4AWB8mAsvMmcw9GgXvmu4BRSFj1yAdiN1K7f'
+                         'w9o96T41hLJRLpLGLJrxY')
 
     def test_hdkey_dash(self):
         k = HDKey('xprv9s21ZrQH143K4EGnYMHVxNp8JgqXCyywC3CGTrSzSudH3iRgC1gPTYgce4xamXMnyDAX8Qv8tvuW1LEgkZSrXiC25LqTJN'

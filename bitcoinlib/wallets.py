@@ -121,28 +121,6 @@ def wallet_create_or_open(
                                key_path, db_uri=db_uri)
 
 
-@deprecated  # In version 0.4.5
-def wallet_create_or_open_multisig(
-        name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None, sort_keys=True,
-        witness_type=DEFAULT_WITNESS_TYPE, encoding=None, cosigner_id=None, key_path=None,
-        db_uri=None):  # pragma: no cover
-    """
-    Deprecated since version 0.4.5, use wallet_create_or_open instead
-
-    Create a wallet with specified options if it doesn't exist, otherwise just open
-
-    See Wallets class create method for option documentation
-    """
-
-    warnings.warn("Deprecated since version 0.4.5, use wallet_create_or_open instead", DeprecationWarning)
-    if wallet_exists(name, db_uri=db_uri):
-        return HDWallet(name, db_uri=db_uri)
-    else:
-        return HDWallet.create(name, keys, owner, network, account_id, purpose, 'bip32', sort_keys,
-                               '', witness_type, encoding, True, sigs_required, cosigner_id,
-                               key_path, db_uri=db_uri)
-
-
 def wallet_delete(wallet, db_uri=None, force=False):
     """
     Delete wallet and associated keys and transactions from the database. If wallet has unspent outputs it raises a
@@ -284,35 +262,6 @@ def normalize_path(path):
     if npath[-1] == "/":
         npath = npath[:-1]
     return npath
-
-
-@deprecated
-def parse_bip44_path(path):  # pragma: no cover
-    """
-    Assumes a correct BIP0044 path and returns a dictionary with path items. See Bitcoin improvement proposals
-    BIP0043 and BIP0044.
-
-    Specify path in this format: m / purpose' / cointype' / account' / change / address_index.
-    Path length must be between 1 and 6 (Depth between 0 and 5)
-
-    :param path: BIP0044 path as string, with backslash (/) seperator.
-    :type path: str
-
-    :return dict: Dictionary with path items: is_private, purpose, cointype, account, change and address_index
-    """
-
-    warnings.warn("Deprecated since version 0.4.5", DeprecationWarning)
-    pathl = normalize_path(path).split('/')
-    if not 0 < len(pathl) <= 6:
-        raise WalletError("Not a valid BIP0044 path. Path length (depth) must be between 1 and 6 not %d" % len(pathl))
-    return {
-        'is_private': True if pathl[0] == 'm' else False,
-        'purpose': '' if len(pathl) < 2 else pathl[1],
-        'cointype': '' if len(pathl) < 3 else pathl[2],
-        'account': '' if len(pathl) < 4 else pathl[3],
-        'change': '' if len(pathl) < 5 else pathl[4],
-        'address_index': '' if len(pathl) < 6 else pathl[5],
-    }
 
 
 class HDWalletKey(object):
@@ -1512,33 +1461,6 @@ class HDWallet(object):
         self._session.query(DbWallet).filter(DbWallet.id == self.wallet_id).\
             update({DbWallet.network_name: network.name})
         self._commit()
-
-    @deprecated  # Since 0.4.5 - Use import_key, to import private key for known public key
-    def key_add_private(self, wallet_key, private_key):  # pragma: no cover
-        """
-        Change public key in wallet to private key in current HDWallet object and in database
-
-        :param wallet_key: Key object of wallet
-        :type wallet_key: HDWalletKey
-        :param private_key: Private key wif or HDKey object
-        :type private_key: HDKey, str
-
-        :return HDWalletKey:
-        """
-
-        warnings.warn("Deprecated since version 0.4.5. Use import_key, to import private key for known public key",
-                      DeprecationWarning)
-        assert isinstance(wallet_key, HDWalletKey)
-        if not isinstance(private_key, HDKey):
-            private_key = HDKey(private_key, network=self.network.name)
-        wallet_key.is_private = True
-        wallet_key.wif = private_key.wif(is_private=True)
-        wallet_key.private = private_key.private_hex
-        self._session.query(DbKey).filter(DbKey.id == wallet_key.key_id).update(
-                {DbKey.is_private: True, DbKey.private: private_key.private_hex,
-                 DbKey.wif: private_key.wif(is_private=True)})
-        self._commit()
-        return wallet_key
 
     def import_master_key(self, hdkey, name='Masterkey (imported)'):
         """
