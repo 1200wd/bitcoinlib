@@ -628,6 +628,28 @@ class Service(object):
         """
         return self._provider_execute('getinfo')
 
+    def getinputvalues(self, t):
+        """
+        Retrieve values for transaction inputs for given Transaction.
+
+        Raw transactions as stored on the blockchain do not contain the input values but only the previous
+        transaction hash and index number. This method retrieves the previous transaction and reads the value.
+
+        :param t: Transaction
+        :type t: Transaction
+
+        :return Transaction:
+        """
+        prev_txs = []
+        for i in t.inputs:
+            if not i.value:
+                if i.prev_hash not in prev_txs:
+                    prev_t = self.gettransaction(i.prev_hash)
+                else:
+                    prev_t = [t for t in prev_txs if t.txid == i.prev_hash][0]
+                i.value = prev_t.outputs[i.output_n_int].value
+        return t
+
 
 class Cache(object):
     """
