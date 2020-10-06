@@ -502,6 +502,7 @@ class Address(object):
                        compressed=compressed, encoding=addr_dict['encoding'], depth=depth, change=change,
                        address_index=address_index, network=network, network_overrides=network_overrides)
 
+    # FIXME: Circulair import, use separate Script object
     # @classmethod
     # def from_script(cls, script, witness_type='legacy', encoding=None):
     #     us_dict = script_deserialize(script)
