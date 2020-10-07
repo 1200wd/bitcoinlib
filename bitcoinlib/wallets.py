@@ -3624,8 +3624,15 @@ class HDWallet(object):
             rt.date = t.date
             rt.txid = t.txid
             rt.txhash = t.txhash
-            # TODO: Include all fields
+            rt.locktime = t.locktime
+            rt.version = t.version
+            rt.version_int = t.version_int
+            rt.block_hash = t.block_hash
+            rt.rawtx = t.rawtx
+            rt.coinbase = t.coinbase
+            rt.flag = t.flag
         elif isinstance(t, dict):
+            # TODO: Import all fields from dict
             output_arr = []
             for o in t['outputs']:
                 output_arr.append((o['address'], int(o['value'])))

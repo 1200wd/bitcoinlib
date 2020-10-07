@@ -1244,7 +1244,7 @@ class Transaction(object):
         :type size: int
         :param txid: The transaction id (same for legacy/segwit) based on [nVersion][txins][txouts][nLockTime as hexadecimal string
         :type txid: str
-        :param txhash: The transaction hash (differs from txid for witness transactions), based on [nVersion][marker][flag][txins][txouts][witness][nLockTime] in Segwit (as hexadecimal string)
+        :param txhash: The transaction hash (differs from txid for witness transactions), based on [nVersion][marker][flag][txins][txouts][witness][nLockTime] in Segwit (as hexadecimal string). Unused at the moment
         :type txhash: str
         :param date: Confirmation date of transaction
         :type date: datetime
@@ -1355,7 +1355,6 @@ class Transaction(object):
             outputs.append(o.as_dict())
         return {
             'txid': self.txid,
-            'txhash': self.txhash,
             'date': self.date,
             'network': self.network.name,
             'witness_type': self.witness_type,
