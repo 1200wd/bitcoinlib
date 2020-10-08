@@ -3610,7 +3610,6 @@ class HDWallet(object):
         """
         if isinstance(t, Transaction):
             rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.name)
-            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
             rt.block_height = t.block_height
             rt.confirmations = t.confirmations
             rt.witness_type = t.witness_type
@@ -3630,6 +3629,7 @@ class HDWallet(object):
             rt.vsize = t.vsize
             if not t.vsize:
                 rt.vsize = rt.size
+            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
         elif isinstance(t, dict):
             input_arr = []
             for i in t['inputs']:
@@ -3642,13 +3642,12 @@ class HDWallet(object):
             for o in t['outputs']:
                 output_arr.append((o['address'], int(o['value'])))
             rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
-            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
             rt.block_height = t['block_height']
             rt.confirmations = t['confirmations']
             rt.witness_type = t['witness_type']
             rt.date = t['date']
             rt.txid = t['txid']
-            rt.txhash = t['txhash'],
+            rt.txhash = t['txhash']
             rt.locktime = t['locktime']
             rt.version = t['version'].to_bytes(4, 'big')
             rt.version_int = t['version']
@@ -3662,6 +3661,7 @@ class HDWallet(object):
             rt.vsize = t['vsize']
             if not rt.vsize:
                 rt.vsize = rt.size
+            rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()
