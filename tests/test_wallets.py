@@ -49,7 +49,7 @@ db_uris = (
 print("UNITTESTS_FULL_DATABASE_TEST: %s" % UNITTESTS_FULL_DATABASE_TEST)
 if UNITTESTS_FULL_DATABASE_TEST:
     db_uris += (
-        # ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
+        ('mysql', 'mysql://root@localhost:3306/' + DATABASE_NAME, 'mysql://root@localhost:3306/' + DATABASE_NAME_2),
         ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
          'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),
     )
