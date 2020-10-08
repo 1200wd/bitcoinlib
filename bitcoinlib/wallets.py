@@ -700,11 +700,6 @@ class HDWalletTransaction(Transaction):
                 prev_txid=inp.prev_txid, output_n=inp.output_n, keys=inp_keys, unlocking_script=inp.script,
                 script_type=inp.script_type, sequence=sequence, index_n=inp.index_n, value=inp.value,
                 double_spend=inp.double_spend, witness_type=inp.witness_type, network=network, address=inp.address))
-        # TODO / FIXME: Field in Input object, but not in database:
-        # def __init__(signatures=None, public_hash=b'',
-        #              unlocking_script_unsigned=None, compressed=None, sigs_required=None, sort=False,
-        #              locktime_cltv=None, locktime_csv=None, key_path='',
-        #              encoding=None, network=DEFAULT_NETWORK):
 
         outputs = []
         for out in db_tx.outputs:
@@ -720,15 +715,12 @@ class HDWalletTransaction(Transaction):
                                   lock_script=out.script, spent=out.spent, output_n=out.output_n,
                                   script_type=out.script_type, network=network))
 
-        # TODO / FIXME: Field in Output object, but not in database:
-        # def __init__(address, public_hex, public_hash=b'', encoding=None, network=DEFAULT_NETWORK):
-
         return cls(hdwallet=hdwallet, inputs=inputs, outputs=outputs, locktime=db_tx.locktime,
                    version=db_tx.version, network=network, fee=db_tx.fee, fee_per_kb=fee_per_kb,
                    size=db_tx.size, txid=to_hexstring(txid), date=db_tx.date, confirmations=db_tx.confirmations,
                    block_height=db_tx.block_height, input_total=db_tx.input_total, output_total=db_tx.output_total,
                    rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
-                   verified=db_tx.verified)  # flag=db_tx.flag
+                   verified=db_tx.verified)
 
     def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=None):
         """
