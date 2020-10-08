@@ -53,15 +53,18 @@ class DbCache:
             return
         self.o = urlparse(db_uri)
 
-        if self.o.scheme == 'mysql':
-            raise Warning("Could not connect to cache database. MySQL databases not supported at the moment, "
-                          "because bytes strings are not supported as primary keys")
+        # if self.o.scheme == 'mysql':
+        #     raise Warning("Could not connect to cache database. MySQL databases not supported at the moment, "
+        #                   "because bytes strings are not supported as primary keys")
 
         if not self.o.scheme or len(self.o.scheme) < 2:
             db_uri = 'sqlite:///%s' % db_uri
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
+        if self.o.scheme == 'mysql':
+            db_uri += "&" if "?" in db_uri else "?"
+            db_uri += 'binary_prefix=true'
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
 
         # Try to connect to database, create database if it doesn't exist

@@ -22,6 +22,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, LargeBinary)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.types import BINARY
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
 from sqlalchemy.exc import OperationalError
 from sqlalchemy_utils import create_database
@@ -30,6 +32,12 @@ from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)
 Base = declarative_base()
+
+
+# @compiles(LargeBinary, "mysql")
+# def compile_LargeBinary_mysql(type_, compiler, **kwargs):
+#     element = "VARCHAR" + "({})".format(type_.length)
+#     return element
 
 
 class Db:
@@ -50,6 +58,9 @@ class Db:
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
+        if self.o.scheme == 'mysql':
+            db_uri += "&" if "?" in db_uri else "?"
+            db_uri += 'binary_prefix=true'
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
 
         # Try to connect to database, create database if it doesn't exist
@@ -366,7 +377,7 @@ class DbTransactionInput(Base):
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
     output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
-    script = Column(String, doc="Unlocking script to unlock previous locked output")
+    script = Column(String(1000), doc="Unlocking script to unlock previous locked output")
     script_type = Column(String(20), default='sig_pubkey',
                          doc="Unlocking script type. Can be 'coinbase', 'sig_pubkey', 'p2sh_multisig', 'signature', "
                              "'unknown', 'p2sh_p2wpkh' or 'p2sh_p2wsh'. Default is sig_pubkey")
@@ -400,7 +411,7 @@ class DbTransactionOutput(Base):
     output_n = Column(Integer, primary_key=True, doc="Sequence number of transaction output")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this transaction output")
     key = relationship("DbKey", back_populates="transaction_outputs", doc="List of DbKey object used in this output")
-    script = Column(String, doc="Locking script which locks transaction output")
+    script = Column(String(1000), doc="Locking script which locks transaction output")
     script_type = Column(String(20), default='p2pkh',
                          doc="Locking script type. Can be one of these values: 'p2pkh', 'multisig', 'p2sh', 'p2pk', "
                              "'nulldata', 'unknown', 'p2wpkh' or 'p2wsh'. Default is p2pkh")
