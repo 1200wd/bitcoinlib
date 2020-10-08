@@ -3610,13 +3610,6 @@ class HDWallet(object):
         """
         if isinstance(t, Transaction):
             rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.name)
-            if t.size:
-                rt.size = t.size
-            else:
-                rt.size = len(t.raw())
-            rt.vsize = t.vsize
-            if not t.vsize:
-                rt.vsize = rt.size
             rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
             rt.block_height = t.block_height
             rt.confirmations = t.confirmations
@@ -3631,23 +3624,44 @@ class HDWallet(object):
             rt.rawtx = t.rawtx
             rt.coinbase = t.coinbase
             rt.flag = t.flag
+            rt.size = t.size
+            if not t.size:
+                rt.size = len(t.raw())
+            rt.vsize = t.vsize
+            if not t.vsize:
+                rt.vsize = rt.size
         elif isinstance(t, dict):
-            # TODO: Import all fields from dict
-            output_arr = []
-            for o in t['outputs']:
-                output_arr.append((o['address'], int(o['value'])))
             input_arr = []
-
             for i in t['inputs']:
                 signatures = [bytes.fromhex(sig) for sig in i['signatures']]
                 script = b'' if 'script' not in i else i['script']
                 address = '' if 'address' not in i else i['address']
                 input_arr.append((i['prev_txid'], i['output_n'], None, int(i['value']), signatures, script,
                                   address))
+            output_arr = []
+            for o in t['outputs']:
+                output_arr.append((o['address'], int(o['value'])))
             rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
-            rt.vsize = t['vsize']
-            rt.size = t['size']
             rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
+            rt.block_height = t['block_height']
+            rt.confirmations = t['confirmations']
+            rt.witness_type = t['witness_type']
+            rt.date = t['date']
+            rt.txid = t['txid']
+            rt.txhash = t['txhash'],
+            rt.locktime = t['locktime']
+            rt.version = t['version'].to_bytes(4, 'big')
+            rt.version_int = t['version']
+            rt.block_hash = t['block_hash']
+            rt.rawtx = t['raw']
+            rt.coinbase = t['coinbase']
+            rt.flag = t['flag']
+            rt.size = t['size']
+            if not t['size']:
+                rt.size = len(rt.raw())
+            rt.vsize = t['vsize']
+            if not rt.vsize:
+                rt.vsize = rt.size
         else:
             raise WalletError("Import transaction must be of type Transaction or dict")
         rt.verify()

@@ -1360,6 +1360,7 @@ class Transaction(object):
             'witness_type': self.witness_type,
             'coinbase': self.coinbase,
             'flag': None if not self.flag else ord(self.flag),
+            'txhash': self.txhash,
             'confirmations': self.confirmations,
             'block_height': self.block_height,
             'block_hash': self.block_hash,
