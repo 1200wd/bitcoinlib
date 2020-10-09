@@ -372,7 +372,7 @@ class DbTransactionInput(Base):
     key = relationship("DbKey", back_populates="transaction_inputs", doc="Related DbKey object")
     address = Column(String(255),
                      doc="Address string of input, used if no key is associated. "
-                         "An cryptocurrency address is a hash of the public key")
+                         "An cryptocurrency address is a hash of the public key or a redeemscript")
     witness_type = Column(String(20), default='legacy',
                           doc="Type of transaction, can be legacy, segwit or p2sh-segwit. Default is legacy")
     prev_txid = Column(LargeBinary(32),
@@ -413,6 +413,9 @@ class DbTransactionOutput(Base):
     output_n = Column(Integer, primary_key=True, doc="Sequence number of transaction output")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this transaction output")
     key = relationship("DbKey", back_populates="transaction_outputs", doc="List of DbKey object used in this output")
+    address = Column(String(255),
+                     doc="Address string of output, used if no key is associated. "
+                         "An cryptocurrency address is a hash of the public key or a redeemscript")
     script = Column(LargeBinary, doc="Locking script which locks transaction output")
     script_type = Column(String(20), default='p2pkh',
                          doc="Locking script type. Can be one of these values: 'p2pkh', 'multisig', 'p2sh', 'p2pk', "

@@ -898,8 +898,8 @@ class HDWalletTransaction(Transaction):
                 filter_by(transaction_id=txidn, output_n=to.output_n).scalar()
             if not tx_output:
                 new_tx_item = DbTransactionOutput(
-                    transaction_id=txidn, output_n=to.output_n, key_id=key_id, value=to.value, spent=spent,
-                    script=to.lock_script, script_type=to.script_type)
+                    transaction_id=txidn, output_n=to.output_n, key_id=key_id, address=to.address, value=to.value,
+                    spent=spent, script=to.lock_script, script_type=to.script_type)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_output.key_id = key_id
@@ -2828,7 +2828,7 @@ class HDWallet(object):
                         script_type = script_type_default(self.witness_type, multisig=self.multisig,
                                                           locking_script=True)
                         new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'],
-                                                       value=utxo['value'], key_id=key.id,
+                                                       value=utxo['value'], key_id=key.id, address=utxo['address'],
                                                        script=bytes.fromhex(utxo['script']),
                                                        script_type=script_type,
                                                        spent=bool(spent_in_db.count()))
@@ -3121,27 +3121,27 @@ class HDWallet(object):
 
         network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
         # Transaction inputs
-        qr = self._session.query(DbTransactionInput, DbKey.address, DbTransaction.confirmations,
+        qr = self._session.query(DbTransactionInput, DbTransactionInput.address, DbTransaction.confirmations,
                                  DbTransaction.txid, DbTransaction.network_name, DbTransaction.status). \
-            join(DbTransaction).join(DbKey). \
+            join(DbTransaction). \
             filter(DbTransaction.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network)
         if key_id is not None:
-            qr = qr.filter(DbKey.id == key_id)
+            qr = qr.filter(DbTransactionInput.key_id == key_id)
         if not include_new:
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
         txs = qr.all()
         # Transaction outputs
         # TODO: Add account_id to DbTransaction and remove DbKey dependency
-        qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations,
+        qr = self._session.query(DbTransactionOutput, DbTransactionOutput.address, DbTransaction.confirmations,
                                  DbTransaction.txid, DbTransaction.network_name, DbTransaction.status). \
-            join(DbTransaction).join(DbKey). \
+            join(DbTransaction). \
             filter(DbTransaction.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network)
         if key_id is not None:
-            qr = qr.filter(DbKey.id == key_id)
+            qr = qr.filter(DbTransactionOutput.key_id == key_id)
         if not include_new:
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
         txs += qr.all()
