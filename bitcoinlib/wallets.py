@@ -894,7 +894,7 @@ class HDWalletTransaction(Transaction):
             if not tx_output:
                 new_tx_item = DbTransactionOutput(
                     transaction_id=txidn, output_n=to.output_n, key_id=key_id, value=to.value, spent=spent,
-                    script=to.lock_script.hex(), script_type=to.script_type)
+                    script=to.lock_script, script_type=to.script_type)
                 sess.add(new_tx_item)
             elif key_id:
                 tx_output.key_id = key_id
@@ -2821,7 +2821,7 @@ class HDWallet(object):
                                                           locking_script=True)
                         new_utxo = DbTransactionOutput(transaction_id=tid,  output_n=utxo['output_n'],
                                                        value=utxo['value'], key_id=key.id,
-                                                       script=to_hexstring(utxo['script']),
+                                                       script=bytes.fromhex(utxo['script']),
                                                        script_type=script_type,
                                                        spent=bool(spent_in_db.count()))
                         self._session.add(new_utxo)

@@ -34,10 +34,11 @@ _logger = logging.getLogger(__name__)
 Base = declarative_base()
 
 
-# @compiles(LargeBinary, "mysql")
-# def compile_LargeBinary_mysql(type_, compiler, **kwargs):
-#     element = "VARCHAR" + "({})".format(type_.length)
-#     return element
+@compiles(LargeBinary, "mysql")
+def compile_LargeBinary_mysql(type_, compiler, **kwargs):
+    length = type_.length
+    element = "BLOB" if not length else "VARBINARY(%d)" % length
+    return element
 
 
 class Db:
@@ -223,7 +224,7 @@ class DbKey(Base):
                        "depth=1 are the masterkeys children.")
     change = Column(Integer, doc="Change or normal address: Normal=0, Change=1")
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
-    public = Column(LargeBinary(128), index=True, doc="Bytes representation of public key")
+    public = Column(LargeBinary(255), index=True, doc="Bytes representation of public key")
     private = Column(LargeBinary(128), index=True, doc="Bytes representation of private key")
     wif = Column(String(255), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")
@@ -377,7 +378,7 @@ class DbTransactionInput(Base):
                        doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
                            "in this input")
     output_n = Column(BigInteger, doc="Output_n of previous transaction output that is spent in this input")
-    script = Column(String(1000), doc="Unlocking script to unlock previous locked output")
+    script = Column(LargeBinary, doc="Unlocking script to unlock previous locked output")
     script_type = Column(String(20), default='sig_pubkey',
                          doc="Unlocking script type. Can be 'coinbase', 'sig_pubkey', 'p2sh_multisig', 'signature', "
                              "'unknown', 'p2sh_p2wpkh' or 'p2sh_p2wsh'. Default is sig_pubkey")
@@ -411,7 +412,7 @@ class DbTransactionOutput(Base):
     output_n = Column(Integer, primary_key=True, doc="Sequence number of transaction output")
     key_id = Column(Integer, ForeignKey('keys.id'), index=True, doc="ID of key used in this transaction output")
     key = relationship("DbKey", back_populates="transaction_outputs", doc="List of DbKey object used in this output")
-    script = Column(String(1000), doc="Locking script which locks transaction output")
+    script = Column(LargeBinary, doc="Locking script which locks transaction output")
     script_type = Column(String(20), default='p2pkh',
                          doc="Locking script type. Can be one of these values: 'p2pkh', 'multisig', 'p2sh', 'p2pk', "
                              "'nulldata', 'unknown', 'p2wpkh' or 'p2wsh'. Default is p2pkh")
