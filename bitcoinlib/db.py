@@ -224,7 +224,7 @@ class DbKey(Base):
                        "depth=1 are the masterkeys children.")
     change = Column(Integer, doc="Change or normal address: Normal=0, Change=1")
     address_index = Column(BigInteger, doc="Index of address in HD key structure address level")
-    public = Column(LargeBinary(255), index=True, doc="Bytes representation of public key")
+    public = Column(LargeBinary(128), index=True, doc="Bytes representation of public key")
     private = Column(LargeBinary(128), index=True, doc="Bytes representation of private key")
     wif = Column(String(255), index=True, doc="Public or private WIF (Wallet Import Format) representation")
     compressed = Column(Boolean, default=True, doc="Is key compressed or not. Default is True")

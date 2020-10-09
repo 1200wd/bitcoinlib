@@ -1674,8 +1674,9 @@ class HDWallet(object):
         script_type = 'p2sh'
         if self.witness_type == 'p2sh-segwit':
             script_type = 'p2sh_p2wsh'
-        address = Address(redeemscript, encoding=self.encoding, script_type=script_type, network=network).address
-        already_found_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id, address=address).first()
+        address = Address(redeemscript, encoding=self.encoding, script_type=script_type, network=network)
+        already_found_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,
+                                                                 address=address.address).first()
         if already_found_key:
             return self.key(already_found_key.id)
         path = [pubk.path for pubk in public_keys if pubk.wallet.cosigner_id == self.cosigner_id][0]
@@ -1683,11 +1684,10 @@ class HDWallet(object):
         if not name:
             name = "Multisig Key " + '/'.join(public_key_ids)
 
-        # FIXME: Redeemscript check type + need to store redeemscript in Key?
         multisig_key = DbKey(
             name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
             depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
-            public=redeemscript, wif='multisig-%s' % address, address=address, cosigner_id=cosigner_id,
+            public=address.hash_bytes, wif='multisig-%s' % address, address=address.address, cosigner_id=cosigner_id,
             key_type='multisig', network_name=network)
         self._session.add(multisig_key)
         self._commit()
