@@ -307,6 +307,7 @@ class DbTransaction(Base):
     txid = Column(LargeBinary(32), index=True, doc="Bytes representation of transaction ID")
     wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True,
                        doc="ID of wallet which contains this transaction")
+    account_id = Column(Integer, index=True, doc="ID of account")
     wallet = relationship("DbWallet", back_populates="transactions",
                           doc="Link to HDWallet object which contains this transaction")
     witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
