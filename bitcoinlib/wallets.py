@@ -421,7 +421,7 @@ class HDWalletKey(object):
                 session.commit()
                 return HDWalletKey(wk.id, session, k)
 
-            nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_byte, private=k.private_byte, purpose=purpose,
+            nk = DbKey(name=name[:80], wallet_id=wallet_id, public=k.public_byte, private=k.private_byte, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                        wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
                        parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path,
@@ -433,7 +433,7 @@ class HDWalletKey(object):
             if keyexists:
                 _logger.warning("Key with ID %s already exists" % keyexists.id)
                 return HDWalletKey(keyexists.id, session, k)
-            nk = DbKey(name=name, wallet_id=wallet_id, purpose=purpose,
+            nk = DbKey(name=name[:80], wallet_id=wallet_id, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address=k.address,
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
                        key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id)
@@ -1684,7 +1684,7 @@ class HDWallet(object):
             script_type = 'p2sh_p2wsh'
         address = Address(redeemscript, encoding=self.encoding, script_type=script_type, network=network)
         already_found_key = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id,
-                                                                 address=address.address).first()
+                                                                 address=address.address()).first()
         if already_found_key:
             return self.key(already_found_key.id)
         path = [pubk.path for pubk in public_keys if pubk.wallet.cosigner_id == self.cosigner_id][0]
@@ -1693,9 +1693,9 @@ class HDWallet(object):
             name = "Multisig Key " + '/'.join(public_key_ids)
 
         multisig_key = DbKey(
-            name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
+            name=name[:80], wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
             depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
-            public=address.hash_bytes, wif='multisig-%s' % address, address=address.address, cosigner_id=cosigner_id,
+            public=address.hash_bytes, wif='multisig-%s' % address, address=address.address(), cosigner_id=cosigner_id,
             key_type='multisig', network_name=network)
         self._session.add(multisig_key)
         self._commit()

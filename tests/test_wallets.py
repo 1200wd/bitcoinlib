@@ -33,7 +33,6 @@ except ImportError as e:
     pass  # Only necessary when mysql or postgres is used
 from bitcoinlib.wallets import *
 from bitcoinlib.encoding import USE_FASTECDSA
-from bitcoinlib.transactions import TransactionError
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey, BKeyError
 from tests.test_custom import CustomAssertions
