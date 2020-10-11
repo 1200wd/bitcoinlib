@@ -1137,6 +1137,9 @@ class HDWallet(object):
         elif not isinstance(keys, list):
             keys = [keys]
 
+        if len(keys) > 15:
+            raise WalletError("Redeemscripts with more then 15 keys are non-standard and could result in "
+                              "locked up funds")
         hdkey_list = []
         if keys and isinstance(keys, list) and sort_keys:
             keys.sort(key=lambda x: ('0' if isinstance(x, HDKey) else '1'))
