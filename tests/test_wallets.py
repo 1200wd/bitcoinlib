@@ -1091,11 +1091,11 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         self.assertIsNone(t2.error)
 
     @classmethod
-    def _multisig_test(cls, sigs_required, number_of_sigs, sort_keys, network, witness_type='legacy'):
+    def _multisig_test(cls, sigs_required, number_of_sigs, sort_keys, network):
         # Create Keys
         key_dict = {}
         for key_id in range(number_of_sigs):
-            key_dict[key_id] = HDKey(network=network, witness_type=witness_type)
+            key_dict[key_id] = HDKey(network=network)
         random_output_address = HDKey(network=network).address()
 
         # Create wallets with 1 private key each
@@ -1111,7 +1111,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                     key_list.append(key_dict[key_id].public_master(multisig=True, as_private=True))
             wallet_dict[wallet_id] = HDWallet.create(
                 wallet_name, key_list, sigs_required=sigs_required, network=network, sort_keys=sort_keys, cosigner_id=0,
-                witness_type=witness_type, db_uri=cls.DATABASE_URI)
+                db_uri=cls.DATABASE_URI)
             wallet_keys[wallet_id] = wallet_dict[wallet_id].new_key()
             wallet_dict[wallet_id].utxos_update()
 
@@ -1142,11 +1142,6 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         t = self._multisig_test(2, 3, False, 'bitcoinlib_test')
         self.assertTrue(t.verify())
 
-    def test_wallet_multisig_2of3_segwit(self):
-        self.db_remove()
-        t = self._multisig_test(2, 3, False, 'bitcoinlib_test', 'segwit')
-        self.assertTrue(t.verify())
-
     def test_wallet_multisig_2of3_sorted(self):
         self.db_remove()
         t = self._multisig_test(2, 3, True, 'bitcoinlib_test')
@@ -1155,11 +1150,6 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
     def test_wallet_multisig_3of5(self):
         self.db_remove()
         t = self._multisig_test(3, 5, False, 'bitcoinlib_test')
-        self.assertTrue(t.verify())
-
-    def test_wallet_multisig_3of5_segwit(self):
-        self.db_remove()
-        t = self._multisig_test(10, 15, False, 'bitcoinlib_test', 'segwit')
         self.assertTrue(t.verify())
 
     def test_wallet_multisig_2of2_with_single_key(self):
@@ -1331,45 +1321,6 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                                   db_uri=self.DATABASE_URI)
         w.new_key(cosigner_id=2)
         self.assertEqual(w.keys()[3].address, '3Q9rnDniMa55jZFyzBDKihtXwZSM34zfEj')
-
-    # def test_wallets_multisig_huge(self):
-    #     for witness_type in ['legacy', 'segwit']:
-    #         network = 'bitcoinlib_test'
-    #         n_keys = 15
-    #         sigs_req = 10
-    #         wallet_name = 'test_wallet_multisig_huge_%s' % witness_type
-    #         key_list = [HDKey(witness_type=witness_type, network=network) for _ in range(0, n_keys)]
-    #         pk_n = random.randint(0, n_keys - 1)
-    #         key_list_cosigners = [k.public_master(multisig=True) for k in key_list if k is not key_list[pk_n]]
-    #         key_list_wallet = [key_list[pk_n]] + key_list_cosigners
-    #
-    #         w = HDWallet.create(wallet_name, keys=key_list_wallet, sigs_required=sigs_req,
-    #                             witness_type=witness_type, network=network, db_uri=self.DATABASE_URI)
-    #         w.get_key(number_of_keys=2)
-    #         w.utxos_update()
-    #         to_address = HDKey(network=network, witness_type=witness_type).address()
-    #         t = w.sweep(to_address, offline=True)
-    #
-    #         key_pool = [i for i in range(0, n_keys - 1) if i != pk_n]
-    #         while len(t.inputs[0].signatures) < sigs_req:
-    #             co_id = random.choice(key_pool)
-    #             t.sign(key_list[co_id])
-    #             key_pool.remove(co_id)
-    #         self.assertTrue(t.verify())
-    #
-    # def test_wallets_multisig_huge_error(self):
-    #     network = 'bitcoinlib_test'
-    #     n_keys = 16
-    #     sigs_req = 10
-    #     wallet_name = 'test_wallet_multisig_huge_error'
-    #     key_list = [HDKey(network=network) for _ in range(0, n_keys)]
-    #     pk_n = random.randint(0, n_keys - 1)
-    #     key_list_cosigners = [k.public_master(multisig=True) for k in key_list if k is not key_list[pk_n]]
-    #     key_list_wallet = [key_list[pk_n]] + key_list_cosigners
-    #     self.assertRaisesRegexp(WalletError, 'Redeemscripts with more then 15 keys are non-standard and could '
-    #                                          'result in locked up funds',
-    #                             HDWallet.create, wallet_name, keys=key_list_wallet, sigs_required=sigs_req,
-    #                             network=network, db_uri=self.DATABASE_URI)
 
 
 @parameterized_class(*params)

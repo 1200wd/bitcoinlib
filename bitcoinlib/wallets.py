@@ -421,8 +421,8 @@ class HDWalletKey(object):
                 session.commit()
                 return HDWalletKey(wk.id, session, k)
 
-            nk = DbKey(name=name[:80], wallet_id=wallet_id, public=k.public_byte, private=k.private_byte,
-                       purpose=purpose, account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
+            nk = DbKey(name=name, wallet_id=wallet_id, public=k.public_byte, private=k.private_byte, purpose=purpose,
+                       account_id=account_id, depth=k.depth, change=change, address_index=k.child_index,
                        wif=k.wif(witness_type=witness_type, multisig=multisig, is_private=True), address=address,
                        parent_id=parent_id, compressed=k.compressed, is_private=k.is_private, path=path,
                        key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id)
@@ -433,7 +433,7 @@ class HDWalletKey(object):
             if keyexists:
                 _logger.warning("Key with ID %s already exists" % keyexists.id)
                 return HDWalletKey(keyexists.id, session, k)
-            nk = DbKey(name=name[:80], wallet_id=wallet_id, purpose=purpose,
+            nk = DbKey(name=name, wallet_id=wallet_id, purpose=purpose,
                        account_id=account_id, depth=k.depth, change=change, address=k.address,
                        parent_id=parent_id, compressed=k.compressed, is_private=False, path=path,
                        key_type=key_type, network_name=network, encoding=encoding, cosigner_id=cosigner_id)
@@ -1137,9 +1137,6 @@ class HDWallet(object):
         elif not isinstance(keys, list):
             keys = [keys]
 
-        if len(keys) > 15:
-            raise WalletError("Redeemscripts with more then 15 keys are non-standard and could result in "
-                              "locked up funds")
         hdkey_list = []
         if keys and isinstance(keys, list) and sort_keys:
             keys.sort(key=lambda x: ('0' if isinstance(x, HDKey) else '1'))
@@ -1693,7 +1690,7 @@ class HDWallet(object):
             name = "Multisig Key " + '/'.join(public_key_ids)
 
         multisig_key = DbKey(
-            name=name[:80], wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
+            name=name, wallet_id=self.wallet_id, purpose=self.purpose, account_id=account_id,
             depth=depth, change=change, address_index=address_index, parent_id=0, is_private=False, path=path,
             public=address.hash_bytes, wif='multisig-%s' % address, address=address.address, cosigner_id=cosigner_id,
             key_type='multisig', network_name=network)
