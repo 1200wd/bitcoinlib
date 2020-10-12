@@ -44,9 +44,7 @@ DATABASE_NAME = 'bitcoinlib_test'
 DATABASE_NAME_2 = 'bitcoinlib2_test'
 
 db_uris = (
-    # ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
-    ('postgresql', 'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME,
-    'postgresql://postgres:postgres@localhost:5432/' + DATABASE_NAME_2),)
+    ('sqlite', 'sqlite:///' + DATABASEFILE_UNITTESTS, 'sqlite:///' + DATABASEFILE_UNITTESTS_2),)
 
 print("UNITTESTS_FULL_DATABASE_TEST: %s" % UNITTESTS_FULL_DATABASE_TEST)
 
