@@ -23,6 +23,7 @@ from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckCons
                         ForeignKey, DateTime, LargeBinary)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.types import BINARY
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
 from sqlalchemy.exc import OperationalError
 from sqlalchemy_utils import create_database
@@ -80,11 +81,8 @@ class Db:
         # VERIFY AND UPDATE DATABASE
         # Just a very simple database update script, without any external libraries for now
         #
-        version_db = self.session.query(DbConfig.value).filter_by(variable='version').scalar()
-        if version_db[:3] == '0.4' and BITCOINLIB_VERSION[:3] == '0.5':
-            raise ValueError("Old database version found (<0.4.19). Cannot to 0.5 version database automatically, "
-                             "use db_update tool to update")
         try:
+            version_db = self.session.query(DbConfig.value).filter_by(variable='version').scalar()
             if BITCOINLIB_VERSION != version_db:
                 _logger.warning("BitcoinLib database (%s) is from different version then library code (%s). "
                                 "Let's try to update database." % (version_db, BITCOINLIB_VERSION))
@@ -442,10 +440,21 @@ def db_update_version_id(db, version):
 
 
 def db_update(db, version_db, code_version=BITCOINLIB_VERSION):
-    # Database changes from version 0.5+
-    #
-    # Older databases cannnot be updated this way, use updatedb.py to copy keys and recreate database.
-    #
+    if version_db == '0.4.10' and code_version >= '0.4.11':
+        column = Column('latest_txid', String(32))
+        add_column(db.engine, 'keys', column)
+        version_db = db_update_version_id(db, '0.4.11')
+    if version_db == '0.4.11' and code_version >= '0.4.12':
+        column = Column('address', String(255),
+                        doc="Address string of input, used if not key is associated. "
+                            "An cryptocurrency address is a hash of the public key")
+        add_column(db.engine, 'transaction_inputs', column)
+        version_db = db_update_version_id(db, '0.4.12')
+    if version_db <= '0.4.12' and code_version >= '0.4.15':
+        column1 = Column('spending_txid', String(64), doc="Transaction hash of input which spends this output")
+        column2 = Column('spending_index_n', Integer, doc="Index number of transaction input which spends this output")
+        add_column(db.engine, 'transaction_outputs', column1)
+        add_column(db.engine, 'transaction_outputs', column2)
 
     version_db = db_update_version_id(db, code_version)
     return version_db
