@@ -183,8 +183,14 @@ def wallet_delete(wallet, db_uri=None, force=False):
         session.query(DbKeyMultisigChildren).filter_by(child_id=k.id).delete()
     ks.delete()
 
-    # Delete transactions from this wallet (remove wallet_id)
-    session.query(DbTransaction).filter_by(wallet_id=wallet_id, is_complete=False).delete()
+    # Delete incomplete transactions from wallet
+    txs = session.query(DbTransaction).filter_by(wallet_id=wallet_id, is_complete=False)
+    for tx in txs:
+        session.query(DbTransactionOutput).filter_by(transaction_id=tx.id).delete()
+        session.query(DbTransactionInput).filter_by(transaction_id=tx.id).delete()
+    txs.delete()
+
+    # Unlink transactions from this wallet (remove wallet_id)
     session.query(DbTransaction).filter_by(wallet_id=wallet_id).update({DbTransaction.wallet_id: None})
 
     res = w.delete()
@@ -227,8 +233,14 @@ def wallet_empty(wallet, db_uri=None):
         session.query(DbKeyMultisigChildren).filter_by(child_id=k.id).delete()
     ks.delete()
 
-    # Delete transactions from this wallet (remove wallet_id)
-    session.query(DbTransaction).filter_by(wallet_id=wallet_id, is_complete=False).delete()
+    # Delete incomplete transactions from wallet
+    txs = session.query(DbTransaction).filter_by(wallet_id=wallet_id, is_complete=False)
+    for tx in txs:
+        session.query(DbTransactionOutput).filter_by(transaction_id=tx.id).delete()
+        session.query(DbTransactionInput).filter_by(transaction_id=tx.id).delete()
+    txs.delete()
+
+    # Unlink transactions from this wallet (remove wallet_id)
     session.query(DbTransaction).filter_by(wallet_id=wallet_id).update({DbTransaction.wallet_id: None})
 
     session.commit()
@@ -3670,12 +3682,12 @@ class HDWallet(object):
         rt.verify()
         return rt
 
-    def transaction_import_raw(self, raw_tx, network=None):
+    def transaction_import_raw(self, rawtx, network=None):
         """
         Import a raw transaction. Link inputs to wallet keys if possible and return HDWalletTransaction object
 
-        :param raw_tx: Raw transaction
-        :type raw_tx: str, bytes
+        :param rawtx: Raw transaction
+        :type rawtx: str, bytes
         :param network: Network name. Leave empty for default network
         :type network: str
 
@@ -3684,10 +3696,10 @@ class HDWallet(object):
 
         if network is None:
             network = self.network.name
-        t_import = Transaction.import_raw(raw_tx, network=network)
+        t_import = Transaction.import_raw(rawtx, network=network)
         rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
         rt.verify()
-        rt.size = rt.vsize = len(raw_tx)
+        rt.size = rt.vsize = len(rawtx)
         rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
         return rt
 

@@ -77,8 +77,8 @@ class BlockchainInfoClient(BaseClient):
 
     def gettransaction(self, txid, latest_block=None):
         tx = self.compose_request('rawtx', txid)
-        raw_tx = self.getrawtransaction(txid)
-        t = Transaction.import_raw(raw_tx, self.network)
+        rawtx = self.getrawtransaction(txid)
+        t = Transaction.import_raw(rawtx, self.network)
         input_total = 0
         for n, i in enumerate(t.inputs):
             if 'prev_out' in tx['inputs'][n]:
@@ -99,7 +99,7 @@ class BlockchainInfoClient(BaseClient):
             t.status = 'unconfirmed'
             t.confirmations = 0
             t.date = None
-        t.rawtx = bytes.fromhex(raw_tx)
+        t.rawtx = bytes.fromhex(rawtx)
         t.size = tx['size']
         t.network_name = self.network
         t.locktime = tx['lock_time']
