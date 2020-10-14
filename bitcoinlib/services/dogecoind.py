@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Client for dogecoind daemon
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 Oct - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import configparser
 from datetime import datetime
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
@@ -38,12 +39,6 @@ class ConfigError(Exception):
 
     def __str__(self):
         return self.msg
-
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 
 def _read_from_config(configparser, section, value, fallback=None):

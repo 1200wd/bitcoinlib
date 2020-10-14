@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    dashd deamon
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018 - 2020 Oct - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -29,6 +29,7 @@
 #   "denominator": 100000000
 # }
 
+import configparser
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
@@ -47,11 +48,6 @@ class ConfigError(Exception):
 
     def __str__(self):
         return self.msg
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 
 class DashdClient(BaseClient):
