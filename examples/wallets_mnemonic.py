@@ -8,7 +8,7 @@
 #
 
 import os
-from bitcoinlib.wallets import HDWallet, BCL_DATABASE_DIR
+from bitcoinlib.wallets import Wallet, BCL_DATABASE_DIR
 from bitcoinlib.mnemonic import Mnemonic
 try:
     input = raw_input
@@ -29,7 +29,7 @@ print("\n=== Create a simple Mnemonic wallet ===")
 passphrase = Mnemonic().generate()
 print("Your private key passphrase is:", passphrase)
 password = input("Enter password to protect passphrase: ")
-wlt = HDWallet.create('mnwlttest1', keys=passphrase, password=password, network='bitcoinlib_test',
+wlt = Wallet.create('mnwlttest1', keys=passphrase, password=password, network='bitcoinlib_test',
                       db_uri=test_database)
 wlt.get_key()
 wlt.utxos_update()  # Create some test UTXOs

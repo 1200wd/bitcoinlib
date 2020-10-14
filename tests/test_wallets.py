@@ -131,16 +131,16 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.db_remove()
-        cls.wallet = HDWallet.create(
+        cls.wallet = Wallet.create(
             name='test_wallet_create',
             db_uri=cls.DATABASE_URI)
 
     def test_wallet_create(self):
-        self.assertTrue(isinstance(self.wallet, HDWallet))
+        self.assertTrue(isinstance(self.wallet, Wallet))
 
     def test_wallet_info(self):
         self.assertIsNone(self.wallet.info())
-        self.assertIn("<HDWallet(name=test_wallet_create, db_uri=", repr(self.wallet))
+        self.assertIn("<Wallet(name=test_wallet_create, db_uri=", repr(self.wallet))
         print(self.wallet)
 
     def test_wallet_exists(self):
@@ -168,17 +168,17 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         self.assertEqual(wallets[0]['name'], 'test_wallet_create')
 
     def test_delete_wallet(self):
-        HDWallet.create(
+        Wallet.create(
             name='wallet_to_remove',
             db_uri=self.DATABASE_URI)
         self.assertEqual(wallet_delete('wallet_to_remove', db_uri=self.DATABASE_URI), 1)
 
     def test_wallet_empty(self):
-        w = HDWallet.create('empty_wallet_test', db_uri=self.DATABASE_URI)
+        w = Wallet.create('empty_wallet_test', db_uri=self.DATABASE_URI)
         self.assertNotEqual(len(w.keys()), 1)
         master_key = w.public_master().key()
-        w2 = HDWallet.create('empty_wallet_test2', keys=master_key, db_uri=self.DATABASE_URI)
-        w3 = HDWallet.create('empty_wallet_test3', keys=master_key, db_uri=self.DATABASE_URI)
+        w2 = Wallet.create('empty_wallet_test2', keys=master_key, db_uri=self.DATABASE_URI)
+        w3 = Wallet.create('empty_wallet_test3', keys=master_key, db_uri=self.DATABASE_URI)
         wallet_empty('empty_wallet_test', db_uri=self.DATABASE_URI)
         wallet_empty('empty_wallet_test2', db_uri=self.DATABASE_URI)
         wallet_empty(w3.wallet_id, db_uri=self.DATABASE_URI)
@@ -190,7 +190,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
                                 db_uri=self.DATABASE_URI)
 
     def test_wallet_delete_not_empty(self):
-        w = HDWallet.create('unempty_wallet_test', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        w = Wallet.create('unempty_wallet_test', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         w.utxos_update()
         self.assertRaisesRegexp(WalletError, "still has unspent outputs. Use 'force=True' to delete this wallet",
                                 wallet_delete, 'unempty_wallet_test', db_uri=self.DATABASE_URI)
@@ -201,7 +201,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_unknown_error(self):
         self.assertRaisesRegexp(WalletError, "Wallet 'test_wallet_create_errors10' not found",
-                                HDWallet, 'test_wallet_create_errors10', db_uri=self.DATABASE_URI)
+                                Wallet, 'test_wallet_create_errors10', db_uri=self.DATABASE_URI)
 
     def test_wallet_duplicate_key_for_path(self):
         nkfp = self.wallet.key_for_path("m/44'/0'/100'/1200/1200")
@@ -215,81 +215,81 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_create_with_passphrase(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("wallet-passphrase", keys=passphrase, network='testnet',
+        wlt = Wallet.create("wallet-passphrase", keys=passphrase, network='testnet',
                               db_uri=self.DATABASE_URI)
         key0 = wlt.get_key()
         self.assertEqual(key0.address, "mqDeXXaFnWKNWhLmAae7zHhZDW4PMsLHPp")
 
     def test_wallet_create_with_passphrase_litecoin(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("wallet-passphrase-litecoin", keys=passphrase, network='litecoin',
+        wlt = Wallet.create("wallet-passphrase-litecoin", keys=passphrase, network='litecoin',
                               db_uri=self.DATABASE_URI)
         keys = wlt.get_key(number_of_keys=5)
         self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
 
     def test_wallet_create_change_name(self):
-        wlt = HDWallet.create('test_wallet_create_change_name', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('test_wallet_create_change_name', db_uri=self.DATABASE_URI)
         wlt.name = 'wallet_renamed'
-        wlt2 = HDWallet('wallet_renamed', db_uri=self.DATABASE_URI)
+        wlt2 = Wallet('wallet_renamed', db_uri=self.DATABASE_URI)
         self.assertEqual(wlt2.name, 'wallet_renamed')
 
     def test_wallet_create_errors(self):
-        HDWallet.create('test_wallet_create_errors', db_uri=self.DATABASE_URI)
+        Wallet.create('test_wallet_create_errors', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_create_errors' already exists",
-                                HDWallet.create, 'test_wallet_create_errors', db_uri=self.DATABASE_URI)
+                                Wallet.create, 'test_wallet_create_errors', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Only bip32 or single key scheme's are supported at the moment",
-                                HDWallet.create, 'test_wallet_create_errors2', scheme='raar',
+                                Wallet.create, 'test_wallet_create_errors2', scheme='raar',
                                 db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Wallet name '123' invalid, please include letter characters",
-                                HDWallet.create, '123', db_uri=self.DATABASE_URI)
+                                Wallet.create, '123', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Please enter wallet name",
-                                HDWallet.create, '', db_uri=self.DATABASE_URI)
+                                Wallet.create, '', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Witness type unknown not supported at the moment",
-                                HDWallet.create, '', witness_type='unknown', db_uri=self.DATABASE_URI)
+                                Wallet.create, '', witness_type='unknown', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Multisig wallets should use bip32 scheme not single",
-                                HDWallet.create, 'test_wallet_create_errors_multisig', keys=[HDKey(), HDKey()],
+                                Wallet.create, 'test_wallet_create_errors_multisig', keys=[HDKey(), HDKey()],
                                 scheme='single', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Password protected multisig wallets not supported",
-                                HDWallet.create, 'test_wallet_create_errors_multisig2', keys=[HDKey(), HDKey()],
+                                Wallet.create, 'test_wallet_create_errors_multisig2', keys=[HDKey(), HDKey()],
                                 password='geheim', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Number of keys required to sign is greater then number of keys provided",
-                                HDWallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
+                                Wallet.create, 'test_wallet_create_errors_multisig3', keys=[HDKey(), HDKey()],
                                 sigs_required=3, db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Network from key \(dash\) is different then specified network \(bitcoin\)",
-                                HDWallet.create, 'test_wallet_create_errors_multisig4',
+                                Wallet.create, 'test_wallet_create_errors_multisig4',
                                 keys=[HDKey(), HDKey(network='dash')], db_uri=self.DATABASE_URI)
         passphrase = 'usual olympic ride small mix follow trend baby stereo sweet lucky lend'
         self.assertRaisesRegexp(WalletError, "Please specify network when using passphrase to create a key",
-                                HDWallet.create, 'test_wallet_create_errors3', keys=passphrase,
+                                Wallet.create, 'test_wallet_create_errors3', keys=passphrase,
                                 db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
-                                HDWallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
+                                Wallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
                                 db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Invalid key or address: zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3",
-                                HDWallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
+                                Wallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
                                 db_uri=self.DATABASE_URI)
         k = HDKey(network='litecoin').wif_private()
         self.assertRaisesRegexp(BKeyError, "Network bitcoin not found in extracted networks",
-                                HDWallet.create, 'test_wallet_create_errors5', keys=k, network='bitcoin',
+                                Wallet.create, 'test_wallet_create_errors5', keys=k, network='bitcoin',
                                 db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Segwit is not supported for Dash wallets",
-                                HDWallet.create, 'test_wallet_create_errors6', keys=HDKey(network='dash'),
+                                Wallet.create, 'test_wallet_create_errors6', keys=HDKey(network='dash'),
                                 witness_type='segwit', db_uri=self.DATABASE_URI)
         k = HDKey().subkey_for_path('m/1/2/3/4/5/6/7')
         self.assertRaisesRegexp(WalletError, "Depth of provided public master key 7 does not correspond with key path",
-                                HDWallet.create, 'test_wallet_create_errors7', keys=k,
+                                Wallet.create, 'test_wallet_create_errors7', keys=k,
                                 db_uri=self.DATABASE_URI)
 
     def test_wallet_rename_duplicate(self):
-        HDWallet.create('test_wallet_rename_duplicate1', db_uri=self.DATABASE_URI)
-        w2 = HDWallet.create('test_wallet_rename_duplicate2', db_uri=self.DATABASE_URI)
+        Wallet.create('test_wallet_rename_duplicate1', db_uri=self.DATABASE_URI)
+        w2 = Wallet.create('test_wallet_rename_duplicate2', db_uri=self.DATABASE_URI)
 
         def test_func():
             w2.name = 'test_wallet_rename_duplicate1'
         self.assertRaisesRegexp(WalletError, "Wallet with name 'test_wallet_rename_duplicate1' already exists", test_func)
 
     def test_wallet_as_dict_json(self):
-        wallet = HDWallet.create("test_wallet_as_dict_json", db_uri=self.DATABASE_URI, network='bitcoinlib_test')
+        wallet = Wallet.create("test_wallet_as_dict_json", db_uri=self.DATABASE_URI, network='bitcoinlib_test')
         self.assertTrue(wallet.as_dict())
         self.assertTrue(wallet.as_json())
 
@@ -303,7 +303,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
     def test_wallet_import(self):
         keystr = 'tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePy' \
                  'A7irEvBoe4aAn52'
-        wallet_import = HDWallet.create(
+        wallet_import = Wallet.create(
             db_uri=self.DATABASE_URI,
             name='test_wallet_import',
             network='testnet',
@@ -316,7 +316,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
     def test_wallet_import_account(self):
         accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
                      '8Y7KbKUnaMzx9nnsSvh'
-        wallet_import = HDWallet.create(
+        wallet_import = Wallet.create(
             db_uri=self.DATABASE_URI,
             name='test_wallet_import_account',
             keys=accountkey,
@@ -331,7 +331,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
     def test_wallet_import_account_new_keys(self):
         accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
                      '8Y7KbKUnaMzx9nnsSvh'
-        wallet_import = HDWallet.create(
+        wallet_import = Wallet.create(
             db_uri=self.DATABASE_URI,
             name='test_wallet_import_account_new_key',
             keys=accountkey,
@@ -350,7 +350,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
     def test_wallet_import_public_wallet(self):
         pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqMwt' \
                  '9SrsVeBeqfBbR3'
-        pubwal = HDWallet.create(
+        pubwal = Wallet.create(
             db_uri=self.DATABASE_URI,
             name='test_wallet_import_public_wallet',
             keys=pubkey,
@@ -362,7 +362,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
     def test_wallet_import_litecoin(self):
         accountkey = 'Ltpv71G8qDifUiNet6mn25D7GPAVLZeaFRWzDABxx5xNeigVpFEviHK1ZggPS1kbtegB3U2i8w6ToNfM5sdvEQPW' \
                      'tov4KWyQ5NxWUd3oDWXQb4C'
-        wallet_import = HDWallet.create(
+        wallet_import = Wallet.create(
             db_uri=self.DATABASE_URI,
             name='test_wallet_litecoin',
             keys=accountkey,
@@ -373,7 +373,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         self.assertEqual(newkey.path, "m/44'/2'/0'/0/1")
 
     def test_wallet_import_key_network_error(self):
-        w = HDWallet.create(
+        w = Wallet.create(
             name='Wallet Error',
             db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError,
@@ -387,7 +387,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         wif = \
             'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmxC' \
             'KkXdDAXN'
-        w = HDWallet.create("wif_import_p2wpkh", wif, db_uri=self.DATABASE_URI)
+        w = Wallet.create("wif_import_p2wpkh", wif, db_uri=self.DATABASE_URI)
         self.assertEqual(w.get_key().address, "bc1qruvyu8f2tg06zhysytdsc3qlngnpfzn0juwssx")
         self.assertEqual(w.get_key_change().address, "bc1qg6h45txt82x87uvv3ndm82xsf3wjknq8j7sufh")
 
@@ -395,7 +395,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         wif = \
             'ypub6YMgBd4GfQjtxUf8ExorFUQEpBfUYTDz7E1tvfNgDqZeDEUuNNVXSNfsebis2cyeqWYXx6yaBBEQV7sJW3NGoXw5wsp9kkEsB2D' \
             'qiVquYLE'
-        w = HDWallet.create("wif_import_p2sh_p2wpkh", wif, db_uri=self.DATABASE_URI)
+        w = Wallet.create("wif_import_p2sh_p2wpkh", wif, db_uri=self.DATABASE_URI)
         self.assertEqual(w.get_key().address, "3EFDqEWcrzyidoCXhxaUDB28pVtgX3YuiR")
         self.assertEqual(w.get_key_change().address, "33Un3fDSdT2hsuqyuHiCci1GyUbiyZEWHW")
 
@@ -406,7 +406,7 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         wif2 = \
             'Zpub74JTMKMB9cTWwE9Hs4UVaHvddqPtR51D99x2B5EGyXyxEg3PW77vfmD15RZ86TVdwwwuUaCueBtvaL921mgyKe9Ya6LHCaMXnEp' \
             '1PMw4vDy'
-        w = HDWallet.create("wif_import_p2wsh", [wif1, wif2], cosigner_id=0, db_uri=self.DATABASE_URI)
+        w = Wallet.create("wif_import_p2wsh", [wif1, wif2], cosigner_id=0, db_uri=self.DATABASE_URI)
         self.assertEqual(w.get_key().address, "bc1qhk5pd2fh0uea8z2wkceuf8eqlxsnkxm0hlt6qvfv346evqnfyumqucpqew")
         self.assertEqual(w.get_key_change().address, "bc1qyn73qh408ry38twxnj4aqzuyv7j6euwhwt2qtzayg673vtw2a4rsn7jlek")
 
@@ -420,14 +420,14 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         wif3 = \
             'Ypub6jVwyh6yYiRoA5zAnGY1g88G5LdaxkHX65d2kSW97yTBAF1RQwAs3UGPz8bX7LvQfg8tc9MQz7eZ79qVigELqSJzfFbGmPak4PZ' \
             'rvW8fZXy'
-        w = HDWallet.create("wif_import_p2sh_p2wsh", [wif1, wif2, wif3], sigs_required=2, cosigner_id=0,
+        w = Wallet.create("wif_import_p2sh_p2wsh", [wif1, wif2, wif3], sigs_required=2, cosigner_id=0,
                             db_uri=self.DATABASE_URI)
         self.assertEqual(w.get_key().address, "3BeYQTUgrGPQMHDJcch6mF7G7sRrNYkRhP")
         self.assertEqual(w.get_key_change().address, "3PFD1qkgbaeeDnX38Smerb5vAPBkDVkhcm")
 
     def test_wallet_import_master_key(self):
         k = HDKey()
-        w = HDWallet.create('test_wallet_import_master_key', keys=k.public_master(),
+        w = Wallet.create('test_wallet_import_master_key', keys=k.public_master(),
                             db_uri=self.DATABASE_URI)
         self.assertFalse(w.main_key.is_private)
         self.assertRaisesRegexp(WalletError, "Please supply a valid private BIP32 master key with key depth 0",
@@ -441,16 +441,16 @@ class TestWalletImport(TestWalletMixin, unittest.TestCase):
         self.assertTrue(w.main_key.is_private)
 
         k2 = HDKey()
-        w2 = HDWallet.create('test_wallet_import_master_key2', keys=k2.subkey_for_path("m/32'"), scheme='single',
+        w2 = Wallet.create('test_wallet_import_master_key2', keys=k2.subkey_for_path("m/32'"), scheme='single',
                              db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Main key is already a private key, cannot import key",
                                 w2.import_master_key, k2)
         w2.main_key = None
-        self.assertRaisesRegexp(WalletError, "Main wallet key is not an HDWalletKey instance",
+        self.assertRaisesRegexp(WalletError, "Main wallet key is not an WalletKey instance",
                                 w2.import_master_key, k2)
 
         k3 = HDKey()
-        w3 = HDWallet.create('test_wallet_import_master_key3', keys=k3.subkey_for_path("m/32'").public(),
+        w3 = Wallet.create('test_wallet_import_master_key3', keys=k3.subkey_for_path("m/32'").public(),
                              scheme='single', db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Current main key is not a valid BIP32 public master key",
                                 w3.import_master_key, k3)
@@ -466,7 +466,7 @@ class TestWalletExport(TestWalletMixin, unittest.TestCase):
     def test_wallet_export_hdwifs(self):
         # p2wpkh
         p = 'garage million cheese nephew original subject pass reward month practice advance decide'
-        w = HDWallet.create("wif_import_p2wpkh", p, network='bitcoin', witness_type='segwit',
+        w = Wallet.create("wif_import_p2wpkh", p, network='bitcoin', witness_type='segwit',
                             db_uri=self.DATABASE_URI)
         wif = 'zpub6s7HTSrGmNUWSgfbDMhYbXVuxA14yNnycS25v6ogicEauzUrRUkuCLQUWbJXP1NyXNqGmwpU6hZw7vr22a4yspwH8XQFjjwRmx' \
               'CKkXdDAXN'
@@ -475,7 +475,7 @@ class TestWalletExport(TestWalletMixin, unittest.TestCase):
 
         # # p2sh_p2wpkh
         p = 'cluster census trash van rack skill feed inflict mixture vocal crew sea'
-        w = HDWallet.create("wif_import_p2sh_p2wpkh", p, network='bitcoin', witness_type='p2sh-segwit',
+        w = Wallet.create("wif_import_p2sh_p2wpkh", p, network='bitcoin', witness_type='p2sh-segwit',
                             db_uri=self.DATABASE_URI)
         wif = 'ypub6YMgBd4GfQjtxUf8ExorFUQEpBfUYTDz7E1tvfNgDqZeDEUuNNVXSNfsebis2cyeqWYXx6yaBBEQV7sJW3NGoXw5wsp9kkEsB2' \
               'DqiVquYLE'
@@ -489,7 +489,7 @@ class TestWalletExport(TestWalletMixin, unittest.TestCase):
             'Ba5zbv9',
             'Zpub74JTMKMB9cTWwE9Hs4UVaHvddqPtR51D99x2B5EGyXyxEg3PW77vfmD15RZ86TVdwwwuUaCueBtvaL921mgyKe9Ya6LHCaMXnEp1'
             'PMw4vDy']
-        w = HDWallet.create("wif_import_p2wsh", [p1, p2], witness_type='segwit', network='bitcoin', cosigner_id=0,
+        w = Wallet.create("wif_import_p2wsh", [p1, p2], witness_type='segwit', network='bitcoin', cosigner_id=0,
                             db_uri=self.DATABASE_URI)
         for wif in w.wif(is_private=False):
             self.assertIn(wif, wifs)
@@ -505,7 +505,7 @@ class TestWalletExport(TestWalletMixin, unittest.TestCase):
             'P8nxY8N',
             'Ypub6jVwyh6yYiRoA5zAnGY1g88G5LdaxkHX65d2kSW97yTBAF1RQwAs3UGPz8bX7LvQfg8tc9MQz7eZ79qVigELqSJzfFbGmPak4PZr'
             'vW8fZXy']
-        w = HDWallet.create("wif_import_p2sh_p2wsh", [p1, p2, p3], sigs_required=2, witness_type='p2sh-segwit',
+        w = Wallet.create("wif_import_p2sh_p2wsh", [p1, p2, p3], sigs_required=2, witness_type='p2sh-segwit',
                             network='bitcoin', cosigner_id=0, db_uri=self.DATABASE_URI)
         for wif in w.wif(is_private=False):
             self.assertIn(wif, wifs)
@@ -521,7 +521,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         cls.db_remove()
         cls.private_wif = 'xprv9s21ZrQH143K24Mfq5zL5MhWK9hUhhGbd45hLXo2Pq2oqzMMo63oStZzF9ySUHZw5qJkk5LCALAhXS' \
                            'XoCmCSnStRvgwLBtcbGsg1PeKT2en'
-        cls.wallet = HDWallet.create(
+        cls.wallet = Wallet.create(
             keys=cls.private_wif,
             name='test_wallet_keys',
             db_uri=cls.DATABASE_URI)
@@ -565,7 +565,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         self.db_remove()
         wk = 'xprv9s21ZrQH143K3tCgu8uhkA2fw9F9opbvoNNzh5wcuEvNHbCU6Kg3c6dam2a6cw4UYeDxAsgBorAqXp2nsoYS84DqYMwkzxZ15' \
              'ujRHzmBMxE'
-        w = HDWallet.create('test_wallet_keys_single_key', wk, scheme='single', db_uri=self.DATABASE_URI)
+        w = Wallet.create('test_wallet_keys_single_key', wk, scheme='single', db_uri=self.DATABASE_URI)
         self.assertEqual(w.new_key(), w.new_key())
 
     def test_wallet_create_uncompressed_masterkey(self):
@@ -589,7 +589,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         self.assertEqual(wlt.addresslist()[0][:5], 'tltc1')
 
     def test_wallet_single_key_main_key(self):
-        w = HDWallet.create('multisig_with_single_key', [HDKey().public_master_multisig(), HDKey(key_type='single')],
+        w = Wallet.create('multisig_with_single_key', [HDKey().public_master_multisig(), HDKey(key_type='single')],
                             sigs_required=2, db_uri=self.DATABASE_URI)
         w.new_key()
         self.assertEqual(len(w.keys_addresses()), 1)
@@ -641,39 +641,39 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
     def test_wallet_key_create_from_key(self):
         k1 = HDKey(network='dash')
         k2 = HDKey(network='dash')
-        w1 = HDWallet.create('network_mixup_test_wallet', network='litecoin', db_uri=self.DATABASE_URI)
-        wk1 = HDWalletKey.from_key('key1', w1.wallet_id, w1._session, key=k1.address_obj)
+        w1 = Wallet.create('network_mixup_test_wallet', network='litecoin', db_uri=self.DATABASE_URI)
+        wk1 = WalletKey.from_key('key1', w1.wallet_id, w1._session, key=k1.address_obj)
         self.assertEqual(wk1.network.name, 'dash')
         self.assertRaisesRegexp(WalletError, "Specified network and key network should be the same",
-                                HDWalletKey.from_key, 'key2', w1.wallet_id, w1._session, key=k2.address_obj,
+                                WalletKey.from_key, 'key2', w1.wallet_id, w1._session, key=k2.address_obj,
                                 network='bitcoin')
-        w2 = HDWallet.create('network_mixup_test_wallet2', network='litecoin', db_uri=self.DATABASE_URI)
-        wk2 = HDWalletKey.from_key('key1', w2.wallet_id, w2._session, key=k1)
+        w2 = Wallet.create('network_mixup_test_wallet2', network='litecoin', db_uri=self.DATABASE_URI)
+        wk2 = WalletKey.from_key('key1', w2.wallet_id, w2._session, key=k1)
         self.assertEqual(wk2.network.name, 'dash')
         self.assertRaisesRegexp(WalletError, "Specified network and key network should be the same",
-                                HDWalletKey.from_key, 'key2', w2.wallet_id, w2._session, key=k2,
+                                WalletKey.from_key, 'key2', w2.wallet_id, w2._session, key=k2,
                                 network='bitcoin')
-        wk3 = HDWalletKey.from_key('key3', w2.wallet_id, w2._session, key=k1)
+        wk3 = WalletKey.from_key('key3', w2.wallet_id, w2._session, key=k1)
         self.assertEqual(wk3.name, 'key1')
-        wk4 = HDWalletKey.from_key('key4', w2.wallet_id, w2._session, key=k1.address_obj)
+        wk4 = WalletKey.from_key('key4', w2.wallet_id, w2._session, key=k1.address_obj)
         self.assertEqual(wk4.name, 'key1')
         k = HDKey().public_master()
-        w = HDWallet.create('pmtest', network='litecoin', db_uri=self.DATABASE_URI)
-        wk1 = HDWalletKey.from_key('key', w.wallet_id, w._session, key=k)
+        w = Wallet.create('pmtest', network='litecoin', db_uri=self.DATABASE_URI)
+        wk1 = WalletKey.from_key('key', w.wallet_id, w._session, key=k)
         self.assertEqual(wk1.path, 'M')
         # Test __repr__ method
-        self.assertIn("<HDWalletKey(key_id=", repr(wk1))
+        self.assertIn("<WalletKey(key_id=", repr(wk1))
         # Test change key name
         wk1.name = 'new_name'
         self.assertEqual(wk1.name, 'new_name')
 
     def test_wallet_key_exceptions(self):
-        w = HDWallet.create('test_wallet_key_not_found', db_uri=self.DATABASE_URI)
-        self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', HDWalletKey, 1000000, w._session)
+        w = Wallet.create('test_wallet_key_not_found', db_uri=self.DATABASE_URI)
+        self.assertRaisesRegexp(WalletError, 'Key with id 1000000 not found', WalletKey, 1000000, w._session)
         if PY3:
             self.assertRaisesRegexp(BKeyError, "Specified key \['litecoin', 'litecoin_legacy'\] is from different "
                                                "network then specified: bitcoin",
-                                    HDWalletKey.from_key, '', w.wallet_id, w._session,
+                                    WalletKey.from_key, '', w.wallet_id, w._session,
                                     'T3Er8TQUMjkor8JBGm6aPqg1FA2L98MSK52htgNDeSJmfhLYTpgN')
 
 
@@ -687,7 +687,7 @@ class TestWalletElectrum(TestWalletMixin, unittest.TestCase):
         cls.db_remove()
         cls.pk = 'xprv9s21ZrQH143K2fuscnMTwUadsPqEbYdFQVJ1uWPawUYi7C485NHhCiotGy6Kz3Cz7ReVr65oXNwhREZ8ePrz8p7zy' \
                  'Hra82D1EGS7cQQmreK'
-        cls.wallet = HDWallet.create(
+        cls.wallet = Wallet.create(
             keys=cls.pk,
             name='test_wallet_electrum',
             db_uri=cls.DATABASE_URI)
@@ -709,7 +709,7 @@ class TestWalletElectrum(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_electrum_p2pkh(self):
         phrase = 'smart donor clever resource stool denial wink under oak sand limb wagon'
-        wlt = HDWallet.create('wallet_electrum_p2pkh', phrase, network='bitcoin', witness_type='segwit',
+        wlt = Wallet.create('wallet_electrum_p2pkh', phrase, network='bitcoin', witness_type='segwit',
                               db_uri=self.DATABASE_URI)
         self.assertEqual(wlt.get_key().address, 'bc1qjz5l6mej6ptqlggfvdlys8pfukwqp8xnu0mn5u')
         self.assertEqual(wlt.get_key_change().address, 'bc1qz4tr569wfs2fuekgcjtdlz0eufk7rfs8gnu5j9')
@@ -717,7 +717,7 @@ class TestWalletElectrum(TestWalletMixin, unittest.TestCase):
     def test_wallet_electrum_p2sh_p2wsh(self):
         phrase1 = 'magnet voice math okay castle recall arrange music high sustain require crowd'
         phrase2 = 'wink tornado honey delay nest sing series timber album region suit spawn'
-        wlt = HDWallet.create('wallet_electrum_p2sh_p2wsh', [phrase1, phrase2], network='bitcoin', cosigner_id=0,
+        wlt = Wallet.create('wallet_electrum_p2sh_p2wsh', [phrase1, phrase2], network='bitcoin', cosigner_id=0,
                               witness_type='p2sh-segwit', db_uri=self.DATABASE_URI)
         self.assertEqual(wlt.get_key().address, '3ArRVGXfqcjw68XzUZr4iCCemrPoFZxm7s')
         self.assertEqual(wlt.get_key_change().address, '3FZEUFf59C3psUUiKB8TFbjsFUGWD73QPY')
@@ -733,7 +733,7 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
         cls.db_remove()
         cls.pk = 'xprv9s21ZrQH143K4478MENLXpSXSvJSRYsjD2G3sY7s5sxAGubyujDmt9Qzfd1me5s1HokWGGKW9Uft8eB9dqryybAcFZ5JAs' \
                  'rg84jAVYwKJ8c'
-        cls.wallet = HDWallet.create(
+        cls.wallet = Wallet.create(
             keys=cls.pk, network='dash',
             name='test_wallet_multicurrency',
             db_uri=cls.DATABASE_URI)
@@ -788,7 +788,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_multi_networks_send_transaction(self):
         pk = 'tobacco defy swarm leaf flat pyramid velvet pen minor twist maximum extend'
-        wallet = HDWallet.create(
+        wallet = Wallet.create(
             keys=pk, network='bitcoin',
             name='test_wallet_multi_network_multi_account',
             db_uri=self.DATABASE_URI)
@@ -821,7 +821,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         del wallet
 
     def test_wallet_multi_networks_account_bip44_code_error(self):
-        wlt = HDWallet.create("wallet-bip44-code-error", network='testnet', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create("wallet-bip44-code-error", network='testnet', db_uri=self.DATABASE_URI)
         error_str = "Can not create new account for network litecoin_testnet with same BIP44 cointype"
         self.assertRaisesRegexp(WalletError, error_str, wlt.new_account, network='litecoin_testnet')
 
@@ -835,7 +835,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         self.assertIn('account', account_key.name)
 
     def test_wallet_update_attributes(self):
-        w = HDWallet.create('test_wallet_set_attributes', db_uri=self.DATABASE_URI)
+        w = Wallet.create('test_wallet_set_attributes', db_uri=self.DATABASE_URI)
         w.new_account(network='litecoin', account_id=1200)
         owner = 'Satoshi'
         w.owner = owner
@@ -843,7 +843,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         w.default_account_id = 1200
         del w
 
-        w2 = HDWallet('test_wallet_set_attributes', db_uri=self.DATABASE_URI)
+        w2 = Wallet('test_wallet_set_attributes', db_uri=self.DATABASE_URI)
         self.assertEqual(w2.owner, owner)
         self.assertEqual(w2.network.name, 'litecoin')
         nk = w2.new_key()
@@ -858,7 +858,7 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
         cls.db_remove()
 
     def test_wallet_bitcoinlib_testnet_sendto(self):
-        w = HDWallet.create(
+        w = Wallet.create(
             network='bitcoinlib_test',
             name='test_wallet_bitcoinlib_testnet_sendto',
             db_uri=self.DATABASE_URI)
@@ -868,7 +868,7 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
         self.assertIsNone(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 5000000).error)
 
     def test_wallet_bitcoinlib_testnet_send_utxos_updated(self):
-        w = HDWallet.create(
+        w = Wallet.create(
             network='bitcoinlib_test',
             name='test_wallet_bitcoinlib_testnet_send_utxos_updated',
             db_uri=self.DATABASE_URI)
@@ -879,7 +879,7 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
         self.assertTrue(t.pushed)
 
     def test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee(self):
-        w = HDWallet.create(
+        w = Wallet.create(
             network='bitcoinlib_test',
             name='test_wallet_bitcoinlib_testnet_sendto_no_funds_txfee',
             db_uri=self.DATABASE_URI)
@@ -890,7 +890,7 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
                                 w.send_to, '21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', balance)
 
     def test_wallet_bitcoinlib_testnet_sweep(self):
-        w = HDWallet.create(
+        w = Wallet.create(
             network='bitcoinlib_test',
             name='test_wallet_bitcoinlib_testnet_sweep',
             db_uri=self.DATABASE_URI)
@@ -917,8 +917,8 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
               'gVxJhMHq3bGJ1X'
         pk1_acc_pub = 'tpubDCZUk9HLxh5gdB9eC8FUxPB1AbZtsSnbvyrAAzsC8x3tiYDgbzyxcngU99rG333jegHG5vJhs11AHcSVkbwrU' \
                       'bYEsPK8vA7E6yFB9qbsTYi'
-        w1 = HDWallet.create(name='test_wallet_create_1', keys=pk1, db_uri=self.DATABASE_URI)
-        w2 = HDWallet.create(name='test_wallet_create_2', keys=pk1_acc_pub, db_uri=self.DATABASE_URI)
+        w1 = Wallet.create(name='test_wallet_create_1', keys=pk1, db_uri=self.DATABASE_URI)
+        w2 = Wallet.create(name='test_wallet_create_2', keys=pk1_acc_pub, db_uri=self.DATABASE_URI)
         wk1 = w1.new_key()
         wk2 = w2.new_key()
         self.assertTrue(wk1.is_private)
@@ -933,10 +933,10 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                   'KjhcA63NUyvDixB'
         pk1 = HDKey(pk_wif1, network='testnet')
         pk2 = HDKey(pk_wif2, network='testnet')
-        wl1 = HDWallet.create('multisig_test_wallet1',
+        wl1 = Wallet.create('multisig_test_wallet1',
                               [pk_wif1, pk2.subkey_for_path("m/45'").wif_public()],
                               sigs_required=2, network='testnet', db_uri=self.DATABASE_URI)
-        wl2 = HDWallet.create('multisig_test_wallet2',
+        wl2 = Wallet.create('multisig_test_wallet2',
                               [pk1.subkey_for_path("m/45'").wif_public(), pk_wif2],
                               sigs_required=2, network='testnet', db_uri=self.DATABASE_URI)
         wl1_key = wl1.new_key()
@@ -954,7 +954,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         ]
 
         # Create wallet and generate key
-        wl = HDWallet.create_multisig('multisig_test_simple', key_list, sigs_required=2, network='bitcoinlib_test',
+        wl = Wallet.create_multisig('multisig_test_simple', key_list, sigs_required=2, network='bitcoinlib_test',
                                       cosigner_id=0, db_uri=self.DATABASE_URI)
         wl.new_key()
 
@@ -975,7 +975,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6').public_master(
                 multisig=True).public(),
         ]
-        wl = HDWallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2,
+        wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2,
                              db_uri=self.DATABASE_URI)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
         t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
@@ -993,7 +993,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             pk2.public_master(multisig=True),
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6').public_master(multisig=True),
         ]
-        wl = HDWallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2,
+        wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2,
                              db_uri=self.DATABASE_URI)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
         t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
@@ -1012,7 +1012,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             HDKey('86b77aee5cfc3a55eb0b1099752479d82cb6ebaa8f1c4e9ef46ca0d1dc3847e6',
                   network=NETWORK).public_master(multisig=True),
         ]
-        wl = HDWallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2, network=NETWORK,
+        wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2, network=NETWORK,
                              db_uri=self.DATABASE_URI)
         wl.get_key(number_of_keys=2)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
@@ -1037,10 +1037,10 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             HDKey('YXscyqNJ5YK411nwB4EyGbNZo9eQSUWb64vAFKHt7E2LYnbmoNz8Gyjs6xc7iYAudcnkgf127NPnaanuUgyRngAiwYBcXKGsSJ'
                   'wadGhxByT2MnLd', network='bitcoinlib_test')]
 
-        msw1 = HDWallet.create('msw1', [keys[0], keys[1].subkey_for_path("m/45'").wif_public()],
+        msw1 = Wallet.create('msw1', [keys[0], keys[1].subkey_for_path("m/45'").wif_public()],
                                network='bitcoinlib_test', sort_keys=False, sigs_required=2,
                                db_uri=self.DATABASE_URI)
-        msw2 = HDWallet.create('msw2', [keys[0].subkey_for_path("m/45'").wif_public(), keys[1]],
+        msw2 = Wallet.create('msw2', [keys[0].subkey_for_path("m/45'").wif_public(), keys[1]],
                                network='bitcoinlib_test', sort_keys=False, sigs_required=2,
                                db_uri=self.DATABASE_URI)
         msw1.new_key()
@@ -1071,9 +1071,9 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             HDKey('YXscyqNJ5YK411nwB4EyGbNZo9eQSUWb64vAFKHt7E2LYnbmoNz8Gyjs6xc7iYAudcnkgf127NPnaanuUgyRngAiwYBcXKGsSJ'
                   'wadGhxByT2MnLd', network='bitcoinlib_test')]
 
-        msw1 = HDWallet.create('msw1', [keys[0], keys[1].public_master(multisig=True)], network='bitcoinlib_test',
+        msw1 = Wallet.create('msw1', [keys[0], keys[1].public_master(multisig=True)], network='bitcoinlib_test',
                                sort_keys=False, sigs_required=2, db_uri=self.DATABASE_URI)
-        msw2 = HDWallet.create('msw2', [keys[0].public_master(multisig=True), keys[1]], network='bitcoinlib_test',
+        msw2 = Wallet.create('msw2', [keys[0].public_master(multisig=True), keys[1]], network='bitcoinlib_test',
                                sort_keys=False, sigs_required=2, db_uri=self.DATABASE_URI_2)
         msw1.new_key()
         msw2.new_key(cosigner_id=msw1.cosigner_id)
@@ -1108,7 +1108,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                     key_list.append(key_dict[key_id])
                 else:
                     key_list.append(key_dict[key_id].public_master(multisig=True, as_private=True))
-            wallet_dict[wallet_id] = HDWallet.create(
+            wallet_dict[wallet_id] = Wallet.create(
                 wallet_name, key_list, sigs_required=sigs_required, network=network, sort_keys=sort_keys, cosigner_id=0,
                 db_uri=cls.DATABASE_URI)
             wallet_keys[wallet_id] = wallet_dict[wallet_id].new_key()
@@ -1156,7 +1156,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         keys = [HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test', key_type='single')]
         key_list = [keys[0], keys[1].public()]
 
-        wl = HDWallet.create('multisig_expk2', key_list, sigs_required=2, network='bitcoinlib_test',
+        wl = Wallet.create('multisig_expk2', key_list, sigs_required=2, network='bitcoinlib_test',
                              db_uri=self.DATABASE_URI, sort_keys=False)
         k1 = wl.new_key()
         k2 = wl.new_key()
@@ -1176,11 +1176,11 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         key1 = HDKey()
         key2 = HDKey()
         key3 = HDKey()
-        w1 = HDWallet.create('w1', [key1, key2.public_master(multisig=True), key3.public_master(multisig=True)],
+        w1 = Wallet.create('w1', [key1, key2.public_master(multisig=True), key3.public_master(multisig=True)],
                              sigs_required=2, db_uri=self.DATABASE_URI)
-        w2 = HDWallet.create('w2', [key1.public_master(multisig=True), key2, key3.public_master(multisig=True)],
+        w2 = Wallet.create('w2', [key1.public_master(multisig=True), key2, key3.public_master(multisig=True)],
                              sigs_required=2, db_uri=self.DATABASE_URI)
-        w3 = HDWallet.create('w3', [key1.public_master(multisig=True), key2.public_master(multisig=True), key3],
+        w3 = Wallet.create('w3', [key1.public_master(multisig=True), key2.public_master(multisig=True), key3],
                              sigs_required=2, db_uri=self.DATABASE_URI)
         for _ in range(5):
             cosigner_id = random.randint(0, 2)
@@ -1203,7 +1203,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
             HDKey(network=network),
             hdkey.public()
         ]
-        wallet = HDWallet.create('Multisig-2-of-3-example', key_list, sigs_required=2, network=network,
+        wallet = Wallet.create('Multisig-2-of-3-example', key_list, sigs_required=2, network=network,
                                  db_uri=self.DATABASE_URI)
         wallet.new_key()
         wallet.utxos_update()
@@ -1261,7 +1261,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         self.assertEqual(wlt.get_key().network.name, network)
 
     def test_wallet_multisig_info(self):
-        w = HDWallet.create('test_wallet_multisig_info', keys=[HDKey(network='bitcoinlib_test'),
+        w = Wallet.create('test_wallet_multisig_info', keys=[HDKey(network='bitcoinlib_test'),
                                                                HDKey(network='bitcoinlib_test')],
                             network='bitcoinlib_test', cosigner_id=0, db_uri=self.DATABASE_URI)
         w.utxos_update()
@@ -1343,7 +1343,7 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
             HDKey(network=network),
             hdkey.public()
         ]
-        with HDWallet.create('Multisig-2-of-3-example', key_list, sigs_required=2,
+        with Wallet.create('Multisig-2-of-3-example', key_list, sigs_required=2,
                              db_uri=self.DATABASE_URI) as wlt:
             wlt.new_key()
             wlt.utxos_update()
@@ -1356,7 +1356,7 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
         hdkey = HDKey(
             'xprv9s21ZrQH143K2noEZoqGHnaDDLjrnFpis8jm7NWDhkWuNNCqMupGSy7PMYtGL9jvdTY7Nx3GZ6UZ9C52nebwbYXK73imaPUK24'
             'dZJtGZhGd')
-        with HDWallet.create('public-private', hdkey.public_master().public(), db_uri=self.DATABASE_URI) \
+        with Wallet.create('public-private', hdkey.public_master().public(), db_uri=self.DATABASE_URI) \
                 as wlt:
             self.assertFalse(wlt.main_key.is_private)
             wlt.import_key(hdkey)
@@ -1387,7 +1387,7 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
                     'vrj8tuEzyeR8TQNu5e')
         pk2 = HDKey('YXscyqNJ5YK411nwB4Jo3JCQ1GZNetf4BrLJjZiqdWKVzoXwPtyJ5xyNdZjuEWtqCeSZGtmg7SuQerERwniHLYL3aVcnyS'
                     'ciEAxk7gLgDkoZC5Lq')
-        w = HDWallet.create('segwit-p2sh-p2wsh-import',
+        w = Wallet.create('segwit-p2sh-p2wsh-import',
                             [pk1, pk2.public_master(witness_type='p2sh-segwit', multisig=True)],
                             witness_type='p2sh-segwit', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         w.get_key()
@@ -1421,7 +1421,7 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
         pubk2 = k2.public_master_multisig(witness_type=witness_type)
         self.assertEqual(pubk1.wif(), wif1)
         self.assertEqual(pubk2.wif(), wif2)
-        w = HDWallet.create('mswlt', [p1, pubk2], db_uri=self.DATABASE_URI, witness_type=witness_type)
+        w = Wallet.create('mswlt', [p1, pubk2], db_uri=self.DATABASE_URI, witness_type=witness_type)
         wk = w.new_key()
         self.assertEqual(wk.address, 'bc1qr7r7zpr5gqnz0zs39ve7c0g54gwe7h7322lt3kae6gh8tzc5epts0j9rhm')
         self.assertFalse(w.public_master(as_private=True)[1].is_private)
@@ -1468,7 +1468,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         txs = self.wallet.transactions_full()
         self.assertGreaterEqual(len(txs), 3)
         for tx in txs:
-            self.assertIsInstance(tx, HDWalletTransaction)
+            self.assertIsInstance(tx, WalletTransaction)
 
     def test_wallet_sweep_public_wallet(self):
         tx = self.wallet.sweep('mwCvJviVTzjEKLZ1UW5jaepjWHUeoYrEe7', fee_per_kb=50000)
@@ -1532,7 +1532,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertListEqual(tx_list, exp_tx_list)
 
     def test_wallet_two_utxos_one_key(self):
-        wlt = HDWallet.create('double-utxo-test', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('double-utxo-test', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         key = wlt.new_key()
         wlt.utxos_update()
         utxos = wlt.utxos()
@@ -1549,7 +1549,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         del wlt
 
     def test_wallet_balance_update(self):
-        wlt = HDWallet.create('test-balance-update', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('test-balance-update', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
         self.assertEqual(wlt.balance(), 200000000)
@@ -1563,7 +1563,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_balance_update_multi_network(self):
         k = "tpubDCutwJADa3iSbFtB2LgnaaqJgZ8FPXRRzcrMq7Tms41QNnTV291rpkps9vRwyss9zgDc7hS5V1aM1by8nFip5VjpGpz1oP54peKt" \
             "hJzfabX"
-        wlt = HDWallet.create("test_wallet_balance_update_multi_network", network='bitcoinlib_test',
+        wlt = Wallet.create("test_wallet_balance_update_multi_network", network='bitcoinlib_test',
                               db_uri=self.DATABASE_URI)
         wlt.new_key()
         wlt.new_account(network='testnet')
@@ -1577,14 +1577,14 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_balance_update_total(self):
         k = "tpubDCutwJADa3iSbFtB2LgnaaqJgZ8FPXRRzcrMq7Tms41QNnTV291rpkps9vRwyss9zgDc7hS5V1aM1by8nFip5VjpGpz1oP54peKt" \
             "hJzfabX"
-        wlt = HDWallet.create("test_wallet_balance_update_total", keys=k, network='testnet',
+        wlt = Wallet.create("test_wallet_balance_update_total", keys=k, network='testnet',
                               db_uri=self.DATABASE_URI)
         wlt.get_key()
         self.assertEqual(wlt.balance_update_from_serviceprovider(), 900)
 
     def test_wallet_add_dust_to_fee(self):
         # Send bitcoinlib test transaction and check if dust resume amount is added to fee
-        wlt = HDWallet.create('bcltestwlt', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('bcltestwlt', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 99992000)
@@ -1593,7 +1593,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
 
     def test_wallet_transactions_send_update_utxos(self):
         # Send bitcoinlib test transaction and check if all utxo's are updated after send
-        wlt = HDWallet.create('bcltestwlt2', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('bcltestwlt2', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key(number_of_keys=5)
         wlt.utxos_update()
         self.assertEqual(wlt.balance(), 1000000000)
@@ -1604,7 +1604,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         del wlt
 
     def test_wallet_transaction_import(self):
-        wlt = HDWallet.create('bcltestwlt3', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('bcltestwlt3', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 40000000, offline=True)
@@ -1613,7 +1613,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         del wlt
 
     def test_wallet_transaction_import_raw(self):
-        wlt = HDWallet.create('bcltestwlt4', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('bcltestwlt4', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 50000000, offline=True)
@@ -1622,7 +1622,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         del wlt
 
     def test_wallet_transaction_import_dict(self):
-        wlt = HDWallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
         t = wlt.send_to(to_key.address, 60000000, offline=True)
@@ -1631,7 +1631,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         del wlt
 
     def test_wallet_transaction_fee_limits(self):
-        wlt = HDWallet.create('bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('bcltestwlt6', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()
         wlt.utxos_update()
         self.assertRaisesRegexp(WalletError, 'Fee per kB of 682 is lower then minimal network fee of 1000',
@@ -1640,7 +1640,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                 wlt.send_to, to_key.address, 50000000, fee=300000)
 
     def test_wallet_transaction_fee_zero_problem(self):
-        wlt = HDWallet.create(name='bcltestwlt7', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create(name='bcltestwlt7', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         nk = wlt.get_key()
         wlt.utxos_update()
         t = wlt.send_to(nk.address, 100000000)
@@ -1652,7 +1652,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
 
         for witness_type in ['legacy', 'p2sh-segwit', 'segwit']:
             wallet_delete_if_exists('wallet_estimate_size', force=True, db_uri=self.DATABASE_URI)
-            wl3 = HDWallet.create('wallet_estimate_size', witness_type=witness_type,
+            wl3 = Wallet.create('wallet_estimate_size', witness_type=witness_type,
                                   db_uri=self.DATABASE_URI)
             wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
             to_address = wl3.get_key_change().address
@@ -1671,7 +1671,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             p3 = HDKey(witness_type=witness_type, multisig=True)
 
             wallet_delete_if_exists('wallet_estimate_size_multisig', force=True, db_uri=self.DATABASE_URI)
-            wl3 = HDWallet.create('wallet_estimate_size_multisig', [p1, p2.public_master(), p3.public_master()],
+            wl3 = Wallet.create('wallet_estimate_size_multisig', [p1, p2.public_master(), p3.public_master()],
                                   sigs_required=2, db_uri=self.DATABASE_URI)
             wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
             to_address = wl3.get_key_change().address
@@ -1687,7 +1687,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_transaction_method(self):
         pk1 = HDKey(network='bitcoinlib_test')
         pk2 = HDKey(network='bitcoinlib_test')
-        w = HDWallet.create('wallet_transaction_tests', keys=[pk1, pk2], cosigner_id=0,
+        w = Wallet.create('wallet_transaction_tests', keys=[pk1, pk2], cosigner_id=0,
                             db_uri=self.DATABASE_URI)
         w.get_key()
         w.utxos_update()
@@ -1696,26 +1696,26 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(type(w.transactions()[0].as_dict()), dict)
 
     def test_wallet_transaction_from_txid(self):
-        w = HDWallet.create('testwltbcl', keys='dda84e87df25f32d73a7f7d008ed2b89fc00d9d07fde588d1b8af0af297023de',
+        w = Wallet.create('testwltbcl', keys='dda84e87df25f32d73a7f7d008ed2b89fc00d9d07fde588d1b8af0af297023de',
                             network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         w.utxos_update()
         wts = w.transactions()
         txid = wts[0].txid
         self.assertEqual(txid, '86eebbefb1062b45b19bc1bbc3fbe044fadcf592dc4e64f1a13a58ac362123ef')
-        wt0 = HDWalletTransaction.from_txid(w, txid)
+        wt0 = WalletTransaction.from_txid(w, txid)
         self.assertEqual(wt0.outputs[0].address, 'zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y1')
         # Test __repr__
-        self.assertEqual(repr(wt0), '<HDWalletTransaction(input_count=0, output_count=1, status=confirmed, '
+        self.assertEqual(repr(wt0), '<WalletTransaction(input_count=0, output_count=1, status=confirmed, '
                                     'network=bitcoinlib_test)>')
         # Test info()
         wt0.info()
         # Unknown txid
-        self.assertIsNone(HDWalletTransaction.from_txid(w, '112233'))
+        self.assertIsNone(WalletTransaction.from_txid(w, '112233'))
 
     def test_wallet_transaction_sign_with_hex(self):
         k = HDKey(network='bitcoinlib_test')
         pmk = k.public_master()
-        w = HDWallet.create('wallet_tx_tests', keys=pmk, network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        w = Wallet.create('wallet_tx_tests', keys=pmk, network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         w.utxos_update()
         wt = w.transaction_create([(w.get_key(), 190000000)])
         sk = k.subkey_for_path("m/44'/9999999'/0'/0/0")
@@ -1766,7 +1766,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(t.save(), tx_id)
 
     def test_wallet_transaction_send_keyid(self):
-        w = HDWallet.create('wallet_send_key_id', witness_type='segwit', network='bitcoinlib_test',
+        w = Wallet.create('wallet_send_key_id', witness_type='segwit', network='bitcoinlib_test',
                             db_uri=self.DATABASE_URI)
         keys = w.get_key(number_of_keys=2)
         w.utxos_update()
@@ -1808,7 +1808,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertTrue(t.verified)
 
     def test_wallet_select_inputs(self):
-        wlt = HDWallet.create('bclwltsltinputs', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('bclwltsltinputs', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         wlt.get_key()
         wlt.utxos_update()
         self.assertEqual(wlt.select_inputs(150000000, max_utxos=1), [])
@@ -1817,7 +1817,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_transaction_create_exceptions(self):
         wif = 'YXscyqNJ5YK411nwB3kahnuWqF2KUJfJNRGG1n3zLPi3MSPCRcD2cmcVz1UKBjTMuMxAfXrbSAe5qJfu5nnSuRZKEtqJt' \
               'FwNjcNknbseoKp1vR2h'
-        wlt = HDWallet.create('test_wallet_transaction_create_exceptions', keys=wif, db_uri=self.DATABASE_URI)
+        wlt = Wallet.create('test_wallet_transaction_create_exceptions', keys=wif, db_uri=self.DATABASE_URI)
         wlt.utxos_update()
         self.assertRaisesRegexp(WalletError, "Output array must be a list of tuples with address and amount. "
                                              "Use 'send_to' method to send to one address",
@@ -1841,7 +1841,7 @@ class TestWalletDash(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_create_with_passphrase_dash(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
-        wlt = HDWallet.create("wallet-passphrase-litecoin", keys=passphrase, network='dash',
+        wlt = Wallet.create("wallet-passphrase-litecoin", keys=passphrase, network='dash',
                               db_uri=self.DATABASE_URI)
         keys = wlt.get_key(number_of_keys=5)
         self.assertEqual(keys[4].address, "XhxXcRvTm4yZZzbH4MYz2udkdHWEMMf9GM")
@@ -1849,7 +1849,7 @@ class TestWalletDash(TestWalletMixin, unittest.TestCase):
     def test_wallet_import_dash(self):
         accountkey = 'xprv9yQgG6Z38AXWuhkxScDCkLzThWWZgDKHKinMHUAPTH1uihrBWQw99sWBsN2HMpzeTze1YEYb8acT1x7sHKhXX8AbT' \
                      'GNf8tdbycySUi2fRaa'
-        wallet = HDWallet.create(
+        wallet = Wallet.create(
             db_uri=self.DATABASE_URI,
             name='test_wallet_import_dash',
             keys=accountkey,
@@ -1863,9 +1863,9 @@ class TestWalletDash(TestWalletMixin, unittest.TestCase):
         network = 'dash'
         pk1 = HDKey(network=network)
         pk2 = HDKey(network=network)
-        wl1 = HDWallet.create('multisig_test_wallet1', [pk1, pk2.public_master(multisig=True)], sigs_required=2,
+        wl1 = Wallet.create('multisig_test_wallet1', [pk1, pk2.public_master(multisig=True)], sigs_required=2,
                               db_uri=self.DATABASE_URI)
-        wl2 = HDWallet.create('multisig_test_wallet2', [pk1.public_master(multisig=True), pk2], sigs_required=2,
+        wl2 = Wallet.create('multisig_test_wallet2', [pk1.public_master(multisig=True), pk2], sigs_required=2,
                               db_uri=self.DATABASE_URI)
         wl1_key = wl1.new_key()
         wl2_key = wl2.new_key(cosigner_id=wl1.cosigner_id)
@@ -1902,7 +1902,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         phrase2 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
         pk1 = HDKey.from_passphrase(phrase1, witness_type='segwit', multisig=True)
         pk2 = HDKey.from_passphrase(phrase2, witness_type='segwit', multisig=True)
-        w = HDWallet.create('multisig-segwit', [pk1, pk2.public_master()], sigs_required=1, witness_type='segwit',
+        w = Wallet.create('multisig-segwit', [pk1, pk2.public_master()], sigs_required=1, witness_type='segwit',
                             db_uri=self.DATABASE_URI)
         self.assertEqual(w.get_key().address, 'bc1qfjhmzzt9l6dmm0xx3tc6qrtff8dve7j7qrcyp88tllszm97r84aqxel5jk')
 
@@ -1911,7 +1911,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         phrase2 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
         pk1 = HDKey.from_passphrase(phrase1)
         pk2 = HDKey.from_passphrase(phrase2)
-        w = HDWallet.create('segwit-p2sh-p2wsh', [pk1, pk2.public_master(witness_type='p2sh-segwit', multisig=True)],
+        w = Wallet.create('segwit-p2sh-p2wsh', [pk1, pk2.public_master(witness_type='p2sh-segwit', multisig=True)],
                             sigs_required=2, witness_type='p2sh-segwit', db_uri=self.DATABASE_URI)
         nk = w.get_key()
         self.assertEqual(nk.address, '3JFyRjKWYFz5BMFHLZvT7EZQJ85gLFvtkT')
@@ -1930,7 +1930,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         self.assertEqual(k1.address, address)
 
     def test_wallet_segwit_p2wpkh_send(self):
-        w = HDWallet.create('segwit_p2wpkh_send', witness_type='segwit', network='bitcoinlib_test',
+        w = Wallet.create('segwit_p2wpkh_send', witness_type='segwit', network='bitcoinlib_test',
                             db_uri=self.DATABASE_URI)
         w.get_key()
         w.utxos_update()
@@ -1942,7 +1942,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         self.assertTrue(t.pushed)
 
     def test_wallet_segwit_p2wsh_send(self):
-        w = HDWallet.create('segwit_p2wsh_send', witness_type='segwit', network='bitcoinlib_test',
+        w = Wallet.create('segwit_p2wsh_send', witness_type='segwit', network='bitcoinlib_test',
                             keys=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test')], sigs_required=2,
                             cosigner_id=0, db_uri=self.DATABASE_URI)
         w.get_key()
@@ -1955,7 +1955,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         self.assertTrue(t.pushed)
 
     def test_wallet_segwit_p2sh_p2wpkh_send(self):
-        w = HDWallet.create('segwit_p2sh_p2wpkh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
+        w = Wallet.create('segwit_p2sh_p2wpkh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
                             db_uri=self.DATABASE_URI)
         w.get_key()
         w.utxos_update()
@@ -1967,7 +1967,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         self.assertTrue(t.pushed)
 
     def test_wallet_segwit_p2sh_p2wsh_send(self):
-        w = HDWallet.create('segwit_p2sh_p2wsh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
+        w = Wallet.create('segwit_p2sh_p2wsh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
                             keys=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test'),
                                   HDKey(network='bitcoinlib_test')], sigs_required=2, cosigner_id=0,
                             db_uri=self.DATABASE_URI)
@@ -2000,7 +2000,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
             HDKey().public_master(witness_type='segwit', multisig=True),
         ]
 
-        wl1 = HDWallet.create('segwit_bitcoin_p2wsh_send', key_list, sigs_required=2, witness_type='segwit',
+        wl1 = Wallet.create('segwit_bitcoin_p2wsh_send', key_list, sigs_required=2, witness_type='segwit',
                               db_uri=self.DATABASE_URI)
         wl1.utxo_add(wl1.get_key().address, 10000000, prev_tx_hash, 0)
         to_address = wl1.get_key_change().address
@@ -2012,7 +2012,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         self.assertFalse(t.error)
 
         # === Segwit P2WPKH to P2WSH ===
-        wl2 = HDWallet.create('segwit_bitcoin_p2wpkh_send', witness_type='segwit', db_uri=self.DATABASE_URI)
+        wl2 = Wallet.create('segwit_bitcoin_p2wpkh_send', witness_type='segwit', db_uri=self.DATABASE_URI)
         wl2.utxo_add(wl2.get_key().address, 200000, prev_tx_hash, 0)
         to_address = wl1.get_key_change().address
         t = wl2.transaction_create([(to_address, 100000)], fee=10000)
@@ -2022,7 +2022,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         self.assertFalse(t.error)
 
         # === Segwit P2SH-P2WPKH to P2WPK ===
-        wl3 = HDWallet.create('segwit_bitcoin_p2sh_p2wpkh_send', witness_type='p2sh-segwit',
+        wl3 = Wallet.create('segwit_bitcoin_p2sh_p2wpkh_send', witness_type='p2sh-segwit',
                               db_uri=self.DATABASE_URI)
         wl3.utxo_add(wl3.get_key().address, 110000, prev_tx_hash, 0)
         t = wl3.transaction_create([(to_address, 100000)], fee=10000)
@@ -2033,7 +2033,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_segwit_litecoin_multi_accounts(self):
         phrase = 'rug rebuild group coin artwork degree basic humor flight away praise able'
-        w = HDWallet.create('segwit_wallet_litecoin_p2wpkh', keys=phrase, network='litecoin',
+        w = Wallet.create('segwit_wallet_litecoin_p2wpkh', keys=phrase, network='litecoin',
                             db_uri=self.DATABASE_URI, witness_type='segwit')
         self.assertEqual(w.get_key().address, "ltc1qsrzxzg39jyt8knsw5hlqmpwmuc8ejxvp9hfch8")
         self.assertEqual(w.get_key_change().address, "ltc1q9n6zknsw2hhq7dkyvczars8vl8zta5yusjjem5")
@@ -2045,7 +2045,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
         phrase = 'rug rebuild group coin artwork degree basic humor flight away praise able'
 
-        w = HDWallet.create('segwit_wallet_litecoin_p2sh_p2wpkh', keys=phrase, network='litecoin',
+        w = Wallet.create('segwit_wallet_litecoin_p2sh_p2wpkh', keys=phrase, network='litecoin',
                             db_uri=self.DATABASE_URI, witness_type='p2sh-segwit')
         self.assertEqual(w.get_key().address, "MW1V5XPPW1YYQ5BGL5mSWEZNZSyD4XQPgh")
         self.assertEqual(w.get_key_change().address, "MWQoYMDTNvwZPNNypLMzkQ7JNSCtvS554j")
@@ -2092,7 +2092,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         pk2 = HDKey(
             "ZprvAhadJRUYsNgeBbjftwKvAhDEV1hrYBGY19wATHqnEt5jfWXxXChYP8Qfnw3w2zJZskNercma5S1fWYH7e7XwbTVPgbabvs1CfU"
             "zY2KQD2cB")
-        w = HDWallet.create("account-test", keys=[pk1, pk2.public_master(multisig=True)], witness_type='segwit',
+        w = Wallet.create("account-test", keys=[pk1, pk2.public_master(multisig=True)], witness_type='segwit',
                             db_uri=self.DATABASE_URI)
         w.new_account()
         w.new_account()
@@ -2110,7 +2110,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
     def test_wallet_segwit_multiple_networks_accounts(self):
         pk1 = 'surround vacant shoot aunt acoustic liar barely you expand rug industry grain'
         pk2 = 'defy push try brush ceiling sugar film present goat settle praise toilet'
-        wallet = HDWallet.create(keys=[pk1, pk2], network='bitcoin', name='test_wallet_multicurrency',
+        wallet = Wallet.create(keys=[pk1, pk2], network='bitcoin', name='test_wallet_multicurrency',
                                  witness_type='segwit', cosigner_id=0, encoding='base58',
                                  db_uri=self.DATABASE_URI)
         wallet.new_account(network='litecoin')
@@ -2155,13 +2155,13 @@ class TestWalletKeyStructures(TestWalletMixin, unittest.TestCase):
                                 wlt.path_expand, ['m', "bestaatnie'", "coin_type'", "1", 2, 3])
 
     def test_wallet_exotic_key_paths(self):
-        w = HDWallet.create("simple_custom_keypath", key_path="m/change/address_index",
+        w = Wallet.create("simple_custom_keypath", key_path="m/change/address_index",
                             db_uri=self.DATABASE_URI)
         self.assertEqual(w.new_key().path, "m/0/1")
         self.assertEqual(w.new_key_change().path, "m/1/0")
         self.assertEqual(w.wif()[:4], 'xpub')
 
-        w = HDWallet.create(
+        w = Wallet.create(
             "strange_key_path", keys=[HDKey(), HDKey()], purpose=100, cosigner_id=0,
             key_path="m/purpose'/cosigner_index/change/address_index",
             db_uri=self.DATABASE_URI)
@@ -2172,7 +2172,7 @@ class TestWalletKeyStructures(TestWalletMixin, unittest.TestCase):
                'MbMQLFwMKVV'
         wif2 = 'Zpub75J84sqDUenYwh6eYwFnpXmfRMkfCwyEUBsN6fkGLQhh4nGmdxHw1io3AcUvAcK14RXosXfjG6Gfkz3NUHCa1JESGCf52ZWQ' \
                'd2CqDgo1rLa'
-        w = HDWallet.create(
+        w = Wallet.create(
             "long_key_path", keys=[wif1, wif2], witness_type='segwit', cosigner_id=1,
             key_path="m/purpose'/coin_type'/account'/script_type'/cosigner_index/change/address_index",
             db_uri=self.DATABASE_URI)
@@ -2211,7 +2211,7 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         wif = 'xpub661MyMwAqRbcFCwFkcko75u2VEinbG1u5U4nq8AFJq4AbLPEvwcmhZGgGcnDcEBpcfAFEP8vVhbJJvX1ieGWdoaa5AnHfyB' \
               'DAY95TfYH6H6'
         address = '1EJiPa66sT4PCDCFnc7oRnpWebAogPqppr'
-        w = HDWallet.create('test_wallet_address_import_public_key', address, db_uri=self.DATABASE_URI)
+        w = Wallet.create('test_wallet_address_import_public_key', address, db_uri=self.DATABASE_URI)
         self.assertEqual(w.addresslist(), [address])
         self.assertIsNone(w.main_key.key_public)
         w.import_key(wif)
@@ -2221,7 +2221,7 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         address = 'bc1q84xq6lrzr09t3h2pw5ys5zee7rn3mxh5v65732'
         wif = 'zprvAWgYBBk7JR8Gj9CNFRBUq3DvNHDbZhH4L6AybFSTCH7DDW6boPyiQfTigAPhJma5wC4TP1o53Gz1XLh94xD3dVQUpsFDaCb2' \
               '9XmDQKBwKhz'
-        w = HDWallet.create('test_wallet_address_import_public_key_segwit', address, db_uri=self.DATABASE_URI)
+        w = Wallet.create('test_wallet_address_import_public_key_segwit', address, db_uri=self.DATABASE_URI)
         self.assertEqual(w.addresslist(), [address])
         self.assertIsNone(w.main_key.wif)
         w.import_key(wif)
@@ -2231,7 +2231,7 @@ class TestWalletReadonlyAddress(TestWalletMixin, unittest.TestCase):
         wif = 'xprv9s21ZrQH143K2irnebDnjwxHwCtJBoJ3iF9C2jkdkVXBiY46PQJX9kxCRMVcM1YXLERWUiUBoxQEUDqFAKbrTaL9FB4HfRY' \
               'jsGgCGpRPWTy'
         address = '1EJiPa66sT4PCDCFnc7oRnpWebAogPqppr'
-        w = HDWallet.create('test_wallet_address_import_private_key', address, db_uri=self.DATABASE_URI)
+        w = Wallet.create('test_wallet_address_import_private_key', address, db_uri=self.DATABASE_URI)
         self.assertListEqual(w.addresslist(), [address])
         self.assertFalse(w.main_key.is_private)
         w.import_key(wif)

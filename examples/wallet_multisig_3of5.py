@@ -8,7 +8,7 @@
 #
 
 from pprint import pprint
-from bitcoinlib.wallets import wallet_exists, HDWallet, wallet_delete_if_exists
+from bitcoinlib.wallets import wallet_exists, Wallet, wallet_delete_if_exists
 from bitcoinlib.keys import HDKey
 
 WALLET_NAME = "Multisig_3of5"
@@ -74,12 +74,12 @@ if not wallet_exists(WALLET_NAME):
 
     if len(key_list) != SIGS_N:
         raise ValueError("Number of cosigners (%d) is different then expected. SIG_N=%d" % (len(key_list), SIGS_N))
-    wallet3o5 = HDWallet.create(WALLET_NAME, key_list, sigs_required=SIGS_REQUIRED, witness_type=WITNESS_TYPE,
+    wallet3o5 = Wallet.create(WALLET_NAME, key_list, sigs_required=SIGS_REQUIRED, witness_type=WITNESS_TYPE,
                                 network=NETWORK)
     wallet3o5.new_key()
     print("\n\nA multisig wallet with 1 key has been created on this system")
 else:
-    wallet3o5 = HDWallet(WALLET_NAME)
+    wallet3o5 = Wallet(WALLET_NAME)
 
 print("\nUpdating UTXO's...")
 wallet3o5.utxos_update()

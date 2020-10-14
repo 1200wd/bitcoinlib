@@ -14,7 +14,7 @@ import binascii
 import struct
 import ast
 from pprint import pprint
-from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
+from bitcoinlib.wallets import Wallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
 from bitcoinlib.encoding import to_hexstring
@@ -160,10 +160,10 @@ def create_wallet(wallet_name, args, db_uri):
                 passphrase = ' '.join(passphrase)
                 seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
                 key_list.append(HDKey.from_seed(seed, network=args.network))
-        return HDWallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
+        return Wallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
                                cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
     elif args.create_from_key:
-        return HDWallet.create(wallet_name, args.create_from_key, network=args.network,
+        return Wallet.create(wallet_name, args.create_from_key, network=args.network,
                                db_uri=db_uri, witness_type=args.witness_type)
     else:
         passphrase = args.passphrase
@@ -180,7 +180,7 @@ def create_wallet(wallet_name, args, db_uri):
         passphrase = ' '.join(passphrase)
         seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
         hdkey = HDKey.from_seed(seed, network=args.network)
-        return HDWallet.create(wallet_name, hdkey, network=args.network, witness_type=args.witness_type,
+        return Wallet.create(wallet_name, hdkey, network=args.network, witness_type=args.witness_type,
                                db_uri=db_uri)
 
 
@@ -270,7 +270,7 @@ def main():
         args.wallet_info = True
     else:
         try:
-            wlt = HDWallet(args.wallet_name, db_uri=db_uri)
+            wlt = Wallet(args.wallet_name, db_uri=db_uri)
             if args.passphrase is not None:
                 print("WARNING: Using passphrase option for existing wallet ignored")
             if args.create_from_key is not None:

@@ -51,8 +51,8 @@ Example: Create wallet and generate new address (key) to receive bitcoins
 
 .. code-block:: pycon
 
-   >>> from bitcoinlib.wallets import HDWallet
-   >>> w = HDWallet.create('Wallet1')
+   >>> from bitcoinlib.wallets import Wallet
+   >>> w = Wallet.create('Wallet1')
    >>> key1 = w.get_key()
    >>> key1.address
    '1Fo7STj6LdRhUuD1AiEsHpH65pXzraGJ9j'
@@ -82,12 +82,12 @@ The complete wallet can be recovered from the passphrase which is the masterkey.
 
 .. code-block:: python
 
-    from bitcoinlib.wallets import HDWallet, wallet_delete
+    from bitcoinlib.wallets import Wallet, wallet_delete
     from bitcoinlib.mnemonic import Mnemonic
 
     passphrase = Mnemonic().generate()
     print(passphrase)
-    w = HDWallet.create("Wallet2", keys=passphrase, network='bitcoin')
+    w = Wallet.create("Wallet2", keys=passphrase, network='bitcoin')
     account_btc2 = w.new_account('Account BTC 2')
     account_ltc1 = w.new_account('Account LTC', network='litecoin')
     w.get_key()
@@ -103,7 +103,7 @@ Create a Multisig wallet with 2 cosigner which both need to sign a transaction.
 
 .. code-block:: python
 
-    from bitcoinlib.wallets import HDWallet
+    from bitcoinlib.wallets import Wallet
     from bitcoinlib.keys import HDKey
 
     NETWORK = 'testnet'
@@ -111,9 +111,9 @@ Create a Multisig wallet with 2 cosigner which both need to sign a transaction.
                 '5zNYeiX8', network=NETWORK)
     k2 = HDKey('tprv8ZgxMBicQKsPeUbMS6kswJc11zgVEXUnUZuGo3bF6bBrAg1ieFfUdPc9UHqbD5HcXizThrcKike1c4z6xHrz6MWGwy8L6YKVbgJ'
                 'MeQHdWDp', network=NETWORK)
-    w1 = HDWallet.create('multisig_2of2_cosigner1', sigs_required=2,
+    w1 = Wallet.create('multisig_2of2_cosigner1', sigs_required=2,
                          keys=[k1, k2.public_master(multisig=True)], network=NETWORK)
-    w2 = HDWallet.create('multisig_2of2_cosigner2',  sigs_required=2,
+    w2 = Wallet.create('multisig_2of2_cosigner2',  sigs_required=2,
                          keys=[k1.public_master(multisig=True), k2], network=NETWORK)
     print("Deposit testnet bitcoin to this address to create transaction: ", w1.get_key().address)
 
@@ -146,8 +146,8 @@ Create a native single key P2WPKH wallet:
 
 .. code-block:: pycon
 
-    >>> from bitcoinlib.wallets import HDWallet
-    >>> w = HDWallet.create('wallet_segwit_p2wpkh', witness_type='segwit')
+    >>> from bitcoinlib.wallets import Wallet
+    >>> w = Wallet.create('wallet_segwit_p2wpkh', witness_type='segwit')
     >>> w.get_key().address
     bc1q84y2quplejutvu0h4gw9hy59fppu3thg0u2xz3
 
@@ -155,8 +155,8 @@ Or create a P2SH nested single key P2SH_P2WPKH wallet:
 
 .. code-block:: pycon
 
-    >>> from bitcoinlib.wallets import HDWallet
-    >>> w = HDWallet.create('wallet_segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
+    >>> from bitcoinlib.wallets import Wallet
+    >>> w = Wallet.create('wallet_segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
     >>> w.get_key().address
     36ESSWgR4WxXJSc4ysDSJvecyY6FJkhUbp
 
