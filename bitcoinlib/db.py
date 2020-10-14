@@ -334,8 +334,10 @@ class DbTransaction(Base):
     outputs = relationship("DbTransactionOutput", cascade="all,delete",
                            doc="List of all outputs as DbTransactionOutput objects")
     status = Column(String(20), default='new',
-                    doc="Current status of transaction, can be one of the following: new', 'incomplete', "
+                    doc="Current status of transaction, can be one of the following: new', "
                         "'unconfirmed', 'confirmed'. Default is 'new'")
+    is_complete = Column(Boolean, default=True, doc="Allow to store incomplete transactions, for instance if not all "
+                                                    "inputs are known when retrieving UTXO's")
     input_total = Column(BigInteger, default=0,
                          doc="Total value of the inputs of this transaction. Input total = Output total + fee. "
                              "Default is 0")
@@ -349,7 +351,7 @@ class DbTransaction(Base):
 
     __table_args__ = (
         UniqueConstraint('wallet_id', 'txid', name='constraint_wallet_transaction_hash_unique'),
-        CheckConstraint(status.in_(['new', 'incomplete', 'unconfirmed', 'confirmed']),
+        CheckConstraint(status.in_(['new', 'unconfirmed', 'confirmed']),
                         name='constraint_status_allowed'),
         CheckConstraint(witness_type.in_(['legacy', 'segwit']), name='transaction_constraint_allowed_types'),
     )

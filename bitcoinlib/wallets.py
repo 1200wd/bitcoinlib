@@ -184,6 +184,7 @@ def wallet_delete(wallet, db_uri=None, force=False):
     ks.delete()
 
     # Delete transactions from this wallet (remove wallet_id)
+    session.query(DbTransaction).filter_by(wallet_id=wallet_id, is_complete=False).delete()
     session.query(DbTransaction).filter_by(wallet_id=wallet_id).update({DbTransaction.wallet_id: None})
 
     res = w.delete()
@@ -227,6 +228,7 @@ def wallet_empty(wallet, db_uri=None):
     ks.delete()
 
     # Delete transactions from this wallet (remove wallet_id)
+    session.query(DbTransaction).filter_by(wallet_id=wallet_id, is_complete=False).delete()
     session.query(DbTransaction).filter_by(wallet_id=wallet_id).update({DbTransaction.wallet_id: None})
 
     session.commit()
@@ -2819,9 +2821,10 @@ class HDWallet(object):
                             block_height = None
                             if block_height in utxo and utxo['block_height']:
                                 block_height = utxo['block_height']
-                            new_tx = DbTransaction(wallet_id=self.wallet_id, txid=bytes.fromhex(utxo['txid']),
-                                                   status=status, block_height=block_height, account_id=account_id,
-                                                   confirmations=utxo['confirmations'], network_name=network)
+                            new_tx = DbTransaction(
+                                wallet_id=self.wallet_id, txid=bytes.fromhex(utxo['txid']), status=status,
+                                is_complete=False, block_height=block_height, account_id=account_id,
+                                confirmations=utxo['confirmations'], network_name=network)
                             self._session.add(new_tx)
                             self._commit()
                             tid = new_tx.id
@@ -3136,7 +3139,6 @@ class HDWallet(object):
             qr = qr.filter(or_(DbTransaction.status == 'confirmed', DbTransaction.status == 'unconfirmed'))
         txs = qr.all()
         # Transaction outputs
-        # TODO: Add account_id to DbTransaction and remove DbKey dependency
         qr = self._session.query(DbTransactionOutput, DbTransactionOutput.address, DbTransaction.confirmations,
                                  DbTransaction.txid, DbTransaction.network_name, DbTransaction.status). \
             join(DbTransaction). \
@@ -3191,7 +3193,6 @@ class HDWallet(object):
 
         :return list of HDWalletTransaction:
         """
-        # TODO: Add account_id to DbTransaction
         network, _, _ = self._get_account_defaults(network)
         qr = self._session.query(DbTransaction.txid, DbTransaction.network_name, DbTransaction.status). \
             filter(DbTransaction.wallet_id == self.wallet_id,

@@ -1260,7 +1260,7 @@ class Transaction(object):
         :type output_total: int
         :param rawtx: Bytes representation of complete transaction
         :type rawtx: bytes
-        :param status: Transaction status, for example: 'new', 'incomplete', 'unconfirmed', 'confirmed'
+        :param status: Transaction status, for example: 'new', 'unconfirmed', 'confirmed'
         :type status: str
         :param coinbase: Coinbase transaction or not?
         :type coinbase: bool
