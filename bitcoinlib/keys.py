@@ -267,8 +267,8 @@ def deserialize_address(address, encoding=None, network=None):
                 raise BKeyError("Invalid address %s, checksum incorrect" % address)
             elif check == checksum:
                 address_prefix = key_hash[0:1]
-                networks_p2pkh = network_by_value('prefix_address', address_prefix)
-                networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix)
+                networks_p2pkh = network_by_value('prefix_address', address_prefix.hex())
+                networks_p2sh = network_by_value('prefix_address_p2sh', address_prefix.hex())
                 public_key_hash = key_hash[1:]
                 script_type = ''
                 witness_type = ''
@@ -808,7 +808,7 @@ class Key(object):
                 key = key[:-4]
                 if checksum != double_sha256(key)[:4]:
                     raise BKeyError("Invalid checksum, not a valid WIF key")
-                found_networks = network_by_value('prefix_wif', key[0:1])
+                found_networks = network_by_value('prefix_wif', key[0:1].hex())
                 if not len(found_networks):
                     raise BKeyError("Unrecognised WIF private key, version byte unknown. Versionbyte: %s" % key[0:1])
                 self._wif = import_key

@@ -103,7 +103,7 @@ def network_by_value(field, value):
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
     :param value: Value of network prefix
-    :type value: str, bytes
+    :type value: str
 
     :return list: Of network name strings 
     """
@@ -111,7 +111,7 @@ def network_by_value(field, value):
            for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field] == value]
     if not nws:
         try:
-            value = to_hexstring(value).upper()
+            value = value.upper()
         except TypeError:
             pass
         nws = [(nv, NETWORK_DEFINITIONS[nv]['priority'])
@@ -159,8 +159,8 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     >>> [nw['network'] for nw in wif_prefix_search('0488ADE4', multisig=True)]
     ['bitcoin', 'dash']
 
-    :param wif: WIF string or prefix in bytes or hexadecimal string
-    :type wif: str, bytes
+    :param wif: WIF string or prefix as hexadecimal string
+    :type wif: str
     :param witness_type: Limit search to specific witness type
     :type witness_type: str
     :param multisig: Limit search to multisig: false, true or None for both. Default is both
@@ -171,16 +171,12 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     :return dict:
     """
 
-    key_hex = ''
+    key_hex = wif
     if len(wif) > 8:
         try:
             key_hex = change_base(wif, 58, 16)
         except Exception:
             pass
-    else:
-        key_hex = wif
-    if not key_hex:
-        key_hex = to_hexstring(wif)
     prefix = key_hex[:8].upper()
     matches = []
     for nw in NETWORK_DEFINITIONS:
