@@ -207,7 +207,7 @@ class DashdClient(BaseClient):
 
         return txs
 
-    def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
+    def getblock(self, blockid, parse_transactions=True, page=1, limit=None):
         if isinstance(blockid, int):
             blockid = self.proxy.getblockhash(blockid)
         if not limit:

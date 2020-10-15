@@ -248,7 +248,7 @@ class BitcoindClient(BaseClient):
             return [txid]
         return []
 
-    def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
+    def getblock(self, blockid, parse_transactions=True, page=1, limit=None):
         if isinstance(blockid, int) or len(blockid) < 10:
             blockid = self.proxy.getblockhash(int(blockid))
         if not limit:
