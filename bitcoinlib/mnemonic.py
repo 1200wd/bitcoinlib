@@ -180,10 +180,11 @@ class Mnemonic(object):
         wi = []
         for word in words:
             wi.append(self._wordlist.index(word))
-        ent = change_base(wi, 2048, 256, output_even=False)
+        ent_length = int(len(words) * 4/3)
+        ent = change_base(wi, 2048, 256, ent_length, output_even=False)
         if includes_checksum:
             binresult = change_base(ent, 256, 2, len(ent) * 4)
-            ent = change_base(binresult[:-len(binresult) // 33], 2, 256)
+            ent = change_base(binresult[:-len(binresult) // 33], 2, 256, ent_length)
 
             # Check checksum
             checksum = binresult[-len(binresult) // 33:]
