@@ -23,8 +23,8 @@ blockchain information. It does currently not parse the blockchain itself.
 .. image:: https://coveralls.io/repos/github/1200wd/bitcoinlib/badge.svg?branch=installation-documentation-update
     :target: https://coveralls.io/github/1200wd/bitcoinlib?branch=master
     :alt: Coveralls
-.. image:: https://snyk.io/test/github/mccwdev/bitcoinlib/badge.svg
-    :target: https://snyk.io/test/github/mccwdev/bitcoinlib
+.. image:: https://snyk.io/test/github/1200wd/bitcoinlib/badge.svg
+    :target: https://snyk.io/test/github/1200wd/bitcoinlib
     :alt: Known Vulnerabilities
     
 
