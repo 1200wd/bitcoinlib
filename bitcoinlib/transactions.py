@@ -1326,6 +1326,7 @@ class Transaction(object):
         self.verified = verified
         self.witness_type = witness_type
         self.change = 0
+        self.calc_weight_units()
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
         if not self.hash:
@@ -1628,6 +1629,12 @@ class Transaction(object):
         """
 
         return to_hexstring(self.raw(sign_id, hash_type=hash_type, witness_type=witness_type))
+
+    def witness_data(self):
+        witness_data = b''
+        for i in self.inputs:
+            witness_data += int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
+        return witness_data
 
     def verify(self):
         """
@@ -1952,8 +1959,22 @@ class Transaction(object):
         if self.witness_type == 'legacy':
             return est_size
         else:
-            self.vsize = math.ceil(((est_size - witness_size) * 3 + est_size) / 4)
+            self.vsize = math.ceil((((est_size - witness_size) * 3 + est_size) / 4) - 1.5)
             return self.vsize
+
+    def calc_weight_units(self):
+        if not self.size:
+            return None
+        wu = self.size * 4
+        if self.witness_type == 'segwit':
+            wu = wu - 6  # for segwit marker and flag
+            wu = wu - len(self.witness_data()) * 3
+        self.vsize = math.ceil(wu / 4)
+        return wu
+
+    @property
+    def weight_units(self):
+        return self.calc_weight_units()
 
     def calculate_fee(self):
         """
