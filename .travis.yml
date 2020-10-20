@@ -3,7 +3,6 @@ language: python
 env:
     - BCL_CONFIG_FILE=config.ini.unittest
 python:
-    - 2.7
     - 3.5
     - 3.6
 jobs:
@@ -23,17 +22,6 @@ jobs:
       dist: xenial
       env:
         - UNITTESTS_FULL_DATABASE_TEST=True
-    - os: windows
-      language: shell
-      python: "3.7"
-      env:
-        - UNITTESTS_FULL_DATABASE_TEST=False
-      before_install:
-        - choco install python --version=3.7.5
-        - choco install postgresql --params '/Password:postgres' --paramsglobal
-        - choco install mysql
-        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
-        - python -m pip install --upgrade pip wheel
 
 before_install:
   - sudo apt-get install -y postgresql postgresql-contrib

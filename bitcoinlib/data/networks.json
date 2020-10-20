@@ -268,7 +268,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 100000000,
-    "fee_min": 100000000,
+    "fee_min": 100000,
     "fee_max": 1000000000,
     "priority": 10
   },
@@ -293,7 +293,7 @@
     "denominator": 0.00000001,
     "dust_amount": 1000,
     "fee_default": 100000000,
-    "fee_min": 100000000,
+    "fee_min": 100000,
     "fee_max": 1000000000,
     "priority": 6
   }
