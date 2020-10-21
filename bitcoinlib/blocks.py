@@ -60,28 +60,28 @@ class Block:
 
         self.block_hash = to_bytes(block_hash)
         if isinstance(version, int):
-            self.version = struct.pack('>L', version)
+            self.version = version.to_bytes(4, byteorder='big')
             self.version_int = version
         else:
             self.version = to_bytes(version)
-            self.version_int = 0 if not self.version else struct.unpack('>L', self.version)[0]
+            self.version_int = 0 if not self.version else int.from_bytes(self.version, 'big')
         self.prev_block = to_bytes(prev_block)
         self.merkle_root = to_bytes(merkle_root)
         self.time = time
         if not isinstance(time, int):
-            self.time = struct.unpack('>L', time)[0]
+            self.time = int.from_bytes(time, 'big')
         if isinstance(bits, int):
-            self.bits = struct.pack('>L', bits)
+            self.bits = bits.to_bytes(4, 'big')
             self.bits_int = bits
         else:
             self.bits = to_bytes(bits)
-            self.bits_int = 0 if not self.bits else struct.unpack('>L', self.bits)[0]
+            self.bits_int = 0 if not self.bits else int.from_bytes(self.bits, 'big')
         if isinstance(nonce, int):
-            self.nonce = struct.pack('>L', nonce)
+            self.nonce = nonce.to_bytes(4, 'big')
             self.nonce_int = nonce
         else:
             self.nonce = to_bytes(nonce)
-            self.nonce_int = 0 if not self.nonce else struct.unpack('>L', self.nonce)[0]
+            self.nonce_int = 0 if not self.nonce else int.from_bytes(self.nonce, 'big')
         self.transactions = transactions
         self.txs_data = None
         self.confirmations = confirmations
@@ -96,7 +96,7 @@ class Block:
                 and self.version_int > 1:
             # first bytes of unlocking script of coinbase transaction contains block height (BIP0034)
             if self.transactions[0].coinbase and self.transactions[0].inputs[0].unlocking_script:
-                calc_height = struct.unpack('<L', self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00')[0]
+                calc_height = int.from_bytes(self.transactions[0].inputs[0].unlocking_script[1:4] + b'\x00', 'little')
                 if height and calc_height != height:
                     raise ValueError("Specified block height is different than calculated block height according to "
                                      "BIP0034")
@@ -116,12 +116,12 @@ class Block:
         """
         if not self.block_hash or not self.bits:
             return False
-        if change_base(self.block_hash, 256, 10) < self.target:
+        if int.from_bytes(self.block_hash, 'big') < self.target:
             return True
         return False
 
     def __repr__(self):
-        return "<Block(%s, %s, transactions: %s)>" % (to_hexstring(self.block_hash), self.height, self.tx_count)
+        return "<Block(%s, %s, transactions: %s)>" % (self.block_hash.hex(), self.height, self.tx_count)
 
     @classmethod
     def from_raw(cls, raw, block_hash=None, height=None, parse_transactions=False, limit=0, network=DEFAULT_NETWORK):
@@ -156,7 +156,7 @@ class Block:
             block_hash = block_hash_calc
         elif block_hash != block_hash_calc:
             raise ValueError("Provided block hash does not correspond to calculated block hash %s" %
-                             to_hexstring(block_hash_calc))
+                             block_hash_calc.hex())
 
         version = raw[0:4][::-1]
         prev_block = raw[4:36][::-1]
@@ -222,11 +222,11 @@ class Block:
         :return dict:
         """
         return {
-            'block_hash': to_hexstring(self.block_hash),
+            'block_hash': self.block_hash.hex(),
             'height': self.height,
             'version': self.version_int,
-            'prev_block': None if not self.prev_block else to_hexstring(self.prev_block),
-            'merkle_root': to_hexstring(self.merkle_root),
+            'prev_block': None if not self.prev_block else self.prev_block.hex(),
+            'merkle_root': self.merkle_root.hex(),
             'timestamp': self.time,
             'bits': self.bits_int,
             'nonce': self.nonce_int,
@@ -248,9 +248,7 @@ class Block:
         if not self.bits:
             return 0
         exponent = self.bits[0]
-        if not PY3:
-            exponent = ord(exponent)
-        coefficient = struct.unpack('>L', b'\x00' + self.bits[1:])[0]
+        coefficient = int.from_bytes(b'\x00' + self.bits[1:], 'big')
         return coefficient * 256 ** (exponent - 3)
 
     @property
@@ -306,7 +304,7 @@ class Block:
         rb = self.version[::-1]
         rb += self.prev_block[::-1]
         rb += self.merkle_root[::-1]
-        rb += struct.pack('>L', self.time)[::-1]
+        rb += self.time.to_bytes(4, 'little')
         rb += self.bits[::-1]
         rb += self.nonce[::-1]
         if len(rb) != 80:

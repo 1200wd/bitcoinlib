@@ -18,19 +18,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-try:
-    import enum
-except ImportError:
-    import enum34 as enum
+import enum
 from sqlalchemy import create_engine
 from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckConstraint, String, Boolean, Sequence,
                         ForeignKey, DateTime, Numeric, Text)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 from bitcoinlib.main import *
 
 _logger = logging.getLogger(__name__)

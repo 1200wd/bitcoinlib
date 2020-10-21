@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    dashd deamon
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018 - 2020 Oct - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -29,12 +29,11 @@
 #   "denominator": 100000000
 # }
 
-import struct
+import configparser
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'dashd'
@@ -49,11 +48,6 @@ class ConfigError(Exception):
 
     def __str__(self):
         return self.msg
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 
 class DashdClient(BaseClient):
@@ -148,13 +142,13 @@ class DashdClient(BaseClient):
                 i.script_type = 'coinbase'
                 continue
             if get_input_values:
-                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+                txi = self.proxy.getrawtransaction(i.prev_hash.hex(), 1)
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
         t.block_hash = tx['blockhash']
         t.block_height = block_height
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'little')
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t

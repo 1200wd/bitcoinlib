@@ -18,18 +18,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os
-import logging
 import json
 import random
 import time
 from datetime import timedelta
 from sqlalchemy import func
-from bitcoinlib.config.config import BLOCK_COUNT_CACHE_TIME
-from bitcoinlib.main import BCL_DATA_DIR, TYPE_TEXT, MAX_TRANSACTIONS, TIMEOUT_REQUESTS
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import to_hexstring, to_bytes
+from bitcoinlib.encoding import to_bytes
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.blocks import Block
@@ -304,11 +300,10 @@ class Service(object):
         Get a transaction by its transaction hashtxos. Convert to Bitcoinlib transaction object.
 
         :param txid: Transaction identification hash
-        :type txid: str, bytes
+        :type txid: str
 
         :return Transaction: A single transaction object
         """
-        txid = to_hexstring(txid)
         tx = None
         self.results_cache_n = 0
 
@@ -413,11 +408,10 @@ class Service(object):
         Get a raw transaction by its transaction hash
 
         :param txid: Transaction identification hash
-        :type txid: str, bytes
+        :type txid: str
 
         :return str: Raw transaction as hexstring
         """
-        txid = to_hexstring(txid)
         self.results_cache_n = 0
         rawtx = self.cache.getrawtransaction(txid)
         if rawtx:
@@ -430,11 +424,10 @@ class Service(object):
         Push a raw transaction to the network
 
         :param rawtx: Raw transaction as hexstring or bytes
-        :type rawtx: str, bytes
+        :type rawtx: str
 
         :return dict: Send transaction result
         """
-        rawtx = to_hexstring(rawtx)
         return self._provider_execute('sendrawtransaction', rawtx)
 
     def estimatefee(self, blocks=3):
@@ -644,7 +637,7 @@ class Service(object):
         for i in t.inputs:
             if not i.value:
                 if i.prev_hash not in prev_txs:
-                    prev_t = self.gettransaction(i.prev_hash)
+                    prev_t = self.gettransaction(i.prev_hash.hex())
                 else:
                     prev_t = [t for t in prev_txs if t.txid == i.prev_hash][0]
                 i.value = prev_t.outputs[i.output_n_int].value
@@ -1045,7 +1038,7 @@ class Cache(object):
                 return False
             new_node = DbCacheTransactionNode(
                 txid=t.txid, address=o.address, output_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
-                spending_txid=None if not o.spending_txid else to_hexstring(o.spending_txid),
+                spending_txid=None if not o.spending_txid else o.spending_txid,
                 spending_index_n=o.spending_index_n)
             self.session.add(new_node)
 

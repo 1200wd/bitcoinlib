@@ -19,10 +19,7 @@
 #
 
 import json
-import binascii
-import math
-from bitcoinlib.main import *
-from bitcoinlib.encoding import to_hexstring, change_base, to_bytes
+from bitcoinlib.encoding import *
 
 
 _logger = logging.getLogger(__name__)
@@ -63,7 +60,7 @@ NETWORK_DEFINITIONS = _read_network_definitions()
 
 def _format_value(field, value):
     if field[:6] == 'prefix':
-        return binascii.unhexlify(value)
+        return bytes.fromhex(value)
     elif field == 'denominator':
         return float(value)
     else:
@@ -106,7 +103,7 @@ def network_by_value(field, value):
     :param field: Prefix name from networks definitions (networks.json)
     :type field: str
     :param value: Value of network prefix
-    :type value: str, bytes
+    :type value: str
 
     :return list: Of network name strings 
     """
@@ -114,7 +111,7 @@ def network_by_value(field, value):
            for nv in NETWORK_DEFINITIONS if NETWORK_DEFINITIONS[nv][field] == value]
     if not nws:
         try:
-            value = to_hexstring(value).upper()
+            value = value.upper()
         except TypeError:
             pass
         nws = [(nv, NETWORK_DEFINITIONS[nv]['priority'])
@@ -162,8 +159,8 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     >>> [nw['network'] for nw in wif_prefix_search('0488ADE4', multisig=True)]
     ['bitcoin', 'dash', 'dogecoin']
 
-    :param wif: WIF string or prefix in bytes or hexadecimal string
-    :type wif: str, bytes
+    :param wif: WIF string or prefix as hexadecimal string
+    :type wif: str
     :param witness_type: Limit search to specific witness type
     :type witness_type: str
     :param multisig: Limit search to multisig: false, true or None for both. Default is both
@@ -174,16 +171,12 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     :return dict:
     """
 
-    key_hex = ''
+    key_hex = wif
     if len(wif) > 8:
         try:
             key_hex = change_base(wif, 58, 16)
         except Exception:
             pass
-    else:
-        key_hex = wif
-    if not key_hex:
-        key_hex = to_hexstring(wif)
     prefix = key_hex[:8].upper()
     matches = []
     for nw in NETWORK_DEFINITIONS:
@@ -246,10 +239,10 @@ class Network(object):
         self.currency_code = NETWORK_DEFINITIONS[network_name]['currency_code']
         self.currency_symbol = NETWORK_DEFINITIONS[network_name]['currency_symbol']
         self.description = NETWORK_DEFINITIONS[network_name]['description']
-        self.prefix_address_p2sh = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address_p2sh'])
-        self.prefix_address = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_address'])
+        self.prefix_address_p2sh = bytes.fromhex(NETWORK_DEFINITIONS[network_name]['prefix_address_p2sh'])
+        self.prefix_address = bytes.fromhex(NETWORK_DEFINITIONS[network_name]['prefix_address'])
         self.prefix_bech32 = NETWORK_DEFINITIONS[network_name]['prefix_bech32']
-        self.prefix_wif = binascii.unhexlify(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
+        self.prefix_wif = bytes.fromhex(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
         self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
         self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']
         self.dust_amount = NETWORK_DEFINITIONS[network_name]['dust_amount']
@@ -336,7 +329,7 @@ class Network(object):
             ip = 'private'
         else:
             ip = 'public'
-        found_prefixes = [to_bytes(pf[0]) for pf in self.prefixes_wif if pf[2] == ip and script_type == pf[5]]
+        found_prefixes = [bytes.fromhex(pf[0]) for pf in self.prefixes_wif if pf[2] == ip and script_type == pf[5]]
         if found_prefixes:
             return found_prefixes[0]
         else:

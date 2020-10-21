@@ -28,19 +28,14 @@ class TestTransactionInputs(unittest.TestCase):
     def test_transaction_input_add_str(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ti = Input(ph, 0)
-        self.assertEqual(ph, to_hexstring(ti.prev_hash))
+        self.assertEqual(ph, ti.prev_hash.hex())
         self.assertEqual(repr(ti), "<Input(prev_hash='81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d"
                                    "48', output_n=0, address='', index_n=0, type='sig_pubkey')>")
 
     def test_transaction_input_add_bytes(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ti = Input(prev_hash=to_bytes(ph), output_n=0)
-        self.assertEqual(ph, to_hexstring(ti.prev_hash))
-
-    def test_transaction_input_add_bytearray(self):
-        ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-        ti = Input(prev_hash=to_bytearray(ph), output_n=0)
-        self.assertEqual(ph, to_hexstring(ti.prev_hash))
+        self.assertEqual(ph, ti.prev_hash.hex())
 
     def test_transaction_input_add_scriptsig(self):
         prev_hash = b"\xe3>\xbd\x17\x93\x8b\xc0\x13\xc6(\x95\x89*\xacT\xdf?[\xce\x96\xe4K\x89I\x94\x92ut\x1b\x14'\xe5"
@@ -149,16 +144,6 @@ class TestTransactions(unittest.TestCase):
         self.assertEqual('1P9RQEr2XeE3PEb44ZE35sfZRRW1JHU8qx',
                          Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
 
-    def test_transactions_deserialize_raw_bytearray(self):
-        rawtx = bytearray(b'0100000001685c7c35aabe690cc99f947a8172ad075d4401448a212b9f26607d6ec5530915010000006a4730'
-                          b'440220337117278ee2fc7ae222ec1547b3a40fa39a05f91c1e19db60060541c4b3d6e4022020188e1d5d843c'
-                          b'045ddac78c42ed9ff6a1078414d15a9f065495628fde9d1e55012102d04293c65effbea9d61727374612820d'
-                          b'192cd6d04f106a62c6a6768719de41dcffffffff026804ab01000000001976a914cf75d22e78c86e2e3d29f7'
-                          b'a772f8ffd62391190388ac442d0304000000001976a9145b92b92ddd598d2d4977b3c4e5f552332aed743188'
-                          b'ac00000000')
-        self.assertEqual('19MCFyVmyEhFjYNS8aKJT454jm4YZQjbqm',
-                         Transaction.import_raw(rawtx).as_dict()['outputs'][1]['address'])
-
     def test_transaction_deserialize_raw_coinbase(self):
         rawtx = "02000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d03f6591c046945e" \
                 "35e2f706f6f6c696e2e636f6d2ffabe6d6d3bd89000dd7bd942b167b95cca4bf887bb60a45511c7fe875b4ece4844893351" \
@@ -224,7 +209,7 @@ class TestTransactions(unittest.TestCase):
     def test_transactions_serialize_raw(self):
         for r in self.rawtxs:
             t = Transaction.import_raw(r[1], r[4])
-            self.assertEqual(binascii.hexlify(t.raw()).decode(), r[1],
+            self.assertEqual(t.raw_hex(), r[1],
                              "Deserialize / serialize error in transaction %s" % r[0])
 
     def test_transactions_sign_1(self):
@@ -1008,7 +993,7 @@ class TestTransactions(unittest.TestCase):
 class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
     def test_transaction_script_type_p2pkh(self):
-        s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
+        s = bytes.fromhex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_p2pkh_2(self):
@@ -1016,21 +1001,21 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual('p2pkh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_p2sh(self):
-        s = binascii.unhexlify('a914e3bdbeab033c7e03fd4cbf3a03ff14533260f3f487')
+        s = bytes.fromhex('a914e3bdbeab033c7e03fd4cbf3a03ff14533260f3f487')
         self.assertEqual('p2sh', script_deserialize(s)['script_type'])
 
     def test_transaction_script_type_nulldata(self):
-        s = binascii.unhexlify('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd')
+        s = bytes.fromhex('6a20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd')
         res = script_deserialize(s)
         self.assertEqual('nulldata', res['script_type'])
-        self.assertEqual(b'20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
-                         binascii.hexlify(res['op_return']))
+        self.assertEqual('20985f23805edd2938e5bd9f744d36ccb8be643de00b369b901ae0b3fea911a1dd',
+                         res['op_return'].hex())
 
     def test_transaction_script_type_nulldata_2(self):
-        s = binascii.unhexlify('6a')
+        s = bytes.fromhex('6a')
         res = script_deserialize(s)
         self.assertEqual('nulldata', res['script_type'])
-        self.assertEqual(b'', binascii.hexlify(res['op_return']))
+        self.assertEqual('', res['op_return'].hex())
 
     def test_transaction_script_type_multisig(self):
         s = '514104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426d1b1ec45d76724f' \
@@ -1040,14 +1025,14 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertEqual(2, res['number_of_sigs_n'])
 
     def test_transaction_script_type_multisig_2(self):
-        s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
+        s = bytes.fromhex('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
                                '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
         res = script_deserialize(s)
         self.assertEqual('multisig', res['script_type'])
         self.assertEqual(1, res['number_of_sigs_m'])
 
     def test_transaction_script_multisig_errors(self):
-        s = binascii.unhexlify('51'
+        s = bytes.fromhex('51'
                                '4104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426'
                                'd1b1ec45d76724f26901099416b9265b76ba67c8b0b73d'
                                '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d00'
@@ -1067,7 +1052,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         self.assertRaisesRegexp(TransactionError, exp_error, serialize_multisig_redeemscript, keys)
 
     def test_transaction_script_type_multisig_empty_data(self):
-        s = binascii.unhexlify('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
+        s = bytes.fromhex('5123032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169')
         data = script_deserialize(s)
         data_expected = {'script_type': '', 'keys': [], 'signatures': [], 'redeemscript': b'', 'locktime_cltv': None,
                          'locktime_csv': None, 'number_of_sigs_n': 1, 'number_of_sigs_m': 1}
@@ -1078,7 +1063,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
     def test_transaction_script_type_string(self):
         # Locking script
-        s = binascii.unhexlify('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
+        s = bytes.fromhex('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
                                '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
         os = "OP_1 032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca33016 " \
              "02308673d16987eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a OP_2 OP_CHECKMULTISIG"
@@ -1123,11 +1108,10 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         ds = script_deserialize(spk)
         self.assertEqual(ds['script_type'], 'sig_pubkey')
         self.assertEqual(
-            to_hexstring(ds['signatures'][0]), '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b762'
-                                               '38e002207345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d'
-                                               '1e0d01')
+            ds['signatures'][0].hex(), '3044022034519a85fb5299e180865dda936c5d53edabaaf6d15cd1740aac9878b76238e00220'
+                                       '7345fcb5a62deeb8d9d80e5b412bd24d09151c2008b7fef10eb5f13e484d1e0d01')
         self.assertEqual(
-            to_hexstring(ds['keys'][0]), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
+            ds['keys'][0].hex(), '0207c9ece04a9b5ef3ff441f3aad6bb63e323c05047a820ab45ebbe61385aa7446')
 
     def test_transaction_deserialize_script_with_sizebyte(self):
         script_size_byte = b'\x16\x00\x14y\t\x19r\x18lD\x9e\xb1\xde\xd2+x\xe4\r\x00\x9b\xdf\x00\x89'
@@ -1167,12 +1151,12 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         t = Transaction([inp], [outp], network='testnet')
         t.sign(k.private_byte)
         self.assertTrue(t.verify())
-        self.assertEqual(to_hexstring(t.signature_hash(sign_id=0)),
+        self.assertEqual(t.signature_hash(sign_id=0).hex(),
                          '67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986')
 
     def test_transaction_locktime(self):
         # FIXME: Add more usefull unittests for locktime
-        s = binascii.unhexlify('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
+        s = bytes.fromhex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         s_cltv = script_add_locktime_cltv(10000, s)
         s_csv = script_add_locktime_csv(600000, s)
         self.assertIsNotNone(s_cltv)
@@ -1220,7 +1204,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                        '0776538d079fbae117dc38effafb33304af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea6' \
                        '00bd217870a8b4f1f09f3a8e8353ae'
         sd = script_deserialize('00c9' + redeemscript)
-        self.assertEqual(to_hexstring(sd['redeemscript']), redeemscript)
+        self.assertEqual(sd['redeemscript'].hex(), redeemscript)
 
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
@@ -1240,12 +1224,12 @@ class TestTransactionsMultisigSoroush(unittest.TestCase):
             'c9f4d4df849323dac06cf3bd6458cd41046ce31db9bdd543e72fe3039a1f1c047dab87037c36a669ff90e28da1848f640de68c2f' \
             'e913d363a51154a0c62d7adea1b822d05035077418267b1a1379790187410411ffd36c70776538d079fbae117dc38effafb33304' \
             'af83ce4894589747aee1ef992f63280567f52f5ba870678b4ab4ff6c8ea600bd217870a8b4f1f09f3a8e8353ae'
-        self.assertEqual(to_hexstring(redeemscript), expected_redeemscript)
+        self.assertEqual(redeemscript.hex(), expected_redeemscript)
         self.assertEqual(serialize_multisig_redeemscript([]), b'')
         self.assertRaisesRegexp(TransactionError, "Argument public_key_list must be of type list",
                                 serialize_multisig_redeemscript, 2)
         k = '02600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f49584'
-        self.assertEqual(to_hexstring(serialize_multisig_redeemscript([k])),
+        self.assertEqual(serialize_multisig_redeemscript([k]).hex(),
                          '512102600ca766925ef97fbd4b38b8dc35714edc27e1a0d454268d592c369835f4958451ae')
         # k = to_bytes(k)
         # print(to_hexstring(serialize_multisig_redeemscript([k])),
@@ -1304,15 +1288,14 @@ class TestTransactionsMultisig(unittest.TestCase):
                     'JKzrPuZXPmFUgQ42')
         pk2 = HDKey('tprv8ZgxMBicQKsPdhv4GxyNcfNK1Wka7QEnQ2c8DNdRL5z3hzf7ufUYNW14fgArjFvLtyg5xmPrkpx6oGBo2dquPf5inH6'
                     'Jg6h2D89nsQdY8Ga')
-        redeemscript = b'522103b008ee001282efb523f68d494896f3072903e03b3fb91d16713c56bf79693a382102d43dcc8a5db03172ba' \
-                       b'95c345bb2d478654853f311dc4b1cbd313e5a327f0e3ba52ae'
+        redeemscript = '522103b008ee001282efb523f68d494896f3072903e03b3fb91d16713c56bf79693a382102d43dcc8a5db03172ba' \
+                       '95c345bb2d478654853f311dc4b1cbd313e5a327f0e3ba52ae'
 
         # Create 2-of-2 multisig transaction with 1 input and 1 output
         t = Transaction(network='testnet')
         t.add_input('a2c226037d73022ea35af9609c717d98785906ff8b71818cd4095a12872795e7', 1,
                     [pk1.public_byte, pk2.public_byte], script_type='p2sh_multisig', sigs_required=2)
         t.add_output(900000, '2NEgmZU64NjiZsxPULekrFcqdS7YwvYh24r')
-        print(to_hexstring(t.inputs[0].unlocking_script_unsigned))
         # Sign with private key and verify
         t.sign(pk1)
         t.sign(pk2)
@@ -1320,7 +1303,7 @@ class TestTransactionsMultisig(unittest.TestCase):
 
         # Now deserialize and check if redeemscript is still the same
         t2 = Transaction.import_raw(t.raw_hex(), network='testnet')
-        self.assertEqual(binascii.hexlify(t2.inputs[0].redeemscript), redeemscript)
+        self.assertEqual(t2.inputs[0].redeemscript.hex(), redeemscript)
 
     def test_transaction_multisig_sign_3_of_5(self):
         t = Transaction(network='testnet')
@@ -1505,13 +1488,13 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         pk_input2 = '619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9'
         pk1 = Key(pk_input1)
         pk2 = Key(pk_input2)
-        output1_value_hexle = binascii.unhexlify('202cb20600000000')
-        output2_value_hexle = binascii.unhexlify('9093510d00000000')
+        output1_value_hexle = bytes.fromhex('202cb20600000000')
+        output2_value_hexle = bytes.fromhex('9093510d00000000')
         output1_value = change_base(output1_value_hexle[::-1], 256, 10)
         output2_value = change_base(output2_value_hexle[::-1], 256, 10)
 
-        inp_prev_tx1 = binascii.unhexlify('fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f')[::-1]
-        inp_prev_tx2 = binascii.unhexlify('ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a')[::-1]
+        inp_prev_tx1 = bytes.fromhex('fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f')[::-1]
+        inp_prev_tx2 = bytes.fromhex('ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a')[::-1]
         inputs = [
             Input(inp_prev_tx1, 0, sequence=0xffffffee, keys=pk1, value=int(6.25 * 100000000)),
             Input(inp_prev_tx2, 1, witness_type='segwit', sequence=0xffffffff, keys=pk2, value=int(6 * 100000000)),
@@ -1522,7 +1505,7 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         ]
 
         t = Transaction(inputs, outputs, witness_type='segwit', locktime=0x00000011)
-        self.assertEqual(to_hexstring(t.signature_hash(1)),
+        self.assertEqual(t.signature_hash(1).hex(),
                          'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670')
         t.sign([pk1], 0)
         t.sign([pk2], 1)
@@ -1532,18 +1515,18 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t2.inputs[1].value = int(6 * 100000000)
         self.assertEqual(t2.inputs[0].prev_hash, inp_prev_tx1)
         self.assertEqual(t2.inputs[1].prev_hash, inp_prev_tx2)
-        self.assertEqual(to_hexstring(t2.signature_hash(1)),
+        self.assertEqual(t2.signature_hash(1).hex(),
                          'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670')
 
     def test_transactions_segwit_p2sh_p2wpkh(self):
         pk_input1 = 'eb696a065ef48a2192da5b28b694f87544b30fae8327c4510137a922f32c6dcf'
         pk1 = Key(pk_input1)
-        output1_value_hexle = binascii.unhexlify('b8b4eb0b00000000')
-        output2_value_hexle = binascii.unhexlify('0008af2f00000000')
+        output1_value_hexle = bytes.fromhex('b8b4eb0b00000000')
+        output2_value_hexle = bytes.fromhex('0008af2f00000000')
         output1_value = change_base(output1_value_hexle[::-1], 256, 10)
         output2_value = change_base(output2_value_hexle[::-1], 256, 10)
 
-        inp_prev_tx1 = binascii.unhexlify('db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477')[::-1]
+        inp_prev_tx1 = bytes.fromhex('db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477')[::-1]
         inputs = [
             Input(inp_prev_tx1, 1, sequence=0xfffffffe, keys=pk1, value=int(10 * 100000000),
                   script_type='p2sh_p2wpkh', encoding='base58'),
@@ -1554,13 +1537,13 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         ]
 
         t = Transaction(inputs, outputs, witness_type='segwit', locktime=0x00000492)
-        self.assertEqual(to_hexstring(t.signature_hash(0)),
+        self.assertEqual(t.signature_hash(0).hex(),
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t.sign([pk1], 0)
         self.assertTrue(t.verify())
         t2 = Transaction.import_raw(t.raw())
         t2.inputs[0].value = int(10 * 100000000)
-        self.assertEqual(to_hexstring(t2.signature_hash(0)),
+        self.assertEqual(t2.signature_hash(0).hex(),
                          '64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6')
         t2.sign([pk1], 0)
         self.assertTrue(t2.verify())
@@ -1579,13 +1562,13 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t.sign(key1)
         t.sign(key2)
         self.assertTrue(t.verify())
-        self.assertEqual(to_hexstring(t.signature_hash(0)),
+        self.assertEqual(t.signature_hash(0).hex(),
                          'e671e16a05001059a87767057700a7cb935c30a90e0728b739f24dd0d55ebae8')
         t2 = Transaction.import_raw(t.raw())
         t2.inputs[0].value = 70626
         t2.verify()
         self.assertTrue(t2.verify())
-        self.assertEqual(to_hexstring(t2.signature_hash(0)),
+        self.assertEqual(t2.signature_hash(0).hex(),
                          'e671e16a05001059a87767057700a7cb935c30a90e0728b739f24dd0d55ebae8')
 
     def test_transaction_segwit_p2sh_p2wsh(self):
@@ -1601,12 +1584,12 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t.sign(key1)
         t.sign(key2)
         self.assertTrue(t.verify())
-        self.assertEqual(to_hexstring(t.signature_hash(0)),
+        self.assertEqual(t.signature_hash(0).hex(),
                          '12ca412ed631d17d757a298f0d98e1b971d660b2e90a73b2ce6af3bb92ac342e')
         t2 = Transaction.import_raw(t.raw())
         t2.inputs[0].value = 70626
         self.assertTrue(t2.verify())
-        self.assertEqual(to_hexstring(t2.signature_hash(0)),
+        self.assertEqual(t2.signature_hash(0).hex(),
                          '12ca412ed631d17d757a298f0d98e1b971d660b2e90a73b2ce6af3bb92ac342e')
 
     def test_transaction_segwit_addresses(self):

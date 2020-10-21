@@ -18,10 +18,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import hashlib
-from bitcoinlib.encoding import change_base, normalize_string, to_bytes
+from bitcoinlib.encoding import *
 from bitcoinlib.config.secp256k1 import secp256k1_n
-from bitcoinlib.main import *
 
 
 class Mnemonic(object):
@@ -71,8 +69,7 @@ class Mnemonic(object):
         
         First use 'sanitize_mnemonic' to determine language and validate and check words
 
-        >>> from bitcoinlib.encoding import to_hexstring
-        >>> to_hexstring(Mnemonic().to_seed('chunk gun celery million wood kite tackle twenty story episode raccoon dutch'))
+        >>> Mnemonic().to_seed('chunk gun celery million wood kite tackle twenty story episode raccoon dutch').hex()
         '6969ed4666db67fc74fae7869e2acf3c766b5ef95f5e31eb2fcebd93d76069c6de971225f700042b0b513f0ad6c8562277fc4b5ee1344b720f1686dc2dccc220'
 
         :param words: Mnemonic passphrase as string with space separated words
@@ -148,7 +145,7 @@ class Mnemonic(object):
         :return str: Mnemonic passphrase consisting of a space seperated list of words
         """
         data = to_bytes(data)
-        data_int = change_base(data, 256, 10)
+        data_int = int.from_bytes(data, 'big')
         if check_on_curve and not 0 < data_int < secp256k1_n:
             raise ValueError("Integer value of data should be in secp256k1 domain between 1 and secp256k1_n-1")
         if add_checksum:
@@ -162,8 +159,7 @@ class Mnemonic(object):
         """
         Convert Mnemonic words back to key data entropy
 
-        >>> from bitcoinlib.encoding import to_hexstring
-        >>> to_hexstring(Mnemonic().to_entropy('chunk gun celery million wood kite tackle twenty story episode raccoon dutch'))
+        >>> Mnemonic().to_entropy('chunk gun celery million wood kite tackle twenty story episode raccoon dutch').hex()
         '28acfc94465fd2f6774759d6897ec122'
 
 
@@ -220,8 +216,6 @@ class Mnemonic(object):
                     language = fn.split('.')[0]
                     wlcount[language] = 0
                     for word in words:
-                        if sys.version < '3':
-                            word = word.encode('utf-8')
                         if word in wordlist:
                             wlcount[language] += 1
         detlang = max(wlcount.keys(), key=(lambda key: wlcount[key]))
@@ -248,8 +242,6 @@ class Mnemonic(object):
         with open(os.path.join(str(BCL_INSTALL_DIR), 'wordlist', '%s.txt' % language)) as f:
             wordlist = [w.strip() for w in f.readlines()]
             for word in words:
-                if sys.version < '3':
-                    word = word.encode('utf-8')
                 if word not in wordlist:
                     raise Warning("Unrecognised word %s in mnemonic sentence" % word.encode('utf8'))
         return ' '.join(words)
