@@ -293,6 +293,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         self.assertTrue(wallet.as_dict())
         self.assertTrue(wallet.as_json())
 
+
 @parameterized_class(*params)
 class TestWalletImport(TestWalletMixin, unittest.TestCase):
 
@@ -1038,11 +1039,11 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                   'wadGhxByT2MnLd', network='bitcoinlib_test')]
 
         msw1 = Wallet.create('msw1', [keys[0], keys[1].subkey_for_path("m/45'").wif_public()],
-                               network='bitcoinlib_test', sort_keys=False, sigs_required=2,
-                               db_uri=self.DATABASE_URI)
+                             network='bitcoinlib_test', sort_keys=False, sigs_required=2,
+                             db_uri=self.DATABASE_URI)
         msw2 = Wallet.create('msw2', [keys[0].subkey_for_path("m/45'").wif_public(), keys[1]],
-                               network='bitcoinlib_test', sort_keys=False, sigs_required=2,
-                               db_uri=self.DATABASE_URI)
+                             network='bitcoinlib_test', sort_keys=False, sigs_required=2,
+                             db_uri=self.DATABASE_URI)
         msw1.new_key()
         self.assertEqual(len(msw1.get_key().key()), 2)
         msw2.new_key(cosigner_id=0)

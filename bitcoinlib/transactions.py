@@ -24,7 +24,7 @@ import json
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
-from bitcoinlib.networks import Network
+from bitcoinlib.networks import Network, print_value
 
 _logger = logging.getLogger(__name__)
 
@@ -1412,7 +1412,8 @@ class Transaction(object):
         print("Inputs")
         replace_by_fee = False
         for ti in self.inputs:
-            print("-", ti.address, ti.value, to_hexstring(ti.prev_hash), ti.output_n_int)
+            print("-", ti.address, print_value(ti.value, self.network.name, 'none'), to_hexstring(ti.prev_hash),
+                  ti.output_n_int)
             validstr = "not validated"
             if ti.valid:
                 validstr = "valid"
@@ -1450,7 +1451,7 @@ class Transaction(object):
                     spent_str = 'S'
                 elif to.spent is False:
                     spent_str = 'U'
-                print("-", to.address, to.value, to.script_type, spent_str)
+                print("-", to.address, print_value(to.value, self.network.name, 'none'), to.script_type, spent_str)
         if replace_by_fee:
             print("Replace by fee: Enabled")
         print("Size: %s" % self.size)

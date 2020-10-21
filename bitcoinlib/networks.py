@@ -205,6 +205,28 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     return matches
 
 
+def print_value(value, network=DEFAULT_NETWORK, rep='string', denominator=1, decimals=None):
+    """
+    Return the value as string with currency symbol
+
+    Wrapper for the Network().print_value method.
+
+    :param value: Value in smallest denominator such as Satoshi
+    :type value: int, float
+    :param network: Network name as string, default is 'bitcoin'
+    :type network: str
+    :param rep: Currency representation: 'string', 'symbol', 'none' or your own custom name
+    :type rep: str
+    :param denominator: Unit to use in representation. Default is 1. I.e. 1 = 1 BTC, 0.001 = milli BTC / mBTC, 1e-8 = Satoshi's
+    :type denominator: float
+    :param decimals: Number of digits after the decimal point, leave empty for automatic determination based on value. Use integer value between 0 and 8
+    :type decimals: int
+
+    :return str:
+    """
+    return Network(network_name=network).print_value(value, rep, denominator, decimals)
+
+
 class Network(object):
     """
     Network class with all network definitions. 
@@ -250,7 +272,7 @@ class Network(object):
     def __hash__(self):
         return hash(self.name)
 
-    def print_value(self, value):
+    def print_value(self, value, rep='string', denominator=1, decimals=None):
         """
         Return the value as string with currency symbol
 
@@ -259,17 +281,35 @@ class Network(object):
         >>> Network('bitcoin').print_value(100000)
         '0.00100000 BTC'
 
-        :param value: Value in smallest denominitor such as Satoshi
+        :param value: Value in smallest denominator such as Satoshi
         :type value: int, float
-        
+        :param rep: Currency representation: 'string', 'symbol', 'none' or your own custom name
+        :type rep: str
+        :param denominator: Unit to use in representation. Default is 1. I.e. 1 = 1 BTC, 0.001 = milli BTC / mBTC
+        :type denominator: float
+        :param decimals: Number of digits after the decimal point, leave empty for automatic determination based on value. Use integer value between 0 and 8
+        :type decimals: int
+
         :return str: 
         """
-        symb = self.currency_code
-        denominator = self.denominator
-        denominator_size = -int(math.log10(denominator))
-        balance = round(value * denominator, denominator_size)
-        format_str = "%%.%df %%s" % denominator_size
-        return format_str % (balance, symb)
+        if denominator not in NETWORK_DENOMINATORS:
+            raise NetworkError("Denominator not found in definitions, use one of the following values: %s" %
+                               NETWORK_DENOMINATORS.keys())
+        if not value:
+            return ""
+        symb = rep
+        if rep == 'string':
+            symb = NETWORK_DENOMINATORS[denominator] + self.currency_code
+        elif rep == 'symbol':
+            symb = NETWORK_DENOMINATORS[denominator] + self.currency_symbol
+        elif rep == 'none':
+            symb = ''
+        decimals = decimals if decimals is not None else -int(math.log10(self.denominator / denominator))
+        decimals = 0 if decimals < 0 else decimals
+        decimals = 8 if decimals > 8 else decimals
+        balance = round(value * self.denominator / denominator, decimals)
+        format_str = "%%.%df %%s" % decimals
+        return (format_str % (balance, symb)).rstrip()
 
     def wif_prefix(self, is_private=False, witness_type='legacy', multisig=False):
         """

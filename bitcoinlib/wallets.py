@@ -28,7 +28,7 @@ from bitcoinlib.db import *
 from bitcoinlib.encoding import EncodingError, to_bytes, to_hexstring
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.networks import Network
+from bitcoinlib.networks import Network, print_value
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import (Input, Output, Transaction, get_unlocking_script_type,
                                      serialize_multisig_redeemscript)
@@ -3883,7 +3883,7 @@ class Wallet(object):
                         is_active = False
                     for key in self.keys(depth=d, network=nw.name, is_active=is_active):
                         print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
-                                                              Network(key.network_name).print_value(key.balance)))
+                                                              print_value(key.balance, key.network_name, 'symbol')))
 
                 if detail > 2:
                     include_new = False
@@ -3903,8 +3903,9 @@ class Wallet(object):
                             status = ""
                             if tx['status'] not in ['confirmed', 'unconfirmed']:
                                 status = tx['status']
-                            print("%64s %36s %8d %13d %s %s" % (tx['tx_hash'], tx['address'], tx['confirmations'],
-                                                                tx['value'], spent, status))
+                            print("%64s %36s %8d %21s %s %s" % (tx['tx_hash'], tx['address'], tx['confirmations'],
+                                                                print_value(tx['value'], nw.name, 'symbol'),
+                                                                spent, status))
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],

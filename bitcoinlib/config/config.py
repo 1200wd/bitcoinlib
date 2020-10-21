@@ -102,7 +102,20 @@ DEFAULT_LANGUAGE = 'english'
 
 # Networks
 DEFAULT_NETWORK = 'bitcoin'
-
+NETWORK_DENOMINATORS = {  # source: https://en.bitcoin.it/wiki/Units
+    0.00000000001: 'msat',
+    0.00000001: 'sat',
+    0.0000001: 'fin',
+    0.000001: 'µ',
+    0.001: 'm',
+    0.01: 'c',
+    0.1: 'd',
+    1: '',
+    10: 'da',
+    100: 'h',
+    1000: 'k',
+    1000000: 'M',
+}
 
 if os.name == 'nt' and locale.getpreferredencoding() != 'UTF-8':
     # TODO: Find a better windows hack
