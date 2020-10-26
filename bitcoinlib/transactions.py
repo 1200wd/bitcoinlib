@@ -93,7 +93,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
         cursor += unlocking_script_size
         sequence_number = rawtx[cursor:cursor + 4]
         cursor += 4
-        inputs.append(Input(prev_hash=inp_hash, output_n=output_n, unlocking_script=unlocking_script,
+        inputs.append(Input(prev_txid=inp_hash, output_n=output_n, unlocking_script=unlocking_script,
                             witness_type=inp_type, sequence=sequence_number, index_n=n, network=network))
     if len(inputs) != n_inputs:
         raise TransactionError("Error parsing inputs. Number of tx specified %d but %d found" % (n_inputs, len(inputs)))
@@ -162,7 +162,7 @@ def transaction_deserialize(rawtx, network=DEFAULT_NETWORK, check_size=True):
                 elif usd['script_type'] == "p2wsh" and witness_script_type == 'p2sh':
                     inp_witness_type = 'p2sh-segwit'
                     script_type = 'p2sh_p2wsh'
-                inputs[n] = Input(prev_hash=inputs[n].prev_hash, output_n=inputs[n].output_n, keys=keys,
+                inputs[n] = Input(prev_txid=inputs[n].prev_txid, output_n=inputs[n].output_n, keys=keys,
                                   unlocking_script_unsigned=inputs[n].unlocking_script_unsigned,
                                   unlocking_script=inputs[n].unlocking_script, sigs_required=sigs_required,
                                   signatures=signatures, witness_type=inp_witness_type, script_type=script_type,
@@ -617,20 +617,20 @@ def transaction_update_spents(txs, address):
     for t in txs:
         for inp in t.inputs:
             if inp.address == address:
-                spend_list.update({(inp.prev_hash, inp.output_n_int): t})
+                spend_list.update({(inp.prev_txid.hex(), inp.output_n_int): t})
     address_inputs = list(spend_list.keys())
     for t in txs:
         for to in t.outputs:
             if to.address != address:
                 continue
-            spent = True if (t.hash, to.output_n) in address_inputs else False
+            spent = True if (t.txid, to.output_n) in address_inputs else False
             txs[txs.index(t)].outputs[to.output_n].spent = spent
             if spent:
-                spending_tx = spend_list[(t.hash, to.output_n)]
+                spending_tx = spend_list[(t.txid, to.output_n)]
                 spending_index_n = \
                     [inp for inp in txs[txs.index(spending_tx)].inputs
-                     if inp.prev_hash == t.hash and inp.output_n_int == to.output_n][0].index_n
-                txs[txs.index(t)].outputs[to.output_n].spending_txid = spending_tx.hash
+                     if inp.prev_txid.hex() == t.txid and inp.output_n_int == to.output_n][0].index_n
+                txs[txs.index(t)].outputs[to.output_n].spending_txid = spending_tx.txid
                 txs[txs.index(t)].outputs[to.output_n].spending_index_n = spending_index_n
     return txs
 
@@ -639,13 +639,13 @@ class Input(object):
     """
     Transaction Input class, used by Transaction class
     
-    An Input contains a reference to an UTXO or Unspent Transaction Output (prev_hash + output_n).
+    An Input contains a reference to an UTXO or Unspent Transaction Output (prev_txid + output_n).
     To spent the UTXO an unlocking script can be included to prove ownership.
     
     Inputs are verified by the Transaction class.
     """
 
-    def __init__(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
+    def __init__(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                  unlocking_script_unsigned=None, script_type=None, address='',
                  sequence=0xffffffff, compressed=None, sigs_required=None, sort=False, index_n=0,
                  value=0, double_spend=False, locktime_cltv=None, locktime_csv=None, key_path='', witness_type=None,
@@ -653,8 +653,8 @@ class Input(object):
         """
         Create a new transaction input
         
-        :param prev_hash: Transaction hash of the UTXO (previous output) which will be spent.
-        :type prev_hash: bytes, str
+        :param prev_txid: Transaction hash of the UTXO (previous output) which will be spent.
+        :type prev_txid: bytes, str
         :param output_n: Output number in previous transaction.
         :type output_n: bytes, int
         :param keys: A list of Key objects or public / private key string in various formats. If no list is provided but a bytes or string variable, a list with one item will be created. Optional
@@ -701,7 +701,7 @@ class Input(object):
         :type network: str, Network
         """
 
-        self.prev_hash = to_bytes(prev_hash)
+        self.prev_txid = to_bytes(prev_txid)
         self.output_n = output_n
         if isinstance(output_n, int):
             self.output_n_int = output_n
@@ -743,7 +743,7 @@ class Input(object):
         self.signatures = []
         self.redeemscript = b''
         self.script_type = script_type
-        if self.prev_hash == b'\0' * 32:
+        if self.prev_txid == b'\0' * 32:
             self.script_type = 'coinbase'
         if not sigs_required:
             if self.script_type == 'p2sh_multisig':
@@ -796,7 +796,10 @@ class Input(object):
                     self.witness_type = 'segwit'
                 self.script_type = get_unlocking_script_type(ls_dict['script_type'])
         self.sigs_required = sigs_required
+        if self.script_type is None and self.witness_type is None and self.witnesses:
+            self.witness_type = 'segwit'
         if self.witness_type is None or self.witness_type == 'legacy':
+            # if self.script_type in ['p2wpkh', 'p2wsh', 'p2sh_p2wpkh', 'p2sh_p2wsh']:
             if self.script_type in ['p2wpkh', 'p2wsh']:
                 self.witness_type = 'segwit'
             elif self.script_type in ['p2sh_p2wpkh', 'p2sh_p2wsh']:
@@ -880,7 +883,7 @@ class Input(object):
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
             addr_data = self.public_hash
-            self.witnesses = []  # TODO: Remove?
+            # self.witnesses = []  # TODO: Remove?
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() +
                                   hash_type.to_bytes(1, 'big') if hash_type else b'', self.keys[0].public_byte]
@@ -962,7 +965,7 @@ class Input(object):
         """
         Get transaction input information in json format
         
-        :return dict: Json with output_n, prev_hash, output_n, type, address, public_key, public_hash, unlocking_script and sequence
+        :return dict: Json with output_n, prev_txid, output_n, type, address, public_key, public_hash, unlocking_script and sequence
         """
 
         pks = []
@@ -972,7 +975,7 @@ class Input(object):
             pks = pks[0]
         return {
             'index_n': self.index_n,
-            'prev_hash': to_hexstring(self.prev_hash),
+            'prev_txid': to_hexstring(self.prev_txid),
             'output_n': self.output_n_int,
             'script_type': self.script_type,
             'address': self.address,
@@ -998,8 +1001,8 @@ class Input(object):
         }
 
     def __repr__(self):
-        return "<Input(prev_hash='%s', output_n=%d, address='%s', index_n=%s, type='%s')>" % \
-               (to_hexstring(self.prev_hash), self.output_n_int, self.address, self.index_n, self.script_type)
+        return "<Input(prev_txid='%s', output_n=%d, address='%s', index_n=%s, type='%s')>" % \
+               (to_hexstring(self.prev_txid), self.output_n_int, self.address, self.index_n, self.script_type)
 
 
 class Output(object):
@@ -1211,8 +1214,8 @@ class Transaction(object):
 
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0, version=1, network=DEFAULT_NETWORK,
-                 fee=None, fee_per_kb=None, size=None, hash=b'', date=None, confirmations=None,
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
+                 fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None, confirmations=None,
                  block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'', status='new',
                  coinbase=False, verified=False, witness_type='legacy', flag=None):
         """
@@ -1239,8 +1242,10 @@ class Transaction(object):
         :type fee_per_kb: int
         :param size: Transaction size in bytes
         :type size: int
-        :param hash: Transaction hash used as transaction ID
-        :type hash: bytes
+        :param txid: The transaction id (same for legacy/segwit) based on [nVersion][txins][txouts][nLockTime as hexadecimal string
+        :type txid: str
+        :param txhash: The transaction hash (differs from txid for witness transactions), based on [nVersion][marker][flag][txins][txouts][witness][nLockTime] in Segwit (as hexadecimal string). Unused at the moment
+        :type txhash: str
         :param date: Confirmation date of transaction
         :type date: datetime
         :param confirmations: Number of confirmations
@@ -1255,7 +1260,7 @@ class Transaction(object):
         :type output_total: int
         :param rawtx: Bytes representation of complete transaction
         :type rawtx: bytes
-        :param status: Transaction status, for example: 'new', 'incomplete', 'unconfirmed', 'confirmed'
+        :param status: Transaction status, for example: 'new', 'unconfirmed', 'confirmed'
         :type status: str
         :param coinbase: Coinbase transaction or not?
         :type coinbase: bool
@@ -1310,10 +1315,8 @@ class Transaction(object):
         self.fee_per_kb = fee_per_kb
         self.size = size
         self.vsize = size
-        # TODO: check if hash is bytes or hexstring, and update _txid as well
-        # self.hash = to_bytes(hash)
-        self.hash = hash
-        self._txid = None
+        self.txid = txid
+        self.txhash = txhash
         self.date = date
         self.confirmations = confirmations
         self.block_height = block_height
@@ -1328,8 +1331,8 @@ class Transaction(object):
         self.calc_weight_units()
         if self.witness_type not in ['legacy', 'segwit']:
             raise TransactionError("Please specify a valid witness type: legacy or segwit")
-        if not self.hash:
-            self.hash = self.signature_hash()[::-1]
+        if not self.txid:
+            self.txid = self.signature_hash()[::-1].hex()
 
     def __repr__(self):
         return "<Transaction(id=%s, inputs=%d, outputs=%d, status=%s, network=%s)>" % \
@@ -1337,14 +1340,6 @@ class Transaction(object):
 
     def __str__(self):
         return self.txid
-
-    @property
-    def txid(self):
-        if not self._txid:
-            self._txid = to_hexstring(self.hash)
-            # FIXME: Different types in self.hash:
-            # self._txid = self.hash.hex()
-        return self._txid
 
     def as_dict(self):
         """
@@ -1360,12 +1355,13 @@ class Transaction(object):
         for o in self.outputs:
             outputs.append(o.as_dict())
         return {
-            'hash': self.txid,
+            'txid': self.txid,
             'date': self.date,
             'network': self.network.name,
             'witness_type': self.witness_type,
             'coinbase': self.coinbase,
             'flag': None if not self.flag else ord(self.flag),
+            'txhash': self.txhash,
             'confirmations': self.confirmations,
             'block_height': self.block_height,
             'block_hash': self.block_hash,
@@ -1413,7 +1409,7 @@ class Transaction(object):
         print("Inputs")
         replace_by_fee = False
         for ti in self.inputs:
-            print("-", ti.address, print_value(ti.value, self.network.name, 'none'), to_hexstring(ti.prev_hash),
+            print("-", ti.address, print_value(ti.value, self.network.name, 'none'), to_hexstring(ti.prev_txid),
                   ti.output_n_int)
             validstr = "not validated"
             if ti.valid:
@@ -1521,7 +1517,7 @@ class Transaction(object):
         hash_outputs = b'\0' * 32
 
         for i in self.inputs:
-            prevouts_serialized += i.prev_hash[::-1] + i.output_n[::-1]
+            prevouts_serialized += i.prev_txid[::-1] + i.output_n[::-1]
             sequence_serialized += i.sequence.to_bytes(4, 'little')
         if not hash_type & SIGHASH_ANYONECANPAY:
             hash_prevouts = double_sha256(prevouts_serialized)
@@ -1549,7 +1545,7 @@ class Transaction(object):
             raise TransactionError("Script code missing")
 
         ser_tx = \
-            self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_hash[::-1] + \
+            self.version[::-1] + hash_prevouts + hash_sequence + self.inputs[sign_id].prev_txid[::-1] + \
             self.inputs[sign_id].output_n[::-1] + \
             varstr(script_code) + int(self.inputs[sign_id].value).to_bytes(8, 'little') + \
             self.inputs[sign_id].sequence.to_bytes(4, 'little') + \
@@ -1583,7 +1579,7 @@ class Transaction(object):
         r += int_to_varbyteint(len(self.inputs))
         r_witness = b''
         for i in self.inputs:
-            r += i.prev_hash[::-1] + i.output_n[::-1]
+            r += i.prev_txid[::-1] + i.output_n[::-1]
             if i.witnesses and i.witness_type != 'legacy':
                 r_witness += int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
             else:
@@ -1727,7 +1723,7 @@ class Transaction(object):
             n_total_sigs = len(self.inputs[tid].keys)
             sig_domain = [''] * n_total_sigs
 
-            tx_hash = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
+            txid = self.signature_hash(tid, witness_type=self.inputs[tid].witness_type)
             for key in tid_keys:
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
@@ -1741,7 +1737,7 @@ class Transaction(object):
 
                 if not key.private_byte:
                     raise TransactionError("Please provide a valid private key to sign the transaction")
-                sig = sign(tx_hash, key)
+                sig = sign(txid, key)
                 newsig_pos = pub_key_list.index(key.public_byte)
                 sig_domain[newsig_pos] = sig
                 n_signs += 1
@@ -1771,18 +1767,18 @@ class Transaction(object):
 
         self.inputs[tid].update_scripts(hash_type)
 
-    def add_input(self, prev_hash, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
+    def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
                   value=None, double_spend=False, locktime_cltv=None, locktime_csv=None,
-                  key_path='', witness_type=None, encoding=None):
+                  key_path='', witness_type=None, witnesses=None, encoding=None):
         """
         Add input to this transaction
         
         Wrapper for append method of Input class.
 
-        :param prev_hash: Transaction hash of the UTXO (previous output) which will be spent.
-        :type prev_hash: bytes, hexstring
+        :param prev_txid: Transaction hash of the UTXO (previous output) which will be spent.
+        :type prev_txid: bytes, hexstring
         :param output_n: Output number in previous transaction.
         :type output_n: bytes, int
         :param keys: Public keys can be provided to construct an Unlocking script. Optional
@@ -1821,6 +1817,8 @@ class Transaction(object):
         :type key_path: str, list
         :param witness_type: Specify witness/signature position: 'segwit' or 'legacy'. Determine from script, address or encoding if not specified.
         :type witness_type: str
+        :param witnesses: List of witnesses for inputs, used for segwit transactions for instance.
+        :type witnesses: list of bytes
         :param encoding: Address encoding used. For example bech32/base32 or base58. Leave empty to derive from script or script type
         :type encoding: str
 
@@ -1835,12 +1833,12 @@ class Transaction(object):
         if self.version == b'\x00\x00\x00\x01' and 0 < sequence_int < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
         self.inputs.append(
-            Input(prev_hash=prev_hash, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
+            Input(prev_txid=prev_txid, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
                   unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
                   script_type=script_type, address=address, sequence=sequence, compressed=compressed,
                   sigs_required=sigs_required, sort=sort, index_n=index_n, value=value, double_spend=double_spend,
                   locktime_cltv=locktime_cltv, locktime_csv=locktime_csv, key_path=key_path, witness_type=witness_type,
-                  encoding=encoding, network=self.network.name))
+                  witnesses=witnesses, encoding=encoding, network=self.network.name))
         return index_n
 
     def add_output(self, value, address='', public_hash=b'', public_key=b'', lock_script=b'', spent=False,

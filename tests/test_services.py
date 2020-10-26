@@ -21,7 +21,7 @@
 import unittest
 from datetime import datetime
 from bitcoinlib.services.services import *
-from bitcoinlib.encoding import to_hexstring, to_bytes
+from bitcoinlib.encoding import to_hexstring
 from tests.test_custom import CustomAssertions
 
 MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estimated fee before test_estimatefee fails.
@@ -29,6 +29,14 @@ MAXIMUM_ESTIMATED_FEE_DIFFERENCE = 3.00  # Maximum difference from average estim
 
 DATABASEFILE_CACHE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache.unittest.sqlite')
 DATABASEFILE_CACHE_UNITTESTS2 = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlibcache2.unittest.sqlite')
+DATABASE_CACHE_POSTGRESQL = 'postgresql://postgres:postgres@localhost:5432/bitcoinlibcache.unittest'
+# FIXME: MySQL databases are not supported. Not allowed to create indexes/primary keys on binary fields
+# DATABASE_CACHE_MYSQL = 'mysql://root@localhost:3306/bitcoinlibcache.unittest'
+DATABASES_CACHE = [
+    DATABASEFILE_CACHE_UNITTESTS2,
+    DATABASE_CACHE_POSTGRESQL,
+    # DATABASE_CACHE_MYSQL
+]
 TIMEOUT_TEST = 2
 
 
@@ -141,7 +149,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_get_utxos(self):
         expected_dict = {
-            'tx_hash': '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8',
+            'txid': '9cd7b51b7b9421d70549c765c254fe8682a123cae7b979d6f18d386cfa55cef8',
             'output_n': 0,
             'block_height': 478371,
             'address': '1Mxww5Q2AK3GxG4R2KyCEao6NJXyoYgyAx',
@@ -155,29 +163,29 @@ class TestService(unittest.TestCase, CustomAssertions):
 
     def test_service_get_utxos_after_txid(self):
         srv = ServiceTest(min_providers=3)
-        tx_hash = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
+        txid = '9ae79dd82aa05c66ac76aeffc2fe07e579978c57ce5537115864548da0768d58'
         srv.getutxos('1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1',
                      after_txid='9293869acee7d90661ee224135576b45b4b0dbf2b61e4ce30669f1099fecac0c')
         for provider in srv.results:
             print("Testing provider %s" % provider)
-            self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
+            self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_get_utxos_litecoin(self):
         srv = ServiceTest(network='litecoin', min_providers=3)
         srv.getutxos('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
-        tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
+        txid = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         for provider in srv.results:
             print("Provider %s" % provider)
-            self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
+            self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_get_utxos_litecoin_after_txid(self):
         srv = ServiceTest(network='litecoin', min_providers=3)
-        tx_hash = '201a27d05a2efa4c72ae5b0b9fe7094350a9d7c503ce022ddc28768196ba1d28'
+        txid = '201a27d05a2efa4c72ae5b0b9fe7094350a9d7c503ce022ddc28768196ba1d28'
         srv.getutxos('Lfx4mFjhRvqyRKxXKqn6jyb17D6NDmosEV',
                      after_txid='b328a91dd15b8b82fef5b01738aaf1f486223d34ee54357e1430c22e46ddd04e')
         for provider in srv.results:
             print("Comparing provider %s" % provider)
-            self.assertEqual(srv.results[provider][0]['tx_hash'], tx_hash)
+            self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_estimatefee(self):
         srv = ServiceTest(min_providers=5)
@@ -223,7 +231,7 @@ class TestService(unittest.TestCase, CustomAssertions):
     #                       (provider, fee_difference_from_average * 100))
 
     def test_service_gettransactions(self):
-        tx_hash = '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74'
+        txid = '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74'
         address = '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w'
         block_height = 300000
         input_total = 4534802265
@@ -235,14 +243,14 @@ class TestService(unittest.TestCase, CustomAssertions):
             'address': '1Lj1M4zGHgiMJRCZcSR1tj11Q5Bkis197w',
             'index_n': 0,
             'output_n': 1,
-            'prev_hash': '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef',
+            'prev_txid': '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef',
             'value': 3200955
         }
         input2 = {
             'address': '1E1MxdfLkv1TZWQRkCtszxEVnrxwRBByZP',
             'index_n': 2,
             'output_n': 1,
-            'prev_hash': 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52',
+            'prev_txid': 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52',
             'value': 4527385460
         }
 
@@ -251,7 +259,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         for provider in srv.results:
             print("Testing: %s" % provider)
             res = srv.results[provider]
-            t = [r for r in res if r.txid == tx_hash][0]
+            t = [r for r in res if r.txid == txid][0]
 
             # Compare transaction
             if t.block_height:
@@ -269,13 +277,13 @@ class TestService(unittest.TestCase, CustomAssertions):
 
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
-                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
+                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_txid', 'value']}
                 for inp in [i.as_dict() for i in t.inputs]
             ]
 
             if provider in ['blockchaininfo']:  # Some providers do not provide previous hashes
-                r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
-                r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
+                r_inputs[0]['prev_txid'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
+                r_inputs[2]['prev_txid'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
             self.assertEqual(r_inputs[2], input2, msg="Unexpected transaction input values for %s provider" % provider)
 
@@ -315,7 +323,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 299889,
                     'output_n': 51,
-                    'prev_hash': 'fa7b29d0e1cf62c79749c977dd9b3fedcfa348e696600f2240206eedaccbb309',
+                    'prev_txid': 'fa7b29d0e1cf62c79749c977dd9b3fedcfa348e696600f2240206eedaccbb309',
                     'double_spend': False,
                     'index_n': 0,
                     'script_type': 'sig_pubkey',
@@ -324,7 +332,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 1000022,
                     'output_n': 0,
-                    'prev_hash': '512f4363ccb28d04d47edd684840cc074f2a3b625838909a6074d277883b9f83',
+                    'prev_txid': '512f4363ccb28d04d47edd684840cc074f2a3b625838909a6074d277883b9f83',
                     'double_spend': False,
                     'index_n': 1,
                     'script_type': 'sig_pubkey',
@@ -333,7 +341,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 219439,
                     'output_n': 55,
-                    'prev_hash': '0ccd49e93261c9dd2bee124d90849677e93f789d2dc83013bfb0643beb962733',
+                    'prev_txid': '0ccd49e93261c9dd2bee124d90849677e93f789d2dc83013bfb0643beb962733',
                     'double_spend': False,
                     'index_n': 2,
                     'script_type': 'sig_pubkey',
@@ -342,7 +350,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 219436,
                     'output_n': 56,
-                    'prev_hash': '1b110073aed6637f9a492ceaac45d2b978b75f0139df0401032ad68c0944d38c',
+                    'prev_txid': '1b110073aed6637f9a492ceaac45d2b978b75f0139df0401032ad68c0944d38c',
                     'double_spend': False,
                     'index_n': 3,
                     'script_type': 'sig_pubkey',
@@ -351,7 +359,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 110996,
                     'output_n': 50,
-                    'prev_hash': 'a2d613e5a649102672462aa6a09e3e833769f5a85a65a8844acc723c07a8991d',
+                    'prev_txid': 'a2d613e5a649102672462aa6a09e3e833769f5a85a65a8844acc723c07a8991d',
                     'double_spend': False,
                     'index_n': 4,
                     'script_type': 'sig_pubkey',
@@ -360,7 +368,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 {
                     'value': 602,
                     'output_n': 2434,
-                    'prev_hash': 'd8505b78a4cddbd058372443bbce9ea74a313c27c586b7bbe8bc3825b7c7cbd7',
+                    'prev_txid': 'd8505b78a4cddbd058372443bbce9ea74a313c27c586b7bbe8bc3825b7c7cbd7',
                     'double_spend': False,
                     'index_n': 5,
                     'script_type': 'sig_pubkey',
@@ -423,7 +431,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                          'fee': 200000, 'inputs': [
                 {'redeemscript': '', 'address': 'XczHdW9k4Kg9mu6AdJayJ1PJtfX3Z9wYxm', 'double_spend': False,
                  'sequence': 4294967295,
-                 'prev_hash': 'b37c4f45295d9c5382800b6bb2289cedf3e63bd0621d0644083510cd24cdfbed', 'output_n': 1,
+                 'prev_txid': 'b37c4f45295d9c5382800b6bb2289cedf3e63bd0621d0644083510cd24cdfbed', 'output_n': 1,
                  'signatures': [
                      'e87b6a6dff07d1b91d12f530992cf8fa9f26a541af525337bbbc5c954cbf072b62f1cc0f33d036c1c60a7d561de0'
                      '6067528fffca52292d803b75e53f7dfbf63d',
@@ -446,7 +454,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                                     ['block_hash', 'block_height', 'spent', 'value'])
 
     def test_service_gettransactions_litecoin(self):
-        tx_hash = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
+        txid = '832518d58e9678bcdb9fe0e417a138daeb880c3a2ee1fb1659f1179efc383c25'
         address = 'Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg'
         block_height = 400003
         input_total = 122349237
@@ -458,7 +466,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'address': 'Lg9fq8MQLF3MLhUzrVSphzBvWRV8CsX7bW',
             'index_n': 0,
             'output_n': 0,
-            'prev_hash': '76e0a579e4fdde4c1d87a3795f6ec66e92268213b923e3441182480521153a8d',
+            'prev_txid': '76e0a579e4fdde4c1d87a3795f6ec66e92268213b923e3441182480521153a8d',
             'value': 122349237
         }
 
@@ -467,7 +475,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         for provider in srv.results:
             print("Provider %s" % provider)
             res = srv.results[provider]
-            txs = [r for r in res if r.txid == tx_hash]
+            txs = [r for r in res if r.txid == txid]
             t = txs[0]
 
             # Compare transaction
@@ -486,12 +494,12 @@ class TestService(unittest.TestCase, CustomAssertions):
 
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
-                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_hash', 'value']}
+                {key: inp[key] for key in ['address', 'index_n', 'output_n', 'prev_txid', 'value']}
                 for inp in [i.as_dict() for i in t.inputs]
             ]
             if provider in ['blockchaininfo']:  # Some providers do not provide previous hashes
-                r_inputs[0]['prev_hash'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
-                r_inputs[2]['prev_hash'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
+                r_inputs[0]['prev_txid'] = '4cb83c6611df40118c39a471419887a2a0aad42fc9e41d8c8790a18d6bd7daef'
+                r_inputs[2]['prev_txid'] = 'fa422d9fbac6a344af5656325acde172cd5714ebddd2f35068d3f265095add52'
             self.assertEqual(r_inputs[0], input0, msg="Unexpected transaction input values for %s provider" % provider)
 
     def test_service_gettransaction_coinbase(self):
@@ -506,7 +514,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             'inputs': [
                 {'address': '',
                  'index_n': 0,
-                 'prev_hash': '0000000000000000000000000000000000000000000000000000000000000000',
+                 'prev_txid': '0000000000000000000000000000000000000000000000000000000000000000',
                  'public_key': [],
                  'script_type': 'coinbase',
                  'sequence': 4294967295,
@@ -567,7 +575,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                     'address': 'bc1qpjnaav9yvane7qq3a7efq6nw229g6gh09jzlvc',
                     'index_n': 0,
                     'output_n': 1,
-                    'prev_hash': '444c4a42da547711063be57eecb48cd92d1a6d4afbc64a57e75b69d74df59eb9',
+                    'prev_txid': '444c4a42da547711063be57eecb48cd92d1a6d4afbc64a57e75b69d74df59eb9',
                     'public_hash': '0ca7deb0a467679f0011efb2906a6e528a8d22ef',
                     'script_code': '76a9140ca7deb0a467679f0011efb2906a6e528a8d22ef88ac',
                     'sequence': 4294967295,
@@ -628,7 +636,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(balance, 1080900000)
 
         utxos = srv.getutxos(address)
-        self.assertIn(txid, [utxo['tx_hash'] for utxo in utxos])
+        self.assertIn(txid, [utxo['txid'] for utxo in utxos])
 
     def test_service_blockcount(self):
         srv = ServiceTest(min_providers=3)
@@ -693,10 +701,10 @@ class TestService(unittest.TestCase, CustomAssertions):
     # def test_service_dash(self):
     #     srv = ServiceTest(network='dash')
     #     address = 'XoLTipv6ryWECYu94vbkmDjntAXqNgouTW'
-    #     tx_hash = 'f770f05d2b1c63b71b2650227252da06ef226661982c4ee9b136b64f77bbbd0c'
+    #     txid = 'f770f05d2b1c63b71b2650227252da06ef226661982c4ee9b136b64f77bbbd0c'
     #     self.assertGreaterEqual(srv.getbalance(address), 50000000000)
-    #     self.assertEqual(srv.getutxos(address)[0]['tx_hash'], tx_hash)
-    #     self.assertEqual(srv.gettransactions(address)[0].txid, tx_hash)
+    #     self.assertEqual(srv.getutxos(address)[0]['txid'], txid)
+    #     self.assertEqual(srv.gettransactions(address)[0].txid, txid)
 
     def test_service_getblock_height(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'], cache_uri='')
@@ -719,7 +727,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         # self.assertEqual(t1.fee, 84000)
         self.assertEqual(t1.locktime, 0)
         self.assertEqual(t1.inputs[0].address, '3Fe8L5dUaRn4uLHQLsfUGSJAT6S23Wtk47')
-        self.assertEqual(to_hexstring(t1.inputs[0].prev_hash),
+        self.assertEqual(to_hexstring(t1.inputs[0].prev_txid),
                  'a3cc61610b3a662fd3d3d6b4bf15c6a295cb8246f90e8fe132852f8265a4713b')
         self.assertEqual(t1.outputs[1].address, '3ADMeKFFJB4cNJ3mYNGTsaFv85ad5ZcjHu')
         # self.assertEqual(t1.outputs[1].value, 8638768306)
@@ -765,7 +773,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(t1.fee, 200000)
             self.assertEqual(t1.locktime, 0)
             self.assertEqual(t1.inputs[0].address, 'LQW7Swb2rqW1HSNoqcxeQqqyzN9ZrLHux8')
-            self.assertEqual(to_hexstring(t1.inputs[0].prev_hash), 'd4668ec9fe59feee65e6800b186a89b8c8fe16fda966139'
+            self.assertEqual(to_hexstring(t1.inputs[0].prev_txid), 'd4668ec9fe59feee65e6800b186a89b8c8fe16fda966139'
                                                                    '3037e4ccb5c439abe')
             self.assertEqual(t1.outputs[1].address, 'LMY9Uc2rLjPwf3trcUvsT7QNs7NeyGcbY3')
             self.assertEqual(t1.outputs[1].value, 10000000000)
@@ -817,6 +825,11 @@ class TestServiceCache(unittest.TestCase):
         try:
             if os.path.isfile(DATABASEFILE_CACHE_UNITTESTS2):
                 os.remove(DATABASEFILE_CACHE_UNITTESTS2)
+        except Exception:
+            pass
+        try:
+            DbCache(DATABASE_CACHE_POSTGRESQL).drop_db()
+            # DbCache(DATABASEFILE_CACHE_MYSQL).drop_db()
         except Exception:
             pass
 
@@ -898,6 +911,24 @@ class TestServiceCache(unittest.TestCase):
             srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
             self.assertGreaterEqual(srv.results_cache_n, 1)
 
+    # FIXME: Fails with some providers, needs testing
+    def test_service_cache_transaction_segwit_database(self):
+        for db_uri in DATABASES_CACHE:
+            srv = ServiceTest(cache_uri=db_uri, network='bitcoin',
+                              exclude_providers=['blocksmurfer'])
+            rawtx \
+                = "020000000001012d83146744d37b0aa13b609a206206860d550e911882c89afabc3abaeebc5f7d0100000000ffffffff01" \
+                  "cb2500000000000017a914da4540e3b144eb0c6d3be573fba0ffab3887c6138702473044022067be0a16037511c15b310b" \
+                  "cad2e8d40d36680f4bffbfb1f76a170ac552df8aaf0220110024eb5d17a4b3c3928d3c2ca28bb023b4ee3348004a79632a" \
+                  "03613ed6a3b50121031811df1f3cc40e1f8bb0e1cd4dbf86a897be03cc8cbddbfa136a1e6f84b540f500000000"
+            # Get transaction from provider, should be added to cache
+            t = srv.gettransaction('656333aa98d6207de1eb59e029850b649935e6ef2e5f90bc8834a13333b90963')
+            self.assertEqual(t.raw_hex(), rawtx)
+            # Get transaction from cache
+            t = srv.gettransaction('656333aa98d6207de1eb59e029850b649935e6ef2e5f90bc8834a13333b90963')
+            self.assertGreaterEqual(srv.results_cache_n, 1)
+            self.assertEqual(t.raw_hex(), rawtx)
+
     def test_service_cache_with_latest_tx_query(self):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         address = 'bc1qxfrgfhs49d7dtcfzlhp7f7cwsp8zpp60hywp0f'
@@ -930,17 +961,18 @@ class TestServiceCache(unittest.TestCase):
             self.assertEqual(b.version_int, 1)
             self.assertEqual(b.transactions[0].txid, '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577')
 
-        srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2,
-                          exclude_providers=['chainso', 'blockchair', 'blockchaininfo'])  # Those providers return incomplete results
-        b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
-        print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
-        check_block_128594(b)
-        self.assertEqual(srv.results_cache_n, 0)
+        for cache_db in DATABASES_CACHE:
+            srv = ServiceTest(cache_uri=cache_db,
+                              exclude_providers=['chainso', 'blockchair', 'blockchaininfo'])  # Those providers return incomplete results
+            b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
+            print("Test getblock with hash using provider %s" % list(srv.results.keys())[0])
+            check_block_128594(b)
+            self.assertEqual(srv.results_cache_n, 0)
 
-        # Now retrieve from cache
-        bc = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
-        self.assertEqual(srv.results_cache_n, 1)
-        check_block_128594(bc)
+            # Now retrieve from cache
+            bc = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)
+            self.assertEqual(srv.results_cache_n, 1)
+            check_block_128594(bc)
 
     def test_service_cache_disabled(self):
         srv = ServiceTest(cache_uri='')

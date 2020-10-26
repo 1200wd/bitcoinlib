@@ -33,9 +33,10 @@ install:
   - pip install coveralls
   - pip install scrypt
   - pip install psycopg2
-  - pip install mysql-connector
+  - pip install mysql-connector-python
   - pip install mysqlclient
   - pip install parameterized
+  - pip install sqlalchemy_utils
   - python setup.py install
 
 script:

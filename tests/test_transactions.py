@@ -28,37 +28,37 @@ class TestTransactionInputs(unittest.TestCase):
     def test_transaction_input_add_str(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ti = Input(ph, 0)
-        self.assertEqual(ph, ti.prev_hash.hex())
-        self.assertEqual(repr(ti), "<Input(prev_hash='81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d"
+        self.assertEqual(ph, ti.prev_txid.hex())
+        self.assertEqual(repr(ti), "<Input(prev_txid='81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d"
                                    "48', output_n=0, address='', index_n=0, type='sig_pubkey')>")
 
     def test_transaction_input_add_bytes(self):
         ph = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
-        ti = Input(prev_hash=to_bytes(ph), output_n=0)
-        self.assertEqual(ph, ti.prev_hash.hex())
+        ti = Input(prev_txid=to_bytes(ph), output_n=0)
+        self.assertEqual(ph, ti.prev_txid.hex())
 
     def test_transaction_input_add_scriptsig(self):
-        prev_hash = b"\xe3>\xbd\x17\x93\x8b\xc0\x13\xc6(\x95\x89*\xacT\xdf?[\xce\x96\xe4K\x89I\x94\x92ut\x1b\x14'\xe5"
+        prev_txid = b"\xe3>\xbd\x17\x93\x8b\xc0\x13\xc6(\x95\x89*\xacT\xdf?[\xce\x96\xe4K\x89I\x94\x92ut\x1b\x14'\xe5"
         output_index = b'\x00\x00\x00\x00'
         unlock_scr = \
             b"G0D\x02 l\xa2\x8f{\xaf\xdde\xbd\xfc\x0f\xbd\x88\xf5\xa5\xb0\x03i\x91'\xca\xf0\xff\xf6\xe6U5\xd7\xf11" \
             b"\x15,\x03\x02 \x16\x170?c\x8e\x08\x94\x7f\x18i~\xdc\xb3\xa7\xa5:\xe6m\xf9O&)\xdb\x98\xdc\x0c\xc5\x07k4" \
             b"\xb7\x01!\x020\x9a\x19i\x19\xcf\xf1\xd1\x87T'\x1b\xe7\xeeT\xd1\xb3\x7fAL\xbb)+U\xd7\xed\x1f\r\xc8 \x9d" \
             b"\x13"
-        ti = Input(prev_hash, output_index, unlocking_script=unlock_scr)
+        ti = Input(prev_txid, output_index, unlocking_script=unlock_scr)
         expected_dict = {
             'output_n': 0,
             'script': '47304402206ca28f7bafdd65bdfc0fbd88f5a5b003699127caf0fff6e65535d7f131152c0302201617'
                       '303f638e08947f18697edcb3a7a53ae66df94f2629db98dc0cc5076b34b7012102309a196919cff1d1'
                       '8754271be7ee54d1b37f414cbb292b55d7ed1f0dc8209d13',
             'sequence': 4294967295,
-            'prev_hash': 'e33ebd17938bc013c62895892aac54df3f5bce96e44b8949949275741b1427e5',
+            'prev_txid': 'e33ebd17938bc013c62895892aac54df3f5bce96e44b8949949275741b1427e5',
             'index_n': 0,
             'address': '1L1Gohs21Xg54MvHuBMbmxhZSNCa1d3Cc2',
             'script_type': 'sig_pubkey'
         }
         ti_dict = {key: ti.as_dict()[key] for key in
-                   ['output_n', 'script', 'sequence', 'prev_hash', 'index_n', 'address', 'script_type']}
+                   ['output_n', 'script', 'sequence', 'prev_txid', 'index_n', 'address', 'script_type']}
         self.assertDictEqual(expected_dict, ti_dict)
 
     def test_transaction_input_add_coinbase(self):
@@ -68,7 +68,7 @@ class TestTransactionInputs(unittest.TestCase):
     def test_transaction_input_add_public_key(self):
         ph = 'f2b3eb2deb76566e7324307cd47c35eeb88413f971d88519859b1834307ecfec'
         k = Key(0x18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725, compressed=False)
-        ti = Input(prev_hash=ph, output_n=1, keys=k.public(), compressed=k.compressed)
+        ti = Input(prev_txid=ph, output_n=1, keys=k.public(), compressed=k.compressed)
         self.assertEqual('16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM', ti.keys[0].address())
 
     def test_transaction_input_with_pkh(self):
@@ -76,7 +76,7 @@ class TestTransactionInputs(unittest.TestCase):
         prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
         output_n = 0
         ki_public_hash = ki.hash160
-        ti = Input(prev_hash=prev_tx, output_n=output_n, public_hash=ki_public_hash, network='dash_testnet',
+        ti = Input(prev_txid=prev_tx, output_n=output_n, public_hash=ki_public_hash, network='dash_testnet',
                    compressed=False)
         self.assertEqual(ti.address, 'yWut2kHY6nXbpgqatMCNkwsxoYHcpWeF6Q')
 
@@ -214,7 +214,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_sign_1(self):
         pk = Key('cR6pgV8bCweLX1JVN3Q1iqxXvaw4ow9rrp8RenvJcckCMEbZKNtz', network='testnet')  # Private key for import
-        inp = Input(prev_hash='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_n=1,
+        inp = Input(prev_txid='d3c7fbd3a4ca1cca789560348a86facb3bb21dcd75ed38e85235fb6a32802955', output_n=1,
                     keys=pk.public(), network='testnet')
         # key for address mkzpsGwaUU7rYzrDZZVXFne7dXEeo6Zpw2
         pubkey = Key('0391634874ffca219ff5633f814f7f013f7385c66c65c8c7d81e7076a5926f1a75', network='testnet')
@@ -227,7 +227,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_sign_2(self):
         pk = Key('KwbbBb6iz1hGq6dNF9UsHc7cWaXJZfoQGFWeozexqnWA4M7aSwh4')  # Private key for import
-        inp = Input(prev_hash='fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3',
+        inp = Input(prev_txid='fdaa42051b1fc9226797b2ef9700a7148ee8be9466fc8408379814cb0b1d88e3',
                     output_n=1, keys=pk.public())
         out = Output(95000, address='1K5j3KpsSt2FyumzLmoVjmFWVcpFhXHvNF')
         t = Transaction([inp], [out])
@@ -253,8 +253,8 @@ class TestTransactions(unittest.TestCase):
         utxo_hash = '0177ac29fa8b2960051321c730c6f15017503aa5b9c1dd2d61e7286e366fbaba'
         pk1 = HDKey(wif1)
         pk2 = HDKey(wif2)
-        input1 = Input(prev_hash=utxo_hash, output_n=0, keys=pk1.public_byte, index_n=0)
-        input2 = Input(prev_hash=utxo_hash, output_n=1, keys=pk2.public_byte, index_n=1)
+        input1 = Input(prev_txid=utxo_hash, output_n=0, keys=pk1.public_byte, index_n=0)
+        input2 = Input(prev_txid=utxo_hash, output_n=1, keys=pk2.public_byte, index_n=1)
 
         # Create a transaction with 2 inputs, and add 2 outputs below
         osm_address = '1J3pt9koWJZTo2jarg98RL89iJqff9Kobp'
@@ -970,7 +970,7 @@ class TestTransactions(unittest.TestCase):
         ki = Key('5HusYj2b2x4nroApgfvaSfKYZhRbKFH41bVyPooymbC6KfgSXdD', compressed=False)
         txid = "81b4c832d70cb56ff957589752eb4125a4cab78a25a8fc52d6a09e5bd4404d48"
         ki.address()
-        transaction_input = Input(prev_hash=txid, output_n=0, address=ki.address_obj)
+        transaction_input = Input(prev_txid=txid, output_n=0, address=ki.address_obj)
         pkh = "c8e90996c7c6080ee06284600c684ed904d14c5c"
         addr = Address(hashed_data=pkh)
         transaction_output = Output(value=91234, address=addr)
@@ -1026,17 +1026,17 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
 
     def test_transaction_script_type_multisig_2(self):
         s = bytes.fromhex('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
-                               '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
+                          '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
         res = script_deserialize(s)
         self.assertEqual('multisig', res['script_type'])
         self.assertEqual(1, res['number_of_sigs_m'])
 
     def test_transaction_script_multisig_errors(self):
         s = bytes.fromhex('51'
-                               '4104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426'
-                               'd1b1ec45d76724f26901099416b9265b76ba67c8b0b73d'
-                               '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d00'
-                               '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')
+                          '4104fcf07bb1222f7925f2b7cc15183a40443c578e62ea17100aa3b44ba66905c95d4980aec4cd2f6eb426'
+                          'd1b1ec45d76724f26901099416b9265b76ba67c8b0b73d'
+                          '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d00'
+                          '210202be80a0ca69c0e000b97d507f45b98c49f58fec6650b64ff70e6ffccc3e6d0052ae')
         self.assertRaisesRegexp(TransactionError, '3 signatures found, but 2 sigs expected',
                                 script_deserialize, s)
         self.assertRaisesRegexp(TransactionError, 'Number of signatures to sign \(3\) is higher then actual amount '
@@ -1064,7 +1064,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
     def test_transaction_script_type_string(self):
         # Locking script
         s = bytes.fromhex('5121032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca330162102308673d169'
-                               '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
+                          '87eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a52ae')
         os = "OP_1 032487c2a32f7c8d57d2a93906a6457afd00697925b0e6e145d89af6d3bca33016 " \
              "02308673d16987eaa010e540901cc6fe3695e758c19f46ce604e174dac315e685a OP_2 OP_CHECKMULTISIG"
         self.assertEqual(os, str(script_to_string(s)))
@@ -1123,7 +1123,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         prev_tx = "5b5903a9e5f5a1fee68fbd597085969a36789dc5b5e397dad76a57c3fb7c232a"
         output_n = 0
         t = Transaction(network='dash_testnet')
-        t.add_input(prev_hash=prev_tx, output_n=output_n, compressed=False)
+        t.add_input(prev_txid=prev_tx, output_n=output_n, compressed=False)
         t.add_output(99900000, 'yUV8W2RmEbKZD8oD7YMeBNiydHWmormCDj')
         t.sign(ki.private_byte)
         self.assertTrue(t.verify())
@@ -1369,13 +1369,13 @@ class TestTransactionsMultisig(unittest.TestCase):
         phrase1 = 'shop cloth bench traffic vintage security hour engage omit almost episode fragile'
         phrase2 = 'exclude twice mention orchard grit ignore display shine cheap exercise same apart'
         phrase3 = 'citizen obscure tribe index little welcome deer wine exile possible pizza adjust'
-        prev_hash = '55d721dffa90208d8ab7ae3411c42db3e7de860f3a76ab18f7c237bf2390a666'
+        prev_txid = '55d721dffa90208d8ab7ae3411c42db3e7de860f3a76ab18f7c237bf2390a666'
         pk1 = HDKey.from_passphrase(phrase1, network=network)
         pk2 = HDKey.from_passphrase(phrase2, network=network)
         pk3 = HDKey.from_passphrase(phrase3, network=network)
 
         t = Transaction(network=network)
-        t.add_input(prev_hash, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
+        t.add_input(prev_txid, 0, [pk1.private_byte, pk2.public_byte, pk3.public_byte], script_type='p2sh_multisig',
                     sigs_required=2)
         t.add_output(10000, '22zkxRGNsjHJpqU8tSS7cahSZVXrz9pJKSs')
         self.assertEqual(t.estimate_size(), 337)
@@ -1439,7 +1439,7 @@ class TestTransactionsTimelocks(unittest.TestCase):
         # t = Transaction(inputs, outputs)
         # TODO
         pass
-        raw_tx = ''
+        # raw_tx = ''
         # print(t.raw_hex())
         # print(t.inputs[0].unlocking_script_unsigned)
 
@@ -1513,8 +1513,8 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t2 = Transaction.import_raw(t.raw())
         t2.inputs[0].value = int(6.25 * 100000000)
         t2.inputs[1].value = int(6 * 100000000)
-        self.assertEqual(t2.inputs[0].prev_hash, inp_prev_tx1)
-        self.assertEqual(t2.inputs[1].prev_hash, inp_prev_tx2)
+        self.assertEqual(t2.inputs[0].prev_txid, inp_prev_tx1)
+        self.assertEqual(t2.inputs[1].prev_txid, inp_prev_tx2)
         self.assertEqual(t2.signature_hash(1).hex(),
                          'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670')
 

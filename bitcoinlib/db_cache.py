@@ -19,9 +19,11 @@
 #
 
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Numeric, Text, LargeBinary
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Enum, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.exc import OperationalError
+from sqlalchemy_utils import create_database
+from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
 from urllib.parse import urlparse
 from bitcoinlib.main import *
 
@@ -30,9 +32,14 @@ _logger.info("Using Cache Database %s" % DEFAULT_DATABASE_CACHE)
 Base = declarative_base()
 
 
-class DbInit:
+class WitnessTypeTransactions(enum.Enum):
+    legacy = "legacy"
+    segwit = "segwit"
+
+
+class DbCache:
     """
-    Initialize database and open session
+    Cache Database object. Initialize database and open session when creating database object.
 
     Create new database if is doesn't exist yet
 
@@ -44,21 +51,38 @@ class DbInit:
             db_uri = DEFAULT_DATABASE_CACHE
         elif not db_uri:
             return
-        o = urlparse(db_uri)
+        self.o = urlparse(db_uri)
 
-        if not o.scheme or len(o.scheme) < 2:
+        # if self.o.scheme == 'mysql':
+        #     raise Warning("Could not connect to cache database. MySQL databases not supported at the moment, "
+        #                   "because bytes strings are not supported as primary keys")
+
+        if not self.o.scheme or len(self.o.scheme) < 2:
             db_uri = 'sqlite:///%s' % db_uri
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
-            if "?" in db_uri:
-                db_uri += "&"
-            else:
-                db_uri += "?"
+            db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
-
+        if self.o.scheme == 'mysql':
+            db_uri += "&" if "?" in db_uri else "?"
+            db_uri += 'binary_prefix=true'
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
+
+        # Try to connect to database, create database if it doesn't exist
+        try:
+            self.engine.connect()
+        except OperationalError:
+            create_database(db_uri)
+
         Session = sessionmaker(bind=self.engine)
         Base.metadata.create_all(self.engine)
+        self.db_uri = db_uri
         self.session = Session()
+
+    def drop_db(self):
+        self.session.commit()
+        self.session.close_all()
+        close_all_sessions()
+        Base.metadata.drop_all(self.engine)
 
 
 class DbCacheTransactionNode(Base):
@@ -66,24 +90,35 @@ class DbCacheTransactionNode(Base):
     Link table for cache transactions and addresses
     """
     __tablename__ = 'cache_transactions_node'
-    txid = Column(String(64), ForeignKey('cache_transactions.txid'), primary_key=True)
+    txid = Column(LargeBinary(32), ForeignKey('cache_transactions.txid'), primary_key=True)
     transaction = relationship("DbCacheTransaction", back_populates='nodes', doc="Related transaction object")
-    # TODO: Add fields to allow to create full transaction (+ split input / output?)
-    # index_n = Column(BigInteger, primary_key=True,
-    #                  doc="Output_n of previous transaction output that is spent in this input")
-    # prev_hash = Column(String(64),
-    #                    doc="Transaction hash of previous transaction. Previous unspent outputs (UTXO) is spent "
-    #                        "in this input")
-    output_n = Column(BigInteger, primary_key=True,
-                      doc="Output_n of previous transaction output that is spent in this input")
-    value = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Value of transaction input")
+    index_n = Column(Integer, primary_key=True, doc="Order of input/output in this transaction")
+    value = Column(BigInteger, default=0, doc="Value of transaction input")
+    address = Column(String(255), index=True, doc="Address string base32 or base58 encoded")
+    script = Column(LargeBinary, doc="Locking or unlocking script")
+    witnesses = Column(LargeBinary, doc="Witnesses (signatures) used in Segwit transaction inputs")
+    sequence = Column(BigInteger, default=0xffffffff,
+                      doc="Transaction sequence number. Used for timelock transaction inputs")
     is_input = Column(Boolean, primary_key=True, doc="True if input, False if output")
-    address = Column(String(255), doc="Address string base32 or base58 encoded", index=True)
-    # script = Column(Text, doc="Unlocking script to unlock previous locked output")
-    # sequence = Column(BigInteger, doc="Transaction sequence number. Used for timelock transaction inputs")
     spent = Column(Boolean, default=None, doc="Is output spent?")
-    spending_txid = Column(String(64), doc="Transaction hash of input which spends this output")
-    spending_index_n = Column(Integer, doc="Index number of transaction input which spends this output")
+    ref_txid = Column(LargeBinary(32), index=True, doc="Transaction hash of input which spends this output")
+    ref_index_n = Column(BigInteger, doc="Index number of transaction input which spends this output")
+
+    def prev_txid(self):
+        if self.is_input:
+            return self.ref_txid
+
+    def output_n(self):
+        if self.is_input:
+            return self.ref_index_n
+
+    def spending_txid(self):
+        if not self.is_input:
+            return self.ref_txid
+
+    def spending_index_n(self):
+        if not self.is_input:
+            return self.ref_index_n
 
 
 class DbCacheTransaction(Base):
@@ -94,31 +129,25 @@ class DbCacheTransaction(Base):
 
     """
     __tablename__ = 'cache_transactions'
-    txid = Column(String(64), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
-    date = Column(DateTime, default=datetime.utcnow,
-                  doc="Date when transaction was confirmed and included in a block. "
-                      "Or when it was created when transaction is not send or confirmed")
-    # TODO: Add fields to allow to create full transaction
-    # witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
-    # version = Column(Integer, default=1,
-    #                  doc="Tranaction version. Default is 1 but some wallets use another version number")
-    # locktime = Column(Integer, default=0,
-    #                   doc="Transaction level locktime. Locks the transaction until a specified block "
-    #                       "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
-    #                       " Default value is 0 for transactions without locktime")
-    # coinbase = Column(Boolean, default=False, doc="Is True when this is a coinbase transaction, default is False")
+    txid = Column(LargeBinary(32), primary_key=True, doc="Hexadecimal representation of transaction hash or transaction ID")
+    date = Column(DateTime, doc="Date when transaction was confirmed and included in a block")
+    version = Column(BigInteger, default=1,
+                     doc="Tranaction version. Default is 1 but some wallets use another version number")
+    locktime = Column(BigInteger, default=0,
+                      doc="Transaction level locktime. Locks the transaction until a specified block "
+                          "(value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970)."
+                          " Default value is 0 for transactions without locktime")
     confirmations = Column(Integer, default=0,
                            doc="Number of confirmation when this transaction is included in a block. "
                                "Default is 0: unconfirmed")
     block_height = Column(Integer, index=True, doc="Height of block this transaction is included in")
-    block_hash = Column(String(64), index=True, doc="Hash of block this transaction is included in")  # TODO: Remove, is redundant
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
     fee = Column(BigInteger, doc="Transaction fee")
-    raw = Column(Text(),
-                 doc="Raw transaction hexadecimal string. Transaction is included in raw format on the blockchain")
     nodes = relationship("DbCacheTransactionNode", cascade="all,delete",
                          doc="List of all inputs and outputs as DbCacheTransactionNode objects")
     order_n = Column(Integer, doc="Order of transaction in block")
+    witness_type = Column(Enum(WitnessTypeTransactions), default=WitnessTypeTransactions.legacy,
+                          doc="Transaction type enum: legacy or segwit")
 
 
 class DbCacheAddress(Base):
@@ -131,9 +160,9 @@ class DbCacheAddress(Base):
     __tablename__ = 'cache_address'
     address = Column(String(255), primary_key=True, doc="Address string base32 or base58 encoded")
     network_name = Column(String(20), doc="Blockchain network name of this transaction")
-    balance = Column(Numeric(25, 0, asdecimal=False), default=0, doc="Total balance of UTXO's linked to this key")
+    balance = Column(BigInteger, default=0, doc="Total balance of UTXO's linked to this key")
     last_block = Column(Integer, doc="Number of last updated block")
-    last_txid = Column(String(64), doc="Transaction ID of latest transaction in cache")
+    last_txid = Column(LargeBinary(32), doc="Transaction ID of latest transaction in cache")
     n_utxos = Column(Integer, doc="Total number of UTXO's for this address")
     n_txs = Column(Integer, doc="Total number of transactions for this address")
 
@@ -167,7 +196,3 @@ class DbCacheVars(Base):
     value = Column(String(255), doc="Value of variable")
     type = Column(String(20), doc="Type of variable: int, string or float")
     expires = Column(DateTime, doc="Datetime value when variable expires")
-
-
-if __name__ == '__main__':
-    DbInit()

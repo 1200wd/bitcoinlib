@@ -22,6 +22,7 @@ import os
 import locale
 import platform
 import configparser
+import enum
 from pathlib import Path
 from datetime import datetime
 
@@ -193,7 +194,6 @@ UNITTESTS_FULL_DATABASE_TEST = False
 
 # CACHING
 SERVICE_CACHING_ENABLED = True
-CACHE_STORE_RAW_TRANSACTIONS = False
 
 
 def read_config():
@@ -213,7 +213,7 @@ def read_config():
     global ALLOW_DATABASE_THREADS, DEFAULT_DATABASE_CACHE
     global BCL_LOG_FILE, LOGLEVEL, ENABLE_BITCOINLIB_LOGGING
     global TIMEOUT_REQUESTS, DEFAULT_LANGUAGE, DEFAULT_NETWORK, DEFAULT_WITNESS_TYPE
-    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED, CACHE_STORE_RAW_TRANSACTIONS
+    global UNITTESTS_FULL_DATABASE_TEST, SERVICE_CACHING_ENABLED
     global SERVICE_MAX_ERRORS, BLOCK_COUNT_CACHE_TIME, MAX_TRANSACTIONS
 
     # Read settings from Configuration file provided in OS environment~/.bitcoinlib/ directory
@@ -262,14 +262,10 @@ def read_config():
     DEFAULT_NETWORK = config_get('common', 'default_network', fallback=DEFAULT_NETWORK)
     DEFAULT_WITNESS_TYPE = config_get('common', 'default_witness_type', fallback=DEFAULT_WITNESS_TYPE)
 
-    CACHE_STORE_RAW_TRANSACTIONS = config_get('common', 'cache_store_raw_transactions', fallback=True, is_boolean=True)
-
-    # Convert paths to strings
-
     full_db_test = os.environ.get('UNITTESTS_FULL_DATABASE_TEST')
     if full_db_test:
-        if full_db_test in [0, False, 'False', 'false', 'FALSE']:
-            UNITTESTS_FULL_DATABASE_TEST = False
+        if full_db_test in [1, True, 'True', 'true', 'TRUE']:
+            UNITTESTS_FULL_DATABASE_TEST = True
 
     if not data:
         return False
@@ -305,6 +301,7 @@ def initialize_lib():
         if file.suffix not in ['.ini', '.json']:
             continue
         copyfile(str(file), Path(BCL_DATA_DIR, file.name))
+
 
 # Initialize library
 read_config()

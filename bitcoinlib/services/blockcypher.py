@@ -78,7 +78,7 @@ class BlockCypher(BaseClient):
                         tdate = datetime.strptime(tx['confirmed'], "%Y-%m-%dT%H:%M:%S.%fZ")
                 transactions.append({
                     'address': address.address_orig,
-                    'tx_hash': tx['tx_hash'],
+                    'txid': tx['tx_hash'],
                     'confirmations': tx['confirmations'],
                     'output_n': tx['tx_output_n'],
                     'index': 0,
@@ -92,8 +92,6 @@ class BlockCypher(BaseClient):
     def gettransaction(self, txid):
         tx = self.compose_request('txs', txid, variables={'includeHex': 'true'})
         t = Transaction.import_raw(tx['hex'], network=self.network)
-        # t.hash = to_bytes(txid)
-        # t.txid = txid
         if tx['confirmations']:
             t.status = 'confirmed'
             t.date = datetime.strptime(tx['confirmed'][:19], "%Y-%m-%dT%H:%M:%S")
@@ -101,7 +99,6 @@ class BlockCypher(BaseClient):
             t.status = 'unconfirmed'
         t.confirmations = tx['confirmations']
         t.block_height = tx['block_height'] if tx['block_height'] > 0 else None
-        t.block_hash = tx.get('block_hash')
         t.fee = tx['fees']
         t.rawtx = bytes.fromhex(tx['hex'])
         t.size = int(len(tx['hex']) / 2)
@@ -112,7 +109,7 @@ class BlockCypher(BaseClient):
                               (len(t.inputs), len(tx['inputs'])))
         for n, i in enumerate(t.inputs):
             if not t.coinbase and not (tx['inputs'][n]['output_index'] == i.output_n_int and
-                                       tx['inputs'][n]['prev_hash'] == i.prev_hash.hex()):
+                                       tx['inputs'][n]['prev_hash'] == i.prev_txid.hex()):
                 raise ClientError("Transaction inputs do not match raw transaction")
             if 'output_value' in tx['inputs'][n]:
                 if not t.coinbase:

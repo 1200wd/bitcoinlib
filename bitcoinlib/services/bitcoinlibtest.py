@@ -51,7 +51,7 @@ class BitcoinLibTestClient(BaseClient):
         """
         return self.units * len(addresslist)
 
-    def _get_tx_hash(self, address, n):
+    def _get_txid(self, address, n):
         try:
             pkh = str(n).encode() + addr_to_pubkeyhash(address)[1:]
         except Exception:
@@ -74,11 +74,11 @@ class BitcoinLibTestClient(BaseClient):
         """
         utxos = []
         for n in range(utxos_per_address):
-            tx_hash = self._get_tx_hash(address, n)
+            txid = self._get_txid(address, n)
             utxos.append(
                 {
                     'address': address,
-                    'tx_hash': tx_hash,
+                    'txid': txid,
                     'confirmations': 10,
                     'output_n': 0,
                     'index': 0,

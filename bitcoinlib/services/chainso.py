@@ -71,7 +71,7 @@ class ChainSo(BaseClient):
         for tx in res['data']['txs'][:limit]:
             txs.append({
                 'address': address,
-                'tx_hash': tx['txid'],
+                'txid': tx['txid'],
                 'confirmations': tx['confirmations'],
                 'output_n': -1 if 'output_no' not in tx else tx['output_no'],
                 'input_n': -1 if 'input_no' not in tx else tx['input_no'],
@@ -93,8 +93,8 @@ class ChainSo(BaseClient):
     def gettransaction(self, txid, block_height=None):
         res = self.compose_request('get_tx', txid)
         tx = res['data']
-        raw_tx = tx['tx_hex']
-        t = Transaction.import_raw(raw_tx, network=self.network)
+        rawtx = tx['tx_hex']
+        t = Transaction.import_raw(rawtx, network=self.network)
         input_total = 0
         output_total = 0
         if not t.coinbase:
@@ -108,7 +108,7 @@ class ChainSo(BaseClient):
             t.block_height = self.getblock(tx['blockhash'], False, 1, 1)['height']
         t.block_hash = tx['blockhash']
         t.date = datetime.utcfromtimestamp(tx['time'])
-        t.rawtx = raw_tx
+        t.rawtx = bytes.fromhex(rawtx)
         t.size = tx['size']
         t.network = self.network
         t.locktime = tx['locktime']

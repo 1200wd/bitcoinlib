@@ -159,7 +159,7 @@ class LitecoindClient(BaseClient):
         for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
             txs.append({
                 'address': t['address'],
-                'tx_hash': t['txid'],
+                'txid': t['txid'],
                 'confirmations': t['confirmations'],
                 'output_n': t['vout'],
                 'input_n': -1,
@@ -182,15 +182,14 @@ class LitecoindClient(BaseClient):
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
-            if i.prev_hash == b'\x00' * 32:
+            if i.prev_txid == b'\x00' * 32:
                 i.script_type = 'coinbase'
                 continue
             if get_input_values:
-                txi = self.proxy.getrawtransaction(i.prev_hash.hex(), 1)
+                txi = self.proxy.getrawtransaction(i.prev_txid.hex(), 1)
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.block_hash = tx['blockhash']
         t.block_height = block_height
         t.version = tx['version'].to_bytes(4, 'little')
         t.date = datetime.utcfromtimestamp(tx['blocktime'])

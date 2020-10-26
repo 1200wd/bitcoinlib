@@ -25,7 +25,7 @@ from datetime import timedelta
 from sqlalchemy import func
 from bitcoinlib import services
 from bitcoinlib.networks import Network
-from bitcoinlib.encoding import to_bytes
+from bitcoinlib.encoding import to_bytes, int_to_varbyteint, varstr, varbyteint_to_int
 from bitcoinlib.db_cache import *
 from bitcoinlib.transactions import Transaction, transaction_update_spents
 from bitcoinlib.blocks import Block
@@ -197,6 +197,7 @@ class Service(object):
                     self.errors.update(
                         {sp: err}
                     )
+                    _logger.debug("Error %s on provider %s" % (e, sp))
                     # -- Use this to debug specific Services errors --
                     # from pprint import pprint
                     # pprint(self.errors)
@@ -268,7 +269,7 @@ class Service(object):
 
         utxos_cache = []
         if self.min_providers <= 1:
-            utxos_cache = self.cache.getutxos(address, after_txid) or []
+            utxos_cache = self.cache.getutxos(address, bytes.fromhex(after_txid)) or []
         db_addr = self.cache.getaddress(address)
         if utxos_cache:
             self.results_cache_n = len(utxos_cache)
@@ -277,7 +278,7 @@ class Service(object):
                 return utxos_cache
             else:
                 utxos_cache = []
-                # after_txid = utxos_cache[-1:][0]['tx_hash']
+                # after_txid = utxos_cache[-1:][0]['txid']
         # if db_addr and db_addr.last_txid:
         #     after_txid = db_addr.last_txid
 
@@ -308,7 +309,7 @@ class Service(object):
         self.results_cache_n = 0
 
         if self.min_providers <= 1:
-            tx = self.cache.gettransaction(txid)
+            tx = self.cache.gettransaction(bytes.fromhex(txid))
             if tx:
                 self.results_cache_n = 1
         if not tx:
@@ -342,7 +343,7 @@ class Service(object):
             after_txid = ''
         db_addr = self.cache.getaddress(address)
         txs_cache = []
-        qry_after_txid = after_txid
+        qry_after_txid = bytes.fromhex(after_txid)
 
         # Retrieve transactions from cache
         caching_enabled = True
@@ -350,18 +351,18 @@ class Service(object):
             caching_enabled = False
 
         if caching_enabled:
-            txs_cache = self.cache.gettransactions(address, after_txid, limit) or []
+            txs_cache = self.cache.gettransactions(address, qry_after_txid, limit) or []
             if txs_cache:
                 self.results_cache_n = len(txs_cache)
                 if len(txs_cache) == limit:
                     return txs_cache
                 limit = limit - len(txs_cache)
-                qry_after_txid = txs_cache[-1:][0].txid
+                qry_after_txid = bytes.fromhex(txs_cache[-1:][0].txid)
 
         # Get (extra) transactions from service providers
         txs = []
         if not(db_addr and db_addr.last_block and db_addr.last_block >= self.blockcount()) or not caching_enabled:
-            txs = self._provider_execute('gettransactions', address, qry_after_txid,  limit)
+            txs = self._provider_execute('gettransactions', address, qry_after_txid.hex(),  limit)
             if txs is False:
                 raise ServiceError("Error when retrieving transactions from service provider")
 
@@ -377,7 +378,7 @@ class Service(object):
                 self.complete = False
                 last_block = txs[-1:][0].block_height
             if len(txs):
-                last_txid = txs[-1:][0].txid
+                last_txid = bytes.fromhex(txs[-1:][0].txid)
             if len(self.results):
                 order_n = 0
                 for t in txs:
@@ -413,7 +414,7 @@ class Service(object):
         :return str: Raw transaction as hexstring
         """
         self.results_cache_n = 0
-        rawtx = self.cache.getrawtransaction(txid)
+        rawtx = self.cache.getrawtransaction(bytes.fromhex(txid))
         if rawtx:
             self.results_cache_n = 1
             return rawtx
@@ -589,7 +590,7 @@ class Service(object):
         """
         addr_dict = {'address': address}
         addr_rec = self.cache.getaddress(address)
-        if addr_rec:
+        if isinstance(addr_rec, DbCacheAddress):
             addr_dict['balance'] = addr_rec.balance
             addr_dict['last_block'] = addr_rec.last_block
             addr_dict['n_txs'] = addr_rec.n_txs
@@ -607,7 +608,7 @@ class Service(object):
 
         :return bool:
         """
-        t = self.cache.gettransaction(txid)
+        t = self.cache.gettransaction(bytes.fromhex(txid))
         if t and len(t.outputs) > output_n and t.outputs[output_n].spent is not None:
             return t.outputs[output_n].spent
         else:
@@ -636,10 +637,10 @@ class Service(object):
         prev_txs = []
         for i in t.inputs:
             if not i.value:
-                if i.prev_hash not in prev_txs:
-                    prev_t = self.gettransaction(i.prev_hash.hex())
+                if i.prev_txid not in prev_txs:
+                    prev_t = self.gettransaction(i.prev_txid.hex())
                 else:
-                    prev_t = [t for t in prev_txs if t.txid == i.prev_hash][0]
+                    prev_t = [t for t in prev_txs if t.txid == i.prev_txid][0]
                 i.value = prev_t.outputs[i.output_n_int].value
         return t
 
@@ -667,7 +668,7 @@ class Cache(object):
         """
         self.session = None
         if SERVICE_CACHING_ENABLED:
-            self.session = DbInit(db_uri=db_uri).session
+            self.session = DbCache(db_uri=db_uri).session
         self.network = network
 
     def __exit__(self):
@@ -702,35 +703,30 @@ class Cache(object):
 
     @staticmethod
     def _parse_db_transaction(db_tx):
-        if not db_tx.raw:
-            return False
-        t = Transaction.import_raw(db_tx.raw, db_tx.network_name)
-        # TODO: Avoid using raw transaction
-        # locktime, version, coinbase?, witness_type
-        # t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-        #                 fee=tx['fee'], size=tx['size'], hash=tx['txid'],
-        #                 date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],
-        #                 confirmations=confirmations, block_height=block_height, status=tx['status'],
-        #                 coinbase=tx['coinbase'], rawtx=tx['raw_hex'], witness_type=tx['witness_type'])
+        t = Transaction(locktime=db_tx.locktime, version=db_tx.version, network=db_tx.network_name,
+                        fee=db_tx.fee, txid=db_tx.txid.hex(), date=db_tx.date, confirmations=db_tx.confirmations,
+                        block_height=db_tx.block_height, status='confirmed', witness_type=db_tx.witness_type.value)
         for n in db_tx.nodes:
             if n.is_input:
-                t.inputs[n.output_n].value = n.value
-                t.inputs[n.output_n].address = n.address
+                witnesses = []
+                # TODO: Move code to Script class
+                if n.witnesses:
+                    witness_str = n.witnesses
+                    n_items, cursor = varbyteint_to_int(witness_str[0:9])
+                    for m in range(0, n_items):
+                        witness = b'\0'
+                        item_size, size = varbyteint_to_int(witness_str[cursor:cursor + 9])
+                        if item_size:
+                            witness = witness_str[cursor + size:cursor + item_size + size]
+                        cursor += item_size + size
+                        witnesses.append(witness)
+                t.add_input(n.ref_txid, n.ref_index_n, unlocking_script=n.script, address=n.address,
+                            sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses)
             else:
-                t.outputs[n.output_n].spent = n.spent
-                t.outputs[n.output_n].spending_txid = n.spending_txid
-                t.outputs[n.output_n].spending_index_n = n.spending_index_n
-        t.hash = to_bytes(db_tx.txid)
-        t._txid = db_tx.txid
-        t.date = db_tx.date
-        t.block_hash = db_tx.block_hash
-        t.block_height = db_tx.block_height
-        t.confirmations = db_tx.confirmations
-        t.status = 'confirmed'
-        t.fee = db_tx.fee
+                t.add_output(n.value, n.address, lock_script=n.script, spent=n.spent, output_n=n.index_n,
+                             spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
+
         t.update_totals()
-        if t.coinbase:
-            t.input_total = t.output_total
         _logger.info("Retrieved transaction %s from cache" % t.txid)
         return t
 
@@ -739,7 +735,7 @@ class Cache(object):
         Get transaction from cache. Returns False if not available
 
         :param txid: Transaction identification hash
-        :type txid: str
+        :type txid: bytes
 
         :return Transaction: A single Transaction object
         """
@@ -749,7 +745,7 @@ class Cache(object):
         if not db_tx:
             return False
         db_tx.txid = txid
-        t =  self._parse_db_transaction(db_tx)
+        t = self._parse_db_transaction(db_tx)
         if t.block_height:
             t.confirmations = (self.blockcount() - t.block_height) + 1
         return t
@@ -764,7 +760,7 @@ class Cache(object):
         :return DbCacheAddress: An address cache database object
         """
         if not self.cache_enabled():
-            return False
+            return
         return self.session.query(DbCacheAddress).filter_by(address=address, network_name=self.network.name).scalar()
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):
@@ -774,7 +770,7 @@ class Cache(object):
         :param address: Address string
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for transactions after given tx id. Default: Leave empty to return all transaction. If used only provide a single address
-        :type after_txid: str
+        :type after_txid: bytes
         :param limit: Maximum number of transactions to return
         :type limit: int
 
@@ -849,7 +845,7 @@ class Cache(object):
         Get a raw transaction string from the database cache if available
 
         :param txid: Transaction identification hash
-        :type txid: str, bytes
+        :type txid: bytes
 
         :return str: Raw transaction as hexstring
         """
@@ -858,7 +854,8 @@ class Cache(object):
         tx = self.session.query(DbCacheTransaction).filter_by(txid=txid, network_name=self.network.name).first()
         if not tx:
             return False
-        return tx.raw
+        t = self._parse_db_transaction(tx)
+        return t.raw_hex()
 
     def getutxos(self, address, after_txid=''):
         """
@@ -869,13 +866,13 @@ class Cache(object):
         :param address: Address string
         :type address: str
         :param after_txid: Transaction ID of last known transaction. Only check for utxos after given tx id. Default: Leave empty to return all utxos.
-        :type after_txid: str
+        :type after_txid: bytes
 
         :return dict: UTXO's per address
         """
         if not self.cache_enabled():
             return False
-        db_utxos = self.session.query(DbCacheTransactionNode.spent, DbCacheTransactionNode.output_n,
+        db_utxos = self.session.query(DbCacheTransactionNode.spent, DbCacheTransactionNode.index_n,
                                       DbCacheTransactionNode.value, DbCacheTransaction.confirmations,
                                       DbCacheTransaction.block_height, DbCacheTransaction.fee,
                                       DbCacheTransaction.date, DbCacheTransaction.txid).join(DbCacheTransaction). \
@@ -887,9 +884,9 @@ class Cache(object):
             if db_utxo.spent is False:
                 utxos.append({
                     'address': address,
-                    'tx_hash': db_utxo.txid,
+                    'txid': db_utxo.txid,
                     'confirmations': db_utxo.confirmations,
-                    'output_n': db_utxo.output_n,
+                    'output_n': db_utxo.index_n,
                     'input_n': 0,
                     'block_height': db_utxo.block_height,
                     'fee': db_utxo.fee,
@@ -1013,33 +1010,34 @@ class Cache(object):
         elif not t.coinbase and [i for i in t.inputs if not i.value]:
             _logger.info("Caching failure tx: One the transaction inputs has value 0")
             return False
-        raw_hex = None
-        if CACHE_STORE_RAW_TRANSACTIONS:
-            raw_hex = t.raw_hex()
-            if not raw_hex:    # pragma: no cover
-                _logger.info("Caching failure tx: Raw hex missing in transaction")
-                return False
-        if self.session.query(DbCacheTransaction).filter_by(txid=t.txid).count():
+        # TODO: Check if inputs / outputs are complete? script, value, prev_txid, sequence, output/input_n
+
+        txid = bytes.fromhex(t.txid)
+        if self.session.query(DbCacheTransaction).filter_by(txid=txid).count():
             return
-        new_tx = DbCacheTransaction(txid=t.txid, date=t.date, confirmations=t.confirmations,
-                                    block_height=t.block_height, block_hash=t.block_hash, network_name=t.network.name,
-                                    fee=t.fee, raw=raw_hex, order_n=order_n)
+        new_tx = DbCacheTransaction(txid=txid, date=t.date, confirmations=t.confirmations,
+                                    block_height=t.block_height, network_name=t.network.name,
+                                    fee=t.fee, order_n=order_n, version=t.version_int,
+                                    locktime=t.locktime, witness_type=t.witness_type)
         self.session.add(new_tx)
         for i in t.inputs:
             if i.value is None or i.address is None or i.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Input value, address or output_n missing")
                 return False
-            new_node = DbCacheTransactionNode(txid=t.txid, address=i.address, output_n=i.index_n, value=i.value,
-                                              is_input=True)
+            witnesses = int_to_varbyteint(len(i.witnesses)) + b''.join([bytes(varstr(w)) for w in i.witnesses])
+            new_node = DbCacheTransactionNode(txid=txid, address=i.address, index_n=i.index_n, value=i.value,
+                                              is_input=True, ref_txid=i.prev_txid, ref_index_n=i.output_n_int,
+                                              script=i.unlocking_script, sequence=i.sequence,
+                                              witnesses=witnesses)
             self.session.add(new_node)
         for o in t.outputs:
             if o.value is None or o.address is None or o.output_n is None:    # pragma: no cover
                 _logger.info("Caching failure tx: Output value, address, spent info or output_n missing")
                 return False
             new_node = DbCacheTransactionNode(
-                txid=t.txid, address=o.address, output_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
-                spending_txid=None if not o.spending_txid else o.spending_txid,
-                spending_index_n=o.spending_index_n)
+                txid=txid, address=o.address, index_n=o.output_n, value=o.value, is_input=False, spent=o.spent,
+                ref_txid=None if not o.spending_txid else bytes.fromhex(o.spending_txid),
+                ref_index_n=o.spending_index_n, script=o.lock_script)
             self.session.add(new_node)
 
         if commit:
@@ -1064,9 +1062,9 @@ class Cache(object):
         :param txs_complete: True if all transactions for this address are added to cache
         :type txs_complete: bool
         :param last_txid: Transaction ID of last transaction downloaded from blockchain
-        :type last_txid: str
+        :type last_txid: bytes
 
-        :return:
+ .       :return:
         """
         if not self.cache_enabled():
             return

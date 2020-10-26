@@ -108,7 +108,7 @@ class BcoinClient(BaseClient):
                     utxos.append(
                         {
                             'address': unspent.address,
-                            'tx_hash': tx.txid,
+                            'txid': tx.txid,
                             'confirmations': tx.confirmations,
                             'output_n': unspent.output_n,
                             'input_n': 0,

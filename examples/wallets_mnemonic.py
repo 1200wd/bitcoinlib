@@ -10,10 +10,6 @@
 import os
 from bitcoinlib.wallets import Wallet, BCL_DATABASE_DIR
 from bitcoinlib.mnemonic import Mnemonic
-try:
-    input = raw_input
-except NameError:
-    pass
 
 #
 # Create Wallets

@@ -36,8 +36,8 @@ class BitapsClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, category, command='', data='', variables=None, type='blockchain', method='get'):
-        url_path = type + '/' + category
+    def compose_request(self, category, command='', data='', variables=None, req_type='blockchain', method='get'):
+        url_path = req_type + '/' + category
         if command:
             url_path += '/' + command
         if data:
@@ -57,28 +57,25 @@ class BitapsClient(BaseClient):
         elif 'blockTime' in tx and tx['blockTime']:
             date = datetime.utcfromtimestamp(tx['blockTime'])
         block_height = None
-        block_hash = None
         if 'blockHeight' in tx:
             block_height = tx['blockHeight']
-        if 'blockHash' in tx:
-            block_hash = tx['blockHash']
         witness_type = 'legacy'
         if tx['segwit']:
             witness_type = 'segwit'
 
         t = Transaction(
             locktime=tx['lockTime'], version=tx['version'], network=self.network, fee=tx['fee'],
-            fee_per_kb=None if 'feeRate' not in tx else int(tx['feeRate']), size=tx['size'], hash=tx['txId'], date=date,
-            confirmations=tx['confirmations'], block_height=block_height, block_hash=block_hash,
+            fee_per_kb=None if 'feeRate' not in tx else int(tx['feeRate']), size=tx['size'],
+            txid=tx['txId'], date=date, confirmations=tx['confirmations'], block_height=block_height,
             input_total=tx['inputsAmount'], output_total=tx['outputsAmount'], status=status, coinbase=tx['coinbase'],
             verified=None if 'valid' not in tx else tx['valid'], witness_type=witness_type)
 
         for n, ti in tx['vIn'].items():
             if t.coinbase:
-                t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
                             sequence=ti['sequence'], index_n=int(n), value=0)
             else:
-                t.add_input(prev_hash=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
+                t.add_input(prev_txid=ti['txId'], output_n=ti['vOut'], unlocking_script=ti['scriptSig'],
                             unlocking_script_unsigned=ti['scriptPubKey'],
                             address='' if 'address' not in ti else ti['address'], sequence=ti['sequence'],
                             index_n=int(n), value=ti['amount'])
@@ -122,7 +119,7 @@ class BitapsClient(BaseClient):
                     utxos.append(
                         {
                             'address': utxo['address'],
-                            'tx_hash': tx['txId'],
+                            'txid': tx['txId'],
                             'confirmations': 0 if 'confirmations' not in tx else tx['confirmations'],
                             'output_n': int(outp),
                             'input_n': 0,

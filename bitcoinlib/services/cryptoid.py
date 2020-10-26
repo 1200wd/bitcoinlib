@@ -71,11 +71,11 @@ class CryptoID(BaseClient):
             _logger.info("CryptoID: Large number of outputs for address %s, "
                          "UTXO list may be incomplete" % address.address)
         for utxo in res['unspent_outputs'][::-1]:
-            if utxo['tx_hash'] == after_txid:
+            if utxo['txid'] == after_txid:
                 break
             utxos.append({
                 'address': address.address_orig,
-                'tx_hash': utxo['tx_hash'],
+                'txid': utxo['txid'],
                 'confirmations': utxo['confirmations'],
                 'output_n': utxo['tx_output_n'] if 'tx_output_n' in utxo else utxo['tx_ouput_n'],
                 'input_n': 0,

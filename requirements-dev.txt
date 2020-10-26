@@ -4,10 +4,11 @@ fastecdsa>=1.7.1
 pyaes==1.6.1
 scrypt>=0.8.13
 SQLAlchemy>=1.2.12
+sqlalchemy_utils>=0.36.8
 six>=1.10
 coveralls
 psycopg2
-mysql-connector
+mysql-connector-python
 mysqlclient
 parameterized
 sphinx_rtd_theme
