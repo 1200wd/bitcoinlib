@@ -228,7 +228,7 @@ def read_config():
             BCL_CONFIG_FILE = Path(BCL_INSTALL_DIR, 'data', config_file_name)
         if not BCL_CONFIG_FILE.exists():
             raise IOError('Bitcoinlib configuration file not found: %s' % str(BCL_CONFIG_FILE))
-    data = config.read(BCL_CONFIG_FILE)
+    data = config.read(str(BCL_CONFIG_FILE))
     BCL_DATA_DIR = Path(config_get('locations', 'data_dir', fallback='~/.bitcoinlib')).expanduser()
 
     # Database settings

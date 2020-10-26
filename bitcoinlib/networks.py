@@ -300,7 +300,7 @@ class Network(object):
         decimals = decimals if decimals is not None else -int(math.log10(self.denominator / denominator))
         decimals = 0 if decimals < 0 else decimals
         decimals = 8 if decimals > 8 else decimals
-        balance = round(value * self.denominator / denominator, decimals)
+        balance = round(float(value) * self.denominator / denominator, decimals)
         format_str = "%%.%df %%s" % decimals
         return (format_str % (balance, symb)).rstrip()
 
