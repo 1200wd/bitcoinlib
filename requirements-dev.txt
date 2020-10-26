@@ -6,6 +6,7 @@ scrypt>=0.8.13
 SQLAlchemy>=1.2.12
 sqlalchemy_utils>=0.36.8
 six>=1.10
+sqlalchemy_utils
 coveralls
 psycopg2
 mysql-connector-python
