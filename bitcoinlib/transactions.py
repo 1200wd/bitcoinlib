@@ -434,7 +434,7 @@ def script_to_string(script, name_data=False):
             name = 'key'
         sigs = ' '.join(['%s-%d' % (name, i) for i in range(1, len(data['signatures']) + 1)])
     else:
-        sigs = ' '.join([to_hexstring(i) for i in data['signatures']])
+        sigs = ' '.join([i.hex() for i in data['signatures']])
 
     try:
         scriptstr = SCRIPT_TYPES_LOCKING[data['script_type']]
@@ -770,7 +770,7 @@ class Input(object):
         if self.unlocking_script and self.script_type != 'coinbase' and not (signatures and keys):
             us_dict = script_deserialize(self.unlocking_script)
             if not us_dict:  # or us_dict['script_type'] in ['unknown', 'empty']
-                raise TransactionError("Could not parse unlocking script (%s)" % to_hexstring(self.unlocking_script))
+                raise TransactionError("Could not parse unlocking script (%s)" % self.unlocking_script.hex())
             if us_dict['script_type'] not in ['', 'unknown', 'empty']:
                 self.sigs_required = us_dict['number_of_sigs_n']
                 self.redeemscript = us_dict['redeemscript']
@@ -975,7 +975,7 @@ class Input(object):
             pks = pks[0]
         return {
             'index_n': self.index_n,
-            'prev_txid': to_hexstring(self.prev_txid),
+            'prev_txid': self.prev_txid.hex(),
             'output_n': self.output_n_int,
             'script_type': self.script_type,
             'address': self.address,
@@ -984,25 +984,25 @@ class Input(object):
             'compressed': self.compressed,
             'encoding': self.encoding,
             'double_spend': self.double_spend,
-            'script': to_hexstring(self.unlocking_script),
-            'redeemscript': to_hexstring(self.redeemscript),
+            'script': self.unlocking_script.hex(),
+            'redeemscript': self.redeemscript.hex(),
             'sequence': self.sequence,
             'signatures': [s.hex() for s in self.signatures],
             'sigs_required': self.sigs_required,
             'locktime_cltv': self.locktime_cltv,
-            'locktime_csv': self.locktime_csv, 'public_hash': to_hexstring(self.public_hash),
-            'script_code': to_hexstring(self.script_code),
-            'unlocking_script': to_hexstring(self.unlocking_script),
-            'unlocking_script_unsigned': to_hexstring(self.unlocking_script_unsigned),
+            'locktime_csv': self.locktime_csv, 'public_hash': self.public_hash.hex(),
+            'script_code': self.script_code.hex(),
+            'unlocking_script': self.unlocking_script.hex(),
+            'unlocking_script_unsigned': self.unlocking_script_unsigned.hex(),
             'witness_type': self.witness_type,
-            'witness': to_hexstring(b''.join(self.witnesses)),
+            'witness': b''.join(self.witnesses).hex(),
             'sort': self.sort,
             'valid': self.valid,
         }
 
     def __repr__(self):
         return "<Input(prev_txid='%s', output_n=%d, address='%s', index_n=%s, type='%s')>" % \
-               (to_hexstring(self.prev_txid), self.output_n_int, self.address, self.index_n, self.script_type)
+               (self.prev_txid.hex(), self.output_n_int, self.address, self.index_n, self.script_type)
 
 
 class Output(object):
@@ -1164,10 +1164,10 @@ class Output(object):
 
         return {
             'value': self.value,
-            'script': to_hexstring(self.lock_script),
+            'script': self.lock_script.hex(),
             'script_type': self.script_type,
-            'public_key': to_hexstring(self.public_key),
-            'public_hash': to_hexstring(self.public_hash),
+            'public_key': self.public_key.hex(),
+            'public_hash': self.public_hash.hex(),
             'address': self.address,
             'output_n': self.output_n,
             'spent': self.spent,
@@ -1409,7 +1409,7 @@ class Transaction(object):
         print("Inputs")
         replace_by_fee = False
         for ti in self.inputs:
-            print("-", ti.address, print_value(ti.value, self.network.name, 'none'), to_hexstring(ti.prev_txid),
+            print("-", ti.address, print_value(ti.value, self.network.name, 'none'), ti.prev_txid.hex(),
                   ti.output_n_int)
             validstr = "not validated"
             if ti.valid:

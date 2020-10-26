@@ -444,7 +444,7 @@ def addr_base58_to_pubkeyhash(address, as_hex=False):
     checksum = double_sha256(pkh)[0:4]
     assert (check == checksum), "Invalid address, checksum incorrect"
     if as_hex:
-        return to_hexstring(pkh)[2:]
+        return pkh.hex()[2:]
     else:
         return pkh[1:]
 
