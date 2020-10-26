@@ -5,3 +5,4 @@ pyaes==1.6.1
 scrypt>=0.8.13
 SQLAlchemy>=1.2.12
 six>=1.10
+sqlalchemy_utils
