@@ -3016,9 +3016,10 @@ class Wallet(object):
         # Transaction inputs
         qr = self._session.query(DbTransactionInput, DbTransactionInput.address, DbTransaction.confirmations,
                                  DbTransaction.txid, DbTransaction.network_name, DbTransaction.status). \
-            join(DbTransaction). \
+            join(DbTransaction).join(DbKey). \
             filter(DbTransaction.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
+                   DbKey.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network)
         if key_id is not None:
             qr = qr.filter(DbTransactionInput.key_id == key_id)
@@ -3028,9 +3029,10 @@ class Wallet(object):
         # Transaction outputs
         qr = self._session.query(DbTransactionOutput, DbTransactionOutput.address, DbTransaction.confirmations,
                                  DbTransaction.txid, DbTransaction.network_name, DbTransaction.status). \
-            join(DbTransaction). \
+            join(DbTransaction).join(DbKey). \
             filter(DbTransaction.account_id == account_id,
                    DbTransaction.wallet_id == self.wallet_id,
+                   DbKey.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network)
         if key_id is not None:
             qr = qr.filter(DbTransactionOutput.key_id == key_id)

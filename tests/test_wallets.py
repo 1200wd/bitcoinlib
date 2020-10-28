@@ -1559,6 +1559,8 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         wallet.info()
         self.assertEqual(len(wallet.keys()), 27)
         self.assertEqual(wallet.balance(), 60500000)
+        self.assertEqual(len(wallet.transactions()), 4)
+        self.assertEqual(len(wallet.transactions(as_dict=True)), 4)
 
         # Check tx order in same block
         address = 'tb1qlh9x3jwhfqspp7u9w6l7zqxpmuvplzaczaele3'
