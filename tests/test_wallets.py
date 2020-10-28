@@ -956,8 +956,8 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         ]
 
         # Create wallet and generate key
-        wl = Wallet.create_multisig('multisig_test_simple', key_list, sigs_required=2, network='bitcoinlib_test',
-                                      cosigner_id=0, db_uri=self.DATABASE_URI)
+        wl = Wallet.create('multisig_test_simple', key_list, sigs_required=2, network='bitcoinlib_test',
+                           cosigner_id=0, db_uri=self.DATABASE_URI)
         wl.new_key()
 
         # Sign, verify and send transaction

@@ -1217,52 +1217,6 @@ class Wallet(object):
 
         return hdpm
 
-    @classmethod
-    def create_multisig(cls, name, keys, sigs_required=None, owner='', network=None, account_id=0, purpose=None,
-                        sort_keys=True, witness_type=DEFAULT_WITNESS_TYPE, encoding=None, key_path=None,
-                        cosigner_id=None, db_uri=None):
-        """
-        Create a multisig wallet with specified name and list of keys. The list of keys can contain 2 or more public or private keys. For every key a cosigner wallet will be created with a BIP44 key structure or a single key depending on the key_type.
-
-        :param name: Unique name of this Wallet
-        :type name: str
-        :param keys: List of keys in HDKey format or any other format supported by HDKey class
-        :type keys: list
-        :param sigs_required: Number of signatures required for validation. For example 2 for 2-of-3 multisignature. Default is all keys must signed
-        :type sigs_required: int
-        :type owner: str
-        :param network: Network name, use default if not specified
-        :type network: str
-        :param account_id: Account ID, default is 0
-        :type account_id: int
-        :param purpose: BIP44 purpose field, default is 44
-        :type purpose: int
-        :param sort_keys: Sort keys according to BIP45 standard (used for multisig keys)
-        :type sort_keys: bool
-        :param witness_type: Specify wallet type, default is legacy. Use 'segwit' for segregated witness wallet.
-        :type witness_type: str
-        :param encoding: Encoding used for address generation: base58 or bech32. Default is derive from wallet and/or witness type
-        :type encoding: str
-        :param key_path: Key path for multisig wallet, use to create your own non-standard key path. Key path must follow the following rules:
-            * Path start with masterkey (m) and end with change / address_index
-            * If accounts are used, the account level must be 3. I.e.: m/purpose/coin_type/account/
-            * All keys must be hardened, except for change, address_index or cosigner_id
-            * Max length of path is 8 levels
-        :type key_path: list, str
-        :param cosigner_id: Set this if wallet contains only public keys or if you would like to create keys for other cosigners.
-        :type cosigner_id: int
-        :param db_uri: URI of the database
-        :type db_uri: str
-
-        :return Wallet:
-
-        """
-
-        return cls.create(name, keys=keys, owner=owner, network=network, account_id=account_id, purpose=purpose,
-                          sort_keys=sort_keys, witness_type=witness_type, encoding=encoding, multisig=True,
-                          sigs_required=sigs_required, cosigner_id=cosigner_id, key_path=key_path,
-                          db_uri=db_uri)
-
     def __enter__(self):
         return self
 
@@ -3939,7 +3893,7 @@ class Wallet(object):
                             status = ""
                             if tx['status'] not in ['confirmed', 'unconfirmed']:
                                 status = tx['status']
-                            print("%64s %36s %8d %21s %s %s" % (tx['txid'], tx['address'], tx['confirmations'],
+                            print("%64s %43s %8d %21s %s %s" % (tx['txid'], tx['address'], tx['confirmations'],
                                                                 print_value(tx['value'], nw.name, 'symbol'),
                                                                 spent, status))
         print("\n= Balance Totals (includes unconfirmed) =")
