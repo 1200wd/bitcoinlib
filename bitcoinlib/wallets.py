@@ -3888,12 +3888,15 @@ class Wallet(object):
                         print("\n- - Transactions Account %d (%d)" % (account_id, len(txs)))
                         for tx in txs:
                             spent = " "
-                            if 'spent' in tx and tx['spent'] is False:
+                            address = tx['address']
+                            if not tx['address']:
+                                address = 'nulldata'
+                            elif 'spent' in tx and tx['spent'] is False:
                                 spent = "U"
                             status = ""
                             if tx['status'] not in ['confirmed', 'unconfirmed']:
                                 status = tx['status']
-                            print("%64s %43s %8d %21s %s %s" % (tx['txid'], tx['address'], tx['confirmations'],
+                            print("%64s %43s %8d %21s %s %s" % (tx['txid'], address, tx['confirmations'],
                                                                 print_value(tx['value'], nw.name, 'symbol'),
                                                                 spent, status))
         print("\n= Balance Totals (includes unconfirmed) =")
