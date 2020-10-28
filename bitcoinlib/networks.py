@@ -288,7 +288,7 @@ class Network(object):
         if denominator not in NETWORK_DENOMINATORS:
             raise NetworkError("Denominator not found in definitions, use one of the following values: %s" %
                                NETWORK_DENOMINATORS.keys())
-        if not value:
+        if value is None:
             return ""
         symb = rep
         if rep == 'string':

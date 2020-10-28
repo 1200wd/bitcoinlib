@@ -2007,7 +2007,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_segwit_p2sh_p2wpkh_send(self):
         w = Wallet.create('segwit_p2sh_p2wpkh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
-                            db_uri=self.DATABASE_URI)
+                          db_uri=self.DATABASE_URI)
         w.get_key()
         w.utxos_update()
         t = w.send_to('blt1q7ywlg3lsyntsmp74jh65pnkntk3csagdwpz78k', 10000)
@@ -2019,9 +2019,9 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_segwit_p2sh_p2wsh_send(self):
         w = Wallet.create('segwit_p2sh_p2wsh_send', witness_type='p2sh-segwit', network='bitcoinlib_test',
-                            keys=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test'),
-                                  HDKey(network='bitcoinlib_test')], sigs_required=2, cosigner_id=0,
-                            db_uri=self.DATABASE_URI)
+                          keys=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test'),
+                                HDKey(network='bitcoinlib_test')], sigs_required=2, cosigner_id=0,
+                          db_uri=self.DATABASE_URI)
         w.get_key()
         w.utxos_update()
         t = w.send_to('blt1q7ywlg3lsyntsmp74jh65pnkntk3csagdwpz78k', 10000)
