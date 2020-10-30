@@ -198,7 +198,7 @@ class BitcoindClient(BaseClient):
         if t.confirmations or block_height:
             t.status = 'confirmed'
             t.verified = True
-        t.version = tx['version'].to_bytes(4, 'little')
+        t.version = tx['version'].to_bytes(4, 'big')
         t.version_int = tx['version']
         t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
         t.update_totals()
