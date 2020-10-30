@@ -180,7 +180,7 @@ class DogecoindClient(BaseClient):
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.version = tx['version'].to_bytes(4, 'little')
+        t.version = tx['version'].to_bytes(4, 'big')
         t.date = datetime.fromtimestamp(tx['blocktime'])
         t.block_height = block_height
         t.update_totals()
