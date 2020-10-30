@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Creating and using Multisignature Wallets
 #
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
 #
 
 import os
@@ -71,11 +71,11 @@ NETWORK = 'bitcoinlib_test'
 pk1 = HDKey(network=NETWORK)
 pk2 = HDKey(network=NETWORK)
 wl1 = Wallet.create('multisig_2of2_cosigner1', sigs_required=2,
-                      keys=[pk1, pk2.public_master_multisig()],
-                      network=NETWORK, db_uri=test_database)
+                    keys=[pk1, pk2.public_master_multisig()],
+                    network=NETWORK, db_uri=test_database)
 wl2 = Wallet.create('multisig_2of2_cosigner2', sigs_required=2,
-                      keys=[pk1.public_master_multisig(), pk2],
-                      network=NETWORK, db_uri=test_database)
+                    keys=[pk1.public_master_multisig(), pk2],
+                    network=NETWORK, db_uri=test_database)
 nk1 = wl1.new_key()
 nk2 = wl2.new_key(cosigner_id=0)
 
@@ -87,7 +87,7 @@ if not utxos:
 else:
     print("Utxo's found, now sweep wallet")
     res = wl1.sweep(wl1.new_key().address, min_confirms=0)
-    assert res.hash
+    assert res.txid
     wl2.utxos_update()
     wl2.new_key()
     t2 = wl2.transaction_import(res)
@@ -135,6 +135,6 @@ pk2 = HDKey(network=NETWORK, witness_type='segwit')                     # Wallet
 pk3 = HDKey(network=NETWORK, witness_type='segwit', key_type='single')  # Backup key on paper
 
 w = Wallet.create('Segwit-multisig-2-of-3-wallet', [pk1, pk2.public_master_multisig(), pk3.public()],
-                    sigs_required=2, network=NETWORK, db_uri=test_database)
+                  sigs_required=2, network=NETWORK, db_uri=test_database)
 
 w.info()
