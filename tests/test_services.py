@@ -111,7 +111,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 self.assertIn('are still available to spend', prov_error)
 
     def test_service_get_balance(self):
-        srv = ServiceTest(min_providers=5)
+        srv = ServiceTest(min_providers=3)
         srv.getbalance('15gHNr4TCKmhHDEG31L2XFNvpnEcnPSQvd')
         prev = None
         if len(srv.results) < 2:
@@ -125,7 +125,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                 prev = balance
 
     def test_service_get_balance_litecoin(self):
-        srv = ServiceTest(min_providers=5, network='litecoin')
+        srv = ServiceTest(min_providers=3, network='litecoin')
         srv.getbalance('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         prev = None
         if len(srv.results) < 2:
@@ -188,7 +188,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(srv.results[provider][0]['txid'], txid)
 
     def test_service_estimatefee(self):
-        srv = ServiceTest(min_providers=5)
+        srv = ServiceTest(min_providers=3)
         srv.estimatefee()
         if len(srv.results) < 2:
             self.fail("Only 1 or less service providers found, no fee estimates to compare. Errors %s" % srv.errors)
@@ -214,21 +214,21 @@ class TestService(unittest.TestCase, CustomAssertions):
                           (provider, fee_difference_from_average * 100))
 
     # NOT ENOUGH SERVICE PROVIDERS OFFER FEE ESTIMATES FOR LITECOIN AT THE MOMENT
-    # def test_estimatefee_litecoin(self):
-    #     srv = ServiceTest(min_providers=5, network='litecoin')
-    #     srv.estimatefee()
-    #     if len(srv.results) < 2:
-    #         self.fail("Only 1 or less service providers found, no fee estimates to compare")
-    #     feelist = list(srv.results.values())
-    #     average_fee = sum(feelist) / float(len(feelist))
-    #     for provider in srv.results:
-    #         value = srv.results[provider]
-    #         if not value:
-    #             self.fail("Provider '%s' returns fee estimate of zero" % provider)
-    #         fee_difference_from_average = (abs(value - average_fee) / average_fee)
-    #         if fee_difference_from_average > MAXIMUM_ESTIMATED_FEE_DIFFERENCE:
-    #             self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
-    #                       (provider, fee_difference_from_average * 100))
+    def test_estimatefee_litecoin(self):
+        srv = ServiceTest(min_providers=3, network='litecoin')
+        srv.estimatefee()
+        if len(srv.results) < 2:
+            self.fail("Only 1 or less service providers found, no fee estimates to compare")
+        feelist = list(srv.results.values())
+        average_fee = sum(feelist) / float(len(feelist))
+        for provider in srv.results:
+            value = srv.results[provider]
+            if not value:
+                self.fail("Provider '%s' returns fee estimate of zero" % provider)
+            fee_difference_from_average = (abs(value - average_fee) / average_fee)
+            if fee_difference_from_average > MAXIMUM_ESTIMATED_FEE_DIFFERENCE:
+                self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
+                          (provider, fee_difference_from_average * 100))
 
     def test_service_gettransactions(self):
         txid = '6961d06e4a921834bbf729a94d7ab423b18ddd92e5ce9661b7b871d852f1db74'
@@ -274,6 +274,7 @@ class TestService(unittest.TestCase, CustomAssertions):
             self.assertEqual(t.status, status, msg="Unexpected status for %s provider" % provider)
             if t.size:
                 self.assertEqual(t.size, size, msg="Unexpected transaction size for %s provider" % provider)
+            self.assertTrue(t.verify())
 
             # Remove extra field from input dict and compare inputs and outputs
             r_inputs = [
@@ -412,6 +413,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
         for provider in srv.results:
             print("Comparing provider %s" % provider)
+            self.assertTrue(srv.results[provider].verify())
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
 
@@ -426,7 +428,7 @@ class TestService(unittest.TestCase, CustomAssertions):
                  'script': '76a9141495ac5ca428a17197c7cb5065614d8eabfcf8cb88ac', 'value': 75300000}],
                          'output_total': 2575300000, 'block_height': 900147, 'locktime': 0, 'flag': None,
                          'coinbase': False,
-                         'status': 'confirmed', 'verified': False, 'version': 1,
+                         'status': 'confirmed', 'version': 1,
                          'hash': '885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf', 'size': 226,
                          'fee': 200000, 'inputs': [
                 {'redeemscript': '', 'address': 'XczHdW9k4Kg9mu6AdJayJ1PJtfX3Z9wYxm', 'double_spend': False,
@@ -450,6 +452,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.gettransaction('885042c885dc0d44167ce71ce82bb28b09bdd8445b7639ea96a5f5be8ceba4cf')
         for provider in srv.results:
             print("Comparing provider %s" % provider)
+            self.assertTrue(srv.results[provider].verify())
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value'])
 
@@ -470,13 +473,14 @@ class TestService(unittest.TestCase, CustomAssertions):
             'value': 122349237
         }
 
-        srv = ServiceTest(min_providers=5, network='litecoin')
+        srv = ServiceTest(min_providers=3, network='litecoin')
         srv.gettransactions(address)
         for provider in srv.results:
             print("Provider %s" % provider)
             res = srv.results[provider]
             txs = [r for r in res if r.txid == txid]
             t = txs[0]
+            self.assertTrue(t.verify())
 
             # Compare transaction
             if t.block_height:
@@ -596,11 +600,13 @@ class TestService(unittest.TestCase, CustomAssertions):
                 ],
             'size': 191,
         }
-        srv = ServiceTest(network='bitcoin', min_providers=3)
+        # FIXME: Blocksmurfer
+        srv = ServiceTest(network='bitcoin', min_providers=3, exclude_providers=['blocksmurfer'])
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
         for provider in srv.results:
             print("\nComparing provider %s" % provider)
+            print(provider, srv.results[provider].verify())
             self.assertDictEqualExt(srv.results[provider].as_dict(), expected_dict,
                                     ['block_hash', 'block_height', 'spent', 'value', 'flag'])
 
