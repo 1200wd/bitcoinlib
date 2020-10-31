@@ -131,9 +131,9 @@ Command Line Wallet for BitcoinLib
                             except for the masterkey(s). Use when updating fails
                             or other errors occur. Please backup your database and
                             masterkeys first.
-      --receive [NUMBER_OF_ADDRESSES], -r [NUMBER_OF_ADDRESSES]
+      --receive [COSIGNER_ID], -r [COSIGNER_ID]
                             Show unused address to receive funds. Generate new
-                            payment andchange addresses if no unused addresses are
+                            payment and change addresses if no unused addresses are
                             available.
       --generate-key, -k    Generate a new masterkey, and show passphrase, WIF and
                             public account key. Use to create multisig wallet
