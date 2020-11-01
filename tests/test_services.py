@@ -880,6 +880,9 @@ class TestServiceCache(unittest.TestCase):
         self.assertEqual(srv.results_cache_n, 10)
         self.assertEqual(list(srv.results.values()), [])
 
+        ca = srv.getcacheaddressinfo(address)
+        self.assertEqual(ca['address'], address)
+
     def test_service_cache_gettransaction(self):
         srv = ServiceTest(network='litecoin_testnet', cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
         txid = 'b6533d361daac291f64fff32a5c157a4785b423ce36e2eac27117879f93973da'
