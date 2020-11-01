@@ -294,7 +294,7 @@ class Network(object):
         if rep == 'string':
             symb = NETWORK_DENOMINATORS[denominator] + self.currency_code
         elif rep == 'symbol':
-            symb = NETWORK_DENOMINATORS[denominator] + self.currency_symbol.encode().decode('utf8')
+            symb = NETWORK_DENOMINATORS[denominator] + self.currency_symbol
         elif rep == 'none':
             symb = ''
         decimals = decimals if decimals is not None else -int(math.log10(self.denominator / denominator))
