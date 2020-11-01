@@ -181,4 +181,4 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.assertEqual(b.difficulty, 0)
         self.assertRaisesRegex(ValueError, 'Block contains incorrect number of transactions, can not serialize',
                                b.serialize)
-        self.assertListEqual(b.version, ['BIP109'])
+        self.assertListEqual(b.version_bips(), ['BIP109'])
