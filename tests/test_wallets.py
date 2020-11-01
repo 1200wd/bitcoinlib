@@ -141,6 +141,8 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         self.assertTrue(isinstance(self.wallet, Wallet))
 
     def test_wallet_info(self):
+        if os.name == 'nt':
+            self.skipTest("Problems with Travis windows python encodings")
         self.assertIsNone(self.wallet.info())
         self.assertIn("<Wallet(name=test_wallet_create, db_uri=", repr(self.wallet))
         print(self.wallet)
