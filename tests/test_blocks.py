@@ -37,6 +37,11 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         self.rb330000 = pickle.load(pickle_in)
         pickle_in.close()
 
+        filename = os.path.join(os.path.dirname(__file__), "block629999.pickle")
+        pickle_in = open(filename, "rb")
+        self.rb629999 = pickle.load(pickle_in)
+        pickle_in.close()
+
     def test_blocks_parse_genesis(self):
         raw_block = '0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3' \
                     'e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c010100000001000000000000000000' \
@@ -146,3 +151,34 @@ class TestBlocks(unittest.TestCase, CustomAssertions):
         b = Block.from_raw(self.rb330000, parse_transactions=True)
         rb_ser = b.serialize()
         self.assertEqual(rb_ser, self.rb330000)
+
+    def test_block_parse_block_629999(self):
+        b = Block.from_raw(self.rb629999, parse_transactions=True, limit=100)
+        self.assertEqual(b.block_hash.hex(), '0000000000000000000d656be18bb095db1b23bd797266b0ac3ba720b1962b1e')
+        self.assertEqual(b.height, 629999)
+        self.assertEqual(b.version_bin, '00100111111111111110000000000000')
+        self.assertListEqual(b.version_bips(), ['BIP9', 'BIP310'])
+        self.assertEqual(b.prev_block, to_bytes('000000000000000000030684c158973dafb512dc91f90420e6811e3f6a2ca79b'))
+        self.assertEqual(b.merkle_root, to_bytes('f475113d55cb0042d8ab49f5475cbea4a1ff5e22e11750ed2096a2000c573a0f'))
+        self.assertEqual(b.bits_int, 387021369)
+        self.assertEqual(b.time, 1589225003)
+        self.assertEqual(b.nonce_int, 2214301135)
+        self.assertEqual(int(b.difficulty), 16104807485529)
+        self.assertEqual(b.tx_count, 2481)
+        self.assertEqual(b.transactions[0].txid, 'aed3754889f65dff83504fd0a8b78e1b69fc22c5396c67df23b0e607bf4e0d67')
+        self.assertEqual(b.transactions[9].txid, '868804b3c7121520d4276cb80608241c418cb4c11cfa29e14ea05dd1954a451f')
+        self.assertEqual(len(b.transactions), 100)
+
+    def test_block_incomplete(self):
+        # block_hash, version, prev_block, merkle_root, time, bits, nonce
+        b = Block('000000000000000000024bead8df69990852c202db0e0097c1a12ea637d7e96d', 0x30000000,
+                  '0000000000000000000d656be18bb095db1b23bd797266b0ac3ba720b1962b1e',
+                  'b191f5f973b9040e81c4f75f99c7e43c92010ba8654718e3dd1a4800851d300d', 1589225003, None, 1,
+                  height=100000)
+        self.assertFalse(b.check_proof_of_work())
+        self.assertEqual(b.target, 0)
+        self.assertEqual(b.target_hex, '')
+        self.assertEqual(b.difficulty, 0)
+        self.assertRaisesRegex(ValueError, 'Block contains incorrect number of transactions, can not serialize',
+                               b.serialize)
+        self.assertListEqual(b.version, ['BIP109'])

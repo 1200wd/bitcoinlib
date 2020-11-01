@@ -256,7 +256,7 @@ class LitecoindClient(BaseClient):
             txs = bd['tx']
 
         block = {
-            'bits': bd['bits'],
+            'bits': int(bd['bits'], 16),
             'depth': bd['confirmations'],
             'block_hash': bd['hash'],
             'height': bd['height'],

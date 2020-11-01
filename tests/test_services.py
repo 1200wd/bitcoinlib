@@ -712,6 +712,27 @@ class TestService(unittest.TestCase, CustomAssertions):
     #     self.assertEqual(srv.getutxos(address)[0]['txid'], txid)
     #     self.assertEqual(srv.gettransactions(address)[0].txid, txid)
 
+    def test_service_getblock_id(self):
+        srv = ServiceTest(min_providers=3, timeout=TIMEOUT_TEST, cache_uri='')
+        srv.getblock('0000000000000a3290f20e75860d505ce0e948a1d1d846bec7e39015d242884b', parse_transactions=False)
+        for provider in srv.results:
+            blk = srv.results[provider]
+            if blk['bits']:
+                self.assertEqual(blk['bits'], 436956491)
+            self.assertEqual(blk['height'], 150000)
+            self.assertEqual(blk['merkle_root'], 'be0b136f2f3db38d4f55f1963f0acac506d637b3c27a4c42f3504836a4ec52b1')
+            if blk['nonce']:
+                self.assertEqual(blk['nonce'], 1796110725)
+            if blk['prev_block']:
+                self.assertEqual(blk['prev_block'], '00000000000008df4269884f1d3bfc2aed3ea747292abb89be3dc3faa8c5d26f')
+            self.assertEqual(blk['time'], 1319118291)
+            self.assertEqual(blk['tx_count'], 10)
+            self.assertEqual(len(blk['txs']), 10)
+            if blk['version']:
+                self.assertEqual(blk['version'], 1)
+            self.assertEqual(blk['txs'][9],
+                             '13e3167d46334600b59a5aa286dd02147ac33e64bfc2e188e1f0c0a442182584')
+
     def test_service_getblock_height(self):
         srv = ServiceTest(timeout=TIMEOUT_TEST, exclude_providers=['chainso'], cache_uri='')
         b = srv.getblock(599999, parse_transactions=True, limit=3)

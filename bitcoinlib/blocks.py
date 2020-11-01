@@ -83,12 +83,14 @@ class Block:
             self.nonce = to_bytes(nonce)
             self.nonce_int = 0 if not self.nonce else int.from_bytes(self.nonce, 'big')
         self.transactions = transactions
+        if self.transactions is None:
+            self.transactions = []
         self.txs_data = None
         self.confirmations = confirmations
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)
-        self.tx_count = None
+        self.tx_count = 0
         self.page = 1
         self.limit = 0
         self.height = height
@@ -260,7 +262,7 @@ class Block:
         """
         if not self.bits:
             return ''
-        return hex(self.target)[2:].zfill(64)
+        return hex(int(self.target))[2:].zfill(64)
 
     @property
     def difficulty(self):
