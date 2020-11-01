@@ -32,6 +32,8 @@ matrix:
         - choco install mysql
         - export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
+        - python -m pip install win-unicode-console
+        - PYTHONIOENCODING=:replace
 
 before_install:
   - sudo apt-get install -y postgresql postgresql-contrib

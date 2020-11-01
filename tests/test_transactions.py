@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Transaction Class
-#    © 2019 November - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -95,10 +95,10 @@ class TestTransactionInputs(unittest.TestCase):
 class TestTransactionOutputs(unittest.TestCase):
 
     def test_transaction_output_add_address(self):
-        to = Output(1000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
-        self.assertEqual(b'v\xa9\x14\x13\xd2\x15\xd2\x12\xcdQ\x88\xae\x02\xc5c_\xaa\xbd\xc4\xd7\xd4\xec\x91\x88\xac',
+        to = Output(1000, '1QhnmvncrbZFkjt5R8hs8yHDM7xXX3feg')
+        self.assertEqual(b'v\xa9\x14\x04{\x9d\xc2=\xda\xa9\x17\x1e\xa5\x11\xe1\x93t\xabUo\xaa\xbbD\x88\xac',
                          to.lock_script)
-        self.assertEqual(repr(to), '<Output(value=1000, address=12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH, type=p2pkh)>')
+        self.assertEqual(repr(to), '<Output(value=1000, address=1QhnmvncrbZFkjt5R8hs8yHDM7xXX3feg, type=p2pkh)>')
 
     def test_transaction_output_add_address_p2sh(self):
         to = Output(1000, '2N5WPJ2qPzVpy5LeE576JCwZfWg1ikjUxdK', network='testnet')
@@ -236,7 +236,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_multiple_outputs(self):
         t = Transaction()
-        t.add_output(2710000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+        t.add_output(2710000, '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
         t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
         t.add_output(2730000, '15pV2dYQAWeahtTVGAzDeX1K1ndqgRU2go')
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
@@ -271,7 +271,7 @@ class TestTransactions(unittest.TestCase):
 
     def test_transactions_estimate_size_p2pkh(self):
         t = Transaction()
-        t.add_output(2710000, '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
+        t.add_output(2710000, '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
         t.add_output(2720000, '1D1gLEHsvjunpJxqjkWcPZqU4QzzRrHDdL')
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
         self.assertEqual(t.estimate_size(), 225)

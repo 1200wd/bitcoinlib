@@ -239,9 +239,8 @@ def deserialize_address(address, encoding=None, network=None):
 
     If more networks and or script types are found you can find these in the 'networks' field.
 
-    >>> deserialize_address('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH')
-    {'address': '12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', 'encoding': 'base58', 'public_key_hash': '13d215d212cd5188ae02c5635faabdc4d7d4ec91', 'public_key_hash_bytes': b'\\x13\\xd2\\x15\\xd2\\x12\\xcdQ\\x88\\xae\\x02\\xc5c_\\xaa\\xbd\\xc4\\xd7\\xd4\\xec\\x91', 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin']}
-
+    >>> deserialize_address('1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j')
+    {'address': '1Khyc5eUddbhYZ8bEZi9wiN8TrmQ8uND4j', 'encoding': 'base58', 'public_key_hash': 'cd322766c02e7c37c3e3f9b825cd41ffbdcd17d7', 'public_key_hash_bytes': b"\\xcd2'f\\xc0.|7\\xc3\\xe3\\xf9\\xb8%\\xcdA\\xff\\xbd\\xcd\\x17\\xd7", 'prefix': b'\\x00', 'network': 'bitcoin', 'script_type': 'p2pkh', 'witness_type': 'legacy', 'networks': ['bitcoin']}
 
     :param address: A base58 or bech32 encoded address
     :type address: str
