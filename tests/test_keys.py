@@ -195,24 +195,24 @@ class TestPrivateKeyImport(unittest.TestCase):
 class TestPublicKeyConversion(unittest.TestCase):
 
     def setUp(self):
-        self.publickey_hex = '044781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d57a380bc32c26f46e733cd' \
-                             '991064c2e7f7d532b9c9ca825671a8809ab6876c78b'
+        self.publickey_hex = '043be860d524b1aef015d0e501333d5e62fd39652bfb89e6720c3eb1cb10754370eeee80b04abf2f80dec' \
+                             '69431498723f6411e8e03446796fa250f8dfe3fa8ff84'
         self.K = Key(self.publickey_hex)
         self.KC = Key('034781e448a7ff0e1b66f1a249b4c952dae33326cf57c0a643738886f4efcd14d5')
 
     def test_public_key_get_address_uncompressed(self):
-        self.assertEqual('12ooWDQp6mujkVpEWHdfHmfM4rU17bokWw', self.K.address_uncompressed())
+        self.assertEqual('1BwbZw1fG91jMYsXh6hfnvPGXBaMcughNL', self.K.address_uncompressed())
 
     def test_public_key_get_address(self):
         self.assertEqual('1P2X35YnajqoBXtPpQXJzV1QMnqSZQsn82', self.KC.address())
 
     def test_public_key_get_point(self):
-        self.assertEqual((32343711077743629729728681292399790965391040816412086995020432364076041835733,
-                          55281192143835269607479311758661973079027103826274522268778194868406595274635),
+        self.assertEqual((27097034899423571266687886742220335326047800315940073646681141977460289913712,
+                          108071855740589417275074236385664540865647915362450545389459678127463347060612),
                          self.K.public_point())
 
     def test_public_key_get_hash160_uncompressed(self):
-        self.assertEqual('13d21450578cd8f8645d2e56e684deb7cd77864b', self.K.hash160.hex())
+        self.assertEqual('78049354383f043fb15a04be58a289ef8a2c03fa', self.K.hash160.hex())
 
     def test_public_key_get_hash160(self):
         self.assertEqual('f19c417fd97e364afb06e1edd2c0e6a7ecf1af00', self.KC.hash160.hex())

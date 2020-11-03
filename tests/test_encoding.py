@@ -134,8 +134,8 @@ class TestEncodingMethodsChangeBase(unittest.TestCase):
 class TestEncodingMethodsAddressConversion(unittest.TestCase):
 
     def test_address_to_pkh_conversion_1(self):
-        self.assertEqual('13d215d212cd5188ae02c5635faabdc4d7d4ec91',
-                         addr_to_pubkeyhash('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', True))
+        self.assertEqual('cc194d0157dc8c2effb4aaff25a1bbd88a4a29a8',
+                         addr_to_pubkeyhash('1KcBA4i4Qqu1oRjobyWU3R5UXUorLQ3jUg', True))
 
     def test_address_to_pkh_conversion_2(self):
         self.assertEqual('00' * 20,
@@ -146,8 +146,8 @@ class TestEncodingMethodsAddressConversion(unittest.TestCase):
                          addr_to_pubkeyhash('1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr', False))
 
     def test_pkh_to_addr_conversion_1(self):
-        self.assertEqual('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH',
-                         pubkeyhash_to_addr('13d215d212cd5188ae02c5635faabdc4d7d4ec91'))
+        self.assertEqual('1LkthjzqGyhAWAmA9Dgbyp9pNMBXQj9ZZ3',
+                         pubkeyhash_to_addr('d8b76f6dd0e8d17cd34c3703ad5a120ba83ff857'))
 
     def test_pkh_to_addr_conversion_2(self):
         self.assertEqual('11111111111111111111111111114oLvT2',

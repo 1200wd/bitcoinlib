@@ -43,7 +43,6 @@ install_requires = [
       'pyaes==1.6.1',
       'scrypt>=0.8.17',
       'SQLAlchemy>=1.3.2',
-      'sqlalchemy_utils'
 ]
 
 kwargs['install_requires'] = install_requires

@@ -22,7 +22,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Enum, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import OperationalError
-from sqlalchemy_utils import create_database
+# from sqlalchemy_utils import create_database
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
 from urllib.parse import urlparse
 from bitcoinlib.main import *
@@ -68,10 +68,10 @@ class DbCache:
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
 
         # Try to connect to database, create database if it doesn't exist
-        try:
-            self.engine.connect()
-        except OperationalError:
-            create_database(db_uri)
+        # try:
+        #     self.engine.connect()
+        # except OperationalError:
+        #     create_database(db_uri)
 
         Session = sessionmaker(bind=self.engine)
         Base.metadata.create_all(self.engine)
