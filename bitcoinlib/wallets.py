@@ -1767,8 +1767,11 @@ class Wallet(object):
         network, account_id, _ = self._get_account_defaults(network, account_id)
         if cosigner_id is None:
             cosigner_id = self.cosigner_id
-        # TODO: Rewrite below with query(DbKey,id)... or 0
-        last_used_qr = self._session.query(DbKey).\
+        elif cosigner_id > len(self.cosigner):
+            raise WalletError("Cosigner ID (%d) can not be greater then number of cosigners for this wallet (%d)" %
+                              (cosigner_id, len(self.cosigner)))
+
+        last_used_qr = self._session.query(DbKey.id).\
             filter_by(wallet_id=self.wallet_id, account_id=account_id, network_name=network, cosigner_id=cosigner_id,
                       used=True, change=change, depth=self.key_depth).\
             order_by(DbKey.id.desc()).first()
@@ -1782,9 +1785,6 @@ class Wallet(object):
         key_list = []
         if self.scheme == 'single' and len(dbkey):
             number_of_keys = len(dbkey) if number_of_keys > len(dbkey) else number_of_keys
-        if self.cosigner and cosigner_id > len(self.cosigner):
-            raise WalletError("Cosigner ID (%d) can not be greater then number of cosigners for this wallet (%d)" %
-                              (cosigner_id, len(self.cosigner)))
         for i in range(number_of_keys):
             if dbkey:
                 dk = dbkey.pop()
@@ -1843,6 +1843,8 @@ class Wallet(object):
 
         :return list of WalletKey:
         """
+        if self.scheme == 'single':
+            raise WalletError("Single wallet has only one (master)key. Use get_key() or main_key() method")
         return self._get_key(account_id, network, cosigner_id, number_of_keys, change, as_list=True)
 
     def get_key_change(self, account_id=None, network=None):
