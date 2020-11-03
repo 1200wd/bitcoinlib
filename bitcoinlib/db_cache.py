@@ -22,10 +22,21 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Enum, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import OperationalError
-# from sqlalchemy_utils import create_database
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
+try:
+    import mysql.connector
+    from parameterized import parameterized_class
+    import psycopg2
+    from psycopg2 import sql
+    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+except ImportError as e:
+    print("Could not import all modules. Error: %s" % e)
+    # from psycopg2cffi import compat  # Use for PyPy support
+    # compat.register()
+    pass  # Only necessary when mysql or postgres is used
 from urllib.parse import urlparse
 from bitcoinlib.main import *
+
 
 _logger = logging.getLogger(__name__)
 _logger.info("Using Cache Database %s" % DEFAULT_DATABASE_CACHE)
@@ -66,12 +77,6 @@ class DbCache:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += 'binary_prefix=true'
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
-
-        # Try to connect to database, create database if it doesn't exist
-        # try:
-        #     self.engine.connect()
-        # except OperationalError:
-        #     create_database(db_uri)
 
         Session = sessionmaker(bind=self.engine)
         Base.metadata.create_all(self.engine)

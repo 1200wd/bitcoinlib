@@ -24,8 +24,7 @@ from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckCons
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
-# from sqlalchemy.exc import OperationalError
-# from sqlalchemy_utils import create_database
+from sqlalchemy.exc import OperationalError
 from urllib.parse import urlparse
 from bitcoinlib.main import *
 

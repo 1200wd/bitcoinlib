@@ -846,7 +846,7 @@ class TestService(unittest.TestCase, CustomAssertions):
 
 class TestServiceCache(unittest.TestCase):
 
-    # TODO: Add mysql and postgres support
+    # TODO: Add mysql support
     @classmethod
     def setUpClass(cls):
         try:
@@ -859,6 +859,19 @@ class TestServiceCache(unittest.TestCase):
             # DbCache(DATABASEFILE_CACHE_MYSQL).drop_db()
         except Exception:
             pass
+
+        con = psycopg2.connect(user='postgres', host='localhost', password='postgres')
+        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = con.cursor()
+        try:
+            cur.execute(sql.SQL("CREATE DATABASE {}").format(
+                sql.Identifier('bitcoinlibcache.unittest'))
+            )
+        except Exception:
+            pass
+        finally:
+            cur.close()
+            con.close()
 
     def test_service_cache_transactions(self):
         srv = ServiceTest(cache_uri=DATABASEFILE_CACHE_UNITTESTS2)
@@ -992,6 +1005,7 @@ class TestServiceCache(unittest.TestCase):
             self.assertEqual(b.transactions[0].txid, '85249ed3a9526b980e9b7c37b0be9a8fb6bd4462418d7dd808ad702a00777577')
 
         for cache_db in DATABASES_CACHE:
+            print(cache_db)
             srv = ServiceTest(cache_uri=cache_db,
                               exclude_providers=['chainso', 'blockchair', 'blockchaininfo'])  # Those providers return incomplete results
             b = srv.getblock('0000000000001a7dcac3c01bf10c5d5fe53dc8cc4b9c94001662e9d7bd36f6cc', limit=1)

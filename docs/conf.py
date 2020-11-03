@@ -142,7 +142,7 @@ texinfo_documents = [
 
 
 def run_apidoc(_):
-    from sphinx.apidoc import main
+    # from sphinxcontrib.apidoc import main
     import os
     import sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
