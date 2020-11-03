@@ -1747,9 +1747,7 @@ class Wallet(object):
                     keys_to_scan = [self.key(k.id) for k in self.keys_addresses()[counter:counter+scan_gap_limit]]
                     counter += scan_gap_limit
                 else:
-                    keys_to_scan = self.get_key(account_id, network, number_of_keys=scan_gap_limit, change=chg)
-                if isinstance(keys_to_scan, WalletKey):
-                    keys_to_scan = [keys_to_scan]
+                    keys_to_scan = self.get_keys(account_id, network, number_of_keys=scan_gap_limit, change=chg)
                 n_highest_updated = 0
                 for key in keys_to_scan:
                     if key.key_id in keys_ignore:
@@ -1765,29 +1763,7 @@ class Wallet(object):
                 if not n_highest_updated:
                     break
 
-    def get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
-        """
-        Get a unused key or create a new one with :func:`new_key` if there are no unused keys.
-        Returns a key from this wallet which has no transactions linked to it.
-
-        >>> w = Wallet('create_legacy_wallet_test')
-        >>> w.get_key() # doctest:+ELLIPSIS
-        <WalletKey(key_id=..., name=..., wif=..., path=m/44'/0'/0'/0/...)>
-
-        :param account_id: Account ID. Default is last used or created account ID.
-        :type account_id: int
-        :param network: Network name. Leave empty for default network
-        :type network: str
-        :param cosigner_id: Cosigner ID for key path
-        :type cosigner_id: int
-        :param number_of_keys: Number of keys to return. Default is 1
-        :type number_of_keys: int
-        :param change: Payment (0) or change key (1). Default is 0
-        :type change: int
-
-        :return WalletKey:
-        """
-
+    def _get_key(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0, as_list=False):
         network, account_id, _ = self._get_account_defaults(network, account_id)
         if cosigner_id is None:
             cosigner_id = self.cosigner_id
@@ -1816,12 +1792,75 @@ class Wallet(object):
             else:
                 nk = self.new_key(account_id=account_id, change=change, cosigner_id=cosigner_id, network=network)
             key_list.append(nk)
-        if len(key_list) == 1:
-            return key_list[0]
-        else:
+        if as_list:
             return key_list
+        else:
+            return key_list[0]
 
-    def get_key_change(self, account_id=None, network=None, number_of_keys=1):
+    def get_key(self, account_id=None, network=None, cosigner_id=None, change=0):
+        """
+        Get a unused key / address or create a new one with :func:`new_key` if there are no unused keys.
+        Returns a key from this wallet which has no transactions linked to it.
+
+        Use the get_keys() method to a list of unused keys. Calling the get_key() method repeatelly to receive a
+        list of key doesn't work: since the key is unused it would return the same result every time you call this
+        method.
+
+        >>> w = Wallet('create_legacy_wallet_test')
+        >>> w.get_key() # doctest:+ELLIPSIS
+        <WalletKey(key_id=..., name=..., wif=..., path=m/44'/0'/0'/0/...)>
+
+        :param account_id: Account ID. Default is last used or created account ID.
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param cosigner_id: Cosigner ID for key path
+        :type cosigner_id: int
+        :param change: Payment (0) or change key (1). Default is 0
+        :type change: int
+
+        :return WalletKey:
+        """
+        return self._get_key(account_id, network, cosigner_id, change=change, as_list=False)
+
+    def get_keys(self, account_id=None, network=None, cosigner_id=None, number_of_keys=1, change=0):
+        """
+        Get a list of unused keys / addresses or create a new ones with :func:`new_key` if there are no unused keys.
+        Returns a list of keys from this wallet which has no transactions linked to it.
+
+        Use the get_key() method to get a single key.
+
+        :param account_id: Account ID. Default is last used or created account ID.
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+        :param cosigner_id: Cosigner ID for key path
+        :type cosigner_id: int
+        :param number_of_keys: Number of keys to return. Default is 1
+        :type number_of_keys: int
+        :param change: Payment (0) or change key (1). Default is 0
+        :type change: int
+
+        :return list of WalletKey:
+        """
+        return self._get_key(account_id, network, cosigner_id, number_of_keys, change, as_list=True)
+
+    def get_key_change(self, account_id=None, network=None):
+        """
+        Get a unused change key or create a new one if there are no unused keys.
+        Wrapper for the :func:`get_key` method
+
+        :param account_id: Account ID. Default is last used or created account ID.
+        :type account_id: int
+        :param network: Network name. Leave empty for default network
+        :type network: str
+
+        :return WalletKey:
+        """
+
+        return self._get_key(account_id=account_id, network=network, change=1, as_list=False)
+
+    def get_keys_change(self, account_id=None, network=None, number_of_keys=1):
         """
         Get a unused change key or create a new one if there are no unused keys.
         Wrapper for the :func:`get_key` method
@@ -1833,10 +1872,11 @@ class Wallet(object):
         :param number_of_keys: Number of keys to return. Default is 1
         :type number_of_keys: int
 
-        :return WalletKey:
+        :return list of WalletKey:
         """
 
-        return self.get_key(account_id=account_id, network=network, change=1, number_of_keys=number_of_keys)
+        return self._get_key(account_id=account_id, network=network, change=1, number_of_keys=number_of_keys,
+                             as_list=True)
 
     def new_account(self, name='', account_id=None, network=None):
         """

@@ -38,7 +38,7 @@ wlt.info()
 
 print("\n=== Create a wallet, generate 6 UTXOs and create a sweep transaction ===")
 wlt = Wallet.create('wlttest2', network='bitcoinlib_test', db_uri=test_database)
-wlt.get_key(number_of_keys=3)
+wlt.get_keys(number_of_keys=3)
 wlt.utxos_update()  # Create some test UTXOs
 wlt.info()
 to_key = wlt.get_key()

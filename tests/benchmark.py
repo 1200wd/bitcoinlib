@@ -74,7 +74,7 @@ class Benchmark:
         key_list_cosigners = [k.public_master(multisig=True) for k in key_list if k is not key_list[pk_n]]
         key_list_wallet = [key_list[pk_n]] + key_list_cosigners
         w = wallet_method.create('wallet_multisig_huge', keys=key_list_wallet, sigs_required=sigs_req, network=network)
-        w.get_key(number_of_keys=2)
+        w.get_keys(number_of_keys=2)
         w.utxos_update()
         to_address = HDKey(network=network).address()
         t = w.sweep(to_address, offline=True)

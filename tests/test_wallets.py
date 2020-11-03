@@ -227,8 +227,8 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
     def test_wallet_create_with_passphrase_litecoin(self):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
         wlt = Wallet.create("wallet-passphrase-litecoin", keys=passphrase, network='litecoin',
-                              db_uri=self.DATABASE_URI)
-        keys = wlt.get_key(number_of_keys=5)
+                            db_uri=self.DATABASE_URI)
+        keys = wlt.get_keys(number_of_keys=5)
         self.assertEqual(keys[4].address, "Li5nEi62nAKWjv6fpixEpoLzN1pYFK621g")
 
     def test_wallet_create_change_name(self):
@@ -805,7 +805,7 @@ class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
         wallet.utxos_update(networks='bitcoinlib_test', account_id=1)
         wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
         wallet.new_key(account_id=acc.account_id, network='bitcoinlib_test')
-        wallet.get_key(network='testnet', number_of_keys=2)
+        wallet.get_keys(network='testnet', number_of_keys=2)
         wallet.get_key(network='testnet', change=1)
         wallet.utxos_update(networks='testnet')
         self.assertEqual(wallet.balance(network='bitcoinlib_test', account_id=0), 0)
@@ -1017,8 +1017,8 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
                   network=network).public_master(multisig=True),
         ]
         wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2, network=network,
-                             db_uri=self.DATABASE_URI)
-        wl.get_key(number_of_keys=2)
+                           db_uri=self.DATABASE_URI)
+        wl.get_keys(number_of_keys=2)
         wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
         t = wl.transaction_create([('3DrP2R8XmHswUyeK9GeYgHJxvyxTfMNkid', 100000)])
         t.sign(pk2.subkey_for_path("m/45'/2/0/0"))
@@ -1348,7 +1348,7 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
 
             w = Wallet.create(wallet_name, keys=key_list_wallet, sigs_required=sigs_req,
                                 witness_type=witness_type, network=network, db_uri=self.DATABASE_URI)
-            w.get_key(number_of_keys=2)
+            w.get_keys(number_of_keys=2)
             w.utxos_update()
             to_address = HDKey(network=network, witness_type=witness_type).address()
             t = w.sweep(to_address, offline=True)
@@ -1647,10 +1647,10 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_transactions_send_update_utxos(self):
         # Send bitcoinlib test transaction and check if all utxo's are updated after send
         wlt = Wallet.create('bcltestwlt2', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
-        to_key = wlt.get_key(number_of_keys=5)
+        to_keys = wlt.get_keys(number_of_keys=5)
         wlt.utxos_update()
         self.assertEqual(wlt.balance(), 1000000000)
-        t = wlt.send_to(to_key[0].address, 550000000)
+        t = wlt.send_to(to_keys[0].address, 550000000)
         wlt._balance_update(min_confirms=0)
         self.assertEqual(wlt.balance(), 1000000000-t.fee)
         self.assertEqual(len(wlt.utxos()), 6)
@@ -1821,7 +1821,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_transaction_send_keyid(self):
         w = Wallet.create('wallet_send_key_id', witness_type='segwit', network='bitcoinlib_test',
                             db_uri=self.DATABASE_URI)
-        keys = w.get_key(number_of_keys=2)
+        keys = w.get_keys(number_of_keys=2)
         w.utxos_update()
         t = w.send_to('blt1qtk5swtntg8gvtsyr3kkx3mjcs5ncav84exjvde', 150000000, input_key_id=keys[1].key_id)
         self.assertEqual(t.inputs[0].address, keys[1].address)
@@ -1896,7 +1896,7 @@ class TestWalletDash(TestWalletMixin, unittest.TestCase):
         passphrase = "always reward element perfect chunk father margin slab pond suffer episode deposit"
         wlt = Wallet.create("wallet-passphrase-litecoin", keys=passphrase, network='dash',
                               db_uri=self.DATABASE_URI)
-        keys = wlt.get_key(number_of_keys=5)
+        keys = wlt.get_keys(number_of_keys=5)
         self.assertEqual(keys[4].address, "XhxXcRvTm4yZZzbH4MYz2udkdHWEMMf9GM")
 
     def test_wallet_import_dash(self):
@@ -2117,7 +2117,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         p2 = 'oyster pelican debate mass scene title pipe lock recipe flavor razor accident'
         w = wallet_create_or_open('ltcswms', [p1, p2], network='litecoin', witness_type='segwit',
                                   cosigner_id=0, db_uri=self.DATABASE_URI)
-        w.get_key(number_of_keys=2)
+        w.get_keys(number_of_keys=2)
         w.utxo_add('ltc1qkewaz7lxn75y6wppvqlsfhrnq5p5mksmlp26n8xsef0556cdfzqq2uhdrt', 2100000000000001,
                    '21da13be453624cf46b3d883f39602ce74d04efa7a186037898b6d7bcfd405ee', 0, 15)
 
@@ -2131,7 +2131,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
                                   [main_key, cosigner.public_master(witness_type='segwit', multisig=True)],
                                   witness_type='segwit', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
 
-        w.get_key(number_of_keys=2)
+        w.get_keys(number_of_keys=2)
         w.utxos_update()
         to = w.get_key_change()
         t = w.sweep(to.address, offline=True)
