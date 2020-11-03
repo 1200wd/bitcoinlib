@@ -142,14 +142,25 @@ texinfo_documents = [
 
 
 def run_apidoc(_):
-    # from sphinxcontrib.apidoc import main
+    from sphinx.ext.apidoc import main
     import os
     import sys
+    import shutil
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module = '../bitcoinlib/'
     output_path = os.path.join(cur_dir, 'source')
-    main(['-e', '-o', output_path, module, '--force', '--separate'])
+    main(['-o', output_path, module, '--force', '--separate'])
+
+    static_dir = os.path.join(cur_dir, '_static')
+    static_dir_files = os.listdir(static_dir)
+    dest_dir = os.path.join(output_path, '_static/')
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+    for filename in static_dir_files:
+        full_filename = os.path.join(static_dir, filename)
+        dest_filename = os.path.join(dest_dir, filename)
+        shutil.copy(full_filename, dest_filename)
 
 
 def setup(app):

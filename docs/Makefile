@@ -2,11 +2,11 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    = '-T -E'
 SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = Bitcoinlib
 SOURCEDIR     = .
-BUILDDIR      = _build
+BUILDDIR      = _build/html
 
 # Put it first so that "make" without argument is like "make help".
 help:

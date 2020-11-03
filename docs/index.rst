@@ -192,21 +192,21 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
 
 .. toctree::
    :caption: Manuals
-   :maxdepth: 1
+   :maxdepth: 4
 
-   _static/manuals.install
-   _static/manuals.command-line-wallet
-   _static/manuals.add-provider
-   _static/manuals.setup-bitcoind-connection
-   _static/manuals.databases
-   _static/manuals.caching
+   source/_static/manuals.install
+   source/_static/manuals.command-line-wallet
+   source/_static/manuals.add-provider
+   source/_static/manuals.setup-bitcoind-connection
+   source/_static/manuals.databases
+   source/_static/manuals.caching
 
 
 .. toctree::
    :caption: Reference
    :maxdepth: 1
 
-   _static/classes-overview
+   source/_static/classes-overview
    source/modules
    source/bitcoinlib.config
    source/bitcoinlib.db
@@ -217,7 +217,7 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    source/bitcoinlib.services
    source/bitcoinlib.transactions
    source/bitcoinlib.wallets
-   _static/script-types-overview
+   source/_static/script-types-overview
 
 
 Disclaimer
