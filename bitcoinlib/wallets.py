@@ -114,8 +114,8 @@ def wallet_create_or_open(
         return Wallet(name, db_uri=db_uri)
     else:
         return Wallet.create(name, keys, owner, network, account_id, purpose, scheme, sort_keys,
-                               password, witness_type, encoding, multisig, sigs_required, cosigner_id,
-                               key_path, db_uri=db_uri)
+                             password, witness_type, encoding, multisig, sigs_required, cosigner_id,
+                             key_path, db_uri=db_uri)
 
 
 def wallet_delete(wallet, db_uri=None, force=False):
@@ -969,8 +969,8 @@ class Wallet(object):
             w = cls(new_wallet_id, db_uri=db_uri)
         elif scheme == 'bip32':
             mk = WalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
-                                      account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
-                                      witness_type=witness_type, multisig=multisig, path=base_path)
+                                    account_id=account_id, purpose=purpose, key_type='bip32', encoding=encoding,
+                                    witness_type=witness_type, multisig=multisig, path=base_path)
             new_wallet.main_key_id = mk.key_id
             session.commit()
 
@@ -980,8 +980,8 @@ class Wallet(object):
             if not key:
                 key = HDKey(network=network, depth=key_depth)
             mk = WalletKey.from_key(key=key, name=name, session=session, wallet_id=new_wallet_id, network=network,
-                                      account_id=account_id, purpose=purpose, key_type='single', encoding=encoding,
-                                      witness_type=witness_type, multisig=multisig)
+                                    account_id=account_id, purpose=purpose, key_type='single', encoding=encoding,
+                                    witness_type=witness_type, multisig=multisig)
             new_wallet.main_key_id = mk.key_id
             session.commit()
             w = cls(new_wallet_id, db_uri=db_uri, main_key_object=mk.key())
@@ -1138,8 +1138,8 @@ class Wallet(object):
             network = DEFAULT_NETWORK
         if witness_type is None:
             witness_type = DEFAULT_WITNESS_TYPE
-        if network in ('dash', 'dash_testnet') and witness_type != 'legacy':
-            raise WalletError("Segwit is not supported for Dash wallets")
+        if network in ['dash', 'dash_testnet', 'dogecoin', 'dogecoin_testnet'] and witness_type != 'legacy':
+            raise WalletError("Segwit is not supported for %s wallets" % network)
         elif network in ('dogecoin', 'dogecoin_testnet') and witness_type not in ('legacy', 'p2sh-segwit'):
             raise WalletError("Pure segwit addresses are not supported for Dogecoin wallets. "
                               "Please use p2sh-segwit instead")
@@ -2078,9 +2078,9 @@ class Wallet(object):
                     key_name = "%s %s" % (self.key_path[len(newpath.split('/'))-1], lvl)
                     key_name = key_name.replace("'", "").replace("_", " ")
                 nk = WalletKey.from_key(key=ck, name=key_name, wallet_id=self.wallet_id, account_id=account_id,
-                                          change=change, purpose=self.purpose, path=newpath, parent_id=parent_id,
-                                          encoding=self.encoding, witness_type=self.witness_type,
-                                          cosigner_id=cosigner_id, network=network, session=self._session)
+                                        change=change, purpose=self.purpose, path=newpath, parent_id=parent_id,
+                                        encoding=self.encoding, witness_type=self.witness_type,
+                                        cosigner_id=cosigner_id, network=network, session=self._session)
                 self._key_objects.update({nk.key_id: nk})
                 parent_id = nk.key_id
             return nk

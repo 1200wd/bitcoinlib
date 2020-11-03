@@ -32,7 +32,7 @@ class Block:
 
         >>> b = Block('0000000000000000000154ba9d02ddd6cee0d71d1ea232753e02c9ac6affd709', version=0x20000000, prev_block='0000000000000000000f9578cda278ae7a2002e50d8e6079d11e2ea1f672b483', merkle_root='20e86f03c24c53c12014264d0e405e014e15a02ad02c174f017ee040750f8d9d', time=1592848036, bits=387044594, nonce=791719079)
         >>> b
-        <Block(0000000000000000000154ba9d02ddd6cee0d71d1ea232753e02c9ac6affd709, None, transactions: None)>
+        <Block(0000000000000000000154ba9d02ddd6cee0d71d1ea232753e02c9ac6affd709, None, transactions: 0)>
 
         :param block_hash: Hash value of serialized block
         :type block_hash: bytes, str
@@ -179,13 +179,6 @@ class Block:
             t = transaction_deserialize(txs_data, network=network, check_size=False)
             transactions.append(t)
 
-            # t.rawtx = b''
-            # traw = t.raw_hex()
-            # tblock = txs_data[:t.size].hex()
-            # if traw != tblock:
-            #     print(t.txid)
-            #     print(traw)
-            #     print(tblock)
             txs_data = txs_data[t.size:]
             # TODO: verify transactions, need input value from previous txs
             # if verify and not t.verify():

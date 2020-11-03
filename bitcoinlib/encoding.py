@@ -570,7 +570,7 @@ def pubkeyhash_to_addr_bech32(pubkeyhash, prefix='bc', witver=0, separator='1'):
     :return str: Bech32 encoded address
     """
 
-    pubkeyhash = to_bytes(pubkeyhash)
+    pubkeyhash = list(to_bytes(pubkeyhash))
 
     if len(pubkeyhash) not in [20, 32]:
         if int(pubkeyhash[0]) != 0:

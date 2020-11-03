@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    MNEMONIC class for BIP0039 Mnemonic Key management
-#    © 2016 - 2019 November - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2020 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -40,11 +40,8 @@ class Mnemonic(object):
         
         """
         self._wordlist = []
-        with open(os.path.join(str(BCL_INSTALL_DIR), 'wordlist', '%s.txt' % language)) as f:
+        with Path(BCL_INSTALL_DIR, 'wordlist', '%s.txt' % language).open() as f:
             self._wordlist = [w.strip() for w in f.readlines()]
-        # FIXME: Use code below instead of os.path, but doesn't work with pathlib2 (Python 2)
-        # with Path(BCL_INSTALL_DIR, 'wordlist', '%s.txt' % language).open() as f:
-        #     self._wordlist = [w.strip() for w in f.readlines()]
 
     @staticmethod
     def checksum(data):
@@ -207,13 +204,11 @@ class Mnemonic(object):
             words = words.split(' ')
 
         wlcount = {}
-        # TODO: Use for fn in Path(BCL_INSTALL_DIR, 'wordlist').iterdir():
-        #     if fn.suffix == ".txt":
-        for fn in os.listdir(os.path.join(str(BCL_INSTALL_DIR), 'wordlist')):
-            if fn.endswith(".txt"):
+        for fn in Path(BCL_INSTALL_DIR, 'wordlist').iterdir():
+            if fn.suffix == ".txt":
                 with open(os.path.join(str(BCL_INSTALL_DIR), 'wordlist', fn)) as f:
                     wordlist = [w.strip() for w in f.readlines()]
-                    language = fn.split('.')[0]
+                    language = fn.name.split('.')[0]
                     wlcount[language] = 0
                     for word in words:
                         if word in wordlist:
@@ -238,8 +233,7 @@ class Mnemonic(object):
         language = self.detect_language(words)
         if isinstance(words, TYPE_TEXT):
             words = words.split(' ')
-        # TODO: Path(BCL_INSTALL_DIR, 'wordlist', '%s.txt' % language).open() as f:
-        with open(os.path.join(str(BCL_INSTALL_DIR), 'wordlist', '%s.txt' % language)) as f:
+        with Path(BCL_INSTALL_DIR, 'wordlist', '%s.txt' % language).open() as f:
             wordlist = [w.strip() for w in f.readlines()]
             for word in words:
                 if word not in wordlist:

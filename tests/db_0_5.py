@@ -24,8 +24,6 @@ from sqlalchemy import (Column, Integer, BigInteger, UniqueConstraint, CheckCons
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
-from sqlalchemy.exc import OperationalError
-# from sqlalchemy_utils import create_database
 from urllib.parse import urlparse
 from bitcoinlib.main import *
 
@@ -34,7 +32,7 @@ Base = declarative_base()
 
 
 @compiles(LargeBinary, "mysql")
-def compile_LargeBinary_mysql(type_, compiler, **kwargs):
+def compile_largebinary_mysql(type_, compiler, **kwargs):
     length = type_.length
     element = "BLOB" if not length else "VARBINARY(%d)" % length
     return element
@@ -62,12 +60,6 @@ class Db:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += 'binary_prefix=true'
         self.engine = create_engine(db_uri, isolation_level='READ UNCOMMITTED')
-
-        # Try to connect to database, create database if it doesn't exist
-        # try:
-        #     self.engine.connect()
-        # except OperationalError:
-        #     create_database(db_uri)
 
         Session = sessionmaker(bind=self.engine)
         Base.metadata.create_all(self.engine)

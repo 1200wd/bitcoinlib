@@ -21,7 +21,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, BigInteger, String, Boolean, ForeignKey, DateTime, Enum, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, relationship, close_all_sessions
 try:
     import mysql.connector
