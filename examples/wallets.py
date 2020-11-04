@@ -23,12 +23,12 @@ if os.path.isfile(test_databasefile):
     os.remove(test_databasefile)
 
 print("\n=== Most simple way to create Bitcoin Wallet ===")
-w = HDWallet.create('MyWallet', db_uri=test_database)
+w = Wallet.create('MyWallet', db_uri=test_database)
 w.new_key()
 w.info()
 
 print("\n=== Create new Testnet Wallet and generate a some new keys ===")
-with HDWallet.create(name='Personal', network='testnet', db_uri=test_database) as wallet:
+with Wallet.create(name='Personal', network='testnet', db_uri=test_database) as wallet:
     wallet.info(detail=3)
     wallet.new_account()
     new_key1 = wallet.new_key()
@@ -44,7 +44,7 @@ with HDWallet.create(name='Personal', network='testnet', db_uri=test_database) a
     wallet.info(detail=3)
 
 print("\n=== Create new Wallet with Testnet master key and account ID 99 ===")
-testnet_wallet = HDWallet.create(
+testnet_wallet = Wallet.create(
     name='TestNetWallet',
     keys='tprv8ZgxMBicQKsPeWn8NtYVK5Hagad84UEPEs85EciCzf8xYWocuJovxsoNoxZAgfSrCp2xa6DdhDrzYVE8UXF75r2dKePyA'
          '7irEvBoe4aAn52',
@@ -63,7 +63,7 @@ testnet_wallet.info(detail=3)
 # Using wallets
 #
 
-print("\n=== Three ways of getting the a HDWalletKey, with ID, address and name: ===")
+print("\n=== Three ways of getting the a WalletKey, with ID, address and name: ===")
 print(testnet_wallet.key('n3UKaXBRDhTVpkvgRH7eARZFsYE989bHjw'))
 print(testnet_wallet.key('TestNetWallet'))
 print(testnet_wallet.key(testnet_wallet.key('TestNetWallet').key_id))
@@ -71,7 +71,7 @@ print(testnet_wallet.key(testnet_wallet.key('TestNetWallet').key_id))
 print("\n=== Import Account Bitcoin Testnet key with depth 3 ===")
 accountkey = 'tprv8h4wEmfC2aSckSCYa68t8MhL7F8p9xAy322B5d6ipzY5ZWGGwksJMoajMCqd73cP4EVRygPQubgJPu9duBzPn3QV' \
              '8Y7KbKUnaMzxnnnsSvh'
-wallet_import2 = HDWallet.create(
+wallet_import2 = Wallet.create(
     db_uri=test_database,
     name='Account Import',
     keys=accountkey,
@@ -81,7 +81,7 @@ wallet_import2.info(detail=3)
 del wallet_import2
 
 print("\n=== Create simple wallet and import some unrelated private keys ===")
-simple_wallet = HDWallet.create(
+simple_wallet = Wallet.create(
     name='Simple Wallet',
     keys='L5fbTtqEKPK6zeuCBivnQ8FALMEq6ZApD7wkHZoMUsBWcktBev73',
     db_uri=test_database)
@@ -94,7 +94,7 @@ del simple_wallet
 print("\n=== Create wallet with public key to generate addresses without private key ===")
 pubkey = 'tpubDDkyPBhSAx8DFYxx5aLjvKH6B6Eq2eDK1YN76x1WeijE8eVUswpibGbv8zJjD6yLDHzVcqWzSp2fWVFhEW9XnBssFqM' \
          'wt9SrsVeBeqfBbR3'
-pubwal = HDWallet.create(
+pubwal = Wallet.create(
     db_uri=test_database,
     name='Import Public Key Wallet',
     keys=pubkey,
@@ -104,7 +104,7 @@ pubwal.info(detail=3)
 del pubwal
 
 print("\n=== Create Litecoin wallet ===")
-litecoin_wallet = HDWallet.create(
+litecoin_wallet = Wallet.create(
     db_uri=test_database,
     name='Litecoin Wallet',
     network='litecoin')
@@ -113,7 +113,7 @@ litecoin_wallet.info(detail=3)
 del litecoin_wallet
 
 print("\n=== Create Dash wallet ===")
-dash_wallet = HDWallet.create(
+dash_wallet = Wallet.create(
     db_uri=test_database,
     name='Dash Wallet',
     network='dash')
@@ -128,14 +128,14 @@ words = 'blind frequent camera goddess pottery repair skull year mistake wrist l
 print("Generated Passphrase: %s" % words)
 seed = Mnemonic().to_seed(words)
 hdkey = HDKey.from_seed(seed, network='litecoin_testnet')
-wallet = HDWallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
+wallet = Wallet.create(name='Mnemonic Wallet', network='litecoin_testnet',
                          keys=hdkey.wif(), db_uri=test_database)
 wallet.new_key("Input", 0)
 wallet.utxos_update()
 wallet.info(detail=3)
 
 print("\n=== Test import Litecoin key in Bitcoin wallet (should give error) ===")
-w = HDWallet.create(
+w = Wallet.create(
     name='Wallet Error',
     db_uri=test_database)
 try:
@@ -148,7 +148,7 @@ key_path = "m/44h/1'/0p/2000/1"
 print("Raw: %s, Normalized: %s" % (key_path, normalize_path(key_path)))
 
 print("\n=== Send test bitcoins to an address ===")
-wallet_import = HDWallet('TestNetWallet', db_uri=test_database)
+wallet_import = Wallet('TestNetWallet', db_uri=test_database)
 for _ in range(10):
     wallet_import.new_key()
 wallet_import.utxos_update(99)
@@ -170,13 +170,13 @@ except Exception as e:
 # Segwit wallets
 #
 print("\n=== Create a Segwit Bitcoin and Litecoin Wallet ===")
-w = HDWallet.create('SW-Wallet', witness_type='segwit', db_uri=test_database)
+w = Wallet.create('SW-Wallet', witness_type='segwit', db_uri=test_database)
 w.new_key()
 w.new_key(network='litecoin')
 w.info()
 
 print("\n=== Create a P2SH Segwit Bitcoin and Litecoin Wallet ===")
-w = HDWallet.create('P2SH-segwit-Wallet', witness_type='p2sh-segwit', db_uri=test_database)
+w = Wallet.create('P2SH-segwit-Wallet', witness_type='p2sh-segwit', db_uri=test_database)
 w.new_key()
 w.new_key(network='litecoin')
 w.info()

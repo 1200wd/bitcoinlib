@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Creating and using Multisignature Wallets
 #
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
 #
 
 import os
@@ -26,13 +26,13 @@ pk1 = HDKey(network=NETWORK)
 pk2 = HDKey(network=NETWORK)
 pk3 = HDKey(network=NETWORK)
 klist = [pk1, pk2.public_master_multisig(), pk3.public_master_multisig()]
-wl1 = HDWallet.create('multisig_2of3_cosigner1', sigs_required=2, keys=klist,
+wl1 = Wallet.create('multisig_2of3_cosigner1', sigs_required=2, keys=klist,
                       network=NETWORK, db_uri=test_database)
 klist = [pk1.public_master_multisig(), pk2, pk3.public_master_multisig()]
-wl2 = HDWallet.create('multisig_2of3_cosigner2',  sigs_required=2, keys=klist,
+wl2 = Wallet.create('multisig_2of3_cosigner2',  sigs_required=2, keys=klist,
                       network=NETWORK, db_uri=test_database)
 klist = [pk1.public_master_multisig(), pk2.public_master_multisig(), pk3]
-wl3 = HDWallet.create('multisig_2of3_cosigner3', sigs_required=2, keys=klist,
+wl3 = Wallet.create('multisig_2of3_cosigner3', sigs_required=2, keys=klist,
                       network=NETWORK, db_uri=test_database)
 
 # Generate a new key in each wallet, all these keys should be the same
@@ -47,7 +47,7 @@ fee = 29348
 wl1.utxos_update()  # On bitcoinlib testnet, this automatically creates an UTXO
 utxo = wl1.utxos()[0]
 output_arr = [('23Gd1mfrqgaYiPGkMm5n5UDRkCxruDAA8wo', utxo['value'] - fee)]
-input_arr = [(utxo['tx_hash'], utxo['output_n'], utxo['key_id'], utxo['value'])]
+input_arr = [(utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value'])]
 t = wl1.transaction_create(output_arr, input_arr, fee=fee)
 
 # Now sign transaction with first wallet, should not verify yet
@@ -70,12 +70,12 @@ print("Verified (True): ", t2.verify())
 NETWORK = 'bitcoinlib_test'
 pk1 = HDKey(network=NETWORK)
 pk2 = HDKey(network=NETWORK)
-wl1 = HDWallet.create('multisig_2of2_cosigner1', sigs_required=2,
-                      keys=[pk1, pk2.public_master_multisig()],
-                      network=NETWORK, db_uri=test_database)
-wl2 = HDWallet.create('multisig_2of2_cosigner2', sigs_required=2,
-                      keys=[pk1.public_master_multisig(), pk2],
-                      network=NETWORK, db_uri=test_database)
+wl1 = Wallet.create('multisig_2of2_cosigner1', sigs_required=2,
+                    keys=[pk1, pk2.public_master_multisig()],
+                    network=NETWORK, db_uri=test_database)
+wl2 = Wallet.create('multisig_2of2_cosigner2', sigs_required=2,
+                    keys=[pk1.public_master_multisig(), pk2],
+                    network=NETWORK, db_uri=test_database)
 nk1 = wl1.new_key()
 nk2 = wl2.new_key(cosigner_id=0)
 
@@ -87,7 +87,7 @@ if not utxos:
 else:
     print("Utxo's found, now sweep wallet")
     res = wl1.sweep(wl1.new_key().address, min_confirms=0)
-    assert res.hash
+    assert res.txid
     wl2.utxos_update()
     wl2.new_key()
     t2 = wl2.transaction_import(res)
@@ -105,9 +105,9 @@ pk1 = HDKey('YXscyqNJ5YK411nwB33KeVkhSVjwwUkSG9xG3hkaoQFEbTwNJSrNTfni3aSSYiKtPeU
             'mqSEZrKP', network=NETWORK)
 pk2 = HDKey('YXscyqNJ5YK411nwB3kXiApMaJySYss8sMM9FYgXMtmQKmDTF9yiu7yBNKnVjE8WdVVvuhxLqS6kHvW2MPHKmYzbzEHQsDXXAZuu1rCs'
             'Hcp7rrJx', network=NETWORK, key_type='single')
-wl1 = HDWallet.create('multisig_single_keys1', [pk1, pk2.public()],
+wl1 = Wallet.create('multisig_single_keys1', [pk1, pk2.public()],
                       sigs_required=2, network=NETWORK, db_uri=test_database)
-wl2 = HDWallet.create('multisig_single_keys2', [pk1.public_master_multisig(), pk2],
+wl2 = Wallet.create('multisig_single_keys2', [pk1.public_master_multisig(), pk2],
                       sigs_required=2, network=NETWORK, db_uri=test_database)
 
 # Create multisig keys and update UTXO's
@@ -134,7 +134,7 @@ pk1 = HDKey(network=NETWORK, witness_type='segwit')                     # Privat
 pk2 = HDKey(network=NETWORK, witness_type='segwit')                     # Wallet of cosigner
 pk3 = HDKey(network=NETWORK, witness_type='segwit', key_type='single')  # Backup key on paper
 
-w = HDWallet.create('Segwit-multisig-2-of-3-wallet', [pk1, pk2.public_master_multisig(), pk3.public()],
-                    sigs_required=2, network=NETWORK, db_uri=test_database)
+w = Wallet.create('Segwit-multisig-2-of-3-wallet', [pk1, pk2.public_master_multisig(), pk3.public()],
+                  sigs_required=2, network=NETWORK, db_uri=test_database)
 
 w.info()

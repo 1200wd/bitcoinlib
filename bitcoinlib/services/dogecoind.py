@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Client for dogecoind daemon
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 Oct - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -18,12 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import configparser
 from datetime import datetime
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.networks import Network
 
 
@@ -39,12 +39,6 @@ class ConfigError(Exception):
 
     def __str__(self):
         return self.msg
-
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 
 def _read_from_config(configparser, section, value, fallback=None):
@@ -155,7 +149,7 @@ class DogecoindClient(BaseClient):
         for t in self.proxy.listunspent(0, 99999999, [address]):
             txs.append({
                 'address': t['address'],
-                'tx_hash': t['txid'],
+                'txid': t['txid'],
                 'confirmations': t['confirmations'],
                 'output_n': t['vout'],
                 'input_n': -1,
@@ -169,7 +163,7 @@ class DogecoindClient(BaseClient):
 
         return txs
 
-    def gettransaction(self, txid):
+    def gettransaction(self, txid, block_height=None, get_input_values=True):
         tx = self.proxy.getrawtransaction(txid, 1)
         t = Transaction.import_raw(tx['hex'], network=self.network)
         t.confirmations = tx['confirmations']
@@ -177,18 +171,18 @@ class DogecoindClient(BaseClient):
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
-            if i.prev_hash == b'\x00' * 32:
+            if i.prev_txid == b'\x00' * 32:
                 i.value = t.output_total
                 i.script_type = 'coinbase'
                 continue
-            txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
-            i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
+            if get_input_values:
+                txi = self.proxy.getrawtransaction(i.prev_txid.hex(), 1)
+                i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.block_hash = tx['blockhash']
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'big')
         t.date = datetime.fromtimestamp(tx['blocktime'])
-        t.hash = txid
+        t.block_height = block_height
         t.update_totals()
         return t
 

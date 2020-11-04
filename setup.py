@@ -39,17 +39,12 @@ kwargs = {}
 install_requires = [
       'requests>=2.20.0',
       'fastecdsa>=2.1.2;platform_system!="Windows"',
-      'ecdsa>=0.13;platform_system=="Windows"',
+      'ecdsa>=0.16;platform_system=="Windows"',
       'pyaes==1.6.1',
-      'scrypt>=0.8.13',
+      'scrypt>=0.8.17',
       'SQLAlchemy>=1.3.2',
-      'six>=1.10'
 ]
-if sys.version_info < (3, 4):
-    install_requires.append('enum34')
-    install_requires.append('pathlib2')
-    install_requires.remove('fastecdsa>=2.1.2;platform_system!="Windows"')
-    install_requires.append('fastecdsa==1.7.5;platform_system!="Windows"')
+
 kwargs['install_requires'] = install_requires
 
 setup(
@@ -69,8 +64,6 @@ setup(
             'Operating System :: OS Independent',
             'Operating System :: Microsoft :: Windows',
             'Operating System :: POSIX',
-            'Programming Language :: Python :: 2.7',
-            'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',

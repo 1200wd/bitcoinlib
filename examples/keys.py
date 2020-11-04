@@ -4,7 +4,7 @@
 #
 #    EXAMPLES - Key and HDKey Class
 #
-#    © 2017 September - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
 #
 
 from pprint import pprint
@@ -109,7 +109,7 @@ else:
 # Addresses
 #
 print("\n=== Deserialize address ===")
-pprint(deserialize_address('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH'))
+pprint(deserialize_address('1HsZBGm6nNGG1Moc3TL6S9DSGbnPbsSyW3'))
 
 print("\n=== Deserialize bech32 address ===")
 pprint(deserialize_address('bc1qtlktwxgx3xu3r7fnt04q06e4gflpvmm70qw66rjckzyc0n54elxqsgqlpy'))

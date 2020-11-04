@@ -54,19 +54,19 @@ class LitecoinBlockexplorerClient(BaseClient):
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
             isCoinbase = True
-        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, fee=fees, hash=tx['txid'],
-                        date=datetime.utcfromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
-                        block_height=tx['blockheight'], block_hash=tx['blockhash'], status=status,
+        t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, fee=fees,
+                        txid=tx['txid'], date=datetime.utcfromtimestamp(tx['blocktime']),
+                        confirmations=tx['confirmations'], block_height=tx['blockheight'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)), size=len(tx['rawtx']) // 2)
         for ti in tx['vin']:
             if isCoinbase:
-                t.add_input(prev_hash=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
+                t.add_input(prev_txid=32 * b'\0', output_n=4*b'\xff', unlocking_script=ti['coinbase'], index_n=ti['n'],
                             script_type='coinbase', sequence=ti['sequence'], value=0)
             else:
                 value = int(round(float(ti['value']) * self.units, 0))
                 us = '' if 'hex' not in ti['scriptSig'] else ti['scriptSig']['hex']
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=us,
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=us,
                             index_n=ti['n'], value=value, sequence=ti['sequence'],
                             double_spend=False if ti['doubleSpentTxID'] is None else ti['doubleSpentTxID'])
         for to in tx['vout']:
@@ -97,7 +97,7 @@ class LitecoinBlockexplorerClient(BaseClient):
                 break
             txs.append({
                 'address': address.address_orig,
-                'tx_hash': tx['txid'],
+                'txid': tx['txid'],
                 'confirmations': tx['confirmations'],
                 'output_n': tx['vout'],
                 'input_n': 0,

@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    dashd deamon
-#    © 2018 June - 1200 Web Development <http://1200wd.com/>
+#    © 2018 - 2020 Oct - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -29,12 +29,11 @@
 #   "denominator": 100000000
 # }
 
-import struct
+import configparser
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
 
 
 PROVIDERNAME = 'dashd'
@@ -49,11 +48,6 @@ class ConfigError(Exception):
 
     def __str__(self):
         return self.msg
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 
 class DashdClient(BaseClient):
@@ -144,17 +138,16 @@ class DashdClient(BaseClient):
             t.status = 'confirmed'
             t.verified = True
         for i in t.inputs:
-            if i.prev_hash == b'\x00' * 32:
+            if i.prev_txid == b'\x00' * 32:
                 i.script_type = 'coinbase'
                 continue
             if get_input_values:
-                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+                txi = self.proxy.getrawtransaction(i.prev_txid.hex(), 1)
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
-        t.block_hash = tx['blockhash']
         t.block_height = block_height
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'big')
         t.date = datetime.utcfromtimestamp(tx['blocktime'])
         t.update_totals()
         return t
@@ -191,7 +184,7 @@ class DashdClient(BaseClient):
         for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
             txs.append({
                 'address': t['address'],
-                'tx_hash': t['txid'],
+                'txid': t['txid'],
                 'confirmations': t['confirmations'],
                 'output_n': t['vout'],
                 'input_n': -1,
@@ -207,7 +200,7 @@ class DashdClient(BaseClient):
 
         return txs
 
-    def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
+    def getblock(self, blockid, parse_transactions=True, page=1, limit=None):
         if isinstance(blockid, int):
             blockid = self.proxy.getblockhash(blockid)
         if not limit:
@@ -229,7 +222,7 @@ class DashdClient(BaseClient):
             txs = bd['tx']
 
         block = {
-            'bits': bd['bits'],
+            'bits': int(bd['bits'], 16),
             'depth': bd['confirmations'],
             'hash': bd['hash'],
             'height': bd['height'],

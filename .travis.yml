@@ -1,43 +1,39 @@
-sudo: required
-
 language: python
-
-env:
-    - BCL_CONFIG_FILE=config.ini.unittest
-python:
-    - 2.7
-    - 3.5
-    - 3.6
 matrix:
   include:
+    - python: 3.6
+      dist: xenial
+      env:
+        - BCL_CONFIG_FILE=config.ini.unittest
     # Test ecdsa and pyscrypt for systems where fastecdsa and/or scrypt are not available
     - python: 3.7
       dist: bionic
-      sudo: true
       env:
         - USING_MODULE_SCRYPT=False
         - USE_FASTECDSA=False
-        - UNITTESTS_FULL_DATABASE_TEST=False
+        - BCL_CONFIG_FILE=config.ini.unittest
       before_script:
         - pip install ecdsa
         - pip install pyscrypt
     # Enable 3.8 without globally enabling sudo and dist: xenial for other build jobs
     - python: 3.8
       dist: xenial
-      sudo: true
       env:
         - UNITTESTS_FULL_DATABASE_TEST=True
+        - BCL_CONFIG_FILE=config.ini.unittest
     - os: windows
       language: sh
-      python: "3.7"
+      python: "3.8"
       env:
-        - UNITTESTS_FULL_DATABASE_TEST=False
+        - BCL_CONFIG_FILE=config.ini.unittest
       before_install:
-        - choco install python --version=3.7.5
+        - choco install python --version=3.8.4
         - choco install postgresql --params '/Password:postgres' --paramsglobal
         - choco install mysql
-        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+        - export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
+        - python -m pip install win-unicode-console
+        - PYTHONIOENCODING=:replace
 
 before_install:
   - sudo apt-get install -y postgresql postgresql-contrib
@@ -47,7 +43,6 @@ before_install:
 
 install:
   - pip install coveralls
-  - pip install scrypt
   - pip install psycopg2
   - pip install mysql-connector
   - pip install mysqlclient

@@ -46,7 +46,7 @@ for example in examples:
 # Address and Script conversion examples
 #
 print("\n=== Conversion of Bitcoin Addresses to Public Key Hashes ===")
-addrs = ['12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', '1111111111111111111114oLvT2',
+addrs = ['1KcBA4i4Qqu1oRjobyWU3R5UXUorLQ3jUg', '1111111111111111111114oLvT2',
          '1QLbz7JHiBTspS962RLKV8GndWFwi5j6Qr']
 for addr in addrs:
     print("Public Key Hash of address '%s' is '%s'" % (addr, addr_to_pubkeyhash(addr, True)))

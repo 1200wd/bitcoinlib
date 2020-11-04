@@ -19,7 +19,6 @@
 #
 
 import logging
-import struct
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
@@ -72,11 +71,11 @@ class CryptoID(BaseClient):
             _logger.info("CryptoID: Large number of outputs for address %s, "
                          "UTXO list may be incomplete" % address.address)
         for utxo in res['unspent_outputs'][::-1]:
-            if utxo['tx_hash'] == after_txid:
+            if utxo['txid'] == after_txid:
                 break
             utxos.append({
                 'address': address.address_orig,
-                'tx_hash': utxo['tx_hash'],
+                'txid': utxo['txid'],
                 'confirmations': utxo['confirmations'],
                 'output_n': utxo['tx_output_n'] if 'tx_output_n' in utxo else utxo['tx_ouput_n'],
                 'input_n': 0,
@@ -111,11 +110,11 @@ class CryptoID(BaseClient):
         t.block_height = tx_api['block']
         t.block_hash = tx['blockhash']
         t.confirmations = tx['confirmations']
-        t.rawtx = to_bytes(tx['hex'])
+        t.rawtx = bytes.fromhex(tx['hex'])
         t.size = tx['size']
         t.network = self.network
         t.locktime = tx['locktime']
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'big')
         t.output_total = int(round(tx_api['total_output'] * self.units, 0))
         t.input_total = t.output_total
         t.fee = 0

@@ -19,10 +19,7 @@ from sqlalchemy.orm import sessionmaker
 from shutil import move
 from bitcoinlib.main import DEFAULT_DATABASE, BCL_DATABASE_DIR, BITCOINLIB_VERSION
 from bitcoinlib.db import Base, DbWallet, DbKey, DbKeyMultisigChildren, DbConfig
-try:
-    input = raw_input
-except NameError:
-    pass
+
 
 print("Database should update automatically when using BitcoinLib. If automatic update fails you can run this script. "
       "!!! After everything is backuped !!!")

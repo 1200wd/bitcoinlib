@@ -23,7 +23,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import varstr, to_bytes, to_hexstring
+from bitcoinlib.encoding import varstr
 from bitcoinlib.keys import Address
 
 _logger = logging.getLogger(__name__)
@@ -40,8 +40,8 @@ class SmartbitClient(BaseClient):
     def __init__(self, network, base_url, denominator, *args):
         super(self.__class__, self).__init__(network, PROVIDERNAME, base_url, denominator, *args)
 
-    def compose_request(self, category, command='', data='', variables=None, type='blockchain', method='get'):
-        url_path = type + '/' + category
+    def compose_request(self, category, command='', data='', variables=None, req_type='blockchain', method='get'):
+        url_path = req_type + '/' + category
         if data:
             if url_path[-1:] != '/':
                 url_path += '/'
@@ -62,13 +62,13 @@ class SmartbitClient(BaseClient):
         if tx['time']:
             t_time = datetime.utcfromtimestamp(tx['time'])
         t = Transaction(locktime=tx['locktime'], version=int(tx['version']), network=self.network, fee=tx['fee_int'],
-                        size=tx['size'], hash=tx['txid'], date=t_time,
+                        size=tx['size'], txid=tx['txid'], date=t_time,
                         confirmations=tx['confirmations'], block_height=tx['block'], status=status,
                         input_total=input_total, coinbase=tx['coinbase'],
                         output_total=tx['output_amount_int'], witness_type=witness_type)
         index_n = 0
         if tx['coinbase']:
-            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=0)
+            t.add_input(prev_txid=b'\00' * 32, output_n=0, value=0)
         else:
             for ti in tx['inputs']:
                 unlocking_script = ti['script_sig']['hex']
@@ -79,8 +79,8 @@ class SmartbitClient(BaseClient):
                         witness_type = 'p2sh-segwit'
                     else:
                         witness_type = 'segwit'
-                    unlocking_script = b"".join([varstr(to_bytes(x)) for x in ti['witness']])
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
+                    unlocking_script = b"".join([varstr(bytes.fromhex(x)) for x in ti['witness']])
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], unlocking_script=unlocking_script,
                             index_n=index_n, value=ti['value_int'], address=ti['addresses'][0], sequence=ti['sequence'],
                             witness_type=witness_type)
                 index_n += 1
@@ -124,7 +124,7 @@ class SmartbitClient(BaseClient):
                 utxos.append(
                     {
                         'address': utxo.address,
-                        'tx_hash': t.txid,
+                        'txid': t.txid,
                         'confirmations': t.confirmations,
                         'output_n': utxo.output_n,
                         'input_n': 0,
@@ -132,7 +132,7 @@ class SmartbitClient(BaseClient):
                         'fee': t.fee,
                         'size': t.size,
                         'value': utxo.value,
-                        'script': to_hexstring(utxo.lock_script),
+                        'script': utxo.lock_script.hex(),
                         'date': t.date
                     })
         return utxos

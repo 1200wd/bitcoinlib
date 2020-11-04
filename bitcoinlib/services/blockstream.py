@@ -23,7 +23,7 @@ from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
+from bitcoinlib.encoding import varstr
 
 PROVIDERNAME = 'blockstream'
 # Please note: In the Blockstream API, the first couple of Bitcoin blocks are not correctly indexed,
@@ -72,7 +72,7 @@ class BlockstreamClient(BaseClient):
                 confirmations = blockcount - block_height
             utxos.append({
                 'address': address,
-                'tx_hash': a['txid'],
+                'txid': a['txid'],
                 'confirmations': confirmations,
                 'output_n': a['vout'],
                 'input_n': 0,
@@ -100,23 +100,29 @@ class BlockstreamClient(BaseClient):
             status = 'confirmed'
         fee = None if 'fee' not in tx else tx['fee']
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
-                        fee=fee, size=tx['size'], hash=tx['txid'],
+                        fee=fee, size=tx['size'], txid=tx['txid'],
                         date=None if 'block_time' not in tx['status'] else datetime.utcfromtimestamp(tx['status']['block_time']),
                         confirmations=confirmations, block_height=block_height, status=status,
                         coinbase=tx['vin'][0]['is_coinbase'])
         index_n = 0
         for ti in tx['vin']:
             if tx['vin'][0]['is_coinbase']:
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
-                            unlocking_script=ti['scriptsig'], value=0)
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                            unlocking_script=ti['scriptsig'], value=0, sequence=ti['sequence'])
             else:
-                t.add_input(prev_hash=ti['txid'], output_n=ti['vout'], index_n=index_n,
+                witnesses = []
+                if 'witness' in ti:
+                    witnesses = [bytes.fromhex(w) for w in ti['witness']]
+                t.add_input(prev_txid=ti['txid'], output_n=ti['vout'], index_n=index_n,
                             unlocking_script=ti['scriptsig'], value=ti['prevout']['value'],
                             address='' if 'scriptpubkey_address' not in ti['prevout']
-                            else ti['prevout']['scriptpubkey_address'],
-                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'])
+                            else ti['prevout']['scriptpubkey_address'], sequence=ti['sequence'],
+                            unlocking_script_unsigned=ti['prevout']['scriptpubkey'], witnesses=witnesses)
             index_n += 1
         index_n = 0
+        if len(tx['vout']) > 50:
+            # Every output needs an extra query, stop execution if there are too many transaction outputs
+            return False
         for to in tx['vout']:
             address = ''
             if 'scriptpubkey_address' in to:
@@ -187,7 +193,7 @@ class BlockstreamClient(BaseClient):
         if txid:
             t = self.gettransaction(txid)
             if t and not t.confirmations:
-                return [t.hash]
+                return [t.txid]
         else:
             return self.compose_request('mempool', 'txids')
         return False
@@ -235,7 +241,7 @@ class BlockstreamClient(BaseClient):
         if isinstance(blockid, int):
             blockid = self.compose_request('block-height', str(blockid))
         rawblock = self.compose_request('block', blockid, 'raw')
-        hexrawblock = to_hexstring(rawblock)
+        hexrawblock = rawblock.hex()
         return hexrawblock
 
     def isspent(self, txid, output_n):

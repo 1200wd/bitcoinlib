@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Client for bitcoind deamon
-#    © 2017 June - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 Oct - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -18,12 +18,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import struct
+import configparser
 from bitcoinlib.main import *
 from bitcoinlib.services.authproxy import AuthServiceProxy
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.networks import Network
 
 
@@ -39,11 +38,6 @@ class ConfigError(Exception):
 
     def __str__(self):
         return self.msg
-
-try:
-    import configparser
-except ImportError:
-    import ConfigParser as configparser
 
 
 def _read_from_config(configparser, section, value, fallback=None):
@@ -163,7 +157,7 @@ class BitcoindClient(BaseClient):
     #     for t in sorted(txs_list, key=lambda x: x['confirmations'], reverse=True):
     #         txs.append({
     #             'address': t['address'],
-    #             'tx_hash': t['txid'],
+    #             'txid': t['txid'],
     #             'confirmations': t['confirmations'],
     #             'output_n': t['vout'],
     #             'input_n': -1,
@@ -181,19 +175,19 @@ class BitcoindClient(BaseClient):
 
     def _parse_transaction(self, tx, block_height=None, get_input_values=True):
         t = Transaction.import_raw(tx['hex'], network=self.network)
-        t.confirmations = None if 'confirmations' not in tx else tx['confirmations']
+        t.confirmations = tx.get('confirmations')
+        t.block_hash = tx.get('blockhash')
         t.status = 'unconfirmed'
         for i in t.inputs:
-            if i.prev_hash == b'\x00' * 32:
+            if i.prev_txid == b'\x00' * 32:
                 i.script_type = 'coinbase'
                 continue
             if get_input_values:
-                txi = self.proxy.getrawtransaction(to_hexstring(i.prev_hash), 1)
+                txi = self.proxy.getrawtransaction(i.prev_txid.hex(), 1)
                 i.value = int(round(float(txi['vout'][i.output_n_int]['value']) / self.network.denominator))
         for o in t.outputs:
             o.spent = None
 
-        t.block_hash = tx.get('blockhash', '')
         if not block_height and t.block_hash:
             block_height = self.proxy.getblock(t.block_hash, 1)['height']
         t.block_height = block_height
@@ -204,8 +198,8 @@ class BitcoindClient(BaseClient):
         if t.confirmations or block_height:
             t.status = 'confirmed'
             t.verified = True
-
-        t.version = struct.pack('>L', tx['version'])
+        t.version = tx['version'].to_bytes(4, 'big')
+        t.version_int = tx['version']
         t.date = None if 'time' not in tx else datetime.utcfromtimestamp(tx['time'])
         t.update_totals()
         return t
@@ -248,7 +242,7 @@ class BitcoindClient(BaseClient):
             return [txid]
         return []
 
-    def getblock(self, blockid, parse_transactions=True, page=None, limit=None):
+    def getblock(self, blockid, parse_transactions=True, page=1, limit=None):
         if isinstance(blockid, int) or len(blockid) < 10:
             blockid = self.proxy.getblockhash(int(blockid))
         if not limit:
@@ -270,7 +264,7 @@ class BitcoindClient(BaseClient):
             txs = bd['tx']
 
         block = {
-            'bits': bd['bits'],
+            'bits': int(bd['bits'], 16),
             'depth': bd['confirmations'],
             'block_hash': bd['hash'],
             'height': bd['height'],

@@ -97,5 +97,12 @@ class TestMnemonics(unittest.TestCase):
         self.assertEqual(Mnemonic(language='chinese_traditional').word(2047), '歇')
         self.assertEqual(len(Mnemonic().wordlist()), 2048)
 
+    def test_mnemonic_small_entropy_bug(self):
+        for i in range(50):
+            m = Mnemonic().generate(256)
+            e = Mnemonic().to_entropy(m)
+            self.assertEqual(len(e), 32)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -9,7 +9,7 @@
 
 import os
 from pprint import pprint
-from bitcoinlib.wallets import HDWallet, BCL_DATABASE_DIR
+from bitcoinlib.wallets import Wallet, BCL_DATABASE_DIR
 
 
 #
@@ -23,7 +23,7 @@ if os.path.isfile(test_databasefile):
     os.remove(test_databasefile)
 
 print("\n=== Create a wallet and a simple transaction ===")
-wlt = HDWallet.create('wlttest1', network='bitcoinlib_test', db_uri=test_database)
+wlt = Wallet.create('wlttest1', network='bitcoinlib_test', db_uri=test_database)
 wlt.get_key()
 wlt.utxos_update()  # Create some test UTXOs
 wlt.info()
@@ -37,8 +37,8 @@ wlt.info()
 
 
 print("\n=== Create a wallet, generate 6 UTXOs and create a sweep transaction ===")
-wlt = HDWallet.create('wlttest2', network='bitcoinlib_test', db_uri=test_database)
-wlt.get_key(number_of_keys=3)
+wlt = Wallet.create('wlttest2', network='bitcoinlib_test', db_uri=test_database)
+wlt.get_keys(number_of_keys=3)
 wlt.utxos_update()  # Create some test UTXOs
 wlt.info()
 to_key = wlt.get_key()

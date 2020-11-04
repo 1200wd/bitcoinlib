@@ -10,14 +10,11 @@
 
 import sys
 import argparse
-import binascii
-import struct
 import ast
 from pprint import pprint
-from bitcoinlib.wallets import HDWallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
+from bitcoinlib.wallets import Wallet, wallets_list, wallet_exists, wallet_delete, WalletError, wallet_empty
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey
-from bitcoinlib.encoding import to_hexstring
 from bitcoinlib.main import BITCOINLIB_VERSION
 
 try:
@@ -26,10 +23,6 @@ try:
 except ImportError:
     QRCODES_AVAILABLE = False
 
-try:
-    input = raw_input
-except NameError:
-    pass
 
 DEFAULT_NETWORK = 'bitcoin'
 
@@ -158,12 +151,12 @@ def create_wallet(wallet_name, args, db_uri):
             for _ in range(keys_missing):
                 passphrase = get_passphrase(args)
                 passphrase = ' '.join(passphrase)
-                seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+                seed = Mnemonic().to_seed(passphrase).hex()
                 key_list.append(HDKey.from_seed(seed, network=args.network))
-        return HDWallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
+        return Wallet.create(wallet_name, key_list, sigs_required=sigs_required, network=args.network,
                                cosigner_id=args.cosigner_id, db_uri=db_uri, witness_type=args.witness_type)
     elif args.create_from_key:
-        return HDWallet.create(wallet_name, args.create_from_key, network=args.network,
+        return Wallet.create(wallet_name, args.create_from_key, network=args.network,
                                db_uri=db_uri, witness_type=args.witness_type)
     else:
         passphrase = args.passphrase
@@ -178,9 +171,9 @@ def create_wallet(wallet_name, args, db_uri):
         if len(passphrase) < 12:
             clw_exit("Please specify passphrase with 12 words or more")
         passphrase = ' '.join(passphrase)
-        seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+        seed = Mnemonic().to_seed(passphrase).hex()
         hdkey = HDKey.from_seed(seed, network=args.network)
-        return HDWallet.create(wallet_name, hdkey, network=args.network, witness_type=args.witness_type,
+        return Wallet.create(wallet_name, hdkey, network=args.network, witness_type=args.witness_type,
                                db_uri=db_uri)
 
 
@@ -203,7 +196,7 @@ def print_transaction(wt):
         'network': wt.network.name, 'fee': wt.fee, 'raw': wt.raw_hex(), 'outputs': [{
             'address': o.address, 'value': o.value
         } for o in wt.outputs], 'inputs': [{
-            'prev_hash': to_hexstring(i.prev_hash), 'output_n': struct.unpack('>I', i.output_n)[0],
+            'prev_hash': i.prev_hash.hex(), 'output_n': int.from_bytes(i.output_n, 'big'),
             'address': i.address, 'signatures': [{
                 'signature': s.hex(), 'sig_der': s.as_der_encoded(as_hex=True),
                 'pub_key': s.public_key.public_hex,
@@ -211,6 +204,7 @@ def print_transaction(wt):
         } for i in wt.inputs]
     }
     pprint(tx_dict)
+
 
 
 def clw_exit(msg=None):
@@ -229,7 +223,7 @@ def main():
     if args.generate_key:
         passphrase = get_passphrase(args)
         passphrase = ' '.join(passphrase)
-        seed = binascii.hexlify(Mnemonic().to_seed(passphrase))
+        seed = Mnemonic().to_seed(passphrase).hex()
         hdkey = HDKey.from_seed(seed, network=args.network)
         print("Private Master key, to create multisig wallet on this machine:\n%s" % hdkey.wif_private())
         print("Public Master key, to share with other cosigner multisig wallets:\n%s" %
@@ -270,7 +264,7 @@ def main():
         args.wallet_info = True
     else:
         try:
-            wlt = HDWallet(args.wallet_name, db_uri=db_uri)
+            wlt = Wallet(args.wallet_name, db_uri=db_uri)
             if args.passphrase is not None:
                 print("WARNING: Using passphrase option for existing wallet ignored")
             if args.create_from_key is not None:
@@ -389,7 +383,7 @@ def main():
         wt.info()
         if args.push:
             if wt.pushed:
-                print("Transaction pushed to network. Transaction ID: %s" % wt.hash)
+                print("Transaction pushed to network. Transaction ID: %s" % wt.txid)
             elif not wt:
                 print("Cannot sweep wallet, are UTXO's updated and available?")
             else:

@@ -29,7 +29,7 @@ from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient, ClientError
 from bitcoinlib.transactions import Transaction
 from bitcoinlib.keys import deserialize_address, Address
-from bitcoinlib.encoding import EncodingError, varstr, to_bytes
+from bitcoinlib.encoding import EncodingError, varstr
 
 _logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class BlockChairClient(BaseClient):
                     continue
                 utxos.append({
                     'address': address,
-                    'tx_hash': utxo['transaction_hash'],
+                    'txid': utxo['transaction_hash'],
                     'confirmations': current_block - utxo['block_id'],
                     'output_n': utxo['index'],
                     'input_n': 0,
@@ -114,31 +114,32 @@ class BlockChairClient(BaseClient):
             witness_type = 'segwit'
         input_total = tx['input_total']
         t = Transaction(locktime=tx['lock_time'], version=tx['version'], network=self.network,
-                        fee=tx['fee'], size=tx['size'], hash=tx['hash'],
+                        fee=tx['fee'], size=tx['size'], txid=tx['hash'],
                         date=None if not confirmations else datetime.strptime(tx['time'], "%Y-%m-%d %H:%M:%S"),
-                        confirmations=confirmations, block_height=tx['block_id'] if tx['block_id'] > 0 else None, status=status,
-                        input_total=input_total, coinbase=tx['is_coinbase'],
+                        confirmations=confirmations, block_height=tx['block_id'] if tx['block_id'] > 0 else None,
+                        status=status, input_total=input_total, coinbase=tx['is_coinbase'],
                         output_total=tx['output_total'], witness_type=witness_type)
         index_n = 0
         if not res['data'][tx_id]['inputs']:
             # This is a coinbase transaction, add input
-            t.add_input(prev_hash=b'\00' * 32, output_n=0, value=0)
+            t.add_input(prev_txid=b'\00' * 32, output_n=0, value=0)
 
         for ti in res['data'][tx_id]['inputs']:
             if ti['spending_witness']:
-                witnesses = b"".join([varstr(to_bytes(x)) for x in ti['spending_witness'].split(",")])
+                witnesses = b"".join([varstr(bytes.fromhex(x)) for x in ti['spending_witness'].split(",")])
                 address = Address.import_address(ti['recipient'])
                 if address.script_type == 'p2sh':
                     witness_type = 'p2sh-segwit'
                 else:
                     witness_type = 'segwit'
-                t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
+                t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=witnesses, index_n=index_n, value=ti['value'],
-                            address=address, witness_type=witness_type)
+                            address=address, witness_type=witness_type, sequence=ti['spending_sequence'])
             else:
-                t.add_input(prev_hash=ti['transaction_hash'], output_n=ti['index'],
+                t.add_input(prev_txid=ti['transaction_hash'], output_n=ti['index'],
                             unlocking_script=ti['spending_signature_hex'], index_n=index_n, value=ti['value'],
-                            address=ti['recipient'], unlocking_script_unsigned=ti['script_hex'])
+                            address=ti['recipient'], unlocking_script_unsigned=ti['script_hex'],
+                            sequence=ti['spending_sequence'])
             index_n += 1
         for to in res['data'][tx_id]['outputs']:
             try:

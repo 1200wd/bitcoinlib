@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    DataBase - SqlAlchemy database definitions
-#    © 2016 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2020 February - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -231,7 +231,7 @@ class DbKey(Base):
     is_private = Column(Boolean, doc="Is key private or not?")
     path = Column(String(100), doc="String of BIP-32 key path")
     wallet_id = Column(Integer, ForeignKey('wallets.id'), index=True, doc="Wallet ID which contains this key")
-    wallet = relationship("DbWallet", back_populates="keys", doc="Related Wallet object")
+    wallet = relationship("DbWallet", back_populates="keys", doc="Related HDWallet object")
     transaction_inputs = relationship("DbTransactionInput", cascade="all,delete", back_populates="key",
                                       doc="All DbTransactionInput objects this key is part of")
     transaction_outputs = relationship("DbTransactionOutput", cascade="all,delete", back_populates="key",
@@ -303,7 +303,7 @@ class DbTransaction(Base):
                        doc="ID of wallet which contains this transaction")
     account_id = Column(Integer, index=True, doc="ID of account")
     wallet = relationship("DbWallet", back_populates="transactions",
-                          doc="Link to Wallet object which contains this transaction")
+                          doc="Link to HDWallet object which contains this transaction")
     witness_type = Column(String(20), default='legacy', doc="Is this a legacy or segwit transaction?")
     version = Column(BigInteger, default=1,
                      doc="Tranaction version. Default is 1 but some wallets use another version number")

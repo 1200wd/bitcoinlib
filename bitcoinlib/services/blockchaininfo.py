@@ -19,12 +19,10 @@
 #
 
 import logging
-import struct
 from datetime import datetime
 from bitcoinlib.main import MAX_TRANSACTIONS
 from bitcoinlib.services.baseclient import BaseClient
 from bitcoinlib.transactions import Transaction
-from bitcoinlib.encoding import to_bytes
 
 
 PROVIDERNAME = 'blockchaininfo'
@@ -64,7 +62,7 @@ class BlockchainInfoClient(BaseClient):
                 break
             utxos.append({
                 'address': address,
-                'tx_hash': utxo['tx_hash_big_endian'],
+                'txid': utxo['tx_hash_big_endian'],
                 'confirmations': utxo['confirmations'],
                 'output_n': utxo['tx_output_n'],
                 'input_n':  utxo['tx_index'],
@@ -79,8 +77,8 @@ class BlockchainInfoClient(BaseClient):
 
     def gettransaction(self, txid, latest_block=None):
         tx = self.compose_request('rawtx', txid)
-        raw_tx = self.getrawtransaction(txid)
-        t = Transaction.import_raw(raw_tx, self.network)
+        rawtx = self.getrawtransaction(txid)
+        t = Transaction.import_raw(rawtx, self.network)
         input_total = 0
         for n, i in enumerate(t.inputs):
             if 'prev_out' in tx['inputs'][n]:
@@ -101,11 +99,12 @@ class BlockchainInfoClient(BaseClient):
             t.status = 'unconfirmed'
             t.confirmations = 0
             t.date = None
-        t.rawtx = to_bytes(raw_tx)
+        t.rawtx = bytes.fromhex(rawtx)
         t.size = tx['size']
         t.network_name = self.network
         t.locktime = tx['lock_time']
-        t.version = struct.pack('>L', tx['ver'])
+        t.version_int = tx['ver']
+        t.version = tx['ver'].to_bytes(4, 'big')
         t.input_total = input_total
         t.fee = 0
         if t.input_total:

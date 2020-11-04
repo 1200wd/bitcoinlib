@@ -19,7 +19,7 @@
 #
 
 import unittest
-from tests.db_0_4_10 import DbInit as DbInitOld
+from tests.db_0_5 import Db as DbInitOld
 from bitcoinlib.db import *
 
 
@@ -33,20 +33,10 @@ class TestDb(unittest.TestCase):
             os.remove(DATABASEFILE_UNITTESTS)
         dbold = DbInitOld(DATABASEFILE_UNITTESTS)
 
-        self.assertFalse('latest_txid' in dbold.engine.execute("SELECT * FROM keys").keys())
-        self.assertFalse('address' in dbold.engine.execute("SELECT * FROM transaction_inputs").keys())
-        version_db = dbold.session.query(DbConfig.value).filter_by(variable='version').scalar()
-        self.assertEqual(version_db, '0.4.10')
-
-        db_update(dbold, version_db, '0.4.11')
-        self.assertTrue('latest_txid' in dbold.engine.execute("SELECT * FROM keys").keys())
-        version_db = dbold.session.query(DbConfig.value).filter_by(variable='version').scalar()
-        self.assertEqual(version_db, '0.4.11')
-
-        db_update(dbold, version_db, '0.4.12')
-        self.assertTrue('address' in dbold.engine.execute("SELECT * FROM transaction_inputs").keys())
-        version_db = dbold.session.query(DbConfig.value).filter_by(variable='version').scalar()
-        self.assertEqual(version_db, '0.4.12')
+        # self.assertFalse('latest_txid' in dbold.engine.execute("SELECT * FROM keys").keys())
+        # self.assertFalse('address' in dbold.engine.execute("SELECT * FROM transaction_inputs").keys())
+        # version_db = dbold.session.query(DbConfig.value).filter_by(variable='version').scalar()
+        # self.assertEqual(version_db, '0.4.10')
 
 
 if __name__ == '__main__':
