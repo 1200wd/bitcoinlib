@@ -1,3 +1,16 @@
+RELEASE 0.5.0 - Refactor database and cache
+===========================================
+* Increase cache database efficiency and reduce storage size
+* Refactor wallet and transaction database
+* Remove Python 2 support
+* Remove deprecated methods
+* Shorter class names: Wallet, WalletTransaction, WalletKey
+* Add method to retrieve input values for transactions
+* Fix various bugs in Service, Wallet, Mnemonic and Transaction classes
+
+PLEASE NOTE: It is not possible to update database from version <0.4.x to 0.5.0.
+You need the updatedb.py script to copy masterkeys and recreate wallets and transactions.
+
 RELEASE 0.4.19 - Bug fix and cache updates
 ==========================================
 * Fix errors in Blockstream and Litecoinblockexplorer

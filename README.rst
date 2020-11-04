@@ -102,7 +102,7 @@ The complete wallet can be recovered from the passphrase which is the masterkey.
 Multi Signature Wallets
 -----------------------
 
-Create a Multisig wallet with 2 cosigner which both need to sign a transaction.
+Create a Multisig wallet with 2 cosigners which both need to sign a transaction.
 
 .. code-block:: python
 
@@ -222,7 +222,7 @@ wallet's balance.
 When working with wallets connections to service providers are automatically managed so you don't have to worry
 about them. You can however easily use the Service object directly.
 
-Example: Get estimated transaction fee in sathosis per Kb for confirmation within 5 blocks
+Example: Get estimated transaction fee in Sathosis per Kb for confirmation within 5 blocks
 
 .. code-block:: pycon
 

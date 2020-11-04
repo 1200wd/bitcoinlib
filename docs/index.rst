@@ -6,55 +6,62 @@
 Welcome to Bitcoinlib's documentation!
 ======================================
 
-Bitcoin, Litecoin and Dash Crypto Currency Library for Python.
+Bitcoin and other Crypto Currency Library for Python.
 
-Includes a fully functional wallet, with multi signature, multi currency and multiple accounts.
-You this library at a high level and create and manage wallets for the command line or at a low level
-and create your own custom made transactions, keys or wallets.
+Includes a fully functional wallet, with multi signature, multi currency and multiple accounts. Use this
+library to create and manage transactions, addresses/keys, wallets, mnemonic password phrases and blocks with
+simple and straightforward Python code.
+
+You can use this library at a high level and create and manage wallets on the command line or at a low level
+and create your own custom made transactions, scripts, keys or wallets.
 
 The BitcoinLib connects to various service providers automatically to update wallets, transactions and
-blockchain information. It does currently not parse the blockchain itself.
+blockchain information.
 
 
 Wallet
 ------
 
-This Bitcoin Library contains a wallet implementation using SQLAlchemy and SQLite3 to import, create and manage
-keys in a Hierarchical Deterministic Way.
+This Bitcoin Library contains a wallet implementation using SQLAlchemy and SQLite3, MySQL or PostgreSQL to
+import, create and manage keys in a Hierarchical Deterministic way.
 
-Example: Create wallet and generate new address to receive bitcoins
+Example: Create wallet and generate new address (key) to receive bitcoins
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> from bitcoinlib.wallets import Wallet
    >>> w = Wallet.create('Wallet1')
-   >>> w
-   <Wallet (id=1, name=Wallet1, network=bitcoin)>
-   >>> key1 = w.new_key()
-   >>> key1
-   <WalletKey (name=Key 0, wif=xprvA4B..etc..6HZKGW7Kozc, path=m/44'/0'/0'/0/0)>
+   >>> key1 = w.get_key()
    >>> key1.address
    '1Fo7STj6LdRhUuD1AiEsHpH65pXzraGJ9j'
 
+Now send a small transaction to your wallet and use the scan() method to update transactions and UTXO's
+
+.. code-block:: pycon
+
+    >>> w.scan()
+    >>> w.info()  # Shows wallet information, keys, transactions and UTXO's
 
 When your wallet received a payment and has unspent transaction outputs, you can send bitcoins easily.
 If successful a transaction ID is returned
 
-.. code-block:: python
+.. code-block:: pycon
 
-   >>> w.send_to('12ooWd8Xag7hsgP9PBPnmyGe36VeUrpMSH', 100000)
-   'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
+    >>> t = w.send_to('1PWXhWvUH3bcDWn6Fdq3xhMRPfxRXTjAi1', 100000)
+    'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
+    >>> t.info  # Shows transaction information and send results
+
 
 
 Segregated Witness Wallet
 -------------------------
 
-Easily create and manage segwit wallets. Both native segwit with base32/bech32 addresses and P2SH nested segwit
+Easily create and manage Segwit wallets. Both native Segwit with base32/bech32 addresses and P2SH nested Segwit
 wallets with traditional addresses are available.
 
 Create a native single key P2WPKH wallet:
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> from bitcoinlib.wallets import Wallet
     >>> w = Wallet.create('segwit_p2wpkh', witness_type='segwit')
@@ -63,7 +70,7 @@ Create a native single key P2WPKH wallet:
 
 Or create a P2SH nested single key P2SH_P2WPKH wallet:
 
-.. code-block:: python
+.. code-block:: pycon
 
     >>> from bitcoinlib.wallets import Wallet
     >>> w = Wallet.create('segwit_p2sh_p2wpkh', witness_type='p2sh-segwit')
@@ -96,7 +103,7 @@ The complete wallet can be recovered from the passphrase which is the masterkey.
 Multi Signature Wallets
 -----------------------
 
-Create a Multisig wallet with 2 cosigner which both need to sign a transaction.
+Create a Multisig wallet with 2 cosigners which both need to sign a transaction.
 
 .. code-block:: python
 
@@ -142,7 +149,7 @@ To create a new Bitcoin wallet
 
 .. code-block:: bash
 
-    $ clw NewWallet
+    $ clw newwallet
     Command Line Wallet for BitcoinLib
 
     Wallet newwallet does not exist, create new wallet [yN]? y
@@ -168,9 +175,9 @@ Communicates with pools of bitcoin service providers to retreive transaction, ad
 To push a transaction to the network. To determine optimal service fee for a transaction. Or to update your
 wallet's balance.
 
-Example: Get estimated transactionfee in sathosis per Kb for confirmation within 5 blocks
+Example: Get estimated transactionfee in Sathosis per Kb for confirmation within 5 blocks
 
-.. code-block:: python
+.. code-block:: pycon
 
    >>> from bitcoinlib.services.services import Service
    >>> Service().estimatefee(5)
