@@ -41,7 +41,6 @@ class TestDb(unittest.TestCase):
         if os.path.isfile(DATABASEFILE_CACHE_TMP):
             os.remove(DATABASEFILE_CACHE_TMP)
 
-
     def test_database_upgrade(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
             os.remove(DATABASEFILE_UNITTESTS)
@@ -54,7 +53,6 @@ class TestDb(unittest.TestCase):
 
     def test_database_create_drop(self):
         dbtmp = Db(DATABASEFILE_TMP)
-        self.assertEqual(dbtmp.o.path, DATABASEFILE_TMP)
         Wallet.create("tmpwallet", db_uri=DATABASEFILE_TMP)
         self.assertRaisesRegexp(WalletError, "Wallet with name 'tmpwallet' already exists",
                                 Wallet.create, 'tmpwallet', db_uri=DATABASEFILE_TMP)
@@ -63,7 +61,6 @@ class TestDb(unittest.TestCase):
 
     def test_database_cache_create_drop(self):
         dbtmp = DbCache(DATABASEFILE_CACHE_TMP)
-        self.assertEqual(dbtmp.o.path, DATABASEFILE_CACHE_TMP)
         srv = Service(cache_uri=DATABASEFILE_CACHE_TMP, exclude_providers=['bitaps', 'bitgo'])
         t = srv.gettransaction('68104dbd6819375e7bdf96562f89290b41598df7b002089ecdd3c8d999025b13')
         if t:
