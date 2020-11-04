@@ -3,3 +3,6 @@ fastecdsa>=2.1.5
 pyaes==1.6.1
 scrypt>=0.8.17
 SQLAlchemy>=1.3.20
+ecdsa>=0.16
+sphinx>=3.3
+sphinx_rtd_theme>=0.5.0
