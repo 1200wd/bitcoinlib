@@ -831,6 +831,12 @@ class TestService(unittest.TestCase, CustomAssertions):
         fields = [k for k, _ in res.items()]
         self.assertListEqual(sorted(fields), ['blockcount', 'chain', 'difficulty', 'hashrate', 'mempool_size'])
 
+    def test_service_getinfo_litecoin(self):
+        srv = ServiceTest(network='litecoin')
+        res = srv.getinfo()
+        fields = [k for k, _ in res.items()]
+        self.assertListEqual(sorted(fields), ['blockcount', 'chain', 'difficulty', 'hashrate', 'mempool_size'])
+
     def test_service_getinputvalues(self):
         rawtx = '02000000000101cb5f7b25dbf8106c6df0083d97e36690ba95c6477bdae2b9fa487115f259b3b60000000000ffffffff' \
                 '01d07e0100000000001600142e141b3fadd7882aeceb857e754808113f5568e2024930460221009e8e33fc0c918ee200' \

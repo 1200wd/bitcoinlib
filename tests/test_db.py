@@ -21,12 +21,19 @@
 import unittest
 from tests.db_0_5 import Db as DbInitOld
 from bitcoinlib.db import *
+from bitcoinlib.wallets import Wallet, WalletError
 
 
 DATABASEFILE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.sqlite')
+DATABASEFILE_TMP = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.tmp.sqlite')
 
 
 class TestDb(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        if os.path.isfile(DATABASEFILE_TMP):
+            os.remove(DATABASEFILE_TMP)
 
     def test_database_upgrade(self):
         if os.path.isfile(DATABASEFILE_UNITTESTS):
@@ -37,6 +44,15 @@ class TestDb(unittest.TestCase):
         # self.assertFalse('address' in dbold.engine.execute("SELECT * FROM transaction_inputs").keys())
         # version_db = dbold.session.query(DbConfig.value).filter_by(variable='version').scalar()
         # self.assertEqual(version_db, '0.4.10')
+
+    def test_database_create_drop(self):
+        dbtmp = Db(DATABASEFILE_TMP)
+        self.assertEqual(dbtmp.o.path, DATABASEFILE_TMP)
+        Wallet.create("tmpwallet", db_uri=DATABASEFILE_TMP)
+        self.assertRaisesRegexp(WalletError, "Wallet with name 'tmpwallet' already exists",
+                                Wallet.create, 'tmpwallet', db_uri=DATABASEFILE_TMP)
+        dbtmp.drop_db(yes_i_am_sure=True)
+        Wallet.create("tmpwallet", db_uri=DATABASEFILE_TMP)
 
 
 if __name__ == '__main__':
