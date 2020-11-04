@@ -201,29 +201,38 @@ For more examples see https://github.com/1200wd/bitcoinlib/tree/master/examples
    :caption: Manuals
    :maxdepth: 4
 
-   source/_static/manuals.install
+   Installation and Settings <source/_static/manuals.install>
    source/_static/manuals.command-line-wallet
-   source/_static/manuals.add-provider
-   source/_static/manuals.setup-bitcoind-connection
-   source/_static/manuals.databases
+   Add Service Provider <source/_static/manuals.add-provider>
+   Bitcoind Node <source/_static/manuals.setup-bitcoind-connection>
+   Databases <source/_static/manuals.databases>
    source/_static/manuals.caching
 
+
+.. toctree::
+   :caption: Classes
+   :maxdepth: 1
+
+   Key <source/bitcoinlib.keys>
+   Transaction <source/bitcoinlib.transactions>
+   Wallet <source/bitcoinlib.wallets>
+   Mnemonic <source/bitcoinlib.mnemonic>
+   Network <source/bitcoinlib.networks>
+   Block <source/bitcoinlib.blocks>
+   Service <source/bitcoinlib.services.services>
+   Service providers <source/bitcoinlib.services>
+   Config <source/bitcoinlib.config>
+   Database <source/bitcoinlib.db>
+   Cache <source/bitcoinlib.db_cache>
 
 .. toctree::
    :caption: Reference
    :maxdepth: 1
 
    source/_static/classes-overview
-   source/modules
-   source/bitcoinlib.config
-   source/bitcoinlib.db
-   source/bitcoinlib.encoding
-   source/bitcoinlib.keys
-   source/bitcoinlib.mnemonic
-   source/bitcoinlib.networks
-   source/bitcoinlib.services
-   source/bitcoinlib.transactions
-   source/bitcoinlib.wallets
+   Modules <source/modules>
+   Encoding <source/bitcoinlib.encoding>
+   Tools <source/bitcoinlib.tools>
    source/_static/script-types-overview
 
 
