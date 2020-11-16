@@ -24,7 +24,7 @@ from bitcoinlib.config.config import NETWORK_DENOMINATORS
 
 class Value:
 
-    def __init__(self, value, symbol=None, denominator=1, network=DEFAULT_NETWORK):
+    def __init__(self, value, symbol=None, denominator=None, network=DEFAULT_NETWORK):
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)
@@ -63,6 +63,13 @@ class Value:
     def __str__(self):
         return self.str()
 
+    def __repr__(self):
+        if self.value:
+            return "Value(value=%d, symbol=%s, denominator=%d, network='%s')" % \
+                   (int(self.value), self.symbol, self.denominator, self.network.name)
+        else:
+            return "Value()"
+
     def str(self, denominator=None, decimals=None):
         if denominator is None:
             denominator = 1
@@ -94,3 +101,83 @@ class Value:
 
     def __float__(self):
         return self.value
+
+    def __lt__(self, other):
+        if self.network != other.network:
+            raise ValueError("Cannot compare values from different networks")
+        return self.value < other.value
+
+    def __le__(self, other):
+        if self.network != other.network:
+            raise ValueError("Cannot compare values from different networks")
+        return self.value <= other.value
+
+    def __eq__(self, other):
+        if self.network != other.network:
+            raise ValueError("Cannot compare values from different networks")
+        return self.value == other.value
+
+    def __ne__(self, other):
+        if self.network != other.network:
+            raise ValueError("Cannot compare values from different networks")
+        return self.value != other.value
+
+    def __ge__(self, other):
+        if self.network != other.network:
+            raise ValueError("Cannot compare values from different networks")
+        return self.value >= other.value
+
+    def __gt__(self, other):
+        if self.network != other.network:
+            raise ValueError("Cannot compare values from different networks")
+        return self.value > other.value
+
+    def __add__(self, other):
+        if isinstance(other, Value):
+            if self.network != other.network:
+                raise ValueError("Cannot calculate with values from different networks")
+            other = other.value
+        return Value(self.value + other, self.symbol, self.denominator, self.network)
+
+    def __iadd__(self, other):
+        if isinstance(other, Value):
+            if self.network != other.network:
+                raise ValueError("Cannot calculate with values from different networks")
+            other = other.value
+        return Value(self.value + other, self.symbol, self.denominator, self.network)
+
+    def __isub__(self, other):
+        if isinstance(other, Value):
+            if self.network != other.network:
+                raise ValueError("Cannot calculate with values from different networks")
+            other = other.value
+        return Value(self.value - other, self.symbol, self.denominator, self.network)
+
+    def __sub__(self, other):
+        if isinstance(other, Value):
+            if self.network != other.network:
+                raise ValueError("Cannot calculate with values from different networks")
+            other = other.value
+        return Value(self.value - other, self.symbol, self.denominator, self.network)
+
+    def __mul__(self, other):
+        return Value(self.value * other, self.symbol, self.denominator, self.network)
+
+    def __truediv__(self, other):
+        return Value(self.value / other, self.symbol, self.denominator, self.network)
+
+    def __floordiv__(self, other):
+        return Value(self.value // other, self.symbol, self.denominator, self.network)
+
+    def __round__(self, n=0):
+        val = round(self.value * self.denominator, n) / self.denominator
+        return Value(val, self.symbol, self.denominator, self.network)
+
+    def __index__(self):
+        return int(self)
+
+    def to_bytes(self, length, byteorder='big'):
+        return int(self.value).to_bytes(length, byteorder)
+
+    def to_hex(self, length, byteorder='big'):
+        return int(self.value).to_bytes(length // 2, byteorder).hex()
