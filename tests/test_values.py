@@ -28,7 +28,7 @@ class TestValue(unittest.TestCase):
         self.assertEqual(str(Value(10)), '10.00000000 BTC')
         self.assertEqual(int(Value(10)), 10)
         self.assertEqual((Value(10).__repr__()),
-                         "Value(value=10, denominator=1.00000000, network='bitcoin')")
+                         "Value(value=10.00000000000000, denominator=1.00000000, network='bitcoin')")
         self.assertEqual(str(Value('10')), '10.00000000 BTC')
         self.assertEqual(str(Value('10 ltc')), '10.00000000 LTC')
         self.assertEqual(str(Value('10', network='litecoin')), '10.00000000 LTC')
@@ -79,8 +79,16 @@ class TestValue(unittest.TestCase):
                                 Value('123 Dash').str, 'DD')
 
     def test_value_class_str_auto(self):
-        pass
-    
+        self.assertEqual(Value('1000000 sat').str('auto'), '0.01000000 BTC')
+        self.assertEqual(Value('5000 µsat').str('auto'), '5 msat')
+        self.assertEqual(Value('0.001 sat').str('auto'), '1 msat')
+        self.assertEqual(Value('0.00001 BTC').str('auto'), '10.00 µBTC')
+        self.assertEqual(Value('0.00001 mBTC').str('auto'), '1 sat')
+        self.assertEqual(Value('0.0001 mBTC').str('auto'), '10 sat')
+        self.assertEqual(Value('0.001 mBTC').str('auto'), '100 sat')
+        self.assertEqual(Value('50000000000 µBTC').str('auto'), '50.00000000 kBTC')
+        self.assertEqual(Value('2100000000000000 sat').str('auto'), '21.00000000 MBTC')
+
     def test_value_operators_comparison(self):
         self.assertTrue(Value(3) < Value(5))
         self.assertTrue(Value(3) <= Value(3))
@@ -131,8 +139,10 @@ class TestValue(unittest.TestCase):
     def test_value_operators_conversion(self):
         v2 = Value('21000000 BTC')
         self.assertEqual(hex(v2.value_sat), '0x775f05a074000')
-        self.assertEqual(v2.to_hex(16, 'little'), '0040075af0750700')
-        self.assertEqual(v2.to_bytes(8, 'little').hex(), '0040075af0750700')
+        self.assertEqual(v2.to_hex(), '0040075af0750700')
+        self.assertEqual(Value("15 sat").to_hex(), '0f00000000000000')
+        self.assertEqual(v2.to_bytes().hex(), '0040075af0750700')
+        self.assertEqual(hex(v2), '0x775f05a074000')
         self.assertEqual(hex(v2.value_sat), '0x775f05a074000')
         self.assertEqual(bin(Value('2 BTC').value_sat), '0b1011111010111100001000000000')
         self.assertAlmostEqual(float(Value('2 BTC') / 3), 0.66666666)

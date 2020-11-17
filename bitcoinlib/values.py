@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #    BitcoinLib - Python Cryptocurrency Library
-#    VALUE - representing cryptocurrency values
-#    © 2020 October - 1200 Web Development <http://1200wd.com/>
+#    VALUE class - representing cryptocurrency values
+#    © 2020 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -29,31 +29,67 @@ class Value:
 
     def __init__(self, value, denominator=1, network=DEFAULT_NETWORK):
         """
-        Create a new Value class.
+        Create a new Value class. Specify value as integer, float or string. If a string is provided
+        the amount, denominator and currency will be extracted if provided
 
-        >>> Value(10).str()
-        '0.00000010 BTC'
+        Examples: Initialize value class
+        >>> Value(10)
+        Value(value=10.00000000000000, denominator=1.00000000, network='bitcoin')
 
-        >>> Value('10 sat').str()
-        '0.00000010 BTC'
+        >>> Value('15 mBTC')
+        Value(value=0.01500000000000, denominator=0.00100000, network='bitcoin')
 
-        >>> Value('1 BTC').str()
-        '1.00000000 BTC'
+        >>> Value('10 sat')
+        Value(value=0.00000010000000, denominator=0.00000001, network='bitcoin')
 
-        >>> Value('1 doge').str()
-        '1.00000000 DOGE'
+        >>> Value('1 doge')
+        Value(value=1.00000000000000, denominator=1.00000000, network='dogecoin')
 
-        >>> Value(10).str()
-        '0.00000010 BTC'
+        >>> Value(500, 'm')
+        Value(value=0.50000000000000, denominator=0.00100000, network='bitcoin')
 
-        >>> Value(500000).str('mBTC')
-        '5.00000 mBTC'
+        >>> Value(500, 0.001)
+        Value(value=0.50000000000000, denominator=0.00100000, network='bitcoin')
+
+        All frequently used arithmetic, comparision and logical operators can be used on the Value object. So you can compare Value object, add them together, divide or multiply them, etc.
+
+        Values need to use the same network / currency if you work with multiple Value objects. I.e. Value('1 BTC') + Value('1 LTC') raises an error.
+
+        # Examples: Value operators
+        >>> Value('50000 sat') == Value('5000 fin')  # 1 Satoshi equals 10 Finney, see https://en.bitcoin.it/wiki/Units
+        True
+
+        >>> Value('1 btc') > Value('2 btc')
+        False
+
+        >>> Value('1000 LTC') / 5
+        Value(value=200.00000000000000, denominator=1.00000000, network='litecoin')
+
+        >>> Value('0.002 BTC') + 0.02
+        Value(value=0.02200000000000, denominator=1.00000000, network='bitcoin')
+
+        The Value class can be represented in several formats.
+
+        # Examples: Format Value class
+        >>> int(Value("10.1 BTC"))
+        10
+
+        >>> float(Value("10.1 BTC"))
+        10.1
+
+        >>> round(Value("10.123 BTC"), 2).str()
+        '10.12000000 BTC'
+
+        >>> hex(Value("10.1 BTC"))
+        '0x3c336080'
 
         :param value: Value as integer, float or string. Numeric values must be supllied in smallest denominator such as Satoshi's. String values must be in the format: <value> [<denominator>][<currency_symbol>]
         :type value: int, float, str
-        :param symbol: Denominator symbol, such as m=milli, k=kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols.
-        :param denominator:
-        :param network:
+        :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols.
+        :type denominator: int, float, str
+        :param network: Specify network if not supplied already in the value string
+        :type network: str, Network
+
         """
         self.network = network
         if not isinstance(network, Network):
@@ -62,7 +98,7 @@ class Value:
             dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator]
             if dens:
                 denominator = dens[0]
-        self.denominator = denominator if denominator else 1
+        self.denominator = float(denominator) if denominator else 1.0
 
         if isinstance(value, str):
             value_items = value.split()
@@ -72,7 +108,6 @@ class Value:
                 cur_code = value_items[1]
             network_names = [n for n in NETWORK_DEFINITIONS if
                              NETWORK_DEFINITIONS[n]['currency_code'].upper() == cur_code.upper()]
-            denominator = 1
             if network_names:
                 self.network = Network(network_names[0])
                 self.currency = cur_code
@@ -97,21 +132,55 @@ class Value:
         return self.str()
 
     def __repr__(self):
-        if self.value:
-            return "Value(value=%d, denominator=%.8f, network='%s')" % \
-                   (int(self.value), self.denominator, self.network.name)
-        else:
-            return "Value()"
+        return "Value(value=%.14f, denominator=%.8f, network='%s')" % \
+               (self.value, self.denominator, self.network.name)
 
     def str(self, denominator=None, decimals=None):
+        """
+        Get string representation of Value with requested denominator and number of decimals.
+
+        >>> Value(1200000, 'sat').str('m')  # milli Bitcoin
+        '12.00000 mBTC'
+
+        >>> Value(12000.3, 'sat').str(1)  # Use denominator = 1 for Bitcoin
+        '0.00012000 BTC'
+
+        >>> Value(12000, 'sat').str('auto')
+        '120.00 µBTC'
+
+        >>> Value(0.005).str('m')
+        '5.00000 mBTC'
+
+        >>> Value(12000, 'sat').str('auto', decimals=0)
+        '120 µBTC'
+
+        >>> Value('13000000 Doge').str('auto')  # Yeah, mega Dogecoins...
+        '13.00000000 MDOGE'
+
+        >>> Value('2100000000').str('auto')
+        '2.10000000 GBTC'
+
+        :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols. If not provided the default self.denominator value is used. Use value 'auto' to automatically determine best denominator for human readability.
+        :type denominator: int, float, str
+        :param decimals: Number of decimals to use
+        :type decimals: float
+
+        :return str:
+        """
         if denominator is None:
             denominator = self.denominator
         elif denominator == 'auto':
-            for den, symb in NETWORK_DENOMINATORS.items():
-                if symb in ['n', 'fin', 'da', 'c', 'd', 'h']:
-                    continue
-                if 1 <= self.value / den < 1000:
-                    denominator = den
+            # First try denominator=1 and smallest denominator (satoshi)
+            if 0.001 <= self.value < 1000:
+                denominator = 1
+            elif 1 <= self.value / self.network.denominator < 1000:
+                denominator = self.network.denominator
+            else:  # Try other frequently used denominators
+                for den, symb in NETWORK_DENOMINATORS.items():
+                    if symb in ['n', 'fin', 'da', 'c', 'd', 'h']:
+                        continue
+                    if 1 <= self.value / den < 1000:
+                        denominator = den
         elif isinstance(denominator, str):
             dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator[:len(symb)] and len(symb)]
             if len(dens) > 1:
@@ -216,15 +285,45 @@ class Value:
         return Value(val, self.denominator, self.network)
 
     def __index__(self):
-        return int(self)
+        return self.value_sat
 
     @property
     def value_sat(self):
-        return int(self.value / self.network.denominator)
+        """
+        Value in smallest denominator, i.e. Satoshi for the Bitcoin network
 
-    def to_bytes(self, length, byteorder='big'):
+        :return int:
+        """
+        return round(self.value / self.network.denominator)
+
+    def to_bytes(self, length=8, byteorder='little'):
+        """
+        Representation of value_sat (value in smallest denominator: satoshi's) as bytes string. Used for script or transaction serialization.
+
+        >>> Value('1 sat').to_bytes()
+        b'\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00'
+
+        :param length: Length of bytes string to return, default is 8 bytes
+        :type length: int
+        :param byteorder: Order of bytes: little or big endian. Default is 'little'
+        :type byteorder: str
+
+        :return bytes:
+        """
         return self.value_sat.to_bytes(length, byteorder)
 
-    def to_hex(self, length, byteorder='big'):
+    def to_hex(self, length=16, byteorder='little'):
+        """
+        Representation of value_sat (value in smallest denominator: satoshi's) as hexadecimal string.
+
+        >>> Value('15 sat').to_hex()
+        '0f00000000000000'
+
+        :param length: Length of hexadecimal string to return, default is 16 characters
+        :type length: int
+        :param byteorder: Order of bytes: little or big endian. Default is 'little'
+        :type byteorder: str
+        :return:
+        """
         return self.value_sat.to_bytes(length // 2, byteorder).hex()
 
