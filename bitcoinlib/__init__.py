@@ -24,5 +24,6 @@ import bitcoinlib.transactions
 import bitcoinlib.wallets
 import bitcoinlib.tools
 import bitcoinlib.blocks
+import bitcoinlib.values
 
-__all__ = ["keys", "transactions", "wallets", "encoding", "mnemonic", "tools", "blocks"]
+__all__ = ["keys", "transactions", "wallets", "encoding", "mnemonic", "tools", "blocks", "values"]

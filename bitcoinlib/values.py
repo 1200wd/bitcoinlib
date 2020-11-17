@@ -23,19 +23,48 @@ from bitcoinlib.config.config import NETWORK_DENOMINATORS
 
 
 class Value:
+    """
+    Class to represent and convert cryptocurrency values
+    """
 
-    def __init__(self, value, symbol=None, denominator=None, network=DEFAULT_NETWORK):
+    def __init__(self, value, denominator=1, network=DEFAULT_NETWORK):
+        """
+        Create a new Value class.
+
+        >>> Value(10).str()
+        '0.00000010 BTC'
+
+        >>> Value('10 sat').str()
+        '0.00000010 BTC'
+
+        >>> Value('1 BTC').str()
+        '1.00000000 BTC'
+
+        >>> Value('1 doge').str()
+        '1.00000000 DOGE'
+
+        >>> Value(10).str()
+        '0.00000010 BTC'
+
+        >>> Value(500000).str('mBTC')
+        '5.00000 mBTC'
+
+        :param value: Value as integer, float or string. Numeric values must be supllied in smallest denominator such as Satoshi's. String values must be in the format: <value> [<denominator>][<currency_symbol>]
+        :type value: int, float, str
+        :param symbol: Denominator symbol, such as m=milli, k=kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols.
+        :param denominator:
+        :param network:
+        """
         self.network = network
         if not isinstance(network, Network):
             self.network = Network(network)
-        self.symbol = symbol
-        self.denominator = denominator if denominator else self.network.denominator
-        if not isinstance(value, str):
-            dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == symbol]
+        if isinstance(denominator, str):
+            dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator]
             if dens:
-                self.denominator = dens[0]
-            self.value = float(value) * (self.denominator / self.network.denominator)
-        else:
+                denominator = dens[0]
+        self.denominator = denominator if denominator else 1
+
+        if isinstance(value, str):
             value_items = value.split()
             value = value_items[0]
             cur_code = self.network.currency_code
@@ -56,23 +85,33 @@ class Value:
                         if network_names:
                             self.network = Network(network_names[0])
                             self.currency = cur_code
-                        denominator = den
+                        elif len(cur_code):
+                            raise ValueError("Currency symbol not recognised")
+                        self.denominator = den
                         break
-            self.value = float(value) * (denominator / self.network.denominator)
+            self.value = float(value) * self.denominator
+        else:
+            self.value = float(value) * self.denominator
 
     def __str__(self):
         return self.str()
 
     def __repr__(self):
         if self.value:
-            return "Value(value=%d, symbol=%s, denominator=%d, network='%s')" % \
-                   (int(self.value), self.symbol, self.denominator, self.network.name)
+            return "Value(value=%d, denominator=%.8f, network='%s')" % \
+                   (int(self.value), self.denominator, self.network.name)
         else:
             return "Value()"
 
     def str(self, denominator=None, decimals=None):
         if denominator is None:
-            denominator = 1
+            denominator = self.denominator
+        elif denominator == 'auto':
+            for den, symb in NETWORK_DENOMINATORS.items():
+                if symb in ['n', 'fin', 'da', 'c', 'd', 'h']:
+                    continue
+                if 1 <= self.value / den < 1000:
+                    denominator = den
         elif isinstance(denominator, str):
             dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator[:len(symb)] and len(symb)]
             if len(dens) > 1:
@@ -90,7 +129,7 @@ class Value:
                 decimals = 8
         if decimals < 0:
             decimals = 0
-        balance = round(self.value * (self.network.denominator / denominator), decimals)
+        balance = round(self.value / denominator, decimals)
         cur_code = self.network.currency_code
         if 'sat' in den_symb and self.network.name == 'bitcoin':
             cur_code = ''
@@ -100,7 +139,10 @@ class Value:
         return int(self.value)
 
     def __float__(self):
-        return self.value
+        if self.value > self.network.denominator:
+            return round(self.value, -int(math.log10(self.network.denominator)))
+        else:
+            return self.value
 
     def __lt__(self, other):
         if self.network != other.network:
@@ -137,47 +179,52 @@ class Value:
             if self.network != other.network:
                 raise ValueError("Cannot calculate with values from different networks")
             other = other.value
-        return Value(self.value + other, self.symbol, self.denominator, self.network)
+        return Value(self.value + other, self.denominator, self.network)
 
     def __iadd__(self, other):
         if isinstance(other, Value):
             if self.network != other.network:
                 raise ValueError("Cannot calculate with values from different networks")
             other = other.value
-        return Value(self.value + other, self.symbol, self.denominator, self.network)
+        return Value(self.value + other, self.denominator, self.network)
 
     def __isub__(self, other):
         if isinstance(other, Value):
             if self.network != other.network:
                 raise ValueError("Cannot calculate with values from different networks")
             other = other.value
-        return Value(self.value - other, self.symbol, self.denominator, self.network)
+        return Value(self.value - other, self.denominator, self.network)
 
     def __sub__(self, other):
         if isinstance(other, Value):
             if self.network != other.network:
                 raise ValueError("Cannot calculate with values from different networks")
             other = other.value
-        return Value(self.value - other, self.symbol, self.denominator, self.network)
+        return Value(self.value - other, self.denominator, self.network)
 
     def __mul__(self, other):
-        return Value(self.value * other, self.symbol, self.denominator, self.network)
+        return Value(self.value * other, self.denominator, self.network)
 
     def __truediv__(self, other):
-        return Value(self.value / other, self.symbol, self.denominator, self.network)
+        return Value(self.value / other, self.denominator, self.network)
 
     def __floordiv__(self, other):
-        return Value(self.value // other, self.symbol, self.denominator, self.network)
+        return Value(((self.value / self.denominator) // other) * self.denominator, self.denominator, self.network)
 
     def __round__(self, n=0):
-        val = round(self.value * self.denominator, n) / self.denominator
-        return Value(val, self.symbol, self.denominator, self.network)
+        val = round(self.value / self.denominator, n) * self.denominator
+        return Value(val, self.denominator, self.network)
 
     def __index__(self):
         return int(self)
 
+    @property
+    def value_sat(self):
+        return int(self.value / self.network.denominator)
+
     def to_bytes(self, length, byteorder='big'):
-        return int(self.value).to_bytes(length, byteorder)
+        return self.value_sat.to_bytes(length, byteorder)
 
     def to_hex(self, length, byteorder='big'):
-        return int(self.value).to_bytes(length // 2, byteorder).hex()
+        return self.value_sat.to_bytes(length // 2, byteorder).hex()
+
