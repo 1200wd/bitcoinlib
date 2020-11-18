@@ -682,7 +682,7 @@ class Input(object):
         :param index_n: Index of input in transaction. Used by Transaction class.
         :type index_n: int
         :param value: Value of input in smallest denominator, i.e. sathosis
-        :type value: int
+        :type value: int, Value, str
         :param double_spend: Is this input also spend in another transaction
         :type double_spend: bool
         :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
@@ -721,6 +721,10 @@ class Input(object):
         if not isinstance(network, Network):
             self.network = Network(network)
         self.index_n = index_n
+        if isinstance(value, str):
+            value = Value(value).value_sat
+        elif isinstance(value, Value):
+            value = value.value_sat
         self.value = value
         if not keys:
             keys = []
@@ -1058,6 +1062,10 @@ class Output(object):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
+        if isinstance(value, str):
+            value = Value(value).value_sat
+        elif isinstance(value, Value):
+            value = value.value_sat
         self.value = value
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_hash = to_bytes(public_hash)
@@ -1412,7 +1420,7 @@ class Transaction(object):
         print("Inputs")
         replace_by_fee = False
         for ti in self.inputs:
-            print("-", ti.address, Value.from_satoshi(ti.value, self.network).str(1), ti.prev_txid.hex(),
+            print("-", ti.address, Value.from_satoshi(ti.value, network=self.network).str(1), ti.prev_txid.hex(),
                   ti.output_n_int)
             validstr = "not validated"
             if ti.valid:
@@ -1451,7 +1459,8 @@ class Transaction(object):
                     spent_str = 'S'
                 elif to.spent is False:
                     spent_str = 'U'
-                print("-", to.address, Value.from_satoshi(to.value, self.network).str(1), to.script_type, spent_str)
+                print("-", to.address, Value.from_satoshi(to.value, network=self.network).str(1), to.script_type,
+                      spent_str)
         if replace_by_fee:
             print("Replace by fee: Enabled")
         print("Size: %s" % self.size)

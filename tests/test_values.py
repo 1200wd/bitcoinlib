@@ -51,6 +51,32 @@ class TestValue(unittest.TestCase):
         self.assertEqual(str(Value('10 satLTC')), '10 satLTC')
         self.assertEqual(str(Value('10 sat', network='litecoin')), '10 satLTC')
         self.assertRaisesRegex(ValueError, "Currency symbol not recognised", Value, '10 mfliepflap')
+        self.assertEqual(Value('10000 sat'), '10000 sat')
+        self.assertEqual(Value(10000, 'sat'), '10000 sat')
+        self.assertEqual(Value.from_satoshi(10000), '10000 sat')
+        self.assertEqual(Value('10000 sat', 1), '0.00010000 BTC')
+        self.assertEqual(Value(0.0001), '0.00010000 BTC')
+        self.assertEqual(Value.from_satoshi(10000, 1), '0.00010000 BTC')
+        self.assertEqual(Value('10000 sat', 'm'), '0.10000 mBTC')
+        self.assertEqual(Value(0.1, 'm'), '0.10000 mBTC')
+        self.assertEqual(Value.from_satoshi(10000, 'm'), '0.10000 mBTC')
+        self.assertNotEqual(Value.from_satoshi(10001, 'm'), '0.10000 mBTC')
+
+    def test_value_class_rounding(self):
+        self.assertEqual(str(Value('12.123456785')), '12.12345679 BTC')
+        self.assertEqual(str(Value('12.1234567849')), '12.12345678 BTC')
+        self.assertEqual(str(Value(5001.5, 'sat')), '5002 sat')
+        v1 = Value('10000.51 sat')
+        self.assertEqual(str(v1 + 0.002), '210001 sat')
+        self.assertEqual(str(v1 - 0.00005), '5001 sat')
+        self.assertEqual(str(v1 * 2), '20001 sat')
+        self.assertEqual(str(v1 / 2), '5000 sat')
+        self.assertEqual(str(v1 // 2), '5000 sat')
+        self.assertEqual(str(Value('10000.999 sat') / 2), '5000 sat')
+        self.assertEqual(str(Value('10001 sat') / 2), '5000 sat')
+        self.assertEqual(str(Value('10001.51 sat') / 2), '5001 sat')
+        self.assertEqual(str(Value('10001.51 sat') // 2), '5000 sat')
+        self.assertEqual(str(Value('103 sat') / 2), '52 sat')
 
     def test_value_class_str(self):
         self.assertEqual(Value(10).str(), '10.00000000 BTC')
@@ -108,6 +134,12 @@ class TestValue(unittest.TestCase):
         self.assertRaisesRegex(ValueError, "Cannot compare values from different networks", Value.__gt__, v1, v2)
         self.assertRaisesRegex(ValueError, "Cannot compare values from different networks", Value.__ge__, v1, v2)
         self.assertRaisesRegex(ValueError, "Cannot compare values from different networks", Value.__ne__, v1, v2)
+
+        v3 = Value('1000 mBTC')
+        self.assertTrue(v3 == '1000.00000 mBTC')
+        self.assertTrue(v3 == '1 BTC')
+        self.assertTrue(v3 == '100000000 sat')
+        self.assertFalse(v3 == '1 dash')
 
     def test_value_operators_arithmetic(self):
         value1 = Value('3 BTC')
