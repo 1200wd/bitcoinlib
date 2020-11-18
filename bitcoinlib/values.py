@@ -27,6 +27,22 @@ class Value:
     Class to represent and convert cryptocurrency values
     """
 
+    @classmethod
+    def from_satoshi(cls, value, network=DEFAULT_NETWORK):
+        """
+        Initialize Value class with smallest denominator as input. Such as represented in script and transactions cryptocurrency values.
+
+        :param value: Amount of Satoshi's / smallest denominator for this network
+        :type value: int
+        :param network: Specify network if not supplied already in the value string
+        :type network: str, Network
+
+        :return Value:
+        """
+        if not isinstance(network, Network):
+            network = Network(network)
+        return cls(value or 0, network.denominator, network)
+
     def __init__(self, value, denominator=1, network=DEFAULT_NETWORK):
         """
         Create a new Value class. Specify value as integer, float or string. If a string is provided
@@ -135,7 +151,7 @@ class Value:
         return "Value(value=%.14f, denominator=%.8f, network='%s')" % \
                (self.value, self.denominator, self.network.name)
 
-    def str(self, denominator=None, decimals=None):
+    def str(self, denominator=None, decimals=None, currency_repr='code'):
         """
         Get string representation of Value with requested denominator and number of decimals.
 
@@ -200,9 +216,19 @@ class Value:
             decimals = 0
         balance = round(self.value / denominator, decimals)
         cur_code = self.network.currency_code
+        if currency_repr == 'symbol':
+            cur_code = self.network.currency_symbol
+        if currency_repr == 'name':
+            cur_code = self.network.currency_name_plural
         if 'sat' in den_symb and self.network.name == 'bitcoin':
             cur_code = ''
         return ("%%.%df %%s%%s" % decimals) % (balance, den_symb, cur_code)
+
+    def str1(self, decimals=None, currency_repr='code'):
+        return self.str(1, decimals, currency_repr)
+
+    def str_auto(self, decimals=None, currency_repr='code'):
+        return self.str('auto', decimals, currency_repr)
 
     def __int__(self):
         return int(self.value)

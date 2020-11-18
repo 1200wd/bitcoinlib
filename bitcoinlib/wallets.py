@@ -26,7 +26,8 @@ from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.networks import Network, print_value
+from bitcoinlib.networks import Network
+from bitcoinlib.values import Value
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import (Input, Output, Transaction, get_unlocking_script_type,
                                      serialize_multisig_redeemscript)
@@ -502,18 +503,18 @@ class WalletKey(object):
             self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
         return self._hdkey_object
 
-    def balance(self, fmt=''):
+    def balance(self, as_string=False):
         """
         Get total value of unspent outputs
 
-        :param fmt: Specify 'string' to return a string in currency format
-        :type fmt: str
+        :param as_string: Specify 'string' to return a string in currency format
+        :type as_string: bool
 
         :return float, str: Key balance
         """
 
-        if fmt == 'string':
-            return self.network.print_value(self._balance)
+        if as_string:
+            return Value.from_satoshi(self._balance, self.network).str1()
         else:
             return self._balance
 
@@ -555,7 +556,7 @@ class WalletKey(object):
             'encoding': self.encoding,
             'path': self.path,
             'balance': self.balance(),
-            'balance_str': self.balance(fmt='string')
+            'balance_str': self.balance(as_string=True)
         }
         if include_private:
             kdict.update({
@@ -2510,7 +2511,7 @@ class Wallet(object):
         if len(b_res):
             balance = b_res[0]
         if as_string:
-            return Network(network).print_value(balance)
+            return Value.from_satoshi(balance, network).str1()
         else:
             return float(balance)
 
@@ -3916,8 +3917,9 @@ class Wallet(object):
                     if detail > 3:
                         is_active = False
                     for key in self.keys(depth=d, network=nw.name, is_active=is_active):
-                        print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
-                                                              print_value(key.balance, key.network_name, 'symbol')))
+                        print("%5s %-28s %-45s %-25s %25s" %
+                              (key.id, key.path, key.address, key.name,
+                               Value.from_satoshi(key.balance, nw).str1(currency_repr='symbol')))
 
                 if detail > 2:
                     include_new = False
@@ -3941,12 +3943,14 @@ class Wallet(object):
                             if tx['status'] not in ['confirmed', 'unconfirmed']:
                                 status = tx['status']
                             print("%64s %43s %8d %21s %s %s" % (tx['txid'], address, tx['confirmations'],
-                                                                print_value(tx['value'], nw.name, 'symbol'),
+                                                                Value.from_satoshi(tx['value'], nw).str1(
+                                                                    currency_repr='symbol'),
                                                                 spent, status))
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
-                  Network(na_balance['network']).print_value(na_balance['balance'])))
+                                        Value.from_satoshi(na_balance['balance'], na_balance['network']).str1(
+                                            currency_repr='symbol')))
         print("\n")
 
     def as_dict(self, include_private=False):

@@ -198,6 +198,8 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     return matches
 
 
+# Replace by Value class
+@deprecated
 def print_value(value, network=DEFAULT_NETWORK, rep='string', denominator=1, decimals=None):
     """
     Return the value as string with currency symbol
@@ -265,6 +267,8 @@ class Network(object):
     def __hash__(self):
         return hash(self.name)
 
+    # Replaced by Value class
+    @deprecated
     def print_value(self, value, rep='string', denominator=1, decimals=None):
         """
         Return the value as string with currency symbol
