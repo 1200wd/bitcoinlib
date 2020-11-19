@@ -24,7 +24,7 @@ from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
 from bitcoinlib.networks import Network
-from bitcoinlib.values import Value
+from bitcoinlib.values import Value, value_to_satoshi
 
 _logger = logging.getLogger(__name__)
 
@@ -681,7 +681,7 @@ class Input(object):
         :type sort: boolean
         :param index_n: Index of input in transaction. Used by Transaction class.
         :type index_n: int
-        :param value: Value of input in smallest denominator, i.e. sathosis
+        :param value: Value of input in smallest denominator integers (Satoshi's) or as Value object or string
         :type value: int, Value, str
         :param double_spend: Is this input also spend in another transaction
         :type double_spend: bool
@@ -721,11 +721,11 @@ class Input(object):
         if not isinstance(network, Network):
             self.network = Network(network)
         self.index_n = index_n
-        if isinstance(value, str):
-            value = Value(value).value_sat
-        elif isinstance(value, Value):
-            value = value.value_sat
-        self.value = value
+        # if isinstance(value, str):
+        #     value = Value(value).value_sat
+        # elif isinstance(value, Value):
+        #     value = value.value_sat
+        self.value = value_to_satoshi(value)
         if not keys:
             keys = []
         self.keys = []
@@ -1032,8 +1032,8 @@ class Output(object):
         public key, public key hash or a locking script. Only one needs to be provided as the they all can be derived 
         from each other, but you can provide as much attributes as you know to improve speed.
         
-        :param value: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
-        :type value: int
+        :param value: Amount of output in smallest denominator integers (Satoshi's) or as Value object or string
+        :type value: int, Value, str
         :param address: Destination address of output. Leave empty to derive from other attributes you provide. An instance of an Address or HDKey class is allowed as argument.
         :type address: str, Address, HDKey
         :param public_hash: Hash of public key or script
@@ -1062,11 +1062,11 @@ class Output(object):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
-        if isinstance(value, str):
-            value = Value(value).value_sat
-        elif isinstance(value, Value):
-            value = value.value_sat
-        self.value = value
+        # if isinstance(value, str):
+        #     value = Value(value).value_sat
+        # elif isinstance(value, Value):
+        #     value = value.value_sat
+        self.value = value_to_satoshi(value)
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_hash = to_bytes(public_hash)
         if isinstance(address, Address):

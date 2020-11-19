@@ -22,6 +22,22 @@ from bitcoinlib.networks import *
 from bitcoinlib.config.config import NETWORK_DENOMINATORS
 
 
+def value_to_satoshi(value):
+    """
+    Convert Value object or value string to smallest denominator amount as integer
+
+    :param value: Value object, value string as accepted by Value class or numeric value amount
+    :type value: str, int, float, Value
+
+    :return int:
+    """
+    if isinstance(value, str):
+        value = Value(value).value_sat
+    elif isinstance(value, Value):
+        value = value.value_sat
+    return value
+
+
 class Value:
     """
     Class to represent and convert cryptocurrency values

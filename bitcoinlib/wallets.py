@@ -27,7 +27,7 @@ from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.networks import Network
-from bitcoinlib.values import Value
+from bitcoinlib.values import Value, value_to_satoshi
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import (Input, Output, Transaction, get_unlocking_script_type,
                                      serialize_multisig_redeemscript)
@@ -3371,11 +3371,12 @@ class Wallet(object):
                 transaction.outputs.append(o)
                 amount_total_output += o.value
             else:
-                amount_total_output += o[1]
+                value = value_to_satoshi(o[1])
+                amount_total_output += value
                 addr = o[0]
                 if isinstance(addr, WalletKey):
                     addr = addr.key()
-                transaction.add_output(o[1], addr)
+                transaction.add_output(value, addr)
 
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
         transaction.fee_per_kb = None
@@ -3705,8 +3706,8 @@ class Wallet(object):
 
         :param to_address: Single output address as string Address object, HDKey object or WalletKey object
         :type to_address: str, Address, HDKey, WalletKey
-        :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin)
-        :type amount: int
+        :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin), as Value object or value string as accepted by Value class
+        :type amount: int, str, Value
         :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
         :type input_key_id: int
         :param account_id: Account ID, default is last used
