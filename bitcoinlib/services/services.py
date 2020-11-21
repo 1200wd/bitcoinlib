@@ -720,6 +720,8 @@ class Cache(object):
                             witness = witness_str[cursor + size:cursor + item_size + size]
                         cursor += item_size + size
                         witnesses.append(witness)
+                if n.ref_txid == b'\00' * 32:
+                    t.coinbase = True
                 t.add_input(n.ref_txid, n.ref_index_n, unlocking_script=n.script, address=n.address,
                             sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses)
             else:
