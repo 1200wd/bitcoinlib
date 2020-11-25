@@ -123,11 +123,11 @@ If you installed the library with pip upgrade with
 Otherwise pull the git repository.
 
 After an update it might be necessary to update the config files. The config files will be overwritten
-with new versions if you delete the .bitcoinlib/logs/install.log file.
+with new versions if you delete the .bitcoinlib/install.log file.
 
 .. code-block:: none
 
-    $ rm .bitcoinlib/logs/install.log
+    $ rm .bitcoinlib/install.log
 
 If the new release contains database updates you have to migrate the database with the updatedb.py command.
 This program extracts keys and some wallet information from the old database and then creates a new database.
@@ -189,4 +189,4 @@ both for privacy and reliability reasons. More setup information:
 `Setup connection to bitcoin node <manuals.setup-bitcoind-connection.html>`_
 
 Some service providers require an API key to function or allow additional requests.
-You can add this key to the provider settings file in .bitcoinlib/config/providers.json
+You can add this key to the provider settings file in .bitcoinlib/providers.json

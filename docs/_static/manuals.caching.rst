@@ -31,7 +31,7 @@ Disable caching
 ---------------
 
 Caching is enabled by default. To disable caching set the environment variable SERVICE_CACHING_ENABLED to False or
-set this variable (service_caching_enabled) in the config.ini file placed in your .bitcoinlib/config directory.
+set this variable (service_caching_enabled) in the config.ini file placed in your .bitcoinlib/ directory.
 
 
 Troubleshooting
