@@ -37,7 +37,7 @@ def value_to_satoshi(value, network=None):
         value = Value(value)
     if isinstance(value, Value):
         if network and value.network != network:
-            raise ValueError("Value used different network (%s) then supplied network: %s" % (value.network, network))
+            raise ValueError("Value uses different network (%s) then supplied network: %s" % (value.network.name, network))
         value = value.value_sat
     return value
 

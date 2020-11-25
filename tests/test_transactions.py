@@ -91,6 +91,12 @@ class TestTransactionInputs(unittest.TestCase):
         ti = Input(ph, 0, keys=k, compressed=True)
         self.assertFalse(ti.compressed)
 
+    def test_transaction_input_value(self):
+        ti = Input(prev_txid='\x23' * 32, output_n=1, keys=HDKey().public(), value='1.23 mBTC')
+        self.assertEqual(ti.value, 123000)
+        self.assertRaisesRegex(ValueError, "Value uses different network \(litecoin\) then supplied network: bitcoin",
+                               Input, prev_txid='\x23' * 32, output_n=1, keys=HDKey().public(), value='1 LTC')
+
 
 class TestTransactionOutputs(unittest.TestCase):
 
@@ -119,6 +125,12 @@ class TestTransactionOutputs(unittest.TestCase):
     def test_transaction_output_add_script(self):
         to = Output(1000, lock_script='76a91423e102597c4a99516f851406f935a6e634dbccec88ac')
         self.assertEqual('14GiCdJHj3bznWpcocjcu9ByCmDPEhEoP8', to.address)
+
+    def test_transaction_output_value(self):
+        to = Output('132.23 satTBTC', address=HDKey(network='testnet').address(), network='testnet')
+        self.assertEqual(to.value, 132)
+        self.assertRaisesRegex(ValueError, "Value uses different network \(bitcoin\) then supplied network: testnet",
+                               Output, '1 BTC', address=HDKey(network='testnet').address(), network='testnet')
 
 
 class TestTransactions(unittest.TestCase):
@@ -1160,7 +1172,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         k = HDKey(wif)
         prev_txid = '9f5c85ceb8f0c6c9b4dd3ab3b4a522d6be7c90c33ee4e9097bf1f5fc8e367bcb'
         output_n = 0
-        value = Value.from_satoshi(9000)
+        value = Value.from_satoshi(9000, network='testnet')
         fee = 0.00002000
 
         inp = Input(prev_txid, output_n, k, value=value, network='testnet', script_type='signature')
@@ -1172,7 +1184,7 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
                          '67b94bf5a5c17a5f6b2bedbefc51a17db669ce7ff3bbbc4943cfd876d68df986')
 
     def test_transaction_locktime(self):
-        # FIXME: Add more usefull unittests for locktime
+        # FIXME: Add more useful unittests for locktime
         s = bytes.fromhex('76a914af8e14a2cecd715c363b3a72b55b59a31e2acac988ac')
         s_cltv = script_add_locktime_cltv(10000, s)
         s_csv = script_add_locktime_csv(600000, s)

@@ -721,11 +721,7 @@ class Input(object):
         if not isinstance(network, Network):
             self.network = Network(network)
         self.index_n = index_n
-        # if isinstance(value, str):
-        #     value = Value(value).value_sat
-        # elif isinstance(value, Value):
-        #     value = value.value_sat
-        self.value = value_to_satoshi(value)
+        self.value = value_to_satoshi(value, network=network)
         if not keys:
             keys = []
         self.keys = []
@@ -1062,11 +1058,10 @@ class Output(object):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
-        # if isinstance(value, str):
-        #     value = Value(value).value_sat
-        # elif isinstance(value, Value):
-        #     value = value.value_sat
-        self.value = value_to_satoshi(value)
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
+        self.value = value_to_satoshi(value, network=network)
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_hash = to_bytes(public_hash)
         if isinstance(address, Address):
@@ -1083,9 +1078,6 @@ class Output(object):
             self.address = address
             self.address_obj = None
         self.public_key = to_bytes(public_key)
-        self.network = network
-        if not isinstance(network, Network):
-            self.network = Network(network)
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
