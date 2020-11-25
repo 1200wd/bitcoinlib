@@ -22,18 +22,22 @@ from bitcoinlib.networks import *
 from bitcoinlib.config.config import NETWORK_DENOMINATORS
 
 
-def value_to_satoshi(value):
+def value_to_satoshi(value, network=None):
     """
     Convert Value object or value string to smallest denominator amount as integer
 
     :param value: Value object, value string as accepted by Value class or numeric value amount
     :type value: str, int, float, Value
+    :param network: Specify network to validate value string
+    :type network: str
 
     :return int:
     """
     if isinstance(value, str):
-        value = Value(value).value_sat
-    elif isinstance(value, Value):
+        value = Value(value)
+    if isinstance(value, Value):
+        if network and value.network != network:
+            raise ValueError("Value used different network (%s) then supplied network: %s" % (value.network, network))
         value = value.value_sat
     return value
 

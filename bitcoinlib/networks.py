@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    NETWORK class reads network definitions and with helper methods
-#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2020 November - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -262,6 +262,8 @@ class Network(object):
         return "<Network: %s>" % self.name
 
     def __eq__(self, other):
+        if isinstance(other, str):
+            return self.name == other
         return self.name == other.name
 
     def __hash__(self):

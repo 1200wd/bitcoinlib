@@ -3371,7 +3371,7 @@ class Wallet(object):
                 transaction.outputs.append(o)
                 amount_total_output += o.value
             else:
-                value = value_to_satoshi(o[1])
+                value = value_to_satoshi(o[1], network=self.network)
                 amount_total_output += value
                 addr = o[0]
                 if isinstance(addr, WalletKey):
