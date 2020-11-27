@@ -729,6 +729,7 @@ class Cache(object):
                              spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
 
         t.update_totals()
+        t.size = len(t.raw())
         _logger.info("Retrieved transaction %s from cache" % t.txid)
         return t
 
