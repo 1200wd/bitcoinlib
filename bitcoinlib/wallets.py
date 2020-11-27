@@ -1734,7 +1734,7 @@ class Wallet(object):
             filter(DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network, DbTransaction.confirmations == 0).all()
         for db_tx in db_txs:
-            self.transactions_update_by_txids([db_tx.hash])
+            self.transactions_update_by_txids([db_tx.txid])
 
         # Scan each key address, stop when no new transactions are found after set scan gap limit
         if change is None:

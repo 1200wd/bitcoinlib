@@ -29,7 +29,7 @@ def value_to_satoshi(value, network=None):
     :param value: Value object, value string as accepted by Value class or numeric value amount
     :type value: str, int, float, Value
     :param network: Specify network to validate value string
-    :type network: str
+    :type network: str, Network
 
     :return int:
     """
