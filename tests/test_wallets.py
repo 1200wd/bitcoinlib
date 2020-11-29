@@ -1886,6 +1886,17 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                 wlt.transaction_create, [('217rBycQpv9rjhiLcg94vdZ7muMVLJ9yysJ', 150000000)],
                                 inps)
 
+    def test_wallet_transactions_sweep(self):
+        w = wallet_create_or_open('test_wallet_sweep_check_fee', db_uri=self.DATABASE_URI)
+        w.utxo_add(w.new_key().address, 5000,
+                   'f31446151f06522eb321d5992f4f1c95123c8b9d082b92c391df83c6d0a35516', 1)
+        t = w.sweep('14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', fee=2000, offline=True)
+        self.assertEqual(5000, t.outputs[0].value + t.fee)
+        self.assertRaisesRegex(WalletError, "Amount to send is smaller then dust amount: 1000",
+                               w.sweep, to_address='14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', fee=4000, offline=True)
+        self.assertRaisesRegex(WalletError, "Amount to send is smaller then dust amount: -1000",
+                               w.sweep, to_address='14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', fee=6000, offline=True)
+
 
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):
