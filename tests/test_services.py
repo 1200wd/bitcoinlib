@@ -20,6 +20,17 @@
 
 import unittest
 from datetime import datetime
+try:
+    import mysql.connector
+    from parameterized import parameterized_class
+    import psycopg2
+    from psycopg2 import sql
+    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+except ImportError as e:
+    print("Could not import all modules. Error: %s" % e)
+    # from psycopg2cffi import compat  # Use for PyPy support
+    # compat.register()
+    pass  # Only necessary when mysql or postgres is used
 from bitcoinlib.services.services import *
 from bitcoinlib.encoding import to_hexstring
 from tests.test_custom import CustomAssertions
