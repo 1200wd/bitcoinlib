@@ -184,85 +184,6 @@ class Value:
         return "Value(value=%.14f, denominator=%.8f, network='%s')" % \
                (self.value, self.denominator, self.network.name)
 
-    def str(self, denominator=None, decimals=None, currency_repr='code'):
-        """
-        Get string representation of Value with requested denominator and number of decimals.
-
-        >>> Value(1200000, 'sat').str('m')  # milli Bitcoin
-        '12.00000 mBTC'
-
-        >>> Value(12000.3, 'sat').str(1)  # Use denominator = 1 for Bitcoin
-        '0.00012000 BTC'
-
-        >>> Value(12000, 'sat').str('auto')
-        '120.00 µBTC'
-
-        >>> Value(0.005).str('m')
-        '5.00000 mBTC'
-
-        >>> Value(12000, 'sat').str('auto', decimals=0)
-        '120 µBTC'
-
-        >>> Value('13000000 Doge').str('auto')  # Yeah, mega Dogecoins...
-        '13.00000000 MDOGE'
-
-        >>> Value('2100000000').str('auto')
-        '2.10000000 GBTC'
-
-        :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols. If not provided the default self.denominator value is used. Use value 'auto' to automatically determine best denominator for human readability.
-        :type denominator: int, float, str
-        :param decimals: Number of decimals to use
-        :type decimals: float
-
-        :return str:
-        """
-        if denominator is None:
-            denominator = self.denominator
-        elif denominator == 'auto':
-            # First try denominator=1 and smallest denominator (satoshi)
-            if 0.001 <= self.value < 1000:
-                denominator = 1
-            elif 1 <= self.value / self.network.denominator < 1000:
-                denominator = self.network.denominator
-            else:  # Try other frequently used denominators
-                for den, symb in NETWORK_DENOMINATORS.items():
-                    if symb in ['n', 'fin', 'da', 'c', 'd', 'h']:
-                        continue
-                    if 1 <= self.value / den < 1000:
-                        denominator = den
-        elif isinstance(denominator, str):
-            dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator[:len(symb)] and len(symb)]
-            if len(dens) > 1:
-                dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator]
-            if dens:
-                denominator = dens[0]
-        if denominator in NETWORK_DENOMINATORS:
-            den_symb = NETWORK_DENOMINATORS[denominator]
-        else:
-            raise ValueError("Denominator not found in NETWORK_DENOMINATORS definition")
-
-        if decimals is None:
-            decimals = -int(math.log10(self.network.denominator / denominator))
-            if decimals > 8:
-                decimals = 8
-        if decimals < 0:
-            decimals = 0
-        balance = round(self.value / denominator, decimals)
-        cur_code = self.network.currency_code
-        if currency_repr == 'symbol':
-            cur_code = self.network.currency_symbol
-        if currency_repr == 'name':
-            cur_code = self.network.currency_name_plural
-        if 'sat' in den_symb and self.network.name == 'bitcoin':
-            cur_code = ''
-        return ("%%.%df %%s%%s" % decimals) % (balance, den_symb, cur_code)
-
-    def str1(self, decimals=None, currency_repr='code'):
-        return self.str(1, decimals, currency_repr)
-
-    def str_auto(self, decimals=None, currency_repr='code'):
-        return self.str('auto', decimals, currency_repr)
-
     def __int__(self):
         return int(self.value)
 
@@ -348,6 +269,115 @@ class Value:
     def __index__(self):
         return self.value_sat
 
+    def str(self, denominator=None, decimals=None, currency_repr='code'):
+        """
+        Get string representation of Value with requested denominator and number of decimals.
+
+        >>> Value(1200000, 'sat').str('m')  # milli Bitcoin
+        '12.00000 mBTC'
+
+        >>> Value(12000.3, 'sat').str(1)  # Use denominator = 1 for Bitcoin
+        '0.00012000 BTC'
+
+        >>> Value(12000, 'sat').str('auto')
+        '120.00 µBTC'
+
+        >>> Value(0.005).str('m')
+        '5.00000 mBTC'
+
+        >>> Value(12000, 'sat').str('auto', decimals=0)
+        '120 µBTC'
+
+        >>> Value('13000000 Doge').str('auto')  # Yeah, mega Dogecoins...
+        '13.00000000 MDOGE'
+
+        >>> Value('2100000000').str('auto')
+        '2.10000000 GBTC'
+
+        :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols. If not provided the default self.denominator value is used. Use value 'auto' to automatically determine best denominator for human readability.
+        :type denominator: int, float, str
+        :param decimals: Number of decimals to use
+        :type decimals: float
+        :param currency_repr: Representation of currency. I.e. code: BTC, name: Bitcoin, symbol: ฿
+        :type currency_repr: str
+
+        :return str:
+        """
+        if denominator is None:
+            denominator = self.denominator
+        elif denominator == 'auto':
+            # First try denominator=1 and smallest denominator (satoshi)
+            if 0.001 <= self.value < 1000:
+                denominator = 1
+            elif 1 <= self.value / self.network.denominator < 1000:
+                denominator = self.network.denominator
+            else:  # Try other frequently used denominators
+                for den, symb in NETWORK_DENOMINATORS.items():
+                    if symb in ['n', 'fin', 'da', 'c', 'd', 'h']:
+                        continue
+                    if 1 <= self.value / den < 1000:
+                        denominator = den
+        elif isinstance(denominator, str):
+            dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator[:len(symb)] and len(symb)]
+            if len(dens) > 1:
+                dens = [den for den, symb in NETWORK_DENOMINATORS.items() if symb == denominator]
+            if dens:
+                denominator = dens[0]
+        if denominator in NETWORK_DENOMINATORS:
+            den_symb = NETWORK_DENOMINATORS[denominator]
+        else:
+            raise ValueError("Denominator not found in NETWORK_DENOMINATORS definition")
+
+        if decimals is None:
+            decimals = -int(math.log10(self.network.denominator / denominator))
+            if decimals > 8:
+                decimals = 8
+        if decimals < 0:
+            decimals = 0
+        balance = round(self.value / denominator, decimals)
+        cur_code = self.network.currency_code
+        if currency_repr == 'symbol':
+            cur_code = self.network.currency_symbol
+        if currency_repr == 'name':
+            cur_code = self.network.currency_name_plural
+        if 'sat' in den_symb and self.network.name == 'bitcoin':
+            cur_code = ''
+        return ("%%.%df %%s%%s" % decimals) % (balance, den_symb, cur_code)
+
+    def str_unit(self, decimals=None, currency_repr='code'):
+        """
+        String representation of this Value. Wrapper for the str() method, but always uses 1 as denominator, meaning main denominator such as BTC, LTC.
+
+        >>> Value('12000 sat').str_unit()
+        '0.00012000 BTC'
+
+        :param decimals: Number of decimals to use
+        :type decimals: float
+        :param currency_repr: Representation of currency. I.e. code: BTC, name: Bitcoin, symbol: ฿
+        :type currency_repr: str
+        :return str:
+        """
+        return self.str(1, decimals, currency_repr)
+
+    def str_auto(self, decimals=None, currency_repr='code'):
+        """
+        String representation of this Value. Wrapper for the str() method, but automatically determines the denominator depending on the value.
+
+        >>> Value('0.0000012 BTC').str_auto()
+        '120 sat'
+
+        >>> Value('0.0005 BTC').str_auto()
+        '500.00 µBTC'
+
+        :param decimals: Number of decimals to use
+        :type decimals: float
+        :param currency_repr: Representation of currency. I.e. code: BTC, name: Bitcoin, symbol: ฿
+        :type currency_repr: str
+        :return str:
+        """
+
+        return self.str('auto', decimals, currency_repr)
+
     @property
     def value_sat(self):
         """
@@ -387,4 +417,3 @@ class Value:
         :return:
         """
         return self.value_sat.to_bytes(length // 2, byteorder).hex()
-

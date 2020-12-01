@@ -198,7 +198,7 @@ def wif_prefix_search(wif, witness_type=None, multisig=None, network=None):
     return matches
 
 
-# Replace by Value class
+# Replaced by Value class
 @deprecated
 def print_value(value, network=DEFAULT_NETWORK, rep='string', denominator=1, decimals=None):
     """

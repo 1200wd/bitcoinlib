@@ -1734,6 +1734,7 @@ class Transaction(object):
                     if _fail_on_unknown_key:
                         raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
                     else:
+                        _logger.info("This key does not sign any known key: %s" % key.public_hex)
                         continue
                 if key in [x.public_key for x in self.inputs[tid].signatures]:
                     _logger.info("Key %s already signed" % key.public_hex)
