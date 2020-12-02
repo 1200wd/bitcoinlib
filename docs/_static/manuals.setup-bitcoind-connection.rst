@@ -37,7 +37,7 @@ Bitcoinlib looks for bitcoind config files on localhost. So if you running a ful
 your local PC as the same user everything should work out of the box.
 
 Config files are read from the following files in this order:
-* [USER_HOME_DIR]/.bitcoinlib/config/bitcoin.conf
+* [USER_HOME_DIR]/.bitcoinlib/bitcoin.conf
 * [USER_HOME_DIR]/.bitcoin/bitcoin.conf
 
 If your config files are at another location, you can specify this when you create a BitcoindClient
@@ -47,7 +47,7 @@ instance.
 
     from bitcoinlib.services.bitcoind import BitcoindClient
 
-    bdc = BitcoindClient.from_config('/usr/local/src/.bitcoinlib/config/bitcoin.conf')
+    bdc = BitcoindClient.from_config('/usr/local/src/.bitcoinlib/bitcoin.conf')
     txid = 'e0cee8955f516d5ed333d081a4e2f55b999debfff91a49e8123d20f7ed647ac5'
     rt = bdc.getrawtransaction(txid)
     print("Raw: %s" % rt)

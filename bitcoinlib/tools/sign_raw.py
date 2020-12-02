@@ -36,7 +36,7 @@ if not raw_tx:
 
 t = Transaction.import_raw(raw_tx)
 
-key_str = input("Enter private key or passphrase: ")
+key_str = input("Enter private key or mnemonic passphrase: ")
 if len(key_str.split(" ")) < 2:
     hdkey = HDKey(key_str)
 else:

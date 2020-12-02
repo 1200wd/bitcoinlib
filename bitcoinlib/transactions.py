@@ -23,7 +23,8 @@ import json
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
-from bitcoinlib.networks import Network, print_value
+from bitcoinlib.networks import Network
+from bitcoinlib.values import Value, value_to_satoshi
 
 _logger = logging.getLogger(__name__)
 
@@ -680,8 +681,8 @@ class Input(object):
         :type sort: boolean
         :param index_n: Index of input in transaction. Used by Transaction class.
         :type index_n: int
-        :param value: Value of input in smallest denominator, i.e. sathosis
-        :type value: int
+        :param value: Value of input in smallest denominator integers (Satoshi's) or as Value object or string
+        :type value: int, Value, str
         :param double_spend: Is this input also spend in another transaction
         :type double_spend: bool
         :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
@@ -720,7 +721,7 @@ class Input(object):
         if not isinstance(network, Network):
             self.network = Network(network)
         self.index_n = index_n
-        self.value = value
+        self.value = value_to_satoshi(value, network=network)
         if not keys:
             keys = []
         self.keys = []
@@ -1028,8 +1029,8 @@ class Output(object):
         public key, public key hash or a locking script. Only one needs to be provided as the they all can be derived 
         from each other, but you can provide as much attributes as you know to improve speed.
         
-        :param value: Amount of output in smallest denominator of currency, for example satoshi's for bitcoins
-        :type value: int
+        :param value: Amount of output in smallest denominator integers (Satoshi's) or as Value object or string
+        :type value: int, Value, str
         :param address: Destination address of output. Leave empty to derive from other attributes you provide. An instance of an Address or HDKey class is allowed as argument.
         :type address: str, Address, HDKey
         :param public_hash: Hash of public key or script
@@ -1058,7 +1059,10 @@ class Output(object):
             raise TransactionError("Please specify address, lock_script, public key or public key hash when "
                                    "creating output")
 
-        self.value = value
+        self.network = network
+        if not isinstance(network, Network):
+            self.network = Network(network)
+        self.value = value_to_satoshi(value, network=network)
         self.lock_script = b'' if lock_script is None else to_bytes(lock_script)
         self.public_hash = to_bytes(public_hash)
         if isinstance(address, Address):
@@ -1075,9 +1079,6 @@ class Output(object):
             self.address = address
             self.address_obj = None
         self.public_key = to_bytes(public_key)
-        self.network = network
-        if not isinstance(network, Network):
-            self.network = Network(network)
         self.compressed = True
         self.k = None
         self.versionbyte = self.network.prefix_address
@@ -1412,7 +1413,7 @@ class Transaction(object):
         print("Inputs")
         replace_by_fee = False
         for ti in self.inputs:
-            print("-", ti.address, print_value(ti.value, self.network.name, 'none'), ti.prev_txid.hex(),
+            print("-", ti.address, Value.from_satoshi(ti.value, network=self.network).str(1), ti.prev_txid.hex(),
                   ti.output_n_int)
             validstr = "not validated"
             if ti.valid:
@@ -1451,7 +1452,8 @@ class Transaction(object):
                     spent_str = 'S'
                 elif to.spent is False:
                     spent_str = 'U'
-                print("-", to.address, print_value(to.value, self.network.name, 'none'), to.script_type, spent_str)
+                print("-", to.address, Value.from_satoshi(to.value, network=self.network).str(1), to.script_type,
+                      spent_str)
         if replace_by_fee:
             print("Replace by fee: Enabled")
         print("Size: %s" % self.size)
@@ -1733,6 +1735,7 @@ class Transaction(object):
                     if _fail_on_unknown_key:
                         raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
                     else:
+                        _logger.info("This key does not sign any known key: %s" % key.public_hex)
                         continue
                 if key in [x.public_key for x in self.inputs[tid].signatures]:
                     _logger.info("Key %s already signed" % key.public_hex)

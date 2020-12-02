@@ -69,12 +69,12 @@ class DashdClient(BaseClient):
         """
         config = configparser.ConfigParser(strict=False)
         if not configfile:
-            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/config/dash.conf')
+            cfn = os.path.join(os.path.expanduser("~"), '.bitcoinlib/dash.conf')
             if not os.path.isfile(cfn):
                 cfn = os.path.join(os.path.expanduser("~"), '.dashcore/dash.conf')
             if not os.path.isfile(cfn):
                 raise ConfigError("Please install dash client and specify a path to config file if path is not "
-                                  "default. Or place a config file in .bitcoinlib/config/dash.conf to reference to "
+                                  "default. Or place a config file in .bitcoinlib/dash.conf to reference to "
                                   "an external server.")
         else:
             cfn = os.path.join(BCL_DATA_DIR, 'config', configfile)

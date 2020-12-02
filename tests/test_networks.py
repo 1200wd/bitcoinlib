@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Bitcoinlib Network Class
-#    © 2018 August - 1200 Web Development <http://1200wd.com/>
+#    © 2018 - 2020 November - 1200 Web Development <http://1200wd.com/>
 #
 
 import unittest
@@ -24,6 +24,9 @@ class TestNetworks(unittest.TestCase):
     def test_networks_prefix_hdkey_wif(self):
         network = Network('bitcoin')
         self.assertEqual(network.wif_prefix(is_private=True), b'\x04\x88\xad\xe4')
+        self.assertEqual(network.wif_prefix(is_private=False), b'\x04\x88\xb2\x1e')
+        self.assertRaisesRegex(NetworkError, "WIF Prefix for script type p2wpkh not found", Network('dash').wif_prefix,
+                               witness_type='segwit')
 
     def test_networks_print_value(self):
         network = Network('dash')
@@ -59,6 +62,16 @@ class TestNetworks(unittest.TestCase):
             'witness_type': 'legacy'}
         self.assertEqual(wif_prefix_search('0488ADE4', network='bitcoin', multisig=False)[0], exp_dict)
         self.assertEqual(wif_prefix_search('lettrythisstrangestring', network='bitcoin', multisig=False), [])
+
+    def test_network_dunders(self):
+        n1 = Network('bitcoin')
+        n2 = Network('litecoin')
+        self.assertFalse(n1 == n2)
+        self.assertTrue(n1 == 'bitcoin')
+        self.assertFalse(n2 == 'bitcoin')
+        self.assertTrue(n1 != 'dash')
+        self.assertEqual(str(n1), "<Network: bitcoin>")
+        self.assertTrue(hash(n1))
 
 
 if __name__ == '__main__':

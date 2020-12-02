@@ -26,7 +26,8 @@ from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
 from bitcoinlib.mnemonic import Mnemonic
-from bitcoinlib.networks import Network, print_value
+from bitcoinlib.networks import Network
+from bitcoinlib.values import Value, value_to_satoshi
 from bitcoinlib.services.services import Service
 from bitcoinlib.transactions import (Input, Output, Transaction, get_unlocking_script_type,
                                      serialize_multisig_redeemscript)
@@ -502,18 +503,18 @@ class WalletKey(object):
             self._hdkey_object = HDKey(import_key=self.wif, network=self.network_name)
         return self._hdkey_object
 
-    def balance(self, fmt=''):
+    def balance(self, as_string=False):
         """
         Get total value of unspent outputs
 
-        :param fmt: Specify 'string' to return a string in currency format
-        :type fmt: str
+        :param as_string: Specify 'string' to return a string in currency format
+        :type as_string: bool
 
         :return float, str: Key balance
         """
 
-        if fmt == 'string':
-            return self.network.print_value(self._balance)
+        if as_string:
+            return Value.from_satoshi(self._balance, network=self.network).str_unit()
         else:
             return self._balance
 
@@ -555,7 +556,7 @@ class WalletKey(object):
             'encoding': self.encoding,
             'path': self.path,
             'balance': self.balance(),
-            'balance_str': self.balance(fmt='string')
+            'balance_str': self.balance(as_string=True)
         }
         if include_private:
             kdict.update({
@@ -712,7 +713,7 @@ class WalletTransaction(Transaction):
             for priv_key in keys:
                 if not isinstance(priv_key, HDKey):
                     if isinstance(priv_key, str) and len(str(priv_key).split(' ')) > 4:
-                        priv_key = HDKey.from_passphrase(priv_key)
+                        priv_key = HDKey.from_passphrase(priv_key, network=self.network)
                     else:
                         priv_key = HDKey(priv_key, network=self.network.name)
                 priv_key_list_arg.append((None, priv_key))
@@ -736,7 +737,7 @@ class WalletTransaction(Transaction):
         Verify and push transaction to network. Update UTXO's in database after successful send
 
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
-        :type offline: boolmijn ouders relatief normaal waren. Je hebt ze tenslotte niet voor het uitzoeken
+        :type offline: bool
 
         :return None:
 
@@ -1733,7 +1734,7 @@ class Wallet(object):
             filter(DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network, DbTransaction.confirmations == 0).all()
         for db_tx in db_txs:
-            self.transactions_update_by_txids([db_tx.hash])
+            self.transactions_update_by_txids([db_tx.txid])
 
         # Scan each key address, stop when no new transactions are found after set scan gap limit
         if change is None:
@@ -2510,7 +2511,7 @@ class Wallet(object):
         if len(b_res):
             balance = b_res[0]
         if as_string:
-            return Network(network).print_value(balance)
+            return Value.from_satoshi(balance, network=network).str_unit()
         else:
             return float(balance)
 
@@ -3370,11 +3371,12 @@ class Wallet(object):
                 transaction.outputs.append(o)
                 amount_total_output += o.value
             else:
-                amount_total_output += o[1]
+                value = value_to_satoshi(o[1], network=self.network)
+                amount_total_output += value
                 addr = o[0]
                 if isinstance(addr, WalletKey):
                     addr = addr.key()
-                transaction.add_output(o[1], addr)
+                transaction.add_output(value, addr)
 
         srv = Service(network=network, providers=self.providers, cache_uri=self.db_cache_uri)
         transaction.fee_per_kb = None
@@ -3704,8 +3706,8 @@ class Wallet(object):
 
         :param to_address: Single output address as string Address object, HDKey object or WalletKey object
         :type to_address: str, Address, HDKey, WalletKey
-        :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin)
-        :type amount: int
+        :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin), as Value object or value string as accepted by Value class
+        :type amount: int, str, Value
         :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
         :type input_key_id: int
         :param account_id: Account ID, default is last used
@@ -3916,8 +3918,9 @@ class Wallet(object):
                     if detail > 3:
                         is_active = False
                     for key in self.keys(depth=d, network=nw.name, is_active=is_active):
-                        print("%5s %-28s %-45s %-25s %25s" % (key.id, key.path, key.address, key.name,
-                                                              print_value(key.balance, key.network_name, 'symbol')))
+                        print("%5s %-28s %-45s %-25s %25s" %
+                              (key.id, key.path, key.address, key.name,
+                               Value.from_satoshi(key.balance, network=nw).str_unit(currency_repr='symbol')))
 
                 if detail > 2:
                     include_new = False
@@ -3941,12 +3944,14 @@ class Wallet(object):
                             if tx['status'] not in ['confirmed', 'unconfirmed']:
                                 status = tx['status']
                             print("%64s %43s %8d %21s %s %s" % (tx['txid'], address, tx['confirmations'],
-                                                                print_value(tx['value'], nw.name, 'symbol'),
+                                                                Value.from_satoshi(tx['value'], network=nw).str_unit(
+                                                                    currency_repr='symbol'),
                                                                 spent, status))
         print("\n= Balance Totals (includes unconfirmed) =")
         for na_balance in balances:
             print("%-20s %-20s %20s" % (na_balance['network'], "(Account %s)" % na_balance['account_id'],
-                  Network(na_balance['network']).print_value(na_balance['balance'])))
+                                        Value.from_satoshi(na_balance['balance'], network=na_balance['network']).
+                                        str_unit(currency_repr='symbol')))
         print("\n")
 
     def as_dict(self, include_private=False):

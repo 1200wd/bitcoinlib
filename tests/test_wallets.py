@@ -36,6 +36,7 @@ from bitcoinlib.wallets import *
 from bitcoinlib.encoding import USE_FASTECDSA
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.keys import HDKey, BKeyError
+from bitcoinlib.values import Value
 from tests.test_custom import CustomAssertions
 
 DATABASEFILE_UNITTESTS = os.path.join(str(BCL_DATABASE_DIR), 'bitcoinlib.unittest.sqlite')
@@ -872,6 +873,8 @@ class TestWalletBitcoinlibTestnet(TestWalletMixin, unittest.TestCase):
         w.new_key()
         w.utxos_update()
         self.assertIsNone(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', 5000000).error)
+        self.assertIsNone(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', '10000 satTST').error)
+        self.assertIsNone(w.send_to('21DBmFUMQMP7A6KeENXgZQ4wJdSCeGc2zFo', Value('40 mTST')).error)
 
     def test_wallet_bitcoinlib_testnet_send_utxos_updated(self):
         w = Wallet.create(

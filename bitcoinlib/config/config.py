@@ -93,8 +93,10 @@ DEFAULT_LANGUAGE = 'english'
 
 # Networks
 DEFAULT_NETWORK = 'bitcoin'
-NETWORK_DENOMINATORS = {  # source: https://en.bitcoin.it/wiki/Units
+NETWORK_DENOMINATORS = {  # source: https://en.bitcoin.it/wiki/Units, https://en.wikipedia.org/wiki/Metric_prefix
+    0.00000000000001: 'µsat',
     0.00000000001: 'msat',
+    0.000000001: 'n',
     0.00000001: 'sat',
     0.0000001: 'fin',
     0.000001: 'µ',
@@ -106,6 +108,12 @@ NETWORK_DENOMINATORS = {  # source: https://en.bitcoin.it/wiki/Units
     100: 'h',
     1000: 'k',
     1000000: 'M',
+    1000000000: 'G',
+    1000000000000: 'T',
+    1000000000000000: 'P',
+    1000000000000000000: 'E',
+    1000000000000000000000: 'Z',
+    1000000000000000000000000: 'Y',
 }
 
 if os.name == 'nt' and locale.getpreferredencoding() != 'UTF-8':
