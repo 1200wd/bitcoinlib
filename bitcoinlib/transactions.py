@@ -887,7 +887,8 @@ class Input(object):
                 self.witnesses = [self.signatures[0].as_der_encoded() +
                                   hash_type.to_bytes(1, 'big') if hash_type else b'', self.keys[0].public_byte]
                 unlock_script = b''.join([bytes(varstr(w)) for w in self.witnesses])
-            elif self.witnesses and not self.signatures and not self.keys and self.script_type == 'sig_pubkey':
+            elif self.witnesses and not self.signatures and not self.keys and \
+                    self.script_type in ['sig_pubkey', 'p2sh_p2wpkh']:
                 self.signatures = [self.witnesses[0]]
                 self.keys = [Key(self.witnesses[1], network=self.network)]
             if self.witness_type == 'p2sh-segwit':

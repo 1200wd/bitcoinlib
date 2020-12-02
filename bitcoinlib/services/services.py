@@ -720,6 +720,8 @@ class Cache(object):
                             witness = witness_str[cursor + size:cursor + item_size + size]
                         cursor += item_size + size
                         witnesses.append(witness)
+                if n.ref_txid == b'\00' * 32:
+                    t.coinbase = True
                 t.add_input(n.ref_txid, n.ref_index_n, unlocking_script=n.script, address=n.address,
                             sequence=n.sequence, value=n.value, index_n=n.index_n, witnesses=witnesses)
             else:
@@ -727,6 +729,7 @@ class Cache(object):
                              spending_txid=n.ref_txid, spending_index_n=n.ref_index_n)
 
         t.update_totals()
+        t.size = len(t.raw())
         _logger.info("Retrieved transaction %s from cache" % t.txid)
         return t
 
