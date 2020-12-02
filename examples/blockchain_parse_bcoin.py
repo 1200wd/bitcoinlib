@@ -53,5 +53,4 @@ for blockid in blocks:
             print("Transaction could not be verified!!")
 
 
-
 print("--- %s seconds ---" % (time.time() - start_time))

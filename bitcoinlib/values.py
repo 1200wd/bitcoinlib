@@ -294,11 +294,17 @@ class Value:
         >>> Value('2100000000').str('auto')
         '2.10000000 GBTC'
 
+        >>> Value('1.5 BTC').str(currency_repr='symbol')
+        '1.50000000 ฿'
+
+        >>> Value('1.5 BTC').str(currency_repr='name')
+        '1.50000000 bitcoins'
+
         :param denominator: Denominator as integer or string. Such as 0.001 or m for milli, 1000 or k for kilo, etc. See NETWORK_DENOMINATORS for list of available denominator symbols. If not provided the default self.denominator value is used. Use value 'auto' to automatically determine best denominator for human readability.
         :type denominator: int, float, str
         :param decimals: Number of decimals to use
         :type decimals: float
-        :param currency_repr: Representation of currency. I.e. code: BTC, name: Bitcoin, symbol: ฿
+        :param currency_repr: Representation of currency. I.e. code: BTC, name: bitcoins, symbol: ฿
         :type currency_repr: str
 
         :return str:
