@@ -24,7 +24,7 @@ import os
 import sys
 
 here = os.path.abspath(os.path.dirname(__file__))
-version = '0.5.0'
+version = '0.5.1'
 
 # Get the long description from the relevant file
 readmetxt = ''
@@ -37,12 +37,12 @@ except:
 kwargs = {}
 
 install_requires = [
-      'requests>=2.20.0',
-      'fastecdsa>=2.1.2;platform_system!="Windows"',
-      'ecdsa>=0.16;platform_system=="Windows"',
+      'requests==2.20.0',
+      'fastecdsa==2.1.2;platform_system!="Windows"',
+      'ecdsa==0.16;platform_system=="Windows"',
       'pyaes==1.6.1',
-      'scrypt>=0.8.17',
-      'SQLAlchemy>=1.3.2',
+      'scrypt==0.8.17',
+      'SQLAlchemy==1.3.2',
 ]
 
 kwargs['install_requires'] = install_requires
