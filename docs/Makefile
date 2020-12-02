@@ -6,7 +6,7 @@ SPHINXOPTS    = '-E'
 SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = Bitcoinlib
 SOURCEDIR     = .
-BUILDDIR      = _build/html
+BUILDDIR      = _build
 
 ifeq ($(shell if which $(SPHINXBUILD) >/dev/null 2>&1; then echo 1; else echo 0; fi),0)
 $(error "The '$(SPHINXBUILD)' command was not found. Make sure you have Sphinx installed")

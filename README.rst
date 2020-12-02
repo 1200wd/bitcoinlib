@@ -72,7 +72,7 @@ If successful a transaction ID is returned
 
 .. code-block:: pycon
 
-    >>> t = w.send_to('1PWXhWvUH3bcDWn6Fdq3xhMRPfxRXTjAi1', 100000)
+    >>> t = w.send_to('1PWXhWvUH3bcDWn6Fdq3xhMRPfxRXTjAi1', '0.001 BTC')
     'b7feea5e7c79d4f6f343b5ca28fa2a1fcacfe9a2b7f44f3d2fd8d6c2d82c4078'
     >>> t.info  # Shows transaction information and send results
 

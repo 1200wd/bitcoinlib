@@ -1,3 +1,9 @@
+RELEASE 0.5.1 - New Value class
+===============================
+* Added new Value class to represent cryptocurrency values
+* Accept Value class in Wallet and Transaction methods
+* Fix some service, database and cache issues
+
 RELEASE 0.5.0 - Refactor database and cache
 ===========================================
 * Increase cache database efficiency and reduce storage size
