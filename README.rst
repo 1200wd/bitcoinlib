@@ -11,8 +11,8 @@ The BitcoinLib connects to various service providers automatically to update wal
 blockchain information. It does currently not parse the blockchain itself.
 
 
-.. image:: https://travis-ci.org/1200wd/bitcoinlib.svg?branch=master
-    :target: https://travis-ci.org/1200wd/bitcoinlib
+.. image:: https://travis-ci.com/1200wd/bitcoinlib.svg?branch=master
+    :target: https://travis-ci.com/1200wd/bitcoinlib
     :alt: Travis
 .. image:: https://img.shields.io/pypi/v/bitcoinlib.svg
     :target: https://pypi.org/pypi/bitcoinlib/
