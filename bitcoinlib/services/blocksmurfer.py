@@ -96,18 +96,16 @@ class BlocksmurferClient(BaseClient):
                         coinbase=tx['coinbase'], rawtx=bytes.fromhex(tx['raw_hex']),
                         witness_type=tx['witness_type'])
         for ti in tx['inputs']:
-            # TODO: Fix value of ti['witness'] should be list of witnesses (i.e. signature,key) + BS should return public key
-            t.add_input(prev_txid=ti['prev_hash'], output_n=ti['output_n'], index_n=ti['index_n'],
+            # TODO: BS should return public key
+            t.add_input(prev_txid=ti['prev_txid'], output_n=ti['output_n'], index_n=ti['index_n'],
                         unlocking_script=ti['script'], value=ti['value'], public_hash=bytes.fromhex(ti['public_hash']),
                         address=ti['address'], witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
                         locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
                         encoding=ti['encoding'], unlocking_script_unsigned=ti['script_code'],
-                        sigs_required=ti['sigs_required'], sequence=ti['sequence'])
+                        sigs_required=ti['sigs_required'], sequence=ti['sequence'], witnesses=ti['witnesses'])
         for to in tx['outputs']:
             t.add_output(value=to['value'], address=to['address'], public_hash=to['public_hash'],
                          lock_script=to['script'], spent=to['spent'])
-        # if t.coinbase:  # TODO: Remove when blocksmurfer is fixed
-        #     t.inputs[0].value = 0
         t.update_totals()
         return t
 
@@ -155,7 +153,7 @@ class BlocksmurferClient(BaseClient):
         if txid:
             t = self.gettransaction(txid)
             if t and not t.confirmations:
-                return [t.hash]
+                return [t.txid]
         # else:
             # return self.compose_request('mempool', 'txids')
         return False
@@ -206,5 +204,5 @@ class BlocksmurferClient(BaseClient):
     def getinfo(self):
         res = self.compose_request('')
         info = {k: v for k, v in res.items() if k in ['chain', 'blockcount', 'hashrate', 'mempool_size',
-                                                          'difficulty']}
+                                                      'difficulty']}
         return info
