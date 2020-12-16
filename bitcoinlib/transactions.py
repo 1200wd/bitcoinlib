@@ -840,18 +840,17 @@ class Input(object):
                     self.hash_type = sig.hash_type
         self.update_scripts(hash_type=self.hash_type)
 
-    # TODO: Remove / replace?
-    # def sequence_timelock_blocks(self, blocks):
-    #     if blocks > SEQUENCE_LOCKTIME_MASK:
-    #         raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-    #     self.sequence = blocks
-    #
-    # def sequence_timelock_time(self, seconds):
-    #     if seconds % 512:
-    #         raise TransactionError("Seconds must be a multiply of 512")
-    #     if seconds > SEQUENCE_LOCKTIME_MASK:
-    #         raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-    #     self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+    def set_locktime_blocks(self, blocks):
+        if blocks > SEQUENCE_LOCKTIME_DISABLE_FLAG:
+            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_DISABLE_FLAG)
+        self.sequence = blocks
+
+    def set_locktime_time(self, seconds):
+        if seconds % 512:
+            raise TransactionError("Seconds must be a multiply of 512")
+        if seconds > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
 
     def update_scripts(self, hash_type=SIGHASH_ALL):
         """
@@ -1461,6 +1460,18 @@ class Transaction(object):
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
         print("Block: %s" % self.block_height)
+
+    def set_locktime_blocks(self, blocks):
+        if blocks > 500000000:
+            raise TransactionError("Number of locktime blocks must be below %d" % 500000000)
+        self.locktime = blocks
+
+    def set_locktime_time(self, timestamp):
+        if timestamp <= 500000000:
+            raise TransactionError("Timestamp must have a value higher then %d" % 500000000)
+        if timestamp > 0xffffffff:
+            raise TransactionError("Timestamp must have a value lower then %d" % 0xffffffff)
+        self.locktime = timestamp
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
         """
