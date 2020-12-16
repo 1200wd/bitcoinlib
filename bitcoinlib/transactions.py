@@ -846,9 +846,11 @@ class Input(object):
         self.sequence = blocks
 
     def set_locktime_time(self, seconds):
-        if seconds % 512:
-            raise TransactionError("Seconds must be a multiply of 512")
-        if seconds > SEQUENCE_LOCKTIME_MASK:
+        # if seconds % 512:
+        #     raise TransactionError("Seconds must be a multiply of 512")
+        if seconds < 512:
+            seconds = 512
+        if (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
             raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
 
@@ -1462,15 +1464,31 @@ class Transaction(object):
         print("Block: %s" % self.block_height)
 
     def set_locktime_blocks(self, blocks):
+        """
+        Set nLocktime, a transaction level absolute lock time in blocks using the transaction sequence field.
+
+        So for example if you set this value to 600000 the transaction will only be valid after block 600000.
+
+        :param blocks: Transaction is valid after supplied block number. Value must be between 0 and 500000000. Zero means no locktime.
+        :type blocks: int
+
+        :return:
+        """
         if blocks > 500000000:
             raise TransactionError("Number of locktime blocks must be below %d" % 500000000)
         self.locktime = blocks
 
     def set_locktime_time(self, timestamp):
+        """
+        Set nLocktime, a transaction level absolute lock time in timestamp using the transaction sequence field.
+
+        :param timestamp: Transaction is valid after the given timestamp. Value must be between 500000000 and 0xfffffffe
+        :return:
+        """
         if timestamp <= 500000000:
             raise TransactionError("Timestamp must have a value higher then %d" % 500000000)
-        if timestamp > 0xffffffff:
-            raise TransactionError("Timestamp must have a value lower then %d" % 0xffffffff)
+        if timestamp > 0xfffffffe:
+            raise TransactionError("Timestamp must have a value lower then %d" % 0xfffffffe)
         self.locktime = timestamp
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
