@@ -1463,6 +1463,19 @@ class Transaction(object):
         print("Confirmations: %s" % self.confirmations)
         print("Block: %s" % self.block_height)
 
+    def set_locktime(self, locktime, locktype='blocks', is_relative=False):
+        if not is_relative:
+            if locktype == 'blocks':
+                return self.set_locktime_blocks(locktime)
+            elif locktime == 'time':
+                return self.set_locktime_time(locktime)
+        else:
+            if locktype == 'blocks':
+                return self.inputs[0].set_locktime_blocks(locktime)
+            elif locktime == 'time':
+                return self.inputs[0].set_locktime_time(locktime)
+        raise TransactionError("Unknown locktype: %s" % locktype)
+
     def set_locktime_blocks(self, blocks):
         """
         Set nLocktime, a transaction level absolute lock time in blocks using the transaction sequence field.
