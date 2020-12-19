@@ -1467,12 +1467,12 @@ class Transaction(object):
         if not is_relative:
             if locktype == 'blocks':
                 return self.set_locktime_blocks(locktime)
-            elif locktime == 'time':
+            elif locktype == 'time':
                 return self.set_locktime_time(locktime)
         else:
             if locktype == 'blocks':
                 return self.inputs[0].set_locktime_blocks(locktime)
-            elif locktime == 'time':
+            elif locktype == 'time':
                 return self.inputs[0].set_locktime_time(locktime)
         raise TransactionError("Unknown locktype: %s" % locktype)
 
