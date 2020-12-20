@@ -1490,6 +1490,12 @@ class Transaction(object):
         if blocks > 500000000:
             raise TransactionError("Number of locktime blocks must be below %d" % 500000000)
         self.locktime = blocks
+        for i in self.inputs:
+            if i.sequence == 0xffffffff:
+                i.sequence = 0xfffffffd
+            i.signatures = []
+        self.sign()
+        self.verify()
 
     def set_locktime_time(self, timestamp):
         """
@@ -1503,6 +1509,12 @@ class Transaction(object):
         if timestamp > 0xfffffffe:
             raise TransactionError("Timestamp must have a value lower then %d" % 0xfffffffe)
         self.locktime = timestamp
+        for i in self.inputs:
+            if i.sequence == 0xffffffff:
+                i.sequence = 0xfffffffd
+            i.signatures = []
+        self.sign()
+        self.verify()
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
         """
