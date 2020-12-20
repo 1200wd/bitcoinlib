@@ -1463,18 +1463,18 @@ class Transaction(object):
         print("Confirmations: %s" % self.confirmations)
         print("Block: %s" % self.block_height)
 
-    def set_locktime(self, locktime, locktype='blocks', is_relative=False):
-        if not is_relative:
-            if locktype == 'blocks':
-                return self.set_locktime_blocks(locktime)
-            elif locktype == 'time':
-                return self.set_locktime_time(locktime)
-        else:
-            if locktype == 'blocks':
-                return self.inputs[0].set_locktime_blocks(locktime)
-            elif locktype == 'time':
-                return self.inputs[0].set_locktime_time(locktime)
-        raise TransactionError("Unknown locktype: %s" % locktype)
+    # def set_locktime(self, locktime, locktype='blocks', is_relative=False):
+    #     if not is_relative:
+    #         if locktype == 'blocks':
+    #             return self.set_locktime_blocks(locktime)
+    #         elif locktype == 'time':
+    #             return self.set_locktime_time(locktime)
+    #     else:  # This is difficult, need to know number of confirmations for input for relative locktime
+    #         if locktype == 'blocks':
+    #             return self.inputs[0].set_locktime_blocks(locktime)
+    #         elif locktype == 'time':
+    #             return self.inputs[0].set_locktime_time(locktime)
+    #     raise TransactionError("Unknown locktype: %s" % locktype)
 
     def set_locktime_blocks(self, blocks):
         """
@@ -2032,7 +2032,12 @@ class Transaction(object):
 
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
-        return int(self.estimate_size() / 1024.0 * self.fee_per_kb)
+        fee = int(self.estimate_size() / 1024.0 * self.fee_per_kb)
+        if fee < self.network.fee_min:
+            fee = self.network.fee_min
+        elif fee > self.network.fee_max:
+            fee = self.network.fee_max
+        return fee
 
     def update_totals(self):
         """
