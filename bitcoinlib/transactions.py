@@ -840,13 +840,13 @@ class Input(object):
                     self.hash_type = sig.hash_type
         self.update_scripts(hash_type=self.hash_type)
 
-    def set_locktime_blocks(self, blocks):
+    def set_locktime_relative_blocks(self, blocks):
         """
         Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
 
         Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
 
-        When setting an relative timelock, the transaction version must be at least 2.
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
 
         :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
         :type blocks: int
@@ -858,7 +858,7 @@ class Input(object):
         self.sequence = blocks
         self.signatures = []
 
-    def set_locktime_time(self, seconds):
+    def set_locktime_relative_time(self, seconds):
         """
         Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
 
@@ -866,7 +866,7 @@ class Input(object):
 
         Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
 
-        When setting an relative timelock, the transaction version must be at least 2.
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
 
         :param seconds: Number of seconds since the related previous transaction output has been confirmed.
         :return:
@@ -1500,6 +1500,46 @@ class Transaction(object):
     #             return self.inputs[0].set_locktime_time(locktime)
     #     raise TransactionError("Unknown locktype: %s" % locktype)
 
+    def set_locktime_relative_blocks(self, blocks, input_n=0):
+        """
+        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
+
+        Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
+
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+
+        :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
+        :type blocks: int
+
+        :return None:
+        """
+        if blocks > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.inputs[input_n].sequence = blocks
+        self.version_int = 2
+        self.version = b'\x00\x00\x00\x02'
+        self.sign(index_n=input_n, replace_signatures=True)
+
+    def set_locktime_relative_time(self, seconds, input_n=0):
+        """
+        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
+
+        Number of seconds will be rounded to the nearest 512 seconds. Any value below 512 will be interpreted as 512 seconds.
+
+        Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
+
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+
+        :param seconds: Number of seconds since the related previous transaction output has been confirmed.
+        :return:
+        """
+        if seconds < 512:
+            seconds = 512
+        if (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+        self.signatures = []
+
     def set_locktime_blocks(self, blocks):
         """
         Set nLocktime, a transaction level absolute lock time in blocks using the transaction sequence field.
@@ -1761,15 +1801,15 @@ class Transaction(object):
         self.verified = True
         return True
 
-    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=True,
+    def sign(self, keys=None, index_n=None, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=True,
              replace_signatures=False):
         """
         Sign the transaction input with provided private key
         
         :param keys: A private key or list of private keys
         :type keys: HDKey, Key, bytes, list
-        :param tid: Index of transaction input
-        :type tid: int
+        :param index_n: Index of transaction input
+        :type index_n: int
         :param multisig_key_n: Index number of key for multisig input for segwit transactions. Leave empty if not known. If not specified all possibilities will be checked
         :type multisig_key_n: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
@@ -1782,10 +1822,11 @@ class Transaction(object):
         :return None:
         """
 
-        if tid is None:
+        if index_n is None:
             tids = range(len(self.inputs))
+            index_n = 0
         else:
-            tids = [tid]
+            tids = [index_n]
 
         if keys is None:
             keys = []
@@ -1851,8 +1892,7 @@ class Transaction(object):
             if n_sigs_to_insert:
                 _logger.info("Some signatures are replaced with the signatures of the provided keys")
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
-
-        self.inputs[tid].update_scripts(hash_type)
+            self.inputs[tid].update_scripts(hash_type)
 
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
