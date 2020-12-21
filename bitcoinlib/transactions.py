@@ -841,19 +841,42 @@ class Input(object):
         self.update_scripts(hash_type=self.hash_type)
 
     def set_locktime_blocks(self, blocks):
-        if blocks > SEQUENCE_LOCKTIME_DISABLE_FLAG:
-            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_DISABLE_FLAG)
+        """
+        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
+
+        Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
+
+        When setting an relative timelock, the transaction version must be at least 2.
+
+        :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
+        :type blocks: int
+
+        :return None:
+        """
+        if blocks > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.sequence = blocks
         self.signatures = []
 
     def set_locktime_time(self, seconds):
-        # if seconds % 512:
-        #     raise TransactionError("Seconds must be a multiply of 512")
+        """
+        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
+
+        Number of seconds will be rounded to the nearest 512 seconds. Any value below 512 will be interpreted as 512 seconds.
+
+        Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
+
+        When setting an relative timelock, the transaction version must be at least 2.
+
+        :param seconds: Number of seconds since the related previous transaction output has been confirmed.
+        :return:
+        """
         if seconds < 512:
             seconds = 512
         if (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
             raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+        self.signatures = []
 
     def update_scripts(self, hash_type=SIGHASH_ALL):
         """
