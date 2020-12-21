@@ -690,7 +690,8 @@ class WalletTransaction(Transaction):
                    rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)
 
-    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=None):
+    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=False,
+             replace_signatures=False):
         """
         Sign this transaction. Use existing keys from wallet or use keys argument for extra keys.
 
@@ -702,6 +703,10 @@ class WalletTransaction(Transaction):
         :type multisig_key_n: int
         :param hash_type: Hashtype to use, default is SIGHASH_ALL
         :type hash_type: int
+        :param fail_on_unknown_key: Method fails if public key from signature is not found in public key list
+        :type fail_on_unknown_key: bool
+        :param replace_signatures: Replace signature with new one if already signed.
+        :type replace_signatures: bool
 
         :return None:
         """
@@ -728,7 +733,8 @@ class WalletTransaction(Transaction):
             for k in ti.keys:
                 if k.is_private:
                     priv_key_list.append(k)
-            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type, False)
+            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type, fail_on_unknown_key,
+                             replace_signatures)
         self.verify()
         self.error = ""
 

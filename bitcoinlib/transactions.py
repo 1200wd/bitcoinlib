@@ -844,6 +844,7 @@ class Input(object):
         if blocks > SEQUENCE_LOCKTIME_DISABLE_FLAG:
             raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_DISABLE_FLAG)
         self.sequence = blocks
+        self.signatures = []
 
     def set_locktime_time(self, seconds):
         # if seconds % 512:
@@ -1493,8 +1494,7 @@ class Transaction(object):
         for i in self.inputs:
             if i.sequence == 0xffffffff:
                 i.sequence = 0xfffffffd
-            i.signatures = []
-        self.sign()
+        self.sign(replace_signatures=True)
         self.verify()
 
     def set_locktime_time(self, timestamp):
@@ -1509,11 +1509,12 @@ class Transaction(object):
         if timestamp > 0xfffffffe:
             raise TransactionError("Timestamp must have a value lower then %d" % 0xfffffffe)
         self.locktime = timestamp
+
+        # Input sequence value must be below 0xffffffff
         for i in self.inputs:
             if i.sequence == 0xffffffff:
                 i.sequence = 0xfffffffd
-            i.signatures = []
-        self.sign()
+        self.sign(replace_signatures=True)
         self.verify()
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
@@ -1737,7 +1738,8 @@ class Transaction(object):
         self.verified = True
         return True
 
-    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=True):
+    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=True,
+             replace_signatures=False):
         """
         Sign the transaction input with provided private key
         
@@ -1749,8 +1751,10 @@ class Transaction(object):
         :type multisig_key_n: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
-        :param _fail_on_unknown_key: Method fails if public key from signature is not found in public key list
-        :type _fail_on_unknown_key: bool
+        :param fail_on_unknown_key: Method fails if public key from signature is not found in public key list
+        :type fail_on_unknown_key: bool
+        :param replace_signatures: Replace signature with new one if already signed.
+        :type replace_signatures: bool
 
         :return None:
         """
@@ -1786,12 +1790,12 @@ class Transaction(object):
             for key in tid_keys:
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
-                    if _fail_on_unknown_key:
+                    if fail_on_unknown_key:
                         raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
                     else:
                         _logger.info("This key does not sign any known key: %s" % key.public_hex)
                         continue
-                if key in [x.public_key for x in self.inputs[tid].signatures]:
+                if not replace_signatures and key in [x.public_key for x in self.inputs[tid].signatures]:
                     _logger.info("Key %s already signed" % key.public_hex)
                     break
 
