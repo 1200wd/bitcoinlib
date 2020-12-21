@@ -1460,6 +1460,56 @@ class TestTransactionsTimelocks(unittest.TestCase):
         t2 = Transaction.import_raw(t.raw())
         self.assertEqual(t2.inputs[0].sequence, sequence)
 
+    def test_transaction_lock_methods(self):
+        pk = HDKey(witness_type='segwit').from_passphrase(
+            'canal update powder leg category tree leaf moon soda day moral civil')
+        t = Transaction(witness_type='segwit')
+        t.add_input('9efb6c9a51f9aa66357c2b3dd7da70b6dc31adc547bdaa82b94738d2a7b105a4', 0, keys=pk, value=1255701,
+                    witness_type='segwit')
+        t.add_output(1250000, 'bc1qygdvxdn2cg9acr84jatsm5sndz24xp6en39f4x')
+        t.sign()
+        self.assertTrue(t.verify())
+
+        t.set_locktime_time(1608582667)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.locktime, 1608582667)
+        t.set_locktime_time(0)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.locktime, 0xffffffff)
+
+        t.set_locktime_blocks(606060)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.locktime, 606060)
+        t.set_locktime_blocks(0)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.locktime, 0xffffffff)
+
+    def test_transaction_relative_lock_methods(self):
+        pk = HDKey(witness_type='segwit').from_passphrase(
+            'canal update powder leg category tree leaf moon soda day moral civil')
+        t = Transaction(witness_type='segwit')
+        t.add_input('9efb6c9a51f9aa66357c2b3dd7da70b6dc31adc547bdaa82b94738d2a7b105a4', 0, keys=pk, value=1255701,
+                    witness_type='segwit')
+        t.add_output(1250000, 'bc1qygdvxdn2cg9acr84jatsm5sndz24xp6en39f4x')
+        t.sign()
+        self.assertTrue(t.verify())
+
+        t.set_locktime_relative_time(60 * 60)
+        self.assertTrue(t.verify())
+        self.assertTrue(t.version_int, 2)
+        self.assertEqual(t.inputs[0].sequence, 4194311)
+        t.set_locktime_relative_time(0)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.inputs[0].sequence, 0xffffffff)
+
+        t.set_locktime_relative_blocks(100)
+        self.assertTrue(t.verify())
+        self.assertTrue(t.version_int, 2)
+        self.assertEqual(t.inputs[0].sequence, 100)
+        t.set_locktime_relative_blocks(0)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.inputs[0].sequence, 0xffffffff)
+
     def test_transaction_locktime_cltv(self):
         # timelock = 533600
         # inputs = [

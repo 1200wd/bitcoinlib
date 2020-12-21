@@ -853,6 +853,9 @@ class Input(object):
 
         :return None:
         """
+        if blocks == 0 or blocks == 0xffffffff:
+            self.sequence = 0xffffffff
+            return
         if blocks > SEQUENCE_LOCKTIME_MASK:
             raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.sequence = blocks
@@ -871,6 +874,9 @@ class Input(object):
         :param seconds: Number of seconds since the related previous transaction output has been confirmed.
         :return:
         """
+        if seconds == 0 or seconds == 0xffffffff:
+            self.sequence = 0xffffffff
+            return
         if seconds < 512:
             seconds = 512
         if (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
@@ -1487,22 +1493,9 @@ class Transaction(object):
         print("Confirmations: %s" % self.confirmations)
         print("Block: %s" % self.block_height)
 
-    # def set_locktime(self, locktime, locktype='blocks', is_relative=False):
-    #     if not is_relative:
-    #         if locktype == 'blocks':
-    #             return self.set_locktime_blocks(locktime)
-    #         elif locktype == 'time':
-    #             return self.set_locktime_time(locktime)
-    #     else:  # This is difficult, need to know number of confirmations for input for relative locktime
-    #         if locktype == 'blocks':
-    #             return self.inputs[0].set_locktime_blocks(locktime)
-    #         elif locktype == 'time':
-    #             return self.inputs[0].set_locktime_time(locktime)
-    #     raise TransactionError("Unknown locktype: %s" % locktype)
-
-    def set_locktime_relative_blocks(self, blocks, input_n=0):
+    def set_locktime_relative_blocks(self, blocks, input_index_n=0):
         """
-        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
+        Set nSequence relative locktime for this transaction. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
 
         Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
 
@@ -1510,19 +1503,25 @@ class Transaction(object):
 
         :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
         :type blocks: int
+        :param input_index_n: Index number of input for nSequence locktime
+        :type input_index_n: int
 
         :return None:
         """
+        if blocks == 0 or blocks == 0xffffffff:
+            self.inputs[input_index_n].sequence = 0xffffffff
+            self.sign(index_n=input_index_n, replace_signatures=True)
+            return
         if blocks > SEQUENCE_LOCKTIME_MASK:
             raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.inputs[input_n].sequence = blocks
+        self.inputs[input_index_n].sequence = blocks
         self.version_int = 2
         self.version = b'\x00\x00\x00\x02'
-        self.sign(index_n=input_n, replace_signatures=True)
+        self.sign(index_n=input_index_n, replace_signatures=True)
 
-    def set_locktime_relative_time(self, seconds, input_n=0):
+    def set_locktime_relative_time(self, seconds, input_index_n=0):
         """
-        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
+        Set nSequence relative locktime for this transaction. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
 
         Number of seconds will be rounded to the nearest 512 seconds. Any value below 512 will be interpreted as 512 seconds.
 
@@ -1531,14 +1530,24 @@ class Transaction(object):
         When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
 
         :param seconds: Number of seconds since the related previous transaction output has been confirmed.
+        :type seconds: int
+        :param input_index_n: Index number of input for nSequence locktime
+        :type input_index_n: int
+
         :return:
         """
-        if seconds < 512:
+        if seconds == 0 or seconds == 0xffffffff:
+            self.inputs[input_index_n].sequence = 0xffffffff
+            self.sign(index_n=input_index_n, replace_signatures=True)
+            return
+        elif seconds < 512:
             seconds = 512
-        if (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
+        elif (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
             raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
-        self.signatures = []
+        self.inputs[input_index_n].sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+        self.version_int = 2
+        self.version = b'\x00\x00\x00\x02'
+        self.sign(index_n=input_index_n, replace_signatures=True)
 
     def set_locktime_blocks(self, blocks):
         """
@@ -1551,12 +1560,18 @@ class Transaction(object):
 
         :return:
         """
-        if blocks > 500000000:
+        if blocks == 0 or blocks == 0xffffffff:
+            self.locktime = 0xffffffff
+            self.sign(replace_signatures=True)
+            self.verify()
+            return
+        elif blocks > 500000000:
             raise TransactionError("Number of locktime blocks must be below %d" % 500000000)
         self.locktime = blocks
-        for i in self.inputs:
-            if i.sequence == 0xffffffff:
-                i.sequence = 0xfffffffd
+        if blocks != 0 and blocks != 0xffffffff:
+            for i in self.inputs:
+                if i.sequence == 0xffffffff:
+                    i.sequence = 0xfffffffd
         self.sign(replace_signatures=True)
         self.verify()
 
@@ -1567,6 +1582,12 @@ class Transaction(object):
         :param timestamp: Transaction is valid after the given timestamp. Value must be between 500000000 and 0xfffffffe
         :return:
         """
+        if timestamp == 0 or timestamp == 0xffffffff:
+            self.locktime = 0xffffffff
+            self.sign(replace_signatures=True)
+            self.verify()
+            return
+
         if timestamp <= 500000000:
             raise TransactionError("Timestamp must have a value higher then %d" % 500000000)
         if timestamp > 0xfffffffe:
