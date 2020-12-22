@@ -3322,7 +3322,8 @@ class Wallet(object):
             return inputs
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-                           min_confirms=0, max_utxos=None, locktime=0):
+                           min_confirms=0, max_utxos=None, locktime=0, number_of_change_outputs=1,
+                           random_output_order=True):
         """
         Create new transaction with specified outputs.
 
@@ -3355,6 +3356,10 @@ class Wallet(object):
         :type max_utxos: int
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 4
+        :type number_of_change_outputs: int
+        :param random_output_order: Shuffle order of transaction outputs to increase privacy. Default is True
+        :type random_output_order: bool
 
         :return WalletTransaction: object
         """
@@ -3521,10 +3526,41 @@ class Wallet(object):
         if transaction.change < 0:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
-            ck = self.get_key(account_id=account_id, network=network, change=1)
-            on = transaction.add_output(transaction.change, ck.address, encoding=self.encoding)
-            transaction.outputs[on].key_id = ck.key_id
-            amount_total_output += transaction.change
+            if number_of_change_outputs == 0:
+                number_of_change_outputs = random.randint(1, 3)
+            # Prefer 1 and 2 as number of change outputs
+            if number_of_change_outputs == 3:
+                number_of_change_outputs = random.randint(3, 4)
+
+            min_output_value = transaction.fee * 10 + self.network.fee_min * 4
+            if transaction.change / number_of_change_outputs < min_output_value:
+                number_of_change_outputs = 1
+
+            if self.scheme == 'single':
+                change_keys = [self.get_key(account_id=account_id, network=network, change=1)]
+                number_of_change_outputs = 1
+            else:
+                change_keys = self.get_keys(account_id=account_id, network=network, change=1,
+                                            number_of_keys=number_of_change_outputs)
+            total_change_left = transaction.change
+            for ck in change_keys:
+                if ck == change_keys[-1]:
+                    change = total_change_left
+                else:
+                    change = random.randint(min_output_value, total_change_left)
+                on = transaction.add_output(change, ck.address, encoding=self.encoding)
+                transaction.outputs[on].key_id = ck.key_id
+                total_change_left -= change
+
+        # Shuffle output order to increase privacy
+        if random_output_order:
+            random.shuffle(transaction.outputs)
+            for index, o in enumerate(transaction.outputs):
+                o.output_n = index
+
+        # Check tx values
+        if sum([i.value for i in transaction.inputs]) != transaction.fee + sum([o.value for o in transaction.outputs]):
+            raise WalletError("Sum of inputs values is not equal to sum of outputs values plus fees")
 
         transaction.txid = transaction.signature_hash()[::-1].hex()
         if not transaction.fee_per_kb:
@@ -3551,7 +3587,8 @@ class Wallet(object):
 
         """
         if isinstance(t, Transaction):
-            rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.name)
+            rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.name,
+                                         random_output_order=False)
             rt.block_height = t.block_height
             rt.confirmations = t.confirmations
             rt.witness_type = t.witness_type
@@ -3583,7 +3620,8 @@ class Wallet(object):
             output_arr = []
             for o in t['outputs']:
                 output_arr.append((o['address'], int(o['value'])))
-            rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
+            rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'],
+                                         random_output_order=False)
             rt.block_height = t['block_height']
             rt.confirmations = t['confirmations']
             rt.witness_type = t['witness_type']
@@ -3624,14 +3662,15 @@ class Wallet(object):
         if network is None:
             network = self.network.name
         t_import = Transaction.import_raw(rawtx, network=network)
-        rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
+        # FIXME: Missing locktime, version, etc?
+        rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network, random_output_order=False)
         rt.verify()
         rt.size = rt.vsize = len(rawtx)
         rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-             min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False):
+             min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False, number_of_change_outputs=1):
         """
         Create a new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's
@@ -3668,6 +3707,8 @@ class Wallet(object):
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 4
+        :type number_of_change_outputs: int
 
         :return WalletTransaction:
         """
@@ -3678,7 +3719,7 @@ class Wallet(object):
                               (len(input_arr), max_utxos))
 
         transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network, fee,
-                                              min_confirms, max_utxos, locktime)
+                                              min_confirms, max_utxos, locktime, number_of_change_outputs)
         transaction.sign(priv_keys)
         # Calculate exact fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
@@ -3689,7 +3730,8 @@ class Wallet(object):
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
                 transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network,
-                                                      fee_exact, min_confirms, max_utxos, locktime)
+                                                      fee_exact, min_confirms, max_utxos, locktime,
+                                                      number_of_change_outputs)
                 transaction.sign(priv_keys)
 
         transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.size) * 1024)
@@ -3698,7 +3740,7 @@ class Wallet(object):
         return transaction
 
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=0,
-                priv_keys=None, locktime=0, offline=False):
+                priv_keys=None, locktime=0, offline=False, number_of_change_outputs=1):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
 
@@ -3731,13 +3773,16 @@ class Wallet(object):
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 4
+        :type number_of_change_outputs: int
 
         :return WalletTransaction:
         """
 
         outputs = [(to_address, amount)]
         return self.send(outputs, input_key_id=input_key_id, account_id=account_id, network=network, fee=fee,
-                         min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline)
+                         min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline,
+                         number_of_change_outputs=number_of_change_outputs)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
               fee_per_kb=None, fee=None, locktime=0, offline=False):

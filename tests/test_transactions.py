@@ -1761,3 +1761,14 @@ class TestTransactionsSegwit(unittest.TestCase, CustomAssertions):
         t = Transaction.import_raw(rawtx)
         self.assertEqual(t.vsize, 612)
         self.assertEqual(t.weight_units, 2445)
+
+    def test_tmp_wallet_transaction_import_dict(self):
+        from bitcoinlib.wallets import Wallet, wallet_delete_if_exists
+        wallet_delete_if_exists('bcltestwlt5', force=True)
+        wlt = Wallet.create('bcltestwlt5', network='bitcoinlib_test')
+        to_key = wlt.get_key()
+        wlt.utxos_update()
+        t = wlt.send_to(to_key.address, 60000000, offline=True)
+        t2 = wlt.transaction_import(t.as_dict())
+        self.assertDictEqualExt(t.as_dict(), t2.as_dict())
+        del wlt

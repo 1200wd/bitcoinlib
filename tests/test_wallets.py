@@ -1714,7 +1714,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                 db_uri=self.DATABASE_URI)
             wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
             to_address = wl3.get_key_change().address
-            t = wl3.transaction_create([(to_address, 90000)], fee=10000)
+            t = wl3.transaction_create([(to_address, 90000)], fee=10000, random_output_order=False)
             t.estimate_size()
             size1 = t.size
             t.sign()
@@ -1733,7 +1733,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                                 sigs_required=2, db_uri=self.DATABASE_URI)
             wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
             to_address = wl3.get_key_change().address
-            t = wl3.transaction_create([(to_address, 90000)], fee=10000)
+            t = wl3.transaction_create([(to_address, 90000)], fee=10000, random_output_order=False)
             t.estimate_size()
             size1 = t.size
             t.sign(p2)
@@ -2073,7 +2073,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
                             db_uri=self.DATABASE_URI)
         wl1.utxo_add(wl1.get_key().address, 10000000, prev_txid, 0)
         to_address = wl1.get_key_change().address
-        t = wl1.transaction_create([(to_address, 100000)], fee=10000)
+        t = wl1.transaction_create([(to_address, 100000)], fee=10000, random_output_order=False)
 
         t.sign(pk2.subkey_for_path("m/48'/0'/0'/2'/0/0"))
         self.assertTrue(t.verify())
@@ -2084,7 +2084,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         wl2 = Wallet.create('segwit_bitcoin_p2wpkh_send', witness_type='segwit', db_uri=self.DATABASE_URI)
         wl2.utxo_add(wl2.get_key().address, 200000, prev_txid, 0)
         to_address = wl1.get_key_change().address
-        t = wl2.transaction_create([(to_address, 100000)], fee=10000)
+        t = wl2.transaction_create([(to_address, 100000)], fee=10000, random_output_order=False)
         t.sign()
         self.assertTrue(t.verify())
         self.assertEqual(t.outputs[0].address, to_address)
@@ -2094,7 +2094,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         wl3 = Wallet.create('segwit_bitcoin_p2sh_p2wpkh_send', witness_type='p2sh-segwit',
                             db_uri=self.DATABASE_URI)
         wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
-        t = wl3.transaction_create([(to_address, 100000)], fee=10000)
+        t = wl3.transaction_create([(to_address, 100000)], fee=10000, random_output_order=False)
         t.sign()
         self.assertTrue(t.verify())
         self.assertEqual(t.outputs[0].address, to_address)
