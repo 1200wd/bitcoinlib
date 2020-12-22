@@ -3562,7 +3562,8 @@ class Wallet(object):
         if sum([i.value for i in transaction.inputs]) != transaction.fee + sum([o.value for o in transaction.outputs]):
             raise WalletError("Sum of inputs values is not equal to sum of outputs values plus fees")
 
-        transaction.txid = transaction.signature_hash()[::-1].hex()
+        transaction.txhash = transaction.signature_hash()[::-1]
+        transaction.txid = transaction.txhash.hex()
         if not transaction.fee_per_kb:
             transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
         if transaction.fee_per_kb < self.network.fee_min:
@@ -3662,8 +3663,10 @@ class Wallet(object):
         if network is None:
             network = self.network.name
         t_import = Transaction.import_raw(rawtx, network=network)
-        # FIXME: Missing locktime, version, etc?
-        rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network, random_output_order=False)
+        rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network, locktime=t_import.locktime,
+                                     random_output_order=False)
+        rt.version_int = t_import.version_int
+        rt.version = t_import.version
         rt.verify()
         rt.size = rt.vsize = len(rawtx)
         rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)

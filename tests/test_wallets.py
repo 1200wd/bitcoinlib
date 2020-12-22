@@ -1679,6 +1679,16 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertDictEqualExt(t.as_dict(), t2.as_dict(), ['spending_txid', 'spending_index_n'])
         del wlt
 
+    def test_wallet_transaction_import_raw_locktime(self):
+        wlt = Wallet.create('bcltestwlt4b', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        to_key = wlt.get_key()
+        wlt.utxos_update()
+        t = wlt.send_to(to_key.address, 12312837, offline=True)
+        t.set_locktime_blocks(1000)
+        t2 = wlt.transaction_import_raw(t.raw())
+        self.assertDictEqualExt(t.as_dict(), t2.as_dict(), ['spending_txid', 'spending_index_n'])
+        del wlt
+
     def test_wallet_transaction_import_dict(self):
         wlt = Wallet.create('bcltestwlt5', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
         to_key = wlt.get_key()

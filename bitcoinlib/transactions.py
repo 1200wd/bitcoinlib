@@ -1518,8 +1518,7 @@ class Transaction(object):
             raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.inputs[input_index_n].sequence = blocks
         self.version_int = 2
-        self.version = b'\x00\x00\x00\x02'
-        self.sign(index_n=input_index_n, replace_signatures=True)
+        self.sign_and_update(index_n=input_index_n)
 
     def set_locktime_relative_time(self, seconds, input_index_n=0):
         """
@@ -1548,8 +1547,7 @@ class Transaction(object):
             raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
         self.inputs[input_index_n].sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
         self.version_int = 2
-        self.version = b'\x00\x00\x00\x02'
-        self.sign(index_n=input_index_n, replace_signatures=True)
+        self.sign_and_update(index_n=input_index_n)
 
     def set_locktime_blocks(self, blocks):
         """
@@ -1574,8 +1572,7 @@ class Transaction(object):
             for i in self.inputs:
                 if i.sequence == 0xffffffff:
                     i.sequence = 0xfffffffd
-        self.sign(replace_signatures=True)
-        self.verify()
+        self.sign_and_update()
 
     def set_locktime_time(self, timestamp):
         """
@@ -1600,8 +1597,7 @@ class Transaction(object):
         for i in self.inputs:
             if i.sequence == 0xffffffff:
                 i.sequence = 0xfffffffd
-        self.sign(replace_signatures=True)
-        self.verify()
+        self.sign_and_update()
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
         """
@@ -1831,7 +1827,7 @@ class Transaction(object):
         
         :param keys: A private key or list of private keys
         :type keys: HDKey, Key, bytes, list
-        :param index_n: Index of transaction input
+        :param index_n: Index of transaction input. Leave empty to sign all inputs
         :type index_n: int
         :param multisig_key_n: Index number of key for multisig input for segwit transactions. Leave empty if not known. If not specified all possibilities will be checked
         :type multisig_key_n: int
@@ -1917,6 +1913,21 @@ class Transaction(object):
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
             self.inputs[tid].update_scripts(hash_type)
 
+    def sign_and_update(self, index_n=None):
+        """
+        Update transaction ID and resign. Use if some properties of the transaction changed
+
+        :param index_n: Index of transaction input. Leave empty to sign all inputs
+        :type index_n: int
+
+        :return:
+        """
+
+        self.version = self.version_int.to_bytes(4, 'big')
+        self.sign(index_n=index_n, replace_signatures=True)
+        self.txhash = self.signature_hash()[::-1]
+        self.txid = self.txhash.hex()
+
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
                   sequence=0xffffffff, compressed=True, sigs_required=None, sort=False, index_n=None,
@@ -1982,6 +1993,7 @@ class Transaction(object):
             sequence_int = int.from_bytes(sequence, 'little')
         if self.version == b'\x00\x00\x00\x01' and 0 < sequence_int < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
+            self.version_int = 2
         self.inputs.append(
             Input(prev_txid=prev_txid, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
                   unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
