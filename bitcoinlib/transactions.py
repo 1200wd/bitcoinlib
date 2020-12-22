@@ -687,7 +687,7 @@ class Input(object):
         :type double_spend: bool
         :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
         :type locktime_cltv: int
-        :param locktime_csv: Check Sequence Verify value.
+        :param locktime_csv: Check Sequence Verify value
         :type locktime_csv: int
         :param key_path: Key path of input key as BIP32 string or list
         :type key_path: str, list
@@ -1025,7 +1025,8 @@ class Input(object):
             'signatures': [s.hex() for s in self.signatures],
             'sigs_required': self.sigs_required,
             'locktime_cltv': self.locktime_cltv,
-            'locktime_csv': self.locktime_csv, 'public_hash': self.public_hash.hex(),
+            'locktime_csv': self.locktime_csv,
+            'public_hash': self.public_hash.hex(),
             'script_code': self.script_code.hex(),
             'unlocking_script': self.unlocking_script.hex(),
             'unlocking_script_unsigned': self.unlocking_script_unsigned.hex(),
@@ -1249,10 +1250,10 @@ class Transaction(object):
 
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
-                 fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None, confirmations=None,
-                 block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'', status='new',
-                 coinbase=False, verified=False, witness_type='legacy', flag=None):
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=None,
+                 network=DEFAULT_NETWORK, fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None,
+                 confirmations=None, block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'',
+                 status='new', coinbase=False, verified=False, witness_type='legacy', flag=None):
         """
         Create a new transaction class with provided inputs and outputs. 
         
@@ -1334,7 +1335,8 @@ class Transaction(object):
             if fee < 0 or fee == 0 and not self.coinbase:
                 raise TransactionError("Transaction inputs total value must be greater then total value of "
                                        "transaction outputs")
-
+        if not version:
+            version = b'\x00\x00\x00\x01'
         if isinstance(version, int):
             self.version = version.to_bytes(4, 'big')
             self.version_int = version
