@@ -3538,7 +3538,6 @@ class Wallet(object):
 
             if self.scheme == 'single':
                 change_keys = [self.get_key(account_id=account_id, network=network, change=1)]
-                number_of_change_outputs = 1
             else:
                 change_keys = self.get_keys(account_id=account_id, network=network, change=1,
                                             number_of_keys=number_of_change_outputs)
@@ -3562,8 +3561,7 @@ class Wallet(object):
         if sum([i.value for i in transaction.inputs]) != transaction.fee + sum([o.value for o in transaction.outputs]):
             raise WalletError("Sum of inputs values is not equal to sum of outputs values plus fees")
 
-        transaction.txhash = transaction.signature_hash()[::-1]
-        transaction.txid = transaction.txhash.hex()
+        transaction.txid = transaction.signature_hash()[::-1].hex()
         if not transaction.fee_per_kb:
             transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
         if transaction.fee_per_kb < self.network.fee_min:
