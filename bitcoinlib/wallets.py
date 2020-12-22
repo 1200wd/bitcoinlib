@@ -3533,7 +3533,8 @@ class Wallet(object):
                 number_of_change_outputs = random.randint(3, 4)
 
             min_output_value = transaction.fee * 10 + self.network.fee_min * 4
-            if transaction.change / number_of_change_outputs < min_output_value:
+            average_change = transaction.change / number_of_change_outputs
+            if average_change < min_output_value:
                 number_of_change_outputs = 1
 
             if self.scheme == 'single':
@@ -3546,7 +3547,8 @@ class Wallet(object):
                 if ck == change_keys[-1]:
                     change = total_change_left
                 else:
-                    change = random.randint(min_output_value, total_change_left)
+                    max_output_value = average_change if average_change < total_change_left else total_change_left
+                    change = random.randint(min_output_value, max_output_value)
                 on = transaction.add_output(change, ck.address, encoding=self.encoding)
                 transaction.outputs[on].key_id = ck.key_id
                 total_change_left -= change
@@ -3558,7 +3560,9 @@ class Wallet(object):
                 o.output_n = index
 
         # Check tx values
-        if sum([i.value for i in transaction.inputs]) != transaction.fee + sum([o.value for o in transaction.outputs]):
+        transaction.input_total = sum([i.value for i in transaction.inputs])
+        transaction.output_total = sum([o.value for o in transaction.outputs])
+        if transaction.input_total != transaction.fee + transaction.output_total:
             raise WalletError("Sum of inputs values is not equal to sum of outputs values plus fees")
 
         transaction.txid = transaction.signature_hash()[::-1].hex()

@@ -1927,6 +1927,7 @@ class Transaction(object):
         self.sign(index_n=index_n, replace_signatures=True)
         self.txid = self.signature_hash()[::-1].hex()
         self.size = len(self.raw())
+        self.update_totals()
         self.fee_per_kb = int((self.fee / float(self.size)) * 1024)
 
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
