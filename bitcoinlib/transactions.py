@@ -1927,6 +1927,7 @@ class Transaction(object):
         self.sign(index_n=index_n, replace_signatures=True)
         self.txid = self.signature_hash()[::-1].hex()
         self.size = len(self.raw())
+        self.calc_weight_units()
         self.update_totals()
         self.fee_per_kb = int((self.fee / float(self.size)) * 1024)
 

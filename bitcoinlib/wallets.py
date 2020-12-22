@@ -3526,6 +3526,7 @@ class Wallet(object):
         if transaction.change < 0:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
+            random_output_order = False
             if number_of_change_outputs == 0:
                 number_of_change_outputs = random.randint(1, 3)
             # Prefer 1 and 2 as number of change outputs
@@ -3533,7 +3534,7 @@ class Wallet(object):
                 number_of_change_outputs = random.randint(3, 4)
 
             min_output_value = transaction.fee * 10 + self.network.fee_min * 4
-            average_change = transaction.change / number_of_change_outputs
+            average_change = transaction.change // number_of_change_outputs
             if average_change < min_output_value:
                 number_of_change_outputs = 1
 
@@ -3542,22 +3543,26 @@ class Wallet(object):
             else:
                 change_keys = self.get_keys(account_id=account_id, network=network, change=1,
                                             number_of_keys=number_of_change_outputs)
-            total_change_left = transaction.change
-            for ck in change_keys:
-                if ck == change_keys[-1]:
-                    change = total_change_left
-                else:
-                    max_output_value = average_change if average_change < total_change_left else total_change_left
-                    change = random.randint(min_output_value, max_output_value)
-                on = transaction.add_output(change, ck.address, encoding=self.encoding)
+
+            # Determine value per output
+            randlist = [random.random() for _ in range(0, number_of_change_outputs)]
+            randlist_total = sum(randlist)
+            change_amounts = [int((x/randlist_total) * transaction.change) for x in randlist]
+
+            # Fix rounding problems / small amount differences
+            change_amounts[0] += transaction.change - sum(change_amounts)
+            if change_amounts[0] < min_output_value:
+                raise WalletError("Output change value below minimum, lower amount of change outputs")
+
+            for idx, ck in enumerate(change_keys):
+                on = transaction.add_output(change_amounts[idx], ck.address, encoding=self.encoding)
                 transaction.outputs[on].key_id = ck.key_id
-                total_change_left -= change
 
         # Shuffle output order to increase privacy
         if random_output_order:
             random.shuffle(transaction.outputs)
-            for index, o in enumerate(transaction.outputs):
-                o.output_n = index
+            for idx, o in enumerate(transaction.outputs):
+                o.output_n = idx
 
         # Check tx values
         transaction.input_total = sum([i.value for i in transaction.inputs])
