@@ -2053,15 +2053,15 @@ class Transaction(object):
                                    network=self.network.name))
         return output_n
 
-    def estimate_size(self, add_change_output=False):
+    def estimate_size(self, number_of_change_outputs=0):
         """
         Get estimated vsize in for current transaction based on transaction type and number of inputs and outputs.
 
         For old-style legacy transaction the vsize is the length of the transaction. In segwit transaction the
         witness data has less weight. The formula used is: math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
 
-        :param add_change_output: Assume an extra change output will be created but has not been created yet.
-        :type add_change_output: bool
+        :param number_of_change_outputs: Number of change outputs, default is 0
+        :type number_of_change_outputs: int
 
         :return int: Estimated transaction size
         """
@@ -2108,15 +2108,16 @@ class Transaction(object):
                 est_size += len(varstr(outp.lock_script))
             else:
                 raise TransactionError("Need locking script for output %d to estimate size" % outp.output_n)
-        if add_change_output:
+        if number_of_change_outputs:
             is_multisig = True if self.inputs and self.inputs[0].script_type == 'p2sh_multisig' else False
-            est_size += 8
+            co_size = 8
             if not self.inputs or self.inputs[0].witness_type == 'legacy':
-                est_size += 24 if is_multisig else 26
+                co_size += 24 if is_multisig else 26
             elif self.inputs[0].witness_type == 'p2sh-segwit':
-                est_size += 24
+                co_size += 24
             else:
-                est_size += 33 if is_multisig else 23
+                co_size += 33 if is_multisig else 23
+            est_size += (number_of_change_outputs * co_size)
         self.size = est_size
         self.vsize = est_size
         if self.witness_type == 'legacy':

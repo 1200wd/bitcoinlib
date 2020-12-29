@@ -293,7 +293,7 @@ class TestTransactions(unittest.TestCase):
         lock_script = b'j' + varstr(b'Please leave a message after the beep')
         t.add_output(0, lock_script=lock_script)
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
-        self.assertEqual(t.estimate_size(add_change_output=True), 239)
+        self.assertEqual(t.estimate_size(number_of_change_outputs=1), 239)
 
     def test_transaction_very_large(self):
         rawtx = \

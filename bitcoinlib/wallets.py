@@ -3394,7 +3394,8 @@ class Wallet(object):
         if fee is None:
             if not input_arr:
                 transaction.fee_per_kb = srv.estimatefee()
-                fee_estimate = (transaction.estimate_size(add_change_output=True) / 1024.0 * transaction.fee_per_kb)
+                fee_estimate = (transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) / 1024.0
+                                * transaction.fee_per_kb)
                 if fee_estimate < self.network.fee_min:
                     fee_estimate = self.network.fee_min
             else:
@@ -3498,7 +3499,7 @@ class Wallet(object):
         # Calculate fees
         transaction.fee = fee
         fee_per_output = None
-        transaction.size = transaction.estimate_size(add_change_output=True)
+        transaction.size = transaction.estimate_size(number_of_change_outputs=number_of_change_outputs)
         if fee is None:
             if not input_arr:
                 if not transaction.fee_per_kb:
@@ -3526,7 +3527,6 @@ class Wallet(object):
         if transaction.change < 0:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
-            random_output_order = False
             if number_of_change_outputs == 0:
                 number_of_change_outputs = random.randint(1, 3)
             # Prefer 1 and 2 as number of change outputs
@@ -3535,8 +3535,8 @@ class Wallet(object):
 
             min_output_value = transaction.fee * 10 + self.network.fee_min * 4
             average_change = transaction.change // number_of_change_outputs
-            if average_change < min_output_value:
-                number_of_change_outputs = 1
+            if number_of_change_outputs > 1 and average_change < min_output_value:
+                raise WalletError("Not enough funds to create multiple change outputs")
 
             if self.scheme == 'single':
                 change_keys = [self.get_key(account_id=account_id, network=network, change=1)]
@@ -3550,8 +3550,12 @@ class Wallet(object):
             change_amounts = [int((x/randlist_total) * transaction.change) for x in randlist]
 
             # Fix rounding problems / small amount differences
-            change_amounts[0] += transaction.change - sum(change_amounts)
-            if change_amounts[0] < min_output_value:
+            diffs = transaction.change - sum(change_amounts)
+            for idx, co in enumerate(change_amounts):
+                if co - diffs > min_output_value:
+                    change_amounts[idx] += change_amounts.index(co) + diffs
+                    break
+            if len(change_amounts) > 1 and change_amounts[0] < min_output_value:
                 raise WalletError("Output change value below minimum, lower amount of change outputs")
 
             for idx, ck in enumerate(change_keys):
