@@ -352,7 +352,7 @@ class Value:
 
     def str_unit(self, decimals=None, currency_repr='code'):
         """
-        String representation of this Value. Wrapper for the str() method, but always uses 1 as denominator, meaning main denominator such as BTC, LTC.
+        String representation of this Value. Wrapper for the :func:`str` method, but always uses 1 as denominator, meaning main denominator such as BTC, LTC.
 
         >>> Value('12000 sat').str_unit()
         '0.00012000 BTC'
@@ -367,7 +367,7 @@ class Value:
 
     def str_auto(self, decimals=None, currency_repr='code'):
         """
-        String representation of this Value. Wrapper for the str() method, but automatically determines the denominator depending on the value.
+        String representation of this Value. Wrapper for the :func:`str` method, but automatically determines the denominator depending on the value.
 
         >>> Value('0.0000012 BTC').str_auto()
         '120 sat'

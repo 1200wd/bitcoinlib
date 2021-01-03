@@ -3240,7 +3240,7 @@ class Wallet(object):
 
         :param amount: Total value of inputs in smallest denominator (sathosi) to select
         :type amount: int
-        :param variance: Allowed difference in total input value. Default is dust amount of selected network.
+        :param variance: Allowed difference in total input value. Default is dust amount of selected network. Difference will be added to transaction fee.
         :type variance: int
         :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
         :type input_key_id: int
@@ -3528,15 +3528,21 @@ class Wallet(object):
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
             if number_of_change_outputs == 0:
-                number_of_change_outputs = random.randint(1, 3)
-            # Prefer 1 and 2 as number of change outputs
-            if number_of_change_outputs == 3:
-                number_of_change_outputs = random.randint(3, 4)
+                if transaction.change > amount_total_output / 12:
+                    number_of_change_outputs = 1
+                elif transaction.change / 10 < amount_total_output:
+                    number_of_change_outputs = random.randint(2, 5)
+                else:
+                    number_of_change_outputs = random.randint(1, 3)
+                    # Prefer 1 and 2 as number of change outputs
+                    if number_of_change_outputs == 3:
+                        number_of_change_outputs = random.randint(3, 4)
 
-            min_output_value = transaction.fee * 10 + self.network.fee_min * 4
+            min_output_value = getattr(transaction, 'fee_per_kb') + self.network.fee_min * 4
             average_change = transaction.change // number_of_change_outputs
             if number_of_change_outputs > 1 and average_change < min_output_value:
-                raise WalletError("Not enough funds to create multiple change outputs")
+                raise WalletError("Not enough funds to create multiple change outputs. Try less change outputs "
+                                  "or lower fees")
 
             if self.scheme == 'single':
                 change_keys = [self.get_key(account_id=account_id, network=network, change=1)]
