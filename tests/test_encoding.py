@@ -162,6 +162,16 @@ class TestEncodingMethodsAddressConversion(unittest.TestCase):
         addr = pubkeyhash_to_addr('45d093a97d5710c80363c69618e826efad42edb1', encoding='bech32')
         self.assertEqual(addr, 'bc1qghgf82ta2ugvsqmrc6tp36pxa7k59md3czjhjc')
 
+    def test_address_base58_zero_prefixes(self):
+        self.assertEqual(pubkeyhash_to_addr_base58('00003acd8f60b766e48e9db32093b419c21de7e9'),
+                         '111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
+        self.assertEqual(change_base('000000003acd8f60b766e48e9db32093b419c21de7e9b35f7e0d', 16, 58), '1111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
+        self.assertEqual(change_base('0000003acd8f60b766e48e9db32093b419c21de7e9b35f7e0d', 16, 58), '111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
+        self.assertEqual(change_base('1111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk', 58, 256).hex(),
+                         '000000003acd8f60b766e48e9db32093b419c21de7e9b35f7e0d')
+        self.assertRaisesRegexp(EncodingError, "Invalid address hash160 length, should be 25 characters not",
+                                addr_base58_to_pubkeyhash, '1111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
+
 
 class TestEncodingMethodsStructures(unittest.TestCase):
 

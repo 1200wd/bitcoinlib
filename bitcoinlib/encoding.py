@@ -448,7 +448,7 @@ def addr_base58_to_pubkeyhash(address, as_hex=False):
     except EncodingError as err:
         raise EncodingError("Invalid address %s: %s" % (address, err))
     if len(address) != 25:
-        raise EncodingError("Invalid address length, should be 25 characters not %d" % len(address))
+        raise EncodingError("Invalid address hash160 length, should be 25 characters not %d" % len(address))
     check = address[-4:]
     pkh = address[:-4]
     checksum = double_sha256(pkh)[0:4]
