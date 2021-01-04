@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
-#    © 2016 - 2018 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2021 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -150,7 +150,7 @@ class TestEncodingMethodsAddressConversion(unittest.TestCase):
                          pubkeyhash_to_addr('d8b76f6dd0e8d17cd34c3703ad5a120ba83ff857'))
 
     def test_pkh_to_addr_conversion_2(self):
-        self.assertEqual('11111111111111111111111111114oLvT2',
+        self.assertEqual('1111111111111111111114oLvT2',
                          pubkeyhash_to_addr('00' * 20))
 
     def test_address_to_pkh_bech32(self):
