@@ -3537,8 +3537,14 @@ class Wallet(object):
                     # Prefer 1 and 2 as number of change outputs
                     if number_of_change_outputs == 3:
                         number_of_change_outputs = random.randint(3, 4)
+                transaction.size = transaction.estimate_size(number_of_change_outputs=number_of_change_outputs)
 
-            min_output_value = getattr(transaction, 'fee_per_kb') + self.network.fee_min * 4
+            min_output_value = self.network.dust_amount * 2 + self.network.fee_min * 4
+            if transaction.fee and transaction.size:
+                if not transaction.fee_per_kb:
+                    transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
+                min_output_value = transaction.fee_per_kb + self.network.fee_min * 4 + self.network.dust_amount
+
             average_change = transaction.change // number_of_change_outputs
             if number_of_change_outputs > 1 and average_change < min_output_value:
                 raise WalletError("Not enough funds to create multiple change outputs. Try less change outputs "
