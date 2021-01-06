@@ -2151,6 +2151,7 @@ class Transaction(object):
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
         fee = int(self.estimate_size() / 1024.0 * self.fee_per_kb)
+        # FIXME: fee is in kb, network.fee_min in sat/kb
         if fee < self.network.fee_min:
             fee = self.network.fee_min
         elif fee > self.network.fee_max:
