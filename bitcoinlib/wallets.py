@@ -2800,13 +2800,16 @@ class Wallet(object):
         :type network: str
         :param min_confirms: Minimal confirmation needed to include in output list
         :type min_confirms: int
-        :param key_id: Key ID to just get 1 key
-        :type key_id: int
+        :param key_id: Key ID or list of key IDs to filter utxo's for specific keys
+        :type key_id: int, list
 
         :return list: List of transactions
         """
 
-        network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
+        first_key_id = key_id
+        if isinstance(key_id, list):
+            first_key_id = key_id[0]
+        network, account_id, acckey = self._get_account_defaults(network, account_id, first_key_id)
 
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.txid,
                                  DbKey.network_name).\
@@ -2816,8 +2819,11 @@ class Wallet(object):
                    DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network,
                    DbTransaction.confirmations >= min_confirms)
-        if key_id is not None:
+        if isinstance(key_id, int):
             qr = qr.filter(DbKey.id == key_id)
+        elif isinstance(key_id, list):
+            # for i in key_id:
+            qr = qr.filter(DbKey.id.in_(key_id))
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
@@ -3242,8 +3248,8 @@ class Wallet(object):
         :type amount: int
         :param variance: Allowed difference in total input value. Default is dust amount of selected network. Difference will be added to transaction fee.
         :type variance: int
-        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
-        :type input_key_id: int
+        :param input_key_id: Limit UTXO's search for inputs to this key ID or list of key IDs. Only valid if no input array is specified
+        :type input_key_id: int, list
         :param account_id: Account ID
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3268,7 +3274,10 @@ class Wallet(object):
                    DbTransaction.network_name == network, DbKey.public != b'',
                    DbTransactionOutput.spent.is_(False), DbTransaction.confirmations >= min_confirms)
         if input_key_id:
-            utxo_query = utxo_query.filter(DbKey.id == input_key_id)
+            if isinstance(input_key_id, int):
+                utxo_query = utxo_query.filter(DbKey.id == input_key_id)
+            else:
+                utxo_query = utxo_query.filter(DbKey.id.in_(input_key_id))
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
@@ -3356,7 +3365,7 @@ class Wallet(object):
         :type max_utxos: int
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
-        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 4
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount        :type number_of_change_outputs: int
         :type number_of_change_outputs: int
         :param random_output_order: Shuffle order of transaction outputs to increase privacy. Default is True
         :type random_output_order: bool
@@ -3528,9 +3537,9 @@ class Wallet(object):
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
             if number_of_change_outputs == 0:
-                if transaction.change > amount_total_output / 12:
+                if transaction.change < amount_total_output / 2:
                     number_of_change_outputs = 1
-                elif transaction.change / 10 < amount_total_output:
+                elif transaction.change / 10 > amount_total_output:
                     number_of_change_outputs = random.randint(2, 5)
                 else:
                     number_of_change_outputs = random.randint(1, 3)
@@ -3715,8 +3724,8 @@ class Wallet(object):
         :type output_arr: list
         :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(txid, output_n, key_id, value)]
         :type input_arr: list
-        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
-        :type input_key_id: int
+        :param input_key_id: Limit UTXO's search for inputs to this key ID or list of key IDs. Only valid if no input array is specified
+        :type input_key_id: int, list
         :param account_id: Account ID
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3733,7 +3742,7 @@ class Wallet(object):
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
-        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 4
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
 
         :return WalletTransaction:
@@ -3799,7 +3808,7 @@ class Wallet(object):
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
-        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 4
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
         :type number_of_change_outputs: int
 
         :return WalletTransaction:
@@ -3829,8 +3838,8 @@ class Wallet(object):
         :type to_address: str
         :param account_id: Wallet's account ID
         :type account_id: int
-        :param input_key_id: Limit sweep to UTXO's with this key_id
-        :type input_key_id: int
+        :param input_key_id: Limit sweep to UTXO's with this key ID or list of key IDs
+        :type input_key_id: int, list
         :param network: Network name. Leave empty for default network
         :type network: str
         :param max_utxos: Limit maximum number of outputs to use. Default is 999
@@ -3873,7 +3882,17 @@ class Wallet(object):
         if total_amount - fee <= self.network.dust_amount:
             raise WalletError("Amount to send is smaller then dust amount: %s" % (total_amount - fee))
 
-        return self.send([(to_address, total_amount - fee)], input_arr, network=network,
+        if isinstance(to_address, str):
+            to_list = [(to_address, total_amount - fee)]
+        else:
+            to_list = []
+            for o in to_address:
+                if o[1] == 0:
+                    to_list.append((o[0], total_amount - sum([x[1] for x in to_list]) - fee))
+                else:
+                    to_list.append(o)
+
+        return self.send(to_list, input_arr, network=network,
                          fee=fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
 
     def wif(self, is_private=False, account_id=0):
