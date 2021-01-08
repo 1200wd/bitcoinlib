@@ -21,7 +21,7 @@ import json
 import random
 from itertools import groupby
 from operator import itemgetter
-
+import numpy as np
 from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
@@ -3536,8 +3536,14 @@ class Wallet(object):
         if transaction.change < 0:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
+            min_output_value = self.network.dust_amount * 2 + self.network.fee_min * 4
+            if transaction.fee and transaction.size:
+                if not transaction.fee_per_kb:
+                    transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
+                min_output_value = transaction.fee_per_kb + self.network.fee_min * 4 + self.network.dust_amount
+
             if number_of_change_outputs == 0:
-                if transaction.change < amount_total_output / 2:
+                if transaction.change < amount_total_output / 10 or transaction.change < min_output_value * 8:
                     number_of_change_outputs = 1
                 elif transaction.change / 10 > amount_total_output:
                     number_of_change_outputs = random.randint(2, 5)
@@ -3547,12 +3553,6 @@ class Wallet(object):
                     if number_of_change_outputs == 3:
                         number_of_change_outputs = random.randint(3, 4)
                 transaction.size = transaction.estimate_size(number_of_change_outputs=number_of_change_outputs)
-
-            min_output_value = self.network.dust_amount * 2 + self.network.fee_min * 4
-            if transaction.fee and transaction.size:
-                if not transaction.fee_per_kb:
-                    transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
-                min_output_value = transaction.fee_per_kb + self.network.fee_min * 4 + self.network.dust_amount
 
             average_change = transaction.change // number_of_change_outputs
             if number_of_change_outputs > 1 and average_change < min_output_value:
@@ -3565,19 +3565,18 @@ class Wallet(object):
                 change_keys = self.get_keys(account_id=account_id, network=network, change=1,
                                             number_of_keys=number_of_change_outputs)
 
-            # Determine value per output
-            randlist = [random.random() for _ in range(0, number_of_change_outputs)]
-            randlist_total = sum(randlist)
-            change_amounts = [int((x/randlist_total) * transaction.change) for x in randlist]
-
-            # Fix rounding problems / small amount differences
-            diffs = transaction.change - sum(change_amounts)
-            for idx, co in enumerate(change_amounts):
-                if co - diffs > min_output_value:
-                    change_amounts[idx] += change_amounts.index(co) + diffs
-                    break
-            if len(change_amounts) > 1 and change_amounts[0] < min_output_value:
-                raise WalletError("Output change value below minimum, lower amount of change outputs")
+            if number_of_change_outputs > 1:
+                rand_prop = transaction.change - number_of_change_outputs * min_output_value
+                change_amounts = list(((np.random.dirichlet(np.ones(number_of_change_outputs), size=1)[0] *
+                                        rand_prop) + min_output_value).astype(int))
+                # Fix rounding problems / small amount differences
+                diffs = transaction.change - sum(change_amounts)
+                for idx, co in enumerate(change_amounts):
+                    if co - diffs > min_output_value:
+                        change_amounts[idx] += change_amounts.index(co) + diffs
+                        break
+            else:
+                change_amounts = [transaction.change]
 
             for idx, ck in enumerate(change_keys):
                 on = transaction.add_output(change_amounts[idx], ck.address, encoding=self.encoding)
