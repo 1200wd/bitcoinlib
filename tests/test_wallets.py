@@ -1910,6 +1910,38 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertRaisesRegex(WalletError, "Amount to send is smaller then dust amount: -1000",
                                w.sweep, to_address='14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', fee=6000, offline=True)
 
+    def test_wallet_sweep_multiple_outputs(self):
+        w = wallet_create_or_open('test_wallet_sweep_multiple_outputs', db_uri=self.DATABASE_URI)
+
+        utxos = [
+            {
+                "address": w.new_key().address,
+                "script": "",
+                "confirmations": 10,
+                "output_n": 1,
+                "txid": "f31446151f06522eb321d5992f4f1c95123c8b9d082b92c391df83c6d0a35516",
+                "value": 100000
+            },
+            {
+                "address": w.new_key().address,
+                "script": "",
+                "confirmations": 10,
+                "output_n": 1,
+                "txid": "9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003",
+                "value": 200000
+            },
+        ]
+
+        w.utxos_update(utxos=utxos)
+        w.info()
+
+        t = w.sweep([('14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', 11000), ('1GSffHyTGyKvQWpKHc7Mjd8K2bmbt7g9Xx', 0)],
+                    offline=True,
+                    fee=2000)
+
+        self.assertIn(287000, [o.value for o in t.outputs])
+        self.assertTrue(t.verified)
+
 
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):

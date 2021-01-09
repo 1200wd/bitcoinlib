@@ -3791,8 +3791,8 @@ class Wallet(object):
         :type to_address: str, Address, HDKey, WalletKey
         :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin), as Value object or value string as accepted by Value class
         :type amount: int, str, Value
-        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
-        :type input_key_id: int
+        :param input_key_id: Limit UTXO's search for inputs to this key ID or list of key IDs. Only valid if no input array is specified
+        :type input_key_id: int, list
         :param account_id: Account ID, default is last used
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3821,7 +3821,7 @@ class Wallet(object):
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
               fee_per_kb=None, fee=None, locktime=0, offline=False):
         """
-        Sweep all unspent transaction outputs (UTXO's) and send them to one output address.
+        Sweep all unspent transaction outputs (UTXO's) and send them to one or more output addresses.
 
         Wrapper for the :func:`send` method.
 
@@ -3832,9 +3832,14 @@ class Wallet(object):
         >>> t.outputs # doctest:+ELLIPSIS
         [<Output(value=..., address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>]
 
+        Output to multiple addresses
 
-        :param to_address: Single output address
-        :type to_address: str
+        >>> to_list = [('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 100000), (w.get_key(), 0)]
+        >>> w.sweep(to_list, offline=True)
+        <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
+
+        :param to_address: Single output address or list of outputs in format [(<adddress>, <amount>)]. If you specify a list of outputs, use amount value = 0 to indicate a change output
+        :type to_address: str, list
         :param account_id: Wallet's account ID
         :type account_id: int
         :param input_key_id: Limit sweep to UTXO's with this key ID or list of key IDs
@@ -3887,7 +3892,9 @@ class Wallet(object):
             to_list = []
             for o in to_address:
                 if o[1] == 0:
-                    to_list.append((o[0], total_amount - sum([x[1] for x in to_list]) - fee))
+                    o_amount = total_amount - sum([x[1] for x in to_list]) - fee
+                    if o_amount > 0:
+                        to_list.append((o[0], o_amount))
                 else:
                     to_list.append(o)
 
