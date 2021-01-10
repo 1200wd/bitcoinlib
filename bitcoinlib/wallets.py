@@ -770,7 +770,7 @@ class WalletTransaction(Transaction):
             self.confirmations = 0
             self.pushed = True
             self.response_dict = srv.results
-            self.save()
+            self.store()
 
             # Update db: Update spent UTXO's, add transaction to database
             for inp in self.inputs:
@@ -787,9 +787,9 @@ class WalletTransaction(Transaction):
             return None
         self.error = "Transaction not send, unknown response from service providers"
 
-    def save(self):
+    def store(self):
         """
-        Save this transaction to database
+        Store this transaction to database
 
         :return int: Transaction index number
         """
@@ -2934,7 +2934,7 @@ class Wallet(object):
         utxo_set = set()
         for t in txs:
             wt = WalletTransaction.from_transaction(self, t)
-            wt.save()
+            wt.store()
             utxos = [(ti.prev_txid.hex(), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
 
@@ -3013,7 +3013,7 @@ class Wallet(object):
         utxo_set = set()
         for t in txs:
             wt = WalletTransaction.from_transaction(self, t)
-            wt.save()
+            wt.store()
             utxos = [(ti.prev_txid.hex(), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
         for utxo in list(utxo_set):
