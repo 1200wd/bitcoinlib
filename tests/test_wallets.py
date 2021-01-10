@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2016 - 2019 November - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2021 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -1910,7 +1910,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertRaisesRegex(WalletError, "Amount to send is smaller then dust amount: -1000",
                                w.sweep, to_address='14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', fee=6000, offline=True)
 
-    def test_wallet_sweep_multiple_outputs(self):
+    def test_wallet_sweep_multiple_inputs_or_outputs(self):
         w = wallet_create_or_open('test_wallet_sweep_multiple_outputs', db_uri=self.DATABASE_URI)
 
         utxos = [
@@ -1930,17 +1930,82 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
                 "txid": "9df91f89a3eb4259ce04af66ad4caf3c9a297feea5e0b3bc506898b6728c5003",
                 "value": 200000
             },
+            {
+                "address": w.new_key().address,
+                "script": "",
+                "confirmations": 10,
+                "output_n": 0,
+                "txid": "7c21f0fad4344774d231081a75d7ab77f5328f446ef13e17709f876bd643d4de",
+                "value": 25000
+            },
+            {
+                "address": w.new_key().address,
+                "script": "",
+                "confirmations": 10,
+                "output_n": 1,
+                "txid": "7c21f0fad4344774d231081a75d7ab77f5328f446ef13e17709f876bd643d4de",
+                "value": 50000
+            },
         ]
-
         w.utxos_update(utxos=utxos)
-        w.info()
 
         t = w.sweep([('14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', 11000), ('1GSffHyTGyKvQWpKHc7Mjd8K2bmbt7g9Xx', 0)],
-                    offline=True,
-                    fee=2000)
-
-        self.assertIn(287000, [o.value for o in t.outputs])
+                    offline=True, fee=2000)
+        self.assertIn(362000, [o.value for o in t.outputs])
         self.assertTrue(t.verified)
+
+        input_key_ids = [u['key_id'] for u in w.utxos() if u['value'] in [50000, 25000, 100000]]
+        t = w.sweep([('14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', 150000), ('1GSffHyTGyKvQWpKHc7Mjd8K2bmbt7g9Xx', 0)],
+                    input_key_id=input_key_ids, offline=True, fee=5000)
+        self.assertIn(20000, [o.value for o in t.outputs])
+        self.assertEqual(3, len(t.inputs))
+        self.assertTrue(t.verified)
+
+    def test_wallet_send_multiple_change_outputs(self):
+        w = wallet_create_or_open('test_wallet_send_multiple_change_outputs', db_uri=self.DATABASE_URI)
+
+        utxos = [
+            {
+                "address": w.new_key().address,
+                "script": "",
+                "confirmations": 0,
+                "output_n": 0,
+                "txid": "d82d131e5ac0edfa6a3e1781c05b2a7f846b60fe8868b9d53da33756d98bc4fd",
+                "value": 250000
+            },
+            {
+                "address": w.new_key().address,
+                "script": "",
+                "confirmations": 2,
+                "output_n": 1,
+                "txid": "08de8bcb017f3aa9568344d1b49b9e3a16a580427330f9cb68e1ce61cacb4a2f",
+                "value": 75000
+            },
+            {
+                "address": w.new_key().address,
+                "script": "",
+                "confirmations": 2,
+                "output_n": 0,
+                "txid": "08de8bcb017f3aa9568344d1b49b9e3a16a580427330f9cb68e1ce61cacb4a2f",
+                "value": 25000
+            },
+        ]
+        w.utxos_update(utxos=utxos)
+
+        t = w.send_to('1D6kjUgadFdpvEL7hUUDsmqSemeUaN1iFi', 150000, offline=True, number_of_change_outputs=2, fee=3000)
+        self.assertEqual(3, len(t.outputs))
+        self.assertEqual(247000, t.output_total)
+        self.assertFalse([o.value for o in t.outputs if o.value < o.network.dust_amount])
+        self.assertTrue(t.verified)
+        self.assertEqual(1, len(t.inputs))
+
+        t = w.send_to('1D6kjUgadFdpvEL7hUUDsmqSemeUaN1iFi', 80000, offline=True, number_of_change_outputs=0, fee=1000)
+        self.assertEqual(249000, sum([o.value for o in t.outputs]))
+        self.assertGreaterEqual(len(t.outputs), 2)
+        self.assertLessEqual(len(t.outputs), 5)
+        self.assertFalse([o.value for o in t.outputs if o.value < o.network.dust_amount])
+        self.assertTrue(t.verified)
+        self.assertEqual(1, len(t.inputs))
 
 
 @parameterized_class(*params)
