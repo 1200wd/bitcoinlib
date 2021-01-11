@@ -22,6 +22,8 @@ import random
 from itertools import groupby
 from operator import itemgetter
 import numpy as np
+import pickle
+from copy import copy
 from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
@@ -915,6 +917,31 @@ class WalletTransaction(Transaction):
                     continue
                 mut_list.append((self.date, self.txid, 'in', input_addresslist, o.address, o.value, 0))
         return mut_list
+
+    def save(self, filename=None):
+        """
+        Store transaction object as file so it can be imported in bitcoinlib later with the :func:`load` method.
+
+        :param filename: Location and name of file, leave empty to store transaction in bitcoinlib data directory: .bitcoinlib/<transaction_id.tx)
+        :type filename: str
+
+        :return:
+        """
+        if not filename:
+            p = Path(BCL_DATA_DIR, '%s.tx' % self.txid)
+        else:
+            p = Path(filename)
+            if not p.parent or str(p.parent) == '.':
+                p = Path(BCL_DATA_DIR, filename)
+        f = p.open('wb')
+        wt = copy(self)
+        del wt.hdwallet
+        del wt.pushed
+        del wt.error
+        del wt.response_dict
+        del wt.account_id
+        pickle.dump(wt, f)
+        f.close()
 
 
 class Wallet(object):
@@ -3963,6 +3990,32 @@ class Wallet(object):
             for cs in self.cosigner:
                 pm_list.append(cs.public_master(account_id, name, as_private, network))
             return pm_list
+
+    def transaction_load(self, txid=None, filename=None):
+        """
+        Load transaction object from file which has been stored with the :func:`Transaction.save` method.
+
+        Specify transaction ID or filename.
+
+        :param txid: Transaction ID. Transaction object will be read from .bitcoinlib datadir
+        :type txid: str
+        :param filename: Name of transaction object file
+        :type filename: str
+
+        :return Transaction:
+        """
+        if not filename and not txid:
+            raise WalletError("Please supply filename or txid")
+        elif not filename and txid:
+            p = Path(BCL_DATA_DIR, '%s.tx' % txid)
+        else:
+            p = Path(filename)
+            if not p.parent or str(p.parent) == '.':
+                p = Path(BCL_DATA_DIR, filename)
+        f = p.open('rb')
+        t = pickle.load(f)
+        f.close()
+        return self.transaction_import(t)
 
     def info(self, detail=3):
         """

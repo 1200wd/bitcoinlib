@@ -20,6 +20,7 @@
 
 from datetime import datetime
 import json
+import pickle
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
@@ -1250,6 +1251,33 @@ class Transaction(object):
 
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
+    @staticmethod
+    def load(txid=None, filename=None):
+        """
+        Load transaction object from file which has been stored with the :func:`save` method.
+
+        Specify transaction ID or filename.
+
+        :param txid: Transaction ID. Transaction object will be read from .bitcoinlib datadir
+        :type txid: str
+        :param filename: Name of transaction object file
+        :type filename: str
+
+        :return Transaction:
+        """
+        if not filename and not txid:
+            raise TransactionError("Please supply filename or txid")
+        elif not filename and txid:
+            p = Path(BCL_DATA_DIR, '%s.tx' % txid)
+        else:
+            p = Path(filename)
+            if not p.parent or str(p.parent) == '.':
+                p = Path(BCL_DATA_DIR, filename)
+        f = p.open('rb')
+        t = pickle.load(f)
+        f.close()
+        return t
+
     def __init__(self, inputs=None, outputs=None, locktime=0, version=None,
                  network=DEFAULT_NETWORK, fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None,
                  confirmations=None, block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'',
@@ -2170,3 +2198,22 @@ class Transaction(object):
         # self.fee = 0
         if self.input_total:
             self.fee = self.input_total - self.output_total
+
+    def save(self, filename=None):
+        """
+        Store transaction object as file so it can be imported in bitcoinlib later with the :func:`load` method.
+
+        :param filename: Location and name of file, leave empty to store transaction in bitcoinlib data directory: .bitcoinlib/<transaction_id.tx)
+        :type filename: str
+
+        :return:
+        """
+        if not filename:
+            p = Path(BCL_DATA_DIR, '%s.tx' % self.txid)
+        else:
+            p = Path(filename)
+            if not p.parent or str(p.parent) == '.':
+                p = Path(BCL_DATA_DIR, filename)
+        f = p.open('wb')
+        pickle.dump(self, f)
+        f.close()
