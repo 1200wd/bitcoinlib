@@ -2007,6 +2007,29 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertTrue(t.verified)
         self.assertEqual(1, len(t.inputs))
 
+    def test_wallet_transaction_save_and_load(self):
+        w = wallet_create_or_open('wallet_transaction_save_and_load', network='bitcoinlib_test',
+                                  db_uri=self.DATABASE_URI)
+        w.utxos_update()
+        t = w.send_to(w.get_key(), 50000001, offline=True)
+        self.assertTrue(t.verify())
+        t.save()
+        t2 = w.transaction_load(t.txid)
+        self.assertTrue(t2.verify())
+        self.assertEqual(t.txid, t2.txid)
+        self.assertEqual(t.raw_hex(), t2.raw_hex())
+
+    def test_wallet_transaction_save_and_load_filename(self):
+        w = wallet_create_or_open('wallet_transaction_save_and_load_filename', network='bitcoinlib_test',
+                                  db_uri=self.DATABASE_URI)
+        w.utxos_update()
+        t = w.send_to(w.get_key(), 44000001, offline=True)
+        self.assertTrue(t.verify())
+        t.save('saved_tx.tx')
+        t2 = w.transaction_load(filename='saved_tx.tx')
+        self.assertTrue(t2.verify())
+        self.assertEqual(t.txid, t2.txid)
+        self.assertEqual(t.raw_hex(), t2.raw_hex())
 
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):
