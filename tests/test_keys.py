@@ -300,7 +300,7 @@ class TestHDKeysImport(unittest.TestCase):
     def test_hdkey_import_bip38_key(self):
         if USING_MODULE_SCRYPT:
             self.k = HDKey('6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo',
-                           passphrase='TestingOneTwoThree')
+                           password='TestingOneTwoThree')
             self.assertEqual('L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP', self.k.wif_key())
 
     def test_hdkey_import_public(self):
@@ -527,7 +527,7 @@ class TestBip38(unittest.TestCase):
         if not USING_MODULE_SCRYPT:
             return
         for v in self.vectors["valid"]:
-            k = Key(v['bip38'], passphrase=str(v['passphrase']))
+            k = Key(v['bip38'], password=str(v['passphrase']))
             print("Check %s - %s = %s " % (v['bip38'], v['passphrase'], v['wif']))
             self.assertEqual(str(v['wif']), k.wif())
 
@@ -545,7 +545,7 @@ class TestBip38(unittest.TestCase):
         for network in networks:
             k = Key(network=network)
             enc_key = k.bip38_encrypt('password')
-            k2 = Key(enc_key, passphrase='password', network=network)
+            k2 = Key(enc_key, password='password', network=network)
             self.assertEqual(k.wif(), k2.wif())
 
     def test_bip38_hdkey_method(self):

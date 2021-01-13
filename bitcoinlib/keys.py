@@ -662,7 +662,7 @@ class Key(object):
     generated using the os.urandom() function.
     """
 
-    def __init__(self, import_key=None, network=None, compressed=True, passphrase='', is_private=None):
+    def __init__(self, import_key=None, network=None, compressed=True, password='', is_private=None):
         """
         Initialize a Key object. Import key can be in WIF, bytes, hexstring, etc. If import_key is empty a new
         private key will be generated.
@@ -679,7 +679,7 @@ class Key(object):
 
         Can also be used to import BIP-38 password protected keys
 
-        >>> k2 = Key('6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg', passphrase='test', network='testnet')
+        >>> k2 = Key('6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg', password='test', network='testnet')
         >>> k2.secret
         12127227708610754620337553985245292396444216111803695028419544944213442390363
 
@@ -689,8 +689,8 @@ class Key(object):
         :type network: str, Network
         :param compressed: Is key compressed or not, default is True
         :type compressed: bool
-        :param passphrase: Optional passphrase if imported key is password protected
-        :type passphrase: str
+        :param password: Optional password if imported key is password protected
+        :type password: str
         :param is_private: Specify if imported key is private or public. Default is None: derive from provided key
         :type is_private: bool
 
@@ -741,7 +741,7 @@ class Key(object):
         self.network = Network(network)
 
         if self.key_format == "wif_protected":
-            import_key, self.compressed = self._bip38_decrypt(import_key, passphrase, network)
+            import_key, self.compressed = self._bip38_decrypt(import_key, password, network)
             self.key_format = 'bin_compressed' if self.compressed else 'bin'
 
         if not self.is_private:
@@ -941,7 +941,7 @@ class Key(object):
         return json.dumps(self.as_dict(include_private=include_private), indent=4)
 
     @staticmethod
-    def _bip38_decrypt(encrypted_privkey, passphrase, network=DEFAULT_NETWORK):
+    def _bip38_decrypt(encrypted_privkey, password, network=DEFAULT_NETWORK):
         """
         BIP0038 non-ec-multiply decryption. Returns WIF private key.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -949,12 +949,12 @@ class Key(object):
 
         :param encrypted_privkey: Encrypted private key using WIF protected key format
         :type encrypted_privkey: str
-        :param passphrase: Required passphrase for decryption
-        :type passphrase: str
+        :param password: Required password for decryption
+        :type password: str
 
         :return str: Private Key WIF
         """
-        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, passphrase)
+        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, password)
 
         # Verify addresshash
         k = Key(priv, compressed=compressed, network=network)
@@ -966,7 +966,7 @@ class Key(object):
                             'specified network %s might be incorrect' % network)
         return priv, compressed
 
-    def bip38_encrypt(self, passphrase):
+    def bip38_encrypt(self, password):
         """
         BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
         Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -975,13 +975,13 @@ class Key(object):
         >>> k.bip38_encrypt('test')
         '6PYM8wAnnmAK5mHYoF7zqj88y5HtK7eiPeqPdu4WnYEFkYKEEoMFEVfuDg'
 
-        :param passphrase: Required passphrase for encryption
-        :type passphrase: str
+        :param password: Required password for encryption
+        :type password: str
 
-        :return str: BIP38 passphrase encrypted private key
+        :return str: BIP38 password encrypted private key
         """
         flagbyte = b'\xe0' if self.compressed else b'\xc0'
-        return bip38_encrypt(self.private_hex, self.address(), passphrase, flagbyte)
+        return bip38_encrypt(self.private_hex, self.address(), password, flagbyte)
 
     def wif(self, prefix=None):
         """
@@ -1213,7 +1213,7 @@ class HDKey(Key):
                                compressed=compressed, encoding=encoding, witness_type=witness_type, multisig=multisig)
 
     def __init__(self, import_key=None, key=None, chain=None, depth=0, parent_fingerprint=b'\0\0\0\0',
-                 child_index=0, is_private=True, network=None, key_type='bip32', passphrase='', compressed=True,
+                 child_index=0, is_private=True, network=None, key_type='bip32', password='', compressed=True,
                  encoding=None, witness_type=None, multisig=False):
         """
         Hierarchical Deterministic Key class init function.
@@ -1245,8 +1245,8 @@ class HDKey(Key):
         :type network: str, Network
         :param key_type: HD BIP32 or normal Private Key. Default is 'bip32'
         :type key_type: str
-        :param passphrase: Optional passphrase if imported key is password protected
-        :type passphrase: str
+        :param password: Optional password if imported key is password protected
+        :type password: str
         :param compressed: Is key compressed or not, default is True
         :type compressed: bool
         :param encoding: Encoding used for address, i.e.: base58 or bech32. Default is base58 or derive from witness type
@@ -1311,7 +1311,7 @@ class HDKey(Key):
                 elif kf['format'] == 'mnemonic':
                     raise BKeyError("Use HDKey.from_passphrase() method to parse a passphrase")
                 elif kf['format'] == 'wif_protected':
-                    key, compressed = self._bip38_decrypt(import_key, passphrase, network.name, witness_type)
+                    key, compressed = self._bip38_decrypt(import_key, password, network.name, witness_type)
                     chain = chain if chain else b'\0' * 32
                     key_type = 'private'
                 else:
@@ -1323,7 +1323,7 @@ class HDKey(Key):
         if witness_type is None:
             witness_type = DEFAULT_WITNESS_TYPE
 
-        Key.__init__(self, key, network, compressed, passphrase, is_private)
+        Key.__init__(self, key, network, compressed, password, is_private)
 
         self.encoding = encoding
         self.witness_type = witness_type
@@ -1421,7 +1421,7 @@ class HDKey(Key):
 
         return self.hash160[:4]
 
-    def bip38_encrypt(self, passphrase):
+    def bip38_encrypt(self, password):
         """
         BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
         Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -1430,16 +1430,16 @@ class HDKey(Key):
         >>> k.bip38_encrypt('my-secret-password')
         '6PYUAKyDYo7Q6sSJ3ZYo4EFeWFTMkUES2mdvsMNBSoN5QyXPmeogxfumfW'
 
-        :param passphrase: Required passphrase for encryption
-        :type passphrase: str
+        :param password: Required password for encryption
+        :type password: str
 
-        :return str: BIP38 passphrase encrypted private key
+        :return str: BIP38 password encrypted private key
         """
         flagbyte = b'\xe0' if self.compressed else b'\xc0'
-        return bip38_encrypt(self.private_hex, self.address(), passphrase, flagbyte)
+        return bip38_encrypt(self.private_hex, self.address(), password, flagbyte)
 
     @staticmethod
-    def _bip38_decrypt(encrypted_privkey, passphrase, network=DEFAULT_NETWORK, witness_type=DEFAULT_WITNESS_TYPE):
+    def _bip38_decrypt(encrypted_privkey, password, network=DEFAULT_NETWORK, witness_type=DEFAULT_WITNESS_TYPE):
         """
         BIP0038 non-ec-multiply decryption. Returns WIF private key.
         Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -1447,12 +1447,12 @@ class HDKey(Key):
 
         :param encrypted_privkey: Encrypted private key using WIF protected key format
         :type encrypted_privkey: str
-        :param passphrase: Required passphrase for decryption
-        :type passphrase: str
+        :param password: Required password for decryption
+        :type password: str
 
         :return str: Private Key WIF
         """
-        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, passphrase)
+        priv, addresshash, compressed = bip38_decrypt(encrypted_privkey, password)
         # compressed = True if priv[-1:] == b'\1' else False
 
         # Verify addresshash
