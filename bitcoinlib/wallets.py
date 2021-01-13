@@ -1155,12 +1155,12 @@ class Wallet(object):
                     key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network)
                 else:
                     try:
-                        key = HDKey(key, network=network)
+                        key = HDKey(key, password=password, network=network)
                     except BKeyError:
                         try:
                             scheme = 'single'
                             key = Address.import_address(key, encoding=encoding, network=network)
-                        except EncodingError or BKeyError:
+                        except Exception:
                             raise WalletError("Invalid key or address: %s" % key)
                     if network is None:
                         network = key.network.name

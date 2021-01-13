@@ -273,7 +273,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
                                 Wallet.create, 'test_wallet_create_errors4', keys='zwqrC7h9pRj7SBhLRDG4FnkNBRQgene3y3',
                                 db_uri=self.DATABASE_URI)
         k = HDKey(network='litecoin').wif_private()
-        self.assertRaisesRegexp(BKeyError, "Network bitcoin not found in extracted networks",
+        self.assertRaisesRegexp(WalletError, "Invalid key or address",
                                 Wallet.create, 'test_wallet_create_errors5', keys=k, network='bitcoin',
                                 db_uri=self.DATABASE_URI)
         self.assertRaisesRegexp(WalletError, "Segwit is not supported for Dash wallets",
@@ -298,6 +298,13 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
         wallet = Wallet.create("test_wallet_as_dict_json", db_uri=self.DATABASE_URI, network='bitcoinlib_test')
         self.assertTrue(wallet.as_dict())
         self.assertTrue(wallet.as_json())
+
+    def test_wallet_create_bip38(self):
+        passphrase = "region kite swamp float card flag chalk click gadget share wage clever"
+        k = HDKey().from_passphrase(passphrase)
+        ke = k.bip38_encrypt('hoihoi')
+        w = wallet_create_or_open('kewallet', ke, password='hoihoi', network='bitcoin')
+        self.assertEqual(k.private_hex, w.main_key.key_private.hex())
 
 
 @parameterized_class(*params)
