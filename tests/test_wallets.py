@@ -301,7 +301,7 @@ class TestWalletCreate(TestWalletMixin, unittest.TestCase):
 
     def test_wallet_create_bip38(self):
         if not USING_MODULE_SCRYPT:
-            self.skipTest()
+            self.skipTest('Need scrypt module to test BIP38 wallets')
         passphrase = "region kite swamp float card flag chalk click gadget share wage clever"
         k = HDKey().from_passphrase(passphrase)
         ke = k.bip38_encrypt('hoihoi')
