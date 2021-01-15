@@ -57,6 +57,7 @@ def wallets_list(db_uri=None, include_cosigners=False):
 
     :param db_uri: URI of the database
     :type db_uri: str
+
     :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
     :type include_cosigners: bool
 

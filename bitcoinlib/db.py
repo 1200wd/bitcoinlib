@@ -50,7 +50,7 @@ class Db:
         if db_uri is None:
             db_uri = DEFAULT_DATABASE
         self.o = urlparse(db_uri)
-        if not self.o.scheme or self.o.scheme == 'sqlite' or \
+        if not self.o.scheme or \
                 len(self.o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
             if password:
                 # Warning: This requires the pysqlcipher3 module
