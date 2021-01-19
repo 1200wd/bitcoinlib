@@ -21,6 +21,7 @@
 from datetime import datetime
 import json
 import pickle
+import random
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
@@ -1406,6 +1407,16 @@ class Transaction(object):
     def __str__(self):
         return self.txid
 
+    def __add__(self, other):
+        """
+        Merge this transaction with another transaction keeping the original transaction intact.
+
+        :return Transaction:
+        """
+        t = deepcopy(self)
+        t.merge_transaction(other)
+        return t
+
     def as_dict(self):
         """
         Return Json dictionary with transaction information: Inputs, outputs, version and locktime
@@ -2081,6 +2092,26 @@ class Transaction(object):
                                    network=self.network.name))
         return output_n
 
+    def merge_transaction(self, transaction):
+        """
+        Merge this transaction with provided Transaction object.
+
+        Add all inputs and outputs of a transaction to this Transaction object. Because the transaction signature
+        changes with this operation, the transaction inputs need to be signed again.
+
+        Can be used to implement CoinJoin. Where two or more unrelated Transactions are merged into 1 transaction
+        to safe fees and increase privacy.
+
+        :param transaction: The transaction to be merged
+        :type transaction: Transaction
+
+        """
+        self.inputs += transaction.inputs
+        self.outputs += transaction.outputs
+        self.shuffle()
+        self.update_totals()
+        self.sign_and_update()
+
     def estimate_size(self, number_of_change_outputs=0):
         """
         Get estimated vsize in for current transaction based on transaction type and number of inputs and outputs.
@@ -2217,3 +2248,32 @@ class Transaction(object):
         f = p.open('wb')
         pickle.dump(self, f)
         f.close()
+
+    def shuffle_inputs(self):
+        """
+        Shuffle transaction inputs in random order.
+
+        :return:
+        """
+        random.shuffle(self.inputs)
+        for idx, o in enumerate(self.inputs):
+            o.index_n = idx
+
+    def shuffle_outputs(self):
+        """
+        Shuffle transaction outputs in random order.
+
+        :return:
+        """
+        random.shuffle(self.outputs)
+        for idx, o in enumerate(self.outputs):
+            o.output_n = idx
+
+    def shuffle(self):
+        """
+        Shuffle transaction inputs and outputs in random order.
+
+        :return:
+        """
+        self.shuffle_inputs()
+        self.shuffle_outputs()

@@ -609,6 +609,17 @@ class WalletTransaction(Transaction):
         return "<WalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
                (len(self.inputs), len(self.outputs), self.status, self.network.name)
 
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        self_dict = self.__dict__
+        for k, v in self_dict.items():
+            if k != 'hdwallet':
+                setattr(result, k, deepcopy(v, memo))
+        result.hdwallet = self.hdwallet
+        return result
+
     @classmethod
     def from_transaction(cls, hdwallet, t):
         """
@@ -3612,9 +3623,7 @@ class Wallet(object):
 
         # Shuffle output order to increase privacy
         if random_output_order:
-            random.shuffle(transaction.outputs)
-            for idx, o in enumerate(transaction.outputs):
-                o.output_n = idx
+            transaction.shuffle()
 
         # Check tx values
         transaction.input_total = sum([i.value for i in transaction.inputs])

@@ -1075,7 +1075,7 @@ class Key(object):
         :param encoding: Address encoding. Default is base58 encoding, for segwit you can specify bech32 encoding
         :type encoding: str
 
-        :return str: Base58 encoded address
+        :return str: Base58 or Bech32 encoded address
         """
         if (self.compressed and compressed is None) or compressed:
             data = self.public_byte
@@ -1572,7 +1572,7 @@ class HDKey(Key):
         :param encoding: Address encoding. Default is base58 encoding, for segwit you can specify bech32 encoding
         :type encoding: str
 
-        :return str: Base58 encoded address
+        :return str: Base58 or Bech32 encoded address
         """
         if compressed is None:
             compressed = self.compressed

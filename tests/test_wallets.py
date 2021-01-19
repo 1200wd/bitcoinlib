@@ -2091,6 +2091,19 @@ class TestWalletDash(TestWalletMixin, unittest.TestCase):
             wlt.import_key(pk2)
             self.assertTrue(wlt.cosigner[1].main_key.is_private)
 
+    def test_wallet_merge_transactions(self):
+        w = wallet_create_or_open('wallet_merge_transactions_tests', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        w.utxos_update()
+        u = w.utxos()
+
+        t1 = w.send_to(w.get_key(), 200000, input_key_id=u[0]['key_id'])
+        t2 = w.send_to(w.get_key(), 300000, input_key_id=u[1]['key_id'])
+        t = t1 + t2
+        self.assertTrue(t.verified)
+        self.assertEqual(t1.input_total + t2.input_total, t.input_total)
+        self.assertEqual(t1.output_total + t2.output_total, t.output_total)
+        self.assertEqual(t1.fee + t2.fee, t.fee)
+
 
 @parameterized_class(*params)
 class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
