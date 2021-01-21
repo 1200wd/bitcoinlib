@@ -3274,7 +3274,7 @@ class Wallet(object):
         return inp_keys, key
 
     def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=0,
-                      max_utxos=None, return_input_obj=True):
+                      max_utxos=None, return_input_obj=True, skip_dust_amounts=True):
         """
         Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
         the specified amount.
@@ -3299,6 +3299,8 @@ class Wallet(object):
         :type max_utxos: int
         :param return_input_obj: Return inputs as Input class object. Default is True
         :type return_input_obj: bool
+        :param skip_dust_amounts: Do not include small amount to avoid dust inputs
+        :type skip_dust_amounts: bool
 
         :return: List of previous outputs
         :rtype: list of DbTransactionOutput, list of Input
@@ -3317,6 +3319,8 @@ class Wallet(object):
                 utxo_query = utxo_query.filter(DbKey.id == input_key_id)
             else:
                 utxo_query = utxo_query.filter(DbKey.id.in_(input_key_id))
+        if skip_dust_amounts:
+            utxo_query = utxo_query.filter(DbTransactionOutput.value > self.network.dust_amount)
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
@@ -3908,7 +3912,7 @@ class Wallet(object):
         if not utxos:
             raise WalletError("Cannot sweep wallet, no UTXO's found")
         for utxo in utxos:
-            # Skip dust transactions
+            # Skip dust transactions to avoid forced address reuse
             if utxo['value'] <= self.network.dust_amount:
                 continue
             input_arr.append((utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value']))

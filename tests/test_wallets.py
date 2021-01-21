@@ -2040,6 +2040,46 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertEqual(t.txid, t2.txid)
         self.assertEqual(t.raw_hex(), t2.raw_hex())
 
+    def test_wallet_avoid_forced_address_reuse(self):
+        w = wallet_create_or_open('wallet_avoid_forced_address_reuse_test', network='bitcoinlib_test',
+                                  db_uri=self.DATABASE_URI)
+        k1 = w.get_key()
+        w.utxos_update()
+        k2 = w.new_key()
+        w.sweep(k2.address)
+
+        # Send dust to used address
+        w.send_to(k1, 400)
+
+        # Try to spend dust
+        t = w.sweep('zz3nA9VNyXwwyKKALckuhQ5sYdxMuzCQuQ')
+        self.assertEqual(len(t.inputs), 1)
+
+    def test_wallet_avoid_forced_address_reuse2(self):
+        w = wallet_create_or_open('wallet_avoid_forced_address_reuse_test2', db_uri=self.DATABASE_URI)
+        utxos = [
+            {
+                'address': w.new_key().address,
+                'script': '',
+                'confirmations': 5,
+                'output_n': 0,
+                'txid': '35b59b39d66e34dada7536df1dd95b831c367125f846ea2904c128e66aa29267',
+                'value': 426
+            },
+            {
+                'address': w.new_key().address,
+                'script': '',
+                'confirmations': 5,
+                'output_n': 0,
+                'txid': '458f44d469489ce06d2aab54347253dd82bee90b38756e4514e5a29b5f07213f',
+                'value': 200000
+            }
+        ]
+        w.utxos_update(utxos=utxos)
+        self.assertRaisesRegexp(WalletError, "", w.send_to, 'bc1qx76mfmrgvejprscpk8e76d90h94xdhhgnr3jfk', 200001,
+                                fee=150, offline=True)
+
+
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):
 
@@ -2092,7 +2132,8 @@ class TestWalletDash(TestWalletMixin, unittest.TestCase):
             self.assertTrue(wlt.cosigner[1].main_key.is_private)
 
     def test_wallet_merge_transactions(self):
-        w = wallet_create_or_open('wallet_merge_transactions_tests', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        w = wallet_create_or_open('wallet_merge_transactions_tests', network='bitcoinlib_test',
+                                  db_uri=self.DATABASE_URI)
         w.utxos_update()
         u = w.utxos()
 
