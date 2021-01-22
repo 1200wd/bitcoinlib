@@ -71,7 +71,8 @@ class Db:
         self._import_config_data(Session)
         self.session = Session()
 
-        _logger.info("Using Database %s" % db_uri)
+        _logger.info("Using database: %s://%s:%s/%s" % (self.o.scheme or '', self.o.hostname or '',
+                                                        self.o.port or '', self.o.path or ''))
         self.db_uri = db_uri
 
         # VERIFY AND UPDATE DATABASE
