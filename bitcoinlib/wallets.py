@@ -3417,6 +3417,8 @@ class Wallet(object):
         """
 
         amount_total_output = 0
+        if not network and output_arr and isinstance(output_arr[0][1], str):
+            network = Value(output_arr[0][1]).network
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         if input_arr and max_utxos and len(input_arr) > max_utxos:
@@ -3788,7 +3790,6 @@ class Wallet(object):
         :return WalletTransaction:
         """
 
-        network, account_id, _ = self._get_account_defaults(network, account_id)
         if input_arr and max_utxos and len(input_arr) > max_utxos:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
