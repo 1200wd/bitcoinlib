@@ -3307,8 +3307,9 @@ class Wallet(object):
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
+        dust_amount = Network(network).dust_amount
         if variance is None:
-            variance = self.network.dust_amount
+            variance = dust_amount
 
         utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
             filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.account_id == account_id,
@@ -3320,7 +3321,7 @@ class Wallet(object):
             else:
                 utxo_query = utxo_query.filter(DbKey.id.in_(input_key_id))
         if skip_dust_amounts:
-            utxo_query = utxo_query.filter(DbTransactionOutput.value > self.network.dust_amount)
+            utxo_query = utxo_query.filter(DbTransactionOutput.value > dust_amount)
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
@@ -3416,9 +3417,11 @@ class Wallet(object):
         :return WalletTransaction: object
         """
 
-        amount_total_output = 0
+        if not isinstance(output_arr, list):
+            raise WalletError("Output array must be a list of tuples with address and amount. "
+                              "Use 'send_to' method to send to one address")
         if not network and output_arr and isinstance(output_arr[0][1], str):
-            network = Value(output_arr[0][1]).network
+            network = Value(output_arr[0][1]).network.name
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         if input_arr and max_utxos and len(input_arr) > max_utxos:
@@ -3426,17 +3429,15 @@ class Wallet(object):
                               (len(input_arr), max_utxos))
 
         # Create transaction and add outputs
+        amount_total_output = 0
         transaction = WalletTransaction(hdwallet=self, account_id=account_id, network=network, locktime=locktime)
         transaction.outgoing_tx = True
-        if not isinstance(output_arr, list):
-            raise WalletError("Output array must be a list of tuples with address and amount. "
-                              "Use 'send_to' method to send to one address")
         for o in output_arr:
             if isinstance(o, Output):
                 transaction.outputs.append(o)
                 amount_total_output += o.value
             else:
-                value = value_to_satoshi(o[1], network=self.network)
+                value = value_to_satoshi(o[1], network=transaction.network)
                 amount_total_output += value
                 addr = o[0]
                 if isinstance(addr, WalletKey):
@@ -3450,8 +3451,8 @@ class Wallet(object):
                 transaction.fee_per_kb = srv.estimatefee()
                 fee_estimate = (transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) / 1024.0
                                 * transaction.fee_per_kb)
-                if fee_estimate < self.network.fee_min:
-                    fee_estimate = self.network.fee_min
+                if fee_estimate < transaction.network.fee_min:
+                    fee_estimate = transaction.network.fee_min
             else:
                 fee_estimate = 0
         else:
@@ -3463,7 +3464,7 @@ class Wallet(object):
             sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount,
+            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, transaction.network.dust_amount,
                                                 input_key_id, account_id, network, min_confirms, max_utxos, False)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
@@ -3558,8 +3559,8 @@ class Wallet(object):
             if not input_arr:
                 if not transaction.fee_per_kb:
                     transaction.fee_per_kb = srv.estimatefee()
-                if transaction.fee_per_kb < self.network.fee_min:
-                    transaction.fee_per_kb = self.network.fee_min
+                if transaction.fee_per_kb < transaction.network.fee_min:
+                    transaction.fee_per_kb = transaction.network.fee_min
                 transaction.fee = int((transaction.size / 1024.0) * transaction.fee_per_kb)
                 fee_per_output = int((50 / 1024.0) * transaction.fee_per_kb)
             else:
@@ -3575,17 +3576,18 @@ class Wallet(object):
             transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
 
         # Skip change if amount is smaller then the dust limit or estimated fee
-        if (fee_per_output and transaction.change < fee_per_output) or transaction.change <= self.network.dust_amount:
+        if (fee_per_output and transaction.change < fee_per_output) or transaction.change <= transaction.network.dust_amount:
             transaction.fee += transaction.change
             transaction.change = 0
         if transaction.change < 0:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
-            min_output_value = self.network.dust_amount * 2 + self.network.fee_min * 4
+            min_output_value = transaction.network.dust_amount * 2 + transaction.network.fee_min * 4
             if transaction.fee and transaction.size:
                 if not transaction.fee_per_kb:
                     transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
-                min_output_value = transaction.fee_per_kb + self.network.fee_min * 4 + self.network.dust_amount
+                min_output_value = transaction.fee_per_kb + transaction.network.fee_min * 4 + \
+                                   transaction.network.dust_amount
 
             if number_of_change_outputs == 0:
                 if transaction.change < amount_total_output / 10 or transaction.change < min_output_value * 8:
@@ -3640,12 +3642,12 @@ class Wallet(object):
         transaction.txid = transaction.signature_hash()[::-1].hex()
         if not transaction.fee_per_kb:
             transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
-        if transaction.fee_per_kb < self.network.fee_min:
+        if transaction.fee_per_kb < transaction.network.fee_min:
             raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
-                              (transaction.fee_per_kb, self.network.fee_min))
-        elif transaction.fee_per_kb > self.network.fee_max:
+                              (transaction.fee_per_kb, transaction.network.fee_min))
+        elif transaction.fee_per_kb > transaction.network.fee_max:
             raise WalletError("Fee per kB of %d is higher then maximum network fee of %d" %
-                              (transaction.fee_per_kb, self.network.fee_max))
+                              (transaction.fee_per_kb, transaction.network.fee_max))
 
         return transaction
 
