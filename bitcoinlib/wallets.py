@@ -2711,20 +2711,21 @@ class Wallet(object):
         elif len(networks) != 1 and utxos is not None:
             raise WalletError("Please specify maximum 1 network when passing utxo's")
 
-        # Remove current UTXO's
-        if rescan_all:
-            cur_utxos = self._session.query(DbTransactionOutput).\
-                join(DbTransaction). \
-                filter(DbTransactionOutput.spent.is_(False),
-                       DbTransaction.account_id == account_id,
-                       DbTransaction.wallet_id == self.wallet_id).all()
-            for u in cur_utxos:
-                self._session.query(DbTransactionOutput).filter_by(
-                    transaction_id=u.transaction_id, output_n=u.output_n).update({DbTransactionOutput.spent: True})
-            self._commit()
-
         count_utxos = 0
         for network in networks:
+            # Remove current UTXO's
+            if rescan_all:
+                cur_utxos = self._session.query(DbTransactionOutput). \
+                    join(DbTransaction). \
+                    filter(DbTransactionOutput.spent.is_(False),
+                           DbTransaction.account_id == account_id,
+                           DbTransaction.wallet_id == self.wallet_id,
+                           DbTransaction.network_name == network).all()
+                for u in cur_utxos:
+                    self._session.query(DbTransactionOutput).filter_by(
+                        transaction_id=u.transaction_id, output_n=u.output_n).update({DbTransactionOutput.spent: True})
+                self._commit()
+
             if account_id is None and not self.multisig:
                 accounts = self.accounts(network=network)
             else:
@@ -2771,7 +2772,7 @@ class Wallet(object):
                     # Update confirmations in db if utxo was already imported
                     transaction_in_db = self._session.query(DbTransaction).\
                         filter_by(wallet_id=self.wallet_id, txid=bytes.fromhex(utxo['txid']),
-                                  network_name=self.network.name)
+                                  network_name=network)
                     utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.txid == bytes.fromhex(utxo['txid']),
