@@ -794,6 +794,22 @@ class TestWalletMultiCurrency(TestWalletMixin, unittest.TestCase):
                     "first."
         self.assertRaisesRegexp(WalletError, error_str, self.wallet.import_key, pk_dashtest)
 
+    def test_wallet_multiple_networks_value(self):
+        pk = 'vprv9DMUxX4ShgxMM1FFB24BgXE3fMYXKicceSdMUtfhyyUzKNkCvPeYrcoZpPezahBEzFc23yHTPj46eqx3jKuQpQFq5kbd2oxDysdteSN16sH'
+        wallet_delete_if_exists('test_wallet_multiple_networks_value', force=True)
+        w = wallet_create_or_open('test_wallet_multiple_networks_value', keys=pk)
+        w.new_account(network='bitcoin')
+        w.new_account(network='bitcoinlib_test')
+        w.utxos_update(networks='testnet')
+        self.assertEqual(len(w.utxos(network='testnet')), 1)
+        w.utxos_update(networks='bitcoinlib_test')
+        self.assertEqual(len(w.utxos(network='bitcoinlib_test')), 4)
+        t = w.send_to('blt1qctnl4yk3qepjy3uu36kved5ds6q9g8c6raan7l', '50 mTST')
+        self.assertTrue(t.pushed)
+        t = w.send_to('tb1qhq6x777xpj32jm005qppxa6gyxt3qrc376ye6c', '0.1 mTBTC', offline=True)
+        self.assertFalse(t.pushed)
+        self.assertTrue(t.verified)
+
 
 @parameterized_class(*params)
 class TestWalletMultiNetworksMultiAccount(TestWalletMixin, unittest.TestCase):
