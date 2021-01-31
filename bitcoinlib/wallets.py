@@ -2233,7 +2233,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict):
 
         """
 
@@ -2265,7 +2265,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict):
         """
 
         return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
@@ -2294,7 +2294,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict)
         """
 
         if depth is None:
@@ -2315,7 +2315,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict)
         """
 
         return self.keys(account_id, depth=self.key_depth, change=0, used=used, network=network, as_dict=as_dict)
@@ -2333,7 +2333,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict)
         """
 
         return self.keys(account_id, depth=self.key_depth, change=1, used=used, network=network, as_dict=as_dict)
@@ -2360,7 +2360,7 @@ class Wallet(object):
         :param key_id: Key ID to get address of just 1 key
         :type key_id: int
 
-        :return list: List of address strings
+        :return list of str: List of address strings
         """
 
         addresslist = []
@@ -3390,7 +3390,7 @@ class Wallet(object):
         >>> t
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
-        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
+        [<Output(value=..., address=..., type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param output_arr: List of output as Output objects or tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]
         :type output_arr: list of Output, tuple
@@ -3763,7 +3763,7 @@ class Wallet(object):
         >>> t
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
-        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
+        [<Output(value=..., address=..., type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]. Address can be an address string, Address object, HDKey object or WalletKey object
         :type output_arr: list
@@ -3830,7 +3830,7 @@ class Wallet(object):
         >>> t
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
-        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
+        [<Output(value=..., address=..., type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param to_address: Single output address as string Address object, HDKey object or WalletKey object
         :type to_address: str, Address, HDKey, WalletKey

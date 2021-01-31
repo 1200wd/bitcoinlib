@@ -916,7 +916,6 @@ class Input(object):
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
             addr_data = self.public_hash
-            # self.witnesses = []  # TODO: Remove?
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() +
                                   hash_type.to_bytes(1, 'big') if hash_type else b'', self.keys[0].public_byte]
@@ -1882,7 +1881,6 @@ class Transaction(object):
 
         if index_n is None:
             tids = range(len(self.inputs))
-            index_n = 0
         else:
             tids = [index_n]
 

@@ -31,7 +31,7 @@ _logger = logging.getLogger(__name__)
 SCRYPT_ERROR = None
 USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
 try:
-    if USING_MODULE_SCRYPT != False:
+    if USING_MODULE_SCRYPT is not False:
         import scrypt
         USING_MODULE_SCRYPT = True
 except ImportError as SCRYPT_ERROR:
@@ -47,7 +47,7 @@ if not USING_MODULE_SCRYPT:
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
-    if USE_FASTECDSA != False:
+    if USE_FASTECDSA is not False:
         from fastecdsa.encoding.der import DEREncoder
         USE_FASTECDSA = True
 except ImportError:
