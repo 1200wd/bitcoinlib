@@ -2,5 +2,5 @@ requests==2.25.1
 fastecdsa==2.1.5
 pyaes==1.6.1
 scrypt==0.8.17
-SQLAlchemy==1.4.0b1
+SQLAlchemy==1.4.0b2
 numpy==1.20.0
