@@ -2168,7 +2168,7 @@ class Wallet(object):
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: List of Keys
+        :return list of DbKey: List of Keys
         """
 
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id).order_by(DbKey.id)
