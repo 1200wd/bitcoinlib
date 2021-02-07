@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Key, Encoding and Mnemonic Class
-#    © 2016 - 2018 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2021 January - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -150,7 +150,7 @@ class TestEncodingMethodsAddressConversion(unittest.TestCase):
                          pubkeyhash_to_addr('d8b76f6dd0e8d17cd34c3703ad5a120ba83ff857'))
 
     def test_pkh_to_addr_conversion_2(self):
-        self.assertEqual('11111111111111111111111111114oLvT2',
+        self.assertEqual('1111111111111111111114oLvT2',
                          pubkeyhash_to_addr('00' * 20))
 
     def test_address_to_pkh_bech32(self):
@@ -161,6 +161,16 @@ class TestEncodingMethodsAddressConversion(unittest.TestCase):
     def test_pkh_to_bech32_address(self):
         addr = pubkeyhash_to_addr('45d093a97d5710c80363c69618e826efad42edb1', encoding='bech32')
         self.assertEqual(addr, 'bc1qghgf82ta2ugvsqmrc6tp36pxa7k59md3czjhjc')
+
+    def test_address_base58_zero_prefixes(self):
+        self.assertEqual(pubkeyhash_to_addr_base58('00003acd8f60b766e48e9db32093b419c21de7e9'),
+                         '111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
+        self.assertEqual(change_base('000000003acd8f60b766e48e9db32093b419c21de7e9b35f7e0d', 16, 58), '1111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
+        self.assertEqual(change_base('0000003acd8f60b766e48e9db32093b419c21de7e9b35f7e0d', 16, 58), '111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
+        self.assertEqual(change_base('1111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk', 58, 256).hex(),
+                         '000000003acd8f60b766e48e9db32093b419c21de7e9b35f7e0d')
+        self.assertRaisesRegexp(EncodingError, "Invalid address hash160 length, should be 25 characters not",
+                                addr_base58_to_pubkeyhash, '1111GxfgFVyDW3zcFpUF1upSZoL7GCRiLk')
 
 
 class TestEncodingMethodsStructures(unittest.TestCase):

@@ -240,8 +240,8 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
             input_dec += pos * factor
 
             # Add leading zero if there are leading zero's in input
+            firstchar = chr(code_str_from[0]).encode('utf-8')
             if not pos * factor:
-                firstchar = chr(code_str_from[0]).encode('utf-8')
                 if isinstance(inp, list):
                     if not len([x for x in inp if x != firstchar]):
                         addzeros += 1
@@ -259,9 +259,17 @@ def change_base(chars, base_from, base_to, min_length=0, output_even=None, outpu
     if base_to != 10:
         pos_fact = math.log(base_to, base_from)
         expected_length = len(str(chars)) / pos_fact
+
         zeros = int(addzeros / pos_fact)
         if addzeros == 1:
             zeros = 1
+        # Different rules for base58 addresses
+        if (base_from == 256 and base_to == 58) or (base_from == 58 and base_to == 256):
+            zeros = addzeros
+        elif base_from == 16 and base_to == 58:
+            zeros = -(-addzeros // 2)
+        elif base_from == 58 and base_to == 16:
+            zeros = addzeros * 2
 
         for _ in range(zeros):
             if base_to != 10 and not expected_length == len(output):
@@ -439,6 +447,8 @@ def addr_base58_to_pubkeyhash(address, as_hex=False):
         address = change_base(address, 58, 256, 25)
     except EncodingError as err:
         raise EncodingError("Invalid address %s: %s" % (address, err))
+    if len(address) != 25:
+        raise EncodingError("Invalid address hash160 length, should be 25 characters not %d" % len(address))
     check = address[-4:]
     pkh = address[:-4]
     checksum = double_sha256(pkh)[0:4]
