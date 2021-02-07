@@ -53,7 +53,7 @@ print("Encrypted pk    %s " % k.bip38_encrypt('TestingOneTwoThree'))
 print("Is Compressed   %s\n" % k.compressed)
 
 print("\n=== Import and Decrypt BIP38 Key ===")
-k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', passphrase='TestingOneTwoThree')
+k = Key('6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg', password='TestingOneTwoThree')
 print("Private key     %s" % k.wif())
 print("Is Compressed   %s\n" % k.compressed)
 

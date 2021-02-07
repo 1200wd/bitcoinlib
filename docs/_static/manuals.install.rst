@@ -102,7 +102,7 @@ https://visualstudio.microsoft.com/downloads. Also see https://wiki.python.org/m
 
 The fastecdsa library is not enabled at this moment in the windows install, the slower ecdsa library is installed.
 Installation of fastecdsa on Windows is possible but not easy, read https://github.com/AntonKueltz/fastecdsa/issues/11
-for step you could take to install this library.
+for steps you could take to install this library.
 
 If you have problems with installing this library on Windows you could try to use the pyscrypt library instead of
 scrypt. The pyscrypt library is pure Python so it doesn't need any C compilers installed. But this will run slower.

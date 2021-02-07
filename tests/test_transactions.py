@@ -293,7 +293,7 @@ class TestTransactions(unittest.TestCase):
         lock_script = b'j' + varstr(b'Please leave a message after the beep')
         t.add_output(0, lock_script=lock_script)
         t.add_input('82b48b128232256d1d5ce0c6ae7f7897f2b464d44456c25d7cf2be51626530d9', 0)
-        self.assertEqual(t.estimate_size(add_change_output=True), 239)
+        self.assertEqual(t.estimate_size(number_of_change_outputs=1), 239)
 
     def test_transaction_very_large(self):
         rawtx = \
@@ -1459,6 +1459,74 @@ class TestTransactionsTimelocks(unittest.TestCase):
         t = Transaction(inputs, outputs)
         t2 = Transaction.import_raw(t.raw())
         self.assertEqual(t2.inputs[0].sequence, sequence)
+
+    def test_transaction_lock_methods(self):
+        pk = HDKey(witness_type='segwit').from_passphrase(
+            'canal update powder leg category tree leaf moon soda day moral civil')
+        t = Transaction(witness_type='segwit')
+        t.add_input('9efb6c9a51f9aa66357c2b3dd7da70b6dc31adc547bdaa82b94738d2a7b105a4', 0, keys=pk, value=1255701,
+                    witness_type='segwit')
+        t.add_output(1250000, 'bc1qygdvxdn2cg9acr84jatsm5sndz24xp6en39f4x')
+        t.sign()
+        self.assertTrue(t.verify())
+
+        t.set_locktime_time(1608582667)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.locktime, 1608582667)
+        t.set_locktime_time(0)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.locktime, 0xffffffff)
+
+        t.set_locktime_blocks(606060)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.locktime, 606060)
+        t.set_locktime_blocks(0)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.locktime, 0xffffffff)
+
+    def test_transaction_relative_lock_methods(self):
+        pk = HDKey(witness_type='segwit').from_passphrase(
+            'canal update powder leg category tree leaf moon soda day moral civil')
+        t = Transaction(witness_type='segwit')
+        t.add_input('9efb6c9a51f9aa66357c2b3dd7da70b6dc31adc547bdaa82b94738d2a7b105a4', 0, keys=pk, value=1255701,
+                    witness_type='segwit')
+        t.add_output(1250000, 'bc1qygdvxdn2cg9acr84jatsm5sndz24xp6en39f4x')
+        t.sign()
+        self.assertTrue(t.verify())
+
+        t.set_locktime_relative_time(60 * 60)
+        self.assertTrue(t.verify())
+        self.assertTrue(t.version_int, 2)
+        self.assertEqual(t.inputs[0].sequence, 4194311)
+        t.set_locktime_relative_time(0)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.inputs[0].sequence, 0xffffffff)
+
+        t.set_locktime_relative_blocks(100)
+        self.assertTrue(t.verify())
+        self.assertTrue(t.version_int, 2)
+        self.assertEqual(t.inputs[0].sequence, 100)
+        t.set_locktime_relative_blocks(0)
+        self.assertTrue(t.verify())
+        self.assertEqual(t.inputs[0].sequence, 0xffffffff)
+
+    def test_transaction_save_load(self):
+        rawtx = '0100000002aafc95e7293b5c6fcc16313f54e0df41105502620864d892fc2a3e0a4f30df6a010000008a473044022079ac' \
+                'a1fc033403856de39f03c856bf54b79efdaa210237a858d10675635e7b9e02206163547e0df9322fc337ab807f2874fbe1' \
+                'baec303bd874b3eb19c43a56b955ed01410424140e929701fe8ad2b00e2f0995fa37357c3e0f67fa4061d387fa88f3b33f' \
+                '3834fec71063060de578c191cc7ab52fb5a095b72a6b692e5740fe2739ec1fcd9fffffffffddcb5153cd0f7a7add911a24' \
+                'b094d0559ca8a7c7ed9778b2f32196720ca74700010000008b4830450220776842cd9d76924f0648ff434b64fef8739952' \
+                '684c184b4ce959ebfb2d9c9b3d022100fc101c92309a693a9fcf67c41efbb6c55483edc41d6fd66e3b3bbec7cc95fe8801' \
+                '410424140e929701fe8ad2b00e2f0995fa37357c3e0f67fa4061d387fa88f3b33f3834fec71063060de578c191cc7ab52f' \
+                'b5a095b72a6b692e5740fe2739ec1fcd9fffffffff02404b4c00000000001976a91427470c0fb0c4a68221f80bf01bf0e2' \
+                '67a0a48d6888ac99c11200000000001976a91465be988f0a457cf68203271536428698776f2c5188ac00000000'
+        t = Transaction.import_raw(rawtx)
+        self.assertTrue(t.verify())
+        t.save()
+
+        t2 = Transaction.load(t.txid)
+        self.assertTrue(t2.verified)
+        self.assertEqual(t.raw_hex(), t2.raw_hex())
 
     def test_transaction_locktime_cltv(self):
         # timelock = 533600

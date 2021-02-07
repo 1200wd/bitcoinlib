@@ -20,6 +20,8 @@
 
 from datetime import datetime
 import json
+import pickle
+import random
 from bitcoinlib.encoding import *
 from bitcoinlib.config.opcodes import *
 from bitcoinlib.keys import HDKey, Key, deserialize_address, Address, sign, verify, Signature
@@ -687,7 +689,7 @@ class Input(object):
         :type double_spend: bool
         :param locktime_cltv: Check Lock Time Verify value. Script level absolute time lock for this input
         :type locktime_cltv: int
-        :param locktime_csv: Check Sequence Verify value.
+        :param locktime_csv: Check Sequence Verify value
         :type locktime_csv: int
         :param key_path: Key path of input key as BIP32 string or list
         :type key_path: str, list
@@ -840,18 +842,49 @@ class Input(object):
                     self.hash_type = sig.hash_type
         self.update_scripts(hash_type=self.hash_type)
 
-    # TODO: Remove / replace?
-    # def sequence_timelock_blocks(self, blocks):
-    #     if blocks > SEQUENCE_LOCKTIME_MASK:
-    #         raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-    #     self.sequence = blocks
-    #
-    # def sequence_timelock_time(self, seconds):
-    #     if seconds % 512:
-    #         raise TransactionError("Seconds must be a multiply of 512")
-    #     if seconds > SEQUENCE_LOCKTIME_MASK:
-    #         raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
-    #     self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+    def set_locktime_relative_blocks(self, blocks):
+        """
+        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
+
+        Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
+
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+
+        :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
+        :type blocks: int
+
+        :return None:
+        """
+        if blocks == 0 or blocks == 0xffffffff:
+            self.sequence = 0xffffffff
+            return
+        if blocks > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = blocks
+        self.signatures = []
+
+    def set_locktime_relative_time(self, seconds):
+        """
+        Set nSequence relative locktime for this transaction input. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
+
+        Number of seconds will be rounded to the nearest 512 seconds. Any value below 512 will be interpreted as 512 seconds.
+
+        Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
+
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+
+        :param seconds: Number of seconds since the related previous transaction output has been confirmed.
+        :return:
+        """
+        if seconds == 0 or seconds == 0xffffffff:
+            self.sequence = 0xffffffff
+            return
+        if seconds < 512:
+            seconds = 512
+        if (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+        self.signatures = []
 
     def update_scripts(self, hash_type=SIGHASH_ALL):
         """
@@ -883,7 +916,6 @@ class Input(object):
             self.script_code = b'\x76\xa9\x14' + self.public_hash + b'\x88\xac'
             self.unlocking_script_unsigned = self.script_code
             addr_data = self.public_hash
-            # self.witnesses = []  # TODO: Remove?
             if self.signatures and self.keys:
                 self.witnesses = [self.signatures[0].as_der_encoded() +
                                   hash_type.to_bytes(1, 'big') if hash_type else b'', self.keys[0].public_byte]
@@ -994,7 +1026,8 @@ class Input(object):
             'signatures': [s.hex() for s in self.signatures],
             'sigs_required': self.sigs_required,
             'locktime_cltv': self.locktime_cltv,
-            'locktime_csv': self.locktime_csv, 'public_hash': self.public_hash.hex(),
+            'locktime_csv': self.locktime_csv,
+            'public_hash': self.public_hash.hex(),
             'script_code': self.script_code.hex(),
             'unlocking_script': self.unlocking_script.hex(),
             'unlocking_script_unsigned': self.unlocking_script_unsigned.hex(),
@@ -1218,10 +1251,37 @@ class Transaction(object):
 
         return transaction_deserialize(rawtx, network=network, check_size=check_size)
 
-    def __init__(self, inputs=None, outputs=None, locktime=0, version=b'\x00\x00\x00\x01', network=DEFAULT_NETWORK,
-                 fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None, confirmations=None,
-                 block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'', status='new',
-                 coinbase=False, verified=False, witness_type='legacy', flag=None):
+    @staticmethod
+    def load(txid=None, filename=None):
+        """
+        Load transaction object from file which has been stored with the :func:`save` method.
+
+        Specify transaction ID or filename.
+
+        :param txid: Transaction ID. Transaction object will be read from .bitcoinlib datadir
+        :type txid: str
+        :param filename: Name of transaction object file
+        :type filename: str
+
+        :return Transaction:
+        """
+        if not filename and not txid:
+            raise TransactionError("Please supply filename or txid")
+        elif not filename and txid:
+            p = Path(BCL_DATA_DIR, '%s.tx' % txid)
+        else:
+            p = Path(filename)
+            if not p.parent or str(p.parent) == '.':
+                p = Path(BCL_DATA_DIR, filename)
+        f = p.open('rb')
+        t = pickle.load(f)
+        f.close()
+        return t
+
+    def __init__(self, inputs=None, outputs=None, locktime=0, version=None,
+                 network=DEFAULT_NETWORK, fee=None, fee_per_kb=None, size=None, txid='', txhash='', date=None,
+                 confirmations=None, block_height=None, block_hash=None, input_total=0, output_total=0, rawtx=b'',
+                 status='new', coinbase=False, verified=False, witness_type='legacy', flag=None):
         """
         Create a new transaction class with provided inputs and outputs. 
         
@@ -1303,7 +1363,8 @@ class Transaction(object):
             if fee < 0 or fee == 0 and not self.coinbase:
                 raise TransactionError("Transaction inputs total value must be greater then total value of "
                                        "transaction outputs")
-
+        if not version:
+            version = b'\x00\x00\x00\x01'
         if isinstance(version, int):
             self.version = version.to_bytes(4, 'big')
             self.version_int = version
@@ -1344,6 +1405,16 @@ class Transaction(object):
 
     def __str__(self):
         return self.txid
+
+    def __add__(self, other):
+        """
+        Merge this transaction with another transaction keeping the original transaction intact.
+
+        :return Transaction:
+        """
+        t = deepcopy(self)
+        t.merge_transaction(other)
+        return t
 
     def as_dict(self):
         """
@@ -1461,6 +1532,110 @@ class Transaction(object):
         print("Fee: %s" % self.fee)
         print("Confirmations: %s" % self.confirmations)
         print("Block: %s" % self.block_height)
+
+    def set_locktime_relative_blocks(self, blocks, input_index_n=0):
+        """
+        Set nSequence relative locktime for this transaction. The transaction will only be valid if the specified number of blocks has been mined since the previous UTXO is confirmed.
+
+        Maximum number of blocks is 65535 as defined in BIP-0068, which is around 455 days.
+
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+
+        :param blocks: The blocks value is the number of blocks since the previous transaction output has been confirmed.
+        :type blocks: int
+        :param input_index_n: Index number of input for nSequence locktime
+        :type input_index_n: int
+
+        :return None:
+        """
+        if blocks == 0 or blocks == 0xffffffff:
+            self.inputs[input_index_n].sequence = 0xffffffff
+            self.sign(index_n=input_index_n, replace_signatures=True)
+            return
+        if blocks > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of nSequence timelock blocks exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.inputs[input_index_n].sequence = blocks
+        self.version_int = 2
+        self.sign_and_update(index_n=input_index_n)
+
+    def set_locktime_relative_time(self, seconds, input_index_n=0):
+        """
+        Set nSequence relative locktime for this transaction. The transaction will only be valid if the specified amount of seconds have been passed since the previous UTXO is confirmed.
+
+        Number of seconds will be rounded to the nearest 512 seconds. Any value below 512 will be interpreted as 512 seconds.
+
+        Maximum number of seconds is 33553920 (512 * 65535), which equals 384 days. See BIP-0068 definition.
+
+        When setting an relative timelock, the transaction version must be at least 2. The transaction will be updated so existing signatures for this input will be removed.
+
+        :param seconds: Number of seconds since the related previous transaction output has been confirmed.
+        :type seconds: int
+        :param input_index_n: Index number of input for nSequence locktime
+        :type input_index_n: int
+
+        :return:
+        """
+        if seconds == 0 or seconds == 0xffffffff:
+            self.inputs[input_index_n].sequence = 0xffffffff
+            self.sign(index_n=input_index_n, replace_signatures=True)
+            return
+        elif seconds < 512:
+            seconds = 512
+        elif (seconds // 512) > SEQUENCE_LOCKTIME_MASK:
+            raise TransactionError("Number of relative nSeqence timelock seconds exceeds %d" % SEQUENCE_LOCKTIME_MASK)
+        self.inputs[input_index_n].sequence = seconds // 512 + SEQUENCE_LOCKTIME_TYPE_FLAG
+        self.version_int = 2
+        self.sign_and_update(index_n=input_index_n)
+
+    def set_locktime_blocks(self, blocks):
+        """
+        Set nLocktime, a transaction level absolute lock time in blocks using the transaction sequence field.
+
+        So for example if you set this value to 600000 the transaction will only be valid after block 600000.
+
+        :param blocks: Transaction is valid after supplied block number. Value must be between 0 and 500000000. Zero means no locktime.
+        :type blocks: int
+
+        :return:
+        """
+        if blocks == 0 or blocks == 0xffffffff:
+            self.locktime = 0xffffffff
+            self.sign(replace_signatures=True)
+            self.verify()
+            return
+        elif blocks > 500000000:
+            raise TransactionError("Number of locktime blocks must be below %d" % 500000000)
+        self.locktime = blocks
+        if blocks != 0 and blocks != 0xffffffff:
+            for i in self.inputs:
+                if i.sequence == 0xffffffff:
+                    i.sequence = 0xfffffffd
+        self.sign_and_update()
+
+    def set_locktime_time(self, timestamp):
+        """
+        Set nLocktime, a transaction level absolute lock time in timestamp using the transaction sequence field.
+
+        :param timestamp: Transaction is valid after the given timestamp. Value must be between 500000000 and 0xfffffffe
+        :return:
+        """
+        if timestamp == 0 or timestamp == 0xffffffff:
+            self.locktime = 0xffffffff
+            self.sign(replace_signatures=True)
+            self.verify()
+            return
+
+        if timestamp <= 500000000:
+            raise TransactionError("Timestamp must have a value higher then %d" % 500000000)
+        if timestamp > 0xfffffffe:
+            raise TransactionError("Timestamp must have a value lower then %d" % 0xfffffffe)
+        self.locktime = timestamp
+
+        # Input sequence value must be below 0xffffffff
+        for i in self.inputs:
+            if i.sequence == 0xffffffff:
+                i.sequence = 0xfffffffd
+        self.sign_and_update()
 
     def signature_hash(self, sign_id=None, hash_type=SIGHASH_ALL, witness_type=None, as_hex=False):
         """
@@ -1683,28 +1858,31 @@ class Transaction(object):
         self.verified = True
         return True
 
-    def sign(self, keys=None, tid=None, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=True):
+    def sign(self, keys=None, index_n=None, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=True,
+             replace_signatures=False):
         """
         Sign the transaction input with provided private key
         
         :param keys: A private key or list of private keys
         :type keys: HDKey, Key, bytes, list
-        :param tid: Index of transaction input
-        :type tid: int
+        :param index_n: Index of transaction input. Leave empty to sign all inputs
+        :type index_n: int
         :param multisig_key_n: Index number of key for multisig input for segwit transactions. Leave empty if not known. If not specified all possibilities will be checked
         :type multisig_key_n: int
         :param hash_type: Specific hash type, default is SIGHASH_ALL
         :type hash_type: int
-        :param _fail_on_unknown_key: Method fails if public key from signature is not found in public key list
-        :type _fail_on_unknown_key: bool
+        :param fail_on_unknown_key: Method fails if public key from signature is not found in public key list
+        :type fail_on_unknown_key: bool
+        :param replace_signatures: Replace signature with new one if already signed.
+        :type replace_signatures: bool
 
         :return None:
         """
 
-        if tid is None:
+        if index_n is None:
             tids = range(len(self.inputs))
         else:
-            tids = [tid]
+            tids = [index_n]
 
         if keys is None:
             keys = []
@@ -1732,12 +1910,12 @@ class Transaction(object):
             for key in tid_keys:
                 # Check if signature signs known key and is not already in list
                 if key.public_byte not in pub_key_list:
-                    if _fail_on_unknown_key:
+                    if fail_on_unknown_key:
                         raise TransactionError("This key does not sign any known key: %s" % key.public_hex)
                     else:
                         _logger.info("This key does not sign any known key: %s" % key.public_hex)
                         continue
-                if key in [x.public_key for x in self.inputs[tid].signatures]:
+                if not replace_signatures and key in [x.public_key for x in self.inputs[tid].signatures]:
                     _logger.info("Key %s already signed" % key.public_hex)
                     break
 
@@ -1770,8 +1948,25 @@ class Transaction(object):
             if n_sigs_to_insert:
                 _logger.info("Some signatures are replaced with the signatures of the provided keys")
             self.inputs[tid].signatures = [s for s in sig_domain if s != '']
+            self.inputs[tid].update_scripts(hash_type)
 
-        self.inputs[tid].update_scripts(hash_type)
+    def sign_and_update(self, index_n=None):
+        """
+        Update transaction ID and resign. Use if some properties of the transaction changed
+
+        :param index_n: Index of transaction input. Leave empty to sign all inputs
+        :type index_n: int
+
+        :return:
+        """
+
+        self.version = self.version_int.to_bytes(4, 'big')
+        self.sign(index_n=index_n, replace_signatures=True)
+        self.txid = self.signature_hash()[::-1].hex()
+        self.size = len(self.raw())
+        self.calc_weight_units()
+        self.update_totals()
+        self.fee_per_kb = int((self.fee / float(self.size)) * 1024)
 
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
@@ -1838,6 +2033,7 @@ class Transaction(object):
             sequence_int = int.from_bytes(sequence, 'little')
         if self.version == b'\x00\x00\x00\x01' and 0 < sequence_int < SEQUENCE_LOCKTIME_DISABLE_FLAG:
             self.version = b'\x00\x00\x00\x02'
+            self.version_int = 2
         self.inputs.append(
             Input(prev_txid=prev_txid, output_n=output_n, keys=keys, signatures=signatures, public_hash=public_hash,
                   unlocking_script=unlocking_script, unlocking_script_unsigned=unlocking_script_unsigned,
@@ -1894,15 +2090,35 @@ class Transaction(object):
                                    network=self.network.name))
         return output_n
 
-    def estimate_size(self, add_change_output=False):
+    def merge_transaction(self, transaction):
+        """
+        Merge this transaction with provided Transaction object.
+
+        Add all inputs and outputs of a transaction to this Transaction object. Because the transaction signature
+        changes with this operation, the transaction inputs need to be signed again.
+
+        Can be used to implement CoinJoin. Where two or more unrelated Transactions are merged into 1 transaction
+        to safe fees and increase privacy.
+
+        :param transaction: The transaction to be merged
+        :type transaction: Transaction
+
+        """
+        self.inputs += transaction.inputs
+        self.outputs += transaction.outputs
+        self.shuffle()
+        self.update_totals()
+        self.sign_and_update()
+
+    def estimate_size(self, number_of_change_outputs=0):
         """
         Get estimated vsize in for current transaction based on transaction type and number of inputs and outputs.
 
         For old-style legacy transaction the vsize is the length of the transaction. In segwit transaction the
         witness data has less weight. The formula used is: math.ceil(((est_size-witness_size) * 3 + est_size) / 4)
 
-        :param add_change_output: Assume an extra change output will be created but has not been created yet.
-        :type add_change_output: bool
+        :param number_of_change_outputs: Number of change outputs, default is 0
+        :type number_of_change_outputs: int
 
         :return int: Estimated transaction size
         """
@@ -1949,15 +2165,16 @@ class Transaction(object):
                 est_size += len(varstr(outp.lock_script))
             else:
                 raise TransactionError("Need locking script for output %d to estimate size" % outp.output_n)
-        if add_change_output:
+        if number_of_change_outputs:
             is_multisig = True if self.inputs and self.inputs[0].script_type == 'p2sh_multisig' else False
-            est_size += 8
+            co_size = 8
             if not self.inputs or self.inputs[0].witness_type == 'legacy':
-                est_size += 24 if is_multisig else 26
+                co_size += 24 if is_multisig else 26
             elif self.inputs[0].witness_type == 'p2sh-segwit':
-                est_size += 24
+                co_size += 24
             else:
-                est_size += 33 if is_multisig else 23
+                co_size += 33 if is_multisig else 23
+            est_size += (number_of_change_outputs * co_size)
         self.size = est_size
         self.vsize = est_size
         if self.witness_type == 'legacy':
@@ -1990,7 +2207,13 @@ class Transaction(object):
 
         if not self.fee_per_kb:
             raise TransactionError("Cannot calculate transaction fees: transaction.fee_per_kb is not set")
-        return int(self.estimate_size() / 1024.0 * self.fee_per_kb)
+        fee = int(self.estimate_size() / 1024.0 * self.fee_per_kb)
+        # FIXME: fee is in kb, network.fee_min in sat/kb
+        if fee < self.network.fee_min:
+            fee = self.network.fee_min
+        elif fee > self.network.fee_max:
+            fee = self.network.fee_max
+        return fee
 
     def update_totals(self):
         """
@@ -2004,3 +2227,51 @@ class Transaction(object):
         # self.fee = 0
         if self.input_total:
             self.fee = self.input_total - self.output_total
+
+    def save(self, filename=None):
+        """
+        Store transaction object as file so it can be imported in bitcoinlib later with the :func:`load` method.
+
+        :param filename: Location and name of file, leave empty to store transaction in bitcoinlib data directory: .bitcoinlib/<transaction_id.tx)
+        :type filename: str
+
+        :return:
+        """
+        if not filename:
+            p = Path(BCL_DATA_DIR, '%s.tx' % self.txid)
+        else:
+            p = Path(filename)
+            if not p.parent or str(p.parent) == '.':
+                p = Path(BCL_DATA_DIR, filename)
+        f = p.open('wb')
+        pickle.dump(self, f)
+        f.close()
+
+    def shuffle_inputs(self):
+        """
+        Shuffle transaction inputs in random order.
+
+        :return:
+        """
+        random.shuffle(self.inputs)
+        for idx, o in enumerate(self.inputs):
+            o.index_n = idx
+
+    def shuffle_outputs(self):
+        """
+        Shuffle transaction outputs in random order.
+
+        :return:
+        """
+        random.shuffle(self.outputs)
+        for idx, o in enumerate(self.outputs):
+            o.output_n = idx
+
+    def shuffle(self):
+        """
+        Shuffle transaction inputs and outputs in random order.
+
+        :return:
+        """
+        self.shuffle_inputs()
+        self.shuffle_outputs()

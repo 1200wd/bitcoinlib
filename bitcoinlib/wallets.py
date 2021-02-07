@@ -21,7 +21,9 @@ import json
 import random
 from itertools import groupby
 from operator import itemgetter
-
+import numpy as np
+import pickle
+from copy import copy
 from bitcoinlib.db import *
 from bitcoinlib.encoding import *
 from bitcoinlib.keys import Address, BKeyError, HDKey, check_network_and_key, path_expand
@@ -55,6 +57,7 @@ def wallets_list(db_uri=None, include_cosigners=False):
 
     :param db_uri: URI of the database
     :type db_uri: str
+
     :param include_cosigners: Child wallets for multisig wallets are for internal use only and are skipped by default
     :type include_cosigners: bool
 
@@ -606,6 +609,17 @@ class WalletTransaction(Transaction):
         return "<WalletTransaction(input_count=%d, output_count=%d, status=%s, network=%s)>" % \
                (len(self.inputs), len(self.outputs), self.status, self.network.name)
 
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        self_dict = self.__dict__
+        for k, v in self_dict.items():
+            if k != 'hdwallet':
+                setattr(result, k, deepcopy(v, memo))
+        result.hdwallet = self.hdwallet
+        return result
+
     @classmethod
     def from_transaction(cls, hdwallet, t):
         """
@@ -690,7 +704,8 @@ class WalletTransaction(Transaction):
                    rawtx=db_tx.raw, status=db_tx.status, coinbase=db_tx.coinbase,
                    verified=db_tx.verified)
 
-    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, _fail_on_unknown_key=None):
+    def sign(self, keys=None, index_n=0, multisig_key_n=None, hash_type=SIGHASH_ALL, fail_on_unknown_key=False,
+             replace_signatures=False):
         """
         Sign this transaction. Use existing keys from wallet or use keys argument for extra keys.
 
@@ -702,6 +717,10 @@ class WalletTransaction(Transaction):
         :type multisig_key_n: int
         :param hash_type: Hashtype to use, default is SIGHASH_ALL
         :type hash_type: int
+        :param fail_on_unknown_key: Method fails if public key from signature is not found in public key list
+        :type fail_on_unknown_key: bool
+        :param replace_signatures: Replace signature with new one if already signed.
+        :type replace_signatures: bool
 
         :return None:
         """
@@ -728,7 +747,8 @@ class WalletTransaction(Transaction):
             for k in ti.keys:
                 if k.is_private:
                     priv_key_list.append(k)
-            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type, False)
+            Transaction.sign(self, priv_key_list, ti.index_n, multisig_key_n, hash_type, fail_on_unknown_key,
+                             replace_signatures)
         self.verify()
         self.error = ""
 
@@ -764,7 +784,7 @@ class WalletTransaction(Transaction):
             self.confirmations = 0
             self.pushed = True
             self.response_dict = srv.results
-            self.save()
+            self.store()
 
             # Update db: Update spent UTXO's, add transaction to database
             for inp in self.inputs:
@@ -781,9 +801,9 @@ class WalletTransaction(Transaction):
             return None
         self.error = "Transaction not send, unknown response from service providers"
 
-    def save(self):
+    def store(self):
         """
-        Save this transaction to database
+        Store this transaction to database
 
         :return int: Transaction index number
         """
@@ -909,6 +929,31 @@ class WalletTransaction(Transaction):
                     continue
                 mut_list.append((self.date, self.txid, 'in', input_addresslist, o.address, o.value, 0))
         return mut_list
+
+    def save(self, filename=None):
+        """
+        Store transaction object as file so it can be imported in bitcoinlib later with the :func:`load` method.
+
+        :param filename: Location and name of file, leave empty to store transaction in bitcoinlib data directory: .bitcoinlib/<transaction_id.tx)
+        :type filename: str
+
+        :return:
+        """
+        if not filename:
+            p = Path(BCL_DATA_DIR, '%s.tx' % self.txid)
+        else:
+            p = Path(filename)
+            if not p.parent or str(p.parent) == '.':
+                p = Path(BCL_DATA_DIR, filename)
+        f = p.open('wb')
+        wt = copy(self)
+        del wt.hdwallet
+        del wt.pushed
+        del wt.error
+        del wt.response_dict
+        del wt.account_id
+        pickle.dump(wt, f)
+        f.close()
 
 
 class Wallet(object):
@@ -1122,12 +1167,12 @@ class Wallet(object):
                     key = HDKey.from_seed(Mnemonic().to_seed(key, password), network=network)
                 else:
                     try:
-                        key = HDKey(key, network=network)
+                        key = HDKey(key, password=password, network=network)
                     except BKeyError:
                         try:
                             scheme = 'single'
                             key = Address.import_address(key, encoding=encoding, network=network)
-                        except EncodingError or BKeyError:
+                        except Exception:
                             raise WalletError("Invalid key or address: %s" % key)
                     if network is None:
                         network = key.network.name
@@ -2123,7 +2168,7 @@ class Wallet(object):
         :param as_dict: Return keys as dictionary objects. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: List of Keys
+        :return list of DbKey: List of Keys
         """
 
         qr = self._session.query(DbKey).filter_by(wallet_id=self.wallet_id).order_by(DbKey.id)
@@ -2188,7 +2233,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict):
 
         """
 
@@ -2220,7 +2265,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict):
         """
 
         return self.keys(account_id, depth=self.depth_public_master, network=network, as_dict=as_dict)
@@ -2249,7 +2294,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict)
         """
 
         if depth is None:
@@ -2270,7 +2315,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict)
         """
 
         return self.keys(account_id, depth=self.key_depth, change=0, used=used, network=network, as_dict=as_dict)
@@ -2288,7 +2333,7 @@ class Wallet(object):
         :param as_dict: Return as dictionary or DbKey object. Default is False: DbKey objects
         :type as_dict: bool
 
-        :return list: DbKey or dictionaries
+        :return list of (DbKey, dict)
         """
 
         return self.keys(account_id, depth=self.key_depth, change=1, used=used, network=network, as_dict=as_dict)
@@ -2315,7 +2360,7 @@ class Wallet(object):
         :param key_id: Key ID to get address of just 1 key
         :type key_id: int
 
-        :return list: List of address strings
+        :return list of str: List of address strings
         """
 
         addresslist = []
@@ -2651,7 +2696,7 @@ class Wallet(object):
         :return int: Number of new UTXO's added
         """
 
-        network, account_id, acckey = self._get_account_defaults('', account_id, key_id)
+        _, account_id, acckey = self._get_account_defaults('', account_id, key_id)
 
         single_key = None
         if key_id:
@@ -2666,20 +2711,21 @@ class Wallet(object):
         elif len(networks) != 1 and utxos is not None:
             raise WalletError("Please specify maximum 1 network when passing utxo's")
 
-        # Remove current UTXO's
-        if rescan_all:
-            cur_utxos = self._session.query(DbTransactionOutput).\
-                join(DbTransaction). \
-                filter(DbTransactionOutput.spent.is_(False),
-                       DbTransaction.account_id == account_id,
-                       DbTransaction.wallet_id == self.wallet_id).all()
-            for u in cur_utxos:
-                self._session.query(DbTransactionOutput).filter_by(
-                    transaction_id=u.transaction_id, output_n=u.output_n).update({DbTransactionOutput.spent: True})
-            self._commit()
-
         count_utxos = 0
         for network in networks:
+            # Remove current UTXO's
+            if rescan_all:
+                cur_utxos = self._session.query(DbTransactionOutput). \
+                    join(DbTransaction). \
+                    filter(DbTransactionOutput.spent.is_(False),
+                           DbTransaction.account_id == account_id,
+                           DbTransaction.wallet_id == self.wallet_id,
+                           DbTransaction.network_name == network).all()
+                for u in cur_utxos:
+                    self._session.query(DbTransactionOutput).filter_by(
+                        transaction_id=u.transaction_id, output_n=u.output_n).update({DbTransactionOutput.spent: True})
+                self._commit()
+
             if account_id is None and not self.multisig:
                 accounts = self.accounts(network=network)
             else:
@@ -2726,7 +2772,7 @@ class Wallet(object):
                     # Update confirmations in db if utxo was already imported
                     transaction_in_db = self._session.query(DbTransaction).\
                         filter_by(wallet_id=self.wallet_id, txid=bytes.fromhex(utxo['txid']),
-                                  network_name=self.network.name)
+                                  network_name=network)
                     utxo_in_db = self._session.query(DbTransactionOutput).join(DbTransaction).\
                         filter(DbTransaction.wallet_id == self.wallet_id,
                                DbTransaction.txid == bytes.fromhex(utxo['txid']),
@@ -2794,13 +2840,16 @@ class Wallet(object):
         :type network: str
         :param min_confirms: Minimal confirmation needed to include in output list
         :type min_confirms: int
-        :param key_id: Key ID to just get 1 key
-        :type key_id: int
+        :param key_id: Key ID or list of key IDs to filter utxo's for specific keys
+        :type key_id: int, list
 
         :return list: List of transactions
         """
 
-        network, account_id, acckey = self._get_account_defaults(network, account_id, key_id)
+        first_key_id = key_id
+        if isinstance(key_id, list):
+            first_key_id = key_id[0]
+        network, account_id, acckey = self._get_account_defaults(network, account_id, first_key_id)
 
         qr = self._session.query(DbTransactionOutput, DbKey.address, DbTransaction.confirmations, DbTransaction.txid,
                                  DbKey.network_name).\
@@ -2810,8 +2859,11 @@ class Wallet(object):
                    DbTransaction.wallet_id == self.wallet_id,
                    DbTransaction.network_name == network,
                    DbTransaction.confirmations >= min_confirms)
-        if key_id is not None:
+        if isinstance(key_id, int):
             qr = qr.filter(DbKey.id == key_id)
+        elif isinstance(key_id, list):
+            # for i in key_id:
+            qr = qr.filter(DbKey.id.in_(key_id))
         utxos = qr.order_by(DbTransaction.confirmations.desc()).all()
         res = []
         for utxo in utxos:
@@ -2922,7 +2974,7 @@ class Wallet(object):
         utxo_set = set()
         for t in txs:
             wt = WalletTransaction.from_transaction(self, t)
-            wt.save()
+            wt.store()
             utxos = [(ti.prev_txid.hex(), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
 
@@ -3001,7 +3053,7 @@ class Wallet(object):
         utxo_set = set()
         for t in txs:
             wt = WalletTransaction.from_transaction(self, t)
-            wt.save()
+            wt.store()
             utxos = [(ti.prev_txid.hex(), ti.output_n_int) for ti in wt.inputs]
             utxo_set.update(utxos)
         for utxo in list(utxo_set):
@@ -3223,7 +3275,7 @@ class Wallet(object):
         return inp_keys, key
 
     def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=0,
-                      max_utxos=None, return_input_obj=True):
+                      max_utxos=None, return_input_obj=True, skip_dust_amounts=True):
         """
         Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
         the specified amount.
@@ -3234,10 +3286,10 @@ class Wallet(object):
 
         :param amount: Total value of inputs in smallest denominator (sathosi) to select
         :type amount: int
-        :param variance: Allowed difference in total input value. Default is dust amount of selected network.
+        :param variance: Allowed difference in total input value. Default is dust amount of selected network. Difference will be added to transaction fee.
         :type variance: int
-        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
-        :type input_key_id: int
+        :param input_key_id: Limit UTXO's search for inputs to this key ID or list of key IDs. Only valid if no input array is specified
+        :type input_key_id: int, list
         :param account_id: Account ID
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3248,21 +3300,29 @@ class Wallet(object):
         :type max_utxos: int
         :param return_input_obj: Return inputs as Input class object. Default is True
         :type return_input_obj: bool
+        :param skip_dust_amounts: Do not include small amount to avoid dust inputs
+        :type skip_dust_amounts: bool
 
         :return: List of previous outputs
         :rtype: list of DbTransactionOutput, list of Input
         """
 
         network, account_id, _ = self._get_account_defaults(network, account_id)
+        dust_amount = Network(network).dust_amount
         if variance is None:
-            variance = self.network.dust_amount
+            variance = dust_amount
 
         utxo_query = self._session.query(DbTransactionOutput).join(DbTransaction).join(DbKey). \
             filter(DbTransaction.wallet_id == self.wallet_id, DbTransaction.account_id == account_id,
                    DbTransaction.network_name == network, DbKey.public != b'',
                    DbTransactionOutput.spent.is_(False), DbTransaction.confirmations >= min_confirms)
         if input_key_id:
-            utxo_query = utxo_query.filter(DbKey.id == input_key_id)
+            if isinstance(input_key_id, int):
+                utxo_query = utxo_query.filter(DbKey.id == input_key_id)
+            else:
+                utxo_query = utxo_query.filter(DbKey.id.in_(input_key_id))
+        if skip_dust_amounts:
+            utxo_query = utxo_query.filter(DbTransactionOutput.value > dust_amount)
         utxos = utxo_query.order_by(DbTransaction.confirmations.desc()).all()
         if not utxos:
             raise WalletError("Create transaction: No unspent transaction outputs found or no key available for UTXO's")
@@ -3316,7 +3376,8 @@ class Wallet(object):
             return inputs
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-                           min_confirms=0, max_utxos=None, locktime=0):
+                           min_confirms=0, max_utxos=None, locktime=0, number_of_change_outputs=1,
+                           random_output_order=True):
         """
         Create new transaction with specified outputs.
 
@@ -3329,7 +3390,7 @@ class Wallet(object):
         >>> t
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
-        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
+        [<Output(value=..., address=..., type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param output_arr: List of output as Output objects or tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]
         :type output_arr: list of Output, tuple
@@ -3349,11 +3410,19 @@ class Wallet(object):
         :type max_utxos: int
         :param locktime: Transaction level locktime. Locks the transaction until a specified block (value from 1 to 5 million) or until a certain time (Timestamp in seconds after 1-jan-1970). Default value is 0 for transactions without locktime
         :type locktime: int
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount        :type number_of_change_outputs: int
+        :type number_of_change_outputs: int
+        :param random_output_order: Shuffle order of transaction outputs to increase privacy. Default is True
+        :type random_output_order: bool
 
         :return WalletTransaction: object
         """
 
-        amount_total_output = 0
+        if not isinstance(output_arr, list):
+            raise WalletError("Output array must be a list of tuples with address and amount. "
+                              "Use 'send_to' method to send to one address")
+        if not network and output_arr and isinstance(output_arr[0][1], str):
+            network = Value(output_arr[0][1]).network.name
         network, account_id, acckey = self._get_account_defaults(network, account_id)
 
         if input_arr and max_utxos and len(input_arr) > max_utxos:
@@ -3361,17 +3430,15 @@ class Wallet(object):
                               (len(input_arr), max_utxos))
 
         # Create transaction and add outputs
+        amount_total_output = 0
         transaction = WalletTransaction(hdwallet=self, account_id=account_id, network=network, locktime=locktime)
         transaction.outgoing_tx = True
-        if not isinstance(output_arr, list):
-            raise WalletError("Output array must be a list of tuples with address and amount. "
-                              "Use 'send_to' method to send to one address")
         for o in output_arr:
             if isinstance(o, Output):
                 transaction.outputs.append(o)
                 amount_total_output += o.value
             else:
-                value = value_to_satoshi(o[1], network=self.network)
+                value = value_to_satoshi(o[1], network=transaction.network)
                 amount_total_output += value
                 addr = o[0]
                 if isinstance(addr, WalletKey):
@@ -3383,9 +3450,10 @@ class Wallet(object):
         if fee is None:
             if not input_arr:
                 transaction.fee_per_kb = srv.estimatefee()
-                fee_estimate = (transaction.estimate_size(add_change_output=True) / 1024.0 * transaction.fee_per_kb)
-                if fee_estimate < self.network.fee_min:
-                    fee_estimate = self.network.fee_min
+                fee_estimate = (transaction.estimate_size(number_of_change_outputs=number_of_change_outputs) / 1024.0
+                                * transaction.fee_per_kb)
+                if fee_estimate < transaction.network.fee_min:
+                    fee_estimate = transaction.network.fee_min
             else:
                 fee_estimate = 0
         else:
@@ -3397,7 +3465,7 @@ class Wallet(object):
             sequence = 0xfffffffe
         amount_total_input = 0
         if input_arr is None:
-            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, self.network.dust_amount,
+            selected_utxos = self.select_inputs(amount_total_output + fee_estimate, transaction.network.dust_amount,
                                                 input_key_id, account_id, network, min_confirms, max_utxos, False)
             if not selected_utxos:
                 raise WalletError("Not enough unspent transaction outputs found")
@@ -3487,13 +3555,13 @@ class Wallet(object):
         # Calculate fees
         transaction.fee = fee
         fee_per_output = None
-        transaction.size = transaction.estimate_size(add_change_output=True)
+        transaction.size = transaction.estimate_size(number_of_change_outputs=number_of_change_outputs)
         if fee is None:
             if not input_arr:
                 if not transaction.fee_per_kb:
                     transaction.fee_per_kb = srv.estimatefee()
-                if transaction.fee_per_kb < self.network.fee_min:
-                    transaction.fee_per_kb = self.network.fee_min
+                if transaction.fee_per_kb < transaction.network.fee_min:
+                    transaction.fee_per_kb = transaction.network.fee_min
                 transaction.fee = int((transaction.size / 1024.0) * transaction.fee_per_kb)
                 fee_per_output = int((50 / 1024.0) * transaction.fee_per_kb)
             else:
@@ -3509,26 +3577,78 @@ class Wallet(object):
             transaction.change = int(amount_total_input - (amount_total_output + transaction.fee))
 
         # Skip change if amount is smaller then the dust limit or estimated fee
-        if (fee_per_output and transaction.change < fee_per_output) or transaction.change <= self.network.dust_amount:
+        if (fee_per_output and transaction.change < fee_per_output) or transaction.change <= transaction.network.dust_amount:
             transaction.fee += transaction.change
             transaction.change = 0
         if transaction.change < 0:
             raise WalletError("Total amount of outputs is greater then total amount of inputs")
         if transaction.change:
-            ck = self.get_key(account_id=account_id, network=network, change=1)
-            on = transaction.add_output(transaction.change, ck.address, encoding=self.encoding)
-            transaction.outputs[on].key_id = ck.key_id
-            amount_total_output += transaction.change
+            min_output_value = transaction.network.dust_amount * 2 + transaction.network.fee_min * 4
+            if transaction.fee and transaction.size:
+                if not transaction.fee_per_kb:
+                    transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
+                min_output_value = transaction.fee_per_kb + transaction.network.fee_min * 4 + \
+                                   transaction.network.dust_amount
+
+            if number_of_change_outputs == 0:
+                if transaction.change < amount_total_output / 10 or transaction.change < min_output_value * 8:
+                    number_of_change_outputs = 1
+                elif transaction.change / 10 > amount_total_output:
+                    number_of_change_outputs = random.randint(2, 5)
+                else:
+                    number_of_change_outputs = random.randint(1, 3)
+                    # Prefer 1 and 2 as number of change outputs
+                    if number_of_change_outputs == 3:
+                        number_of_change_outputs = random.randint(3, 4)
+                transaction.size = transaction.estimate_size(number_of_change_outputs=number_of_change_outputs)
+
+            average_change = transaction.change // number_of_change_outputs
+            if number_of_change_outputs > 1 and average_change < min_output_value:
+                raise WalletError("Not enough funds to create multiple change outputs. Try less change outputs "
+                                  "or lower fees")
+
+            if self.scheme == 'single':
+                change_keys = [self.get_key(account_id=account_id, network=network, change=1)]
+            else:
+                change_keys = self.get_keys(account_id=account_id, network=network, change=1,
+                                            number_of_keys=number_of_change_outputs)
+
+            if number_of_change_outputs > 1:
+                rand_prop = transaction.change - number_of_change_outputs * min_output_value
+                change_amounts = list(((np.random.dirichlet(np.ones(number_of_change_outputs), size=1)[0] *
+                                        rand_prop) + min_output_value).astype(int))
+                # Fix rounding problems / small amount differences
+                diffs = transaction.change - sum(change_amounts)
+                for idx, co in enumerate(change_amounts):
+                    if co - diffs > min_output_value:
+                        change_amounts[idx] += change_amounts.index(co) + diffs
+                        break
+            else:
+                change_amounts = [transaction.change]
+
+            for idx, ck in enumerate(change_keys):
+                on = transaction.add_output(change_amounts[idx], ck.address, encoding=self.encoding)
+                transaction.outputs[on].key_id = ck.key_id
+
+        # Shuffle output order to increase privacy
+        if random_output_order:
+            transaction.shuffle()
+
+        # Check tx values
+        transaction.input_total = sum([i.value for i in transaction.inputs])
+        transaction.output_total = sum([o.value for o in transaction.outputs])
+        if transaction.input_total != transaction.fee + transaction.output_total:
+            raise WalletError("Sum of inputs values is not equal to sum of outputs values plus fees")
 
         transaction.txid = transaction.signature_hash()[::-1].hex()
         if not transaction.fee_per_kb:
             transaction.fee_per_kb = int((transaction.fee * 1024.0) / transaction.size)
-        if transaction.fee_per_kb < self.network.fee_min:
+        if transaction.fee_per_kb < transaction.network.fee_min:
             raise WalletError("Fee per kB of %d is lower then minimal network fee of %d" %
-                              (transaction.fee_per_kb, self.network.fee_min))
-        elif transaction.fee_per_kb > self.network.fee_max:
+                              (transaction.fee_per_kb, transaction.network.fee_min))
+        elif transaction.fee_per_kb > transaction.network.fee_max:
             raise WalletError("Fee per kB of %d is higher then maximum network fee of %d" %
-                              (transaction.fee_per_kb, self.network.fee_max))
+                              (transaction.fee_per_kb, transaction.network.fee_max))
 
         return transaction
 
@@ -3545,7 +3665,8 @@ class Wallet(object):
 
         """
         if isinstance(t, Transaction):
-            rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.name)
+            rt = self.transaction_create(t.outputs, t.inputs, fee=t.fee, network=t.network.name,
+                                         random_output_order=False)
             rt.block_height = t.block_height
             rt.confirmations = t.confirmations
             rt.witness_type = t.witness_type
@@ -3577,7 +3698,8 @@ class Wallet(object):
             output_arr = []
             for o in t['outputs']:
                 output_arr.append((o['address'], int(o['value'])))
-            rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'])
+            rt = self.transaction_create(output_arr, input_arr, fee=t['fee'], network=t['network'],
+                                         random_output_order=False)
             rt.block_height = t['block_height']
             rt.confirmations = t['confirmations']
             rt.witness_type = t['witness_type']
@@ -3618,14 +3740,17 @@ class Wallet(object):
         if network is None:
             network = self.network.name
         t_import = Transaction.import_raw(rawtx, network=network)
-        rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network)
+        rt = self.transaction_create(t_import.outputs, t_import.inputs, network=network, locktime=t_import.locktime,
+                                     random_output_order=False)
+        rt.version_int = t_import.version_int
+        rt.version = t_import.version
         rt.verify()
         rt.size = rt.vsize = len(rawtx)
         rt.fee_per_kb = int((rt.fee / float(rt.size)) * 1024)
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-             min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False):
+             min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False, number_of_change_outputs=1):
         """
         Create a new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's
@@ -3638,14 +3763,14 @@ class Wallet(object):
         >>> t
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
-        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
+        [<Output(value=..., address=..., type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param output_arr: List of output tuples with address and amount. Must contain at least one item. Example: [('mxdLD8SAGS9fe2EeCXALDHcdTTbppMHp8N', 5000000)]. Address can be an address string, Address object, HDKey object or WalletKey object
         :type output_arr: list
         :param input_arr: List of inputs tuples with reference to a UTXO, a wallet key and value. The format is [(txid, output_n, key_id, value)]
         :type input_arr: list
-        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
-        :type input_key_id: int
+        :param input_key_id: Limit UTXO's search for inputs to this key ID or list of key IDs. Only valid if no input array is specified
+        :type input_key_id: int, list
         :param account_id: Account ID
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3662,27 +3787,30 @@ class Wallet(object):
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
+        :type number_of_change_outputs: int
 
         :return WalletTransaction:
         """
 
-        network, account_id, _ = self._get_account_defaults(network, account_id)
         if input_arr and max_utxos and len(input_arr) > max_utxos:
             raise WalletError("Input array contains %d UTXO's but max_utxos=%d parameter specified" %
                               (len(input_arr), max_utxos))
 
         transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network, fee,
-                                              min_confirms, max_utxos, locktime)
+                                              min_confirms, max_utxos, locktime, number_of_change_outputs)
         transaction.sign(priv_keys)
         # Calculate exact fees and update change output if necessary
         if fee is None and transaction.fee_per_kb and transaction.change:
             fee_exact = transaction.calculate_fee()
             # Recreate transaction if fee estimation more then 10% off
-            if fee_exact and abs((float(transaction.fee) - float(fee_exact)) / float(fee_exact)) > 0.10:
+            if fee_exact != self.network.fee_min and fee_exact != self.network.fee_max and \
+                    fee_exact and abs((float(transaction.fee) - float(fee_exact)) / float(fee_exact)) > 0.10:
                 _logger.info("Transaction fee not correctly estimated (est.: %d, real: %d). "
                              "Recreate transaction with correct fee" % (transaction.fee, fee_exact))
                 transaction = self.transaction_create(output_arr, input_arr, input_key_id, account_id, network,
-                                                      fee_exact, min_confirms, max_utxos, locktime)
+                                                      fee_exact, min_confirms, max_utxos, locktime,
+                                                      number_of_change_outputs)
                 transaction.sign(priv_keys)
 
         transaction.fee_per_kb = int(float(transaction.fee) / float(transaction.size) * 1024)
@@ -3691,7 +3819,7 @@ class Wallet(object):
         return transaction
 
     def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=0,
-                priv_keys=None, locktime=0, offline=False):
+                priv_keys=None, locktime=0, offline=False, number_of_change_outputs=1):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
 
@@ -3702,14 +3830,14 @@ class Wallet(object):
         >>> t
         <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
         >>> t.outputs # doctest:+ELLIPSIS
-        [<Output(value=200000, address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
+        [<Output(value=..., address=..., type=p2pkh)>, <Output(value=..., address=..., type=p2pkh)>]
 
         :param to_address: Single output address as string Address object, HDKey object or WalletKey object
         :type to_address: str, Address, HDKey, WalletKey
         :param amount: Output is smallest denominator for this network (ie: Satoshi's for Bitcoin), as Value object or value string as accepted by Value class
         :type amount: int, str, Value
-        :param input_key_id: Limit UTXO's search for inputs to this key_id. Only valid if no input array is specified
-        :type input_key_id: int
+        :param input_key_id: Limit UTXO's search for inputs to this key ID or list of key IDs. Only valid if no input array is specified
+        :type input_key_id: int, list
         :param account_id: Account ID, default is last used
         :type account_id: int
         :param network: Network name. Leave empty for default network
@@ -3724,18 +3852,21 @@ class Wallet(object):
         :type locktime: int
         :param offline: Just return the transaction object and do not send it when offline = True. Default is False
         :type offline: bool
+        :param number_of_change_outputs: Number of change outputs to create when there is a change value. Default is 1. Use 0 for random number of outputs: between 1 and 5 depending on send and change amount
+        :type number_of_change_outputs: int
 
         :return WalletTransaction:
         """
 
         outputs = [(to_address, amount)]
         return self.send(outputs, input_key_id=input_key_id, account_id=account_id, network=network, fee=fee,
-                         min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline)
+                         min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline,
+                         number_of_change_outputs=number_of_change_outputs)
 
     def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
               fee_per_kb=None, fee=None, locktime=0, offline=False):
         """
-        Sweep all unspent transaction outputs (UTXO's) and send them to one output address.
+        Sweep all unspent transaction outputs (UTXO's) and send them to one or more output addresses.
 
         Wrapper for the :func:`send` method.
 
@@ -3746,13 +3877,18 @@ class Wallet(object):
         >>> t.outputs # doctest:+ELLIPSIS
         [<Output(value=..., address=1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb, type=p2pkh)>]
 
+        Output to multiple addresses
 
-        :param to_address: Single output address
-        :type to_address: str
+        >>> to_list = [('1J9GDZMKEr3ZTj8q6pwtMy4Arvt92FDBTb', 100000), (w.get_key(), 0)]
+        >>> w.sweep(to_list, offline=True)
+        <WalletTransaction(input_count=1, output_count=2, status=new, network=bitcoin)>
+
+        :param to_address: Single output address or list of outputs in format [(<adddress>, <amount>)]. If you specify a list of outputs, use amount value = 0 to indicate a change output
+        :type to_address: str, list
         :param account_id: Wallet's account ID
         :type account_id: int
-        :param input_key_id: Limit sweep to UTXO's with this key_id
-        :type input_key_id: int
+        :param input_key_id: Limit sweep to UTXO's with this key ID or list of key IDs
+        :type input_key_id: int, list
         :param network: Network name. Leave empty for default network
         :type network: str
         :param max_utxos: Limit maximum number of outputs to use. Default is 999
@@ -3780,7 +3916,7 @@ class Wallet(object):
         if not utxos:
             raise WalletError("Cannot sweep wallet, no UTXO's found")
         for utxo in utxos:
-            # Skip dust transactions
+            # Skip dust transactions to avoid forced address reuse
             if utxo['value'] <= self.network.dust_amount:
                 continue
             input_arr.append((utxo['txid'], utxo['output_n'], utxo['key_id'], utxo['value']))
@@ -3795,7 +3931,19 @@ class Wallet(object):
         if total_amount - fee <= self.network.dust_amount:
             raise WalletError("Amount to send is smaller then dust amount: %s" % (total_amount - fee))
 
-        return self.send([(to_address, total_amount - fee)], input_arr, network=network,
+        if isinstance(to_address, str):
+            to_list = [(to_address, total_amount - fee)]
+        else:
+            to_list = []
+            for o in to_address:
+                if o[1] == 0:
+                    o_amount = total_amount - sum([x[1] for x in to_list]) - fee
+                    if o_amount > 0:
+                        to_list.append((o[0], o_amount))
+                else:
+                    to_list.append(o)
+
+        return self.send(to_list, input_arr, network=network,
                          fee=fee, min_confirms=min_confirms, locktime=locktime, offline=offline)
 
     def wif(self, is_private=False, account_id=0):
@@ -3860,6 +4008,32 @@ class Wallet(object):
             for cs in self.cosigner:
                 pm_list.append(cs.public_master(account_id, name, as_private, network))
             return pm_list
+
+    def transaction_load(self, txid=None, filename=None):
+        """
+        Load transaction object from file which has been stored with the :func:`Transaction.save` method.
+
+        Specify transaction ID or filename.
+
+        :param txid: Transaction ID. Transaction object will be read from .bitcoinlib datadir
+        :type txid: str
+        :param filename: Name of transaction object file
+        :type filename: str
+
+        :return Transaction:
+        """
+        if not filename and not txid:
+            raise WalletError("Please supply filename or txid")
+        elif not filename and txid:
+            p = Path(BCL_DATA_DIR, '%s.tx' % txid)
+        else:
+            p = Path(filename)
+            if not p.parent or str(p.parent) == '.':
+                p = Path(BCL_DATA_DIR, filename)
+        f = p.open('rb')
+        t = pickle.load(f)
+        f.close()
+        return self.transaction_import(t)
 
     def info(self, detail=3):
         """

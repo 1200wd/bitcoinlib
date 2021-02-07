@@ -46,13 +46,18 @@ class Db:
     Create new database if is doesn't exist yet
 
     """
-    def __init__(self, db_uri=None):
+    def __init__(self, db_uri=None, password=None):
         if db_uri is None:
             db_uri = DEFAULT_DATABASE
         self.o = urlparse(db_uri)
         if not self.o.scheme or \
                 len(self.o.scheme) < 2:  # Dirty hack to avoid issues with urlparse on Windows confusing drive with scheme
-            db_uri = 'sqlite:///%s' % db_uri
+            if password:
+                # Warning: This requires the pysqlcipher3 module
+                db_uri = 'sqlite+pysqlcipher://:%s@/%s?cipher=aes-256-cfb&kdf_iter=64000' % (password, db_uri)
+            else:
+                db_uri = 'sqlite:///%s' % db_uri
+
         if db_uri.startswith("sqlite://") and ALLOW_DATABASE_THREADS:
             db_uri += "&" if "?" in db_uri else "?"
             db_uri += "check_same_thread=False"
@@ -66,7 +71,8 @@ class Db:
         self._import_config_data(Session)
         self.session = Session()
 
-        _logger.info("Using Database %s" % db_uri)
+        _logger.info("Using database: %s://%s:%s/%s" % (self.o.scheme or '', self.o.hostname or '',
+                                                        self.o.port or '', self.o.path or ''))
         self.db_uri = db_uri
 
         # VERIFY AND UPDATE DATABASE

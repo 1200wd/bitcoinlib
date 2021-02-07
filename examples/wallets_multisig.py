@@ -27,13 +27,13 @@ pk2 = HDKey(network=NETWORK)
 pk3 = HDKey(network=NETWORK)
 klist = [pk1, pk2.public_master_multisig(), pk3.public_master_multisig()]
 wl1 = Wallet.create('multisig_2of3_cosigner1', sigs_required=2, keys=klist,
-                      network=NETWORK, db_uri=test_database)
+                    network=NETWORK, db_uri=test_database)
 klist = [pk1.public_master_multisig(), pk2, pk3.public_master_multisig()]
 wl2 = Wallet.create('multisig_2of3_cosigner2',  sigs_required=2, keys=klist,
-                      network=NETWORK, db_uri=test_database)
+                    network=NETWORK, db_uri=test_database)
 klist = [pk1.public_master_multisig(), pk2.public_master_multisig(), pk3]
 wl3 = Wallet.create('multisig_2of3_cosigner3', sigs_required=2, keys=klist,
-                      network=NETWORK, db_uri=test_database)
+                    network=NETWORK, db_uri=test_database)
 
 # Generate a new key in each wallet, all these keys should be the same
 nk1 = wl1.new_key(cosigner_id=1)
@@ -106,9 +106,9 @@ pk1 = HDKey('YXscyqNJ5YK411nwB33KeVkhSVjwwUkSG9xG3hkaoQFEbTwNJSrNTfni3aSSYiKtPeU
 pk2 = HDKey('YXscyqNJ5YK411nwB3kXiApMaJySYss8sMM9FYgXMtmQKmDTF9yiu7yBNKnVjE8WdVVvuhxLqS6kHvW2MPHKmYzbzEHQsDXXAZuu1rCs'
             'Hcp7rrJx', network=NETWORK, key_type='single')
 wl1 = Wallet.create('multisig_single_keys1', [pk1, pk2.public()],
-                      sigs_required=2, network=NETWORK, db_uri=test_database)
+                    sigs_required=2, network=NETWORK, db_uri=test_database)
 wl2 = Wallet.create('multisig_single_keys2', [pk1.public_master_multisig(), pk2],
-                      sigs_required=2, network=NETWORK, db_uri=test_database)
+                    sigs_required=2, network=NETWORK, db_uri=test_database)
 
 # Create multisig keys and update UTXO's
 wl1.new_key(cosigner_id=0)

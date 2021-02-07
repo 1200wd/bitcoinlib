@@ -38,7 +38,7 @@ from bitcoinlib.main import *
 
 
 _logger = logging.getLogger(__name__)
-_logger.info("Using Cache Database %s" % DEFAULT_DATABASE_CACHE)
+_logger.info("Default Cache Database %s" % DEFAULT_DATABASE_CACHE)
 Base = declarative_base()
 
 
@@ -80,6 +80,8 @@ class DbCache:
         Session = sessionmaker(bind=self.engine)
         Base.metadata.create_all(self.engine)
         self.db_uri = db_uri
+        _logger.info("Using cache database: %s://%s:%s/%s" % (self.o.scheme or '', self.o.hostname or '',
+                                                              self.o.port or '', self.o.path or ''))
         self.session = Session()
 
     def drop_db(self):

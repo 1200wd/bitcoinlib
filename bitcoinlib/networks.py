@@ -247,10 +247,10 @@ class Network(object):
         self.prefix_wif = bytes.fromhex(NETWORK_DEFINITIONS[network_name]['prefix_wif'])
         self.denominator = NETWORK_DEFINITIONS[network_name]['denominator']
         self.bip44_cointype = NETWORK_DEFINITIONS[network_name]['bip44_cointype']
-        self.dust_amount = NETWORK_DEFINITIONS[network_name]['dust_amount']
-        self.fee_default = NETWORK_DEFINITIONS[network_name]['fee_default']
-        self.fee_min = NETWORK_DEFINITIONS[network_name]['fee_min']
-        self.fee_max = NETWORK_DEFINITIONS[network_name]['fee_max']
+        self.dust_amount = NETWORK_DEFINITIONS[network_name]['dust_amount']  # Dust amount in satoshi
+        self.fee_default = NETWORK_DEFINITIONS[network_name]['fee_default']  # Default fee in satoshi per kilobyte
+        self.fee_min = NETWORK_DEFINITIONS[network_name]['fee_min']  # Minimum transaction fee in satoshi per kilobyte
+        self.fee_max = NETWORK_DEFINITIONS[network_name]['fee_max']  # Maximum transaction fee in satoshi per kilobyte
         self.priority = NETWORK_DEFINITIONS[network_name]['priority']
         self.prefixes_wif = NETWORK_DEFINITIONS[network_name]['prefixes_wif']
 

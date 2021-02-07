@@ -31,7 +31,7 @@ _logger = logging.getLogger(__name__)
 SCRYPT_ERROR = None
 USING_MODULE_SCRYPT = os.getenv("USING_MODULE_SCRYPT") not in ["false", "False", "0", "FALSE"]
 try:
-    if USING_MODULE_SCRYPT != False:
+    if USING_MODULE_SCRYPT is not False:
         import scrypt
         USING_MODULE_SCRYPT = True
 except ImportError as SCRYPT_ERROR:
@@ -47,7 +47,7 @@ if not USING_MODULE_SCRYPT:
 
 USE_FASTECDSA = os.getenv("USE_FASTECDSA") not in ["false", "False", "0", "FALSE"]
 try:
-    if USE_FASTECDSA != False:
+    if USE_FASTECDSA is not False:
         from fastecdsa.encoding.der import DEREncoder
         USE_FASTECDSA = True
 except ImportError:
@@ -769,7 +769,7 @@ def hash160(string):
     return hashlib.new('ripemd160', hashlib.sha256(string).digest()).digest()
 
 
-def bip38_decrypt(encrypted_privkey, passphrase):
+def bip38_decrypt(encrypted_privkey, password):
     """
     BIP0038 non-ec-multiply decryption. Returns WIF private key.
     Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -777,8 +777,8 @@ def bip38_decrypt(encrypted_privkey, passphrase):
 
     :param encrypted_privkey: Encrypted private key using WIF protected key format
     :type encrypted_privkey: str
-    :param passphrase: Required passphrase for decryption
-    :type passphrase: str
+    :param password: Required password for decryption
+    :type password: str
 
     :return tupple (bytes, bytes): (Private Key bytes, 4 byte address hash for verification)
     """
@@ -791,11 +791,11 @@ def bip38_decrypt(encrypted_privkey, passphrase):
         compressed = True
     else:
         raise EncodingError("Unrecognised password protected key format. Flagbyte incorrect.")
-    if isinstance(passphrase, str):
-        passphrase = passphrase.encode('utf-8')
+    if isinstance(password, str):
+        password = password.encode('utf-8')
     addresshash = d[0:4]
     d = d[4:-4]
-    key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
+    key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]
@@ -811,7 +811,7 @@ def bip38_decrypt(encrypted_privkey, passphrase):
     return priv, addresshash, compressed
 
 
-def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
+def bip38_encrypt(private_hex, address, password, flagbyte=b'\xe0'):
     """
     BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted private key
     Based on code from https://github.com/nomorecoin/python-bip38-testing
@@ -820,19 +820,19 @@ def bip38_encrypt(private_hex, address, passphrase, flagbyte=b'\xe0'):
     :type private_hex: str
     :param address: Address string
     :type address: str
-    :param passphrase: Required passphrase for encryption
-    :type passphrase: str
+    :param password: Required password for encryption
+    :type password: str
     :param flagbyte: Flagbyte prefix for WIF
     :type flagbyte: bytes
 
-    :return str: BIP38 passphrase encrypted private key
+    :return str: BIP38 password encrypted private key
     """
     if isinstance(address, str):
         address = address.encode('utf-8')
-    if isinstance(passphrase, str):
-        passphrase = passphrase.encode('utf-8')
+    if isinstance(password, str):
+        password = password.encode('utf-8')
     addresshash = double_sha256(address)[0:4]
-    key = scrypt.hash(passphrase, addresshash, 16384, 8, 8, 64)
+    key = scrypt.hash(password, addresshash, 16384, 8, 8, 64)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     aes = pyaes.AESModeOfOperationECB(derivedhalf2)
