@@ -46,6 +46,7 @@ class Script(object):
         if commands:
             self.commands = commands
         self.raw = b''
+        self.stack = []
         # self.is_locking =
         # self.type =
         # self.keys? signatures?
@@ -95,17 +96,25 @@ class Script(object):
         return raw
 
     def evaluate(self):
-        stack = []
+        self.stack = []
         commands = self.commands[:]
         while len(commands):
             command = commands.pop(0)
             if isinstance(command, int):
-                if command == 0 or command == 79 or 81 <= command <= 96:   # OP_0 to OP_16 and OP_1NEGATE (-1)
-                    stack.append(command)
                 print("Running operation %s" % opcodenames[command])
+                if command == 0:  # OP_0
+                    self.stack.append(b'')
+                elif command == 79:  # OP_1NEGATE
+                    self.stack.append(b'\x81')
+                elif 81 <= command <= 96:   # OP_1 to OP_16
+                    self.stack.append((command-80).to_bytes(1, 'little'))
+                else:
+                    method = eval(opcodenames[command].lower())
+                    stack = method(self.stack)
             else:
                 print("Add data %s to stack" % command.hex())
-                stack.append(command)
+                self.stack.append(command)
+        return self.stack
 
     def __str__(self):
         s_items = []
@@ -117,5 +126,50 @@ class Script(object):
         return ' '.join(s_items)
 
 
+def op_add(stack):
+    if len(stack) < 2:
+        return False
+    a = int.from_bytes(stack.pop(), 'little')
+    b = int.from_bytes(stack.pop(), 'little')
+    res = a + b
+    stack.append(res)
+    print(stack)
+    return True
 
 
+# def encode_num(num):
+#     if num == 0:
+#         return b''
+#     abs_num = abs(num)
+#     negative = num < 0
+#     result = bytearray()
+#     while abs_num:
+#         result.append(abs_num & 0xff)
+#         abs_num >>= 8
+#     if result[-1] & 0x80:
+#         if negative:
+#             result.append(0x80)
+#         else:
+#             result.append(0)
+#     elif negative:
+#         result[-1] |= 0x80
+#     return bytes(result)
+#
+#
+# def decode_num(element):
+#     if element == b'':
+#         return 0
+#     big_endian = element[::-1]
+#     if big_endian[0] & 0x80:
+#         negative = True
+#         result = big_endian[0] & 0x7f
+#     else:
+#         negative = False
+#         result = big_endian[0]
+#     for c in big_endian[1:]:
+#         result <<= 8
+#         result += c
+#     if negative:
+#         return -result
+#     else:
+#         return result
