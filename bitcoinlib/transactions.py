@@ -264,7 +264,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     data['keys'].append(key)
                     cur += size + pk_size
                 elif ch == 'OP_RETURN':
-                    if cur_char == opcodes['OP_RETURN'] and cur == 0:
+                    if cur_char == op.op_return and cur == 0:
                         data.update({'op_return': script[cur + 1:]})
                         cur = len(script)
                         found = True
@@ -306,14 +306,14 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                         break
                 elif ch == 'op_m':
                     if cur_char in OP_N_CODES:
-                        data['number_of_sigs_m'] = cur_char - opcodes['OP_1'] + 1
+                        data['number_of_sigs_m'] = cur_char - op.op_1 + 1
                     else:
                         found = False
                         break
                     cur += 1
                 elif ch == 'op_n':
                     if cur_char in OP_N_CODES:
-                        data['number_of_sigs_n'] = cur_char - opcodes['OP_1'] + 1
+                        data['number_of_sigs_n'] = cur_char - op.op_1 + 1
                     else:
                         found = False
                         break
@@ -345,7 +345,7 @@ def script_deserialize(script, script_types=None, locking_script=None, size_byte
                     cur += 4
                 else:
                     try:
-                        if cur_char == opcodes[ch]:
+                        if opcodenames.get(cur_char) == ch:
                             cur += 1
                         else:
                             found = False
@@ -460,10 +460,10 @@ def _serialize_multisig_redeemscript(public_key_list, n_required=None):
     if n_required is None:
         n_required = len(public_key_list)
 
-    script = int_to_varbyteint(opcodes['OP_1'] + n_required - 1)
+    script = int_to_varbyteint(op.op_1 + n_required - 1)
     for key in public_key_list:
         script += varstr(key)
-    script += int_to_varbyteint(opcodes['OP_1'] + len(public_key_list) - 1)
+    script += int_to_varbyteint(op.op_1 + len(public_key_list) - 1)
     script += b'\xae'  # 'OP_CHECKMULTISIG'
 
     return script
@@ -551,7 +551,7 @@ def _p2sh_multisig_unlocking_script(sigs, redeemscript, hash_type=None, as_list=
 
 
 def script_add_locktime_cltv(locktime_cltv, script):
-    lockbytes = opcode('OP_CHECKLOCKTIMEVERIFY') + opcode('OP_DROP')
+    lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
     if script and len(script) > 6:
         if script[4:6] == lockbytes:
             return script
@@ -559,7 +559,7 @@ def script_add_locktime_cltv(locktime_cltv, script):
 
 
 def script_add_locktime_csv(locktime_csv, script):
-    lockbytes = opcode('OP_CHECKSEQUENCEVERIFY') + opcode('OP_DROP')
+    lockbytes = bytes([op.op_checklocktimeverify, op.op_drop])
     if script and len(script) > 6:
         if script[4:6] == lockbytes:
             return script

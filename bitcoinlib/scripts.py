@@ -110,7 +110,8 @@ class Script(object):
                     self.stack.append((command-80).to_bytes(1, 'little'))
                 else:
                     method = eval(opcodenames[command].lower())
-                    stack = method(self.stack)
+                    if not method(self.stack):
+                        return False
             else:
                 print("Add data %s to stack" % command.hex())
                 self.stack.append(command)
