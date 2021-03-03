@@ -26,6 +26,18 @@ from bitcoinlib.config.opcodes import *
 _logger = logging.getLogger(__name__)
 
 
+# pop=0, operation='', arguments=None, min_elements=None, convert_to_number=False
+op_methods = {
+    # 'op_name': (<number_of_pops, operation, arguments, min_elements, convert_to_number)
+    'op_add': (2, '__add__', None, 2, True),
+    'op_mul': (2, '__mul__', None, 2, True),
+    'op_dup': (0, '__getitem__', [-1], 1, False),
+    'op_equal': (2, '__eq__', None, 1, False),
+    'op_2drop': (2, '', None, 2, False),
+    'op_2dup': (0, '__getitem__', [slice(-2, None)], 2, False),
+}
+
+
 class ScriptError(Exception):
     """
     Handle Key class Exceptions
@@ -61,12 +73,12 @@ class Script(object):
             if 1 <= ch <= 75:  # Data
                 commands.append(script[cur:cur+ch])
                 cur += ch
-            elif ch == op.op_pushdata1:  # OP_PUSHDATA1
+            elif ch == op.op_pushdata1:
                 length = script[cur]
                 cur += 1
                 commands.append(script[cur:cur+length])
                 cur += length
-            elif ch == 77:   # OP_PUSHDATA2
+            elif ch == op.op_pushdata2:
                 length = varbyteint_to_int(script[cur:cur+2])
                 cur += 2
                 commands.append(script[cur:cur+length])
@@ -96,7 +108,7 @@ class Script(object):
         return raw
 
     def evaluate(self):
-        self.stack = []
+        self.stack = Stack()
         commands = self.commands[:]
         while len(commands):
             command = commands.pop(0)
@@ -104,19 +116,41 @@ class Script(object):
                 print("Running operation %s" % opcodenames[command])
                 if command == op.op_0:  # OP_0
                     self.stack.append(encode_num(0))
+                    # self.stack.append(0)
                 elif command == op.op_1negate:  # OP_1NEGATE
                     # self.stack.append(b'\x81')
                     self.stack.append(encode_num(-1))
+                    # self.stack.append(-1)
                 elif 81 <= command <= 96:   # OP_1 to OP_16
                     # self.stack.append(bytes([command-80]))
                     self.stack.append(encode_num(command-80))
-                else:
-                    method = eval(opcodenames[command].lower())
-                    if not method(self.stack):
+                    # self.stack.append(command-80)
+                elif command == op.op_verify:
+                    if len(self.stack) < 1:
                         return False
+                    if self.stack.pop() == b'':
+                        return False
+                    return True
+                elif command == op.op_return:
+                    return False
+                else:
+                    method = opcodenames[command].lower()
+                    if not method in op_methods:
+                        raise ScriptError("Method %s not found" % method)
+                    method_args = op_methods[method]
+                    self.stack.operate(*method_args)
+
+                    # Encode new items on stack
+                    for i in range(len(self.stack)):
+                        if isinstance(self.stack[i], int):
+                            self.stack[i] = encode_num(self.stack[i])
+
+                    # if not method(self.stack):
+                    #     return False
             else:
                 print("Add data %s to stack" % command.hex())
                 self.stack.append(command)
+            # print(self.stack)
         return True
 
     def __str__(self):
@@ -131,12 +165,30 @@ class Script(object):
 
 class Stack(list):
 
-    def operate(self, operations, pop=0):
+    def operate(self, pop=0, operation='', arguments=None, min_elements=None, convert_to_number=False):
+        if len(self) < pop:
+            raise ValueError("Not enough items in list to pop %d elements" % pop)
+        if min_elements and len(self) < min_elements:
+            raise ValueError("Not enough items in list, minimum required is %d" % min_elements)
+        if not arguments:
+            arguments = []
         elements = []
         for _ in range(pop):
-            elements.append(self.pop())
-        for op in operations:
-            self.append(getattr(elements[0], op)(elements[1]))
+            el = self.pop()
+            if convert_to_number:
+                el = decode_num(el)
+            elements.append(el)
+        if operation:
+            if not elements:
+                new_elements = getattr(self, operation)(*arguments)
+                if isinstance(new_elements, list):
+                    self.extend(new_elements)
+                else:
+                    self.append(new_elements)
+            elif len(elements) == 1:
+                self.append(getattr(elements[0], operation)())
+            else:
+                self.append(getattr(elements[0], operation)(*elements[1:]))
 
 
 def op_nop(stack):
