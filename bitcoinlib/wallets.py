@@ -134,7 +134,7 @@ def wallet_delete(wallet, db_uri=None, force=False):
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
     :type force: bool
 
-    :return int: Number of rows deleted, so 1 if succesfull
+    :return int: Number of rows deleted, so 1 if successful
     """
 
     session = Db(db_uri=db_uri).session
@@ -954,6 +954,24 @@ class WalletTransaction(Transaction):
         del wt.account_id
         pickle.dump(wt, f)
         f.close()
+
+    def delete(self):
+        """
+        Delete this transaction from database.
+
+        WARNING: Results in incomplete wallets, transactions will NOT be automatically downloaded again when scanning or updating wallet. In nomal situations only use to remove old unconfirmed transactions
+
+        :return int: Number of deleted transactions
+        """
+
+        session = self.hdwallet._session
+        txid = bytes.fromhex(self.txid)
+        session.query(DbTransactionOutput).filter_by(transaction_id=txid).delete()
+        session.query(DbTransactionInput).filter_by(transaction_id=txid).delete()
+        session.query(DbKey).filter_by(latest_txid=txid).update({DbKey.latest_txid: None})
+        res = session.query(DbTransaction).filter_by(txid=txid).delete()
+        self.hdwallet._commit()
+        return res
 
 
 class Wallet(object):

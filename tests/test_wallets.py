@@ -2095,6 +2095,12 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         self.assertRaisesRegexp(WalletError, "", w.send_to, 'bc1qx76mfmrgvejprscpk8e76d90h94xdhhgnr3jfk', 200001,
                                 fee=150, offline=True)
 
+    def test_wallet_transactions_delete(self):
+        w = wallet_create_or_open('wallet_transactions_delete', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        w.utxos_update()
+        w.transactions()[0].delete()
+        self.assertEqual(len(w.transactions()), 1)
+
 
 @parameterized_class(*params)
 class TestWalletDash(TestWalletMixin, unittest.TestCase):
