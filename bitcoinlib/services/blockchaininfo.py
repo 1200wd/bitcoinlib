@@ -124,7 +124,7 @@ class BlockchainInfoClient(BaseClient):
             txids = txids[txids.index(after_txid) + 1:]
         for txid in txids[:limit]:
             t = self.gettransaction(txid, latest_block=latest_block)
-            t.confirmations = latest_block - t.block_height
+            t.confirmations = 0 if not t.block_height else latest_block - t.block_height
             txs.append(t)
         return txs
 

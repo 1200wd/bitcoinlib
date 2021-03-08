@@ -151,7 +151,7 @@ class SmartbitClient(BaseClient):
                 res['address']['transaction_paging']['next']
             if 'transactions' not in res['address']:
                 break
-            res_tx = sorted(res['address']['transactions'], key=lambda k: k['block'])
+            res_tx = sorted(res['address']['transactions'], key=lambda k: (k['block'] is None, k['block']))
             for tx in res_tx:
                 t = self._parse_transaction(tx)
                 txs.append(t)

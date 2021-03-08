@@ -199,8 +199,8 @@ class Service(object):
                     )
                     _logger.debug("Error %s on provider %s" % (e, sp))
                     # -- Use this to debug specific Services errors --
-                    # from pprint import pprint
-                    # pprint(self.errors)
+                    from pprint import pprint
+                    pprint(self.errors)
 
                 if len(self.errors) >= self.max_errors:
                     _logger.warning("No successful response from serviceproviders, max errors exceeded: %s" %
