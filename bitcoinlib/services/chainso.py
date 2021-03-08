@@ -104,7 +104,7 @@ class ChainSo(BaseClient):
         for o in t.outputs:
             o.spent = None
             output_total += o.value
-        if not t.block_height:
+        if not t.block_height and tx['confirmations']:
             t.block_height = self.getblock(tx['blockhash'], False, 1, 1)['height']
         t.block_hash = tx['blockhash']
         t.date = datetime.utcfromtimestamp(tx['time'])

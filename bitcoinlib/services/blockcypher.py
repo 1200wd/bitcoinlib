@@ -131,10 +131,9 @@ class BlockCypher(BaseClient):
         if not isinstance(res, list):
             res = [res]
         for a in res:
-            if 'txrefs' not in a:
-                continue
+            txrefs = a.get('txrefs', []) + a.get('unconfirmed_txrefs', [])
             txids = []
-            for t in a['txrefs'][::-1]:
+            for t in txrefs[::-1]:
                 if t['tx_hash'] not in txids:
                     txids.append(t['tx_hash'])
                 if t['tx_hash'] == after_txid:
