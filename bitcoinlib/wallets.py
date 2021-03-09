@@ -966,10 +966,12 @@ class WalletTransaction(Transaction):
 
         session = self.hdwallet._session
         txid = bytes.fromhex(self.txid)
-        session.query(DbTransactionOutput).filter_by(transaction_id=txid).delete()
-        session.query(DbTransactionInput).filter_by(transaction_id=txid).delete()
+        tx_query = session.query(DbTransaction).filter_by(txid=txid)
+        tx = tx_query.scalar()
+        session.query(DbTransactionOutput).filter_by(transaction_id=tx.id).delete()
+        session.query(DbTransactionInput).filter_by(transaction_id=tx.id).delete()
         session.query(DbKey).filter_by(latest_txid=txid).update({DbKey.latest_txid: None})
-        res = session.query(DbTransaction).filter_by(txid=txid).delete()
+        res = tx_query.delete()
         self.hdwallet._commit()
         return res
 
