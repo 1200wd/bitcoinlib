@@ -2668,6 +2668,9 @@ class Wallet(object):
         self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.name])
 
         # Bulk update database
+        for kb in key_balance_list:
+            if kb['id'] in self._key_objects:
+                self._key_objects[kb['id']]._balance = kb['balance']
         self._session.bulk_update_mappings(DbKey, key_balance_list)
         self._commit()
         _logger.info("Got balance for %d key(s)" % len(key_balance_list))
