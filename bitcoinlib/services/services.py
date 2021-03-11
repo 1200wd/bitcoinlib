@@ -887,7 +887,7 @@ class Cache(object):
             if db_utxo.spent is False:
                 utxos.append({
                     'address': address,
-                    'txid': db_utxo.txid,
+                    'txid': db_utxo.txid.hex(),
                     'confirmations': db_utxo.confirmations,
                     'output_n': db_utxo.index_n,
                     'input_n': 0,
