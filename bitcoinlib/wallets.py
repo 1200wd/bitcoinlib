@@ -2593,7 +2593,7 @@ class Wallet(object):
         :type network: str
         :param key_id: Key ID Filter
         :type key_id: int
-        :param min_confirms: Minimal confirmations needed to include in balance (default = 1)
+        :param min_confirms: Minimal confirmations needed to include in balance (default = 0)
         :type min_confirms: int
 
         :return: Updated balance
@@ -3297,7 +3297,7 @@ class Wallet(object):
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
 
-    def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=0,
+    def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=1,
                       max_utxos=None, return_input_obj=True, skip_dust_amounts=True):
         """
         Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
@@ -3317,7 +3317,7 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
@@ -3399,7 +3399,7 @@ class Wallet(object):
             return inputs
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-                           min_confirms=0, max_utxos=None, locktime=0, number_of_change_outputs=1,
+                           min_confirms=1, max_utxos=None, locktime=0, number_of_change_outputs=1,
                            random_output_order=True):
         """
         Create new transaction with specified outputs.
@@ -3427,7 +3427,7 @@ class Wallet(object):
         :type network: str
         :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
         :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
@@ -3773,7 +3773,7 @@ class Wallet(object):
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-             min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False, number_of_change_outputs=1):
+             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=False, number_of_change_outputs=1):
         """
         Create a new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's
@@ -3800,7 +3800,7 @@ class Wallet(object):
         :type network: str
         :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
         :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
@@ -3841,7 +3841,7 @@ class Wallet(object):
         transaction.send(offline)
         return transaction
 
-    def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=0,
+    def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=1,
                 priv_keys=None, locktime=0, offline=False, number_of_change_outputs=1):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
@@ -3867,7 +3867,7 @@ class Wallet(object):
         :type network: str
         :param fee: Fee to use for this transaction. Leave empty to automatically estimate.
         :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
@@ -3886,7 +3886,7 @@ class Wallet(object):
                          min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline,
                          number_of_change_outputs=number_of_change_outputs)
 
-    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
+    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
               fee_per_kb=None, fee=None, locktime=0, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one or more output addresses.
