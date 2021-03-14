@@ -1235,6 +1235,22 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         sd = script_deserialize('00c9' + redeemscript)
         self.assertEqual(sd['redeemscript'].hex(), redeemscript)
 
+    def test_transaction_equal(self):
+        raw_hex = "01000000015eb87f13120dcf5efd3bd31e02fb95e96144f47d0a8cc37fc85c0ea84bebd4a8000000006a473044" \
+                  "02201e989d20c6f25bd36df33ef0206398b0708069ac7d1d7cdb0cd756dcb05f4dcc02203c6ad2ca53cd3b5b82" \
+                  "fc6969e43f4825bded505e351e7b4a3492b5c6f0054c940121033c152137b251654f971bc4b2335646186e1298" \
+                  "bfcbb0b7608ec33609ac08cc6fffffffff01050c0000000000001976a91475a94834a58225d5aa1d0403f3c72f" \
+                  "7d8b01b0dd88ac00000000"
+        t1 = Transaction.import_raw(raw_hex)
+        t2 = Transaction([Input('a8d4eb4ba80e5cc87fc38c0a7df44461e995fb021ed33bfd5ecf0d12137fb85e', 0,
+                                '033c152137b251654f971bc4b2335646186e1298bfcbb0b7608ec33609ac08cc6f',
+                                '1e989d20c6f25bd36df33ef0206398b0708069ac7d1d7cdb0cd756dcb05f4dcc3c6ad2ca53cd3b5b82fc6969'
+                                'e43f4825bded505e351e7b4a3492b5c6f0054c94')],
+                         [Output(3077, '1Bj8rNK1tRsic6TRgJgVc6vF5FMAZVicaN', '75a94834a58225d5aa1d0403f3c72f7d8b01b0dd',
+                                 script_type='p2pkh')],
+                         )
+        self.assertTrue(t1 == t2)
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from

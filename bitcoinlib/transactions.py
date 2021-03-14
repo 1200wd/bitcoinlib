@@ -1416,6 +1416,19 @@ class Transaction(object):
         t.merge_transaction(other)
         return t
 
+    def __eq__(self, other):
+        """
+        Compare two transaction, must have same transaction ID
+
+        :param other: Other transaction object
+        :type other: Transaction
+
+        :return bool:
+        """
+        if not isinstance(other, Transaction):
+            raise TransactionError("Can only compare with other Transaction object")
+        return self.txid == other.txid
+
     def as_dict(self):
         """
         Return Json dictionary with transaction information: Inputs, outputs, version and locktime
