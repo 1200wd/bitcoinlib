@@ -1181,7 +1181,6 @@ class Output(object):
             elif self.script_type == 'p2pk':
                 if not self.public_key:
                     raise TransactionError("Public key is needed to create P2PK script for output %d" % output_n)
-                # self.lock_script = varstr(to_bytes(self.public_key)) + b'\xac'
                 self.lock_script = varstr(self.public_key) + b'\xac'
             else:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
@@ -2096,8 +2095,6 @@ class Transaction(object):
         if lock_script.startswith(b'\x6a'):
             if value != 0:
                 raise TransactionError("Output value for OP_RETURN script must be 0")
-        # elif value < self.network.dust_amount and strict:
-        #     raise TransactionError("Output must be more then dust amount %d" % self.network.dust_amount)
         self.outputs.append(Output(value=int(value), address=address, public_hash=public_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    encoding=encoding, spending_txid=spending_txid, spending_index_n=spending_index_n,

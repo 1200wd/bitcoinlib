@@ -2232,8 +2232,9 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         w = Wallet.create('segwit_p2wsh_send', witness_type='segwit', network='bitcoinlib_test',
                           keys=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test')], sigs_required=2,
                           cosigner_id=0, db_uri=self.DATABASE_URI)
-        w.get_key()
+        k = w.get_key()
         w.utxos_update()
+        w.utxos_update(key_id=k.key_id)   # Test db updates after second request and only update single key
         t = w.send_to('blt1q7r60he62p52u6h9zyxl6ew4dmmshpmk5sluaax48j9c7zyxu6m0smrjqxa', 10000)
         self.assertEqual(t.witness_type, 'segwit')
         self.assertEqual(t.inputs[0].script_type, 'p2sh_multisig')
