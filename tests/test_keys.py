@@ -684,7 +684,7 @@ class TestKeysAddress(unittest.TestCase):
     def test_keys_hdkey_segwit(self):
         k1 = HDKey('L1TZxZ9RgwFKiGPm6P7J9REQFKG9ymwLSsTwQSwxzLyDJs3CcRkF', witness_type='segwit')
         self.assertEqual(k1.address(), 'bc1qmk9myu4zf590ae2mfq3m63rlfhd5scatl4ckmw')
-
+        self.assertEqual(k1.address_obj.data, '024429dd84f7c12c83f1920d60c7edb60c61d03fa5b8a8b526f4608ae9af89d9f3')
         phrase = 'scan display embark segment deputy lesson vanish second wonder erase crumble swing'
         k2 = HDKey.from_passphrase(phrase, witness_type='segwit', multisig=True)
         self.assertEqual(k2.address(), 'bc1qvj6c7n0hpl9t5r80zya4uukf0zens8ulxgwc0avnxsengtr5juss4pqeqy')
@@ -786,7 +786,7 @@ class TestKeysSignatures(unittest.TestCase):
 
     def test_rfc6979(self):
         if not USE_FASTECDSA:
-            # This test are only usefull when fastecdsa library is used
+            # This test are only useful when fastecdsa library is used
             return True
 
         # source: https://bitcointalk.org/index.php?topic=285142.40

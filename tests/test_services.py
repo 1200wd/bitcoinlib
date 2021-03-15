@@ -1059,6 +1059,6 @@ class TestServiceCache(unittest.TestCase):
         if txids:
             t = srv.gettransaction(txids[0])
             if t.status == 'unconfirmed':
-                self.assertIsNone(t.confirmations)
+                self.assertFalse(t.confirmations)
                 self.assertIsNone(t.date)
                 self.assertIsNone(t.block_height)
