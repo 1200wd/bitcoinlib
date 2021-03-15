@@ -1979,7 +1979,8 @@ class Transaction(object):
         self.size = len(self.raw())
         self.calc_weight_units()
         self.update_totals()
-        self.fee_per_kb = int((self.fee / float(self.size)) * 1024)
+        if self.fee:
+            self.fee_per_kb = int((self.fee / float(self.size)) * 1024)
 
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
