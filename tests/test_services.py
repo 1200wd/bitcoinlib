@@ -868,7 +868,6 @@ class TestService(unittest.TestCase, CustomAssertions):
         t = srv.gettransaction(txids[0])
         if t.status != 'unconfirmed':
             self.skipTest("Skip unconfirmed transaction test: tx already confirmed")
-        print(srv.results)
         self.assertFalse(t.confirmations)
         self.assertIsNone(t.date)
         self.assertIsNone(t.block_height)
