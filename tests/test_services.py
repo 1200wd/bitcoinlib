@@ -1052,3 +1052,13 @@ class TestServiceCache(unittest.TestCase):
         t2 = srv.gettransaction(txid)
         self.assertEqual(t2.size, 249)
         self.assertEqual(srv.results_cache_n, 1)
+
+    def test_service_transaction_unconfirmed(self):
+        srv = ServiceTest(cache_uri='')
+        txids = srv.mempool()
+        if txids:
+            t = srv.gettransaction(txids[0])
+            if t.status == 'unconfirmed':
+                self.assertIsNone(t.confirmations)
+                self.assertIsNone(t.date)
+                self.assertIsNone(t.block_height)
