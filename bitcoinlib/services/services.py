@@ -226,8 +226,6 @@ class Service(object):
 
         :return dict: Balance per address
         """
-        if not addresslist:
-            return
         if isinstance(addresslist, TYPE_TEXT):
             addresslist = [addresslist]
 
