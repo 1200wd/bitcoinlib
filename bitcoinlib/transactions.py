@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2021 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
