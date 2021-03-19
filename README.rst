@@ -342,7 +342,7 @@ It works but it is slow when using BIP38 password protected keys.
 
     $ pip install pyscrypt
 
-If you run into issues to not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
+If you run into issues do not hesitate to contact us or file an issue at https://github.com/1200wd/bitcoinlib/issues
 
 
 Update library
