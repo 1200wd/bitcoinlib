@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Wallet Class
-#    © 2016 - 2021 January - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2021 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -633,7 +633,7 @@ class TestWalletKeys(TestWalletMixin, unittest.TestCase):
         self.assertFalse(wif in str(w.main_key.as_dict()))
         self.assertTrue(wif in str(w.main_key.as_dict(include_private=True)))
 
-        w.utxo_add(w.main_key.address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
+        w.utxo_add(w.main_key.address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0, 1)
         t = w.sweep(w.get_key().address, offline=True, fee=2000)
         t_json = t.as_json()
         self.assertFalse(wif in t_json)
@@ -1011,7 +1011,8 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         ]
         wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2,
                            db_uri=self.DATABASE_URI)
-        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
+        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
+                    0, 1)
         t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
         t.sign(pk2.subkey_for_path("m/45'/2/0/0"))
         t.send(offline=True)
@@ -1029,7 +1030,8 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         ]
         wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2,
                            db_uri=self.DATABASE_URI)
-        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
+        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
+                    0, 1)
         t = wl.transaction_create([('3CuJb6XrBNddS79vr27SwqgR4oephY6xiJ', 100000)])
         t.sign(pk2)
         t.send(offline=True)
@@ -1049,7 +1051,8 @@ class TestWalletMultisig(TestWalletMixin, unittest.TestCase):
         wl = Wallet.create('multisig_test_bitcoin_send', key_list, sigs_required=2, network=network,
                            db_uri=self.DATABASE_URI)
         wl.get_keys(number_of_keys=2)
-        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5', 0)
+        wl.utxo_add(wl.get_key().address, 200000, '46fcfdbdc3573756916a0ced8bbc5418063abccd2c272f17bf266f77549b62d5',
+                    0, 1)
         t = wl.transaction_create([('3DrP2R8XmHswUyeK9GeYgHJxvyxTfMNkid', 100000)])
         t.sign(pk2.subkey_for_path("m/45'/2/0/0"))
         t.send(offline=True)
@@ -1483,7 +1486,7 @@ class TestWalletKeyImport(TestWalletMixin, unittest.TestCase):
         t2 = w.send_to('23CvEnQKsTVGgqCZzW6ewXPSJH9msFPsBt3', 1000000)
         self.assertEqual(len(t2.inputs[0].signatures), 2)
         self.assertTrue(t2.verify())
-        t3 = w.sweep('23CvEnQKsTVGgqCZzW6ewXPSJH9msFPsBt3')
+        t3 = w.sweep('23CvEnQKsTVGgqCZzW6ewXPSJH9msFPsBt3', min_confirms=0)
         self.assertEqual(len(t3.inputs[0].signatures), 2)
         self.assertTrue(t3.verify())
         self.assertAlmostEqual(t3.outputs[0].value, 198981935, delta=100000)
@@ -1747,7 +1750,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             wallet_delete_if_exists('wallet_estimate_size', force=True, db_uri=self.DATABASE_URI)
             wl3 = Wallet.create('wallet_estimate_size', witness_type=witness_type,
                                 db_uri=self.DATABASE_URI)
-            wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
+            wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0, 1)
             to_address = wl3.get_key_change().address
             t = wl3.transaction_create([(to_address, 90000)], fee=10000, random_output_order=False)
             t.estimate_size()
@@ -1766,7 +1769,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             wallet_delete_if_exists('wallet_estimate_size_multisig', force=True, db_uri=self.DATABASE_URI)
             wl3 = Wallet.create('wallet_estimate_size_multisig', [p1, p2.public_master(), p3.public_master()],
                                 sigs_required=2, db_uri=self.DATABASE_URI)
-            wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
+            wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0, 1)
             to_address = wl3.get_key_change().address
             t = wl3.transaction_create([(to_address, 90000)], fee=10000, random_output_order=False)
             t.estimate_size()
@@ -1927,7 +1930,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
     def test_wallet_transactions_sweep(self):
         w = wallet_create_or_open('test_wallet_sweep_check_fee', db_uri=self.DATABASE_URI)
         w.utxo_add(w.new_key().address, 5000,
-                   'f31446151f06522eb321d5992f4f1c95123c8b9d082b92c391df83c6d0a35516', 1)
+                   'f31446151f06522eb321d5992f4f1c95123c8b9d082b92c391df83c6d0a35516', 0, 1)
         t = w.sweep('14pThTJoEnQxbJJVYLhzSKcs6EmZgShscX', fee=2000, offline=True)
         self.assertEqual(5000, t.outputs[0].value + t.fee)
         self.assertRaisesRegex(WalletError, "Amount to send is smaller then dust amount: 1000",
@@ -1993,7 +1996,7 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
             {
                 "address": w.new_key().address,
                 "script": "",
-                "confirmations": 0,
+                "confirmations": 1,
                 "output_n": 0,
                 "txid": "d82d131e5ac0edfa6a3e1781c05b2a7f846b60fe8868b9d53da33756d98bc4fd",
                 "value": 250000
@@ -2065,10 +2068,10 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w.sweep(k2.address)
 
         # Send dust to used address
-        w.send_to(k1, 400)
+        w.send_to(k1, 400, min_confirms=0)
 
         # Try to spend dust
-        t = w.sweep('zz3nA9VNyXwwyKKALckuhQ5sYdxMuzCQuQ')
+        t = w.sweep('zz3nA9VNyXwwyKKALckuhQ5sYdxMuzCQuQ', min_confirms=0)
         self.assertEqual(len(t.inputs), 1)
 
     def test_wallet_avoid_forced_address_reuse2(self):
@@ -2094,6 +2097,12 @@ class TestWalletTransactions(TestWalletMixin, unittest.TestCase, CustomAssertion
         w.utxos_update(utxos=utxos)
         self.assertRaisesRegexp(WalletError, "", w.send_to, 'bc1qx76mfmrgvejprscpk8e76d90h94xdhhgnr3jfk', 200001,
                                 fee=150, offline=True)
+
+    def test_wallet_transactions_delete(self):
+        w = wallet_create_or_open('wallet_transactions_delete', network='bitcoinlib_test', db_uri=self.DATABASE_URI)
+        w.utxos_update()
+        w.transactions()[0].delete()
+        self.assertEqual(len(w.transactions()), 1)
 
 
 @parameterized_class(*params)
@@ -2223,8 +2232,9 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         w = Wallet.create('segwit_p2wsh_send', witness_type='segwit', network='bitcoinlib_test',
                           keys=[HDKey(network='bitcoinlib_test'), HDKey(network='bitcoinlib_test')], sigs_required=2,
                           cosigner_id=0, db_uri=self.DATABASE_URI)
-        w.get_key()
+        k = w.get_key()
         w.utxos_update()
+        w.utxos_update(key_id=k.key_id)   # Test db updates after second request and only update single key
         t = w.send_to('blt1q7r60he62p52u6h9zyxl6ew4dmmshpmk5sluaax48j9c7zyxu6m0smrjqxa', 10000)
         self.assertEqual(t.witness_type, 'segwit')
         self.assertEqual(t.inputs[0].script_type, 'p2sh_multisig')
@@ -2280,7 +2290,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
         wl1 = Wallet.create('segwit_bitcoin_p2wsh_send', key_list, sigs_required=2, witness_type='segwit',
                             db_uri=self.DATABASE_URI)
-        wl1.utxo_add(wl1.get_key().address, 10000000, prev_txid, 0)
+        wl1.utxo_add(wl1.get_key().address, 10000000, prev_txid, 0, 1)
         to_address = wl1.get_key_change().address
         t = wl1.transaction_create([(to_address, 100000)], fee=10000, random_output_order=False)
 
@@ -2291,7 +2301,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
 
         # === Segwit P2WPKH to P2WSH ===
         wl2 = Wallet.create('segwit_bitcoin_p2wpkh_send', witness_type='segwit', db_uri=self.DATABASE_URI)
-        wl2.utxo_add(wl2.get_key().address, 200000, prev_txid, 0)
+        wl2.utxo_add(wl2.get_key().address, 200000, prev_txid, 0, 1)
         to_address = wl1.get_key_change().address
         t = wl2.transaction_create([(to_address, 100000)], fee=10000, random_output_order=False)
         t.sign()
@@ -2302,7 +2312,7 @@ class TestWalletSegwit(TestWalletMixin, unittest.TestCase):
         # === Segwit P2SH-P2WPKH to P2WPK ===
         wl3 = Wallet.create('segwit_bitcoin_p2sh_p2wpkh_send', witness_type='p2sh-segwit',
                             db_uri=self.DATABASE_URI)
-        wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0)
+        wl3.utxo_add(wl3.get_key().address, 110000, prev_txid, 0, 1)
         t = wl3.transaction_create([(to_address, 100000)], fee=10000, random_output_order=False)
         t.sign()
         self.assertTrue(t.verify())

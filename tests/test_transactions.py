@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    Unit Tests for Transaction Class
-#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2021 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -96,6 +96,28 @@ class TestTransactionInputs(unittest.TestCase):
         self.assertEqual(ti.value, 123000)
         self.assertRaisesRegex(ValueError, "Value uses different network \(litecoin\) then supplied network: bitcoin",
                                Input, prev_txid='\x23' * 32, output_n=1, keys=HDKey().public(), value='1 LTC')
+        
+    def test_transaction_input_locktime(self):
+        rawtx = '0200000002f42e4ee59d33dffc39978bd6f7a1fdef42214b7de7d6d2716b2a5ae0a92fbb09000000006a473044' \
+                '022003ea734e54ddc00d4d681e2cac9ecbedb45d24af307aefbc55ecb005c5d2dc13022054d5a0fdb7a0c3ae7b' \
+                '161ffb654be7e89c84de06013d416f708f85afe11845a601210213692eb7eb74a0f86284890885629f2d097733' \
+                '7376868b033029ba49cc64765dfdffffff27a321a0e098276e3dce7aedf33a633db31bf34262bde3fe30106a32' \
+                '7696a70a000000006a47304402207758c05e849310af174ad4d484cdd551d66244d4cf0b5bba84e94d59eb8d3c' \
+                '9b02203e005ef10ede62db1900ed0bc2c72c7edd83ef98a21a3c567b4c6defe8ffca06012103ab51db28d30d3a' \
+                'c99965a5405c3d473e25dff6447db1368e9191229d6ec0b635fdffffff029b040000000000001976a91406d66a' \
+                'dea8ca6fcbb4a7a5f18458195c869f4b5488ac307500000000000017a9140614a615ee10d84a1e6d85ec1ff7ff' \
+                'f527757d5987ffffffff'
+        t = Transaction.import_raw(rawtx)
+        t.inputs[0].set_locktime_relative_time(1000)
+        self.assertEqual(t.inputs[0].sequence, 4194305)
+        t.inputs[0].set_locktime_relative_time(0)
+        self.assertEqual(t.inputs[0].sequence, 0xffffffff)
+        t.inputs[0].set_locktime_relative_time(100)
+        self.assertEqual(t.inputs[0].sequence, 4194305)
+        t.inputs[0].set_locktime_relative_blocks(120)
+        self.assertEqual(t.inputs[0].sequence, 120)
+        t.inputs[0].set_locktime_relative_blocks(0)
+        self.assertEqual(t.inputs[0].sequence, 0xffffffff)
 
 
 class TestTransactionOutputs(unittest.TestCase):
@@ -1235,6 +1257,22 @@ class TestTransactionsScripts(unittest.TestCase, CustomAssertions):
         sd = script_deserialize('00c9' + redeemscript)
         self.assertEqual(sd['redeemscript'].hex(), redeemscript)
 
+    def test_transaction_equal(self):
+        raw_hex = "01000000015eb87f13120dcf5efd3bd31e02fb95e96144f47d0a8cc37fc85c0ea84bebd4a8000000006a473044" \
+                  "02201e989d20c6f25bd36df33ef0206398b0708069ac7d1d7cdb0cd756dcb05f4dcc02203c6ad2ca53cd3b5b82" \
+                  "fc6969e43f4825bded505e351e7b4a3492b5c6f0054c940121033c152137b251654f971bc4b2335646186e1298" \
+                  "bfcbb0b7608ec33609ac08cc6fffffffff01050c0000000000001976a91475a94834a58225d5aa1d0403f3c72f" \
+                  "7d8b01b0dd88ac00000000"
+        t1 = Transaction.import_raw(raw_hex)
+        t2 = Transaction([Input('a8d4eb4ba80e5cc87fc38c0a7df44461e995fb021ed33bfd5ecf0d12137fb85e', 0,
+                                '033c152137b251654f971bc4b2335646186e1298bfcbb0b7608ec33609ac08cc6f',
+                                '1e989d20c6f25bd36df33ef0206398b0708069ac7d1d7cdb0cd756dcb05f4dcc3c6ad2ca53cd3b5b82fc6969'
+                                'e43f4825bded505e351e7b4a3492b5c6f0054c94')],
+                         [Output(3077, '1Bj8rNK1tRsic6TRgJgVc6vF5FMAZVicaN', '75a94834a58225d5aa1d0403f3c72f7d8b01b0dd',
+                                 script_type='p2pkh')],
+                         )
+        self.assertTrue(t1 == t2)
+
 
 class TestTransactionsMultisigSoroush(unittest.TestCase):
     # Source: Example from
@@ -1527,6 +1565,10 @@ class TestTransactionsTimelocks(unittest.TestCase):
         t2 = Transaction.load(t.txid)
         self.assertTrue(t2.verified)
         self.assertEqual(t.raw_hex(), t2.raw_hex())
+
+        t.save(filename='tx_test.tx')
+        t3 = Transaction.load(filename='tx_test.tx')
+        self.assertEqual(t, t3)
 
     def test_transaction_locktime_cltv(self):
         # timelock = 533600

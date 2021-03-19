@@ -104,10 +104,9 @@ class ChainSo(BaseClient):
         for o in t.outputs:
             o.spent = None
             output_total += o.value
-        if not t.block_height:
+        if not t.block_height and tx['confirmations']:
             t.block_height = self.getblock(tx['blockhash'], False, 1, 1)['height']
         t.block_hash = tx['blockhash']
-        t.date = datetime.utcfromtimestamp(tx['time'])
         t.rawtx = bytes.fromhex(rawtx)
         t.size = tx['size']
         t.network = self.network
@@ -120,8 +119,10 @@ class ChainSo(BaseClient):
         t.confirmations = tx['confirmations']
         if tx['confirmations']:
             t.status = 'confirmed'
+            t.date = datetime.utcfromtimestamp(tx['time'])
         else:
             t.status = 'unconfirmed'
+            t.date = None
         return t
 
     def gettransactions(self, address, after_txid='', limit=MAX_TRANSACTIONS):

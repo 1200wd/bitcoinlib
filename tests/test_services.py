@@ -860,6 +860,18 @@ class TestService(unittest.TestCase, CustomAssertions):
         self.assertEqual(t.inputs[0].value, 99000)
         self.assertTrue(t.verify())
 
+    def test_service_transaction_unconfirmed(self):
+        srv = ServiceTest()
+        txids = srv.mempool()
+        if not txids:
+            self.skipTest("Skip unconfirmed transaction test: none found")
+        t = srv.gettransaction(txids[0])
+        if t.status != 'unconfirmed':
+            self.skipTest("Skip unconfirmed transaction test: tx already confirmed")
+        self.assertFalse(t.confirmations)
+        self.assertIsNone(t.date)
+        self.assertIsNone(t.block_height)
+
 
 class TestServiceCache(unittest.TestCase):
 

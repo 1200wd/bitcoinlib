@@ -21,6 +21,10 @@ matrix:
       env:
         - UNITTESTS_FULL_DATABASE_TEST=True
         - BCL_CONFIG_FILE=config.ini.unittest
+    - python: 3.9
+      dist: focal
+      env:
+        - BCL_CONFIG_FILE=config.ini.unittest
     - os: windows
       language: sh
       python: "3.8"

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #    BitcoinLib - Python Cryptocurrency Library
 #    WALLETS - HD wallet Class for Key and Transaction management
-#    © 2016 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2016 - 2021 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -134,7 +134,7 @@ def wallet_delete(wallet, db_uri=None, force=False):
     :param force: If set to True wallet will be deleted even if unspent outputs are found. Default is False
     :type force: bool
 
-    :return int: Number of rows deleted, so 1 if succesfull
+    :return int: Number of rows deleted, so 1 if successful
     """
 
     session = Db(db_uri=db_uri).session
@@ -954,6 +954,26 @@ class WalletTransaction(Transaction):
         del wt.account_id
         pickle.dump(wt, f)
         f.close()
+
+    def delete(self):
+        """
+        Delete this transaction from database.
+
+        WARNING: Results in incomplete wallets, transactions will NOT be automatically downloaded again when scanning or updating wallet. In nomal situations only use to remove old unconfirmed transactions
+
+        :return int: Number of deleted transactions
+        """
+
+        session = self.hdwallet._session
+        txid = bytes.fromhex(self.txid)
+        tx_query = session.query(DbTransaction).filter_by(txid=txid)
+        tx = tx_query.scalar()
+        session.query(DbTransactionOutput).filter_by(transaction_id=tx.id).delete()
+        session.query(DbTransactionInput).filter_by(transaction_id=tx.id).delete()
+        session.query(DbKey).filter_by(latest_txid=txid).update({DbKey.latest_txid: None})
+        res = tx_query.delete()
+        self.hdwallet._commit()
+        return res
 
 
 class Wallet(object):
@@ -2573,7 +2593,7 @@ class Wallet(object):
         :type network: str
         :param key_id: Key ID Filter
         :type key_id: int
-        :param min_confirms: Minimal confirmations needed to include in balance (default = 1)
+        :param min_confirms: Minimal confirmations needed to include in balance (default = 0)
         :type min_confirms: int
 
         :return: Updated balance
@@ -2648,6 +2668,9 @@ class Wallet(object):
         self._balance = sum([b['balance'] for b in balance_list if b['network'] == self.network.name])
 
         # Bulk update database
+        for kb in key_balance_list:
+            if kb['id'] in self._key_objects:
+                self._key_objects[kb['id']]._balance = kb['balance']
         self._session.bulk_update_mappings(DbKey, key_balance_list)
         self._commit()
         _logger.info("Got balance for %d key(s)" % len(key_balance_list))
@@ -2877,7 +2900,7 @@ class Wallet(object):
             res.append(u)
         return res
 
-    def utxo_add(self, address, value, txid, output_n, confirmations=0, script=''):
+    def utxo_add(self, address, value, txid, output_n, confirmations=1, script=''):
         """
         Add a single UTXO to the wallet database. To update all utxo's use :func:`utxos_update` method.
 
@@ -3091,7 +3114,7 @@ class Wallet(object):
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
         >>> w.transactions()
-        [<WalletTransaction(input_count=0, output_count=1, status=unconfirmed, network=bitcoin)>]
+        [<WalletTransaction(input_count=0, output_count=1, status=confirmed, network=bitcoin)>]
 
         :param account_id: Filter by Account ID. Leave empty for default account_id
         :type account_id: int, None
@@ -3274,7 +3297,7 @@ class Wallet(object):
             raise WalletError("Input key type %s not supported" % key.key_type)
         return inp_keys, key
 
-    def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=0,
+    def select_inputs(self, amount, variance=None, input_key_id=None, account_id=None, network=None, min_confirms=1,
                       max_utxos=None, return_input_obj=True, skip_dust_amounts=True):
         """
         Select available unspent transaction outputs (UTXO's) which can be used as inputs for a transaction for
@@ -3294,7 +3317,7 @@ class Wallet(object):
         :type account_id: int
         :param network: Network name. Leave empty for default network
         :type network: str
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
@@ -3376,7 +3399,7 @@ class Wallet(object):
             return inputs
 
     def transaction_create(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-                           min_confirms=0, max_utxos=None, locktime=0, number_of_change_outputs=1,
+                           min_confirms=1, max_utxos=None, locktime=0, number_of_change_outputs=1,
                            random_output_order=True):
         """
         Create new transaction with specified outputs.
@@ -3404,7 +3427,7 @@ class Wallet(object):
         :type network: str
         :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
         :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0 confirmations. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1 confirmation. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param max_utxos: Maximum number of UTXO's to use. Set to 1 for optimal privacy. Default is None: No maximum
         :type max_utxos: int
@@ -3750,7 +3773,7 @@ class Wallet(object):
         return rt
 
     def send(self, output_arr, input_arr=None, input_key_id=None, account_id=None, network=None, fee=None,
-             min_confirms=0, priv_keys=None, max_utxos=None, locktime=0, offline=False, number_of_change_outputs=1):
+             min_confirms=1, priv_keys=None, max_utxos=None, locktime=0, offline=False, number_of_change_outputs=1):
         """
         Create a new transaction with specified outputs and push it to the network.
         Inputs can be specified but if not provided they will be selected from wallets utxo's
@@ -3777,7 +3800,7 @@ class Wallet(object):
         :type network: str
         :param fee: Set fee manually, leave empty to calculate fees automatically. Set fees in smallest currency denominator, for example satoshi's if you are using bitcoins
         :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
@@ -3818,7 +3841,7 @@ class Wallet(object):
         transaction.send(offline)
         return transaction
 
-    def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=0,
+    def send_to(self, to_address, amount, input_key_id=None, account_id=None, network=None, fee=None, min_confirms=1,
                 priv_keys=None, locktime=0, offline=False, number_of_change_outputs=1):
         """
         Create transaction and send it with default Service objects :func:`services.sendrawtransaction` method.
@@ -3844,7 +3867,7 @@ class Wallet(object):
         :type network: str
         :param fee: Fee to use for this transaction. Leave empty to automatically estimate.
         :type fee: int
-        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 0. Option is ignored if input_arr is provided.
+        :param min_confirms: Minimal confirmation needed for an UTXO before it will included in inputs. Default is 1. Option is ignored if input_arr is provided.
         :type min_confirms: int
         :param priv_keys: Specify extra private key if not available in this wallet
         :type priv_keys: HDKey, list
@@ -3863,7 +3886,7 @@ class Wallet(object):
                          min_confirms=min_confirms, priv_keys=priv_keys, locktime=locktime, offline=offline,
                          number_of_change_outputs=number_of_change_outputs)
 
-    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=0,
+    def sweep(self, to_address, account_id=None, input_key_id=None, network=None, max_utxos=999, min_confirms=1,
               fee_per_kb=None, fee=None, locktime=0, offline=False):
         """
         Sweep all unspent transaction outputs (UTXO's) and send them to one or more output addresses.

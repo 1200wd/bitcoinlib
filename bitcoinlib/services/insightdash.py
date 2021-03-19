@@ -54,9 +54,12 @@ class InsightDashClient(BaseClient):
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
             isCoinbase = True
+        txdate = None
+        if 'blocktime' in tx:
+            txdate = datetime.utcfromtimestamp(tx['blocktime'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=fees, size=tx['size'], txid=tx['txid'],
-                        date=datetime.utcfromtimestamp(tx['blocktime']), confirmations=tx['confirmations'],
+                        date=txdate, confirmations=tx['confirmations'],
                         block_height=tx['blockheight'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)))
