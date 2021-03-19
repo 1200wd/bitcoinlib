@@ -2900,7 +2900,7 @@ class Wallet(object):
             res.append(u)
         return res
 
-    def utxo_add(self, address, value, txid, output_n, confirmations=0, script=''):
+    def utxo_add(self, address, value, txid, output_n, confirmations=1, script=''):
         """
         Add a single UTXO to the wallet database. To update all utxo's use :func:`utxos_update` method.
 
@@ -3114,7 +3114,7 @@ class Wallet(object):
 
         >>> w = Wallet('bitcoinlib_legacy_wallet_test')
         >>> w.transactions()
-        [<WalletTransaction(input_count=0, output_count=1, status=unconfirmed, network=bitcoin)>]
+        [<WalletTransaction(input_count=0, output_count=1, status=confirmed, network=bitcoin)>]
 
         :param account_id: Filter by Account ID. Leave empty for default account_id
         :type account_id: int, None
