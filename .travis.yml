@@ -5,8 +5,6 @@ matrix:
       dist: xenial
       env:
         - BCL_CONFIG_FILE=config.ini.unittest
-      before_script:
-        - pip install numphy==0.19.5
     # Test ecdsa and pyscrypt for systems where fastecdsa and/or scrypt are not available
     - python: 3.7
       dist: bionic
