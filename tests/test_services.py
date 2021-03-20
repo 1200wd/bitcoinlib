@@ -140,7 +140,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         srv.getbalance('Lct7CEpiN7e72rUXmYucuhqnCy5F5Vc6Vg')
         prev = None
         if len(srv.results) < 2:
-            self.fail("Only 1 or less service providers found, nothing to compare. Errors %s" % srv.errors)
+            self.skipTest("Only 1 or less service providers found, nothing to compare. Errors %s" % srv.errors)
         for provider in srv.results:
             print("Provider %s" % provider)
             balance = srv.results[provider]
@@ -224,12 +224,11 @@ class TestService(unittest.TestCase, CustomAssertions):
                 self.fail("Estimated fee of provider '%s' is %.1f%% different from average fee" %
                           (provider, fee_difference_from_average * 100))
 
-    # NOT ENOUGH SERVICE PROVIDERS OFFER FEE ESTIMATES FOR LITECOIN AT THE MOMENT
     def test_estimatefee_litecoin(self):
         srv = ServiceTest(min_providers=3, network='litecoin')
         srv.estimatefee()
         if len(srv.results) < 2:
-            self.fail("Only 1 or less service providers found, no fee estimates to compare")
+            self.skipTest("Only 1 or less service providers found, no fee estimates to compare")
         feelist = list(srv.results.values())
         average_fee = sum(feelist) / float(len(feelist))
         for provider in srv.results:
