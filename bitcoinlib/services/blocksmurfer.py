@@ -85,10 +85,12 @@ class BlocksmurferClient(BaseClient):
             if not block_count:
                 block_count = self.blockcount()
             confirmations = block_count - block_height
+        tdate = None
         try:  # FIXME: On blocksmurfer side: always return timestamp
             tdate = datetime.strptime(tx['date'], "%Y-%m-%dT%H:%M:%S")
         except (KeyError, TypeError):
-            tdate = datetime.utcfromtimestamp(tx['time'])
+            if 'time' in tx:
+                tdate = datetime.utcfromtimestamp(tx['time'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network,
                         fee=tx['fee'], size=tx['size'], txid=tx['txid'],
                         date=tdate, input_total=tx['input_total'], output_total=tx['output_total'],

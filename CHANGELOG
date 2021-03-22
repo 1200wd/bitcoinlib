@@ -1,3 +1,20 @@
+RELEASE 0.5.3 - Bugfixes March 2021
+===================================
+* Issues with unconfirmed transactions
+* Delete wallet transactions
+* Fix key balance update issues
+* Fix various issues
+* Add unittests
+
+RELEASE 0.5.2 - Privacy & Security
+==================================
+* Locktime updates
+* BIP38 updates
+* Random change outputs
+* Random input / output order
+* SQLCipher support
+* Avoid dust utxos
+
 RELEASE 0.5.1 - New Value class
 ===============================
 * Added new Value class to represent cryptocurrency values

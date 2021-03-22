@@ -54,8 +54,11 @@ class LitecoinBlockexplorerClient(BaseClient):
         isCoinbase = False
         if 'isCoinBase' in tx and tx['isCoinBase']:
             isCoinbase = True
+        txdate = None
+        if 'blocktime' in tx:
+            txdate = datetime.utcfromtimestamp(tx['blocktime'])
         t = Transaction(locktime=tx['locktime'], version=tx['version'], network=self.network, fee=fees,
-                        txid=tx['txid'], date=datetime.utcfromtimestamp(tx['blocktime']),
+                        txid=tx['txid'], date=txdate,
                         confirmations=tx['confirmations'], block_height=tx['blockheight'], status=status,
                         input_total=int(round(float(value_in) * self.units, 0)), coinbase=isCoinbase,
                         output_total=int(round(float(tx['valueOut']) * self.units, 0)), size=len(tx['rawtx']) // 2)
@@ -142,7 +145,7 @@ class LitecoinBlockexplorerClient(BaseClient):
 
     def blockcount(self):
         res = self.compose_request('status', '', variables={'q': 'getinfo'})
-        return res['info']['blocks']
+        return res['blockbook']['bestHeight']
 
     def mempool(self, txid):
         res = self.compose_request('tx', txid)

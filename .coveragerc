@@ -8,8 +8,8 @@ omit =
     *litecoind.py
     *authproxy.py
     *cryptoid.py
-    *chainso.py
     *insightdash.py
+    *litecoinblockexplorer.py
 [report]
 exclude_lines =
     pragma: no cover

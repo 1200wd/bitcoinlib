@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    SERVICES - Main Service connector
-#    © 2017 - 2019 August - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2021 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -226,8 +226,6 @@ class Service(object):
 
         :return dict: Balance per address
         """
-        if not addresslist:
-            return
         if isinstance(addresslist, TYPE_TEXT):
             addresslist = [addresslist]
 
@@ -887,7 +885,7 @@ class Cache(object):
             if db_utxo.spent is False:
                 utxos.append({
                     'address': address,
-                    'txid': db_utxo.txid,
+                    'txid': db_utxo.txid.hex(),
                     'confirmations': db_utxo.confirmations,
                     'output_n': db_utxo.index_n,
                     'input_n': 0,

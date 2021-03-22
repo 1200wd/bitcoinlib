@@ -2,7 +2,7 @@
 #
 #    BitcoinLib - Python Cryptocurrency Library
 #    TRANSACTION class to create, verify and sign Transactions
-#    © 2017 - 2020 October - 1200 Web Development <http://1200wd.com/>
+#    © 2017 - 2021 March - 1200 Web Development <http://1200wd.com/>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -1181,7 +1181,6 @@ class Output(object):
             elif self.script_type == 'p2pk':
                 if not self.public_key:
                     raise TransactionError("Public key is needed to create P2PK script for output %d" % output_n)
-                # self.lock_script = varstr(to_bytes(self.public_key)) + b'\xac'
                 self.lock_script = varstr(self.public_key) + b'\xac'
             else:
                 raise TransactionError("Unknown output script type %s, please provide locking script" %
@@ -1415,6 +1414,19 @@ class Transaction(object):
         t = deepcopy(self)
         t.merge_transaction(other)
         return t
+
+    def __eq__(self, other):
+        """
+        Compare two transaction, must have same transaction ID
+
+        :param other: Other transaction object
+        :type other: Transaction
+
+        :return bool:
+        """
+        if not isinstance(other, Transaction):
+            raise TransactionError("Can only compare with other Transaction object")
+        return self.txid == other.txid
 
     def as_dict(self):
         """
@@ -1966,7 +1978,8 @@ class Transaction(object):
         self.size = len(self.raw())
         self.calc_weight_units()
         self.update_totals()
-        self.fee_per_kb = int((self.fee / float(self.size)) * 1024)
+        if self.fee:
+            self.fee_per_kb = int((self.fee / float(self.size)) * 1024)
 
     def add_input(self, prev_txid, output_n, keys=None, signatures=None, public_hash=b'', unlocking_script=b'',
                   unlocking_script_unsigned=None, script_type=None, address='',
@@ -2082,8 +2095,6 @@ class Transaction(object):
         if lock_script.startswith(b'\x6a'):
             if value != 0:
                 raise TransactionError("Output value for OP_RETURN script must be 0")
-        # elif value < self.network.dust_amount and strict:
-        #     raise TransactionError("Output must be more then dust amount %d" % self.network.dust_amount)
         self.outputs.append(Output(value=int(value), address=address, public_hash=public_hash,
                                    public_key=public_key, lock_script=lock_script, spent=spent, output_n=output_n,
                                    encoding=encoding, spending_txid=spending_txid, spending_index_n=spending_index_n,

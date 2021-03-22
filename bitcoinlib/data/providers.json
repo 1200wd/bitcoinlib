@@ -175,6 +175,17 @@
     "denominator": 100000000,
     "network_overrides": null
   },
+  "blockchair.testnet": {
+    "provider": "blockchair",
+    "network": "testnet",
+    "client_class": "BlockChairClient",
+    "provider_coin_id": "",
+    "url": "https://api.blockchair.com/bitcoin/testnet/",
+    "api_key": "",
+    "priority": 10,
+    "denominator": 100000000,
+    "network_overrides": null
+  },
   "blockchair.litecoin": {
     "provider": "blockchair",
     "network": "litecoin",
