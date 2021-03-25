@@ -98,7 +98,8 @@ class BlocksmurferClient(BaseClient):
                         witness_type=ti['witness_type'], locktime_cltv=ti['locktime_cltv'],
                         locktime_csv=ti['locktime_csv'], signatures=ti['signatures'], compressed=ti['compressed'],
                         encoding=ti['encoding'], unlocking_script_unsigned=ti['script_code'],
-                        sigs_required=ti['sigs_required'], sequence=ti['sequence'], witnesses=ti['witnesses'])
+                        sigs_required=ti['sigs_required'], sequence=ti['sequence'],
+                        witnesses=[bytes.fromhex(w) for w in ti['witnesses']])
         for to in tx['outputs']:
             t.add_output(value=to['value'], address=to['address'], public_hash=to['public_hash'],
                          lock_script=to['script'], spent=to['spent'])

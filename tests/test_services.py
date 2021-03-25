@@ -612,6 +612,7 @@ class TestService(unittest.TestCase, CustomAssertions):
         }
         # FIXME: Blocksmurfer
         srv = ServiceTest(network='bitcoin', min_providers=3, exclude_providers=['blocksmurfer'])
+        # srv = ServiceTest(network='bitcoin', providers=['blocksmurfer'], cache_uri='')
         srv.gettransaction('299dab85f10c37c6296d4fb10eaa323fb456a5e7ada9adf41389c447daa9c0e4')
 
         for provider in srv.results:

@@ -901,6 +901,9 @@ class Key(object):
             self._y = int(self.y_hex, 16)
         return self._y
 
+    def hex(self):
+        return self.public_hex
+
     def as_dict(self, include_private=False):
         """
         Get current Key class as dictionary. Byte values are represented by hexadecimal strings.
